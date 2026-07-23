@@ -1,0 +1,1 @@
+{"version":3,"file":"project-scorer.d.ts","sourceRoot":"","sources":["../../../ai/project-memory-engine/project-scorer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,aAAa,EAAiB,MAAM,YAAY,CAAC;AAEzE,qBAAa,aAAa;IACxB,aAAa,CAAC,OAAO,EAAE,OAAO,CAAC,aAAa,CAAC,GAAG,aAAa;IAmC7D,OAAO,CAAC,WAAW;IAInB,OAAO,CAAC,oBAAoB;CAG7B"}

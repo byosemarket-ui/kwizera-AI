@@ -1,0 +1,16 @@
+export { AiCore, createAiCore } from "./ai-core.js";
+export { AiCoreManager } from "./ai-core-manager.js";
+export { AiController } from "./ai-controller.js";
+export { AiCoordinator } from "./ai-coordinator.js";
+export { AiRuntime } from "./ai-runtime.js";
+export { AiStartupManager } from "./ai-startup-manager.js";
+export { AiShutdownManager } from "./ai-shutdown-manager.js";
+export { AiConfigurationManager } from "./ai-configuration-manager.js";
+export { AiContextManager } from "./ai-context-manager.js";
+export { AiSessionManager } from "./ai-session-manager.js";
+export { AiHealthMonitor } from "./ai-health-monitor.js";
+export { AiModuleRegistry, FUTURE_MODULE_IDS } from "./module-registry.js";
+export { AiLifecycleManager } from "./lifecycle.js";
+export { AiCoreLogger } from "./logger.js";
+export * from "./types.js";
+//# sourceMappingURL=index.d.ts.map

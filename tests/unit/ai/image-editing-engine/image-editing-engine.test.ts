@@ -1,0 +1,190 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  AiCore,
+  BackgroundGenType,
+  createAiCore,
+  CreativePlatform,
+  ImageEditGenPlatform,
+  ImageEditInpaintingType,
+  ImageEditOperationType,
+  ImageEditOutpaintingType,
+  MarketingObjective,
+  ProductAnalysisCategory,
+  ProductAvailabilityStatus,
+  ProductBusinessType,
+  ProductUnderstandingMarketingGoal,
+} from "@ai";
+
+function createTempStorageRoot(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-image-editing-test-"));
+}
+
+const ANALYSIS_SAMPLE = {
+  productId: "edit-test-product",
+  productName: "Editing Test Product",
+  category: ProductAnalysisCategory.Electronics,
+  subcategory: "gadgets",
+  brand: "TestBrand",
+  description: "Electronics product for image editing validation",
+  features: ["portable", "wireless"],
+  specifications: { color: "black" },
+  materials: ["plastic", "metal"],
+  price: 99.99,
+  currency: "USD",
+  availability: ProductAvailabilityStatus.InStock,
+  businessType: ProductBusinessType.D2C,
+  tags: ["test"],
+  keywords: ["electronics"],
+};
+
+async function prepareFullPipeline(
+  foundation: NonNullable<ReturnType<ReturnType<typeof createAiCore>["getManager"]>["productIntelligenceFoundation"]>
+): Promise<void> {
+  await foundation.getProductAnalysisEngine().analyzeProduct(ANALYSIS_SAMPLE);
+  await foundation.getProductUnderstandingEngine().understandProduct({
+    productId: "edit-test-product",
+    marketingGoal: ProductUnderstandingMarketingGoal.Conversion,
+  });
+  await foundation.getTargetAudienceIntelligenceEngine().analyzeAudience({
+    productId: "edit-test-product",
+  });
+  await foundation.getMarketingStrategyIntelligenceEngine().prepareMarketingStrategy({
+    productId: "edit-test-product",
+    marketingObjective: MarketingObjective.ProductPromotion,
+  });
+  await foundation.getCreativeDirectionEngine().planCreativeDirection({
+    productId: "edit-test-product",
+    platform: CreativePlatform.Website,
+  });
+}
+
+describe("AiImageEditingEngine", () => {
+  let storageRoot: string;
+
+  beforeEach(() => {
+    storageRoot = createTempStorageRoot();
+  });
+
+  afterEach(() => {
+    AiCore.resetInstance();
+    if (fs.existsSync(storageRoot)) {
+      fs.rmSync(storageRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("initializes and registers with image generation foundation", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start("edit-test");
+
+    const foundation = core.getManager().imageGenerationFoundation!;
+    const engine = foundation.getImageEditingEngine();
+    const module = foundation.getRegistry().getModule("image-editing-generation-engine");
+
+    expect(engine.isInitialized()).toBe(true);
+    expect(engine.isStartupComplete()).toBe(true);
+    expect(module?.implemented).toBe(true);
+
+    await core.stop("edit-test");
+  });
+
+  it("generates editing plan from product and background plans", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start("edit-test");
+
+    const imgFoundation = core.getManager().imageGenerationFoundation!;
+    const piFoundation = core.getManager().productIntelligenceFoundation!;
+    await prepareFullPipeline(piFoundation);
+
+    const productPlan = await imgFoundation.getProductImageGenerationEngine().generateProductImagePlan({
+      productId: "edit-test-product",
+    });
+    expect(productPlan.success).toBe(true);
+
+    const bgPlan = await imgFoundation.getBackgroundGenerationEngine().generateBackgroundPlan({
+      productId: "edit-test-product",
+      productImagePlanId: productPlan.record!.productImagePlanId,
+      sourceImageId: productPlan.record!.productImagePlanId,
+      targetBackground: BackgroundGenType.WhiteBackground,
+    });
+    expect(bgPlan.success).toBe(true);
+
+    const engine = imgFoundation.getImageEditingEngine();
+    const result = await engine.generateEditingPlan({
+      productId: "edit-test-product",
+      productImagePlanId: productPlan.record!.productImagePlanId,
+      backgroundPlanId: bgPlan.record!.backgroundPlanId,
+      sourceImageId: productPlan.record!.productImagePlanId,
+      primaryOperation: ImageEditOperationType.ProductCleanup,
+      inpaintingType: ImageEditInpaintingType.DetailRecovery,
+      outpaintingType: ImageEditOutpaintingType.CanvasExpansion,
+      platform: ImageEditGenPlatform.Website,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.record?.validated).toBe(true);
+    expect(result.record?.identityPreservation.targets.length).toBeGreaterThanOrEqual(6);
+    expect(result.record?.scores.identityPreservationScore).toBeGreaterThanOrEqual(55);
+
+    await core.stop("edit-test");
+  });
+
+  it("generates editing plan with inpainting and outpainting", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start("edit-test");
+
+    const imgFoundation = core.getManager().imageGenerationFoundation!;
+    const piFoundation = core.getManager().productIntelligenceFoundation!;
+    await prepareFullPipeline(piFoundation);
+
+    const productPlan = await imgFoundation.getProductImageGenerationEngine().generateProductImagePlan({
+      productId: "edit-test-product",
+    });
+
+    const engine = imgFoundation.getImageEditingEngine();
+    const result = await engine.generateEditingPlan({
+      productId: "edit-test-product",
+      sourceImageId: productPlan.record!.productImagePlanId,
+      generateInpaintingPlan: true,
+      generateOutpaintingPlan: true,
+      generatePlatformOptimizations: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.record?.inpaintingPlan.inpaintingType).toBeDefined();
+    expect(result.record?.outpaintingPlan.outpaintingType).toBeDefined();
+    expect(result.record?.platformOptimizations.length).toBeGreaterThanOrEqual(4);
+
+    await core.stop("edit-test");
+  });
+
+  it("searches editing plans by product and keywords", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start("edit-test");
+
+    const imgFoundation = core.getManager().imageGenerationFoundation!;
+    const piFoundation = core.getManager().productIntelligenceFoundation!;
+    await prepareFullPipeline(piFoundation);
+
+    const productPlan = await imgFoundation.getProductImageGenerationEngine().generateProductImagePlan({
+      productId: "edit-test-product",
+    });
+
+    const engine = imgFoundation.getImageEditingEngine();
+    await engine.generateEditingPlan({
+      productId: "edit-test-product",
+      sourceImageId: productPlan.record!.productImagePlanId,
+      editingPrompt: "Professional image editing workflow",
+    });
+
+    const byProduct = engine.searchEditingPlans({ productId: "edit-test-product" });
+    const byKeyword = engine.searchEditingPlans({ keywords: "editing" });
+
+    expect(byProduct.length).toBeGreaterThanOrEqual(1);
+    expect(byKeyword.length).toBeGreaterThanOrEqual(1);
+
+    await core.stop("edit-test");
+  });
+});

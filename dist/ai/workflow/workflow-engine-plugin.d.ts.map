@@ -1,0 +1,1 @@
+{"version":3,"file":"workflow-engine-plugin.d.ts","sourceRoot":"","sources":["../../../ai/workflow/workflow-engine-plugin.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAC;AACvD,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,EAAE,gBAAgB,EAAE,MAAM,sBAAsB,CAAC;AAExD,wBAAgB,0BAA0B,CACxC,MAAM,EAAE,gBAAgB,EACxB,IAAI,EAAE,aAAa,GAClB,cAAc,CAuBhB"}

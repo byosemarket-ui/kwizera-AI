@@ -1,0 +1,18 @@
+export { AiVideoIntelligenceOptimizationEngine } from "./video-intelligence-optimization-engine.js";
+export { VideoIntelligenceOptimizationEngineError } from "./types.js";
+export type {
+  VideoOptimizationStrategyType,
+  VideoOptimizationProfile,
+  VideoModuleOptimizationResult,
+  VideoOptimizationStrategies,
+  VideoCacheOptimization,
+  VideoIntelligenceRecoveryPoint,
+  VideoOptimizationPerformanceMetrics,
+  VideoOptimizationScores,
+  VideoIntelligenceOptimizationRelationships,
+  VideoIntelligenceOptimizationInput,
+  VideoIntelligenceOptimizationRecord,
+  VideoIntelligenceOptimizationResult,
+  VideoIntelligenceOptimizationSearchQuery,
+  VideoIntelligenceOptimizationEngineStatusReport,
+} from "./types.js";

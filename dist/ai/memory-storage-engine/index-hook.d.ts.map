@@ -1,0 +1,1 @@
+{"version":3,"file":"index-hook.d.ts","sourceRoot":"","sources":["../../../ai/memory-storage-engine/index-hook.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,YAAY,CAAC;AAE/C,6DAA6D;AAC7D,MAAM,WAAW,eAAe;IAC9B,cAAc,CAAC,MAAM,EAAE,YAAY,GAAG,IAAI,CAAC;IAC3C,eAAe,CAAC,MAAM,EAAE,YAAY,GAAG,IAAI,CAAC;IAC5C,eAAe,CAAC,QAAQ,EAAE,MAAM,GAAG,IAAI,CAAC;CACzC"}

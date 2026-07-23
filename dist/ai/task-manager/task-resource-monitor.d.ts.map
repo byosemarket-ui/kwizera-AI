@@ -1,0 +1,1 @@
+{"version":3,"file":"task-resource-monitor.d.ts","sourceRoot":"","sources":["../../../ai/task-manager/task-resource-monitor.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,EAAE,gBAAgB,EAAE,MAAM,YAAY,CAAC;AAE9C,qBAAa,mBAAmB;IAC9B,QAAQ,CAAC,IAAI,EAAE,aAAa,GAAG,IAAI,GAAG,gBAAgB;IActD,aAAa,CAAC,QAAQ,EAAE,gBAAgB,GAAG,OAAO;CAKnD"}

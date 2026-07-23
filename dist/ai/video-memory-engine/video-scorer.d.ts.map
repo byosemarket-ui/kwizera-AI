@@ -1,0 +1,1 @@
+{"version":3,"file":"video-scorer.d.ts","sourceRoot":"","sources":["../../../ai/video-memory-engine/video-scorer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,WAAW,EAAE,MAAM,YAAY,CAAC;AAE7D,qBAAa,WAAW;IACtB,aAAa,CAAC,KAAK,EAAE,OAAO,CAAC,WAAW,CAAC,GAAG,kBAAkB;CA6C/D"}

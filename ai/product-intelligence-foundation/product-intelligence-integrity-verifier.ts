@@ -1,0 +1,79 @@
+import fs from "node:fs";
+import path from "node:path";
+import { ProductIntelligenceIntegrityResult } from "./types.js";
+import { PREPARED_PRODUCT_INTELLIGENCE_MODULES } from "./product-intelligence-categories.js";
+import { ProductIntelligenceFoundationLogger } from "./product-intelligence-logger.js";
+import { ProductIntelligenceRegistry } from "./product-intelligence-registry.js";
+import { ProductIntelligenceStorageManager } from "./product-intelligence-storage.js";
+
+export class ProductIntelligenceIntegrityVerifier {
+  constructor(private readonly logger: ProductIntelligenceFoundationLogger) {}
+
+  verify(
+    storage: ProductIntelligenceStorageManager,
+    registry: ProductIntelligenceRegistry
+  ): ProductIntelligenceIntegrityResult {
+    const issues: string[] = [];
+    let checkedPaths = 0;
+
+    const intelligenceRoot = storage.getIntelligenceRoot();
+    if (!fs.existsSync(intelligenceRoot)) {
+      issues.push(`Product intelligence root missing: ${intelligenceRoot}`);
+    } else {
+      checkedPaths++;
+    }
+
+    for (const module of PREPARED_PRODUCT_INTELLIGENCE_MODULES) {
+      const modulePath = storage.getModulePath(module.subdirectory);
+      checkedPaths++;
+      if (!fs.existsSync(modulePath)) {
+        issues.push(`Module directory missing: ${modulePath}`);
+      }
+    }
+
+    const registryPath = storage.getRegistryPath();
+    checkedPaths++;
+    if (!fs.existsSync(registryPath)) {
+      issues.push(`Registry file missing: ${registryPath}`);
+    }
+
+    const checksumVerified = registry.verifyChecksum();
+    if (!checksumVerified && fs.existsSync(registryPath)) {
+      issues.push("Registry checksum verification failed");
+    }
+
+    const manifestPath = path.join(intelligenceRoot, "foundation-manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+      issues.push("Foundation manifest missing — will be created on next persist");
+    } else {
+      checkedPaths++;
+    }
+
+    const verified = issues.length === 0;
+    this.logger.log(verified ? "info" : "warn", "integrity", "Product intelligence integrity verification complete", {
+      verified,
+      checkedPaths,
+      issues: issues.length,
+    });
+
+    return {
+      verified,
+      checkedPaths,
+      issues,
+      checksumVerified,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  writeManifest(storage: ProductIntelligenceStorageManager, storageRoot: string): void {
+    const manifest = {
+      foundationVersion: "0.1.0",
+      storageRoot,
+      intelligenceRoot: storage.getIntelligenceRoot(),
+      modules: PREPARED_PRODUCT_INTELLIGENCE_MODULES.map((m) => m.moduleId),
+      createdAt: new Date().toISOString(),
+    };
+    const manifestPath = path.join(storage.getIntelligenceRoot(), "foundation-manifest.json");
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+  }
+}

@@ -1,0 +1,176 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  AiCore,
+  createAiCore,
+  AudioMixingPlatform,
+  AudioProductionPlatform,
+  AudioQualityValidationPlatform,
+  AudioRenderPlatform,
+  CreativePlatform,
+  MarketingObjective,
+  ProductAnalysisCategory,
+  ProductAvailabilityStatus,
+  ProductBusinessType,
+  ProductUnderstandingMarketingGoal,
+} from "@ai";
+
+function createTempStorageRoot(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-audio-quality-test-"));
+}
+
+const SAMPLE = {
+  productId: "audio-quality-test-product",
+  productName: "Audio Quality Test Product",
+  category: ProductAnalysisCategory.Software,
+  subcategory: "saas",
+  brand: "TestBrand",
+  description: "Product for audio quality validation",
+  features: ["quality"],
+  price: 199.99,
+  currency: "USD",
+  availability: ProductAvailabilityStatus.InStock,
+  businessType: ProductBusinessType.B2B,
+  tags: ["test"],
+  keywords: ["test"],
+};
+
+async function prepareFullPipeline(
+  foundation: NonNullable<ReturnType<ReturnType<typeof createAiCore>["getManager"]>["productIntelligenceFoundation"]>
+): Promise<void> {
+  await foundation.getProductAnalysisEngine().analyzeProduct(SAMPLE);
+  await foundation.getProductUnderstandingEngine().understandProduct({
+    productId: "audio-quality-test-product",
+    marketingGoal: ProductUnderstandingMarketingGoal.Conversion,
+  });
+  await foundation.getTargetAudienceIntelligenceEngine().analyzeAudience({ productId: "audio-quality-test-product" });
+  await foundation.getMarketingStrategyIntelligenceEngine().prepareMarketingStrategy({
+    productId: "audio-quality-test-product",
+    marketingObjective: MarketingObjective.ProductPromotion,
+  });
+  await foundation.getCreativeDirectionEngine().planCreativeDirection({
+    productId: "audio-quality-test-product",
+    platform: CreativePlatform.YouTube,
+  });
+}
+
+describe("AiAudioQualityValidationEngine", () => {
+  let storageRoot: string;
+
+  beforeEach(() => {
+    storageRoot = createTempStorageRoot();
+  });
+
+  afterEach(() => {
+    AiCore.resetInstance();
+    if (fs.existsSync(storageRoot)) fs.rmSync(storageRoot, { recursive: true, force: true });
+  });
+
+  it("initializes and registers with audio generation foundation", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start("audio-quality-test");
+
+    const foundation = core.getManager().audioGenerationFoundation!;
+    const engine = foundation.getAudioQualityValidationEngine();
+    expect(engine.isInitialized()).toBe(true);
+    expect(engine.isStartupComplete()).toBe(true);
+
+    const module = foundation.getRegistry().getModule("audio-quality-validation-engine");
+    expect(module?.implemented).toBe(true);
+    expect(module?.status).toBe("active");
+
+    await core.stop();
+  });
+
+  it("validates audio quality from production and render pipeline", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start();
+
+    await prepareFullPipeline(core.getManager().productIntelligenceFoundation!);
+
+    const audioFoundation = core.getManager().audioGenerationFoundation!;
+    const mix = await audioFoundation.getAudioMixingMasteringEngine().generateMixMasterPlan({
+      productId: "audio-quality-test-product",
+      mixPrompt: "Quality validation mix",
+      platform: AudioMixingPlatform.YouTube,
+      sessionId: "quality-test-session",
+    });
+
+    const production = await audioFoundation.getAudioProductionEngine().generateProductionPlan({
+      productId: "audio-quality-test-product",
+      mixingPlanId: mix.record!.mixingPlanId,
+      audioPlanId: mix.record!.mixingPlanId,
+      sessionId: "quality-test-session",
+      brandId: "TestBrand",
+      platform: AudioProductionPlatform.YouTube,
+      prepareExports: true,
+    });
+
+    const render = await audioFoundation.getAudioRenderingPreparationEngine().generateRenderPlan({
+      productId: "audio-quality-test-product",
+      productionId: production.record!.audioProductionId,
+      platform: AudioRenderPlatform.YouTube,
+      prepareOutputProfiles: true,
+    });
+
+    const engine = audioFoundation.getAudioQualityValidationEngine();
+    const result = await engine.validateAudioQuality({
+      productId: "audio-quality-test-product",
+      renderPlanId: render.record!.audioRenderPlanId,
+      productionId: production.record!.audioProductionId,
+      brandId: "TestBrand",
+      platform: AudioQualityValidationPlatform.YouTube,
+      autoRepair: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.record?.validated).toBe(true);
+    expect(result.record?.approved).toBe(true);
+    expect(result.record?.scores.overallAudioQualityScore).toBeGreaterThanOrEqual(55);
+    expect(result.record?.audioQuality.length).toBeGreaterThanOrEqual(8);
+
+    await core.stop();
+  });
+
+  it("validates from prompt only", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start();
+
+    const engine = core.getManager().audioGenerationFoundation!.getAudioQualityValidationEngine();
+    const result = await engine.validateAudioQuality({
+      validationPrompt: "Audio quality validation for KWIZERA creative workspace",
+      brandName: "KWIZERA",
+      platform: AudioQualityValidationPlatform.Website,
+      autoRepair: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.record?.platformValidation.length).toBeGreaterThanOrEqual(4);
+    expect(result.record?.syncValidation.length).toBeGreaterThanOrEqual(4);
+
+    await core.stop();
+  });
+
+  it("search and status report", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start();
+
+    const engine = core.getManager().audioGenerationFoundation!.getAudioQualityValidationEngine();
+    await engine.validateAudioQuality({
+      validationPrompt: "Quality validation search test for KWIZERA",
+      brandName: "KWIZERA",
+      platform: AudioQualityValidationPlatform.Mobile,
+      autoRepair: true,
+    });
+
+    expect(engine.searchValidations({ keywords: "kwizera" }).length).toBeGreaterThanOrEqual(1);
+
+    const status = engine.buildStatusReport();
+    expect(status.readinessScore).toBeGreaterThanOrEqual(85);
+    expect(status.validationsPerformed).toBeGreaterThanOrEqual(1);
+
+    await core.stop();
+  });
+});

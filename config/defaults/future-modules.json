@@ -1,0 +1,24 @@
+{
+  "futureModules": [
+    { "id": "memory-engine", "name": "Memory Engine", "enabled": false },
+    { "id": "knowledge-engine", "name": "Knowledge Engine", "enabled": false },
+    { "id": "reasoning-engine", "name": "Reasoning Engine", "enabled": false },
+    { "id": "learning-engine", "name": "Learning Engine", "enabled": false },
+    { "id": "marketing-engine", "name": "Marketing Engine", "enabled": false },
+    { "id": "video-engine", "name": "Video Engine", "enabled": false },
+    { "id": "video-generation-engine", "name": "Video Generation Engine", "enabled": false },
+    { "id": "image-generation-engine", "name": "Image Generation Engine", "enabled": false },
+    { "id": "audio-generation-engine", "name": "Audio Generation Engine", "enabled": false },
+    { "id": "image-engine", "name": "Image Engine", "enabled": false },
+    { "id": "translation-engine", "name": "Translation Engine", "enabled": false },
+    { "id": "decision-engine", "name": "Decision Engine", "enabled": false },
+    { "id": "planning-engine", "name": "Planning Engine", "enabled": false },
+    { "id": "workflow-engine", "name": "Workflow Engine", "enabled": false },
+    { "id": "task-manager", "name": "Task Manager", "enabled": false },
+    { "id": "product-engine", "name": "Product Engine", "enabled": false },
+    { "id": "search-engine", "name": "Search Engine", "enabled": false },
+    { "id": "export-engine", "name": "Export Engine", "enabled": false },
+    { "id": "recovery-engine", "name": "Recovery Engine", "enabled": false },
+    { "id": "health-monitor", "name": "Health Monitor", "enabled": false }
+  ]
+}

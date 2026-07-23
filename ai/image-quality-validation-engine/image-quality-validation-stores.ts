@@ -1,0 +1,44 @@
+import fs from "node:fs";
+import path from "node:path";
+import { ImageQualityValidationRecord } from "./types.js";
+
+export class ImageQualityValidationRecordStore {
+  private storePath = "";
+  private records = new Map<string, ImageQualityValidationRecord>();
+
+  initialize(engineDir: string): void {
+    fs.mkdirSync(engineDir, { recursive: true });
+    this.storePath = path.join(engineDir, "image-quality-validation-records.json");
+    if (fs.existsSync(this.storePath)) {
+      const list = JSON.parse(fs.readFileSync(this.storePath, "utf8")) as ImageQualityValidationRecord[];
+      for (const record of list) {
+        this.records.set(record.qualityValidationId, record);
+      }
+    }
+  }
+
+  upsert(record: ImageQualityValidationRecord): void {
+    this.records.set(record.qualityValidationId, record);
+    fs.writeFileSync(this.storePath, JSON.stringify(this.getAll(), null, 2), "utf8");
+  }
+
+  get(qualityValidationId: string): ImageQualityValidationRecord | undefined {
+    return this.records.get(qualityValidationId);
+  }
+
+  getByProduct(productId: string): ImageQualityValidationRecord[] {
+    return this.getAll().filter((r) => r.profile.productId === productId);
+  }
+
+  getByRenderPlan(renderPlanId: string): ImageQualityValidationRecord[] {
+    return this.getAll().filter((r) => r.profile.renderPlanId === renderPlanId);
+  }
+
+  getAll(): ImageQualityValidationRecord[] {
+    return [...this.records.values()];
+  }
+
+  getCount(): number {
+    return this.records.size;
+  }
+}

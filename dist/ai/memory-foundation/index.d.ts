@@ -1,0 +1,25 @@
+export { AiMemoryFoundation } from "./memory-foundation.js";
+export { AiMemoryStorageEngine } from "../memory-storage-engine/memory-storage-engine.js";
+export { AiMemoryRetrievalEngine } from "../memory-retrieval-engine/memory-retrieval-engine.js";
+export { AiMemoryIndexEngine } from "../memory-index-engine/memory-index-engine.js";
+export { AiLearningMemoryEngine } from "../learning-memory-engine/learning-memory-engine.js";
+export { AiProjectMemoryEngine } from "../project-memory-engine/project-memory-engine.js";
+export { AiVideoMemoryEngine } from "../video-memory-engine/video-memory-engine.js";
+export { AiMarketingMemoryEngine } from "../marketing-memory-engine/marketing-memory-engine.js";
+export { AiProductMemoryEngine } from "../product-memory-engine/product-memory-engine.js";
+export { AiRelationshipMemoryEngine } from "../relationship-memory-engine/relationship-memory-engine.js";
+export { AiMemoryOptimizationEngine } from "../memory-optimization-engine/memory-optimization-engine.js";
+export { AiMemoryBackupEngine } from "../memory-backup-engine/memory-backup-engine.js";
+export { AiMemoryRecoveryEngine } from "../memory-recovery-engine/memory-recovery-engine.js";
+export { AiMemoryHealthMonitorEngine } from "../memory-health-monitor-engine/memory-health-monitor-engine.js";
+export { createMemoryFoundationPlugin } from "./memory-foundation-plugin.js";
+export { MemoryRegistry } from "./memory-registry.js";
+export { MemoryStorageManager } from "./memory-storage.js";
+export { MemoryAccessCoordinator } from "./memory-access-coordinator.js";
+export { MemoryHealthMonitor } from "./memory-health-monitor.js";
+export { MemoryFoundationLogger } from "./memory-logger.js";
+export { MemoryHistoryStore } from "./memory-history-store.js";
+export { PREPARED_MEMORY_CATEGORIES, PROTECTED_DATA_CATEGORIES } from "./memory-categories.js";
+export { MemoryLifecycleState, MemoryCategory, MemoryModuleStatus, MemoryHealthLevel, MemoryAccessPermission, MemoryAccessOperation, MemoryFoundationError, } from "./types.js";
+export type { MemoryModuleRegistration, MemoryRegistrySnapshot, MemoryIntegrityResult, MemoryAccessRequest, MemoryAccessResult, MemoryHealthReport, MemoryFoundationStatusReport, } from "./types.js";
+//# sourceMappingURL=index.d.ts.map

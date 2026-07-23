@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KWIZERA AI STUDIO — Dev Dashboard</title>
+  <link rel="icon" type="image/png" href="/api/logo" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-brand">
+        <img src="/api/logo" alt="KWIZERA AI" class="logo" />
+        <div>
+          <h1>KWIZERA AI STUDIO</h1>
+          <p class="subtitle">Persistent Local Development Environment</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <span id="api-status" class="api-offline">● API Checking…</span>
+        <span id="session-status" class="session-badge">Session loading…</span>
+        <span class="localhost-badge">offline · localhost only</span>
+      </div>
+    </header>
+
+    <section class="session-panel" id="session-panel">
+      <h3>Persistent Session</h3>
+      <div class="session-grid">
+        <div class="session-item"><span class="session-label">Storage</span><span id="sess-storage" class="session-value">—</span></div>
+        <div class="session-item"><span class="session-label">Memory</span><span id="sess-memory" class="session-value">—</span></div>
+        <div class="session-item"><span class="session-label">Knowledge</span><span id="sess-knowledge" class="session-value">—</span></div>
+        <div class="session-item"><span class="session-label">Projects</span><span id="sess-projects" class="session-value">—</span></div>
+        <div class="session-item"><span class="session-label">Modules</span><span id="sess-modules" class="session-value">—</span></div>
+        <div class="session-item"><span class="session-label">Session</span><span id="sess-id" class="session-value">—</span></div>
+      </div>
+      <p id="session-message" class="session-message">Restoring previous development session…</p>
+    </section>
+
+    <section class="summary-cards" id="summary-cards">
+      <div class="card"><span class="card-value" id="stat-passed">—</span><span class="card-label">Modules Complete</span></div>
+      <div class="card"><span class="card-value" id="stat-total">—</span><span class="card-label">Total Tracked</span></div>
+      <div class="card"><span class="card-value" id="stat-ai">—</span><span class="card-label">AI Modules</span></div>
+      <div class="card"><span class="card-value">10L</span><span class="card-label">Latest Step</span></div>
+    </section>
+
+    <section class="engine-bar">
+      <h3>Quick Engine Tests</h3>
+      <div class="engine-buttons" id="engine-buttons"></div>
+    </section>
+
+    <div id="test-running" class="test-running hidden">
+      <div class="spinner"></div>
+      <span id="test-running-label">Running test…</span>
+    </div>
+
+    <section id="test-result" class="test-result hidden"></section>
+
+    <div class="toolbar">
+      <input type="search" id="filter" placeholder="Filter modules by name, step, or path…" class="search-input" />
+      <button class="btn" id="refresh-btn">Refresh Status</button>
+    </div>
+
+    <main class="phases" id="phases"></main>
+
+    <footer class="footer">KWIZERA AI STUDIO — Persistent local development · All data saved to D:\KWIZERA-AI-STUDIO · Not for deployment</footer>
+  </div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

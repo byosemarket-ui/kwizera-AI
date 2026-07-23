@@ -1,0 +1,155 @@
+import {
+  ImageIntelligenceAccessPermission,
+  ImageIntelligenceCategory,
+  ImageIntelligenceModuleStatus,
+  ImageIntelligenceSource,
+} from "./types.js";
+
+export interface PreparedImageIntelligenceModule {
+  category: ImageIntelligenceCategory;
+  moduleId: string;
+  moduleName: string;
+  subdirectory: string;
+  dependencies: string[];
+  defaultSource: ImageIntelligenceSource;
+  accessPermissions: ImageIntelligenceAccessPermission[];
+}
+
+export const DEFAULT_MODULE_STATUS = ImageIntelligenceModuleStatus.Prepared;
+
+/** Foundation slots for future Image Intelligence modules — prepared, not implemented */
+export const PREPARED_IMAGE_INTELLIGENCE_MODULES: PreparedImageIntelligenceModule[] = [
+  {
+    category: ImageIntelligenceCategory.ImageAnalysis,
+    moduleId: "image-analysis-engine",
+    moduleName: "Image Analysis Engine",
+    subdirectory: "analysis",
+    dependencies: ["image-engine", "knowledge-engine", "memory-engine"],
+    defaultSource: ImageIntelligenceSource.ImageKnowledge,
+    accessPermissions: [
+      ImageIntelligenceAccessPermission.Read,
+      ImageIntelligenceAccessPermission.Write,
+      ImageIntelligenceAccessPermission.Validate,
+    ],
+  },
+  {
+    category: ImageIntelligenceCategory.ImageUnderstanding,
+    moduleId: "image-understanding-engine",
+    moduleName: "Image Understanding Engine",
+    subdirectory: "understanding",
+    dependencies: ["image-engine", "knowledge-engine", "image-analysis-engine"],
+    defaultSource: ImageIntelligenceSource.KnowledgeEngine,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.ObjectDetection,
+    moduleId: "object-detection-intelligence",
+    moduleName: "Object Detection Intelligence",
+    subdirectory: "object-detection",
+    dependencies: ["image-engine", "image-analysis-engine"],
+    defaultSource: ImageIntelligenceSource.ImageKnowledge,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.Background,
+    moduleId: "background-intelligence",
+    moduleName: "Background Intelligence",
+    subdirectory: "background",
+    dependencies: ["image-engine", "object-detection-intelligence"],
+    defaultSource: ImageIntelligenceSource.ImageKnowledge,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.Composition,
+    moduleId: "composition-intelligence",
+    moduleName: "Composition Intelligence",
+    subdirectory: "composition",
+    dependencies: ["image-engine", "image-understanding-engine"],
+    defaultSource: ImageIntelligenceSource.VisualPlanning,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.LightingColor,
+    moduleId: "lighting-color-intelligence",
+    moduleName: "Lighting & Color Intelligence",
+    subdirectory: "lighting-color",
+    dependencies: ["image-engine", "image-analysis-engine"],
+    defaultSource: ImageIntelligenceSource.ImageKnowledge,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.BrandVisual,
+    moduleId: "brand-visual-intelligence",
+    moduleName: "Brand Visual Intelligence",
+    subdirectory: "brand-visual",
+    dependencies: ["image-engine", "product-engine", "knowledge-engine"],
+    defaultSource: ImageIntelligenceSource.CreativeDirection,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.EnhancementPlanning,
+    moduleId: "image-enhancement-planning",
+    moduleName: "Image Enhancement Planning",
+    subdirectory: "enhancement-planning",
+    dependencies: ["image-engine", "image-understanding-engine"],
+    defaultSource: ImageIntelligenceSource.System,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.CreativeImage,
+    moduleId: "creative-image-intelligence",
+    moduleName: "Creative Image Intelligence",
+    subdirectory: "creative",
+    dependencies: ["image-engine", "product-engine", "composition-intelligence"],
+    defaultSource: ImageIntelligenceSource.CreativeDirection,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.ProductionPlanning,
+    moduleId: "production-image-planning",
+    moduleName: "Production Image Planning",
+    subdirectory: "production",
+    dependencies: ["image-engine", "creative-image-intelligence", "image-enhancement-planning"],
+    defaultSource: ImageIntelligenceSource.System,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Write],
+  },
+  {
+    category: ImageIntelligenceCategory.QualityPrediction,
+    moduleId: "image-quality-prediction",
+    moduleName: "Image Quality Prediction",
+    subdirectory: "quality-prediction",
+    dependencies: ["image-engine", "knowledge-engine"],
+    defaultSource: ImageIntelligenceSource.System,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Validate],
+  },
+  {
+    category: ImageIntelligenceCategory.Optimization,
+    moduleId: "image-intelligence-optimization",
+    moduleName: "Image Intelligence Optimization",
+    subdirectory: "optimization",
+    dependencies: ["image-engine"],
+    defaultSource: ImageIntelligenceSource.System,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Admin],
+  },
+  {
+    category: ImageIntelligenceCategory.HealthMonitoring,
+    moduleId: "image-intelligence-health-monitor",
+    moduleName: "Image Intelligence Health Monitor",
+    subdirectory: "health",
+    dependencies: ["image-engine"],
+    defaultSource: ImageIntelligenceSource.System,
+    accessPermissions: [ImageIntelligenceAccessPermission.Read, ImageIntelligenceAccessPermission.Validate],
+  },
+];
+
+export const SUPPORTED_IMAGE_INTELLIGENCE_SOURCES: ImageIntelligenceSource[] = [
+  ImageIntelligenceSource.MemoryEngine,
+  ImageIntelligenceSource.KnowledgeEngine,
+  ImageIntelligenceSource.ProductIntelligenceEngine,
+  ImageIntelligenceSource.ImageKnowledge,
+  ImageIntelligenceSource.VisualPlanning,
+  ImageIntelligenceSource.CreativeDirection,
+  ImageIntelligenceSource.UserInput,
+  ImageIntelligenceSource.System,
+  ImageIntelligenceSource.Manual,
+];

@@ -1,0 +1,18 @@
+{
+  "storageRoot": "D:\\KWIZERA-AI-STUDIO",
+  "directories": {
+    "config": "config",
+    "database": "database",
+    "projects": "projects",
+    "uploads": "uploads",
+    "exports": "exports",
+    "media": "media",
+    "memory": "memory",
+    "knowledge": "knowledge",
+    "learning": "learning",
+    "logs": "logs",
+    "backups": "backups",
+    "cache": "cache",
+    "temp": "temp"
+  }
+}

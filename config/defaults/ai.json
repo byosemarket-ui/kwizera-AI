@@ -1,0 +1,8 @@
+{
+  "startupTimeoutMs": 30000,
+  "shutdownTimeoutMs": 10000,
+  "maxConcurrentSessions": 10,
+  "healthCheckIntervalMs": 5000,
+  "enableRecovery": true,
+  "logLevel": "info"
+}
