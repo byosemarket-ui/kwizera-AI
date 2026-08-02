@@ -16,9 +16,35 @@ import {
 
   getPersistentRuntime,
 
+  getImageGenerationManager,
+
+  getVideoAudioGenerationManager,
+
+  getGenerationOptimizationManager,
+
+  getProductIntelligenceManager,
+
+  getImageIntelligenceManager,
+
+  getMarketingIntelligenceManager,
+
+  getDecisionIntelligenceManager,
+
+  getLearningIntelligenceManager,
+
+  getModelManager,
+
+  getPlanningManager,
+
+  getPipelineManager,
+
+  getReviewManager,
+
   getRuntimeStatus,
 
   getSessionStore,
+
+  getWorkspaceManager,
 
   isPersistentMode,
 
@@ -104,6 +130,22 @@ function contentType(filePath: string): string {
 
   if (filePath.endsWith(".png")) return "image/png";
 
+  if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) return "image/jpeg";
+
+  if (filePath.endsWith(".webp")) return "image/webp";
+
+  if (filePath.endsWith(".svg")) return "image/svg+xml";
+
+  if (filePath.endsWith(".mp4")) return "video/mp4";
+
+  if (filePath.endsWith(".mov")) return "video/quicktime";
+
+  if (filePath.endsWith(".webm")) return "video/webm";
+
+  if (filePath.endsWith(".mp3")) return "audio/mpeg";
+
+  if (filePath.endsWith(".wav")) return "audio/wav";
+
   return "application/octet-stream";
 
 }
@@ -127,6 +169,214 @@ function serveStatic(res: ServerResponse, filePath: string): void {
   res.writeHead(200, { "Content-Type": contentType(filePath) });
 
   res.end(data);
+
+}
+
+function requireWorkspace(res: ServerResponse) {
+
+  const workspace = getWorkspaceManager();
+
+  if (!workspace) {
+
+    sendJson(res, 503, { error: "Creative workspace is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return workspace;
+
+}
+
+function requirePlanning(res: ServerResponse) {
+
+  const planning = getPlanningManager();
+
+  if (!planning) {
+
+    sendJson(res, 503, { error: "Creative planning is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return planning;
+
+}
+
+function requireReview(res: ServerResponse) {
+
+  const review = getReviewManager();
+
+  if (!review) {
+
+    sendJson(res, 503, { error: "Creative review is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return review;
+
+}
+
+function requirePipeline(res: ServerResponse) {
+
+  const pipeline = getPipelineManager();
+
+  if (!pipeline) {
+
+    sendJson(res, 503, { error: "Creative pipeline is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return pipeline;
+
+}
+
+function requireModelManager(res: ServerResponse) {
+
+  const models = getModelManager();
+
+  if (!models) {
+
+    sendJson(res, 503, { error: "AI Model Management is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return models;
+
+}
+
+function requireImageGeneration(res: ServerResponse) {
+
+  const images = getImageGenerationManager();
+
+  if (!images) {
+
+    sendJson(res, 503, { error: "Image generation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return images;
+
+}
+
+function requireVideoAudioGeneration(res: ServerResponse) {
+
+  const videoAudio = getVideoAudioGenerationManager();
+
+  if (!videoAudio) {
+
+    sendJson(res, 503, { error: "Video and audio generation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return videoAudio;
+
+}
+
+function requireGenerationOptimization(res: ServerResponse) {
+
+  const optimization = getGenerationOptimizationManager();
+
+  if (!optimization) {
+
+    sendJson(res, 503, { error: "Generation optimization is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return optimization;
+
+}
+
+function requireProductIntelligence(res: ServerResponse) {
+
+  const intelligence = getProductIntelligenceManager();
+
+  if (!intelligence) {
+
+    sendJson(res, 503, { error: "Product intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return intelligence;
+
+}
+
+function requireImageIntelligence(res: ServerResponse) {
+
+  const intelligence = getImageIntelligenceManager();
+
+  if (!intelligence) {
+
+    sendJson(res, 503, { error: "Image intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return intelligence;
+
+}
+
+function requireMarketingIntelligence(res: ServerResponse) {
+
+  const intelligence = getMarketingIntelligenceManager();
+
+  if (!intelligence) {
+
+    sendJson(res, 503, { error: "Marketing intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return intelligence;
+
+}
+
+function requireDecisionIntelligence(res: ServerResponse) {
+
+  const intelligence = getDecisionIntelligenceManager();
+
+  if (!intelligence) {
+
+    sendJson(res, 503, { error: "Decision intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return intelligence;
+
+}
+
+function requireLearningIntelligence(res: ServerResponse) {
+
+  const learning = getLearningIntelligenceManager();
+
+  if (!learning) {
+
+    sendJson(res, 503, { error: "AI learning intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return learning;
 
 }
 
@@ -425,6 +675,945 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       runtime,
 
     });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    const activeProject = await workspace.getActiveProject();
+
+    sendJson(res, 200, {
+
+      activeProject,
+
+      projects: await workspace.listProjects(),
+
+      validation: workspace.validate(activeProject),
+
+      integrations: workspace.getIntegrationStatus(),
+
+    });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/pipeline") {
+
+    const pipeline = requirePipeline(res);
+
+    if (!pipeline) return;
+
+    sendJson(res, 200, pipeline.getDashboard());
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    sendJson(res, 200, await models.dashboard());
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/image-generation") {
+
+    const images = requireImageGeneration(res);
+
+    if (!images) return;
+
+    sendJson(res, 200, await images.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/video-audio-generation") {
+
+    const videoAudio = requireVideoAudioGeneration(res);
+
+    if (!videoAudio) return;
+
+    sendJson(res, 200, await videoAudio.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/generation-optimization") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    sendJson(res, 200, await optimization.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-intelligence") {
+
+    const intelligence = requireProductIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/image-intelligence") {
+
+    const intelligence = requireImageIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/marketing-intelligence") {
+
+    const intelligence = requireMarketingIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/decision-intelligence") {
+
+    const intelligence = requireDecisionIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/learning-intelligence") {
+
+    const learning = requireLearningIntelligence(res);
+
+    if (!learning) return;
+
+    sendJson(res, 200, await learning.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  const imageAnalysisMatch = url.pathname.match(/^\/api\/image-intelligence\/projects\/([^/]+)\/analyze$/);
+
+  if (imageAnalysisMatch && req.method === "POST") {
+
+    const intelligence = requireImageIntelligence(res);
+
+    if (!intelligence) return;
+
+    try {
+
+      const profiles = await intelligence.analyzeProject(imageAnalysisMatch[1]);
+
+      sendJson(res, 201, { profiles, dashboard: await intelligence.getDashboard(imageAnalysisMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Image analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productAnalysisMatch = url.pathname.match(/^\/api\/product-intelligence\/projects\/([^/]+)\/analyze$/);
+
+  if (productAnalysisMatch && req.method === "POST") {
+
+    const intelligence = requireProductIntelligence(res);
+
+    if (!intelligence) return;
+
+    try {
+
+      const profile = await intelligence.analyze(productAnalysisMatch[1]);
+
+      sendJson(res, 201, { profile, dashboard: await intelligence.getDashboard(productAnalysisMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const marketingAnalysisMatch = url.pathname.match(/^\/api\/marketing-intelligence\/projects\/([^/]+)\/analyze$/);
+
+  if (marketingAnalysisMatch && req.method === "POST") {
+
+    const intelligence = requireMarketingIntelligence(res);
+
+    if (!intelligence) return;
+
+    try {
+
+      const profile = await intelligence.analyze(marketingAnalysisMatch[1]);
+
+      sendJson(res, 201, { profile, dashboard: await intelligence.getDashboard(marketingAnalysisMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const decisionAnalysisMatch = url.pathname.match(/^\/api\/decision-intelligence\/projects\/([^/]+)\/decide$/);
+
+  if (decisionAnalysisMatch && req.method === "POST") {
+
+    const intelligence = requireDecisionIntelligence(res);
+
+    if (!intelligence) return;
+
+    try {
+
+      const body = (await readBody(req).catch(() => "")) || "{}";
+
+      const decision = await intelligence.decide(decisionAnalysisMatch[1], JSON.parse(body).taskKind ?? "pipeline");
+
+      sendJson(res, 201, { decision, dashboard: await intelligence.getDashboard(decisionAnalysisMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Decision analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const learningProjectMatch = url.pathname.match(/^\/api\/learning-intelligence\/projects\/([^/]+)\/learn$/);
+
+  if (learningProjectMatch && req.method === "POST") {
+
+    const learning = requireLearningIntelligence(res);
+
+    if (!learning) return;
+
+    try {
+
+      const body = JSON.parse((await readBody(req)) || "{}");
+
+      const profile = await learning.learnFromProject(learningProjectMatch[1], body.outcome ?? "success", body.detail);
+
+      sendJson(res, 201, { profile, dashboard: await learning.getDashboard(learningProjectMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Learning collection failed" });
+
+    }
+
+    return;
+
+  }
+
+  const learningFeedbackMatch = url.pathname.match(/^\/api\/learning-intelligence\/projects\/([^/]+)\/feedback$/);
+
+  if (learningFeedbackMatch && req.method === "POST") {
+
+    const learning = requireLearningIntelligence(res);
+
+    if (!learning) return;
+
+    try {
+
+      const body = JSON.parse((await readBody(req)) || "{}");
+
+      const profile = await learning.recordFeedback(learningFeedbackMatch[1], String(body.feedback ?? ""));
+
+      sendJson(res, 201, { profile, dashboard: await learning.getDashboard(learningFeedbackMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Feedback learning failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/generation-optimization/optimize" && req.method === "POST") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    try {
+
+      const request = JSON.parse(await readBody(req));
+
+      const task = await optimization.optimize(request);
+
+      sendJson(res, 201, { task, dashboard: await optimization.getDashboard(request.projectId) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization task failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/generation-optimization/batch" && req.method === "POST") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      const tasks = await optimization.batch.submit(body.requests ?? []);
+
+      sendJson(res, 201, { tasks, dashboard: await optimization.getDashboard(body.projectId) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization batch failed" });
+
+    }
+
+    return;
+
+  }
+
+  const optimizationRetryMatch = url.pathname.match(/^\/api\/generation-optimization\/tasks\/([^/]+)\/retry$/);
+
+  if (optimizationRetryMatch && req.method === "POST") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    try {
+
+      const task = await optimization.retry(optimizationRetryMatch[1]);
+
+      sendJson(res, 200, { task, dashboard: await optimization.getDashboard(task.request.projectId) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization retry failed" });
+
+    }
+
+    return;
+
+  }
+
+  const videoDefaultMatch = url.pathname.match(/^\/api\/video-audio-generation\/projects\/([^/]+)\/default$/);
+
+  if (videoDefaultMatch && req.method === "GET") {
+
+    const videoAudio = requireVideoAudioGeneration(res);
+
+    if (!videoAudio) return;
+
+    try {
+
+      sendJson(res, 200, { request: await videoAudio.defaultRequest(videoDefaultMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to prepare video defaults" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/video-audio-generation/generate" && req.method === "POST") {
+
+    const videoAudio = requireVideoAudioGeneration(res);
+
+    if (!videoAudio) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      const generated = await videoAudio.generate(body);
+
+      sendJson(res, 201, { package: generated, dashboard: await videoAudio.getDashboard(body.projectId) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Video and audio generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const videoAssetMatch = url.pathname.match(/^\/api\/video-audio-generation\/packages\/([^/]+)\/(preview|audio|subtitles)$/);
+
+  if (videoAssetMatch && req.method === "GET") {
+
+    const videoAudio = requireVideoAudioGeneration(res);
+
+    if (!videoAudio) return;
+
+    const filePath = await videoAudio.getAssetPath(videoAssetMatch[1], videoAssetMatch[2] as "preview" | "audio" | "subtitles");
+
+    if (!filePath) { sendJson(res, 404, { error: "Generated video package asset not found" }); return; }
+
+    serveStatic(res, filePath);
+
+    return;
+
+  }
+
+  const imageDefaultMatch = url.pathname.match(/^\/api\/image-generation\/projects\/([^/]+)\/default$/);
+
+  if (imageDefaultMatch && req.method === "GET") {
+
+    const images = requireImageGeneration(res);
+
+    if (!images) return;
+
+    try {
+
+      sendJson(res, 200, { request: await images.defaultRequest(imageDefaultMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to prepare generation defaults" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/image-generation/generate" && req.method === "POST") {
+
+    const images = requireImageGeneration(res);
+
+    if (!images) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      const generated = await images.generate(body);
+
+      sendJson(res, 201, { images: generated, dashboard: await images.getDashboard(body.projectId) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Image generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const generatedAssetMatch = url.pathname.match(/^\/api\/image-generation\/assets\/([^/]+)$/);
+
+  if (generatedAssetMatch && req.method === "GET") {
+
+    const images = requireImageGeneration(res);
+
+    if (!images) return;
+
+    const filePath = await images.getAssetPath(generatedAssetMatch[1]);
+
+    if (!filePath) { sendJson(res, 404, { error: "Generated image not found" }); return; }
+
+    serveStatic(res, filePath);
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models/settings" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      sendJson(res, 200, { settings: await models.settings.update(body) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to update model settings" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models/health" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    await models.health.scan();
+
+    sendJson(res, 200, await models.dashboard());
+
+    return;
+
+  }
+
+  const modelActionMatch = url.pathname.match(/^\/api\/models\/([^/]+)\/(install|load|unload|update|remove|validate)$/);
+
+  if (modelActionMatch && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { sourcePath?: string; version?: string };
+
+      const [, modelId, action] = modelActionMatch;
+
+      if (action === "install") await models.installer.install(modelId, body.sourcePath);
+      else if (action === "load") await models.loader.load(modelId);
+      else if (action === "unload") await models.loader.unload(modelId);
+      else if (action === "update") await models.updates.update(modelId, body.version ?? "");
+      else if (action === "remove") await models.remove(modelId);
+      else await models.validation.validate(models.getMutable(modelId));
+
+      sendJson(res, 200, await models.dashboard());
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to manage model" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/pipeline/jobs" && req.method === "POST") {
+
+    const pipeline = requirePipeline(res);
+
+    if (!pipeline) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { projectId?: string };
+
+      if (!body.projectId) { sendJson(res, 400, { error: "projectId is required" }); return; }
+
+      const job = await pipeline.enqueue(body.projectId);
+
+      sendJson(res, 202, { job, dashboard: pipeline.getDashboard() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to queue creative pipeline" });
+
+    }
+
+    return;
+
+  }
+
+  const pipelineRetryMatch = url.pathname.match(/^\/api\/pipeline\/jobs\/([^/]+)\/retry$/);
+
+  if (pipelineRetryMatch && req.method === "POST") {
+
+    const pipeline = requirePipeline(res);
+
+    if (!pipeline) return;
+
+    try {
+
+      const job = await pipeline.retry(pipelineRetryMatch[1]);
+
+      sendJson(res, 200, { job, dashboard: pipeline.getDashboard() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to retry creative pipeline" });
+
+    }
+
+    return;
+
+  }
+
+  const pipelineArtifactMatch = url.pathname.match(/^\/api\/pipeline\/projects\/([^/]+)\/artifacts$/);
+
+  if (pipelineArtifactMatch && req.method === "POST") {
+
+    const review = requireReview(res);
+
+    if (!review) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { name?: string; mimeType?: string; dataBase64?: string };
+
+      const asset = await review.ingestAsset(pipelineArtifactMatch[1], { name: body.name ?? "Generated asset", mimeType: body.mimeType ?? "", dataBase64: body.dataBase64 ?? "" });
+
+      sendJson(res, 201, { asset, review: await review.getProjectState(pipelineArtifactMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to register generated artifact" });
+
+    }
+
+    return;
+
+  }
+
+  const reviewMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)$/);
+
+  if (reviewMatch && req.method === "GET") {
+
+    const review = requireReview(res);
+
+    if (!review) return;
+
+    sendJson(res, 200, { review: await review.getProjectState(reviewMatch[1]), integrations: review.getIntegrationStatus() });
+
+    return;
+
+  }
+
+  const reviewAssetMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)\/assets\/([^/]+)$/);
+
+  if (reviewAssetMatch && req.method === "GET") {
+
+    const review = requireReview(res);
+
+    if (!review) return;
+
+    const filePath = await review.getAssetPath(reviewAssetMatch[1], reviewAssetMatch[2]);
+
+    if (!filePath) { sendJson(res, 404, { error: "Review asset not found" }); return; }
+
+    serveStatic(res, filePath);
+
+    return;
+
+  }
+
+  const downloadMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)\/downloads\/([^/]+)$/);
+
+  if (downloadMatch && req.method === "GET") {
+
+    const review = requireReview(res);
+
+    if (!review) return;
+
+    const filePath = await review.getAssetPath(downloadMatch[1], decodeURIComponent(downloadMatch[2]), true);
+
+    if (!filePath) { sendJson(res, 404, { error: "Export not found" }); return; }
+
+    serveStatic(res, filePath);
+
+    return;
+
+  }
+
+  const reviewActionMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)\/(bootstrap|assets|approve|regenerate|export)$/);
+
+  if (reviewActionMatch && req.method === "POST") {
+
+    const review = requireReview(res);
+
+    if (!review) return;
+
+    try {
+
+      const projectId = reviewActionMatch[1];
+
+      const action = reviewActionMatch[2];
+
+      const body = JSON.parse(await readBody(req)) as Record<string, string>;
+
+      if (action === "bootstrap") {
+
+        const workspace = requireWorkspace(res);
+
+        if (!workspace) return;
+
+        const project = await workspace.getProject(projectId);
+
+        if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
+
+        const images = await Promise.all(project.productImages.map(async (image) => {
+
+          const imagePath = await workspace.getImagePath(projectId, image.url.split("/").pop() ?? "");
+
+          return imagePath ? { name: image.fileName, mimeType: image.mimeType, dataBase64: fs.readFileSync(imagePath).toString("base64") } : null;
+
+        }));
+
+        sendJson(res, 200, { review: await review.bootstrapProductImages(project, images.filter((image): image is NonNullable<typeof image> => image !== null)) });
+
+      } else if (action === "assets") {
+
+        const asset = await review.ingestAsset(projectId, { name: body.name ?? "Generated asset", mimeType: body.mimeType ?? "", dataBase64: body.dataBase64 ?? "" });
+
+        sendJson(res, 201, { asset, review: await review.getProjectState(projectId) });
+
+      } else if (action === "approve") {
+
+        const asset = await review.approve(projectId, body.assetId ?? "");
+
+        sendJson(res, 200, { asset, review: await review.getProjectState(projectId) });
+
+      } else if (action === "regenerate") {
+
+        sendJson(res, 202, { review: await review.requestRegeneration(projectId, body.assetId ?? "", body.instructions) });
+
+      } else {
+
+        const result = await review.exportAsset(projectId, body.assetId ?? "", { format: body.format as never, platform: body.platform ?? "instagram", resolution: body.resolution ?? "source", quality: body.quality ?? "high" });
+
+        sendJson(res, 200, result);
+
+      }
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to process review action" });
+
+    }
+
+    return;
+
+  }
+
+  const planMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/plan$/);
+
+  if (planMatch && req.method === "GET") {
+
+    const planning = requirePlanning(res);
+
+    if (!planning) return;
+
+    sendJson(res, 200, { plan: await planning.getPlan(planMatch[1]), integrations: planning.getIntegrationStatus() });
+
+    return;
+
+  }
+
+  if (planMatch && req.method === "POST") {
+
+    const planning = requirePlanning(res);
+
+    const workspace = requireWorkspace(res);
+
+    if (!planning || !workspace) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { action?: string; changes?: Record<string, unknown> };
+
+      if (body.action === "generate") {
+
+        const project = await workspace.getProject(planMatch[1]);
+
+        if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
+
+        const result = await planning.createPlan(project, workspace.validate(project));
+
+        if (!result.plan) { sendJson(res, 422, { error: "Complete required workspace inputs before planning.", validation: result.validation }); return; }
+
+        sendJson(res, 201, result);
+
+      } else {
+
+        const plan = await planning.updatePlan(planMatch[1], body.changes ?? {});
+
+        sendJson(res, 200, { plan });
+
+      }
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to save creative plan" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace/projects" && req.method === "POST") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { name?: string };
+
+      const project = await workspace.createProject(body.name ?? "");
+
+      sendJson(res, 201, { project, validation: workspace.validate(project) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to create project" });
+
+    }
+
+    return;
+
+  }
+
+  const projectMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)$/);
+
+  if (projectMatch && req.method === "GET") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    const project = await workspace.getProject(projectMatch[1]);
+
+    if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
+
+    sendJson(res, 200, { project, validation: workspace.validate(project) });
+
+    return;
+
+  }
+
+  if (projectMatch && req.method === "POST") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { action?: string; changes?: Record<string, unknown> };
+
+      const project = body.action === "open"
+
+        ? await workspace.openProject(projectMatch[1])
+
+        : await workspace.updateProject(projectMatch[1], body.changes ?? {});
+
+      sendJson(res, 200, { project, validation: workspace.validate(project) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to save project" });
+
+    }
+
+    return;
+
+  }
+
+  const imageMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images\/([^/]+)$/);
+
+  if (imageMatch && req.method === "GET") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    const imagePath = await workspace.getImagePath(imageMatch[1], imageMatch[2]);
+
+    if (!imagePath) { sendJson(res, 404, { error: "Product image not found" }); return; }
+
+    serveStatic(res, imagePath);
+
+    return;
+
+  }
+
+  const uploadMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images$/);
+
+  if (uploadMatch && req.method === "POST") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { fileName?: string; mimeType?: string; dataBase64?: string };
+
+      const image = await workspace.uploadImage(uploadMatch[1], {
+
+        fileName: body.fileName ?? "product-image",
+
+        mimeType: body.mimeType ?? "",
+
+        dataBase64: body.dataBase64 ?? "",
+
+      });
+
+      const project = await workspace.getProject(uploadMatch[1]);
+
+      sendJson(res, 201, { image, project, validation: workspace.validate(project) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to upload image" });
+
+    }
 
     return;
 

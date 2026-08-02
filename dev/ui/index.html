@@ -24,6 +24,166 @@
       </div>
     </header>
 
+    <section class="workspace" id="workspace">
+      <div class="workspace-heading">
+        <div><span class="section-kicker">Creative Pipeline / Step 1</span><h2>Creative Workspace</h2></div>
+        <div class="workspace-actions"><input id="new-project-name" class="project-name-input" maxlength="100" placeholder="New project name" /><button class="btn btn-primary" id="new-project-btn">New Project</button><button class="btn" id="save-project-btn" disabled>Save Project</button></div>
+      </div>
+      <div class="workspace-layout">
+        <aside class="project-sidebar"><span class="sidebar-label">Recent Projects</span><div id="recent-projects" class="recent-projects"><span class="muted">Restoring workspace...</span></div></aside>
+        <div class="workspace-content">
+          <div id="workspace-empty" class="workspace-empty">Create a project to begin collecting campaign inputs.</div>
+          <form id="workspace-form" class="workspace-form hidden">
+            <div class="workspace-status"><div><span class="status-label">Project Status</span><strong id="project-status">Draft</strong></div><div><span class="status-label">Last saved</span><strong id="project-modified">-</strong></div><button class="btn btn-primary" type="button" id="continue-btn" disabled>Continue</button></div>
+            <div class="validation-panel" id="validation-panel" aria-live="polite"></div>
+            <div class="input-grid">
+              <section class="input-section upload-section"><div class="section-title"><h3>Product Images</h3><span>Required</span></div><label class="upload-zone" for="product-images"><strong>Upload product images</strong><small>JPEG, PNG, or WebP · up to 15 MB each</small><input id="product-images" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><div class="image-preview-list" id="image-preview-list"></div></section>
+              <section class="input-section"><div class="section-title"><h3>Product Details</h3><span>Required</span></div><label>Product name<input data-project-field="productInformation.name" required /></label><label>Category<input data-project-field="productInformation.category" required /></label><label>Description<textarea data-project-field="productInformation.description" required></textarea></label><label>SKU <input data-project-field="productInformation.sku" /></label></section>
+              <section class="input-section"><div class="section-title"><h3>Brand Details</h3><span>Required</span></div><label>Brand name<input data-project-field="brandInformation.name" required /></label><label>Website<input type="url" data-project-field="brandInformation.website" /></label><label>Brand voice<input data-project-field="brandInformation.voice" /></label><label>Guidelines<textarea data-project-field="brandInformation.guidelines"></textarea></label></section>
+              <section class="input-section"><div class="section-title"><h3>Campaign Details</h3><span>Required</span></div><label>Campaign name<input data-project-field="campaignInformation.name" required /></label><label>Objective<textarea data-project-field="campaignInformation.objective" required></textarea></label><label>Call to action<input data-project-field="campaignInformation.callToAction" /></label><label>Notes<textarea data-project-field="campaignInformation.notes"></textarea></label></section>
+              <section class="input-section"><div class="section-title"><h3>Audience & Delivery</h3><span>Required</span></div><label>Target audience<input data-project-field="targetAudience" placeholder="e.g. urban professionals, 25-40" required /></label><label>Language<select data-project-field="language"><option value="en">English</option><option value="fr">French</option><option value="sw">Swahili</option><option value="rw">Kinyarwanda</option></select></label><label>Platform<select data-project-field="platform"><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option></select></label></section>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="planning-workspace" id="planning-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Creative Pipeline / Step 2</span><h2>AI Creative Planning</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="generate-plan-btn" disabled>Generate Creative Plan</button><button class="btn" id="save-plan-btn" disabled>Save Plan</button></div></div>
+      <div id="planning-empty" class="workspace-empty">Complete the required Creative Workspace inputs to create a production plan.</div>
+      <form id="planning-form" class="planning-form hidden">
+        <div class="plan-status"><div><span class="status-label">Planning Status</span><strong id="plan-status">Ready</strong></div><div><span class="status-label">Plan Version</span><strong id="plan-version">-</strong></div><div><span class="status-label">Last updated</span><strong id="plan-modified">-</strong></div></div>
+        <div class="plan-grid" id="plan-grid"></div>
+      </form>
+    </section>
+
+    <section class="review-workspace" id="review-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Creative Pipeline / Step 4</span><h2>Preview, Review & Export</h2></div><div class="workspace-actions"><label class="btn" for="review-media-input">Add Generated Media<input id="review-media-input" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm,audio/mpeg,audio/wav" /></label><button class="btn" id="review-bootstrap-btn" disabled>Load Source Assets</button></div></div>
+      <div id="review-empty" class="workspace-empty">Load generated media or source assets to begin quality review.</div>
+      <div id="review-content" class="review-content hidden">
+        <div class="review-toolbar"><label>Asset<select id="review-asset-select"></select></label><label>Compare with<select id="review-compare-select"></select></label><button class="btn" id="regenerate-btn">Request Regeneration</button><button class="btn btn-primary" id="approve-btn">Approve</button></div>
+        <div class="preview-grid"><section class="preview-panel"><h3>Preview</h3><div class="media-preview" id="media-preview"></div></section><section class="preview-panel"><h3>Compare View</h3><div class="media-preview" id="compare-preview"></div></section></div>
+        <div class="review-grid"><section class="review-panel"><h3>AI Quality Report</h3><div id="quality-report" class="quality-report"></div></section><section class="review-panel"><h3>Version History</h3><div id="version-history" class="history-list"></div></section><section class="review-panel"><h3>Timeline</h3><div id="review-timeline" class="history-list"></div></section></div>
+        <section class="export-panel"><div><h3>Export Settings</h3><div class="export-controls"><label>Format<select id="export-format"></select></label><label>Platform<select id="export-platform"><option>Instagram</option><option>TikTok</option><option>Facebook</option><option>YouTube</option><option>X</option></select></label><label>Resolution<select id="export-resolution"><option value="source">Source</option><option>1080p</option><option>4K</option></select></label><label>Quality<select id="export-quality"><option>high</option><option>standard</option></select></label><button class="btn btn-primary" id="export-btn">Export</button></div></div><div id="export-progress" class="export-progress">No export in progress.</div><div id="download-area" class="download-area"></div></section>
+      </div>
+    </section>
+
+    <section class="pipeline-workspace" id="pipeline-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Creative Pipeline / Step 5</span><h2>Pipeline Automation</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="run-pipeline-btn" disabled>Run Pipeline</button></div></div>
+      <div id="pipeline-empty" class="workspace-empty">Select a project to queue its validated creative workflow.</div>
+      <div id="pipeline-content" class="pipeline-content hidden">
+        <div class="pipeline-metrics" id="pipeline-metrics"></div>
+        <div class="pipeline-grid"><section class="pipeline-panel"><h3>Active Jobs</h3><div id="pipeline-jobs" class="history-list"></div></section><section class="pipeline-panel"><h3>System Handoffs</h3><div id="pipeline-integrations" class="integration-list"></div></section><section class="pipeline-panel"><h3>Pipeline Notices</h3><div id="pipeline-notices" class="history-list"></div></section></div>
+        <section class="pipeline-panel"><h3>Completed Projects</h3><div id="pipeline-history" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="model-workspace" id="model-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 2 / Step 1</span><h2>AI Model Management</h2></div><div class="workspace-actions"><button class="btn" id="scan-model-health-btn">Scan Health</button><button class="btn" id="refresh-models-btn">Refresh Hardware</button></div></div>
+      <div id="models-empty" class="workspace-empty">Restoring AI model management...</div>
+      <div id="models-content" class="model-content hidden">
+        <div class="model-metrics" id="model-metrics"></div>
+        <div class="hardware-grid" id="hardware-grid"></div>
+        <div class="model-grid"><section class="model-panel"><h3>Installed Models</h3><div id="installed-models" class="model-list"></div></section><section class="model-panel"><h3>Available Models</h3><div id="available-models" class="model-list"></div></section></div>
+        <div class="model-grid"><section class="model-panel"><h3>Settings</h3><div class="model-settings"><label>Cache limit<input id="model-cache-limit" type="number" min="1" max="20" /></label><label>Auto-unload minutes<input id="model-auto-unload" type="number" min="0" /></label><label><input id="model-prefer-gpu" type="checkbox" /> Prefer GPU</label><label><input id="model-validate-load" type="checkbox" /> Validate before load</label><button class="btn btn-primary" id="save-model-settings-btn">Save Settings</button></div></section><section class="model-panel"><h3>Security & Logs</h3><div id="model-logs" class="history-list"></div></section></div>
+      </div>
+    </section>
+
+    <section class="image-workspace" id="image-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 2 / Step 2</span><h2>AI Image Generation</h2></div><div class="workspace-actions"><button class="btn" id="image-defaults-btn">Use Plan Prompt</button><button class="btn btn-primary" id="generate-images-btn">Generate Images</button></div></div>
+      <div id="image-empty" class="workspace-empty">Select a Creative Workspace project to prepare an image generation request.</div>
+      <div id="image-content" class="image-content hidden">
+        <div class="generation-form"><label class="image-prompt-label">Prompt<textarea id="image-prompt" minlength="8" placeholder="Describe the marketing image to create"></textarea></label><div class="image-controls"><label>Mode<select id="image-mode"><option value="text-to-image">Text to Image</option><option value="product-to-image">Product to Image</option><option value="photo-enhancement">Product Photo Enhancement</option><option value="background-replacement">Background Replacement</option><option value="background-generation">Background Generation</option><option value="marketing-banner">Marketing Banner</option><option value="social-post">Social Media Post</option><option value="product-advertisement">Product Advertisement</option><option value="brand-poster">Brand Poster</option></select></label><label>Product image<select id="image-product"></select></label><label>AI model<select id="image-model"><option value="">Automatic</option></select></label><label>Style<select id="image-style"><option value="studio">Studio</option><option value="luxury">Luxury</option><option value="editorial">Editorial</option><option value="minimal">Minimal</option><option value="bold">Bold</option><option value="lifestyle">Lifestyle</option></select></label><label>Aspect ratio<select id="image-ratio"><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label>Resolution<select id="image-resolution"><option value="standard">Standard</option><option value="high" selected>High</option></select></label><label>Image count<input id="image-count" type="number" min="1" max="6" value="1" /></label></div></div>
+        <div id="image-progress" class="generation-progress">Ready to generate.</div>
+        <div class="image-generation-layout"><section class="image-panel"><h3>Generated Images</h3><div id="generated-gallery" class="generated-gallery"></div></section><section class="image-panel"><h3>Preview</h3><div id="generated-preview" class="generated-preview"></div><div id="image-information" class="image-information"></div><div class="workspace-actions"><button class="btn" id="regenerate-image-btn">Regenerate</button><button class="btn" id="save-image-btn">Save</button></div></section></div>
+        <section class="image-panel"><h3>Generation History</h3><div id="image-history" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="video-workspace" id="video-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 2 / Step 3</span><h2>AI Video & Audio Generation</h2></div><div class="workspace-actions"><button class="btn" id="video-defaults-btn">Use Plan</button><button class="btn btn-primary" id="generate-video-btn">Generate Package</button></div></div>
+      <div id="video-empty" class="workspace-empty">Select a Creative Workspace project to prepare a video and audio production package.</div>
+      <div id="video-content" class="video-content hidden">
+        <div class="generation-form"><label class="image-prompt-label">Video Prompt<textarea id="video-prompt" minlength="8" placeholder="Describe the marketing video to create"></textarea></label><div class="video-controls"><label>Mode<select id="video-mode"><option value="text-to-video">Text to Video</option><option value="image-to-video">Image to Video</option><option value="product-to-video">Product to Video</option><option value="marketing-video">Marketing Video</option><option value="social-video">Social Media Video</option><option value="product-advertisement">Product Advertisement</option><option value="brand-promotion">Brand Promotion</option></select></label><label>Source image<select id="video-image"></select></label><label>Video model<select id="video-model"><option value="">Automatic</option></select></label><label>Duration<select id="video-duration"><option value="6">6 seconds</option><option value="15" selected>15 seconds</option><option value="30">30 seconds</option><option value="60">60 seconds</option></select></label><label>Resolution<select id="video-resolution"><option value="720p">720p</option><option value="1080p" selected>1080p</option></select></label><label>Frame rate<select id="video-frame-rate"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select></label><label>Voice<select id="video-voice"><option value="narrator">Narrator</option><option value="warm">Warm</option><option value="energetic">Energetic</option></select></label><label>Music<select id="video-music"><option value="uplifting">Uplifting</option><option value="ambient">Ambient</option><option value="bold">Bold</option><option value="none">None</option></select></label><label class="toggle-label"><input id="video-sfx" type="checkbox" checked /> Sound effects</label><label class="toggle-label"><input id="video-subtitles" type="checkbox" checked /> Subtitles</label></div></div>
+        <div id="video-progress" class="generation-progress">Ready to generate a synchronized production package.</div>
+        <div class="video-generation-layout"><section class="image-panel"><h3>Generated Packages</h3><div id="video-gallery" class="video-gallery"></div></section><section class="image-panel"><h3>Preview & Audio</h3><div id="video-preview" class="video-preview"></div><audio id="video-audio" controls></audio><div id="video-information" class="image-information"></div><div class="workspace-actions"><button class="btn" id="regenerate-video-btn">Regenerate</button><a class="btn" id="video-subtitle-link" download>Subtitles</a><button class="btn" id="save-video-btn">Save</button></div></section></div>
+        <section class="image-panel"><h3>Generation History</h3><div id="video-history" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="optimization-workspace" id="optimization-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 2 / Step 4</span><h2>Generation Optimization & Quality</h2></div><div class="workspace-actions"><button class="btn" id="optimization-defaults-btn">Use Plan Prompt</button><button class="btn btn-primary" id="optimize-generation-btn">Optimize Generation</button></div></div>
+      <div id="optimization-empty" class="workspace-empty">Select a Creative Workspace project to schedule quality-optimized generation.</div>
+      <div id="optimization-content" class="optimization-content hidden">
+        <div class="generation-form"><label class="image-prompt-label">Optimization Prompt<textarea id="optimization-prompt" minlength="8" placeholder="Describe the branded asset to optimize"></textarea></label><div class="optimization-controls"><label>Target<select id="optimization-target"><option value="image">Image</option><option value="video-audio">Video & Audio</option></select></label><label>Candidate models<select id="optimization-models" multiple size="3"></select></label><label>Batch size<select id="optimization-batch-size"><option value="1">1 candidate set</option><option value="2">2 candidate sets</option><option value="3">3 candidate sets</option></select></label><label>Retries<select id="optimization-retries"><option value="1">1 attempt</option><option value="2" selected>2 attempts</option><option value="3">3 attempts</option></select></label></div></div>
+        <div id="optimization-progress" class="generation-progress">Ready to score, validate, and select the strongest generation.</div>
+        <div class="optimization-metrics" id="optimization-metrics"></div>
+        <div class="optimization-grid"><section class="image-panel"><h3>Active Generation Queue</h3><div id="optimization-active" class="history-list"></div></section><section class="image-panel"><h3>Completed Tasks</h3><div id="optimization-completed" class="history-list"></div></section><section class="image-panel"><h3>Failed Tasks</h3><div id="optimization-failed" class="history-list"></div></section></div>
+        <div class="optimization-grid"><section class="image-panel"><h3>Performance & Resources</h3><div id="optimization-performance" class="quality-report"></div></section><section class="image-panel"><h3>Generation Analytics</h3><div id="optimization-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Optimization Logs</h3><div id="optimization-logs" class="history-list"></div></section></div>
+      </div>
+    </section>
+
+    <section class="product-intelligence-workspace" id="product-intelligence-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 3 / Step 1</span><h2>Product Intelligence</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="analyze-product-btn">Analyze Product</button></div></div>
+      <div id="product-intelligence-empty" class="workspace-empty">Select a Creative Workspace project with product images to build its digital product profile.</div>
+      <div id="product-intelligence-content" class="product-intelligence-content hidden">
+        <div id="product-intelligence-progress" class="generation-progress">Ready to group product views and build a digital profile.</div>
+        <div class="product-intelligence-layout"><section class="image-panel"><h3>Uploaded Product Images</h3><div id="product-intelligence-images" class="generated-gallery"></div></section><section class="image-panel"><h3>Product Overview</h3><div id="product-intelligence-overview" class="quality-report"></div></section></div>
+        <div class="product-intelligence-grid"><section class="image-panel"><h3>Identification & Brand</h3><div id="product-intelligence-identification" class="quality-report"></div></section><section class="image-panel"><h3>Material, Colours & Texture</h3><div id="product-intelligence-materials" class="quality-report"></div></section><section class="image-panel"><h3>Shape, Features & Function</h3><div id="product-intelligence-features" class="quality-report"></div></section></div>
+        <div class="product-intelligence-grid"><section class="image-panel"><h3>Product Relationships</h3><div id="product-intelligence-relationships" class="history-list"></div></section><section class="image-panel"><h3>Analytics</h3><div id="product-intelligence-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Analysis History</h3><div id="product-intelligence-history" class="history-list"></div></section></div>
+        <section class="image-panel"><h3>Product Intelligence Logs</h3><div id="product-intelligence-logs" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="image-intelligence-workspace" id="image-intelligence-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 3 / Step 2</span><h2>Image Intelligence</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="analyze-images-btn">Analyze Uploaded Images</button></div></div>
+      <div id="image-intelligence-empty" class="workspace-empty">Select a Creative Workspace project with product images to create image intelligence profiles.</div>
+      <div id="image-intelligence-content" class="image-intelligence-content hidden">
+        <div id="image-intelligence-progress" class="generation-progress">Ready to inspect image evidence and create intelligence profiles.</div>
+        <div class="image-intelligence-layout"><section class="image-panel"><h3>Original Images</h3><div id="image-intelligence-gallery" class="generated-gallery"></div></section><section class="image-panel"><h3>Image Quality & Scene</h3><div id="image-intelligence-preview" class="generated-preview"></div><div id="image-intelligence-overview" class="quality-report"></div></section></div>
+        <div class="image-intelligence-grid"><section class="image-panel"><h3>Background & Lighting</h3><div id="image-intelligence-lighting" class="quality-report"></div></section><section class="image-panel"><h3>Camera & Composition</h3><div id="image-intelligence-composition" class="quality-report"></div></section><section class="image-panel"><h3>Objects & Enhancements</h3><div id="image-intelligence-objects" class="quality-report"></div></section></div>
+        <div class="image-intelligence-grid"><section class="image-panel"><h3>Defects</h3><div id="image-intelligence-defects" class="history-list"></div></section><section class="image-panel"><h3>Analytics</h3><div id="image-intelligence-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Analysis History</h3><div id="image-intelligence-history" class="history-list"></div></section></div>
+        <section class="image-panel"><h3>Image Intelligence Logs</h3><div id="image-intelligence-logs" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="marketing-intelligence-workspace" id="marketing-intelligence-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 3 / Step 3</span><h2>Marketing Intelligence</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="analyze-marketing-btn">Analyze Marketing</button></div></div>
+      <div id="marketing-intelligence-empty" class="workspace-empty">Select a complete Creative Workspace project to build its marketing strategy profile.</div>
+      <div id="marketing-intelligence-content" class="marketing-intelligence-content hidden">
+        <div id="marketing-intelligence-progress" class="generation-progress">Ready to connect product, brand, audience, platform, and campaign evidence.</div>
+        <div class="marketing-intelligence-layout"><section class="image-panel"><h3>Product Overview</h3><div id="marketing-intelligence-product" class="quality-report"></div></section><section class="image-panel"><h3>Marketing Score & Prediction</h3><div id="marketing-intelligence-score" class="quality-report"></div></section></div>
+        <div class="marketing-intelligence-grid"><section class="image-panel"><h3>Audience Analysis</h3><div id="marketing-intelligence-audience" class="quality-report"></div></section><section class="image-panel"><h3>Brand Analysis</h3><div id="marketing-intelligence-brand" class="quality-report"></div></section><section class="image-panel"><h3>Campaign Goals</h3><div id="marketing-intelligence-campaign" class="quality-report"></div></section></div>
+        <div class="marketing-intelligence-grid"><section class="image-panel"><h3>Selling Points & Value</h3><div id="marketing-intelligence-value" class="quality-report"></div></section><section class="image-panel"><h3>Strategy & CTA Suggestions</h3><div id="marketing-intelligence-strategy" class="quality-report"></div></section><section class="image-panel"><h3>Platform Recommendations</h3><div id="marketing-intelligence-platform" class="quality-report"></div></section></div>
+        <div class="marketing-intelligence-grid"><section class="image-panel"><h3>Competitor Insights</h3><div id="marketing-intelligence-competitors" class="history-list"></div></section><section class="image-panel"><h3>Analytics</h3><div id="marketing-intelligence-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Analysis History</h3><div id="marketing-intelligence-history" class="history-list"></div></section></div>
+        <section class="image-panel"><h3>Marketing Intelligence Logs</h3><div id="marketing-intelligence-logs" class="history-list"></div></section>
+      </div>
+    </section>
+
+    <section class="decision-intelligence-workspace" id="decision-intelligence-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 3 / Step 4</span><h2>Decision Intelligence</h2></div><div class="workspace-actions"><button class="btn btn-primary" id="make-decision-btn">Analyse & Select</button></div></div>
+      <div id="decision-intelligence-empty" class="workspace-empty">Select a complete Creative Workspace project to compare execution strategies before work begins.</div>
+      <div id="decision-intelligence-content" class="decision-intelligence-content hidden">
+        <div id="decision-intelligence-progress" class="generation-progress">Ready to compare workflow, creative, model, resource, and risk options.</div>
+        <div class="decision-intelligence-layout"><section class="image-panel"><h3>Decision Overview</h3><div id="decision-intelligence-overview" class="quality-report"></div></section><section class="image-panel"><h3>Decision Score & Confidence</h3><div id="decision-intelligence-score" class="quality-report"></div></section></div>
+        <div class="decision-intelligence-grid"><section class="image-panel"><h3>Available Options</h3><div id="decision-intelligence-options" class="history-list"></div></section><section class="image-panel"><h3>Selected Strategy</h3><div id="decision-intelligence-strategy" class="quality-report"></div></section><section class="image-panel"><h3>Resource Analysis</h3><div id="decision-intelligence-resources" class="quality-report"></div></section></div>
+        <div class="decision-intelligence-grid"><section class="image-panel"><h3>Workflow Selection</h3><div id="decision-intelligence-workflow" class="quality-report"></div></section><section class="image-panel"><h3>AI Model Selection</h3><div id="decision-intelligence-model" class="quality-report"></div></section><section class="image-panel"><h3>Risk & Explanation</h3><div id="decision-intelligence-explanation" class="quality-report"></div></section></div>
+        <div class="decision-intelligence-grid"><section class="image-panel"><h3>Decision Analytics</h3><div id="decision-intelligence-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Decision History</h3><div id="decision-intelligence-history" class="history-list"></div></section><section class="image-panel"><h3>Decision Logs</h3><div id="decision-intelligence-logs" class="history-list"></div></section></div>
+      </div>
+    </section>
+
+    <section class="learning-intelligence-workspace" id="learning-intelligence-workspace">
+      <div class="planning-heading"><div><span class="section-kicker">Phase 3 / Step 5</span><h2>AI Learning & Intelligence Evolution</h2></div><div class="workspace-actions"><button class="btn" id="learn-project-btn">Record Learning</button><button class="btn btn-primary" id="submit-learning-feedback-btn">Learn Feedback</button></div></div>
+      <div id="learning-intelligence-empty" class="workspace-empty">Select a Creative Workspace project to review accumulated experiences and improve future recommendations.</div>
+      <div id="learning-intelligence-content" class="learning-intelligence-content hidden">
+        <div id="learning-intelligence-progress" class="generation-progress">Completed pipeline projects are collected automatically; feedback adds a direct preference signal.</div>
+        <div class="learning-intelligence-layout"><section class="image-panel"><h3>Learning Dashboard</h3><div id="learning-intelligence-overview" class="quality-report"></div></section><section class="image-panel"><h3>Learning Progress & Knowledge Growth</h3><div id="learning-intelligence-growth" class="quality-report"></div></section></div>
+        <div class="learning-intelligence-grid"><section class="image-panel"><h3>Experience Library</h3><div id="learning-intelligence-experiences" class="history-list"></div></section><section class="image-panel"><h3>AI Improvements</h3><div id="learning-intelligence-improvements" class="quality-report"></div></section><section class="image-panel"><h3>Recommendation History</h3><div id="learning-intelligence-recommendations" class="quality-report"></div></section></div>
+        <div class="learning-intelligence-grid"><section class="image-panel"><h3>User Preference Learning</h3><label class="image-prompt-label">Feedback<textarea id="learning-feedback" placeholder="Describe a preference, correction, or outcome to improve future recommendations"></textarea></label><div id="learning-intelligence-preferences" class="quality-report"></div></section><section class="image-panel"><h3>Learning Reports</h3><div id="learning-intelligence-report" class="quality-report"></div></section><section class="image-panel"><h3>System Evolution Timeline</h3><div id="learning-intelligence-evolution" class="history-list"></div></section></div>
+        <div class="learning-intelligence-grid"><section class="image-panel"><h3>Intelligence Analytics</h3><div id="learning-intelligence-analytics" class="quality-report"></div></section><section class="image-panel"><h3>Learning History</h3><div id="learning-intelligence-history" class="history-list"></div></section><section class="image-panel"><h3>Learning Logs</h3><div id="learning-intelligence-logs" class="history-list"></div></section></div>
+      </div>
+    </section>
+
     <section class="session-panel" id="session-panel">
       <h3>Persistent Session</h3>
       <div class="session-grid">

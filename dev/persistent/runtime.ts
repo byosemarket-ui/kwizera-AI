@@ -1,4 +1,25 @@
 import type { AiCore } from "../../ai/core/ai-core.js";
+import { CreativePlanningManager } from "../../ai/creative-planning/creative-planning-manager.js";
+import { CreativePipelineManager } from "../../ai/creative-pipeline/creative-pipeline-manager.js";
+import { CreativeReviewManager } from "../../ai/creative-review/creative-review-manager.js";
+import { CreativeWorkspaceManager } from "../../ai/creative-workspace/creative-workspace-manager.js";
+import { ImageGenerationManager } from "../../ai/image-generation/image-generation-manager.js";
+import { createImageGenerationPlugin } from "../../ai/image-generation/image-generation-plugin.js";
+import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
+import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
+import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
+import { GenerationOptimizationManager } from "../../ai/generation-optimization/generation-optimization-manager.js";
+import { createGenerationOptimizationPlugin } from "../../ai/generation-optimization/generation-optimization-plugin.js";
+import { ProductIntelligenceManager } from "../../ai/product-intelligence/product-intelligence-manager.js";
+import { createProductIntelligencePlugin } from "../../ai/product-intelligence/product-intelligence-plugin.js";
+import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-intelligence-manager.js";
+import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
+import { MarketingIntelligenceManager } from "../../ai/marketing-intelligence/marketing-intelligence-manager.js";
+import { createMarketingIntelligencePlugin } from "../../ai/marketing-intelligence/marketing-intelligence-plugin.js";
+import { DecisionIntelligenceManager } from "../../ai/decision-intelligence/decision-intelligence-manager.js";
+import { createDecisionIntelligencePlugin } from "../../ai/decision-intelligence/decision-intelligence-plugin.js";
+import { AiLearningManager } from "../../ai/learning-intelligence/learning-intelligence-manager.js";
+import { createLearningIntelligencePlugin } from "../../ai/learning-intelligence/learning-intelligence-plugin.js";
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import { buildRegistry } from "../server/module-registry.js";
 import { DevSessionStore, type DevRuntimeSnapshot } from "./session-store.js";
@@ -24,6 +45,19 @@ export interface PersistentRuntimeStatus {
 }
 
 let core: AiCore | null = null;
+let workspaceManager: CreativeWorkspaceManager | null = null;
+let planningManager: CreativePlanningManager | null = null;
+let reviewManager: CreativeReviewManager | null = null;
+let pipelineManager: CreativePipelineManager | null = null;
+let modelManager: AiModelManager | null = null;
+let imageGenerationManager: ImageGenerationManager | null = null;
+let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
+let generationOptimizationManager: GenerationOptimizationManager | null = null;
+let productIntelligenceManager: ProductIntelligenceManager | null = null;
+let imageIntelligenceManager: ImageIntelligenceManager | null = null;
+let marketingIntelligenceManager: MarketingIntelligenceManager | null = null;
+let decisionIntelligenceManager: DecisionIntelligenceManager | null = null;
+let learningIntelligenceManager: AiLearningManager | null = null;
 let sessionStore: DevSessionStore | null = null;
 let status: PersistentRuntimeStatus | null = null;
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null;
@@ -67,6 +101,58 @@ async function collectRuntimeSnapshot(manager: ReturnType<AiCore["getManager"]>)
 
 export function getPersistentRuntime(): AiCore | null {
   return core;
+}
+
+export function getWorkspaceManager(): CreativeWorkspaceManager | null {
+  return workspaceManager;
+}
+
+export function getPlanningManager(): CreativePlanningManager | null {
+  return planningManager;
+}
+
+export function getReviewManager(): CreativeReviewManager | null {
+  return reviewManager;
+}
+
+export function getPipelineManager(): CreativePipelineManager | null {
+  return pipelineManager;
+}
+
+export function getModelManager(): AiModelManager | null {
+  return modelManager;
+}
+
+export function getImageGenerationManager(): ImageGenerationManager | null {
+  return imageGenerationManager;
+}
+
+export function getVideoAudioGenerationManager(): VideoAudioGenerationManager | null {
+  return videoAudioGenerationManager;
+}
+
+export function getGenerationOptimizationManager(): GenerationOptimizationManager | null {
+  return generationOptimizationManager;
+}
+
+export function getProductIntelligenceManager(): ProductIntelligenceManager | null {
+  return productIntelligenceManager;
+}
+
+export function getImageIntelligenceManager(): ImageIntelligenceManager | null {
+  return imageIntelligenceManager;
+}
+
+export function getMarketingIntelligenceManager(): MarketingIntelligenceManager | null {
+  return marketingIntelligenceManager;
+}
+
+export function getDecisionIntelligenceManager(): DecisionIntelligenceManager | null {
+  return decisionIntelligenceManager;
+}
+
+export function getLearningIntelligenceManager(): AiLearningManager | null {
+  return learningIntelligenceManager;
 }
 
 export function getSessionStore(): DevSessionStore | null {
@@ -117,6 +203,59 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       const manager = core.getManager();
 
       await core.start("persistent-dev-restore");
+      workspaceManager = new CreativeWorkspaceManager();
+      await workspaceManager.initialize(storageRoot, manager);
+      planningManager = new CreativePlanningManager();
+      await planningManager.initialize(storageRoot, manager);
+      reviewManager = new CreativeReviewManager();
+      await reviewManager.initialize(storageRoot, manager);
+      pipelineManager = new CreativePipelineManager();
+      await pipelineManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, planning: planningManager, review: reviewManager });
+      modelManager = manager.modelManager;
+      if (!modelManager) throw new Error("AI Model Management is not available");
+      imageGenerationManager = new ImageGenerationManager();
+      await imageGenerationManager.initialize(storageRoot, { core: manager, models: modelManager, workspace: workspaceManager, planning: planningManager });
+      if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createImageGenerationPlugin(imageGenerationManager, manager));
+      videoAudioGenerationManager = new VideoAudioGenerationManager();
+      await videoAudioGenerationManager.initialize(storageRoot, { core: manager, models: modelManager, workspace: workspaceManager, planning: planningManager, images: imageGenerationManager });
+      if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createVideoAudioGenerationPlugin(videoAudioGenerationManager, manager));
+      generationOptimizationManager = new GenerationOptimizationManager();
+      await generationOptimizationManager.initialize(storageRoot, { core: manager, models: modelManager, images: imageGenerationManager, videoAudio: videoAudioGenerationManager });
+      if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createGenerationOptimizationPlugin(generationOptimizationManager, manager));
+      pipelineManager.attachGenerationOptimization(generationOptimizationManager);
+      imageIntelligenceManager = new ImageIntelligenceManager();
+      await imageIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
+      if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createImageIntelligencePlugin(imageIntelligenceManager, manager));
+      productIntelligenceManager = new ProductIntelligenceManager();
+      await productIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
+      if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createProductIntelligencePlugin(productIntelligenceManager, manager));
+      productIntelligenceManager.attachImageIntelligence(imageIntelligenceManager);
+        marketingIntelligenceManager = new MarketingIntelligenceManager();
+        await marketingIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager });
+        if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createMarketingIntelligencePlugin(marketingIntelligenceManager, manager));
+        planningManager.attachMarketingIntelligence(marketingIntelligenceManager);
+        decisionIntelligenceManager = new DecisionIntelligenceManager();
+        await decisionIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, models: modelManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager });
+        if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createDecisionIntelligencePlugin(decisionIntelligenceManager, manager));
+        planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        learningIntelligenceManager = new AiLearningManager();
+        await learningIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager, decisions: decisionIntelligenceManager });
+        if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createLearningIntelligencePlugin(learningIntelligenceManager, manager));
+      imageGenerationManager.attachProductIntelligence(productIntelligenceManager);
+      videoAudioGenerationManager.attachProductIntelligence(productIntelligenceManager);
+      imageGenerationManager.attachImageIntelligence(imageIntelligenceManager);
+      videoAudioGenerationManager.attachImageIntelligence(imageIntelligenceManager);
+        imageGenerationManager.attachMarketingIntelligence(marketingIntelligenceManager);
+        videoAudioGenerationManager.attachMarketingIntelligence(marketingIntelligenceManager);
+        imageGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        videoAudioGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
+      pipelineManager.attachProductIntelligence(productIntelligenceManager);
+      pipelineManager.attachImageIntelligence(imageIntelligenceManager);
+        pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
+        pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
+        imageGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
+        videoAudioGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
       const snapshot = await collectRuntimeSnapshot(manager);
       sessionStore.updateRuntime(snapshot);
 
@@ -199,6 +338,19 @@ export async function shutdownPersistentRuntime(): Promise<void> {
       /* ignore */
     }
     core = null;
+    workspaceManager = null;
+    planningManager = null;
+    reviewManager = null;
+    pipelineManager = null;
+    modelManager = null;
+    imageGenerationManager = null;
+    videoAudioGenerationManager = null;
+    generationOptimizationManager = null;
+    productIntelligenceManager = null;
+    imageIntelligenceManager = null;
+    marketingIntelligenceManager = null;
+    decisionIntelligenceManager = null;
+    learningIntelligenceManager = null;
   }
 
   if (status) {

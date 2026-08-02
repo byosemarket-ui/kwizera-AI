@@ -45,6 +45,8 @@ import { AiImageGenerationFoundation } from "../image-generation-foundation/imag
 import { createImageGenerationFoundationPlugin } from "../image-generation-foundation/image-generation-foundation-plugin.js";
 import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audio-generation-foundation.js";
 import { createAudioGenerationFoundationPlugin } from "../audio-generation-foundation/audio-generation-foundation-plugin.js";
+import { AiModelManager } from "../model-management/ai-model-manager.js";
+import { createModelManagementPlugin } from "../model-management/model-management-plugin.js";
 
 export interface AiCoreManagerOptions {
   configRoot?: string;
@@ -102,6 +104,7 @@ export class AiCoreManager {
   private _videoGenerationFoundation: AiVideoGenerationFoundation | null = null;
   private _imageGenerationFoundation: AiImageGenerationFoundation | null = null;
   private _audioGenerationFoundation: AiAudioGenerationFoundation | null = null;
+  private _modelManager: AiModelManager | null = null;
 
   private started = false;
   private readonly options: AiCoreManagerOptions;
@@ -496,6 +499,11 @@ export class AiCoreManager {
       await this._audioGenerationFoundation.runHealthCheck();
     }
 
+    this._modelManager = new AiModelManager();
+    await this._modelManager.initialize(storageRoot, this);
+    const modelManagementPlugin = createModelManagementPlugin(this._modelManager, this);
+    await this._moduleManager.registerAndInitialize(modelManagementPlugin);
+
     this._stateManager.syncAiCoreState(this.getLifecycleState(), {
       systemAction: "startup-complete",
     });
@@ -575,6 +583,10 @@ export class AiCoreManager {
     return this._audioGenerationFoundation;
   }
 
+  get modelManager(): AiModelManager | null {
+    return this._modelManager;
+  }
+
   isReady(): boolean {
     if (!this.started) {
       return false;
@@ -588,6 +600,11 @@ export class AiCoreManager {
   }
 
   async stop(reason = "requested"): Promise<void> {
+    if (this._modelManager) {
+      for (const model of this._modelManager.list().filter((item) => item.status === "loaded")) {
+        await this._modelManager.unload(model.id);
+      }
+    }
     if (this._audioGenerationFoundation) {
       await this._audioGenerationFoundation.shutdown();
     }

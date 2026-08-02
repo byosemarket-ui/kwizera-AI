@@ -1,0 +1,3 @@
+export function createImageGenerationPlugin(manager, _core) { return { id: "image-generation-runtime", name: "KWIZERA AI Image Generation Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
+        throw new Error("Image Generation Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Image generation runtime operational" }; } }; }
+//# sourceMappingURL=image-generation-plugin.js.map

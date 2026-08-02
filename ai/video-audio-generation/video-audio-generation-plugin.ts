@@ -1,0 +1,4 @@
+import type { AiCoreManager } from "../core/ai-core-manager.js";
+import type { AiModulePlugin } from "../core/types.js";
+import { VideoAudioGenerationManager } from "./video-audio-generation-manager.js";
+export function createVideoAudioGenerationPlugin(manager: VideoAudioGenerationManager, _core: AiCoreManager): AiModulePlugin { return { id: "video-audio-generation-runtime", name: "KWIZERA AI Video & Audio Generation Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized()) throw new Error("Video and Audio Generation Manager is not initialized"); }, async shutdown() { /* persistent production packages are retained */ }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Video and audio generation runtime operational" }; } }; }

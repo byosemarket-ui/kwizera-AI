@@ -1,0 +1,1 @@
+{"version":3,"file":"model-management-plugin.d.ts","sourceRoot":"","sources":["../../../ai/model-management/model-management-plugin.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAC;AACvD,OAAO,EAAE,cAAc,EAAE,MAAM,uBAAuB,CAAC;AAEvD,wBAAgB,2BAA2B,CAAC,OAAO,EAAE,cAAc,EAAE,IAAI,EAAE,aAAa,GAAG,cAAc,CAExG"}

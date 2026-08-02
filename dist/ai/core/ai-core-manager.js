@@ -45,6 +45,8 @@ import { AiImageGenerationFoundation } from "../image-generation-foundation/imag
 import { createImageGenerationFoundationPlugin } from "../image-generation-foundation/image-generation-foundation-plugin.js";
 import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audio-generation-foundation.js";
 import { createAudioGenerationFoundationPlugin } from "../audio-generation-foundation/audio-generation-foundation-plugin.js";
+import { AiModelManager } from "../model-management/ai-model-manager.js";
+import { createModelManagementPlugin } from "../model-management/model-management-plugin.js";
 /**
  * AI Core Manager — wires all foundation components together.
  */
@@ -81,6 +83,7 @@ export class AiCoreManager {
     _videoGenerationFoundation = null;
     _imageGenerationFoundation = null;
     _audioGenerationFoundation = null;
+    _modelManager = null;
     started = false;
     options;
     constructor(options = {}) {
@@ -264,6 +267,10 @@ export class AiCoreManager {
             this._audioGenerationFoundation.refreshIntegration(this._memoryFoundation, this._knowledgeFoundation, this._productIntelligenceFoundation, this._imageIntelligenceFoundation, this._videoIntelligenceFoundation, this._videoGenerationFoundation, this._imageGenerationFoundation, this._moduleManager, this._stateManager, this._recoveryEngine, this._systemHealthMonitor);
             await this._audioGenerationFoundation.runHealthCheck();
         }
+        this._modelManager = new AiModelManager();
+        await this._modelManager.initialize(storageRoot, this);
+        const modelManagementPlugin = createModelManagementPlugin(this._modelManager, this);
+        await this._moduleManager.registerAndInitialize(modelManagementPlugin);
         this._stateManager.syncAiCoreState(this.getLifecycleState(), {
             systemAction: "startup-complete",
         });
@@ -324,6 +331,9 @@ export class AiCoreManager {
     get audioGenerationFoundation() {
         return this._audioGenerationFoundation;
     }
+    get modelManager() {
+        return this._modelManager;
+    }
     isReady() {
         if (!this.started) {
             return false;
@@ -335,6 +345,11 @@ export class AiCoreManager {
         return this.configuration.getConfiguration();
     }
     async stop(reason = "requested") {
+        if (this._modelManager) {
+            for (const model of this._modelManager.list().filter((item) => item.status === "loaded")) {
+                await this._modelManager.unload(model.id);
+            }
+        }
         if (this._audioGenerationFoundation) {
             await this._audioGenerationFoundation.shutdown();
         }

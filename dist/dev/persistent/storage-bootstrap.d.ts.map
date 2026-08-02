@@ -1,0 +1,1 @@
+{"version":3,"file":"storage-bootstrap.d.ts","sourceRoot":"","sources":["../../../dev/persistent/storage-bootstrap.ts"],"names":[],"mappings":"AA0BA,MAAM,WAAW,sBAAsB;IACrC,WAAW,EAAE,MAAM,CAAC;IACpB,OAAO,EAAE,MAAM,EAAE,CAAC;IAClB,QAAQ,EAAE,MAAM,EAAE,CAAC;CACpB;AAED,wBAAgB,0BAA0B,CAAC,WAAW,EAAE,MAAM,GAAG,sBAAsB,CAiCtF"}

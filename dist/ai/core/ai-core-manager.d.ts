@@ -29,6 +29,7 @@ import { AiVideoIntelligenceFoundation } from "../video-intelligence-foundation/
 import { AiVideoGenerationFoundation } from "../video-generation-foundation/video-generation-foundation.js";
 import { AiImageGenerationFoundation } from "../image-generation-foundation/image-generation-foundation.js";
 import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audio-generation-foundation.js";
+import { AiModelManager } from "../model-management/ai-model-manager.js";
 export interface AiCoreManagerOptions {
     configRoot?: string;
     storageRootOverride?: string;
@@ -80,6 +81,7 @@ export declare class AiCoreManager {
     private _videoGenerationFoundation;
     private _imageGenerationFoundation;
     private _audioGenerationFoundation;
+    private _modelManager;
     private started;
     private readonly options;
     constructor(options?: AiCoreManagerOptions);
@@ -102,6 +104,7 @@ export declare class AiCoreManager {
     get videoGenerationFoundation(): AiVideoGenerationFoundation | null;
     get imageGenerationFoundation(): AiImageGenerationFoundation | null;
     get audioGenerationFoundation(): AiAudioGenerationFoundation | null;
+    get modelManager(): AiModelManager | null;
     isReady(): boolean;
     getConfig(): import("./types.js").AiCoreConfiguration;
     stop(reason?: string): Promise<void>;
