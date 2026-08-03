@@ -53,7 +53,7 @@ describe("CreativePipelineManager", () => {
     expect(restored.getDashboard().history[0]?.projectId).toBe(project.id);
   });
 
-  it("bridges attached local generation output through review and export", async () => {
+  it("fails closed when attached generation runtimes have no configured local provider", async () => {
     const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-pipeline-generation-"));
     roots.push(storageRoot);
     const workspace = new CreativeWorkspaceManager();
@@ -85,14 +85,13 @@ describe("CreativePipelineManager", () => {
 
     const job = await pipeline.enqueue(project.id);
     const reviewState = await review.getProjectState(project.id);
-    const exports = reviewState.exports;
 
-    expect(job.status).toBe("completed");
-    expect((await images.getDashboard(project.id)).images).toHaveLength(1);
-    expect((await videoAudio.getDashboard(project.id)).packages).toHaveLength(1);
-    expect(reviewState.assets[0]?.mimeType).toBe("video/mp4");
-    expect(reviewState.assets[0]?.approved).toBe(true);
-    expect(exports[0]?.format).toBe("mp4");
+    expect(job).toMatchObject({ status: "failed", stage: "failed" });
+    expect(job.error).toContain("No available local inference provider supports image");
+    expect((await images.getDashboard(project.id)).images).toHaveLength(0);
+    expect((await videoAudio.getDashboard(project.id)).packages).toHaveLength(0);
+    expect(reviewState.assets).toHaveLength(0);
+    expect(reviewState.exports).toHaveLength(0);
   });
 
 });

@@ -7,10 +7,11 @@
 
 The audit inventoried the source tree (3,338 TypeScript/TSX/Markdown entries), validation scripts, unit tests, AI Core composition, persistent runtime, local server, desktop application, conversation owner, workflow/task owners, creative pipeline, generation managers, inference runtime, connector security, and prior certification documents. Control paths were read in detail rather than trusting module names or historical certification claims.
 
-Two safe defects were repaired:
+Three safe defects were repaired:
 
 1. AI Me confirmation now dispatches the existing project-scoped `CreativePipelineManager`; it does not create a second execution system.
 2. Desktop status no longer displays fabricated CPU/RAM/task values. It now exposes local process memory, cumulative process CPU time, active pipeline-job count, and an explicit unavailable GPU state.
+3. Confirmed execution no longer dereferences the cleared pending plan after dispatch; the response now retains the confirmed plan while persisting the cleared pending state.
 
 Static diagnostics reported no errors in all changed files. Focused Vitest execution could not be evidenced because the current terminal has no usable `npm`/`npm.cmd` command; therefore no test command is reported as passed.
 
@@ -59,8 +60,8 @@ Scores measure demonstrated implementation completeness, not unexecuted historic
 
 ## Issues
 
-**Total issues found:** 8  
-**Total issues fixed:** 2  
+**Total issues found:** 9  
+**Total issues fixed:** 3  
 **Remaining critical release blockers:** 5
 
 1. There is no real multi-agent runtime, agent registry, delegation protocol, agent permission model, or coordinated agent execution.

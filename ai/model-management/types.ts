@@ -18,6 +18,16 @@ export interface LocalInferenceProvider {
 	supportedCategories: AiModelCategory[];
 	configuration?: Record<string, unknown>;
 }
+export interface ProviderValidationStatus extends LocalInferenceProvider {
+	available: boolean;
+	lastCheckedAt?: string;
+	error?: string;
+	version?: string;
+	models: string[];
+	components?: Record<string, string[]>;
+	capabilities: string[];
+	system?: { gpuName?: string; vramTotalMb?: number; vramFreeMb?: number; ramTotalMb?: number; ramFreeMb?: number };
+}
 export interface InferenceRequest {
 	modelId: string;
 	category: AiModelCategory;
@@ -35,7 +45,7 @@ export interface InferenceResult {
 	createdAt: string;
 }
 export interface InferenceRuntimeStatus {
-	providers: Array<LocalInferenceProvider & { available: boolean; lastCheckedAt?: string; error?: string }>;
+	providers: ProviderValidationStatus[];
 	queued: number;
 	running: number;
 	maxParallel: number;

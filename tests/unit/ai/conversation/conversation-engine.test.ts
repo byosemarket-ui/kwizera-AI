@@ -88,6 +88,64 @@ describe("AiConversationEngine", () => {
     expect(confirmed.response).toContain("started the image-generation workflow");
   });
 
+  it("reports local-first workspace synchronization status without preparing cloud work", async () => {
+    const engine = await createEngine();
+    engine.setWorkspaceSynchronizationStatusProvider({
+      getSummary: () => ({ cloudState: "disabled", trackedFiles: 12, queuedChanges: 3, unresolvedConflicts: 1, lastBackupAt: null }),
+    });
+
+    const result = await engine.respond({ message: "What is my workspace sync status?" });
+
+    expect(result.plan).toMatchObject({ intent: "workspace-synchronization", readyForWorkflow: false });
+    expect(result.response).toContain("local-first");
+    expect(result.response).toContain("Cloud is disabled");
+  });
+
+  it("reports enterprise connector status without enabling an integration", async () => {
+    const engine = await createEngine();
+    engine.setEnterpriseIntegrationStatusProvider({ getSummary: () => ({ total: 2, enabled: 1, unhealthy: 0, routes: 3, webhooks: 1 }) });
+
+    const result = await engine.respond({ message: "Show connector integration status" });
+
+    expect(result.plan).toMatchObject({ intent: "enterprise-integration", readyForWorkflow: false });
+    expect(result.response).toContain("2 connector(s) registered");
+    expect(result.response).toContain("will not enable");
+  });
+
+  it("reports enterprise collaboration health without changing permissions", async () => {
+    const engine = await createEngine();
+    engine.setEnterpriseCollaborationStatusProvider({ getSummary: () => ({ organizations: 1, teams: 2, users: 4, activeLocks: 1, activePresence: 2, unreadNotifications: 3 }) });
+
+    const result = await engine.respond({ message: "Show organization team permissions and collaboration status" });
+
+    expect(result.plan).toMatchObject({ intent: "enterprise-collaboration", readyForWorkflow: false });
+    expect(result.response).toContain("local-first");
+    expect(result.response).toContain("will not change membership");
+  });
+
+  it("reports publishing status without scheduling or delivering content", async () => {
+    const engine = await createEngine();
+    engine.setPublishingDistributionStatusProvider({ getSummary: () => ({ packages: 3, scheduled: 1, readyLocal: 1, published: 1, failed: 0, connectedProfiles: 0 }) });
+
+    const result = await engine.respond({ message: "Show publishing distribution status" });
+
+    expect(result.plan).toMatchObject({ intent: "publishing-distribution", readyForWorkflow: false });
+    expect(result.response).toContain("offline-first");
+    expect(result.response).toContain("will not publish");
+  });
+
+  it("reports local runtime availability without claiming unavailable providers are usable", async () => {
+    const engine = await createEngine();
+    engine.setRuntimeStatusProvider({ getSummary: () => ({ providers: [{ name: "Automatic1111 Local", available: true, models: 2 }, { name: "ComfyUI Local", available: false, models: 0, error: "connection refused" }], gpuName: "Local GPU", vramFreeMb: 4096 }) });
+
+    const result = await engine.respond({ message: "Show system runtime status" });
+
+    expect(result.plan).toMatchObject({ intent: "system", readyForWorkflow: false });
+    expect(result.response).toContain("Automatic1111 Local (2 model(s))");
+    expect(result.response).toContain("ComfyUI Local: connection refused");
+    expect(result.response).toContain("4096 MB VRAM free");
+  });
+
   it("does not invent memory or knowledge results while foundations are unavailable", async () => {
     const core = coreStub() as never;
     await expect(new FoundationMemorySearchProvider(core).search("coffee", {})).resolves.toMatchObject({ found: false, items: [] });

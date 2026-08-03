@@ -1,8 +1,9 @@
 import type { AiModelManager } from "./ai-model-manager.js";
-import type { AiModelCategory, ImageInferenceRequest, ImageInferenceResult, InferenceRequest, InferenceResult, InferenceRuntimeStatus, LocalInferenceProvider, VideoInferenceRequest, VideoInferenceResult } from "./types.js";
+import type { AiModelCategory, ImageInferenceRequest, ImageInferenceResult, InferenceRequest, InferenceResult, InferenceRuntimeStatus, LocalInferenceProvider, ProviderValidationStatus, VideoInferenceRequest, VideoInferenceResult } from "./types.js";
 
 const DEFAULT_PROVIDERS: LocalInferenceProvider[] = [
   { id: "automatic1111-local", name: "Automatic1111 Local", kind: "automatic1111", endpoint: "http://127.0.0.1:7860", enabled: true, supportedCategories: ["image"] },
+  { id: "comfyui-local", name: "ComfyUI Local", kind: "comfyui-video", endpoint: "http://127.0.0.1:8188", enabled: true, supportedCategories: ["video"] },
   { id: "ollama-local", name: "Ollama Local", kind: "ollama", endpoint: "http://127.0.0.1:11434", enabled: true, supportedCategories: ["language", "vision", "embedding"] },
 ];
 const ADAPTER_CATEGORIES: Record<LocalInferenceProvider["kind"], AiModelCategory[]> = {
@@ -12,7 +13,7 @@ const ADAPTER_CATEGORIES: Record<LocalInferenceProvider["kind"], AiModelCategory
   "openai-compatible": ["language"],
 };
 
-type ProviderStatus = LocalInferenceProvider & { available: boolean; lastCheckedAt?: string; error?: string };
+type ProviderStatus = ProviderValidationStatus;
 type QueuedInference = { request: InferenceRequest; provider: ProviderStatus; resolve: (result: InferenceResult) => void; reject: (error: Error) => void };
 type QueuedDirectInference<T> = { work: () => Promise<T>; resolve: (result: T) => void; reject: (error: Error) => void };
 
@@ -28,17 +29,18 @@ export class AiInferenceRuntime {
   private maxParallel = 2;
 
   constructor(private readonly models: AiModelManager) {
-    for (const provider of DEFAULT_PROVIDERS) this.providers.set(provider.id, { ...provider, available: false });
+    for (const provider of DEFAULT_PROVIDERS) this.providers.set(provider.id, { ...provider, available: false, models: [], capabilities: [...provider.supportedCategories] });
   }
 
   configure(provider: LocalInferenceProvider): void {
     const endpoint = new URL(provider.endpoint);
     if (!/^https?:$/.test(endpoint.protocol) || !["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname)) throw new Error("Inference providers must use a loopback HTTP endpoint");
     if (provider.supportedCategories.some((category) => !ADAPTER_CATEGORIES[provider.kind].includes(category))) throw new Error(`${provider.kind} does not support one or more configured inference categories`);
-    this.providers.set(provider.id, { ...provider, endpoint: endpoint.origin, available: false });
+    this.providers.set(provider.id, { ...provider, endpoint: endpoint.origin, available: false, models: [], capabilities: [...provider.supportedCategories] });
   }
 
-  listProviders(): ProviderStatus[] { return [...this.providers.values()].map((provider) => ({ ...provider, supportedCategories: [...provider.supportedCategories] })); }
+  configuredProviders(): LocalInferenceProvider[] { return [...this.providers.values()].map(({ available: _available, lastCheckedAt: _lastCheckedAt, error: _error, version: _version, models: _models, capabilities: _capabilities, system: _system, ...provider }) => ({ ...provider, supportedCategories: [...provider.supportedCategories] })); }
+  listProviders(): ProviderStatus[] { return [...this.providers.values()].map((provider) => ({ ...provider, supportedCategories: [...provider.supportedCategories], models: [...provider.models], components: provider.components ? Object.fromEntries(Object.entries(provider.components).map(([kind, entries]) => [kind, [...entries]])) : undefined, capabilities: [...provider.capabilities], system: provider.system ? { ...provider.system } : undefined })); }
 
   setMaxParallel(value: number): void {
     if (!Number.isInteger(value) || value < 1 || value > 8) throw new Error("Inference parallelism must be an integer between 1 and 8");
@@ -51,13 +53,18 @@ export class AiInferenceRuntime {
     return this.status();
   }
 
+  async discover(): Promise<InferenceRuntimeStatus> {
+    await this.monitor();
+    return this.status();
+  }
+
   status(): InferenceRuntimeStatus { return { providers: this.listProviders(), queued: this.queue.length + this.directQueue.length, running: this.running + this.directRunning, maxParallel: this.maxParallel, completed: this.completed, failed: this.failed }; }
 
   async infer(request: InferenceRequest): Promise<InferenceResult> {
     if (!request.prompt.trim()) throw new Error("Inference prompt is required");
     const model = this.models.getMutable(request.modelId);
     if (model.category !== request.category) throw new Error(`Model ${request.modelId} does not support ${request.category} inference`);
-    const provider = await this.select(request.category);
+    const provider = await this.select(request.category, request.modelId);
     if (model.status !== "loaded" || model.runtimeProviderId !== provider.id) await this.models.activateForInference(request.modelId, provider.id);
     return new Promise<InferenceResult>((resolve, reject) => {
       const job = { request, provider, resolve, reject };
@@ -72,7 +79,7 @@ export class AiInferenceRuntime {
     if (!Number.isInteger(request.batchSize ?? 1) || (request.batchSize ?? 1) < 1 || (request.batchSize ?? 1) > 6) throw new Error("Image batch size must be between 1 and 6");
     const model = this.models.getMutable(request.modelId);
     if (model.category !== "image") throw new Error(`Model ${request.modelId} does not support image inference`);
-    const provider = await this.select("image");
+    const provider = await this.select("image", request.modelId);
     if (provider.kind !== "automatic1111") throw new Error(`Provider ${provider.id} does not implement image inference`);
     if (model.status !== "loaded" || model.runtimeProviderId !== provider.id) await this.models.activateForInference(request.modelId, provider.id);
     const startedAt = performance.now();
@@ -92,7 +99,7 @@ export class AiInferenceRuntime {
     if (!Number.isInteger(request.width) || !Number.isInteger(request.height) || request.width < 64 || request.height < 64 || request.width > 3840 || request.height > 2160) throw new Error("Video dimensions are outside the supported range");
     const model = this.models.getMutable(request.modelId);
     if (model.category !== "video") throw new Error(`Model ${request.modelId} does not support video inference`);
-    const provider = await this.select("video");
+    const provider = await this.select("video", request.modelId);
     if (provider.kind !== "comfyui-video") throw new Error(`Provider ${provider.id} does not implement video inference`);
     if (model.status !== "loaded" || model.runtimeProviderId !== provider.id) await this.models.activateForInference(request.modelId, provider.id);
     const startedAt = performance.now();
@@ -145,12 +152,16 @@ export class AiInferenceRuntime {
     }
   }
 
-  private async select(category: AiModelCategory): Promise<ProviderStatus> {
+  private async select(category: AiModelCategory, modelId: string): Promise<ProviderStatus> {
     const candidates = [...this.providers.values()].filter((provider) => provider.enabled && provider.supportedCategories.includes(category));
+    let hasAvailableProvider = false;
     for (const provider of candidates) {
       await this.check(provider);
-      if (provider.available) return provider;
+      if (!provider.available) continue;
+      hasAvailableProvider = true;
+      if (provider.models.includes(modelId)) return provider;
     }
+    if (hasAvailableProvider) throw new Error(`No available local inference provider has validated model ${modelId} for ${category} inference.`);
     throw new Error(`No available local inference provider supports ${category}. Configure a compatible loopback runtime first.`);
   }
 
@@ -159,11 +170,41 @@ export class AiInferenceRuntime {
       const healthPath = provider.kind === "ollama" ? "/api/tags" : provider.kind === "automatic1111" ? "/sdapi/v1/options" : provider.kind === "comfyui-video" ? "/system_stats" : "/v1/models";
       const response = await fetch(`${provider.endpoint}${healthPath}`, { signal: AbortSignal.timeout(1_500) });
       if (!response.ok) throw new Error(`Health endpoint returned ${response.status}`);
-      provider.available = true; provider.error = undefined;
+      const health = await response.json().catch(() => ({})) as Record<string, unknown>;
+      const details = await this.discoverProviderDetails(provider, health);
+      provider.available = true; provider.error = undefined; provider.version = details.version; provider.models = details.models; provider.components = details.components; provider.capabilities = details.capabilities; provider.system = details.system;
     } catch (error) {
       provider.available = false; provider.error = error instanceof Error ? error.message : String(error);
     }
     provider.lastCheckedAt = new Date().toISOString();
+  }
+
+  private async discoverProviderDetails(provider: ProviderStatus, health: Record<string, unknown>): Promise<Pick<ProviderStatus, "version" | "models" | "components" | "capabilities" | "system">> {
+    if (provider.kind === "ollama") {
+      const models = Array.isArray(health.models) ? health.models.flatMap((item) => typeof item === "object" && item && typeof (item as { name?: unknown }).name === "string" ? [(item as { name: string }).name] : []) : [];
+      return { models, version: typeof health.version === "string" ? health.version : undefined, capabilities: ["language", "vision", "embedding"] };
+    }
+    if (provider.kind === "automatic1111") {
+      const [version, models, loras, vaes, upscalers] = await Promise.all([
+        this.fetchJson(provider.endpoint, "/sdapi/v1/version"), this.fetchJson(provider.endpoint, "/sdapi/v1/sd-models"), this.fetchJson(provider.endpoint, "/sdapi/v1/loras"), this.fetchJson(provider.endpoint, "/sdapi/v1/sd-vae"), this.fetchJson(provider.endpoint, "/sdapi/v1/upscalers"),
+      ]);
+      const names = (items: unknown) => Array.isArray(items) ? items.flatMap((item) => typeof item === "object" && item ? [String((item as { title?: unknown; name?: unknown; model_name?: unknown }).title ?? (item as { name?: unknown }).name ?? (item as { model_name?: unknown }).model_name ?? "")] : []).filter(Boolean) : [];
+      return { version: typeof version?.version === "string" ? version.version : undefined, models: names(models), components: { loras: names(loras), vaes: names(vaes), upscalers: names(upscalers) }, capabilities: ["image", "checkpoints", "lora", "vae", "upscalers"] };
+    }
+    if (provider.kind === "comfyui-video") {
+      const system = health.system && typeof health.system === "object" ? health.system as { os?: string; ram_total?: number; ram_free?: number; devices?: Array<{ name?: string; vram_total?: number; vram_free?: number }> } : undefined;
+      const device = system?.devices?.[0];
+      const objectInfo = await this.fetchJson(provider.endpoint, "/object_info");
+      const nodeNames = objectInfo && typeof objectInfo === "object" ? Object.keys(objectInfo).filter((name) => /video|animate|image.?to.?video|checkpoint|lora/i.test(name)) : [];
+      const modelIds = Array.isArray((provider.configuration as { modelIds?: unknown } | undefined)?.modelIds) ? (provider.configuration as { modelIds: unknown[] }).modelIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0) : [];
+      return { version: typeof health.version === "string" ? health.version : undefined, models: modelIds, components: { workflowNodes: nodeNames }, capabilities: ["video", "workflow", "image-to-video"], system: { gpuName: device?.name, vramTotalMb: bytesToMb(device?.vram_total), vramFreeMb: bytesToMb(device?.vram_free), ramTotalMb: bytesToMb(system?.ram_total), ramFreeMb: bytesToMb(system?.ram_free) } };
+    }
+    const models = await this.fetchJson(provider.endpoint, "/v1/models");
+    return { models: Array.isArray(models?.data) ? models.data.flatMap((item: unknown) => typeof item === "object" && item && typeof (item as { id?: unknown }).id === "string" ? [(item as { id: string }).id] : []) : [], capabilities: [...provider.supportedCategories] };
+  }
+
+  private async fetchJson(endpoint: string, pathname: string): Promise<Record<string, unknown> | unknown[] | null> {
+    try { const response = await fetch(`${endpoint}${pathname}`, { signal: AbortSignal.timeout(1_500) }); return response.ok ? await response.json() as Record<string, unknown> | unknown[] : null; } catch { return null; }
   }
 
   private async executeOllama(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
@@ -277,4 +318,8 @@ function decodeGeneratedVideo(bytes: Uint8Array): { bytes: Uint8Array; mimeType:
   const mimeType = header.subarray(4, 8).toString("ascii") === "ftyp" ? "video/mp4" : header.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])) ? "video/webm" : null;
   if (!mimeType) throw new Error("ComfyUI returned an unsupported encoded video format");
   return { bytes, mimeType };
+}
+
+function bytesToMb(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value / 1024 / 1024) : undefined;
 }

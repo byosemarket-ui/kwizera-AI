@@ -20,13 +20,29 @@ import {
 
   getVideoAudioGenerationManager,
 
+  getCommercialVideoManager,
+
+  getBusinessIntelligenceManager,
+
+  getWorkspaceSynchronizationManager,
+
+  getEnterpriseIntegrationManager,
+
+  getPublishingDistributionManager,
+
+  getEnterpriseCollaborationManager,
+
   getGenerationOptimizationManager,
 
   getProductIntelligenceManager,
 
   getImageIntelligenceManager,
 
+  getProductPhotographyManager,
+
   getMarketingIntelligenceManager,
+
+  getMarketingContentManager,
 
   getDecisionIntelligenceManager,
 
@@ -352,6 +368,102 @@ function requireVideoAudioGeneration(res: ServerResponse) {
 
 }
 
+function requireCommercialVideo(res: ServerResponse) {
+
+  const commercial = getCommercialVideoManager();
+
+  if (!commercial) {
+
+    sendJson(res, 503, { error: "Commercial video is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return commercial;
+
+}
+
+function requireBusinessIntelligence(res: ServerResponse) {
+
+  const business = getBusinessIntelligenceManager();
+
+  if (!business) {
+
+    sendJson(res, 503, { error: "Business intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return business;
+
+}
+
+function requireWorkspaceSynchronization(res: ServerResponse) {
+
+  const synchronization = getWorkspaceSynchronizationManager();
+
+  if (!synchronization) {
+
+    sendJson(res, 503, { error: "Workspace synchronization is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return synchronization;
+
+}
+
+function requireEnterpriseIntegration(res: ServerResponse) {
+
+  const integration = getEnterpriseIntegrationManager();
+
+  if (!integration) {
+
+    sendJson(res, 503, { error: "Enterprise integration services are restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return integration;
+
+}
+
+function requirePublishingDistribution(res: ServerResponse) {
+
+  const publishing = getPublishingDistributionManager();
+
+  if (!publishing) {
+
+    sendJson(res, 503, { error: "Publishing distribution services are restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return publishing;
+
+}
+
+function requireEnterpriseCollaboration(res: ServerResponse) {
+
+  const enterprise = getEnterpriseCollaborationManager();
+
+  if (!enterprise) {
+
+    sendJson(res, 503, { error: "Enterprise collaboration services are restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return enterprise;
+
+}
+
 function requireGenerationOptimization(res: ServerResponse) {
 
   const optimization = getGenerationOptimizationManager();
@@ -400,6 +512,22 @@ function requireImageIntelligence(res: ServerResponse) {
 
 }
 
+function requireProductPhotography(res: ServerResponse) {
+
+  const photography = getProductPhotographyManager();
+
+  if (!photography) {
+
+    sendJson(res, 503, { error: "Product photography is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return photography;
+
+}
+
 function requireMarketingIntelligence(res: ServerResponse) {
 
   const intelligence = getMarketingIntelligenceManager();
@@ -413,6 +541,22 @@ function requireMarketingIntelligence(res: ServerResponse) {
   }
 
   return intelligence;
+
+}
+
+function requireMarketingContent(res: ServerResponse) {
+
+  const content = getMarketingContentManager();
+
+  if (!content) {
+
+    sendJson(res, 503, { error: "Marketing content is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return content;
 
 }
 
@@ -864,6 +1008,26 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/models/discover" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      sendJson(res, 200, await models.discoverProviders());
+
+    } catch (error) {
+
+      sendJson(res, 503, { error: error instanceof Error ? error.message : "Unable to discover local inference providers" });
+
+    }
+
+    return;
+
+  }
+
   if (url.pathname === "/api/models/providers" && req.method === "POST") {
 
     const models = requireModelManager(res);
@@ -900,6 +1064,40 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/product-photography" && req.method === "GET") {
+
+    const photography = requireProductPhotography(res);
+
+    if (!photography) return;
+
+    sendJson(res, 200, { jobs: photography.list(url.searchParams.get("projectId") ?? undefined) });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-photography/jobs" && req.method === "POST") {
+
+    const photography = requireProductPhotography(res);
+
+    if (!photography) return;
+
+    try {
+
+      const job = await photography.start(JSON.parse(await readBody(req)));
+
+      sendJson(res, job.status === "completed" ? 201 : 422, { job });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product photography generation failed" });
+
+    }
+
+    return;
+
+  }
+
   if (url.pathname === "/api/video-audio-generation") {
 
     const videoAudio = requireVideoAudioGeneration(res);
@@ -907,6 +1105,296 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     if (!videoAudio) return;
 
     sendJson(res, 200, await videoAudio.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/commercial-video" && req.method === "GET") {
+
+    const commercial = requireCommercialVideo(res);
+
+    if (!commercial) return;
+
+    sendJson(res, 200, { jobs: commercial.list(url.searchParams.get("projectId") ?? undefined) });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/commercial-video/jobs" && req.method === "POST") {
+
+    const commercial = requireCommercialVideo(res);
+
+    if (!commercial) return;
+
+    try {
+
+      const job = await commercial.start(JSON.parse(await readBody(req)));
+
+      sendJson(res, job.status === "completed" ? 201 : 422, { job });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Commercial video generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence" && req.method === "GET") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    sendJson(res, 200, await business.getDashboard());
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace-synchronization" && req.method === "GET") {
+
+    const synchronization = requireWorkspaceSynchronization(res);
+
+    if (!synchronization) return;
+
+    sendJson(res, 200, { status: synchronization.getStatus(), queue: synchronization.getQueuedChanges(), conflicts: synchronization.getConflicts() });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/enterprise-integrations" && req.method === "GET") {
+
+    const integration = requireEnterpriseIntegration(res);
+
+    if (!integration) return;
+
+    sendJson(res, 200, { status: integration.getStatus(), routes: integration.listRoutes(), webhooks: integration.listWebhooks() });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/publishing-distribution" && req.method === "GET") {
+
+    const publishing = requirePublishingDistribution(res);
+
+    if (!publishing) return;
+
+    sendJson(res, 200, { status: publishing.getStatus(), profiles: publishing.listProfiles(), packages: publishing.listPackages().map(({ packagePath, metadataPath, ...publishingPackage }) => publishingPackage), jobs: publishing.listJobs() });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/enterprise-collaboration" && req.method === "GET") {
+
+    const enterprise = requireEnterpriseCollaboration(res);
+
+    if (!enterprise) return;
+
+    sendJson(res, 200, { status: enterprise.getStatus(), organizations: enterprise.listOrganizations().map(({ ownerId, ...organization }) => organization) });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace-synchronization/snapshot" && req.method === "POST") {
+
+    const synchronization = requireWorkspaceSynchronization(res);
+
+    if (!synchronization) return;
+
+    try {
+
+      sendJson(res, 201, { entries: await synchronization.snapshotLocalWorkspace(), status: synchronization.getStatus() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Workspace snapshot failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace-synchronization/backup" && req.method === "POST") {
+
+    const synchronization = requireWorkspaceSynchronization(res);
+
+    if (!synchronization) return;
+
+    try {
+
+      sendJson(res, 201, await synchronization.createBackup());
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Workspace backup failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace-synchronization/restore" && req.method === "POST") {
+
+    const synchronization = requireWorkspaceSynchronization(res);
+
+    if (!synchronization) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { backupId?: unknown };
+
+      if (typeof body.backupId !== "string" || !body.backupId.trim()) throw new Error("A backup id is required");
+
+      sendJson(res, 200, await synchronization.restoreBackup(body.backupId));
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Workspace restore failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/workspace-synchronization/synchronize" && req.method === "POST") {
+
+    const synchronization = requireWorkspaceSynchronization(res);
+
+    if (!synchronization) return;
+
+    sendJson(res, 200, await synchronization.synchronize());
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence/sales" && req.method === "POST") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    try {
+
+      sendJson(res, 201, { imported: await business.recordSales(JSON.parse(await readBody(req))) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Sales import failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence/inventory" && req.method === "POST") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    try {
+
+      sendJson(res, 201, { imported: await business.upsertInventory(JSON.parse(await readBody(req))) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Inventory import failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence/marketing" && req.method === "POST") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    try {
+
+      sendJson(res, 201, { imported: await business.recordMarketing(JSON.parse(await readBody(req))) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing import failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence/reports" && req.method === "POST") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      sendJson(res, 201, await business.generateReport(body.kind));
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Business report generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/business-intelligence/exports" && req.method === "POST") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      sendJson(res, 201, await business.exportReport(body.kind, body.format));
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Business report export failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname.startsWith("/api/business-intelligence/exports/") && req.method === "GET") {
+
+    const business = requireBusinessIntelligence(res);
+
+    if (!business) return;
+
+    const filePath = await business.getExportPath(url.pathname.slice("/api/business-intelligence/exports/".length));
+
+    if (!filePath) { sendJson(res, 404, { error: "Business export not found" }); return; }
+
+    await serveStatic(res, filePath);
 
     return;
 
@@ -967,6 +1455,40 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     if (!intelligence) return;
 
     sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/marketing-content" && req.method === "GET") {
+
+    const content = requireMarketingContent(res);
+
+    if (!content) return;
+
+    sendJson(res, 200, { jobs: content.list(url.searchParams.get("projectId") ?? undefined) });
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/marketing-content/jobs" && req.method === "POST") {
+
+    const content = requireMarketingContent(res);
+
+    if (!content) return;
+
+    try {
+
+      const job = await content.start(JSON.parse(await readBody(req)));
+
+      sendJson(res, job.status === "completed" ? 201 : 422, { job });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing content generation failed" });
+
+    }
 
     return;
 

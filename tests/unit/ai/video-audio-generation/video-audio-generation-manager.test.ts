@@ -26,8 +26,10 @@ describe("VideoAudioGenerationManager", () => {
     for (const [id, category] of [["test-image-model", "image"], ["test-video-model", "video"], ["test-audio-model", "audio"]] as const) await models.registry.register({ id, name: id, category, version: "1.0.0", description: "Test model", requirements: { ramMb: 0, storageMb: 0 }, capabilities: ["generation"] });
     const server = createServer(async (request, response) => {
       if (request.url === "/sdapi/v1/options") { response.writeHead(200, { "Content-Type": "application/json" }); response.end("{}"); return; }
+      if (request.url === "/sdapi/v1/sd-models") { response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify([{ title: "test-image-model" }])); return; }
       if (request.url === "/sdapi/v1/txt2img" && request.method === "POST") { let body = ""; for await (const chunk of request) body += chunk; const payload = JSON.parse(body) as { width: number; height: number }; response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify({ images: [pngBase64(payload.width, payload.height)] })); return; }
       if (request.url === "/system_stats") { response.writeHead(200, { "Content-Type": "application/json" }); response.end("{}"); return; }
+      if (request.url === "/object_info") { response.writeHead(200, { "Content-Type": "application/json" }); response.end("{}"); return; }
       if (request.url === "/upload/image" && request.method === "POST") { for await (const _chunk of request) { /* consume multipart source image */ } response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify({ name: "source.png" })); return; }
       if (request.url === "/prompt" && request.method === "POST") { let body = ""; for await (const chunk of request) body += chunk; expect(JSON.parse(body).prompt["1"].inputs.text).toContain("Studio Bottle"); response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify({ prompt_id: "video-job" })); return; }
       if (request.url === "/history/video-job") { response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify({ "video-job": { status: { status_str: "success" }, outputs: { "9": { videos: [{ filename: "render.mp4" }] } } } })); return; }
@@ -37,7 +39,7 @@ describe("VideoAudioGenerationManager", () => {
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address(); if (!address || typeof address === "string") throw new Error("Unable to start image inference fixture");
     models.inference.configure({ id: "automatic1111-fixture", name: "Automatic1111 Fixture", kind: "automatic1111", endpoint: `http://127.0.0.1:${address.port}`, enabled: true, supportedCategories: ["image"] });
-    models.inference.configure({ id: "comfyui-video-fixture", name: "ComfyUI Video Fixture", kind: "comfyui-video", endpoint: `http://127.0.0.1:${address.port}`, enabled: true, supportedCategories: ["video"], configuration: { workflow: { "1": { inputs: {} }, "2": { inputs: {} } }, promptNodeId: "1", imageNodeId: "2" } });
+    models.inference.configure({ id: "comfyui-video-fixture", name: "ComfyUI Video Fixture", kind: "comfyui-video", endpoint: `http://127.0.0.1:${address.port}`, enabled: true, supportedCategories: ["video"], configuration: { modelIds: ["test-video-model"], workflow: { "1": { inputs: {} }, "2": { inputs: {} } }, promptNodeId: "1", imageNodeId: "2" } });
     try {
     const project = await workspace.createProject("Video Launch");
     await workspace.updateProject(project.id, { productInformation: { name: "Studio Bottle", category: "Beverage", description: "Reusable insulated bottle" }, brandInformation: { name: "KWIZERA" }, campaignInformation: { name: "Launch", objective: "Increase awareness", callToAction: "Shop now" }, targetAudience: "Urban professionals" });

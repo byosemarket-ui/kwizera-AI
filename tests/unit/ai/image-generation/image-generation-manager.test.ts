@@ -30,6 +30,7 @@ describe("ImageGenerationManager", () => {
     const requests: Array<{ url?: string; body: string }> = [];
     const server = createServer(async (request, response) => {
       if (request.url === "/sdapi/v1/options") { response.writeHead(200, { "Content-Type": "application/json" }); response.end("{}"); return; }
+      if (request.url === "/sdapi/v1/sd-models") { response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify([{ title: "test-image-model" }])); return; }
       if ((request.url === "/sdapi/v1/img2img" || request.url === "/sdapi/v1/txt2img") && request.method === "POST") {
         let body = ""; for await (const chunk of request) body += chunk;
         requests.push({ url: request.url, body }); const payload = JSON.parse(body) as { width: number; height: number };
