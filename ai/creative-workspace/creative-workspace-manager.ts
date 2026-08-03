@@ -234,7 +234,7 @@ export class CreativeWorkspaceManager {
     this.transition(project.id, isNew ? ProjectState.Open : ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
     await this.writeJson(this.projectFile(project.id), project);
-    await this.saveIndex();
+    if (isNew) await this.saveIndex();
     this.transition(project.id, ProjectState.Saved);
   }
 

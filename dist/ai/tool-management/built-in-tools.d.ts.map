@@ -1,0 +1,1 @@
+{"version":3,"file":"built-in-tools.d.ts","sourceRoot":"","sources":["../../../ai/tool-management/built-in-tools.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,KAAK,EAAE,cAAc,EAAE,WAAW,EAAE,MAAM,YAAY,CAAC;AAE9D,wBAAgB,kBAAkB,CAAC,IAAI,EAAE,aAAa,GAAG,KAAK,CAAC;IAAE,UAAU,EAAE,cAAc,CAAC;IAAC,OAAO,EAAE,WAAW,CAAA;CAAE,CAAC,CAQnH"}

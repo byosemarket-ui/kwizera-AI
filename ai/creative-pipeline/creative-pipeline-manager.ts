@@ -11,15 +11,18 @@ import type { ImageIntelligenceManager } from "../image-intelligence/image-intel
 import type { MarketingIntelligenceManager } from "../marketing-intelligence/marketing-intelligence-manager.js";
 import type { DecisionIntelligenceManager } from "../decision-intelligence/decision-intelligence-manager.js";
 import type { AiLearningManager } from "../learning-intelligence/learning-intelligence-manager.js";
+import type { ImageGenerationManager } from "../image-generation/image-generation-manager.js";
+import type { VideoAudioGenerationManager } from "../video-audio-generation/video-audio-generation-manager.js";
 
-export type PipelineStage = "validation" | "analysis" | "planning" | "prompt-generation" | "generation" | "rendering" | "review" | "export" | "completed" | "failed";
+export type PipelineStage = "validation" | "analysis" | "planning" | "prompt-generation" | "generation" | "rendering" | "review" | "export" | "completed" | "failed" | "paused" | "cancelled";
+export type PipelineJobStatus = "queued" | "running" | "paused" | "cancelled" | "completed" | "failed";
 
 export interface PipelineJob {
   id: string;
   projectId: string;
   stage: PipelineStage;
   progress: number;
-  status: "queued" | "running" | "completed" | "failed";
+  status: PipelineJobStatus;
   createdAt: string;
   updatedAt: string;
   startedAt?: string;
@@ -47,6 +50,8 @@ export class CreativePipelineManager {
   private marketingIntelligenceRuntime: MarketingIntelligenceManager | null = null;
   private decisionIntelligenceRuntime: DecisionIntelligenceManager | null = null;
   private learningIntelligenceRuntime: AiLearningManager | null = null;
+  private imageGenerationRuntime: ImageGenerationManager | null = null;
+  private videoAudioGenerationRuntime: VideoAudioGenerationManager | null = null;
   private store: PipelineStore = { jobs: [], history: [] };
   private running = new Set<string>();
 
@@ -76,12 +81,27 @@ export class CreativePipelineManager {
     return job;
   }
 
+  async start(projectId: string): Promise<PipelineJob> {
+    this.ensureReady();
+    const active = this.store.jobs.find((job) => job.projectId === projectId && (job.status === "queued" || job.status === "running" || job.status === "paused"));
+    if (active) return structuredClone(active);
+    const now = new Date().toISOString();
+    const job: PipelineJob = { id: randomUUID(), projectId, stage: "validation", progress: 0, status: "queued", createdAt: now, updatedAt: now, retryCount: 0, notifications: [], completedStages: [] };
+    this.note(job, "info", "Autonomous pipeline dispatched.");
+    this.store.jobs.unshift(job);
+    await this.save();
+    void this.run(job.id);
+    return structuredClone(job);
+  }
+
   attachGenerationOptimization(manager: GenerationOptimizationManager): void { this.optimization = manager; }
   attachProductIntelligence(manager: ProductIntelligenceManager): void { this.productIntelligenceRuntime = manager; }
   attachImageIntelligence(manager: ImageIntelligenceManager): void { this.imageIntelligenceRuntime = manager; }
   attachMarketingIntelligence(manager: MarketingIntelligenceManager): void { this.marketingIntelligenceRuntime = manager; }
   attachDecisionIntelligence(manager: DecisionIntelligenceManager): void { this.decisionIntelligenceRuntime = manager; }
   attachLearningIntelligence(manager: AiLearningManager): void { this.learningIntelligenceRuntime = manager; }
+  attachImageGeneration(manager: ImageGenerationManager): void { this.imageGenerationRuntime = manager; }
+  attachVideoAudioGeneration(manager: VideoAudioGenerationManager): void { this.videoAudioGenerationRuntime = manager; }
 
   async run(jobId: string): Promise<PipelineJob> {
     this.ensureReady();
@@ -98,6 +118,11 @@ export class CreativePipelineManager {
       }
       for (const stage of STAGES) {
         if (job.completedStages.includes(stage)) continue;
+        if (job.status === "paused" || job.status === "cancelled") {
+          this.note(job, "warning", `Pipeline ${job.status} at a stage boundary.`);
+          await this.save();
+          return job;
+        }
         job.stage = stage; job.updatedAt = new Date().toISOString(); await this.save();
         await this.executeStage(job, project, stage);
         job.completedStages.push(stage); job.progress = Math.round((job.completedStages.length / STAGES.length) * 100);
@@ -127,6 +152,41 @@ export class CreativePipelineManager {
     return this.run(jobId);
   }
 
+  async pause(jobId: string): Promise<PipelineJob> {
+    const job = this.requireActiveJob(jobId);
+    if (job.status === "queued") job.stage = "paused";
+    job.status = "paused";
+    this.note(job, "warning", "Pause requested; the pipeline will stop after its current stage.");
+    await this.save();
+    return structuredClone(job);
+  }
+
+  async resume(jobId: string): Promise<PipelineJob> {
+    const job = this.requireActiveJob(jobId);
+    if (job.status !== "paused") throw new Error("Only paused pipeline jobs can be resumed");
+    job.status = "queued";
+    job.stage = job.completedStages.at(-1) ?? "validation";
+    this.note(job, "info", "Pipeline resumed from its last completed stage.");
+    await this.save();
+    void this.run(job.id);
+    return structuredClone(job);
+  }
+
+  async cancel(jobId: string): Promise<PipelineJob> {
+    const job = this.requireActiveJob(jobId);
+    job.status = "cancelled";
+    job.stage = "cancelled";
+    job.completedAt = new Date().toISOString();
+    this.note(job, "warning", "Cancellation requested; the pipeline will stop after its current stage.");
+    await this.save();
+    return structuredClone(job);
+  }
+
+  getJob(jobId: string): PipelineJob | null {
+    const job = [...this.store.jobs, ...this.store.history].find((item) => item.id === jobId);
+    return job ? structuredClone(job) : null;
+  }
+
   getDashboard(): { jobs: PipelineJob[]; history: PipelineJob[]; monitor: Record<string, number | string>; integrations: Record<string, boolean> } {
     const usage = process.memoryUsage();
     const completed = this.store.history.length;
@@ -138,8 +198,59 @@ export class CreativePipelineManager {
     if (stage === "validation") { const result = this.workspace!.validate(project); if (!result.valid) throw new Error(result.errors.join(" ")); return; }
     if (stage === "analysis") { const imageProfiles = this.imageIntelligenceRuntime ? await this.imageIntelligenceRuntime.analyzeProject(project.id) : []; const profile = this.productIntelligenceRuntime ? await this.productIntelligenceRuntime.analyze(project.id) : null; const marketing = this.marketingIntelligenceRuntime ? await this.marketingIntelligenceRuntime.analyze(project.id) : null; this.note(job, "info", profile ? `Image intelligence analyzed ${imageProfiles.length} uploaded image(s); product profile ready: ${profile.identifiedAs}, ${profile.viewCount} view(s), quality ${profile.quality.score}/100.${marketing ? ` Marketing strategy ready at ${marketing.score}/100.` : ""}` : "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence."); return; }
     if (stage === "planning" || stage === "prompt-generation") { const result = await this.planning!.createPlan(project, this.workspace!.validate(project)); if (!result.plan) throw new Error("Creative planning could not be completed"); return; }
-    if (stage === "generation") { this.note(job, "info", "Generation manager handoff prepared; registered generated assets will be picked up by the review artifact bridge."); return; }
-    if (stage === "rendering") { this.note(job, "info", "Rendering pipeline handoff prepared; source artifact fallback is enabled until a rendered artifact is registered."); return; }
+    if (stage === "generation") {
+      if (!this.imageGenerationRuntime || !this.videoAudioGenerationRuntime) {
+        this.note(job, "warning", "Generation runtimes are not attached; source-media review fallback remains active.");
+        return;
+      }
+      const imageDefaults = await this.imageGenerationRuntime.defaultRequest(project.id);
+      const images = await this.imageGenerationRuntime.generate({
+        projectId: project.id,
+        prompt: imageDefaults.prompt ?? `${project.productInformation.name} product composition`,
+        mode: imageDefaults.mode ?? "product-to-image",
+        style: imageDefaults.style ?? "studio",
+        aspectRatio: imageDefaults.aspectRatio ?? "1:1",
+        resolution: imageDefaults.resolution ?? "high",
+        count: 1,
+        productImageId: imageDefaults.productImageId,
+      });
+      const videoDefaults = await this.videoAudioGenerationRuntime.defaultRequest(project.id);
+      const video = await this.videoAudioGenerationRuntime.generate({
+        projectId: project.id,
+        prompt: videoDefaults.prompt ?? `${project.productInformation.name} marketing video`,
+        mode: videoDefaults.mode ?? "image-to-video",
+        imageId: images[0]?.id ?? videoDefaults.imageId,
+        durationSeconds: videoDefaults.durationSeconds ?? 15,
+        resolution: videoDefaults.resolution ?? "1080p",
+        frameRate: videoDefaults.frameRate ?? 30,
+        voice: videoDefaults.voice ?? "narrator",
+        music: videoDefaults.music ?? "uplifting",
+        soundEffects: videoDefaults.soundEffects ?? true,
+        subtitles: videoDefaults.subtitles ?? true,
+      });
+      this.note(job, "info", `Generated ${images.length} image preview(s) and video package ${video.id}.`);
+      return;
+    }
+    if (stage === "rendering") {
+      if (!this.videoAudioGenerationRuntime) {
+        this.note(job, "warning", "Video/audio runtime is not attached; source-media review fallback remains active.");
+        return;
+      }
+      const packageResult = (await this.videoAudioGenerationRuntime.getDashboard(project.id)).packages[0];
+      if (!packageResult) throw new Error("No generated video package is available for rendering");
+      const previewPath = await this.videoAudioGenerationRuntime.getAssetPath(packageResult.id, "preview");
+      if (!previewPath) throw new Error("Generated video package preview artifact is unavailable");
+      const reviewState = await this.review!.getProjectState(project.id);
+      if (!reviewState.assets.some((asset) => asset.name === packageResult.name)) {
+        await this.review!.ingestAsset(project.id, {
+          name: packageResult.name,
+          mimeType: mimeTypeForPreview(packageResult.previewFileName),
+          dataBase64: (await fs.readFile(previewPath)).toString("base64"),
+        });
+      }
+      this.note(job, "info", `Rendered video artifact from package ${packageResult.id} into review.`);
+      return;
+    }
     if (stage === "review") {
       const reviewState = await this.review!.getProjectState(project.id);
       if (!reviewState.assets.length) {
@@ -166,10 +277,16 @@ export class CreativePipelineManager {
 
   private note(job: PipelineJob, level: "info" | "warning" | "error", message: string): void { job.notifications.unshift({ at: new Date().toISOString(), level, message }); job.updatedAt = new Date().toISOString(); }
   private requireJob(id: string): PipelineJob { const job = this.store.jobs.find((item) => item.id === id); if (!job) throw new Error("Pipeline job not found"); return job; }
-  private integrations(): Record<string, boolean> { return { aiCore: Boolean(this.core), moduleManager: Boolean(this.core?.moduleManager), stateManager: Boolean(this.core?.stateManager), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), decisionFoundation: Boolean(this.core?.decisionEngine), decisionIntelligenceRuntime: Boolean(this.decisionIntelligenceRuntime?.isInitialized()), learningIntelligenceRuntime: Boolean(this.learningIntelligenceRuntime?.isInitialized()), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), productIntelligenceRuntime: Boolean(this.productIntelligenceRuntime?.isInitialized()), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), imageIntelligenceRuntime: Boolean(this.imageIntelligenceRuntime?.isInitialized()), marketingIntelligenceRuntime: Boolean(this.marketingIntelligenceRuntime?.isInitialized()), videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation), modelManagement: Boolean(this.core?.modelManager), imageGeneration: Boolean(this.core?.imageGenerationFoundation), videoAudioGeneration: Boolean(this.core?.videoGenerationFoundation && this.core?.audioGenerationFoundation), generationOptimization: Boolean(this.optimization?.isInitialized()), generationManager: Boolean(this.core?.imageGenerationFoundation || this.core?.videoGenerationFoundation || this.core?.audioGenerationFoundation), renderingPipeline: Boolean(this.core?.videoGenerationFoundation), previewSystem: Boolean(this.review), exportSystem: Boolean(this.review) }; }
+  private requireActiveJob(id: string): PipelineJob { const job = this.requireJob(id); if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") throw new Error("Pipeline job is no longer active"); return job; }
+  private integrations(): Record<string, boolean> { return { aiCore: Boolean(this.core), moduleManager: Boolean(this.core?.moduleManager), stateManager: Boolean(this.core?.stateManager), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), decisionFoundation: Boolean(this.core?.decisionEngine), decisionIntelligenceRuntime: Boolean(this.decisionIntelligenceRuntime?.isInitialized()), learningIntelligenceRuntime: Boolean(this.learningIntelligenceRuntime?.isInitialized()), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), productIntelligenceRuntime: Boolean(this.productIntelligenceRuntime?.isInitialized()), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), imageIntelligenceRuntime: Boolean(this.imageIntelligenceRuntime?.isInitialized()), marketingIntelligenceRuntime: Boolean(this.marketingIntelligenceRuntime?.isInitialized()), videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation), modelManagement: Boolean(this.core?.modelManager), imageGeneration: Boolean(this.imageGenerationRuntime), videoAudioGeneration: Boolean(this.videoAudioGenerationRuntime), generationOptimization: Boolean(this.optimization?.isInitialized()), generationManager: Boolean(this.imageGenerationRuntime || this.videoAudioGenerationRuntime), renderingPipeline: Boolean(this.videoAudioGenerationRuntime), previewSystem: Boolean(this.review), exportSystem: Boolean(this.review) }; }
   private async readStore(): Promise<PipelineStore> { try { return JSON.parse(await fs.readFile(path.join(this.root, "pipeline.json"), "utf8")) as PipelineStore; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { jobs: [], history: [] }; throw error; } }
-  private async save(): Promise<void> { await fs.writeFile(path.join(this.root, "pipeline.json"), `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); }
+  private async save(): Promise<void> { const target = path.join(this.root, "pipeline.json"); const temporary = `${target}.${randomUUID()}.tmp`; await fs.writeFile(temporary, `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); await fs.rename(temporary, target); }
   private ensureReady(): void { if (!this.root || !this.workspace || !this.planning || !this.review) throw new Error("Creative Pipeline Manager is not initialized"); }
 }
 
 function formatFor(mimeType: string): ExportFormat | null { return ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm", "audio/mpeg": "mp3", "audio/wav": "wav" } as Record<string, ExportFormat>)[mimeType] ?? null; }
+
+function mimeTypeForPreview(fileName: string): string {
+  const extension = path.extname(fileName).toLowerCase();
+  return extension === ".webm" ? "video/webm" : extension === ".mov" ? "video/quicktime" : "video/mp4";
+}

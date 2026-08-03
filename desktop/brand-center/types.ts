@@ -1,0 +1,5 @@
+export type BrandAssetKind = "logo" | "icon" | "template" | "image" | "video" | "audio" | "document" | "graphic" | "background" | "texture";
+export type BrandTab = "overview" | "assets" | "identity" | "templates" | "guidelines";
+export type BrandProfile = { id: string; name: string; description: string; category: string; status: "active" | "draft"; owner: string; updatedAt: string; colors: Array<{ name: string; value: string; role: string }>; typography: { heading: string; body: string; scale: string }; voice: string };
+export type BrandAsset = { id: string; brandId: string; name: string; kind: BrandAssetKind; category: string; version: string; modifiedAt: string; tags: string[]; favorite: boolean; detail: string };
+export type BrandCenterState = { profiles: BrandProfile[]; assets: BrandAsset[]; activeBrandId: string; favorites: string[]; recent: string[]; tab: BrandTab; view: "grid" | "list" };

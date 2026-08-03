@@ -10,6 +10,11 @@ export class VideoAudioGenerationManager {
     workspace = null;
     planning = null;
     images = null;
+    productIntelligence = null;
+    imageIntelligence = null;
+    marketingIntelligence = null;
+    decisionIntelligence = null;
+    learningIntelligence = null;
     store = structuredClone(EMPTY);
     videoGenerator = new AiVideoGenerator(this);
     videoModelSelector = new VideoModelSelector(this);
@@ -32,7 +37,14 @@ export class VideoAudioGenerationManager {
     history = new VideoHistoryManager(this);
     async initialize(storageRoot, dependencies) { this.root = path.join(storageRoot, "video-audio-generation-runtime"); this.core = dependencies.core; this.models = dependencies.models; this.workspace = dependencies.workspace; this.planning = dependencies.planning; this.images = dependencies.images; await fs.mkdir(path.join(this.root, "assets"), { recursive: true }); this.store = await this.readStore(); this.log("info", "Video and audio generation runtime restored."); await this.persist(); }
     isInitialized() { return Boolean(this.root); }
+    attachProductIntelligence(manager) { this.productIntelligence = manager; }
+    attachImageIntelligence(manager) { this.imageIntelligence = manager; }
+    attachMarketingIntelligence(manager) { this.marketingIntelligence = manager; }
+    attachDecisionIntelligence(manager) { this.decisionIntelligence = manager; }
+    attachLearningIntelligence(manager) { this.learningIntelligence = manager; }
     async generate(request) {
+        if (request.projectId)
+            await this.decisionIntelligence?.decide(request.projectId, "video-generation");
         this.ensureReady();
         this.validate(request);
         const key = createHash("sha256").update(JSON.stringify(request)).digest("hex");
@@ -47,11 +59,13 @@ export class VideoAudioGenerationManager {
         this.history.record("generation", `Generated ${request.mode} package with synchronized audio and timeline.`, [packageResult.id]);
         this.log("info", `Generated ${packageResult.name}.`);
         await this.persist();
+        if (request.projectId)
+            await this.learningIntelligence?.learnFromProject(request.projectId, "success", `Video/audio package completed: ${request.mode}, ${packageResult.durationSeconds}s, local quality ${packageResult.quality.score}/100.`).catch((error) => this.log("warning", `Learning collection deferred: ${error instanceof Error ? error.message : String(error)}`));
         return { ...packageResult };
     }
     async getDashboard(projectId) { this.ensureReady(); const packages = this.store.packages.filter((item) => !projectId || item.projectId === projectId); const imageDashboard = await this.images.getDashboard(projectId); return { packages: packages.map((item) => ({ ...item })), history: [...this.store.history], logs: [...this.store.logs], models: this.models.list().filter((model) => (model.category === "video" || model.category === "audio" || model.category === "voice") && model.status !== "removed"), images: imageDashboard.images, integrations: { aiCore: Boolean(this.core), modelManagement: Boolean(this.models), imageGeneration: Boolean(this.images), videoGenerationFoundation: Boolean(this.core?.videoGenerationFoundation), audioGenerationFoundation: Boolean(this.core?.audioGenerationFoundation), videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), stateManager: Boolean(this.core?.stateManager), moduleManager: Boolean(this.core?.moduleManager), creativePipeline: Boolean(this.core?.workflowEngine) }, statistics: { generatedPackages: this.store.packages.length, cachedRequests: Object.keys(this.store.cache).length, averageQuality: this.store.packages.length ? Math.round(this.store.packages.reduce((sum, item) => sum + item.quality.score, 0) / this.store.packages.length) : 0 } }; }
-    async defaultRequest(projectId) { const project = await this.workspace.getProject(projectId); const plan = await this.planning.getPlan(projectId); if (!project)
-        throw new Error("Project not found"); const image = (await this.images.getDashboard(projectId)).images[0]; return { projectId, prompt: plan?.prompts.video ?? `${project.productInformation.name} marketing video`, mode: image ? "image-to-video" : project.productImages.length ? "product-to-video" : "text-to-video", imageId: image?.id, durationSeconds: 15, resolution: "1080p", frameRate: 30, voice: "narrator", music: "uplifting", soundEffects: true, subtitles: true }; }
+    async defaultRequest(projectId) { const [project, plan, profile, imageProfiles, marketing, imageDashboard] = await Promise.all([this.workspace.getProject(projectId), this.planning.getPlan(projectId), this.productIntelligence?.getProfile(projectId), this.imageIntelligence?.getProfiles(projectId), this.marketingIntelligence?.getProfile(projectId), this.images.getDashboard(projectId)]); const imageProfile = imageProfiles?.[0]; if (!project)
+        throw new Error("Project not found"); const image = imageDashboard.images[0]; return { projectId, prompt: plan?.prompts.video ?? `${project.productInformation.name} ${profile ? `${profile.category} ${profile.shapes.join(" ")}` : ""}${imageProfile ? `, ${imageProfile.cameraAngle}` : ""}${marketing ? `, ${marketing.strategy}, CTA: ${marketing.ctas[0]}` : ""} marketing video`, mode: image ? "image-to-video" : project.productImages.length ? "product-to-video" : "text-to-video", imageId: image?.id, durationSeconds: 15, resolution: "1080p", frameRate: 30, voice: "narrator", music: "uplifting", soundEffects: true, subtitles: true }; }
     async getAssetPath(packageId, kind) { const item = this.store.packages.find((entry) => entry.id === packageId); const fileName = kind === "preview" ? item?.previewFileName : kind === "audio" ? item?.audioFileName : item?.subtitleFileName; if (!fileName)
         return null; const target = path.join(this.root, "assets", fileName); try {
         await fs.access(target);
@@ -62,7 +76,7 @@ export class VideoAudioGenerationManager {
     } }
     async createPackage(request, videoModelId, audioModelId) { const project = request.projectId ? await this.workspace.getProject(request.projectId) : null; const plan = request.projectId ? await this.planning.getPlan(request.projectId) : null; const image = request.imageId ? (await this.images.getDashboard(request.projectId)).images.find((item) => item.id === request.imageId) : undefined; const id = randomUUID(); const timeline = this.timeline.build(plan?.scenes ?? [], request.durationSeconds, project?.productInformation.name ?? "Creative concept", request.prompt); const previewFileName = `${id}.svg`; const audioFileName = `${id}.wav`; const subtitleFileName = request.subtitles ? `${id}.vtt` : undefined; await fs.writeFile(path.join(this.root, "assets", previewFileName), this.videoGenerator.compose({ request, timeline, brand: project?.brandInformation.name ?? "KWIZERA", imageUrl: image ? `/api/image-generation/assets/${image.id}` : undefined }), "utf8"); await fs.writeFile(path.join(this.root, "assets", audioFileName), this.audio.synthesize(request, timeline)); if (subtitleFileName)
         await fs.writeFile(path.join(this.root, "assets", subtitleFileName), this.subtitles.create(timeline), "utf8"); return { id, projectId: request.projectId, name: `${project?.name ?? "Creative"} video package`, mode: request.mode, prompt: request.prompt, createdAt: new Date().toISOString(), durationSeconds: request.durationSeconds, resolution: request.resolution, frameRate: request.frameRate, videoModelId, audioModelId, previewFileName, audioFileName, subtitleFileName, imageId: image?.id, timeline, quality: this.quality.score(request, Boolean(image)), metadata: this.metadata.create(request, timeline.length), cached: false }; }
-    log(level, message) { this.store.logs.unshift({ at: new Date().toISOString(), level, message }); this.store.logs.splice(100); this.core?.logger.info("video-audio-generation", message); }
+    log(level, message) { this.store.logs.unshift({ at: new Date().toISOString(), level, message }); this.store.logs.splice(100); this.core?.logger.info("generation", message); }
     async persist() { await fs.writeFile(path.join(this.root, "generation.json"), `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); }
     validate(request) { if (request.prompt.trim().length < 8)
         throw new Error("Provide a descriptive video prompt of at least 8 characters"); if (!Number.isInteger(request.durationSeconds) || request.durationSeconds < 3 || request.durationSeconds > 60)

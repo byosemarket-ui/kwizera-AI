@@ -1,5 +1,7 @@
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, ValidationResult } from "../creative-workspace/creative-workspace-manager.js";
+import type { MarketingIntelligenceManager } from "../marketing-intelligence/marketing-intelligence-manager.js";
+import type { DecisionIntelligenceManager } from "../decision-intelligence/decision-intelligence-manager.js";
 export interface PlanScene {
     id: string;
     order: number;
@@ -55,8 +57,12 @@ export interface PlanResult {
 export declare class CreativePlanningManager {
     private root;
     private core;
+    private marketingIntelligence;
+    private decisionIntelligence;
     initialize(storageRoot: string, core?: AiCoreManager): Promise<void>;
     getPlan(projectId: string): Promise<CreativePlan | null>;
+    attachMarketingIntelligence(manager: MarketingIntelligenceManager): void;
+    attachDecisionIntelligence(manager: DecisionIntelligenceManager): void;
     createPlan(project: CreativeProject, validation: ValidationResult): Promise<PlanResult>;
     updatePlan(projectId: string, changes: Partial<Omit<CreativePlan, "id" | "projectId" | "createdAt" | "modifiedAt" | "version">>): Promise<CreativePlan>;
     getIntegrationStatus(): Record<string, boolean>;

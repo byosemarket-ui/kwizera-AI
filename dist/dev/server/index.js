@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
-import { bootPersistentRuntime, getPersistentRuntime, getImageGenerationManager, getVideoAudioGenerationManager, getModelManager, getPlanningManager, getPipelineManager, getReviewManager, getRuntimeStatus, getSessionStore, getWorkspaceManager, isPersistentMode, registerShutdownHandlers, saveRuntimeSnapshot, } from "../persistent/runtime.js";
+import { bootPersistentRuntime, getPersistentRuntime, getImageGenerationManager, getVideoAudioGenerationManager, getGenerationOptimizationManager, getProductIntelligenceManager, getImageIntelligenceManager, getMarketingIntelligenceManager, getDecisionIntelligenceManager, getLearningIntelligenceManager, getModelManager, getPlanningManager, getPipelineManager, getReviewManager, getRuntimeStatus, getSessionStore, getWorkspaceManager, isPersistentMode, registerShutdownHandlers, saveRuntimeSnapshot, } from "../persistent/runtime.js";
 import { buildRegistry, findModule, listAiModules, getProjectRoot, invalidateRegistryCache } from "./module-registry.js";
 import { PHASE_DEFINITIONS } from "./phase-definitions.js";
 const PORT = Number(process.env.KWIZERA_DEV_PORT ?? 5173);
@@ -12,6 +12,7 @@ const HOST = "127.0.0.1";
 const UI_DIR = path.resolve(import.meta.dirname, "../ui");
 const projectRoot = getProjectRoot();
 const storageRoot = resolveStorageRoot();
+const MAX_REQUEST_BODY_BYTES = 24 * 1024 * 1024;
 let activePort = PORT;
 console.log("[KWIZERA] Starting persistent local development environment…");
 console.log("[KWIZERA] Storage root:", storageRoot);
@@ -19,15 +20,34 @@ registerShutdownHandlers();
 function sendJson(res, status, data) {
     res.writeHead(status, {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
     });
     res.end(JSON.stringify(data));
 }
 async function readBody(req) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        req.on("data", (chunk) => chunks.push(chunk));
-        req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+        let size = 0;
+        let rejected = false;
+        const contentLength = Number(req.headers["content-length"] ?? 0);
+        if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+            reject(new Error("Request body exceeds the 24 MB limit"));
+            req.resume();
+            return;
+        }
+        req.on("data", (chunk) => {
+            if (rejected)
+                return;
+            size += chunk.length;
+            if (size > MAX_REQUEST_BODY_BYTES) {
+                rejected = true;
+                reject(new Error("Request body exceeds the 24 MB limit"));
+                req.resume();
+                return;
+            }
+            chunks.push(chunk);
+        });
+        req.on("end", () => { if (!rejected)
+            resolve(Buffer.concat(chunks).toString("utf8")); });
         req.on("error", reject);
     });
 }
@@ -58,15 +78,32 @@ function contentType(filePath) {
         return "audio/wav";
     return "application/octet-stream";
 }
-function serveStatic(res, filePath) {
-    if (!fs.existsSync(filePath)) {
-        res.writeHead(404);
-        res.end("Not found");
-        return;
+async function serveStatic(res, filePath) {
+    try {
+        const data = await fs.promises.readFile(filePath);
+        res.writeHead(200, { "Content-Type": contentType(filePath) });
+        res.end(data);
     }
-    const data = fs.readFileSync(filePath);
-    res.writeHead(200, { "Content-Type": contentType(filePath) });
-    res.end(data);
+    catch (error) {
+        if (error.code === "ENOENT") {
+            res.writeHead(404);
+            res.end("Not found");
+            return;
+        }
+        res.writeHead(500);
+        res.end("Unable to read file");
+    }
+}
+function resolveUiAsset(pathname) {
+    let decodedPath;
+    try {
+        decodedPath = decodeURIComponent(pathname);
+    }
+    catch {
+        return null;
+    }
+    const filePath = path.resolve(UI_DIR, `.${decodedPath}`);
+    return filePath === UI_DIR || filePath.startsWith(`${UI_DIR}${path.sep}`) ? filePath : null;
 }
 function requireWorkspace(res) {
     const workspace = getWorkspaceManager();
@@ -123,6 +160,54 @@ function requireVideoAudioGeneration(res) {
         return null;
     }
     return videoAudio;
+}
+function requireGenerationOptimization(res) {
+    const optimization = getGenerationOptimizationManager();
+    if (!optimization) {
+        sendJson(res, 503, { error: "Generation optimization is restoring. Try again shortly." });
+        return null;
+    }
+    return optimization;
+}
+function requireProductIntelligence(res) {
+    const intelligence = getProductIntelligenceManager();
+    if (!intelligence) {
+        sendJson(res, 503, { error: "Product intelligence is restoring. Try again shortly." });
+        return null;
+    }
+    return intelligence;
+}
+function requireImageIntelligence(res) {
+    const intelligence = getImageIntelligenceManager();
+    if (!intelligence) {
+        sendJson(res, 503, { error: "Image intelligence is restoring. Try again shortly." });
+        return null;
+    }
+    return intelligence;
+}
+function requireMarketingIntelligence(res) {
+    const intelligence = getMarketingIntelligenceManager();
+    if (!intelligence) {
+        sendJson(res, 503, { error: "Marketing intelligence is restoring. Try again shortly." });
+        return null;
+    }
+    return intelligence;
+}
+function requireDecisionIntelligence(res) {
+    const intelligence = getDecisionIntelligenceManager();
+    if (!intelligence) {
+        sendJson(res, 503, { error: "Decision intelligence is restoring. Try again shortly." });
+        return null;
+    }
+    return intelligence;
+}
+function requireLearningIntelligence(res) {
+    const learning = getLearningIntelligenceManager();
+    if (!learning) {
+        sendJson(res, 503, { error: "AI learning intelligence is restoring. Try again shortly." });
+        return null;
+    }
+    return learning;
 }
 function createIsolatedStorageRoot() {
     return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-validate-"));
@@ -229,11 +314,7 @@ async function runEngineQuickTest(engineName) {
 }
 async function handleApi(req, res, url) {
     if (req.method === "OPTIONS") {
-        res.writeHead(204, {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        });
+        res.writeHead(204);
         res.end();
         return;
     }
@@ -249,6 +330,23 @@ async function handleApi(req, res, url) {
             persistent: isPersistentMode(),
             runtimeReady: runtime?.ready ?? false,
             sessionRestored: runtime?.restored ?? false,
+        });
+        return;
+    }
+    if (url.pathname === "/api/desktop-workspace/status") {
+        const runtime = getPersistentRuntime()?.getManager();
+        sendJson(res, 200, {
+            aiCore: Boolean(runtime?.isReady()),
+            workflowEngine: Boolean(runtime?.workflowEngine),
+            communicationBus: Boolean(runtime?.communicationBus),
+            moduleManager: Boolean(runtime?.moduleManager),
+            memoryFoundation: Boolean(runtime?.memoryFoundation),
+            knowledgeFoundation: Boolean(runtime?.knowledgeFoundation),
+            automationEngine: Boolean(runtime?.workflowEngine),
+            taskScheduler: Boolean(runtime?.taskManager),
+            productIntelligence: Boolean(runtime?.productIntelligenceFoundation),
+            cameraSimulation: Boolean(runtime?.videoIntelligenceFoundation),
+            activeProject: (await getWorkspaceManager()?.getActiveProject())?.name ?? "No active project",
         });
         return;
     }
@@ -302,6 +400,177 @@ async function handleApi(req, res, url) {
         sendJson(res, 200, await videoAudio.getDashboard(url.searchParams.get("projectId") ?? undefined));
         return;
     }
+    if (url.pathname === "/api/generation-optimization") {
+        const optimization = requireGenerationOptimization(res);
+        if (!optimization)
+            return;
+        sendJson(res, 200, await optimization.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    if (url.pathname === "/api/product-intelligence") {
+        const intelligence = requireProductIntelligence(res);
+        if (!intelligence)
+            return;
+        sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    if (url.pathname === "/api/image-intelligence") {
+        const intelligence = requireImageIntelligence(res);
+        if (!intelligence)
+            return;
+        sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    if (url.pathname === "/api/marketing-intelligence") {
+        const intelligence = requireMarketingIntelligence(res);
+        if (!intelligence)
+            return;
+        sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    if (url.pathname === "/api/decision-intelligence") {
+        const intelligence = requireDecisionIntelligence(res);
+        if (!intelligence)
+            return;
+        sendJson(res, 200, await intelligence.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    if (url.pathname === "/api/learning-intelligence") {
+        const learning = requireLearningIntelligence(res);
+        if (!learning)
+            return;
+        sendJson(res, 200, await learning.getDashboard(url.searchParams.get("projectId") ?? undefined));
+        return;
+    }
+    const imageAnalysisMatch = url.pathname.match(/^\/api\/image-intelligence\/projects\/([^/]+)\/analyze$/);
+    if (imageAnalysisMatch && req.method === "POST") {
+        const intelligence = requireImageIntelligence(res);
+        if (!intelligence)
+            return;
+        try {
+            const profiles = await intelligence.analyzeProject(imageAnalysisMatch[1]);
+            sendJson(res, 201, { profiles, dashboard: await intelligence.getDashboard(imageAnalysisMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Image analysis failed" });
+        }
+        return;
+    }
+    const productAnalysisMatch = url.pathname.match(/^\/api\/product-intelligence\/projects\/([^/]+)\/analyze$/);
+    if (productAnalysisMatch && req.method === "POST") {
+        const intelligence = requireProductIntelligence(res);
+        if (!intelligence)
+            return;
+        try {
+            const profile = await intelligence.analyze(productAnalysisMatch[1]);
+            sendJson(res, 201, { profile, dashboard: await intelligence.getDashboard(productAnalysisMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Product analysis failed" });
+        }
+        return;
+    }
+    const marketingAnalysisMatch = url.pathname.match(/^\/api\/marketing-intelligence\/projects\/([^/]+)\/analyze$/);
+    if (marketingAnalysisMatch && req.method === "POST") {
+        const intelligence = requireMarketingIntelligence(res);
+        if (!intelligence)
+            return;
+        try {
+            const profile = await intelligence.analyze(marketingAnalysisMatch[1]);
+            sendJson(res, 201, { profile, dashboard: await intelligence.getDashboard(marketingAnalysisMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing analysis failed" });
+        }
+        return;
+    }
+    const decisionAnalysisMatch = url.pathname.match(/^\/api\/decision-intelligence\/projects\/([^/]+)\/decide$/);
+    if (decisionAnalysisMatch && req.method === "POST") {
+        const intelligence = requireDecisionIntelligence(res);
+        if (!intelligence)
+            return;
+        try {
+            const body = (await readBody(req)) || "{}";
+            const decision = await intelligence.decide(decisionAnalysisMatch[1], JSON.parse(body).taskKind ?? "pipeline");
+            sendJson(res, 201, { decision, dashboard: await intelligence.getDashboard(decisionAnalysisMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Decision analysis failed" });
+        }
+        return;
+    }
+    const learningProjectMatch = url.pathname.match(/^\/api\/learning-intelligence\/projects\/([^/]+)\/learn$/);
+    if (learningProjectMatch && req.method === "POST") {
+        const learning = requireLearningIntelligence(res);
+        if (!learning)
+            return;
+        try {
+            const body = JSON.parse((await readBody(req)) || "{}");
+            const profile = await learning.learnFromProject(learningProjectMatch[1], body.outcome ?? "success", body.detail);
+            sendJson(res, 201, { profile, dashboard: await learning.getDashboard(learningProjectMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Learning collection failed" });
+        }
+        return;
+    }
+    const learningFeedbackMatch = url.pathname.match(/^\/api\/learning-intelligence\/projects\/([^/]+)\/feedback$/);
+    if (learningFeedbackMatch && req.method === "POST") {
+        const learning = requireLearningIntelligence(res);
+        if (!learning)
+            return;
+        try {
+            const body = JSON.parse((await readBody(req)) || "{}");
+            const profile = await learning.recordFeedback(learningFeedbackMatch[1], String(body.feedback ?? ""));
+            sendJson(res, 201, { profile, dashboard: await learning.getDashboard(learningFeedbackMatch[1]) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Feedback learning failed" });
+        }
+        return;
+    }
+    if (url.pathname === "/api/generation-optimization/optimize" && req.method === "POST") {
+        const optimization = requireGenerationOptimization(res);
+        if (!optimization)
+            return;
+        try {
+            const request = JSON.parse(await readBody(req));
+            const task = await optimization.optimize(request);
+            sendJson(res, 201, { task, dashboard: await optimization.getDashboard(request.projectId) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization task failed" });
+        }
+        return;
+    }
+    if (url.pathname === "/api/generation-optimization/batch" && req.method === "POST") {
+        const optimization = requireGenerationOptimization(res);
+        if (!optimization)
+            return;
+        try {
+            const body = JSON.parse(await readBody(req));
+            const tasks = await optimization.batch.submit(body.requests ?? []);
+            sendJson(res, 201, { tasks, dashboard: await optimization.getDashboard(body.projectId) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization batch failed" });
+        }
+        return;
+    }
+    const optimizationRetryMatch = url.pathname.match(/^\/api\/generation-optimization\/tasks\/([^/]+)\/retry$/);
+    if (optimizationRetryMatch && req.method === "POST") {
+        const optimization = requireGenerationOptimization(res);
+        if (!optimization)
+            return;
+        try {
+            const task = await optimization.retry(optimizationRetryMatch[1]);
+            sendJson(res, 200, { task, dashboard: await optimization.getDashboard(task.request.projectId) });
+        }
+        catch (error) {
+            sendJson(res, 400, { error: error instanceof Error ? error.message : "Optimization retry failed" });
+        }
+        return;
+    }
     const videoDefaultMatch = url.pathname.match(/^\/api\/video-audio-generation\/projects\/([^/]+)\/default$/);
     if (videoDefaultMatch && req.method === "GET") {
         const videoAudio = requireVideoAudioGeneration(res);
@@ -339,7 +608,7 @@ async function handleApi(req, res, url) {
             sendJson(res, 404, { error: "Generated video package asset not found" });
             return;
         }
-        serveStatic(res, filePath);
+        await serveStatic(res, filePath);
         return;
     }
     const imageDefaultMatch = url.pathname.match(/^\/api\/image-generation\/projects\/([^/]+)\/default$/);
@@ -379,7 +648,7 @@ async function handleApi(req, res, url) {
             sendJson(res, 404, { error: "Generated image not found" });
             return;
         }
-        serveStatic(res, filePath);
+        await serveStatic(res, filePath);
         return;
     }
     if (url.pathname === "/api/models/settings" && req.method === "POST") {
@@ -495,7 +764,7 @@ async function handleApi(req, res, url) {
             sendJson(res, 404, { error: "Review asset not found" });
             return;
         }
-        serveStatic(res, filePath);
+        await serveStatic(res, filePath);
         return;
     }
     const downloadMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)\/downloads\/([^/]+)$/);
@@ -508,7 +777,7 @@ async function handleApi(req, res, url) {
             sendJson(res, 404, { error: "Export not found" });
             return;
         }
-        serveStatic(res, filePath);
+        await serveStatic(res, filePath);
         return;
     }
     const reviewActionMatch = url.pathname.match(/^\/api\/review\/projects\/([^/]+)\/(bootstrap|assets|approve|regenerate|export)$/);
@@ -647,7 +916,7 @@ async function handleApi(req, res, url) {
             sendJson(res, 404, { error: "Product image not found" });
             return;
         }
-        serveStatic(res, imagePath);
+        await serveStatic(res, imagePath);
         return;
     }
     const uploadMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images$/);
@@ -712,7 +981,7 @@ async function handleApi(req, res, url) {
         return;
     }
     if (url.pathname === "/api/logo") {
-        serveStatic(res, path.join(projectRoot, "KWIZERA AI.png"));
+        await serveStatic(res, path.join(projectRoot, "KWIZERA AI.png"));
         return;
     }
     const engineMatch = url.pathname.match(/^\/api\/engines\/([^/]+)\/quick-test$/);
@@ -758,11 +1027,16 @@ const server = createServer(async (req, res) => {
         await handleApi(req, res, url);
         return;
     }
-    let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : path.join(UI_DIR, url.pathname);
+    let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : url.pathname === "/desktop" || url.pathname === "/desktop/" ? path.join(UI_DIR, "desktop", "index.html") : resolveUiAsset(url.pathname);
+    if (!filePath) {
+        res.writeHead(404);
+        res.end("Not found");
+        return;
+    }
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
         filePath = path.join(UI_DIR, "index.html");
     }
-    serveStatic(res, filePath);
+    await serveStatic(res, filePath);
 });
 function openBrowser(address) {
     if (process.env.KWIZERA_SKIP_BROWSER_OPEN === "1")

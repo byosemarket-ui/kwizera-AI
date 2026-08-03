@@ -1,6 +1,7 @@
 import type { AiMemoryFoundation } from "../memory-foundation/memory-foundation.js";
 import { MemoryBackupLogger } from "./backup-logger.js";
 import { BackupManifest, MemoryBackupValidationResult } from "./types.js";
+export declare function isSafeBackupRelativePath(value: string): boolean;
 export declare class BackupIntegrityValidator {
     private readonly foundation;
     private readonly logger;

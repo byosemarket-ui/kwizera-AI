@@ -9,6 +9,14 @@ export class CreativePipelineManager {
     workspace = null;
     planning = null;
     review = null;
+    optimization = null;
+    productIntelligenceRuntime = null;
+    imageIntelligenceRuntime = null;
+    marketingIntelligenceRuntime = null;
+    decisionIntelligenceRuntime = null;
+    learningIntelligenceRuntime = null;
+    imageGenerationRuntime = null;
+    videoAudioGenerationRuntime = null;
     store = { jobs: [], history: [] };
     running = new Set();
     async initialize(storageRoot, dependencies) {
@@ -39,6 +47,14 @@ export class CreativePipelineManager {
         await this.run(job.id);
         return job;
     }
+    attachGenerationOptimization(manager) { this.optimization = manager; }
+    attachProductIntelligence(manager) { this.productIntelligenceRuntime = manager; }
+    attachImageIntelligence(manager) { this.imageIntelligenceRuntime = manager; }
+    attachMarketingIntelligence(manager) { this.marketingIntelligenceRuntime = manager; }
+    attachDecisionIntelligence(manager) { this.decisionIntelligenceRuntime = manager; }
+    attachLearningIntelligence(manager) { this.learningIntelligenceRuntime = manager; }
+    attachImageGeneration(manager) { this.imageGenerationRuntime = manager; }
+    attachVideoAudioGeneration(manager) { this.videoAudioGenerationRuntime = manager; }
     async run(jobId) {
         this.ensureReady();
         const job = this.requireJob(jobId);
@@ -51,6 +67,10 @@ export class CreativePipelineManager {
             const project = await this.workspace.getProject(job.projectId);
             if (!project)
                 throw new Error("Project no longer exists");
+            if (this.decisionIntelligenceRuntime) {
+                const decision = await this.decisionIntelligenceRuntime.decide(project.id, "pipeline");
+                this.note(job, "info", `Decision Intelligence selected ${decision.selected.label} at ${decision.confidence}% confidence.`);
+            }
             for (const stage of STAGES) {
                 if (job.completedStages.includes(stage))
                     continue;
@@ -70,6 +90,7 @@ export class CreativePipelineManager {
             this.note(job, "info", "Creative pipeline completed and project export saved.");
             this.store.jobs = this.store.jobs.filter((item) => item.id !== job.id);
             this.store.history.unshift(structuredClone(job));
+            await this.learningIntelligenceRuntime?.learnFromProject(project.id, "success");
             await this.save();
         }
         catch (error) {
@@ -78,6 +99,7 @@ export class CreativePipelineManager {
             job.stage = "failed";
             job.error = error instanceof Error ? error.message : String(error);
             this.note(job, "error", `Pipeline paused: ${job.error}`);
+            await this.learningIntelligenceRuntime?.learnFromProject(job.projectId, "failure", job.error);
             await this.save();
         }
         finally {
@@ -108,7 +130,10 @@ export class CreativePipelineManager {
             return;
         }
         if (stage === "analysis") {
-            this.note(job, "info", "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence.");
+            const imageProfiles = this.imageIntelligenceRuntime ? await this.imageIntelligenceRuntime.analyzeProject(project.id) : [];
+            const profile = this.productIntelligenceRuntime ? await this.productIntelligenceRuntime.analyze(project.id) : null;
+            const marketing = this.marketingIntelligenceRuntime ? await this.marketingIntelligenceRuntime.analyze(project.id) : null;
+            this.note(job, "info", profile ? `Image intelligence analyzed ${imageProfiles.length} uploaded image(s); product profile ready: ${profile.identifiedAs}, ${profile.viewCount} view(s), quality ${profile.quality.score}/100.${marketing ? ` Marketing strategy ready at ${marketing.score}/100.` : ""}` : "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence.");
             return;
         }
         if (stage === "planning" || stage === "prompt-generation") {
@@ -118,11 +143,54 @@ export class CreativePipelineManager {
             return;
         }
         if (stage === "generation") {
-            this.note(job, "info", "Generation manager handoff prepared; registered generated assets will be picked up by the review artifact bridge.");
+            if (!this.imageGenerationRuntime || !this.videoAudioGenerationRuntime) {
+                this.note(job, "warning", "Generation runtimes are not attached; source-media review fallback remains active.");
+                return;
+            }
+            const imageDefaults = await this.imageGenerationRuntime.defaultRequest(project.id);
+            const images = await this.imageGenerationRuntime.generate({
+                projectId: project.id,
+                prompt: imageDefaults.prompt ?? `${project.productInformation.name} product composition`,
+                mode: imageDefaults.mode ?? "product-to-image",
+                style: imageDefaults.style ?? "studio",
+                aspectRatio: imageDefaults.aspectRatio ?? "1:1",
+                resolution: imageDefaults.resolution ?? "high",
+                count: 1,
+                productImageId: imageDefaults.productImageId,
+            });
+            const videoDefaults = await this.videoAudioGenerationRuntime.defaultRequest(project.id);
+            const video = await this.videoAudioGenerationRuntime.generate({
+                projectId: project.id,
+                prompt: videoDefaults.prompt ?? `${project.productInformation.name} marketing video`,
+                mode: videoDefaults.mode ?? "image-to-video",
+                imageId: images[0]?.id ?? videoDefaults.imageId,
+                durationSeconds: videoDefaults.durationSeconds ?? 15,
+                resolution: videoDefaults.resolution ?? "1080p",
+                frameRate: videoDefaults.frameRate ?? 30,
+                voice: videoDefaults.voice ?? "narrator",
+                music: videoDefaults.music ?? "uplifting",
+                soundEffects: videoDefaults.soundEffects ?? true,
+                subtitles: videoDefaults.subtitles ?? true,
+            });
+            this.note(job, "info", `Generated ${images.length} image preview(s) and video package ${video.id}.`);
             return;
         }
         if (stage === "rendering") {
-            this.note(job, "info", "Rendering pipeline handoff prepared; source artifact fallback is enabled until a rendered artifact is registered.");
+            if (!this.videoAudioGenerationRuntime) {
+                this.note(job, "warning", "Video/audio runtime is not attached; source-media review fallback remains active.");
+                return;
+            }
+            const packageResult = (await this.videoAudioGenerationRuntime.getDashboard(project.id)).packages[0];
+            if (!packageResult)
+                throw new Error("No generated video package is available for rendering");
+            const audioPath = await this.videoAudioGenerationRuntime.getAssetPath(packageResult.id, "audio");
+            if (!audioPath)
+                throw new Error("Generated video package audio artifact is unavailable");
+            const reviewState = await this.review.getProjectState(project.id);
+            if (!reviewState.assets.some((asset) => asset.name === `${packageResult.name} audio`)) {
+                await this.review.ingestAsset(project.id, { name: `${packageResult.name} audio`, mimeType: "audio/wav", dataBase64: (await fs.readFile(audioPath)).toString("base64") });
+            }
+            this.note(job, "info", `Rendered audio artifact from video package ${packageResult.id} into review.`);
             return;
         }
         if (stage === "review") {
@@ -155,7 +223,7 @@ export class CreativePipelineManager {
     note(job, level, message) { job.notifications.unshift({ at: new Date().toISOString(), level, message }); job.updatedAt = new Date().toISOString(); }
     requireJob(id) { const job = this.store.jobs.find((item) => item.id === id); if (!job)
         throw new Error("Pipeline job not found"); return job; }
-    integrations() { return { aiCore: Boolean(this.core), moduleManager: Boolean(this.core?.moduleManager), stateManager: Boolean(this.core?.stateManager), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation), modelManagement: Boolean(this.core?.modelManager), generationManager: Boolean(this.core?.imageGenerationFoundation || this.core?.videoGenerationFoundation || this.core?.audioGenerationFoundation), renderingPipeline: Boolean(this.core?.videoGenerationFoundation), previewSystem: Boolean(this.review), exportSystem: Boolean(this.review) }; }
+    integrations() { return { aiCore: Boolean(this.core), moduleManager: Boolean(this.core?.moduleManager), stateManager: Boolean(this.core?.stateManager), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), decisionFoundation: Boolean(this.core?.decisionEngine), decisionIntelligenceRuntime: Boolean(this.decisionIntelligenceRuntime?.isInitialized()), learningIntelligenceRuntime: Boolean(this.learningIntelligenceRuntime?.isInitialized()), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), productIntelligenceRuntime: Boolean(this.productIntelligenceRuntime?.isInitialized()), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), imageIntelligenceRuntime: Boolean(this.imageIntelligenceRuntime?.isInitialized()), marketingIntelligenceRuntime: Boolean(this.marketingIntelligenceRuntime?.isInitialized()), videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation), modelManagement: Boolean(this.core?.modelManager), imageGeneration: Boolean(this.imageGenerationRuntime), videoAudioGeneration: Boolean(this.videoAudioGenerationRuntime), generationOptimization: Boolean(this.optimization?.isInitialized()), generationManager: Boolean(this.imageGenerationRuntime || this.videoAudioGenerationRuntime), renderingPipeline: Boolean(this.videoAudioGenerationRuntime), previewSystem: Boolean(this.review), exportSystem: Boolean(this.review) }; }
     async readStore() { try {
         return JSON.parse(await fs.readFile(path.join(this.root, "pipeline.json"), "utf8"));
     }

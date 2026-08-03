@@ -9,6 +9,8 @@ import { ProjectState } from "../state-manager/types.js";
 export class CreativePlanningManager {
     root = "";
     core = null;
+    marketingIntelligence = null;
+    decisionIntelligence = null;
     async initialize(storageRoot, core) {
         this.root = path.join(storageRoot, "creative-planning", "plans");
         this.core = core ?? null;
@@ -18,13 +20,17 @@ export class CreativePlanningManager {
         this.ensureInitialized();
         return this.readJson(this.planPath(projectId), null);
     }
+    attachMarketingIntelligence(manager) { this.marketingIntelligence = manager; }
+    attachDecisionIntelligence(manager) { this.decisionIntelligence = manager; }
     async createPlan(project, validation) {
         this.ensureInitialized();
         if (!validation.valid)
             return { validation };
         const existing = await this.getPlan(project.id);
         const now = new Date().toISOString();
-        const plan = this.buildPlan(project, existing, now);
+        await this.decisionIntelligence?.decide(project.id, "pipeline");
+        const marketing = await this.marketingIntelligence?.analyze(project.id);
+        const plan = this.buildPlan(project, existing, now, marketing ?? undefined);
         this.transition(project.id, ProjectState.Modified);
         this.transition(project.id, ProjectState.Saving);
         await this.writeJson(this.planPath(project.id), plan);
@@ -56,11 +62,13 @@ export class CreativePlanningManager {
             knowledgeFoundation: Boolean(this.core?.knowledgeFoundation),
             productIntelligence: Boolean(this.core?.productIntelligenceFoundation),
             imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation),
+            marketingIntelligenceRuntime: Boolean(this.marketingIntelligence?.isInitialized()),
+            decisionIntelligenceRuntime: Boolean(this.decisionIntelligence?.isInitialized()),
             videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation),
             stateManager: Boolean(this.core?.stateManager),
         };
     }
-    buildPlan(project, existing, now) {
+    buildPlan(project, existing, now, marketing) {
         const product = project.productInformation;
         const brand = project.brandInformation;
         const campaign = project.campaignInformation;
@@ -81,8 +89,8 @@ export class CreativePlanningManager {
                 platform: platform.analysis,
                 language: `Use ${languageName(project.language)} for all on-screen and spoken planning copy.`,
             },
-            creativeBrief: `Create a ${platform.tone} ${platform.format} for ${brand.name} that introduces ${product.name}, demonstrates ${product.description}, and advances ${campaign.objective}.`,
-            marketingStrategy: `Lead with a problem-aware hook, demonstrate the benefit, then use ${campaign.callToAction || "a direct campaign call to action"} for ${project.targetAudience}.`,
+            creativeBrief: `Create a ${platform.tone} ${platform.format} for ${brand.name} that introduces ${product.name}, demonstrates ${product.description}, and advances ${campaign.objective}.${marketing ? ` Marketing value: ${marketing.valueProposition}` : ""}`,
+            marketingStrategy: marketing?.strategy ?? `Lead with a problem-aware hook, demonstrate the benefit, then use ${campaign.callToAction || "a direct campaign call to action"} for ${project.targetAudience}.`,
             creativeStrategy: `${platform.pacing} Keep ${brand.name} visually consistent and make ${product.name} the unmistakable visual priority.`,
             storyboard: scenes.map((item) => `Scene ${item.order}: ${item.purpose} - ${item.visual}`).join("\n"),
             script: scenes.map((item) => `${item.order}. ${item.narration}`).join("\n"),
@@ -93,8 +101,8 @@ export class CreativePlanningManager {
             compositionGuide: scenes.map((item) => `Scene ${item.order}: ${item.composition}`).join("\n"),
             animationPlan: scenes.map((item) => `Scene ${item.order}: ${item.animation}`).join("\n"),
             prompts: {
-                image: `${product.name}, ${product.category}, ${product.description}, ${brand.name} brand direction, ${platform.format}, product hero composition, ${project.targetAudience}, ${languageName(project.language)} campaign context`,
-                video: `${platform.format}; ${scenes.map((item) => item.visual).join(" Then ")}; ${platform.pacing.toLowerCase()}; end with ${campaign.callToAction || "a clear call to action"}.`,
+                image: `${product.name}, ${product.category}, ${product.description}, ${brand.name} brand direction, ${platform.format}, product hero composition, ${project.targetAudience}, ${languageName(project.language)} campaign context${marketing ? `, ${marketing.valueProposition}` : ""}`,
+                video: `${platform.format}; ${scenes.map((item) => item.visual).join(" Then ")}; ${platform.pacing.toLowerCase()}; end with ${marketing?.ctas[0] || campaign.callToAction || "a clear call to action"}.${marketing ? ` ${marketing.platform.recommendations[0]}` : ""}`,
                 audio: `${languageName(project.language)} voice direction: ${brand.voice || "clear and confident"}. Pace: ${platform.pacing.toLowerCase()}. Script: ${scenes.map((item) => item.narration).join(" ")}`,
             },
             workflow: ["Confirm approved creative brief", "Prepare product image references", "Review storyboard and script", "Review camera, lighting, composition, colour, and animation plans", "Approve prompts for the later production pipeline"],

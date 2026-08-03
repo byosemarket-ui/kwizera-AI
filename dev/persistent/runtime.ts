@@ -211,6 +211,9 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await reviewManager.initialize(storageRoot, manager);
       pipelineManager = new CreativePipelineManager();
       await pipelineManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, planning: planningManager, review: reviewManager });
+      manager.conversationEngine?.setExecutionDispatcher({
+        dispatch: async (projectId) => ({ jobId: (await pipelineManager!.start(projectId)).id }),
+      });
       modelManager = manager.modelManager;
       if (!modelManager) throw new Error("AI Model Management is not available");
       imageGenerationManager = new ImageGenerationManager();
@@ -249,6 +252,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         videoAudioGenerationManager.attachMarketingIntelligence(marketingIntelligenceManager);
         imageGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
         videoAudioGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        pipelineManager.attachImageGeneration(imageGenerationManager);
+        pipelineManager.attachVideoAudioGeneration(videoAudioGenerationManager);
       pipelineManager.attachProductIntelligence(productIntelligenceManager);
       pipelineManager.attachImageIntelligence(imageIntelligenceManager);
         pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);

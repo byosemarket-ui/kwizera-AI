@@ -276,7 +276,7 @@ export class StoryGenerationProcessor {
       if (intelligence?.validated) {
         return {
           ...this.analyzer.extractContextFromIntelligence(intelligence, creative, strategy, understanding),
-          understanding,
+          understanding: understanding ?? undefined,
         };
       }
     }

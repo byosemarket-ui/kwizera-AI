@@ -2,6 +2,11 @@ import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import type { AiModelManager } from "../model-management/ai-model-manager.js";
+import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
+import type { ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
+import type { MarketingIntelligenceManager } from "../marketing-intelligence/marketing-intelligence-manager.js";
+import type { DecisionIntelligenceManager } from "../decision-intelligence/decision-intelligence-manager.js";
+import type { AiLearningManager } from "../learning-intelligence/learning-intelligence-manager.js";
 import type { GeneratedImage, ImageGenerationRequest, ImageGenerationStore } from "./types.js";
 /** Executes safe, local marketing-image composition. A provider can replace the SVG renderer without changing this contract. */
 export declare class ImageGenerationManager {
@@ -10,6 +15,11 @@ export declare class ImageGenerationManager {
     private models;
     private workspace;
     private planning;
+    private productIntelligence;
+    private imageIntelligence;
+    private marketingIntelligence;
+    private decisionIntelligence;
+    private learningIntelligence;
     private store;
     readonly promptExecution: PromptExecutionEngine;
     readonly generator: AiImageGenerator;
@@ -35,6 +45,11 @@ export declare class ImageGenerationManager {
         planning: CreativePlanningManager;
     }): Promise<void>;
     isInitialized(): boolean;
+    attachProductIntelligence(manager: ProductIntelligenceManager): void;
+    attachImageIntelligence(manager: ImageIntelligenceManager): void;
+    attachMarketingIntelligence(manager: MarketingIntelligenceManager): void;
+    attachDecisionIntelligence(manager: DecisionIntelligenceManager): void;
+    attachLearningIntelligence(manager: AiLearningManager): void;
     generate(request: ImageGenerationRequest): Promise<GeneratedImage[]>;
     getDashboard(projectId?: string): Promise<{
         images: GeneratedImage[];

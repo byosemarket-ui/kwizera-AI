@@ -1,0 +1,3 @@
+export function createMarketingIntelligencePlugin(manager, _core) { return { id: "marketing-intelligence-runtime", name: "KWIZERA AI Marketing Intelligence Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
+        throw new Error("Marketing Intelligence Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Marketing intelligence runtime operational" }; } }; }
+//# sourceMappingURL=marketing-intelligence-plugin.js.map

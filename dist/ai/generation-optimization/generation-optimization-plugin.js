@@ -1,0 +1,3 @@
+export function createGenerationOptimizationPlugin(manager, _core) { return { id: "generation-optimization-runtime", name: "KWIZERA AI Generation Optimization Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
+        throw new Error("Generation Optimization Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Generation optimization runtime operational" }; } }; }
+//# sourceMappingURL=generation-optimization-plugin.js.map

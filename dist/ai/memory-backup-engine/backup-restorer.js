@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isSafeBackupRelativePath } from "./backup-integrity-validator.js";
 import { RestoreMode } from "./types.js";
 export class BackupRestorer {
     storageRoot;
@@ -94,6 +95,10 @@ export class BackupRestorer {
         }
         let filesRestored = 0;
         for (const file of filesToRestore) {
+            if (!isSafeBackupRelativePath(file.relativePath)) {
+                diagnostics.push(`Unsafe backup path: ${file.relativePath}`);
+                continue;
+            }
             const sourcePath = file.compressed
                 ? path.join(backupDir, "data", `${file.relativePath}.gz`)
                 : path.join(backupDir, "data", file.relativePath);

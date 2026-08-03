@@ -2,6 +2,16 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { BackupType } from "./types.js";
+export function isSafeBackupRelativePath(value) {
+    const normalized = value.replace(/\\/g, "/");
+    return Boolean(normalized) &&
+        !normalized.includes("\0") &&
+        !path.isAbsolute(value) &&
+        !path.win32.isAbsolute(value) &&
+        normalized === path.posix.normalize(normalized) &&
+        normalized !== ".." &&
+        !normalized.startsWith("../");
+}
 export class BackupIntegrityValidator {
     foundation;
     logger;
@@ -13,6 +23,11 @@ export class BackupIntegrityValidator {
         const diagnostics = [];
         let fileIntegrity = true;
         for (const file of manifest.files) {
+            if (!isSafeBackupRelativePath(file.relativePath)) {
+                fileIntegrity = false;
+                diagnostics.push(`Unsafe backup path: ${file.relativePath}`);
+                continue;
+            }
             const filePath = file.compressed
                 ? path.join(backupDir, "data", `${file.relativePath}.gz`)
                 : path.join(backupDir, "data", file.relativePath);

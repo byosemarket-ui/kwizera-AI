@@ -1,0 +1,54 @@
+.recommendation-row {
+  display: grid;
+  grid-template-columns: 67px minmax(0, 1fr) 12px;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 7px 0;
+  color: #c0cad3;
+  border-bottom: 1px solid #232c35;
+}
+
+.recommendation-row span {
+  color: #9ae0af;
+  font: 9px "DM Mono", monospace;
+}
+
+.recommendation-row p {
+  margin: 0;
+  overflow: hidden;
+  color: #8996a2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+}
+
+.pipeline-controls {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.pipeline-controls button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  color: #bad7c3;
+  background: #172a1e;
+  border: 1px solid #355a40;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pipeline-controls button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.ai-panel-empty {
+  margin: 0;
+  color: #7f8c99;
+  font-size: 9px;
+  line-height: 1.5;
+}

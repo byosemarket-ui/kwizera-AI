@@ -3,6 +3,11 @@ import type { CreativePlanningManager } from "../creative-planning/creative-plan
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import type { ImageGenerationManager } from "../image-generation/image-generation-manager.js";
 import type { AiModelManager } from "../model-management/ai-model-manager.js";
+import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
+import type { ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
+import type { MarketingIntelligenceManager } from "../marketing-intelligence/marketing-intelligence-manager.js";
+import type { DecisionIntelligenceManager } from "../decision-intelligence/decision-intelligence-manager.js";
+import type { AiLearningManager } from "../learning-intelligence/learning-intelligence-manager.js";
 import type { GeneratedVideoPackage, VideoGenerationRequest, VideoGenerationStore } from "./types.js";
 /** Produces a durable marketing-video package. The preview encoder can be replaced by an MP4/WebM provider later. */
 export declare class VideoAudioGenerationManager {
@@ -12,6 +17,11 @@ export declare class VideoAudioGenerationManager {
     private workspace;
     private planning;
     private images;
+    private productIntelligence;
+    private imageIntelligence;
+    private marketingIntelligence;
+    private decisionIntelligence;
+    private learningIntelligence;
     private store;
     readonly videoGenerator: AiVideoGenerator;
     readonly videoModelSelector: VideoModelSelector;
@@ -40,6 +50,11 @@ export declare class VideoAudioGenerationManager {
         images: ImageGenerationManager;
     }): Promise<void>;
     isInitialized(): boolean;
+    attachProductIntelligence(manager: ProductIntelligenceManager): void;
+    attachImageIntelligence(manager: ImageIntelligenceManager): void;
+    attachMarketingIntelligence(manager: MarketingIntelligenceManager): void;
+    attachDecisionIntelligence(manager: DecisionIntelligenceManager): void;
+    attachLearningIntelligence(manager: AiLearningManager): void;
     generate(request: VideoGenerationRequest): Promise<GeneratedVideoPackage>;
     getDashboard(projectId?: string): Promise<{
         packages: GeneratedVideoPackage[];

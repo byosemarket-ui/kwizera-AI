@@ -72,6 +72,8 @@ const projectRoot = getProjectRoot();
 
 const storageRoot = resolveStorageRoot();
 
+const MAX_REQUEST_BODY_BYTES = 24 * 1024 * 1024;
+
 
 
 let activePort = PORT;
@@ -92,8 +94,6 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 
     "Content-Type": "application/json",
 
-    "Access-Control-Allow-Origin": "*",
-
   });
 
   res.end(JSON.stringify(data));
@@ -108,9 +108,45 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
     const chunks: Buffer[] = [];
 
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    let size = 0;
 
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    let rejected = false;
+
+    const contentLength = Number(req.headers["content-length"] ?? 0);
+
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+
+      reject(new Error("Request body exceeds the 24 MB limit"));
+
+      req.resume();
+
+      return;
+
+    }
+
+    req.on("data", (chunk: Buffer) => {
+
+      if (rejected) return;
+
+      size += chunk.length;
+
+      if (size > MAX_REQUEST_BODY_BYTES) {
+
+        rejected = true;
+
+        reject(new Error("Request body exceeds the 24 MB limit"));
+
+        req.resume();
+
+        return;
+
+      }
+
+      chunks.push(chunk);
+
+    });
+
+    req.on("end", () => { if (!rejected) resolve(Buffer.concat(chunks).toString("utf8")); });
 
     req.on("error", reject);
 
@@ -142,6 +178,8 @@ function contentType(filePath: string): string {
 
   if (filePath.endsWith(".webm")) return "video/webm";
 
+  if (filePath.endsWith(".mkv")) return "video/x-matroska";
+
   if (filePath.endsWith(".mp3")) return "audio/mpeg";
 
   if (filePath.endsWith(".wav")) return "audio/wav";
@@ -152,23 +190,53 @@ function contentType(filePath: string): string {
 
 
 
-function serveStatic(res: ServerResponse, filePath: string): void {
+async function serveStatic(res: ServerResponse, filePath: string): Promise<void> {
 
-  if (!fs.existsSync(filePath)) {
+  try {
 
-    res.writeHead(404);
+    const data = await fs.promises.readFile(filePath);
 
-    res.end("Not found");
+    res.writeHead(200, { "Content-Type": contentType(filePath) });
 
-    return;
+    res.end(data);
+
+  } catch (error) {
+
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+
+      res.writeHead(404);
+
+      res.end("Not found");
+
+      return;
+
+    }
+
+    res.writeHead(500);
+
+    res.end("Unable to read file");
 
   }
 
-  const data = fs.readFileSync(filePath);
+}
 
-  res.writeHead(200, { "Content-Type": contentType(filePath) });
+function resolveUiAsset(pathname: string): string | null {
 
-  res.end(data);
+  let decodedPath: string;
+
+  try {
+
+    decodedPath = decodeURIComponent(pathname);
+
+  } catch {
+
+    return null;
+
+  }
+
+  const filePath = path.resolve(UI_DIR, `.${decodedPath}`);
+
+  return filePath === UI_DIR || filePath.startsWith(`${UI_DIR}${path.sep}`) ? filePath : null;
 
 }
 
@@ -612,15 +680,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (req.method === "OPTIONS") {
 
-    res.writeHead(204, {
-
-      "Access-Control-Allow-Origin": "*",
-
-      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-
-      "Access-Control-Allow-Headers": "Content-Type",
-
-    });
+    res.writeHead(204);
 
     res.end();
 
@@ -660,6 +720,51 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/desktop-workspace/status") {
+
+    const runtime = getPersistentRuntime()?.getManager();
+    const activeProject = await getWorkspaceManager()?.getActiveProject();
+    const pipeline = getPipelineManager()?.getDashboard();
+    const memoryUsage = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
+
+    sendJson(res, 200, {
+
+      aiCore: Boolean(runtime?.isReady()),
+
+      workflowEngine: Boolean(runtime?.workflowEngine),
+
+      communicationBus: Boolean(runtime?.communicationBus),
+
+      moduleManager: Boolean(runtime?.moduleManager),
+
+      memoryFoundation: Boolean(runtime?.memoryFoundation),
+
+      knowledgeFoundation: Boolean(runtime?.knowledgeFoundation),
+
+      automationEngine: Boolean(runtime?.workflowEngine),
+
+      taskScheduler: Boolean(runtime?.taskManager),
+
+      productIntelligence: Boolean(runtime?.productIntelligenceFoundation),
+
+      cameraSimulation: Boolean(runtime?.videoIntelligenceFoundation),
+
+      activeProject: activeProject?.name ?? "No active project",
+      activeProjectId: activeProject?.id ?? null,
+      runtimeMetrics: {
+        memoryMb: Math.round(memoryUsage.rss / 1024 / 1024),
+        cpuUserMs: Math.round(cpuUsage.user / 1000),
+        gpu: "unavailable",
+        activeJobs: pipeline?.jobs.filter((job) => job.status === "queued" || job.status === "running").length ?? 0,
+      },
+
+    });
+
+    return;
+
+  }
+
 
 
   if (url.pathname === "/api/session") {
@@ -678,6 +783,25 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  if (url.pathname === "/api/conversations" && req.method === "GET") {
+    const conversations = getPersistentRuntime()?.getManager().conversationEngine;
+    if (!conversations) { sendJson(res, 503, { error: "Conversation engine is restoring. Try again shortly." }); return; }
+    sendJson(res, 200, { conversations: conversations.list() });
+    return;
+  }
+
+  if (url.pathname === "/api/conversations" && req.method === "POST") {
+    const conversations = getPersistentRuntime()?.getManager().conversationEngine;
+    if (!conversations) { sendJson(res, 503, { error: "Conversation engine is restoring. Try again shortly." }); return; }
+    try {
+      const body = JSON.parse(await readBody(req)) as { conversationId?: string; message?: string; projectId?: string };
+      sendJson(res, 201, await conversations.respond({ conversationId: body.conversationId, message: body.message ?? "", projectId: body.projectId }));
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to process conversation" });
+    }
+    return;
   }
 
   if (url.pathname === "/api/workspace") {
@@ -728,6 +852,42 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/models/runtime" && req.method === "GET") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    sendJson(res, 200, await models.runtimeStatus());
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models/providers" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      models.inference.configure(body);
+
+      sendJson(res, 201, await models.runtimeStatus());
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to configure local inference provider" });
+
+    }
+
+    return;
+
+  }
+
   if (url.pathname === "/api/image-generation") {
 
     const images = requireImageGeneration(res);
@@ -759,6 +919,18 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     if (!optimization) return;
 
     sendJson(res, 200, await optimization.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/generation-optimization/production" && req.method === "GET") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    sendJson(res, 200, await optimization.refreshProduction());
 
     return;
 
@@ -906,7 +1078,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      const body = (await readBody(req).catch(() => "")) || "{}";
+      const body = (await readBody(req)) || "{}";
 
       const decision = await intelligence.decide(decisionAnalysisMatch[1], JSON.parse(body).taskKind ?? "pipeline");
 
@@ -1022,6 +1194,28 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/generation-optimization/production/recover" && req.method === "POST") {
+
+    const optimization = requireGenerationOptimization(res);
+
+    if (!optimization) return;
+
+    try {
+
+      const recovery = await optimization.recoverProduction();
+
+      sendJson(res, 200, { recovery, production: optimization.production.getDashboard() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Production recovery failed" });
+
+    }
+
+    return;
+
+  }
+
   const optimizationRetryMatch = url.pathname.match(/^\/api\/generation-optimization\/tasks\/([^/]+)\/retry$/);
 
   if (optimizationRetryMatch && req.method === "POST") {
@@ -1104,7 +1298,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!filePath) { sendJson(res, 404, { error: "Generated video package asset not found" }); return; }
 
-    serveStatic(res, filePath);
+    await serveStatic(res, filePath);
 
     return;
 
@@ -1168,7 +1362,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!filePath) { sendJson(res, 404, { error: "Generated image not found" }); return; }
 
-    serveStatic(res, filePath);
+    await serveStatic(res, filePath);
 
     return;
 
@@ -1189,6 +1383,28 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to update model settings" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models/infer" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req));
+
+      sendJson(res, 200, { result: await models.inference.infer(body), runtime: models.inference.status() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Local inference failed" });
 
     }
 
@@ -1262,6 +1478,69 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to queue creative pipeline" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/autonomous-executions" && req.method === "POST") {
+
+    const pipeline = requirePipeline(res);
+
+    if (!pipeline) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { projectId?: string };
+
+      if (!body.projectId) { sendJson(res, 400, { error: "projectId is required" }); return; }
+
+      const job = await pipeline.start(body.projectId);
+
+      sendJson(res, 202, { job, dashboard: pipeline.getDashboard() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to start autonomous execution" });
+
+    }
+
+    return;
+
+  }
+
+  const autonomousExecutionMatch = url.pathname.match(/^\/api\/autonomous-executions\/([^/]+)(?:\/(pause|resume|cancel))?$/);
+
+  if (autonomousExecutionMatch) {
+
+    const pipeline = requirePipeline(res);
+
+    if (!pipeline) return;
+
+    const [, jobId, action] = autonomousExecutionMatch;
+
+    try {
+
+      if (req.method === "GET" && !action) {
+        const job = pipeline.getJob(jobId);
+        if (!job) { sendJson(res, 404, { error: "Autonomous execution not found" }); return; }
+        sendJson(res, 200, { job, dashboard: pipeline.getDashboard() });
+        return;
+      }
+
+      if (req.method === "POST" && action) {
+        const job = action === "pause" ? await pipeline.pause(jobId) : action === "resume" ? await pipeline.resume(jobId) : await pipeline.cancel(jobId);
+        sendJson(res, 200, { job, dashboard: pipeline.getDashboard() });
+        return;
+      }
+
+      sendJson(res, 405, { error: "Method not allowed" });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to control autonomous execution" });
 
     }
 
@@ -1345,7 +1624,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!filePath) { sendJson(res, 404, { error: "Review asset not found" }); return; }
 
-    serveStatic(res, filePath);
+    await serveStatic(res, filePath);
 
     return;
 
@@ -1363,7 +1642,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!filePath) { sendJson(res, 404, { error: "Export not found" }); return; }
 
-    serveStatic(res, filePath);
+    await serveStatic(res, filePath);
 
     return;
 
@@ -1577,7 +1856,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!imagePath) { sendJson(res, 404, { error: "Product image not found" }); return; }
 
-    serveStatic(res, imagePath);
+    await serveStatic(res, imagePath);
 
     return;
 
@@ -1713,7 +1992,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (url.pathname === "/api/logo") {
 
-    serveStatic(res, path.join(projectRoot, "KWIZERA AI.png"));
+    await serveStatic(res, path.join(projectRoot, "KWIZERA AI.png"));
 
     return;
 
@@ -1799,7 +2078,17 @@ const server = createServer(async (req, res) => {
 
 
 
-  let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : path.join(UI_DIR, url.pathname);
+  let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : url.pathname === "/desktop" || url.pathname === "/desktop/" ? path.join(UI_DIR, "desktop", "index.html") : resolveUiAsset(url.pathname);
+
+  if (!filePath) {
+
+    res.writeHead(404);
+
+    res.end("Not found");
+
+    return;
+
+  }
 
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
 
@@ -1807,7 +2096,7 @@ const server = createServer(async (req, res) => {
 
   }
 
-  serveStatic(res, filePath);
+  await serveStatic(res, filePath);
 
 });
 

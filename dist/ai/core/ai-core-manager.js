@@ -1,3 +1,7 @@
+import { AiPluginManager } from "../plugin-management/plugin-manager.js";
+import { createInternalPlugins } from "../plugin-management/internal-plugins.js";
+import { AiConnectorManager } from "../connector-management/connector-manager.js";
+import { AiDesktopIntegrationManager } from "../desktop-integration/desktop-integration-manager.js";
 import { AiLifecycleManager } from "./lifecycle.js";
 import { AiCoreLogger } from "./logger.js";
 import { AiModuleRegistry } from "./module-registry.js";
@@ -47,6 +51,8 @@ import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audi
 import { createAudioGenerationFoundationPlugin } from "../audio-generation-foundation/audio-generation-foundation-plugin.js";
 import { AiModelManager } from "../model-management/ai-model-manager.js";
 import { createModelManagementPlugin } from "../model-management/model-management-plugin.js";
+import { AiToolManager } from "../tool-management/tool-manager.js";
+import { createBuiltInTools } from "../tool-management/built-in-tools.js";
 /**
  * AI Core Manager — wires all foundation components together.
  */
@@ -84,6 +90,10 @@ export class AiCoreManager {
     _imageGenerationFoundation = null;
     _audioGenerationFoundation = null;
     _modelManager = null;
+    _toolManager = null;
+    _connectorManager = null;
+    _desktopIntegrationManager = null;
+    _pluginManager = null;
     started = false;
     options;
     constructor(options = {}) {
@@ -271,6 +281,22 @@ export class AiCoreManager {
         await this._modelManager.initialize(storageRoot, this);
         const modelManagementPlugin = createModelManagementPlugin(this._modelManager, this);
         await this._moduleManager.registerAndInitialize(modelManagementPlugin);
+        this._toolManager = new AiToolManager();
+        await this._toolManager.initialize(this, storageRoot);
+        await this._toolManager.discover(createBuiltInTools(this));
+        await this._toolManager.monitor();
+        this._pluginManager = new AiPluginManager();
+        await this._pluginManager.initialize(this, this._toolManager, storageRoot);
+        const internalPlugins = createInternalPlugins(this);
+        await this._pluginManager.discover(internalPlugins);
+        for (const plugin of internalPlugins)
+            await this._pluginManager.load(plugin.manifest.id);
+        await this._pluginManager.monitor();
+        this._connectorManager = new AiConnectorManager();
+        await this._connectorManager.initialize(this, this._toolManager, storageRoot);
+        await this._connectorManager.monitor();
+        this._desktopIntegrationManager = new AiDesktopIntegrationManager();
+        await this._desktopIntegrationManager.initialize(this, this._toolManager, storageRoot);
         this._stateManager.syncAiCoreState(this.getLifecycleState(), {
             systemAction: "startup-complete",
         });
@@ -334,6 +360,18 @@ export class AiCoreManager {
     get modelManager() {
         return this._modelManager;
     }
+    get toolManager() {
+        return this._toolManager;
+    }
+    get pluginManager() {
+        return this._pluginManager;
+    }
+    get connectorManager() {
+        return this._connectorManager;
+    }
+    get desktopIntegrationManager() {
+        return this._desktopIntegrationManager;
+    }
     isReady() {
         if (!this.started) {
             return false;
@@ -345,6 +383,14 @@ export class AiCoreManager {
         return this.configuration.getConfiguration();
     }
     async stop(reason = "requested") {
+        if (this._desktopIntegrationManager)
+            await this._desktopIntegrationManager.shutdown();
+        if (this._pluginManager)
+            await this._pluginManager.shutdown();
+        this._desktopIntegrationManager = null;
+        this._connectorManager = null;
+        this._pluginManager = null;
+        this._toolManager = null;
         if (this._modelManager) {
             for (const model of this._modelManager.list().filter((item) => item.status === "loaded")) {
                 await this._modelManager.unload(model.id);

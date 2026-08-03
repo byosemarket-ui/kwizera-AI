@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
-import { StubKnowledgeSearchProvider } from "../decision/providers/knowledge-search-provider.js";
-import { StubMemorySearchProvider } from "../decision/providers/memory-search-provider.js";
+import { StubKnowledgeSearchProvider, type KnowledgeSearchProvider } from "../decision/providers/knowledge-search-provider.js";
+import { StubMemorySearchProvider, type MemorySearchProvider } from "../decision/providers/memory-search-provider.js";
 import { resolveLogDirectory } from "../../storage/paths/storage-paths.js";
 import { ApproachComparator } from "./approach-comparator.js";
 import { ApproachGenerator } from "./approach-generator.js";
@@ -30,8 +30,8 @@ import {
 
 export interface AiReasoningEngineOptions {
   storageRoot: string;
-  memoryProvider?: StubMemorySearchProvider;
-  knowledgeProvider?: StubKnowledgeSearchProvider;
+  memoryProvider?: MemorySearchProvider;
+  knowledgeProvider?: KnowledgeSearchProvider;
 }
 
 /**
@@ -49,8 +49,8 @@ export class AiReasoningEngine {
   readonly missingDetector = new MissingInformationDetector();
   readonly errorAnalyzer = new ErrorAnalyzer();
 
-  private readonly memoryProvider: StubMemorySearchProvider;
-  private readonly knowledgeProvider: StubKnowledgeSearchProvider;
+  private readonly memoryProvider: MemorySearchProvider;
+  private readonly knowledgeProvider: KnowledgeSearchProvider;
   private readonly storageRoot: string;
   private readonly reasoningDurations: number[] = [];
   private initialized = false;

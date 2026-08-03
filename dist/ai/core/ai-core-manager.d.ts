@@ -1,3 +1,6 @@
+import { AiPluginManager } from "../plugin-management/plugin-manager.js";
+import { AiConnectorManager } from "../connector-management/connector-manager.js";
+import { AiDesktopIntegrationManager } from "../desktop-integration/desktop-integration-manager.js";
 import { AiLifecycleManager } from "./lifecycle.js";
 import { AiCoreLogger } from "./logger.js";
 import { AiModuleRegistry } from "./module-registry.js";
@@ -30,6 +33,7 @@ import { AiVideoGenerationFoundation } from "../video-generation-foundation/vide
 import { AiImageGenerationFoundation } from "../image-generation-foundation/image-generation-foundation.js";
 import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audio-generation-foundation.js";
 import { AiModelManager } from "../model-management/ai-model-manager.js";
+import { AiToolManager } from "../tool-management/tool-manager.js";
 export interface AiCoreManagerOptions {
     configRoot?: string;
     storageRootOverride?: string;
@@ -82,6 +86,10 @@ export declare class AiCoreManager {
     private _imageGenerationFoundation;
     private _audioGenerationFoundation;
     private _modelManager;
+    private _toolManager;
+    private _connectorManager;
+    private _desktopIntegrationManager;
+    private _pluginManager;
     private started;
     private readonly options;
     constructor(options?: AiCoreManagerOptions);
@@ -105,6 +113,10 @@ export declare class AiCoreManager {
     get imageGenerationFoundation(): AiImageGenerationFoundation | null;
     get audioGenerationFoundation(): AiAudioGenerationFoundation | null;
     get modelManager(): AiModelManager | null;
+    get toolManager(): AiToolManager | null;
+    get pluginManager(): AiPluginManager | null;
+    get connectorManager(): AiConnectorManager | null;
+    get desktopIntegrationManager(): AiDesktopIntegrationManager | null;
     isReady(): boolean;
     getConfig(): import("./types.js").AiCoreConfiguration;
     stop(reason?: string): Promise<void>;

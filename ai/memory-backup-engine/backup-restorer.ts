@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { BackupCompressor } from "./backup-compressor.js";
-import { BackupIntegrityValidator } from "./backup-integrity-validator.js";
+import { BackupIntegrityValidator, isSafeBackupRelativePath } from "./backup-integrity-validator.js";
 import { MemoryBackupLogger } from "./backup-logger.js";
 import { BackupVersionStore } from "./backup-version-store.js";
 import { RestoreMode, RestoreResult } from "./types.js";
@@ -104,6 +104,11 @@ export class BackupRestorer {
     let filesRestored = 0;
 
     for (const file of filesToRestore) {
+      if (!isSafeBackupRelativePath(file.relativePath)) {
+        diagnostics.push(`Unsafe backup path: ${file.relativePath}`);
+        continue;
+      }
+
       const sourcePath = file.compressed
         ? path.join(backupDir, "data", `${file.relativePath}.gz`)
         : path.join(backupDir, "data", file.relativePath);

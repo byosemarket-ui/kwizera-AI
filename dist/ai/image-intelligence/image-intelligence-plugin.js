@@ -1,0 +1,3 @@
+export function createImageIntelligencePlugin(manager, _core) { return { id: "image-intelligence-runtime", name: "KWIZERA AI Image Intelligence Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
+        throw new Error("Image Intelligence Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Image intelligence runtime operational" }; } }; }
+//# sourceMappingURL=image-intelligence-plugin.js.map

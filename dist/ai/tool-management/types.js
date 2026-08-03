@@ -1,0 +1,2 @@
+export const TOOL_CATEGORIES = ["ai", "image", "video", "audio", "marketing", "rendering", "database", "memory", "knowledge", "file", "system", "utility", "external"];
+//# sourceMappingURL=types.js.map

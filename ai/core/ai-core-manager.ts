@@ -1,3 +1,7 @@
+import { AiPluginManager } from "../plugin-management/plugin-manager.js";
+import { createInternalPlugins } from "../plugin-management/internal-plugins.js";
+import { AiConnectorManager } from "../connector-management/connector-manager.js";
+import { AiDesktopIntegrationManager } from "../desktop-integration/desktop-integration-manager.js";
 import { AiLifecycleManager } from "./lifecycle.js";
 import { AiCoreLogger } from "./logger.js";
 import { AiModuleRegistry } from "./module-registry.js";
@@ -47,6 +51,10 @@ import { AiAudioGenerationFoundation } from "../audio-generation-foundation/audi
 import { createAudioGenerationFoundationPlugin } from "../audio-generation-foundation/audio-generation-foundation-plugin.js";
 import { AiModelManager } from "../model-management/ai-model-manager.js";
 import { createModelManagementPlugin } from "../model-management/model-management-plugin.js";
+import { AiToolManager } from "../tool-management/tool-manager.js";
+import { createBuiltInTools } from "../tool-management/built-in-tools.js";
+import { AiConversationEngine, createConversationEnginePlugin } from "../conversation/conversation-engine.js";
+import { FoundationKnowledgeSearchProvider, FoundationMemorySearchProvider } from "../decision/providers/foundation-search-providers.js";
 
 export interface AiCoreManagerOptions {
   configRoot?: string;
@@ -105,6 +113,11 @@ export class AiCoreManager {
   private _imageGenerationFoundation: AiImageGenerationFoundation | null = null;
   private _audioGenerationFoundation: AiAudioGenerationFoundation | null = null;
   private _modelManager: AiModelManager | null = null;
+  private _toolManager: AiToolManager | null = null;
+  private _connectorManager: AiConnectorManager | null = null;
+  private _desktopIntegrationManager: AiDesktopIntegrationManager | null = null;
+  private _pluginManager: AiPluginManager | null = null;
+  private _conversationEngine: AiConversationEngine | null = null;
 
   private started = false;
   private readonly options: AiCoreManagerOptions;
@@ -197,13 +210,21 @@ export class AiCoreManager {
     }
 
     if (!this.options.skipReasoningEngine) {
-      this._reasoningEngine = new AiReasoningEngine({ storageRoot });
+      this._reasoningEngine = new AiReasoningEngine({
+        storageRoot,
+        memoryProvider: new FoundationMemorySearchProvider(this),
+        knowledgeProvider: new FoundationKnowledgeSearchProvider(this),
+      });
       const reasoningPlugin = createReasoningEnginePlugin(this._reasoningEngine, this);
       await this._moduleManager.registerAndInitialize(reasoningPlugin);
     }
 
     if (!this.options.skipDecisionEngine) {
-      this._decisionEngine = new AiDecisionEngine({ storageRoot });
+      this._decisionEngine = new AiDecisionEngine({
+        storageRoot,
+        memoryProvider: new FoundationMemorySearchProvider(this),
+        knowledgeProvider: new FoundationKnowledgeSearchProvider(this),
+      });
       if (this._reasoningEngine) {
         this._decisionEngine.setReasoningEngine(this._reasoningEngine);
       }
@@ -249,6 +270,10 @@ export class AiCoreManager {
       const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation, this);
       await this._moduleManager.registerAndInitialize(knowledgePlugin);
     }
+
+    this._conversationEngine = new AiConversationEngine();
+    await this._conversationEngine.initialize(this, storageRoot);
+    await this._moduleManager.registerAndInitialize(createConversationEnginePlugin(this._conversationEngine));
 
     if (!this.options.skipProductIntelligenceFoundation && this._knowledgeFoundation) {
       this._productIntelligenceFoundation = new AiProductIntelligenceFoundation();
@@ -504,6 +529,25 @@ export class AiCoreManager {
     const modelManagementPlugin = createModelManagementPlugin(this._modelManager, this);
     await this._moduleManager.registerAndInitialize(modelManagementPlugin);
 
+    this._toolManager = new AiToolManager();
+    await this._toolManager.initialize(this, storageRoot);
+    await this._toolManager.discover(createBuiltInTools(this));
+    await this._toolManager.monitor();
+
+    this._pluginManager = new AiPluginManager();
+    await this._pluginManager.initialize(this, this._toolManager, storageRoot);
+    const internalPlugins = createInternalPlugins(this);
+    await this._pluginManager.discover(internalPlugins);
+    for (const plugin of internalPlugins) await this._pluginManager.load(plugin.manifest.id);
+    await this._pluginManager.monitor();
+
+    this._connectorManager = new AiConnectorManager();
+    await this._connectorManager.initialize(this, this._toolManager, storageRoot);
+    await this._connectorManager.monitor();
+
+    this._desktopIntegrationManager = new AiDesktopIntegrationManager();
+    await this._desktopIntegrationManager.initialize(this, this._toolManager, storageRoot);
+
     this._stateManager.syncAiCoreState(this.getLifecycleState(), {
       systemAction: "startup-complete",
     });
@@ -587,6 +631,26 @@ export class AiCoreManager {
     return this._modelManager;
   }
 
+  get toolManager(): AiToolManager | null {
+    return this._toolManager;
+  }
+
+  get pluginManager(): AiPluginManager | null {
+    return this._pluginManager;
+  }
+
+  get connectorManager(): AiConnectorManager | null {
+    return this._connectorManager;
+  }
+
+  get conversationEngine(): AiConversationEngine | null {
+    return this._conversationEngine;
+  }
+
+  get desktopIntegrationManager(): AiDesktopIntegrationManager | null {
+    return this._desktopIntegrationManager;
+  }
+
   isReady(): boolean {
     if (!this.started) {
       return false;
@@ -600,6 +664,13 @@ export class AiCoreManager {
   }
 
   async stop(reason = "requested"): Promise<void> {
+    if (this._desktopIntegrationManager) await this._desktopIntegrationManager.shutdown();
+    if (this._pluginManager) await this._pluginManager.shutdown();
+    this._desktopIntegrationManager = null;
+    this._connectorManager = null;
+    this._conversationEngine = null;
+    this._pluginManager = null;
+    this._toolManager = null;
     if (this._modelManager) {
       for (const model of this._modelManager.list().filter((item) => item.status === "loaded")) {
         await this._modelManager.unload(model.id);

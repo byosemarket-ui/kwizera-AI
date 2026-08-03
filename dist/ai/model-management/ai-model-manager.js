@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
@@ -69,8 +69,13 @@ export class AiModelManager {
     async load(modelId) { const model = this.getMutable(modelId); await this.validation.validate(model); const hardware = await this.detectHardware(); this.resources.assertAvailable(model, hardware); model.status = "loaded"; model.loadedAt = new Date().toISOString(); model.usageCount += 1; model.lastUsedAt = model.loadedAt; this.cacheManager.touch(model); this.log("info", "loading", `Loaded ${model.name}`, model.id); await this.persist(); return structuredClone(model); }
     async unload(modelId) { const model = this.getMutable(modelId); if (model.status === "loaded")
         model.status = "installed"; this.cache.delete(modelId); this.log("info", "unloading", `Unloaded ${model.name}`, model.id); await this.persist(); return structuredClone(model); }
-    async remove(modelId) { const model = this.getMutable(modelId); await this.unload(modelId); if (model.artifactPath)
-        await fs.rm(model.artifactPath, { force: true }); model.status = "removed"; this.log("warning", "removal", `Removed ${model.name}`, model.id); await this.persist(); }
+    async remove(modelId) { const model = this.getMutable(modelId); await this.unload(modelId); if (model.artifactPath) {
+        const artifactRoot = `${path.resolve(this.root, "artifacts")}${path.sep}`;
+        const artifactPath = path.resolve(model.artifactPath);
+        if (!artifactPath.startsWith(artifactRoot))
+            throw new Error("Refusing to remove an artifact outside managed storage");
+        await fs.rm(artifactPath, { force: true });
+    } model.status = "removed"; this.log("warning", "removal", `Removed ${model.name}`, model.id); await this.persist(); }
     async update(modelId, version) { const model = this.getMutable(modelId); if (!/^\d+\.\d+\.\d+([-.][a-zA-Z0-9.]+)?$/.test(version))
         throw new Error("Version must use semantic version format"); model.status = "updating"; model.version = version; model.status = "installed"; this.log("info", "update", `Updated ${model.name} to ${version}`, model.id); await this.persist(); return structuredClone(model); }
     async selectBest(category) { const hardware = await this.detectHardware(); return this.list().filter((model) => model.category === category && (model.status === "installed" || model.status === "loaded") && model.health !== "unhealthy").filter((model) => this.resources.canUse(model, hardware)).sort((a, b) => b.usageCount - a.usageCount || a.requirements.ramMb - b.requirements.ramMb)[0] ?? null; }
@@ -83,7 +88,7 @@ export class AiModelManager {
     getMutable(id) { const model = this.store.models.find((item) => item.id === id && item.status !== "removed"); if (!model)
         throw new Error("Registered model not found"); return model; }
     log(level, event, detail, modelId) { this.store.logs.unshift({ at: new Date().toISOString(), level, event, detail, modelId }); this.store.logs.splice(100, Number.MAX_SAFE_INTEGER); this.core?.logger.info("model-management", detail, { event, modelId }); }
-    async persist() { await fs.writeFile(path.join(this.root, "models.json"), `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); }
+    async persist() { const target = path.join(this.root, "models.json"); const temporary = `${target}.${randomUUID()}.tmp`; await fs.writeFile(temporary, `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); await fs.rename(temporary, target); }
     async readStore() { try {
         const saved = JSON.parse(await fs.readFile(path.join(this.root, "models.json"), "utf8"));
         return { models: saved.models ?? [], settings: { ...DEFAULT_SETTINGS, ...saved.settings }, logs: saved.logs ?? [] };

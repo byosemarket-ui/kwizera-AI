@@ -9,8 +9,8 @@ import { DecisionValidator } from "./decision-validator.js";
 import { QualityEvaluator } from "./quality-evaluator.js";
 import { SolutionGenerator } from "./solution-generator.js";
 import { SolutionScorer } from "./solution-scorer.js";
-import { StubKnowledgeSearchProvider } from "./providers/knowledge-search-provider.js";
-import { StubMemorySearchProvider } from "./providers/memory-search-provider.js";
+import { StubKnowledgeSearchProvider, type KnowledgeSearchProvider } from "./providers/knowledge-search-provider.js";
+import { StubMemorySearchProvider, type MemorySearchProvider } from "./providers/memory-search-provider.js";
 import {
   DecisionEngineError,
   DecisionEngineStatusReport,
@@ -30,8 +30,8 @@ import { mapDecisionTypeToPlanningType } from "../planning/decision-type-mapper.
 
 export interface AiDecisionEngineOptions {
   storageRoot: string;
-  memoryProvider?: StubMemorySearchProvider;
-  knowledgeProvider?: StubKnowledgeSearchProvider;
+  memoryProvider?: MemorySearchProvider;
+  knowledgeProvider?: KnowledgeSearchProvider;
 }
 
 /**
@@ -47,8 +47,8 @@ export class AiDecisionEngine {
   readonly solutionScorer = new SolutionScorer();
   readonly validator = new DecisionValidator();
 
-  private readonly memoryProvider: StubMemorySearchProvider;
-  private readonly knowledgeProvider: StubKnowledgeSearchProvider;
+  private readonly memoryProvider: MemorySearchProvider;
+  private readonly knowledgeProvider: KnowledgeSearchProvider;
   private readonly storageRoot: string;
   private readonly decisionDurations: number[] = [];
   private initialized = false;

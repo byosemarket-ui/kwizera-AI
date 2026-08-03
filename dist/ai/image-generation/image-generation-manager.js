@@ -10,6 +10,11 @@ export class ImageGenerationManager {
     models = null;
     workspace = null;
     planning = null;
+    productIntelligence = null;
+    imageIntelligence = null;
+    marketingIntelligence = null;
+    decisionIntelligence = null;
+    learningIntelligence = null;
     store = structuredClone(EMPTY_STORE);
     promptExecution = new PromptExecutionEngine(this);
     generator = new AiImageGenerator(this);
@@ -40,7 +45,14 @@ export class ImageGenerationManager {
         await this.persist();
     }
     isInitialized() { return Boolean(this.root); }
+    attachProductIntelligence(manager) { this.productIntelligence = manager; }
+    attachImageIntelligence(manager) { this.imageIntelligence = manager; }
+    attachMarketingIntelligence(manager) { this.marketingIntelligence = manager; }
+    attachDecisionIntelligence(manager) { this.decisionIntelligence = manager; }
+    attachLearningIntelligence(manager) { this.learningIntelligence = manager; }
     async generate(request) {
+        if (request.projectId)
+            await this.decisionIntelligence?.decide(request.projectId, "image-generation");
         this.ensureReady();
         this.safety.validate(request);
         const prepared = await this.promptExecution.prepare(request);
@@ -58,6 +70,8 @@ export class ImageGenerationManager {
         this.history.record("generation", `Generated ${images.length} ${prepared.mode} image variation(s).`, images.map((image) => image.id));
         this.log("info", `Generated ${images.length} image variation(s) with ${model.name}.`);
         await this.persist();
+        if (request.projectId)
+            await this.learningIntelligence?.learnFromProject(request.projectId, "success", `Image generation completed: ${images.length} ${prepared.mode} variation(s), average local quality ${Math.round(images.reduce((sum, image) => sum + image.quality.score, 0) / images.length)}/100.`).catch((error) => this.log("warning", `Learning collection deferred: ${error instanceof Error ? error.message : String(error)}`));
         return images;
     }
     async getDashboard(projectId) { this.ensureReady(); const images = this.store.images.filter((image) => !projectId || image.projectId === projectId); return { images: images.map((image) => ({ ...image })), history: [...this.store.history], logs: [...this.store.logs], models: this.models.list().filter((model) => model.category === "image" && model.status !== "removed"), integrations: { aiCore: Boolean(this.core), modelManagement: Boolean(this.models), imageGenerationFoundation: Boolean(this.core?.imageGenerationFoundation), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), productIntelligence: Boolean(this.core?.productIntelligenceFoundation), imageIntelligence: Boolean(this.core?.imageIntelligenceFoundation), stateManager: Boolean(this.core?.stateManager), moduleManager: Boolean(this.core?.moduleManager), creativePipeline: Boolean(this.core?.workflowEngine) }, statistics: { generated: this.store.images.length, cachedRequests: Object.keys(this.store.cache).length, averageQuality: this.store.images.length ? Math.round(this.store.images.reduce((total, image) => total + image.quality.score, 0) / this.store.images.length) : 0 } }; }
@@ -69,8 +83,8 @@ export class ImageGenerationManager {
     catch {
         return null;
     } }
-    async defaultRequest(projectId) { const project = await this.workspace.getProject(projectId); const plan = await this.planning.getPlan(projectId); if (!project)
-        throw new Error("Project not found"); return { projectId, prompt: plan?.prompts.image ?? `${project.productInformation.name}, ${project.productInformation.description}`, mode: project.productImages.length ? "product-to-image" : "text-to-image", style: "studio", aspectRatio: "1:1", resolution: "high", count: 1, productImageId: project.productImages[0]?.id }; }
+    async defaultRequest(projectId) { const [project, plan, profile, imageProfiles, marketing] = await Promise.all([this.workspace.getProject(projectId), this.planning.getPlan(projectId), this.productIntelligence?.getProfile(projectId), this.imageIntelligence?.getProfiles(projectId), this.marketingIntelligence?.getProfile(projectId)]); const imageProfile = imageProfiles?.[0]; if (!project)
+        throw new Error("Project not found"); return { projectId, prompt: plan?.prompts.image ?? `${project.productInformation.name}, ${project.productInformation.description}${profile ? `, ${profile.category}, ${profile.materials.join(" ")}, ${profile.colours.join(" ")}` : ""}${imageProfile ? `, ${imageProfile.composition}` : ""}${marketing ? `, ${marketing.valueProposition}, CTA: ${marketing.ctas[0]}` : ""}`, mode: project.productImages.length ? "product-to-image" : "text-to-image", style: "studio", aspectRatio: "1:1", resolution: "high", count: 1, productImageId: project.productImages[0]?.id }; }
     async render(request, modelId, variation) {
         const project = request.projectId ? await this.workspace.getProject(request.projectId) : null;
         const product = project?.productInformation;
@@ -85,7 +99,7 @@ export class ImageGenerationManager {
         this.store.images.unshift(image);
         return { ...image };
     }
-    log(level, message) { this.store.logs.unshift({ at: new Date().toISOString(), level, message }); this.store.logs.splice(100); this.core?.logger.info("image-generation", message); }
+    log(level, message) { this.store.logs.unshift({ at: new Date().toISOString(), level, message }); this.store.logs.splice(100); this.core?.logger.info("generation", message); }
     async persist() { await fs.writeFile(path.join(this.root, "generation.json"), `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); }
     async readStore() { try {
         const value = JSON.parse(await fs.readFile(path.join(this.root, "generation.json"), "utf8"));

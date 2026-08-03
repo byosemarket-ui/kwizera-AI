@@ -6,6 +6,18 @@ import { ImageGenerationManager } from "../../ai/image-generation/image-generati
 import { createImageGenerationPlugin } from "../../ai/image-generation/image-generation-plugin.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
 import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
+import { GenerationOptimizationManager } from "../../ai/generation-optimization/generation-optimization-manager.js";
+import { createGenerationOptimizationPlugin } from "../../ai/generation-optimization/generation-optimization-plugin.js";
+import { ProductIntelligenceManager } from "../../ai/product-intelligence/product-intelligence-manager.js";
+import { createProductIntelligencePlugin } from "../../ai/product-intelligence/product-intelligence-plugin.js";
+import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-intelligence-manager.js";
+import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
+import { MarketingIntelligenceManager } from "../../ai/marketing-intelligence/marketing-intelligence-manager.js";
+import { createMarketingIntelligencePlugin } from "../../ai/marketing-intelligence/marketing-intelligence-plugin.js";
+import { DecisionIntelligenceManager } from "../../ai/decision-intelligence/decision-intelligence-manager.js";
+import { createDecisionIntelligencePlugin } from "../../ai/decision-intelligence/decision-intelligence-plugin.js";
+import { AiLearningManager } from "../../ai/learning-intelligence/learning-intelligence-manager.js";
+import { createLearningIntelligencePlugin } from "../../ai/learning-intelligence/learning-intelligence-plugin.js";
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import { buildRegistry } from "../server/module-registry.js";
 import { DevSessionStore } from "./session-store.js";
@@ -18,6 +30,12 @@ let pipelineManager = null;
 let modelManager = null;
 let imageGenerationManager = null;
 let videoAudioGenerationManager = null;
+let generationOptimizationManager = null;
+let productIntelligenceManager = null;
+let imageIntelligenceManager = null;
+let marketingIntelligenceManager = null;
+let decisionIntelligenceManager = null;
+let learningIntelligenceManager = null;
 let sessionStore = null;
 let status = null;
 let autoSaveTimer = null;
@@ -76,6 +94,24 @@ export function getImageGenerationManager() {
 }
 export function getVideoAudioGenerationManager() {
     return videoAudioGenerationManager;
+}
+export function getGenerationOptimizationManager() {
+    return generationOptimizationManager;
+}
+export function getProductIntelligenceManager() {
+    return productIntelligenceManager;
+}
+export function getImageIntelligenceManager() {
+    return imageIntelligenceManager;
+}
+export function getMarketingIntelligenceManager() {
+    return marketingIntelligenceManager;
+}
+export function getDecisionIntelligenceManager() {
+    return decisionIntelligenceManager;
+}
+export function getLearningIntelligenceManager() {
+    return learningIntelligenceManager;
 }
 export function getSessionStore() {
     return sessionStore;
@@ -138,6 +174,51 @@ export async function bootPersistentRuntime(host, port) {
             await videoAudioGenerationManager.initialize(storageRoot, { core: manager, models: modelManager, workspace: workspaceManager, planning: planningManager, images: imageGenerationManager });
             if (manager.moduleManager)
                 await manager.moduleManager.registerAndInitialize(createVideoAudioGenerationPlugin(videoAudioGenerationManager, manager));
+            generationOptimizationManager = new GenerationOptimizationManager();
+            await generationOptimizationManager.initialize(storageRoot, { core: manager, models: modelManager, images: imageGenerationManager, videoAudio: videoAudioGenerationManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createGenerationOptimizationPlugin(generationOptimizationManager, manager));
+            pipelineManager.attachGenerationOptimization(generationOptimizationManager);
+            imageIntelligenceManager = new ImageIntelligenceManager();
+            await imageIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createImageIntelligencePlugin(imageIntelligenceManager, manager));
+            productIntelligenceManager = new ProductIntelligenceManager();
+            await productIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createProductIntelligencePlugin(productIntelligenceManager, manager));
+            productIntelligenceManager.attachImageIntelligence(imageIntelligenceManager);
+            marketingIntelligenceManager = new MarketingIntelligenceManager();
+            await marketingIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createMarketingIntelligencePlugin(marketingIntelligenceManager, manager));
+            planningManager.attachMarketingIntelligence(marketingIntelligenceManager);
+            decisionIntelligenceManager = new DecisionIntelligenceManager();
+            await decisionIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, models: modelManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createDecisionIntelligencePlugin(decisionIntelligenceManager, manager));
+            planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
+            learningIntelligenceManager = new AiLearningManager();
+            await learningIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager, decisions: decisionIntelligenceManager });
+            if (manager.moduleManager)
+                await manager.moduleManager.registerAndInitialize(createLearningIntelligencePlugin(learningIntelligenceManager, manager));
+            imageGenerationManager.attachProductIntelligence(productIntelligenceManager);
+            videoAudioGenerationManager.attachProductIntelligence(productIntelligenceManager);
+            imageGenerationManager.attachImageIntelligence(imageIntelligenceManager);
+            videoAudioGenerationManager.attachImageIntelligence(imageIntelligenceManager);
+            imageGenerationManager.attachMarketingIntelligence(marketingIntelligenceManager);
+            videoAudioGenerationManager.attachMarketingIntelligence(marketingIntelligenceManager);
+            imageGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
+            videoAudioGenerationManager.attachDecisionIntelligence(decisionIntelligenceManager);
+            pipelineManager.attachImageGeneration(imageGenerationManager);
+            pipelineManager.attachVideoAudioGeneration(videoAudioGenerationManager);
+            pipelineManager.attachProductIntelligence(productIntelligenceManager);
+            pipelineManager.attachImageIntelligence(imageIntelligenceManager);
+            pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
+            pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
+            pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
+            imageGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
+            videoAudioGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
             const snapshot = await collectRuntimeSnapshot(manager);
             sessionStore.updateRuntime(snapshot);
             const previousSession = sessionStore.get();
@@ -222,6 +303,12 @@ export async function shutdownPersistentRuntime() {
         modelManager = null;
         imageGenerationManager = null;
         videoAudioGenerationManager = null;
+        generationOptimizationManager = null;
+        productIntelligenceManager = null;
+        imageIntelligenceManager = null;
+        marketingIntelligenceManager = null;
+        decisionIntelligenceManager = null;
+        learningIntelligenceManager = null;
     }
     if (status) {
         status.ready = false;

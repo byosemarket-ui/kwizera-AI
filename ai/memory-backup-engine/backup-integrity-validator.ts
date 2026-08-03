@@ -5,6 +5,17 @@ import type { AiMemoryFoundation } from "../memory-foundation/memory-foundation.
 import { MemoryBackupLogger } from "./backup-logger.js";
 import { BackupManifest, BackupType, MemoryBackupValidationResult } from "./types.js";
 
+export function isSafeBackupRelativePath(value: string): boolean {
+  const normalized = value.replace(/\\/g, "/");
+  return Boolean(normalized) &&
+    !normalized.includes("\0") &&
+    !path.isAbsolute(value) &&
+    !path.win32.isAbsolute(value) &&
+    normalized === path.posix.normalize(normalized) &&
+    normalized !== ".." &&
+    !normalized.startsWith("../");
+}
+
 export class BackupIntegrityValidator {
   constructor(
     private readonly foundation: AiMemoryFoundation,
@@ -16,6 +27,12 @@ export class BackupIntegrityValidator {
     let fileIntegrity = true;
 
     for (const file of manifest.files) {
+      if (!isSafeBackupRelativePath(file.relativePath)) {
+        fileIntegrity = false;
+        diagnostics.push(`Unsafe backup path: ${file.relativePath}`);
+        continue;
+      }
+
       const filePath = file.compressed
         ? path.join(backupDir, "data", `${file.relativePath}.gz`)
         : path.join(backupDir, "data", file.relativePath);
