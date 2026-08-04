@@ -33,6 +33,7 @@ export class StoryboardLinker {
 
     const knowledgeRecords = [
       ...new Set([
+        ...record.relationships.knowledgeRecords,
         ...understanding.relationships.knowledgeRecords,
         ...strategy.relationships.knowledgeRecords,
         ...creative.relationships.knowledgeRecords,

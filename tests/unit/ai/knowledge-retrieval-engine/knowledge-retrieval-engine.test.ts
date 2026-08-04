@@ -191,6 +191,25 @@ describe("AiKnowledgeRetrievalEngine", () => {
     await core.stop();
   });
 
+  it("matches offline semantic synonyms rather than requiring exact wording", async () => {
+    const { core, storage, retrieval } = await startCore();
+
+    await storage.storeRecord({
+      knowledgeType: KnowledgeStorageType.Image,
+      category: "image",
+      title: "Commercial Lighting",
+      description: "Lighting techniques for controlled product photography.",
+      source: "test",
+      qualityScore: 88,
+      confidenceScore: 86,
+      verificationStatus: KnowledgeVerificationStatus.Verified,
+    });
+
+    const semantic = await retrieval.search({ mode: KnowledgeSearchMode.Semantic, text: "product illumination", limit: 5 });
+    expect(semantic.results.some((result) => result.record?.title === "Commercial Lighting")).toBe(true);
+    await core.stop();
+  });
+
   it("rejects invalid retrieval and builds status report", async () => {
     const { core, retrieval } = await startCore();
 

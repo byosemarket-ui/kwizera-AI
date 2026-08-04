@@ -5,6 +5,7 @@ import type { AiMemoryFoundation } from "../memory-foundation/memory-foundation.
 import type { AiKnowledgeFoundation } from "../knowledge-foundation/knowledge-foundation.js";
 import type { AiRecoveryEngine } from "../recovery-engine/recovery-engine.js";
 import type { AiSystemHealthMonitor } from "../health-monitor/health-monitor.js";
+import { KnowledgeVerificationStatus } from "../knowledge-foundation/types.js";
 import { ProductIntelligenceIntegrationStatus } from "./types.js";
 import { ProductIntelligenceFoundationLogger } from "./product-intelligence-logger.js";
 
@@ -90,6 +91,23 @@ export class ProductIntelligenceIntegrationBridge {
 
   getKnowledgeFoundation(): AiKnowledgeFoundation | null {
     return this.knowledgeFoundation;
+  }
+
+  async findVerifiedKnowledgeReferences(topic: string, requesterId: string, limit = 5): Promise<string[]> {
+    if (!this.knowledgeFoundation?.isStartupComplete() || !topic.trim()) return [];
+    const search = await this.knowledgeFoundation.getRetrievalEngine().search({
+      text: topic,
+      limit,
+      minConfidenceScore: 65,
+      requesterId,
+    });
+    return [
+      ...new Set(
+        search.results
+          .filter((result) => result.record?.verificationStatus === KnowledgeVerificationStatus.Verified)
+          .map((result) => result.knowledgeId)
+      ),
+    ];
   }
 
   reportCriticalIssue(issue: string): void {

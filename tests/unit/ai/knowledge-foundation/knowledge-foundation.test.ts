@@ -165,6 +165,23 @@ describe("AiKnowledgeFoundation", () => {
     await core.stop();
   });
 
+  it("installs a persisted custom knowledge domain", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start();
+
+    const foundation = core.getManager().knowledgeFoundation!;
+    const domain = foundation.installKnowledgeDomain({
+      knowledgeId: "typography-knowledge",
+      knowledgeName: "Typography Knowledge",
+      subdirectory: "typography",
+    });
+
+    expect(domain.category).toBe(KnowledgeCategory.Custom);
+    expect(foundation.getRegistry().getModule("typography-knowledge")?.storageLocation).toContain("typography");
+    expect(foundation.getRegistry().verifyChecksum()).toBe(true);
+    await core.stop();
+  });
+
   it("integrates with memory engine and core AI systems", async () => {
     const core = createAiCore({ storageRootOverride: storageRoot });
     await core.start();

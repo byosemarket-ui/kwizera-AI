@@ -1,0 +1,2 @@
+export { AiKnowledgeReasoningEngine } from "./knowledge-reasoning-engine.js";
+export type { KnowledgeImpactReport, ProfessionalKnowledgeReasoningResult, ProfessionalKnowledgeRecommendation } from "./types.js";

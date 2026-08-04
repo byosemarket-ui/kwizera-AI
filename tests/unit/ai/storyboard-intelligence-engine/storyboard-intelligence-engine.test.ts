@@ -6,6 +6,8 @@ import {
   AiCore,
   CreativePlatform,
   createAiCore,
+  KnowledgeStorageType,
+  KnowledgeVerificationStatus,
   MarketingObjective,
   ProductAnalysisCategory,
   ProductAvailabilityStatus,
@@ -105,6 +107,40 @@ describe("AiStoryboardIntelligenceEngine", () => {
     expect(result.record?.continuity.storyConsistency).toBe(true);
     expect(result.record?.validated).toBe(true);
 
+    await core.stop();
+  });
+
+  it("records verified professional knowledge used by storyboard planning", async () => {
+    const core = createAiCore({ storageRootOverride: storageRoot });
+    await core.start();
+
+    const manager = core.getManager();
+    const foundation = manager.productIntelligenceFoundation!;
+    await manager.knowledgeFoundation!.getStorageEngine().storeRecord({
+      knowledgeId: "storyboard-professional-guidance",
+      knowledgeType: KnowledgeStorageType.Video,
+      category: "storyboarding",
+      title: "Storyboard Test Product website storytelling",
+      description: "Validated professional storyboarding guidance.",
+      source: "knowledge-acquisition-engine",
+      qualityScore: 92,
+      confidenceScore: 90,
+      verificationStatus: KnowledgeVerificationStatus.Verified,
+      payload: {
+        professionalTechniques: ["Open with a product-focused hook."],
+        bestPractices: ["Maintain a coherent visual reveal."],
+        decisionRules: ["Use social proof after the product benefit."],
+        commonMistakes: ["Do not hide the product value proposition."],
+      },
+    });
+    await prepareFullPipeline(foundation);
+
+    const result = await foundation.getStoryboardIntelligenceEngine().createStoryboard({
+      productId: "sb-test-product",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.record?.relationships.knowledgeRecords).toContain("storyboard-professional-guidance");
     await core.stop();
   });
 

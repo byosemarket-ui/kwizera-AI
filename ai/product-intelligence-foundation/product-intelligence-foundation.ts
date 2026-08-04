@@ -28,7 +28,6 @@ import { AiProductionPlanningEngine } from "../production-planning-engine/produc
 import { AiQualityPredictionEngine } from "../quality-prediction-engine/quality-prediction-engine.js";
 import { AiProductIntelligenceOptimizationEngine } from "../product-intelligence-optimization-engine/product-intelligence-optimization-engine.js";
 import { AiProductIntelligenceHealthMonitorEngine } from "../product-intelligence-health-monitor-engine/product-intelligence-health-monitor-engine.js";
-import { DEFAULT_STORAGE_ROOT } from "../../storage/paths/storage-paths.js";
 import { PREPARED_PRODUCT_INTELLIGENCE_MODULES } from "./product-intelligence-categories.js";
 import {
   ProductIntelligenceAccessOperation,
@@ -130,7 +129,7 @@ export class AiProductIntelligenceFoundation {
     this.productIntelligenceHealthMonitorEngine.initialize(
       this,
       storageRoot,
-      path.join(DEFAULT_STORAGE_ROOT, "project-state")
+      path.join(storageRoot, "project-state")
     );
 
     this.integration.connect(

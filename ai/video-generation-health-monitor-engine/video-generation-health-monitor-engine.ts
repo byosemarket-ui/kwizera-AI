@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_STORAGE_ROOT } from "../../storage/paths/storage-paths.js";
 import type { AiVideoGenerationFoundation } from "../video-generation-foundation/video-generation-foundation.js";
 import {
   VideoGenerationAccessPermission,
@@ -68,9 +67,9 @@ export class AiVideoGenerationHealthMonitorEngine {
     this.storageRoot = storageRoot;
     this.healthDir = path.join(foundation.getGenerationRoot(), "health", "engine");
     this.projectStateDir =
-      projectStateDir ?? path.join(DEFAULT_STORAGE_ROOT, "project-state");
+      projectStateDir ?? path.join(storageRoot, "project-state");
 
-    const logDir = path.join(DEFAULT_STORAGE_ROOT, "logs");
+    const logDir = path.join(storageRoot, "logs");
     this.logger.initialize(logDir);
     this.history.initialize(this.healthDir);
 

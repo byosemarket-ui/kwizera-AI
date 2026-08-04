@@ -32,6 +32,7 @@ export enum KnowledgeCategory {
   Business = "business-knowledge",
   UserPreference = "user-preference-knowledge",
   Industry = "industry-knowledge",
+  Custom = "custom-knowledge",
 }
 
 export enum KnowledgeModuleStatus {
@@ -126,6 +127,15 @@ export interface KnowledgeModuleRegistration {
   category: KnowledgeCategory;
   storageLocation: string;
   implemented: boolean;
+}
+
+export interface KnowledgeDomainInstallation {
+  knowledgeId: string;
+  knowledgeName: string;
+  subdirectory: string;
+  dependencies?: string[];
+  source?: KnowledgeSource;
+  accessPermissions?: KnowledgeAccessPermission[];
 }
 
 export interface KnowledgeRegistrySnapshot {

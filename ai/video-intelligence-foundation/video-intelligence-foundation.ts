@@ -38,7 +38,6 @@ import { AiProductionVideoPlanningEngine } from "../production-video-planning-en
 import { AiVideoQualityPredictionEngine } from "../video-quality-prediction-engine/video-quality-prediction-engine.js";
 import { AiVideoIntelligenceOptimizationEngine } from "../video-intelligence-optimization-engine/video-intelligence-optimization-engine.js";
 import { AiVideoIntelligenceHealthMonitorEngine } from "../video-intelligence-health-monitor-engine/video-intelligence-health-monitor-engine.js";
-import { DEFAULT_STORAGE_ROOT } from "../../storage/paths/storage-paths.js";
 import {
   VideoIntelligenceAccessRequest,
   VideoIntelligenceAccessResult,
@@ -144,7 +143,7 @@ export class AiVideoIntelligenceFoundation {
     this.videoIntelligenceHealthMonitorEngine.initialize(
       this,
       storageRoot,
-      path.join(DEFAULT_STORAGE_ROOT, "project-state")
+      path.join(storageRoot, "project-state")
     );
 
     this.integration.connect(

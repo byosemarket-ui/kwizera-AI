@@ -29,6 +29,7 @@ const INTENT_RULES: Array<{ intent: ConversationIntent; terms: string[]; engines
   { intent: "enterprise-collaboration", terms: ["organization", "team", "teams", "permissions", "permission", "collaboration", "collaborate", "members", "member", "audit log", "notifications", "workspace lock"], engines: ["enterprise-collaboration", "creative-workspace", "workspace-synchronization"] },
   { intent: "publishing-distribution", terms: ["publishing status", "distribution status", "schedule campaign", "content delivery", "publish", "publishing", "distribution"], engines: ["publishing-distribution", "creative-review", "connector-management"] },
   { intent: "translation", terms: ["translate", "translation", "hindura mu", "ubuhinduzi"], engines: ["language-knowledge"] },
+  { intent: "knowledge-acquisition", terms: ["learn ", "teach our ai", "teach ai", "research ", "improve our", "improve ", "knowledge foundation"], engines: ["knowledge-acquisition", "knowledge-foundation", "knowledge-validation"] },
   { intent: "project-management", terms: ["project", "open project", "create project", "umushinga"], engines: ["creative-workspace", "project-memory"] },
   { intent: "system", terms: ["status", "health", "system", "settings", "imikorere"], engines: ["ai-core", "health-monitor"] },
 ];
@@ -127,6 +128,24 @@ export class AiConversationEngine {
     conversation.messages.push({ id: randomUUID(), role: "user", text: message, createdAt: new Date().toISOString(), intent });
 
     const confirmation = isConfirmation(message);
+    if (confirmation && conversation.pendingKnowledgeRequestId) {
+      const imported = await this.core!.knowledgeFoundation?.getKnowledgeAcquisitionEngine().approve(conversation.pendingKnowledgeRequestId);
+      conversation.pendingKnowledgeRequestId = undefined;
+      const response = imported?.imported
+        ? `I imported validated structured knowledge into the Knowledge Foundation as ${imported.knowledgeId}.`
+        : `I did not import knowledge: ${imported?.reason ?? "the Knowledge Foundation is unavailable"}.`;
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent: "knowledge-acquisition" });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan: { intent: "knowledge-acquisition", requiredEngines: ["knowledge-acquisition"], complexity: "medium", readyForWorkflow: false, missingInformation: [] },
+        response,
+        context: await this.retrieveContext(message, conversation.projectId),
+        knowledgeAcquisition: imported,
+      };
+    }
     if (confirmation && conversation.pendingPlan && conversation.projectId) {
       const confirmedPlan = structuredClone(conversation.pendingPlan);
       const execution = await this.dispatch(conversation);
@@ -140,6 +159,20 @@ export class AiConversationEngine {
     }
 
     const context = await this.retrieveContext(message, conversation.projectId);
+    if (intent === "knowledge-acquisition") {
+      const acquisition = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? await this.core!.knowledgeFoundation.getKnowledgeAcquisitionEngine().prepare({ topic: extractKnowledgeTopic(message), sources: input.knowledgeSources, requesterId: "conversation-engine" })
+        : null;
+      const plan: ConversationPlan = { intent, requiredEngines: ["knowledge-acquisition", "knowledge-foundation", "knowledge-validation"], complexity: "medium", readyForWorkflow: false, missingInformation: acquisition?.status === "rejected" ? acquisition.rejectionReasons : [] };
+      conversation.pendingKnowledgeRequestId = acquisition?.status === "pending-approval" ? acquisition.requestId : undefined;
+      const response = acquisition
+        ? buildKnowledgeAcquisitionResponse(acquisition)
+        : "Knowledge research is unavailable until the local Knowledge Foundation has completed startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return { conversation: structuredClone(conversation), language, plan, response, context, knowledgeAcquisition: acquisition ?? undefined };
+    }
     const plan = buildPlan(intent, message, conversation.projectId, context.projectKnown);
     if (plan.readyForWorkflow) await this.attachDecisionPreview(plan, message, conversation.projectId);
     const synchronization = intent === "workspace-synchronization"
@@ -155,14 +188,20 @@ export class AiConversationEngine {
       ? this.publishingDistributionStatusProvider?.getSummary() ?? null
       : null;
     const runtime = intent === "system" ? this.runtimeStatusProvider?.getSummary() ?? null : null;
-    const response = buildResponse(language, plan, context, synchronization, integration, enterprise, publishing, runtime);
+    const videoKnowledge = intent === "video-generation" && this.core!.knowledgeFoundation?.isStartupComplete()
+      ? await this.core!.knowledgeFoundation.getVideoProductionKnowledgeBuilder().advise(message)
+      : undefined;
+    const professionalKnowledge = ["image-generation", "video-generation", "marketing", "business-intelligence"].includes(intent) && this.core!.knowledgeFoundation?.isStartupComplete()
+      ? await this.core!.knowledgeFoundation.getKnowledgeReasoningEngine().reason(message)
+      : undefined;
+    const response = `${buildResponse(language, plan, context, synchronization, integration, enterprise, publishing, runtime)}${videoKnowledge ? buildVideoKnowledgeResponse(videoKnowledge) : ""}${professionalKnowledge ? buildProfessionalKnowledgeResponse(professionalKnowledge) : ""}`;
     conversation.pendingPlan = plan.readyForWorkflow ? structuredClone(plan) : undefined;
     conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
     conversation.messages.splice(0, Math.max(0, conversation.messages.length - MAX_MESSAGES_PER_CONVERSATION));
     conversation.updatedAt = new Date().toISOString();
     await this.persist();
 
-    return { conversation: structuredClone(conversation), language, plan, response, context };
+    return { conversation: structuredClone(conversation), language, plan, response, context, videoKnowledge, professionalKnowledge };
   }
 
   private async dispatch(conversation: ConversationRecord): Promise<NonNullable<ConversationResponse["execution"]>> {
@@ -336,4 +375,26 @@ function priorityFor(complexity: ConversationPlan["complexity"]): DecisionPriori
 
 function isConfirmation(message: string): boolean {
   return /^(yes|y|confirm|confirmed|approve|approved|go ahead|start|continue|yego|emeza|tangira)\b/i.test(message.trim());
+}
+
+function extractKnowledgeTopic(message: string): string {
+  return message.replace(/^(learn|research|improve(?: our)?|teach(?: our)? ai(?: about)?|teach)\s+/i, "").replace(/[.!?]+$/, "").trim() || message;
+}
+
+function buildKnowledgeAcquisitionResponse(preview: import("../knowledge-acquisition-engine/types.js").KnowledgeAcquisitionPreview): string {
+  if (preview.status === "rejected") return `I prepared a research assessment for ${preview.topic}, but it is not eligible for import: ${preview.rejectionReasons.join(" ")} Provide local documents, extracted PDF or Word text, or user-approved website content so I can build a reliable preview.`;
+  return `Research preview for ${preview.topic}: ${preview.sources.length} source(s), ${preview.rules.length} rule(s), ${preview.techniques.length} technique(s), ${preview.bestPractices.length} best practice(s), and confidence ${preview.confidenceScore}/100. Review this structured preview and confirm before I import it into the Knowledge Foundation.`;
+}
+
+function buildVideoKnowledgeResponse(advisory: import("../video-knowledge-engine/video-production-knowledge-builder.js").VideoProductionKnowledgeAdvisory): string {
+  if (!advisory.available) return ` ${advisory.learningRecommendation}`;
+  const guidance = advisory.recommendations.slice(0, 3).map((recommendation) => `${recommendation.area}: ${recommendation.guidance}`).join(" ");
+  return ` Validated video-production guidance (${advisory.confidenceScore}/100 confidence): ${guidance}`;
+}
+
+function buildProfessionalKnowledgeResponse(reasoning: import("../knowledge-reasoning-engine/types.js").ProfessionalKnowledgeReasoningResult): string {
+  if (!reasoning.available || !reasoning.selected) return "";
+  const alternatives = reasoning.alternatives.length ? ` Alternative: ${reasoning.alternatives[0].guidance}` : "";
+  const risks = reasoning.risks.length ? ` Risk: ${reasoning.risks[0]}` : "";
+  return ` Professional reasoning (${reasoning.confidenceScore}/100 confidence): ${reasoning.selected.guidance} Why: ${reasoning.explanation}${alternatives}${risks}`;
 }

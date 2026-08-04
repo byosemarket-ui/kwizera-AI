@@ -122,6 +122,18 @@ export class KnowledgeRegistry {
     return this.modules.get(knowledgeId);
   }
 
+  installModule(registration: KnowledgeModuleRegistration): void {
+    if (this.modules.has(registration.knowledgeId)) {
+      throw new Error(`Knowledge module already exists: ${registration.knowledgeId}`);
+    }
+    this.modules.set(registration.knowledgeId, registration);
+    this.persist();
+    this.logger.log("info", "registration", `Knowledge domain installed: ${registration.knowledgeId}`, {
+      category: registration.category,
+      storageLocation: registration.storageLocation,
+    });
+  }
+
   getAllModules(): KnowledgeModuleRegistration[] {
     return [...this.modules.values()];
   }

@@ -2,6 +2,7 @@
   "futureModules": [
     { "id": "memory-engine", "name": "Memory Engine", "enabled": false },
     { "id": "knowledge-engine", "name": "Knowledge Engine", "enabled": false },
+    { "id": "conversation-engine", "name": "AI Me Conversation & Understanding Engine", "enabled": false },
     { "id": "reasoning-engine", "name": "Reasoning Engine", "enabled": false },
     { "id": "learning-engine", "name": "Learning Engine", "enabled": false },
     { "id": "marketing-engine", "name": "Marketing Engine", "enabled": false },
@@ -19,6 +20,7 @@
     { "id": "search-engine", "name": "Search Engine", "enabled": false },
     { "id": "export-engine", "name": "Export Engine", "enabled": false },
     { "id": "recovery-engine", "name": "Recovery Engine", "enabled": false },
-    { "id": "health-monitor", "name": "Health Monitor", "enabled": false }
+    { "id": "health-monitor", "name": "Health Monitor", "enabled": false },
+    { "id": "ai-model-management", "name": "KWIZERA AI Model Management", "enabled": false }
   ]
 }

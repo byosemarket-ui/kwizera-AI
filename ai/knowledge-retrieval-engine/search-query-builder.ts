@@ -100,8 +100,8 @@ export class KnowledgeSearchQueryBuilder {
   }
 
   computeSemanticScore(query: string, searchableText: string): number {
-    const queryTokens = this.tokenize(query);
-    const entryTokens = this.tokenize(searchableText);
+    const queryTokens = this.normalizeSemanticTokens(query);
+    const entryTokens = this.normalizeSemanticTokens(searchableText);
     if (queryTokens.length === 0 || entryTokens.length === 0) return 0;
 
     const intersection = queryTokens.filter((t) => entryTokens.includes(t));
@@ -163,6 +163,22 @@ export class KnowledgeSearchQueryBuilder {
       .toLowerCase()
       .split(/[^a-z0-9]+/)
       .filter((t) => t.length > 2);
+  }
+
+  private normalizeSemanticTokens(text: string): string[] {
+    const synonyms: Record<string, string> = {
+      illumination: "lighting",
+      light: "lighting",
+      cinematography: "camera",
+      filming: "video",
+      movie: "video",
+      postproduction: "editing",
+      colour: "color",
+      branding: "brand",
+      advertising: "marketing",
+      animation: "motion",
+    };
+    return [...new Set(this.tokenize(text).map((token) => synonyms[token] ?? token))];
   }
 
   private importanceWeight(importance: string): number {

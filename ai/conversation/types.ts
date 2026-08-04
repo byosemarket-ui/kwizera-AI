@@ -1,3 +1,7 @@
+import type { KnowledgeAcquisitionPreview, KnowledgeAcquisitionSource } from "../knowledge-acquisition-engine/types.js";
+import type { VideoProductionKnowledgeAdvisory } from "../video-knowledge-engine/video-production-knowledge-builder.js";
+import type { ProfessionalKnowledgeReasoningResult } from "../knowledge-reasoning-engine/types.js";
+
 export type ConversationLanguage = "en" | "rw" | "mixed" | "unknown";
 
 export type ConversationIntent =
@@ -12,6 +16,7 @@ export type ConversationIntent =
   | "enterprise-collaboration"
   | "publishing-distribution"
   | "translation"
+  | "knowledge-acquisition"
   | "project-management"
   | "system"
   | "general";
@@ -33,6 +38,7 @@ export interface ConversationRecord {
   updatedAt: string;
   messages: ConversationMessage[];
   pendingPlan?: ConversationPlan;
+  pendingKnowledgeRequestId?: string;
 }
 
 export interface ConversationPlan {
@@ -60,10 +66,14 @@ export interface ConversationResponse {
   response: string;
   context: { memoryMatches: number; knowledgeMatches: number; projectKnown: boolean };
   execution?: { dispatched: boolean; jobId?: string; error?: string };
+  knowledgeAcquisition?: KnowledgeAcquisitionPreview | { imported: boolean; knowledgeId?: string; reason?: string };
+  videoKnowledge?: VideoProductionKnowledgeAdvisory;
+  professionalKnowledge?: ProfessionalKnowledgeReasoningResult;
 }
 
 export interface ConversationInput {
   conversationId?: string;
   message: string;
   projectId?: string;
+  knowledgeSources?: KnowledgeAcquisitionSource[];
 }

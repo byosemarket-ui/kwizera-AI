@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { AiCore, createAiCore, EditingStyle, VideoType } from "@ai";
+import { AiCore, createAiCore, EditingStyle, KnowledgeStorageType, KnowledgeVerificationStatus, VideoType } from "@ai";
 
 function createTempStorageRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-video-knowledge-test-"));
@@ -112,6 +112,35 @@ describe("AiVideoKnowledgeEngine", () => {
     const search = await engine.searchVideos({ brand: "KWIZERA" });
     expect(search.length).toBeGreaterThan(0);
 
+    await core.stop();
+  });
+
+  it("builds explainable production advice from validated structured knowledge", async () => {
+    const { core } = await startCore();
+    const foundation = core.getManager().knowledgeFoundation!;
+
+    await foundation.getStorageEngine().storeRecord({
+      knowledgeType: KnowledgeStorageType.Video,
+      category: "acquired-knowledge",
+      title: "Cinematic Camera Movement",
+      description: "Validated professional camera knowledge.",
+      source: "knowledge-acquisition-engine",
+      qualityScore: 90,
+      confidenceScore: 88,
+      verificationStatus: KnowledgeVerificationStatus.Verified,
+      payload: {
+        domain: "video",
+        professionalTechniques: ["Use a controlled dolly move to reveal the product hero."],
+        bestPractices: ["Keep camera movement motivated by the story beat."],
+        decisionRules: ["When the product reveal is the primary beat, use a stable hero movement."],
+      },
+    });
+
+    const advisory = await foundation.getVideoProductionKnowledgeBuilder().advise("cinematic camera movement");
+
+    expect(advisory.available).toBe(true);
+    expect(advisory.confidenceScore).toBe(88);
+    expect(advisory.recommendations[0]).toMatchObject({ area: "camera", knowledgeId: expect.any(String) });
     await core.stop();
   });
 

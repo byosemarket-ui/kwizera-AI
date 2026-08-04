@@ -116,6 +116,10 @@ export class VideoGenerationIntegrationBridge {
     return this.productIntelligenceFoundation;
   }
 
+  getKnowledgeFoundation(): AiKnowledgeFoundation | null {
+    return this.knowledgeFoundation;
+  }
+
   reportCriticalIssue(issue: string): void {
     this.logger.log("error", "integration", "Critical video generation issue reported", { issue });
     if (this.recoveryEngine) {

@@ -136,6 +136,34 @@ describe("AiKnowledgeGraphEngine", () => {
     await core.stop();
   });
 
+  it("discovers relationships from processed knowledge concepts", async () => {
+    const { core, storage, graph } = await startCore();
+
+    await storage.storeRecord({
+      knowledgeId: "concept-camera-lighting",
+      knowledgeType: KnowledgeStorageType.Technical,
+      category: "acquired-knowledge",
+      title: "Camera Lighting Fundamentals",
+      description: "Structured camera lighting knowledge.",
+      source: "knowledge-acquisition-engine",
+      payload: { concepts: ["camera", "lighting", "exposure"] },
+    });
+    await storage.storeRecord({
+      knowledgeId: "concept-lighting-rendering",
+      knowledgeType: KnowledgeStorageType.Technical,
+      category: "acquired-knowledge",
+      title: "Lighting Rendering Workflow",
+      description: "Structured lighting rendering knowledge.",
+      source: "knowledge-acquisition-engine",
+      payload: { concepts: ["lighting", "rendering", "exposure"] },
+    });
+
+    await graph.discoverRelationships();
+
+    expect(graph.getRelationships("concept-camera-lighting").some((edge) => edge.evidence.includes("Shared structured concepts"))).toBe(true);
+    await core.stop();
+  });
+
   it("traverses graph and searches nodes", async () => {
     const { core, storage, graph } = await startCore();
 

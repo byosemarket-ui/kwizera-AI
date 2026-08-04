@@ -15,6 +15,7 @@ export { AiCreativeKnowledgeEngine } from "../creative-knowledge-engine/creative
 export { AiKnowledgeOptimizationEngine } from "../knowledge-optimization-engine/knowledge-optimization-engine.js";
 export { AiKnowledgeValidationEngine } from "../knowledge-validation-engine/knowledge-validation-engine.js";
 export { AiKnowledgeHealthMonitorEngine } from "../knowledge-health-monitor-engine/knowledge-health-monitor-engine.js";
+export { AiKnowledgeAcquisitionEngine } from "../knowledge-acquisition-engine/knowledge-acquisition-engine.js";
 export { KnowledgeAccessCoordinator } from "./knowledge-access-coordinator.js";
 export { KnowledgeHealthMonitor } from "./knowledge-health-monitor.js";
 export { KnowledgeQualityValidator } from "./knowledge-quality-validator.js";
@@ -46,3 +47,10 @@ export type {
   KnowledgeQualityMetadata,
   KnowledgeVersionEntry,
 } from "./types.js";
+export type {
+  KnowledgeAcquisitionImportResult,
+  KnowledgeAcquisitionPreview,
+  KnowledgeAcquisitionRequest,
+  KnowledgeAcquisitionSource,
+  KnowledgeAcquisitionSourceType,
+} from "../knowledge-acquisition-engine/types.js";

@@ -20,6 +20,7 @@ import { AiKnowledgeRetrievalEngine } from "../knowledge-retrieval-engine/knowle
 import { AiKnowledgeGraphEngine } from "../knowledge-graph-engine/knowledge-graph-engine.js";
 import { AiImageKnowledgeEngine } from "../image-knowledge-engine/image-knowledge-engine.js";
 import { AiVideoKnowledgeEngine } from "../video-knowledge-engine/video-knowledge-engine.js";
+import { VideoProductionKnowledgeBuilder } from "../video-knowledge-engine/video-production-knowledge-builder.js";
 import { AiMarketingKnowledgeEngine } from "../marketing-knowledge-engine/marketing-knowledge-engine.js";
 import { AiProductKnowledgeEngine } from "../product-knowledge-engine/product-knowledge-engine.js";
 import { AiBrandKnowledgeEngine } from "../brand-knowledge-engine/brand-knowledge-engine.js";
@@ -28,11 +29,17 @@ import { AiCreativeKnowledgeEngine } from "../creative-knowledge-engine/creative
 import { AiKnowledgeOptimizationEngine } from "../knowledge-optimization-engine/knowledge-optimization-engine.js";
 import { AiKnowledgeValidationEngine } from "../knowledge-validation-engine/knowledge-validation-engine.js";
 import { AiKnowledgeHealthMonitorEngine } from "../knowledge-health-monitor-engine/knowledge-health-monitor-engine.js";
+import { AiKnowledgeAcquisitionEngine } from "../knowledge-acquisition-engine/knowledge-acquisition-engine.js";
+import { AiKnowledgeSourceManager } from "../knowledge-source-manager/knowledge-source-manager.js";
+import { AiKnowledgeResearchEngine } from "../knowledge-research-engine/knowledge-research-engine.js";
+import { AiKnowledgeProcessingEngine } from "../knowledge-processing-engine/knowledge-processing-engine.js";
+import { AiKnowledgeReasoningEngine } from "../knowledge-reasoning-engine/knowledge-reasoning-engine.js";
 import { PREPARED_KNOWLEDGE_CATEGORIES } from "./knowledge-categories.js";
 import {
   KnowledgeAccessOperation,
   KnowledgeAccessRequest,
   KnowledgeAccessResult,
+  KnowledgeDomainInstallation,
   KnowledgeFoundationError,
   KnowledgeFoundationStatusReport,
   KnowledgeHealthLevel,
@@ -76,6 +83,7 @@ export class AiKnowledgeFoundation {
   readonly graphEngine = new AiKnowledgeGraphEngine();
   readonly imageKnowledgeEngine = new AiImageKnowledgeEngine();
   readonly videoKnowledgeEngine = new AiVideoKnowledgeEngine();
+  readonly videoProductionKnowledgeBuilder = new VideoProductionKnowledgeBuilder(this);
   readonly marketingKnowledgeEngine = new AiMarketingKnowledgeEngine();
   readonly productKnowledgeEngine = new AiProductKnowledgeEngine();
   readonly brandKnowledgeEngine = new AiBrandKnowledgeEngine();
@@ -84,6 +92,11 @@ export class AiKnowledgeFoundation {
   readonly knowledgeOptimizationEngine = new AiKnowledgeOptimizationEngine();
   readonly knowledgeValidationEngine = new AiKnowledgeValidationEngine();
   readonly knowledgeHealthMonitorEngine = new AiKnowledgeHealthMonitorEngine();
+  readonly knowledgeAcquisitionEngine = new AiKnowledgeAcquisitionEngine();
+  readonly knowledgeSourceManager = new AiKnowledgeSourceManager();
+  readonly knowledgeResearchEngine = new AiKnowledgeResearchEngine();
+  readonly knowledgeProcessingEngine = new AiKnowledgeProcessingEngine();
+  readonly knowledgeReasoningEngine = new AiKnowledgeReasoningEngine();
 
   initialize(
     core: AiCoreManager,
@@ -193,9 +206,22 @@ export class AiKnowledgeFoundation {
     this.knowledgeHealthMonitorEngine.initialize(this, this.storageRoot);
     await this.knowledgeHealthMonitorEngine.runStartup();
 
+    this.knowledgeAcquisitionEngine.initialize(this, this.storageRoot);
+    await this.knowledgeAcquisitionEngine.runStartup();
+
+    this.knowledgeSourceManager.initialize(this, this.storageRoot);
+    await this.knowledgeSourceManager.runStartup();
+
+    this.knowledgeResearchEngine.initialize(this, this.storageRoot);
+    await this.knowledgeResearchEngine.runStartup();
+
+    await this.knowledgeReasoningEngine.initialize(this, this.storageRoot);
+
     this.storageEngine.setRecordChangeHandler((knowledgeId, operation) => {
+      this.retrievalEngine.invalidateCache(knowledgeId);
       void this.graphEngine.evolveGraph(knowledgeId);
       void this.knowledgeValidationEngine.handleKnowledgeChange(knowledgeId, operation);
+      void this.knowledgeReasoningEngine.analyzeImpact(knowledgeId, operation);
     });
 
     this.startupMs = Date.now() - start;
@@ -227,6 +253,10 @@ export class AiKnowledgeFoundation {
       knowledgeOptimizationEngine: "operational",
       knowledgeValidationEngine: "operational",
       knowledgeHealthMonitorEngine: "operational",
+      knowledgeAcquisitionEngine: "operational",
+      knowledgeSourceManager: "operational",
+      knowledgeResearchEngine: "operational",
+      knowledgeReasoningEngine: "operational",
     });
   }
 
@@ -258,6 +288,40 @@ export class AiKnowledgeFoundation {
       success: true,
       detail: `Registered ${registration.knowledgeId}`,
     });
+  }
+
+  installKnowledgeDomain(installation: KnowledgeDomainInstallation): KnowledgeModuleRegistration {
+    this.ensureReady();
+    const knowledgeId = installation.knowledgeId.trim();
+    const subdirectory = installation.subdirectory.trim();
+    if (!/^[a-z0-9-]+$/.test(knowledgeId) || !/^[a-z0-9-]+$/.test(subdirectory)) {
+      throw new KnowledgeFoundationError("Knowledge domain identifiers must use lowercase letters, numbers, and hyphens.", "INVALID_DOMAIN");
+    }
+    const registration: KnowledgeModuleRegistration = {
+      knowledgeId,
+      knowledgeName: installation.knowledgeName.trim(),
+      version: "0.0.0",
+      status: KnowledgeModuleStatus.Prepared,
+      dependencies: installation.dependencies ?? ["knowledge-engine"],
+      source: installation.source ?? KnowledgeSource.KnowledgeModule,
+      qualityScore: 0,
+      confidenceScore: 0,
+      healthStatus: KnowledgeHealthLevel.Good,
+      lastUpdate: new Date().toISOString(),
+      accessPermissions: installation.accessPermissions ?? [KnowledgeAccessPermission.Read, KnowledgeAccessPermission.Write, KnowledgeAccessPermission.Validate],
+      category: KnowledgeCategory.Custom,
+      storageLocation: this.storage.getCategoryPath(subdirectory),
+      implemented: false,
+    };
+    this.registry.installModule(registration);
+    this.history.append({
+      timestamp: new Date().toISOString(),
+      event: "registration",
+      category: KnowledgeCategory.Custom,
+      success: true,
+      detail: `Installed future knowledge domain ${knowledgeId}`,
+    });
+    return registration;
   }
 
   validateKnowledge(metadata: KnowledgeQualityMetadata): KnowledgeValidationResult {
@@ -391,6 +455,10 @@ export class AiKnowledgeFoundation {
     return this.videoKnowledgeEngine;
   }
 
+  getVideoProductionKnowledgeBuilder(): VideoProductionKnowledgeBuilder {
+    return this.videoProductionKnowledgeBuilder;
+  }
+
   getMarketingKnowledgeEngine(): AiMarketingKnowledgeEngine {
     return this.marketingKnowledgeEngine;
   }
@@ -417,6 +485,26 @@ export class AiKnowledgeFoundation {
 
   getKnowledgeValidationEngine(): AiKnowledgeValidationEngine {
     return this.knowledgeValidationEngine;
+  }
+
+  getKnowledgeAcquisitionEngine(): AiKnowledgeAcquisitionEngine {
+    return this.knowledgeAcquisitionEngine;
+  }
+
+  getKnowledgeSourceManager(): AiKnowledgeSourceManager {
+    return this.knowledgeSourceManager;
+  }
+
+  getKnowledgeResearchEngine(): AiKnowledgeResearchEngine {
+    return this.knowledgeResearchEngine;
+  }
+
+  getKnowledgeProcessingEngine(): AiKnowledgeProcessingEngine {
+    return this.knowledgeProcessingEngine;
+  }
+
+  getKnowledgeReasoningEngine(): AiKnowledgeReasoningEngine {
+    return this.knowledgeReasoningEngine;
   }
 
   getKnowledgeHealthMonitorEngine(): AiKnowledgeHealthMonitorEngine {

@@ -30,7 +30,6 @@ import { AiProductionImagePlanningEngine } from "../production-image-planning-en
 import { AiImageQualityPredictionEngine } from "../image-quality-prediction-engine/image-quality-prediction-engine.js";
 import { AiImageIntelligenceOptimizationEngine } from "../image-intelligence-optimization-engine/image-intelligence-optimization-engine.js";
 import { AiImageIntelligenceHealthMonitorEngine } from "../image-intelligence-health-monitor-engine/image-intelligence-health-monitor-engine.js";
-import { DEFAULT_STORAGE_ROOT } from "../../storage/paths/storage-paths.js";
 import {
   ImageIntelligenceAccessRequest,
   ImageIntelligenceAccessResult,
@@ -129,7 +128,7 @@ export class AiImageIntelligenceFoundation {
     this.imageIntelligenceHealthMonitorEngine.initialize(
       this,
       storageRoot,
-      path.join(DEFAULT_STORAGE_ROOT, "project-state")
+      path.join(storageRoot, "project-state")
     );
 
     this.integration.connect(

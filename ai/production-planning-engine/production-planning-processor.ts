@@ -159,6 +159,13 @@ export class ProductionPlanningProcessor {
       ]);
     }
 
+    const knowledgeRecords = await this.foundation.integration.findVerifiedKnowledgeReferences(
+      [understanding.identity.productName, creative.profile.brand, strategy.profile.platform, strategy.profile.objective]
+        .filter(Boolean)
+        .join(" "),
+      "production-planning"
+    );
+
     const existing = input.productionPlanId
       ? this.records.get(input.productionPlanId)
       : this.records
@@ -341,7 +348,7 @@ export class ProductionPlanningProcessor {
         marketingStrategies: [strategy.strategyId],
         products: [input.productId],
         brands: [creative.profile.brand],
-        knowledgeRecords: [],
+        knowledgeRecords,
         productionHistory: [],
       },
       validated: true,

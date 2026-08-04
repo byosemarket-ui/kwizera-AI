@@ -70,6 +70,13 @@ export class StoryboardProcessor {
       ]);
     }
 
+    const knowledgeRecords = await this.foundation.integration.findVerifiedKnowledgeReferences(
+      [understanding.identity.productName, creative.profile.brand, strategy.profile.platform, strategy.profile.objective]
+        .filter(Boolean)
+        .join(" "),
+      "storyboard-intelligence"
+    );
+
     const existing = input.storyboardId
       ? this.records.get(input.storyboardId)
       : this.records.getByProduct(input.productId).find((r) => r.creativeId === creative!.creativeId);
@@ -134,7 +141,7 @@ export class StoryboardProcessor {
         visualPlans: [],
         audioPlans: [],
         productionPlans: [],
-        knowledgeRecords: [],
+        knowledgeRecords,
       },
       validated: true,
       productionReady,

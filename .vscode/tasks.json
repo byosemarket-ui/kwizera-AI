@@ -1,0 +1,407 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "run-vitest-audit",
+			"type": "shell",
+			"command": "npm test -- --run --reporter=basic > vitest-audit-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-vitest-audit-2",
+			"type": "shell",
+			"command": "npm.cmd test -- --run --reporter=basic > vitest-audit-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-validate-knowledge-foundation",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-knowledge-foundation.ts > validate-audit-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-output",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-validate-knowledge-foundation-2",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-knowledge-foundation.ts > validate-audit-output-2.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-output-2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-2.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-output-2b",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-2.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-validate-knowledge-foundation-3",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-knowledge-foundation.ts > validate-audit-output-3.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-output-3",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-3.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-validate-4",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-knowledge-foundation.ts > validate-audit-output-4.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-4",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-4.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-4b",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-4.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-validate-5",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-knowledge-foundation.ts > validate-audit-output-5.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-5",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-5.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-5b",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-5.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-validate-5c",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-audit-output-5.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-tail-1",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-full-run.log -Encoding Unicode -Tail 60\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-vitest-progress-1",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"(Get-Item vitest-full-run.log).Length; Get-Content vitest-full-run.log -Encoding Unicode -Tail 15\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-core-cert",
+			"type": "shell",
+			"command": "npx.cmd tsx scripts/validate-core-ai-certification.ts > validate-core-cert.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-core-cert-1",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content validate-core-cert.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-vitest-size-2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"(Get-Item vitest-full-run.log).Length\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-vitest-size-2b",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"(Get-Item vitest-full-run.log).Length\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-vitest-size-2c",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"(Get-Item vitest-full-run.log).Length\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-ksm-test",
+			"type": "shell",
+			"command": "npx.cmd tsx node_modules/vitest/vitest.mjs run tests/unit/ai/knowledge-source-manager/knowledge-source-manager.test.ts --reporter=basic > ksm-test-output.txt 2>&1"
+		},
+		{
+			"label": "run-ksm-test-2",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-source-manager/knowledge-source-manager.test.ts --reporter=basic > ksm-test-output.txt 2>&1"
+		},
+		{
+			"label": "dump-ksm-test-output",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content ksm-test-output.txt -Encoding Unicode\""
+		},
+		{
+			"label": "dump-ksm-test-output-2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Start-Sleep -Seconds 5; Get-Content ksm-test-output.txt -Encoding Unicode\""
+		},
+		{
+			"label": "run-ksm-test-3",
+			"type": "shell",
+			"command": "npm.cmd test -- --run tests/unit/ai/knowledge-source-manager/knowledge-source-manager.test.ts --reporter=basic > ksm-test-output2.txt 2>&1"
+		},
+		{
+			"label": "dump-ksm-test-output3",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Start-Sleep -Seconds 15; Get-Content ksm-test-output2.txt -Encoding Unicode\""
+		},
+		{
+			"label": "dump-ksm-test-output4",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Start-Sleep -Seconds 30; Get-Content ksm-test-output2.txt -Encoding Unicode\""
+		},
+		{
+			"label": "cleanup-ksm-scratch-files",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Remove-Item -Path ksm-test-output.txt, ksm-test-output2.txt -ErrorAction SilentlyContinue\""
+		},
+		{
+			"label": "cleanup-ksm-scratch-files-2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Remove-Item -Path 'ksm-test-output.txt' -ErrorAction SilentlyContinue; Remove-Item -Path 'ksm-test-output2.txt' -ErrorAction SilentlyContinue\""
+		},
+		{
+			"label": "run-tsc-step2-check",
+			"type": "shell",
+			"command": "npx.cmd tsc --noEmit -p tsconfig.json > tsc-step2-check.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-tsc-step2-check",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content tsc-step2-check.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-vitest-step2",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-source-manager --reporter=basic > vitest-step2-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-step2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-step2-output.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-step2-b",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-step2-output.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-step2-c",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-step2-output.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-step2-d",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-step2-output.txt -Encoding Unicode -Tail 30\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-vitest-step2-e",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content vitest-step2-output.txt -Encoding Unicode -Tail 40\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "cleanup-step2-temp",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Remove-Item vitest-step2-output.txt -ErrorAction SilentlyContinue; Remove-Item tsc-step2-check.txt -ErrorAction SilentlyContinue\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "tsc-step3-check",
+			"type": "shell",
+			"command": "npx.cmd tsc --noEmit -p tsconfig.json > tsc-step3-check.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "tsc-step3-check-2",
+			"type": "shell",
+			"command": "npx.cmd tsc --noEmit -p tsconfig.json > tsc-step3-check-2.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "dump-tsc-step3-check-2",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-Content tsc-step3-check-2.txt -Encoding Unicode\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-tsc-step3-size",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"if (Test-Path tsc-step3-check-2.txt) { (Get-Item tsc-step3-check-2.txt).Length } else { 'missing' }\"",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-tsc-step3-size-2",
+			"type": "shell",
+			"command": "Get-Item tsc-step3-check-2.txt | Select-Object Name,Length",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "convert-tsc-step3-utf8",
+			"type": "shell",
+			"command": "Get-Content tsc-step3-check-2.txt -Encoding Unicode | Out-File tsc-step3-check-2-utf8.txt -Encoding utf8",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "count-tsc-lines",
+			"type": "shell",
+			"command": "(Get-Content tsc-step3-check-2-utf8.txt).Count",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-step3-tests",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-research-engine/knowledge-research-download-engine.test.ts --reporter=basic > step3-test-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "convert-step3-test-output",
+			"type": "shell",
+			"command": "Get-Content step3-test-output.txt -Encoding Unicode | Out-File step3-test-output-utf8.txt -Encoding utf8",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-step2-step3-tests",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-source-manager tests/unit/ai/knowledge-research-engine --reporter=basic > step3-full-output.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "convert-step3-full-output",
+			"type": "shell",
+			"command": "Get-Content step3-full-output.txt -Encoding Unicode | Out-File step3-full-output-utf8.txt -Encoding utf8",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "count-step3-full-lines",
+			"type": "shell",
+			"command": "(Get-Content step3-full-output-utf8.txt).Count",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-step3-full-size",
+			"type": "shell",
+			"command": "Get-Item step3-full-output.txt | Select-Object Length",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-step2-step3-tests-2",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-source-manager tests/unit/ai/knowledge-research-engine --reporter=basic > step3-full-output-2.txt 2>&1",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "convert-step3-full-output-2",
+			"type": "shell",
+			"command": "Get-Content step3-full-output-2.txt -Encoding Unicode | Out-File step3-full-output-2-utf8.txt -Encoding utf8",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "check-step3-full-2-size",
+			"type": "shell",
+			"command": "Get-Item step3-full-output-2.txt | Select-Object Length,LastWriteTime",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "count-step3-full-2-lines",
+			"type": "shell",
+			"command": "(Get-Content step3-full-output-2-utf8.txt).Count; Get-Content step3-full-output-2.txt -Raw | Measure-Object -Character",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "run-step2-step3-tests-direct",
+			"type": "shell",
+			"command": "npx.cmd vitest run tests/unit/ai/knowledge-source-manager tests/unit/ai/knowledge-research-engine --reporter=basic",
+			"isBackground": false,
+			"group": "test"
+		},
+		{
+			"label": "cleanup-step3-temp-files",
+			"type": "shell",
+			"command": "Remove-Item -Force tsc-step3-check.txt, tsc-step3-check-2.txt, tsc-step3-check-2-utf8.txt, step3-test-output.txt, step3-test-output-utf8.txt, step3-full-output.txt, step3-full-output-utf8.txt, step3-full-output-2.txt, step3-full-output-2-utf8.txt -ErrorAction SilentlyContinue; Get-ChildItem -Filter 'tsc-step3*','step3-*' | Select-Object Name",
+			"isBackground": false,
+			"group": "test"
+		}
+	]
+}

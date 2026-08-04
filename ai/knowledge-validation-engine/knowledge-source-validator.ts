@@ -42,6 +42,7 @@ export class KnowledgeSourceValidator {
     "image-knowledge-engine",
     "knowledge-validation-engine",
     "knowledge-optimization-engine",
+    "knowledge-acquisition-engine",
   ]);
 
   constructor(

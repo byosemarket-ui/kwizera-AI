@@ -42,6 +42,7 @@ import { AiRenderingPreparationEngine } from "../rendering-preparation-engine/re
 import { AiVideoQualityValidationEngine } from "../video-quality-validation-engine/video-quality-validation-engine.js";
 import { AiVideoGenerationOptimizationEngine } from "../video-generation-optimization-engine/video-generation-optimization-engine.js";
 import { AiVideoGenerationHealthMonitorEngine } from "../video-generation-health-monitor-engine/video-generation-health-monitor-engine.js";
+import type { VideoProductionKnowledgeAdvisory } from "../video-knowledge-engine/video-production-knowledge-builder.js";
 import {
   GenerationAssetType,
   GenerationPlatformTarget,
@@ -445,6 +446,12 @@ export class AiVideoGenerationFoundation {
 
   getVideoGenerationHealthMonitorEngine(): AiVideoGenerationHealthMonitorEngine {
     return this.videoGenerationHealthMonitorEngine;
+  }
+
+  async getVideoProductionKnowledgeAdvisory(topic: string): Promise<VideoProductionKnowledgeAdvisory | null> {
+    const knowledge = this.integration.getKnowledgeFoundation();
+    if (!knowledge?.isStartupComplete()) return null;
+    return knowledge.getVideoProductionKnowledgeBuilder().advise(topic);
   }
 
   getGenerationRoot(): string {

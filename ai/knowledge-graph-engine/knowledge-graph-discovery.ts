@@ -60,6 +60,7 @@ export class KnowledgeGraphDiscovery {
         discovered += this.discoverTagLinks(record, storage.getIndexEntries());
         discovered += this.discoverTypeAffinity(record, storage.getIndexEntries());
         discovered += this.discoverTopicLinks(record, storage.getIndexEntries());
+        discovered += await this.discoverStructuredConceptLinks(record, storage.getIndexEntries());
 
         void updated;
       }
@@ -186,4 +187,37 @@ export class KnowledgeGraphDiscovery {
     }
     return count;
   }
+
+  private async discoverStructuredConceptLinks(record: KnowledgeRecord, allEntries: KnowledgeStorageIndexEntry[]): Promise<number> {
+    const concepts = structuredStrings(record.payload, "concepts");
+    if (concepts.length === 0) return 0;
+
+    let count = 0;
+    const storage = this.foundation.getStorageEngine();
+    for (const entry of allEntries) {
+      if (entry.knowledgeId === record.knowledgeId) continue;
+      const related = await storage.getRecord(entry.knowledgeId, "knowledge-graph-engine");
+      if (!related.success || !related.record) continue;
+      const shared = concepts.filter((concept) => structuredStrings(related.record!.payload, "concepts").includes(concept));
+      if (shared.length === 0) continue;
+
+      const edge = this.graph.createEdge(
+        record.knowledgeId,
+        entry.knowledgeId,
+        KnowledgeRelationType.SimilarTo,
+        `Shared structured concepts: ${shared.join(", ")}`,
+        Math.min(90, 60 + shared.length * 10),
+        Math.min(95, 75 + shared.length * 5)
+      );
+      if (edge) count++;
+    }
+    return count;
+  }
+}
+
+function structuredStrings(payload: Record<string, unknown> | undefined, field: string): string[] {
+  const value = payload?.[field];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").map((item) => item.toLowerCase())
+    : [];
 }
