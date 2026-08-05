@@ -9,6 +9,34 @@ export interface KnowledgeSourceLocation {
 
 export type KnowledgeSourceStatus = "pending" | "approved" | "rejected" | "suspended" | "removed";
 
+/** Professional trust tier — never auto-approves unknown or low-quality sources. */
+export enum KnowledgeSourceTrustClass {
+  Official = "official",
+  HighlyTrusted = "highly-trusted",
+  Trusted = "trusted",
+  Community = "community",
+  UserProvided = "user-provided",
+}
+
+export type KnowledgeSourceUpdateFrequency =
+  | "continuous"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly"
+  | "as-needed"
+  | "unknown";
+
+export type KnowledgeSourceAccessMethod =
+  | "https-documentation"
+  | "https-api-reference"
+  | "open-access-repository"
+  | "local-filesystem"
+  | "user-upload"
+  | "internal-pack";
+
+export type KnowledgeSourceLanguage = "en" | "rw" | "fr" | "multi" | "unknown";
+
 export interface KnowledgeSourceDefinition {
   id: string;
   name: string;
@@ -23,6 +51,18 @@ export interface KnowledgeSourceDefinition {
   version?: string;
   /** ISO timestamp of the source's last known update, used for freshness scoring. */
   lastUpdated?: string;
+  /** Discovery category label (e.g. AI/ML, Video Production). */
+  category?: string;
+  /** Linked knowledge-domain / discovery topic IDs. */
+  domainIds?: string[];
+  /** Canonical official website when different from the resource location. */
+  officialWebsite?: string;
+  /** Human-readable resource type aligned with acquisition source type. */
+  resourceType?: KnowledgeAcquisitionSourceType;
+  language?: KnowledgeSourceLanguage;
+  trustClass?: KnowledgeSourceTrustClass;
+  updateFrequency?: KnowledgeSourceUpdateFrequency;
+  accessMethod?: KnowledgeSourceAccessMethod;
 }
 
 export interface KnowledgeSourceVerification {
@@ -158,4 +198,73 @@ export interface KnowledgeSourceExplanation {
 export interface TrustedKnowledgeSourceEntry {
   definition: KnowledgeSourceDefinition;
   category: string;
+  /** Discovery topics this source primarily covers. */
+  discoveryTopics: string[];
+  /** Whether this entry upgrades a previously seeded library source. */
+  upgradedFromExisting?: boolean;
+}
+
+export interface TrustedSourceDiscoveryCoverage {
+  topicId: string;
+  topicLabel: string;
+  domainIds: string[];
+  sourceIds: string[];
+  sourceCount: number;
+  bestSourceId: string | null;
+  bestTrustClass: KnowledgeSourceTrustClass | null;
+  averageTrustScore: number;
+  averageQualityScore: number;
+  coverageLevel: "strong" | "adequate" | "weak" | "missing";
+}
+
+export interface TrustedSourceDiscoveryRecommendation {
+  sourceId: string;
+  name: string;
+  trustClass: KnowledgeSourceTrustClass;
+  trustScore: number;
+  qualityScore: number;
+  confidenceScore: number;
+  whySelected: string;
+  domainIds: string[];
+  category: string;
+}
+
+export interface TrustedSourceMissingReport {
+  topicId: string;
+  topicLabel: string;
+  domainIds: string[];
+  reason: string;
+  suggestedSourceTypes: KnowledgeAcquisitionSourceType[];
+  suggestedTrustClasses: KnowledgeSourceTrustClass[];
+}
+
+export interface AiMeTrustedSourceAwareness {
+  totalRegistered: number;
+  pendingApproval: number;
+  approved: number;
+  trustClassCounts: Record<KnowledgeSourceTrustClass, number>;
+  coveredTopics: string[];
+  missingTopics: TrustedSourceMissingReport[];
+  topRecommendations: TrustedSourceDiscoveryRecommendation[];
+  summary: string;
+}
+
+export interface TrustedSourceDiscoveryReportData {
+  generatedAt: string;
+  existingSourcesFound: Array<{ sourceId: string; name: string; category: string }>;
+  sourcesUpgraded: Array<{ sourceId: string; name: string; upgradeSummary: string }>;
+  newSourcesRegistered: Array<{ sourceId: string; name: string; category: string; trustClass: KnowledgeSourceTrustClass }>;
+  sourceCategories: string[];
+  trustScores: Array<{ sourceId: string; trustScore: number; trustClass: KnowledgeSourceTrustClass }>;
+  qualityScores: Array<{ sourceId: string; qualityScore: number; confidenceScore: number }>;
+  domainCoverage: TrustedSourceDiscoveryCoverage[];
+  missingTrustedSources: TrustedSourceMissingReport[];
+  totals: {
+    catalogSize: number;
+    registered: number;
+    upgraded: number;
+    newlyRegistered: number;
+    topicsCovered: number;
+    topicsMissing: number;
+  };
 }

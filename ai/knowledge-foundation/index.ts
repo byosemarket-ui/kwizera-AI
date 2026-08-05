@@ -2,6 +2,31 @@ export { AiKnowledgeFoundation } from "./knowledge-foundation.js";
 export { createKnowledgeFoundationPlugin } from "./knowledge-foundation-plugin.js";
 export { KnowledgeRegistry } from "./knowledge-registry.js";
 export { KnowledgeStorageManager } from "./knowledge-storage.js";
+export { KnowledgePackImportEngine } from "./knowledge-pack-import-engine.js";
+export { KnowledgeImportError } from "./knowledge-import-types.js";
+export { KnowledgeSeedingCertifier } from "./knowledge-seeding-certifier.js";
+export { KnowledgePersistenceVerifier } from "./knowledge-persistence-verifier.js";
+export { KnowledgeSeedingError, KNOWLEDGE_SEEDING_VERSION } from "./knowledge-seeding-types.js";
+export type {
+  KnowledgeImportStatus,
+  KnowledgeImportResult,
+  KnowledgeActivationStatus,
+  KnowledgeEngineIntegrationStatus,
+  AiMeKnowledgeImportAwareness,
+  KnowledgeImportHealthReport,
+  KnowledgeImportRepairResult,
+  KnowledgeImportReportData,
+} from "./knowledge-import-types.js";
+export type {
+  KnowledgePersistenceCheck,
+  KnowledgePersistenceVerificationResult,
+  KnowledgeRestartVerificationResult,
+  KnowledgeSeedingStatistics,
+  AiMeKnowledgePersistenceAwareness,
+  KnowledgeSeedingCertificationResult,
+  KnowledgeSeedingRepairResult,
+  KnowledgeSeedingReportData,
+} from "./knowledge-seeding-types.js";
 export { AiKnowledgeStorageEngine } from "../knowledge-storage-engine/knowledge-storage-engine.js";
 export { AiKnowledgeRetrievalEngine } from "../knowledge-retrieval-engine/knowledge-retrieval-engine.js";
 export { AiKnowledgeGraphEngine } from "../knowledge-graph-engine/knowledge-graph-engine.js";
@@ -16,6 +41,25 @@ export { AiKnowledgeOptimizationEngine } from "../knowledge-optimization-engine/
 export { AiKnowledgeValidationEngine } from "../knowledge-validation-engine/knowledge-validation-engine.js";
 export { AiKnowledgeHealthMonitorEngine } from "../knowledge-health-monitor-engine/knowledge-health-monitor-engine.js";
 export { AiKnowledgeAcquisitionEngine } from "../knowledge-acquisition-engine/knowledge-acquisition-engine.js";
+export { AiKnowledgeDomainPlanner } from "../knowledge-domain-planning/knowledge-domain-planner.js";
+export {
+  CORE_KNOWLEDGE_DOMAINS,
+  KNOWLEDGE_DOMAIN_ARCHITECTURE_VERSION,
+  REQUIRED_KNOWLEDGE_DOMAIN_IDS,
+  KnowledgeDomainStatus,
+  KnowledgeDomainPriority,
+  KnowledgeDomainOrigin,
+  KnowledgeDomainPlanningError,
+} from "../knowledge-domain-planning/index.js";
+export type {
+  KnowledgeDomainDefinition,
+  KnowledgeDomainRegistrationInput,
+  KnowledgeDomainRelationship,
+  KnowledgeDomainHierarchyNode,
+  AiMeDomainAwareness,
+  KnowledgeDomainPlanningReportData,
+  KnowledgeDomainPlanningStatusReport,
+} from "../knowledge-domain-planning/index.js";
 export { KnowledgeAccessCoordinator } from "./knowledge-access-coordinator.js";
 export { KnowledgeHealthMonitor } from "./knowledge-health-monitor.js";
 export { KnowledgeQualityValidator } from "./knowledge-quality-validator.js";

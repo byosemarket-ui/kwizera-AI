@@ -9,7 +9,10 @@ import { KnowledgeSourceHealthMonitor, offlineAvailabilityProber } from "./knowl
 import { KnowledgeSourceComparator, type QualityRatedSource } from "./knowledge-source-comparator.js";
 import { KnowledgeSourceExplainer } from "./knowledge-source-explainer.js";
 import { TRUSTED_SOURCE_LIBRARY } from "./trusted-knowledge-source-library.js";
+import { TrustedSourceClassifier } from "./trusted-source-classifier.js";
+import { TrustedSourceDiscoveryService } from "./trusted-source-discovery.js";
 import type {
+  AiMeTrustedSourceAwareness,
   KnowledgeSourceAvailabilityProber,
   KnowledgeSourceComparison,
   KnowledgeSourceDefinition,
@@ -24,12 +27,16 @@ import type {
   KnowledgeSourceRecommendation,
   KnowledgeSourceStatus,
   RegisteredKnowledgeSource,
+  TrustedSourceDiscoveryCoverage,
+  TrustedSourceDiscoveryRecommendation,
+  TrustedSourceDiscoveryReportData,
+  TrustedSourceMissingReport,
 } from "./types.js";
 
 const MIN_TRUST_FOR_APPROVAL = 60;
 const MAX_EVENT_LOG_ENTRIES = 200;
 
-/** Registers, verifies, and organizes trusted knowledge sources ahead of future research/download capabilities. */
+/** Registers, verifies, discovers, and ranks trusted knowledge sources — without downloading. */
 export class AiKnowledgeSourceManager {
   private foundation: AiKnowledgeFoundation | null = null;
   private root = "";
@@ -42,6 +49,8 @@ export class AiKnowledgeSourceManager {
   private readonly healthMonitor: KnowledgeSourceHealthMonitor;
   private readonly comparator = new KnowledgeSourceComparator();
   private readonly explainer = new KnowledgeSourceExplainer();
+  private readonly classifier = new TrustedSourceClassifier();
+  private readonly discovery = new TrustedSourceDiscoveryService();
 
   constructor(availabilityProber: KnowledgeSourceAvailabilityProber = offlineAvailabilityProber) {
     this.healthMonitor = new KnowledgeSourceHealthMonitor(availabilityProber);
@@ -63,6 +72,7 @@ export class AiKnowledgeSourceManager {
       source.quality = this.computeQuality(source);
     }
     this.startupComplete = true;
+    await this.seedTrustedSourceLibrary();
   }
 
   isInitialized(): boolean {
@@ -95,9 +105,20 @@ export class AiKnowledgeSourceManager {
 
     const verification = verifyKnowledgeSource(definition);
     const now = new Date().toISOString();
+    const trustClass = definition.trustClass ?? this.classifier.classify(definition);
     const source: RegisteredKnowledgeSource = {
       ...definition,
       tags: definition.tags ?? [],
+      trustClass,
+      resourceType: definition.resourceType ?? definition.type,
+      category: definition.category ?? definition.tags?.[0],
+      domainIds: definition.domainIds ?? [],
+      officialWebsite:
+        definition.officialWebsite ??
+        (definition.location.kind === "url" ? safeOrigin(definition.location.value) : undefined),
+      language: definition.language ?? "unknown",
+      updateFrequency: definition.updateFrequency ?? "unknown",
+      accessMethod: definition.accessMethod ?? (definition.location.kind === "local-path" ? "local-filesystem" : "https-documentation"),
       status: verification.verified ? "pending" : "rejected",
       verification,
       quality: null,
@@ -285,7 +306,120 @@ export class AiKnowledgeSourceManager {
 
   async seedTrustedSourceLibrary(): Promise<number> {
     this.ensureStarted();
-    return this.discover(TRUSTED_SOURCE_LIBRARY.map((entry) => entry.definition));
+    let registeredOrUpgraded = 0;
+    for (const entry of TRUSTED_SOURCE_LIBRARY) {
+      const definition = {
+        ...entry.definition,
+        category: entry.definition.category ?? entry.category,
+        trustClass: entry.definition.trustClass ?? this.classifier.classify(entry.definition),
+      };
+      const existing = this.sources.get(definition.id);
+      if (!existing || existing.status === "removed") {
+        await this.register(definition);
+        registeredOrUpgraded += 1;
+        continue;
+      }
+      const upgraded = this.applyDiscoveryMetadata(existing, definition);
+      if (upgraded) {
+        existing.quality = this.computeQuality(existing);
+        existing.updatedAt = new Date().toISOString();
+        registeredOrUpgraded += 1;
+      }
+    }
+    // Never auto-approve — classifier explicitly forbids it.
+    void this.classifier.mayAutoApprove();
+    await this.persist();
+    await this.log("seed-trusted-library", undefined, `Seeded/upgraded ${registeredOrUpgraded} trusted source discovery entries (pending approval)`);
+    return registeredOrUpgraded;
+  }
+
+  /** Discover and rank trusted sources for a knowledge domain or discovery topic. Does not download. */
+  discoverSourcesForTopic(topicOrDomain: string): RegisteredKnowledgeSource[] {
+    this.ensureStarted();
+    return this.discovery.sourcesForTopic(this.list(), this.discovery.findTopic(topicOrDomain)?.topicId ?? topicOrDomain);
+  }
+
+  getTopicCoverage(): TrustedSourceDiscoveryCoverage[] {
+    this.ensureStarted();
+    return this.discovery.buildCoverage(this.list());
+  }
+
+  detectMissingTrustedSources(): TrustedSourceMissingReport[] {
+    this.ensureStarted();
+    return this.discovery.detectMissing(this.list());
+  }
+
+  recommendBestTrustedSource(topicOrDomain: string): TrustedSourceDiscoveryRecommendation | null {
+    this.ensureStarted();
+    return this.discovery.recommendBest(this.list(), topicOrDomain);
+  }
+
+  recommendAdditionalTrustedSources(topicOrDomain: string, limit = 5): TrustedSourceDiscoveryRecommendation[] {
+    this.ensureStarted();
+    return this.discovery.recommendAdditional(this.list(), topicOrDomain, limit);
+  }
+
+  explainTrustedSourceSelection(topicOrDomain: string): KnowledgeSourceExplanation {
+    this.ensureStarted();
+    const recommendation = this.recommendBestTrustedSource(topicOrDomain);
+    if (!recommendation) {
+      return {
+        summary: `No trusted source discovered yet for "${topicOrDomain}".`,
+        rejectedAlternatives: [],
+        internalNotes: ["Discovery only — no download was attempted.", "Recommend registering official documentation for this topic."],
+      };
+    }
+    const additional = this.recommendAdditionalTrustedSources(topicOrDomain, 3);
+    return {
+      summary: recommendation.whySelected,
+      whyBest: `${recommendation.name} ranked highest (${recommendation.trustClass}, quality ${recommendation.qualityScore}/100).`,
+      rejectedAlternatives: additional.map((item) => ({
+        sourceId: item.sourceId,
+        reason: `Ranked below best candidate with quality ${item.qualityScore}/100 (${item.trustClass}).`,
+      })),
+      internalNotes: [
+        "Trusted Source Discovery never auto-approves sources.",
+        "Download/import remains gated behind later seeding steps and explicit approval.",
+      ],
+    };
+  }
+
+  getAiMeTrustedSourceAwareness(): AiMeTrustedSourceAwareness {
+    this.ensureStarted();
+    return this.discovery.buildAiMeAwareness(this.list());
+  }
+
+  buildTrustedSourceDiscoveryReport(): TrustedSourceDiscoveryReportData {
+    this.ensureStarted();
+    return this.discovery.buildDiscoveryReport(this.list());
+  }
+
+  private applyDiscoveryMetadata(target: RegisteredKnowledgeSource, definition: KnowledgeSourceDefinition): boolean {
+    let changed = false;
+    const assign = <K extends keyof KnowledgeSourceDefinition>(key: K, value: KnowledgeSourceDefinition[K]) => {
+      if (value === undefined) return;
+      if (target[key] !== value) {
+        (target as KnowledgeSourceDefinition)[key] = value;
+        changed = true;
+      }
+    };
+    assign("description", definition.description);
+    assign("publisher", definition.publisher);
+    assign("license", definition.license);
+    assign("category", definition.category);
+    assign("domainIds", definition.domainIds);
+    assign("officialWebsite", definition.officialWebsite);
+    assign("resourceType", definition.resourceType ?? definition.type);
+    assign("language", definition.language);
+    assign("trustClass", definition.trustClass ?? this.classifier.classify(definition));
+    assign("updateFrequency", definition.updateFrequency);
+    assign("accessMethod", definition.accessMethod);
+    assign("lastUpdated", definition.lastUpdated);
+    if (definition.tags?.length) {
+      target.tags = definition.tags;
+      changed = true;
+    }
+    return changed;
   }
 
   private rateSources(sourceIds: string[]): QualityRatedSource[] {
@@ -339,5 +473,13 @@ export class AiKnowledgeSourceManager {
   private ensureStarted(): void {
     this.ensureReady();
     if (!this.startupComplete) throw new Error("Knowledge Source Manager startup is incomplete");
+  }
+}
+
+function safeOrigin(urlValue: string): string | undefined {
+  try {
+    return new URL(urlValue).origin;
+  } catch {
+    return undefined;
   }
 }

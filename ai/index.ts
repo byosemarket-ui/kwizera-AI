@@ -47,6 +47,7 @@ export * from "./knowledge-source-manager/index.js";
 export * from "./knowledge-research-engine/index.js";
 export * from "./knowledge-processing-engine/index.js";
 export * from "./knowledge-reasoning-engine/index.js";
+export * from "./knowledge-domain-planning/index.js";
 export * from "./product-intelligence-foundation/index.js";
 export * from "./product-analysis-engine/index.js";
 export * from "./product-understanding-engine/index.js";

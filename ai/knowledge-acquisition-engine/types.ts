@@ -17,7 +17,9 @@ export type KnowledgeAcquisitionSourceType =
   | "user-manual"
   | "book"
   | "research-paper"
+  | "open-educational-resource"
   | "approved-website"
+  | "company-document"
   | "knowledge-foundation";
 
 export interface KnowledgeAcquisitionSource {

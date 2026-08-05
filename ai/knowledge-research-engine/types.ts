@@ -69,6 +69,12 @@ export interface DownloadRequest {
   url: string;
   fileName: string;
   expectedSizeBytes?: number;
+  /** Knowledge Domain Planning domain ID (e.g. video-production-knowledge). */
+  domainId?: string;
+  title?: string;
+  language?: string;
+  /** Offline-first local file to copy instead of network fetch. */
+  localSourcePath?: string;
 }
 
 export type DownloadStatus =
@@ -79,7 +85,7 @@ export type DownloadStatus =
   | "failed"
   | "duplicate";
 
-export type DownloadProcessingStatus = "unprocessed" | "queued-for-acquisition" | "processed";
+export type DownloadProcessingStatus = "unprocessed" | "queued-for-acquisition" | "understood" | "processed";
 
 export interface DownloadRecord {
   id: string;
@@ -99,6 +105,82 @@ export interface DownloadRecord {
   requestedAt: string;
   completedAt?: string;
   rejectionReason?: string;
+  /** Collection metadata (Step 3). */
+  domainId?: string;
+  title?: string;
+  knowledgeDomain?: string;
+  sourceName?: string;
+  language?: string;
+  trustScore?: number;
+  qualityScore?: number;
+  collectionDate?: string;
+  lastUpdated?: string;
+  metadataFingerprint?: string;
+  localStoragePath?: string | null;
+}
+
+/** Alias used by Knowledge Collection APIs — same persisted download/collection record. */
+export type CollectedKnowledgeResource = DownloadRecord;
+
+export interface KnowledgeCollectionCoverage {
+  domainId: string;
+  domainLabel: string;
+  resourceCount: number;
+  completedCount: number;
+  pendingCount: number;
+  resourceIds: string[];
+  coverageLevel: "strong" | "adequate" | "weak" | "missing";
+}
+
+export interface KnowledgeCollectionMissingReport {
+  domainId: string;
+  domainLabel: string;
+  reason: string;
+  suggestedResourceTypes: DownloadableResourceType[];
+}
+
+export interface KnowledgeCollectionRecommendation {
+  domainId: string;
+  sourceId: string;
+  sourceName: string;
+  rationale: string;
+  trustScore: number;
+  qualityScore: number;
+}
+
+export interface AiMeKnowledgeCollectionAwareness {
+  totalResources: number;
+  completedResources: number;
+  pendingApproval: number;
+  duplicatesBlocked: number;
+  domainsPrepared: string[];
+  domainCoverage: KnowledgeCollectionCoverage[];
+  missingKnowledge: KnowledgeCollectionMissingReport[];
+  recommendations: KnowledgeCollectionRecommendation[];
+  workspaceRoot: string;
+  summary: string;
+}
+
+export interface KnowledgeCollectionRepairResult {
+  repaired: boolean;
+  actions: string[];
+  remainingIssues: string[];
+}
+
+export interface KnowledgeCollectionReportData {
+  generatedAt: string;
+  existingCollectionSystem: string;
+  componentsUpgraded: string[];
+  componentsCreated: string[];
+  knowledgeDomainsPrepared: string[];
+  resourcesCollected: Array<{ resourceId: string; title: string; domainId: string; status: DownloadStatus }>;
+  localWorkspaceStatus: { root: string; domainFolders: string[]; typeFolders: string[]; healthy: boolean };
+  metadataStatus: { indexed: number; withFingerprint: number; completeMetadata: number };
+  duplicateProtectionStatus: { fileNameBlocks: number; checksumBlocks: number; versionBlocks: number; metadataBlocks: number };
+  aiMeIntegration: string;
+  issuesFound: string[];
+  issuesRepaired: string[];
+  remainingWorkBeforeStep4: string[];
 }
 
 export interface DownloadSafetyCheck {

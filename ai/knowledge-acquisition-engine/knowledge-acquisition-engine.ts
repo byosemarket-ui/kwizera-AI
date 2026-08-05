@@ -11,6 +11,7 @@ import type {
   KnowledgeAcquisitionSource,
   KnowledgeAcquisitionSourceType,
 } from "./types.js";
+import { extractKnowledgeLines } from "../knowledge-processing-engine/professional-knowledge-extractor.js";
 
 const MIN_RELIABILITY = 60;
 const MIN_CONFIDENCE = 65;
@@ -32,7 +33,9 @@ export const DEFAULT_RELIABILITY: Record<KnowledgeAcquisitionSourceType, number>
   "user-manual": 72,
   book: 78,
   "research-paper": 90,
+  "open-educational-resource": 82,
   "approved-website": 75,
+  "company-document": 70,
   "knowledge-foundation": 85,
 };
 
@@ -174,16 +177,15 @@ export class AiKnowledgeAcquisitionEngine {
 }
 
 function extractStructuredKnowledge(sources: KnowledgeAcquisitionSource[], topic: string): Pick<KnowledgeAcquisitionPreview, "rules" | "techniques" | "bestPractices" | "commonMistakes" | "workflows" | "examples"> {
-  const lines = sources.flatMap((source) => source.content.split(/\r?\n|(?<=[.!?])\s+/).map((line) => line.trim()).filter((line) => line.length >= 20));
-  const pick = (terms: string[]) => unique(lines.filter((line) => terms.some((term) => line.toLowerCase().includes(term))).slice(0, 8));
-  const fallback = lines.filter((line) => line.toLowerCase().includes(topic.toLowerCase())).slice(0, 3);
+  const content = sources.map((source) => source.content).join("\n");
+  const extracted = extractKnowledgeLines(content, topic);
   return {
-    rules: pick(["must", "never", "always", "rule"]).concat(fallback).slice(0, 8),
-    techniques: pick(["technique", "use ", "adjust", "compose", "lighting", "edit"]),
-    bestPractices: pick(["best practice", "recommend", "ensure", "should"]),
-    commonMistakes: pick(["mistake", "avoid", "do not", "don't"]),
-    workflows: pick(["step", "workflow", "process", "first", "then"]),
-    examples: pick(["example", "for example", "such as"]),
+    rules: extracted.rules,
+    techniques: extracted.techniques,
+    bestPractices: extracted.bestPractices,
+    commonMistakes: extracted.commonMistakes,
+    workflows: extracted.workflows,
+    examples: extracted.examples,
   };
 }
 

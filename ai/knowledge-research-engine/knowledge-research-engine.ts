@@ -6,10 +6,15 @@ import { ResearchPlanner } from "./research-planner.js";
 import { ResearchSourceDiscovery } from "./research-source-discovery.js";
 import { ResearchExplainer } from "./research-explainer.js";
 import { KnowledgeDownloadEngine, offlineDownloadTransport } from "./download-engine.js";
+import { KnowledgeCollectionService } from "./knowledge-collection-service.js";
 import type {
+  AiMeKnowledgeCollectionAwareness,
+  CollectedKnowledgeResource,
   DownloadRecord,
   DownloadRequest,
   DownloadTransport,
+  KnowledgeCollectionRepairResult,
+  KnowledgeCollectionReportData,
   KnowledgeResearchStatusReport,
   RankedSourceCandidate,
   ResearchEventLogEntry,
@@ -19,7 +24,7 @@ import type {
 
 const MAX_EVENT_LOG_ENTRIES = 200;
 
-/** Research planning, trusted source discovery, and safe intelligent downloading for AI Me's knowledge acquisition. */
+/** Research planning, trusted source discovery, safe downloading, and local knowledge collection for AI Me. */
 export class AiKnowledgeResearchEngine {
   private foundation: AiKnowledgeFoundation | null = null;
   private root = "";
@@ -33,6 +38,7 @@ export class AiKnowledgeResearchEngine {
   private readonly discovery = new ResearchSourceDiscovery();
   private readonly explainer = new ResearchExplainer();
   private readonly downloadEngine: KnowledgeDownloadEngine;
+  private collectionService: KnowledgeCollectionService | null = null;
 
   constructor(downloadTransport: DownloadTransport = offlineDownloadTransport) {
     this.downloadEngine = new KnowledgeDownloadEngine(downloadTransport);
@@ -41,7 +47,7 @@ export class AiKnowledgeResearchEngine {
   initialize(foundation: AiKnowledgeFoundation, storageRoot: string): void {
     this.foundation = foundation;
     this.root = path.join(storageRoot, "knowledge", "research");
-    this.downloadsRoot = path.join(storageRoot, "knowledge", "downloads");
+    this.downloadsRoot = path.join(storageRoot, "knowledge", "workspace");
     this.initialized = true;
   }
 
@@ -50,6 +56,8 @@ export class AiKnowledgeResearchEngine {
     await fs.mkdir(this.root, { recursive: true });
     await this.restore();
     await this.downloadEngine.initialize(this.downloadsRoot);
+    this.collectionService = new KnowledgeCollectionService(this.foundation!, this.downloadEngine, this.downloadsRoot);
+    await this.collectionService.repair();
     this.startupComplete = true;
   }
 
@@ -152,6 +160,11 @@ export class AiKnowledgeResearchEngine {
     return this.downloadEngine.markProcessed(downloadId);
   }
 
+  async markDownloadExtracted(downloadId: string): Promise<DownloadRecord> {
+    this.ensureStarted();
+    return this.downloadEngine.markExtracted(downloadId);
+  }
+
   getDownload(downloadId: string): DownloadRecord | null {
     this.ensureStarted();
     return this.downloadEngine.getDownload(downloadId);
@@ -160,6 +173,71 @@ export class AiKnowledgeResearchEngine {
   getDownloadHistory(): DownloadRecord[] {
     this.ensureStarted();
     return this.downloadEngine.getHistory();
+  }
+
+  getCollectionService(): KnowledgeCollectionService {
+    this.ensureStarted();
+    if (!this.collectionService) throw new Error("Knowledge Collection Service is not ready");
+    return this.collectionService;
+  }
+
+  getWorkspaceRoot(): string {
+    this.ensureStarted();
+    return this.downloadsRoot;
+  }
+
+  listCollectedResources(domainId?: string): CollectedKnowledgeResource[] {
+    return this.getCollectionService().listCollectedResources(domainId);
+  }
+
+  explainCollectedResource(resourceId: string): string {
+    return this.getCollectionService().explainCollection(resourceId);
+  }
+
+  recommendAdditionalCollections(limit = 8) {
+    return this.getCollectionService().recommendAdditionalResources(limit);
+  }
+
+  detectMissingCollectedKnowledge() {
+    return this.getCollectionService().detectMissingKnowledge();
+  }
+
+  getAiMeCollectionAwareness(): AiMeKnowledgeCollectionAwareness {
+    return this.getCollectionService().getAiMeAwareness();
+  }
+
+  async collectFromApprovedSource(input: {
+    domainId: string;
+    sourceId: string;
+    fileName?: string;
+    title?: string;
+    localSourcePath?: string;
+    autoApproveLocal?: boolean;
+  }): Promise<CollectedKnowledgeResource> {
+    this.ensureStarted();
+    const result = await this.getCollectionService().collectFromApprovedSource(input);
+    await this.log(
+      "resource-collected",
+      undefined,
+      `Collection for domain "${input.domainId}" from "${input.sourceId}" is ${result.status}.`,
+      result.id
+    );
+    return result;
+  }
+
+  async repairKnowledgeWorkspace(): Promise<KnowledgeCollectionRepairResult> {
+    this.ensureStarted();
+    const result = await this.getCollectionService().repair();
+    await this.log("workspace-repaired", undefined, `Workspace repair actions: ${result.actions.length}; remaining issues: ${result.remainingIssues.length}.`);
+    return result;
+  }
+
+  async buildKnowledgeCollectionReport(): Promise<KnowledgeCollectionReportData> {
+    this.ensureStarted();
+    const audit = await this.downloadEngine.getWorkspace().audit();
+    const issuesFound = [...audit.issues];
+    const repair = await this.repairKnowledgeWorkspace();
+    return this.getCollectionService().buildReport(issuesFound, repair.actions);
   }
 
   getStatusReport(): KnowledgeResearchStatusReport {

@@ -43,6 +43,15 @@ export class KnowledgeSourceValidator {
     "knowledge-validation-engine",
     "knowledge-optimization-engine",
     "knowledge-acquisition-engine",
+    "knowledge-extraction-engine",
+    "knowledge-pack-import-engine",
+    "professional-video-production-knowledge",
+    "professional-camera-knowledge",
+    "professional-lighting-composition-knowledge",
+    "professional-storytelling-scene-knowledge",
+    "professional-animation-motion-rendering-knowledge",
+    "professional-marketing-branding-psychology-knowledge",
+    "professional-social-media-knowledge",
   ]);
 
   constructor(

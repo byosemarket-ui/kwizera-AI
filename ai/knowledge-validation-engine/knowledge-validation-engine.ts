@@ -52,6 +52,7 @@ export class AiKnowledgeValidationEngine {
   private lastValidationMs = 0;
   private lastBatchMs = 0;
   private readonly activeValidations = new Set<string>();
+  private readonly activeValidationPromises = new Map<string, Promise<KnowledgeRecordValidationResult>>();
   private batchValidationActive = false;
 
   initialize(foundation: AiKnowledgeFoundation, storageRoot: string): void {
@@ -122,43 +123,26 @@ export class AiKnowledgeValidationEngine {
 
   async validateKnowledge(knowledgeId: string): Promise<KnowledgeRecordValidationResult> {
     this.ensureReady();
-    if (this.activeValidations.has(knowledgeId)) {
-      return (
-        this.runner!.getValidationResult(knowledgeId) ?? {
-          knowledgeId,
-          valid: false,
-          validationLevel: KnowledgeValidationLevel.PendingValidation,
-          verificationStatus: KnowledgeVerificationStatus.Pending,
-          trusted: false,
-          scores: {
-            qualityScore: 0,
-            reliabilityScore: 0,
-            completenessScore: 0,
-            consistencyScore: 0,
-            confidenceScore: 0,
-          },
-          structureValid: false,
-          sourceValid: false,
-          versionValid: false,
-          relationshipValid: false,
-          metadataValid: false,
-          issues: ["Validation already in progress"],
-          warnings: [],
-          repairs: [],
-          durationMs: 0,
-        }
-      );
+    const inFlight = this.activeValidationPromises.get(knowledgeId);
+    if (inFlight) {
+      return inFlight;
     }
 
-    this.activeValidations.add(knowledgeId);
-    const start = Date.now();
-    try {
-      const result = await this.runner!.validateRecord(knowledgeId);
-      this.recordValidationTiming(Date.now() - start);
-      return result;
-    } finally {
-      this.activeValidations.delete(knowledgeId);
-    }
+    const promise = (async () => {
+      this.activeValidations.add(knowledgeId);
+      const start = Date.now();
+      try {
+        const result = await this.runner!.validateRecord(knowledgeId);
+        this.recordValidationTiming(Date.now() - start);
+        return result;
+      } finally {
+        this.activeValidations.delete(knowledgeId);
+        this.activeValidationPromises.delete(knowledgeId);
+      }
+    })();
+
+    this.activeValidationPromises.set(knowledgeId, promise);
+    return promise;
   }
 
   async validateAll(): Promise<KnowledgeBatchValidationResult> {

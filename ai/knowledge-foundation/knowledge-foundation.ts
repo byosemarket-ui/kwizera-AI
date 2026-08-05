@@ -21,6 +21,13 @@ import { AiKnowledgeGraphEngine } from "../knowledge-graph-engine/knowledge-grap
 import { AiImageKnowledgeEngine } from "../image-knowledge-engine/image-knowledge-engine.js";
 import { AiVideoKnowledgeEngine } from "../video-knowledge-engine/video-knowledge-engine.js";
 import { VideoProductionKnowledgeBuilder } from "../video-knowledge-engine/video-production-knowledge-builder.js";
+import { ProfessionalVideoProductionKnowledge } from "../video-knowledge-engine/professional-video-production-knowledge.js";
+import { ProfessionalCameraKnowledge } from "../video-knowledge-engine/professional-camera-knowledge.js";
+import { ProfessionalLightingCompositionKnowledge } from "../video-knowledge-engine/professional-lighting-composition-knowledge.js";
+import { ProfessionalStorytellingSceneKnowledge } from "../video-knowledge-engine/professional-storytelling-scene-knowledge.js";
+import { ProfessionalAnimationMotionRenderingKnowledge } from "../video-knowledge-engine/professional-animation-motion-rendering-knowledge.js";
+import { ProfessionalMarketingBrandingPsychologyKnowledge } from "../video-knowledge-engine/professional-marketing-branding-psychology-knowledge.js";
+import { ProfessionalSocialMediaKnowledge } from "../video-knowledge-engine/professional-social-media-knowledge.js";
 import { AiMarketingKnowledgeEngine } from "../marketing-knowledge-engine/marketing-knowledge-engine.js";
 import { AiProductKnowledgeEngine } from "../product-knowledge-engine/product-knowledge-engine.js";
 import { AiBrandKnowledgeEngine } from "../brand-knowledge-engine/brand-knowledge-engine.js";
@@ -28,12 +35,18 @@ import { AiLanguageKnowledgeEngine } from "../language-knowledge-engine/language
 import { AiCreativeKnowledgeEngine } from "../creative-knowledge-engine/creative-knowledge-engine.js";
 import { AiKnowledgeOptimizationEngine } from "../knowledge-optimization-engine/knowledge-optimization-engine.js";
 import { AiKnowledgeValidationEngine } from "../knowledge-validation-engine/knowledge-validation-engine.js";
+import { KnowledgePackValidationEngine } from "../knowledge-validation-engine/knowledge-pack-validation-engine.js";
 import { AiKnowledgeHealthMonitorEngine } from "../knowledge-health-monitor-engine/knowledge-health-monitor-engine.js";
 import { AiKnowledgeAcquisitionEngine } from "../knowledge-acquisition-engine/knowledge-acquisition-engine.js";
 import { AiKnowledgeSourceManager } from "../knowledge-source-manager/knowledge-source-manager.js";
 import { AiKnowledgeResearchEngine } from "../knowledge-research-engine/knowledge-research-engine.js";
 import { AiKnowledgeProcessingEngine } from "../knowledge-processing-engine/knowledge-processing-engine.js";
+import { DocumentUnderstandingEngine } from "../knowledge-processing-engine/document-understanding-engine.js";
+import { KnowledgeExtractionEngine } from "../knowledge-processing-engine/knowledge-extraction-engine.js";
+import { KnowledgePackImportEngine } from "./knowledge-pack-import-engine.js";
+import { KnowledgeSeedingCertifier } from "./knowledge-seeding-certifier.js";
 import { AiKnowledgeReasoningEngine } from "../knowledge-reasoning-engine/knowledge-reasoning-engine.js";
+import { AiKnowledgeDomainPlanner } from "../knowledge-domain-planning/knowledge-domain-planner.js";
 import { PREPARED_KNOWLEDGE_CATEGORIES } from "./knowledge-categories.js";
 import {
   KnowledgeAccessOperation,
@@ -84,6 +97,13 @@ export class AiKnowledgeFoundation {
   readonly imageKnowledgeEngine = new AiImageKnowledgeEngine();
   readonly videoKnowledgeEngine = new AiVideoKnowledgeEngine();
   readonly videoProductionKnowledgeBuilder = new VideoProductionKnowledgeBuilder(this);
+  readonly professionalVideoProductionKnowledge = new ProfessionalVideoProductionKnowledge();
+  readonly professionalCameraKnowledge = new ProfessionalCameraKnowledge();
+  readonly professionalLightingCompositionKnowledge = new ProfessionalLightingCompositionKnowledge();
+  readonly professionalStorytellingSceneKnowledge = new ProfessionalStorytellingSceneKnowledge();
+  readonly professionalAnimationMotionRenderingKnowledge = new ProfessionalAnimationMotionRenderingKnowledge();
+  readonly professionalMarketingBrandingPsychologyKnowledge = new ProfessionalMarketingBrandingPsychologyKnowledge();
+  readonly professionalSocialMediaKnowledge = new ProfessionalSocialMediaKnowledge();
   readonly marketingKnowledgeEngine = new AiMarketingKnowledgeEngine();
   readonly productKnowledgeEngine = new AiProductKnowledgeEngine();
   readonly brandKnowledgeEngine = new AiBrandKnowledgeEngine();
@@ -91,12 +111,18 @@ export class AiKnowledgeFoundation {
   readonly creativeKnowledgeEngine = new AiCreativeKnowledgeEngine();
   readonly knowledgeOptimizationEngine = new AiKnowledgeOptimizationEngine();
   readonly knowledgeValidationEngine = new AiKnowledgeValidationEngine();
+  readonly knowledgePackValidationEngine = new KnowledgePackValidationEngine();
+  readonly knowledgePackImportEngine = new KnowledgePackImportEngine();
+  readonly knowledgeSeedingCertifier = new KnowledgeSeedingCertifier();
   readonly knowledgeHealthMonitorEngine = new AiKnowledgeHealthMonitorEngine();
   readonly knowledgeAcquisitionEngine = new AiKnowledgeAcquisitionEngine();
   readonly knowledgeSourceManager = new AiKnowledgeSourceManager();
   readonly knowledgeResearchEngine = new AiKnowledgeResearchEngine();
   readonly knowledgeProcessingEngine = new AiKnowledgeProcessingEngine();
+  readonly documentUnderstandingEngine = new DocumentUnderstandingEngine();
+  readonly knowledgeExtractionEngine = new KnowledgeExtractionEngine();
   readonly knowledgeReasoningEngine = new AiKnowledgeReasoningEngine();
+  readonly knowledgeDomainPlanner = new AiKnowledgeDomainPlanner();
 
   initialize(
     core: AiCoreManager,
@@ -182,6 +208,8 @@ export class AiKnowledgeFoundation {
     this.videoKnowledgeEngine.initialize(this, this.storageRoot);
     await this.videoKnowledgeEngine.runStartup();
 
+    // Professional Video Production Knowledge Expansion Step 1 starts after domain planner + extraction below.
+
     this.marketingKnowledgeEngine.initialize(this, this.storageRoot);
     await this.marketingKnowledgeEngine.runStartup();
 
@@ -216,6 +244,46 @@ export class AiKnowledgeFoundation {
     await this.knowledgeResearchEngine.runStartup();
 
     await this.knowledgeReasoningEngine.initialize(this, this.storageRoot);
+
+    this.knowledgeDomainPlanner.initialize(this, this.storageRoot);
+    await this.knowledgeDomainPlanner.runStartup();
+
+    this.documentUnderstandingEngine.initialize(this, this.storageRoot);
+    await this.documentUnderstandingEngine.runStartup();
+
+    this.knowledgeExtractionEngine.initialize(this, this.storageRoot);
+    await this.knowledgeExtractionEngine.runStartup();
+
+    this.professionalVideoProductionKnowledge.initialize(this, this.storageRoot);
+    await this.professionalVideoProductionKnowledge.runStartup();
+    this.videoProductionKnowledgeBuilder.bindProfessionalKnowledge(this.professionalVideoProductionKnowledge);
+
+    this.professionalCameraKnowledge.initialize(this, this.storageRoot);
+    await this.professionalCameraKnowledge.runStartup();
+
+    this.professionalLightingCompositionKnowledge.initialize(this, this.storageRoot);
+    await this.professionalLightingCompositionKnowledge.runStartup();
+
+    this.professionalStorytellingSceneKnowledge.initialize(this, this.storageRoot);
+    await this.professionalStorytellingSceneKnowledge.runStartup();
+
+    this.professionalAnimationMotionRenderingKnowledge.initialize(this, this.storageRoot);
+    await this.professionalAnimationMotionRenderingKnowledge.runStartup();
+
+    this.professionalMarketingBrandingPsychologyKnowledge.initialize(this, this.storageRoot);
+    await this.professionalMarketingBrandingPsychologyKnowledge.runStartup();
+
+    this.professionalSocialMediaKnowledge.initialize(this, this.storageRoot);
+    await this.professionalSocialMediaKnowledge.runStartup();
+
+    this.knowledgePackValidationEngine.initialize(this, this.storageRoot);
+    await this.knowledgePackValidationEngine.runStartup();
+
+    this.knowledgePackImportEngine.initialize(this, this.storageRoot);
+    await this.knowledgePackImportEngine.runStartup();
+
+    this.knowledgeSeedingCertifier.initialize(this, this.storageRoot);
+    await this.knowledgeSeedingCertifier.runStartup();
 
     this.storageEngine.setRecordChangeHandler((knowledgeId, operation) => {
       this.retrievalEngine.invalidateCache(knowledgeId);
@@ -257,6 +325,17 @@ export class AiKnowledgeFoundation {
       knowledgeSourceManager: "operational",
       knowledgeResearchEngine: "operational",
       knowledgeReasoningEngine: "operational",
+      knowledgeDomainPlanner: "operational",
+      knowledgeDomainCount: this.knowledgeDomainPlanner.listDomains().length,
+      documentUnderstandingEngine: "operational",
+      documentsUnderstood: this.documentUnderstandingEngine.listUnderstood().length,
+      knowledgeExtractionEngine: "operational",
+      knowledgePacks: this.knowledgeExtractionEngine.listPacks().length,
+      knowledgePackValidationEngine: "operational",
+      knowledgePacksCertified: this.knowledgePackValidationEngine.listResults().filter((result) => result.certified).length,
+      knowledgePackImportEngine: "operational",
+      knowledgePacksImported: this.knowledgePackImportEngine.listImports().filter((entry) => entry.status === "imported" || entry.status === "activated").length,
+      knowledgeSeedingCertifier: this.knowledgeSeedingCertifier.isCertified() ? "certified-1.0.0" : "operational",
     });
   }
 
@@ -459,6 +538,34 @@ export class AiKnowledgeFoundation {
     return this.videoProductionKnowledgeBuilder;
   }
 
+  getProfessionalVideoProductionKnowledge(): ProfessionalVideoProductionKnowledge {
+    return this.professionalVideoProductionKnowledge;
+  }
+
+  getProfessionalCameraKnowledge(): ProfessionalCameraKnowledge {
+    return this.professionalCameraKnowledge;
+  }
+
+  getProfessionalLightingCompositionKnowledge(): ProfessionalLightingCompositionKnowledge {
+    return this.professionalLightingCompositionKnowledge;
+  }
+
+  getProfessionalStorytellingSceneKnowledge(): ProfessionalStorytellingSceneKnowledge {
+    return this.professionalStorytellingSceneKnowledge;
+  }
+
+  getProfessionalAnimationMotionRenderingKnowledge(): ProfessionalAnimationMotionRenderingKnowledge {
+    return this.professionalAnimationMotionRenderingKnowledge;
+  }
+
+  getProfessionalMarketingBrandingPsychologyKnowledge(): ProfessionalMarketingBrandingPsychologyKnowledge {
+    return this.professionalMarketingBrandingPsychologyKnowledge;
+  }
+
+  getProfessionalSocialMediaKnowledge(): ProfessionalSocialMediaKnowledge {
+    return this.professionalSocialMediaKnowledge;
+  }
+
   getMarketingKnowledgeEngine(): AiMarketingKnowledgeEngine {
     return this.marketingKnowledgeEngine;
   }
@@ -503,12 +610,36 @@ export class AiKnowledgeFoundation {
     return this.knowledgeProcessingEngine;
   }
 
+  getDocumentUnderstandingEngine(): DocumentUnderstandingEngine {
+    return this.documentUnderstandingEngine;
+  }
+
+  getKnowledgeExtractionEngine(): KnowledgeExtractionEngine {
+    return this.knowledgeExtractionEngine;
+  }
+
+  getKnowledgePackValidationEngine(): KnowledgePackValidationEngine {
+    return this.knowledgePackValidationEngine;
+  }
+
+  getKnowledgePackImportEngine(): KnowledgePackImportEngine {
+    return this.knowledgePackImportEngine;
+  }
+
+  getKnowledgeSeedingCertifier(): KnowledgeSeedingCertifier {
+    return this.knowledgeSeedingCertifier;
+  }
+
   getKnowledgeReasoningEngine(): AiKnowledgeReasoningEngine {
     return this.knowledgeReasoningEngine;
   }
 
   getKnowledgeHealthMonitorEngine(): AiKnowledgeHealthMonitorEngine {
     return this.knowledgeHealthMonitorEngine;
+  }
+
+  getKnowledgeDomainPlanner(): AiKnowledgeDomainPlanner {
+    return this.knowledgeDomainPlanner;
   }
 
   getRegistry(): KnowledgeRegistry {

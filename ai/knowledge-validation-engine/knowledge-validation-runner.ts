@@ -94,6 +94,11 @@ export class KnowledgeValidationRunner {
 
     const record = read.record;
 
+    // Defer permanent promotion until Step 7 import clears validationDeferred / marks imported.
+    const deferred =
+      record.payload?.validationDeferred === true ||
+      (record.payload?.step === "knowledge-extraction" && record.payload?.imported !== true);
+
     const structure = this.structureValidator.validate(record);
     issues.push(...structure.issues);
     warnings.push(...structure.warnings);
@@ -143,6 +148,7 @@ export class KnowledgeValidationRunner {
       validationLevel !== KnowledgeValidationLevel.Rejected;
 
     if (
+      !deferred &&
       valid &&
       validationLevel === KnowledgeValidationLevel.Validated &&
       record.verificationStatus !== KnowledgeVerificationStatus.Verified
@@ -159,6 +165,7 @@ export class KnowledgeValidationRunner {
     }
 
     if (
+      !deferred &&
       trusted &&
       (record.status !== KnowledgeRecordStatus.Verified ||
         record.verificationStatus !== KnowledgeVerificationStatus.Verified)
@@ -173,6 +180,11 @@ export class KnowledgeValidationRunner {
         },
         "knowledge-validation-engine"
       );
+    }
+
+    if (deferred) {
+      warnings.push("Foundation promotion deferred — pack-linked knowledge awaits Step 7 import.");
+      repairs.push("Skipped permanent Foundation status promotion for validationDeferred payload.");
     }
 
     const result = this.buildResult(

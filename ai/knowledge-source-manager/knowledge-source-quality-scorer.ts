@@ -1,3 +1,4 @@
+import { TrustedSourceClassifier } from "./trusted-source-classifier.js";
 import type {
   KnowledgeSourcePolicyEvaluation,
   KnowledgeSourceQualityScores,
@@ -8,6 +9,8 @@ const DAY_MS = 86_400_000;
 
 /** Scores an approved-or-candidate source across trust, reputation, completeness, and freshness. */
 export class KnowledgeSourceQualityScorer {
+  private readonly classifier = new TrustedSourceClassifier();
+
   score(
     source: RegisteredKnowledgeSource,
     policyEvaluation: KnowledgeSourcePolicyEvaluation
@@ -42,16 +45,24 @@ export class KnowledgeSourceQualityScorer {
     else if (policyEvaluation.matchedList === "internal" || policyEvaluation.matchedList === "company") score += 20;
     else if (policyEvaluation.matchedList === "allowed" || policyEvaluation.matchedList === "user") score += 10;
     if (source.publisher?.trim()) score += 10;
+    score += this.classifier.reputationBoost(this.classifier.classify(source));
     return Math.max(0, Math.min(100, score));
   }
 
   private scoreCompleteness(source: RegisteredKnowledgeSource): number {
     let score = 100;
-    if (!source.publisher?.trim()) score -= 20;
-    if (!source.license?.trim()) score -= 15;
-    if (!source.version?.trim()) score -= 10;
-    if (!source.lastUpdated) score -= 15;
+    if (!source.publisher?.trim()) score -= 15;
+    if (!source.license?.trim()) score -= 10;
+    if (!source.version?.trim()) score -= 5;
+    if (!source.lastUpdated) score -= 10;
     if (!source.tags || source.tags.length === 0) score -= 5;
+    if (!source.category?.trim()) score -= 5;
+    if (!source.domainIds || source.domainIds.length === 0) score -= 5;
+    if (!source.officialWebsite?.trim()) score -= 5;
+    if (!source.language) score -= 5;
+    if (!source.updateFrequency) score -= 5;
+    if (!source.accessMethod) score -= 5;
+    if (!source.trustClass && !source.resourceType) score -= 5;
     return Math.max(0, score);
   }
 
@@ -68,9 +79,19 @@ export class KnowledgeSourceQualityScorer {
   }
 
   private scoreConfidence(source: RegisteredKnowledgeSource): number {
-    const provided = [source.publisher, source.license, source.version, source.lastUpdated].filter(
-      (value) => Boolean(value && value.trim())
-    ).length;
-    return Math.round((provided / 4) * 100);
+    const fields = [
+      source.publisher,
+      source.license,
+      source.version,
+      source.lastUpdated,
+      source.category,
+      source.officialWebsite,
+      source.language,
+      source.accessMethod,
+      source.updateFrequency,
+      source.trustClass,
+    ];
+    const provided = fields.filter((value) => Boolean(value && String(value).trim())).length;
+    return Math.round((provided / fields.length) * 100);
   }
 }

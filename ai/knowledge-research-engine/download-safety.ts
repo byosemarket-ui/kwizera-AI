@@ -32,7 +32,12 @@ export function resolveDownloadFolder(
     case "official-documentation":
     case "official-api-documentation":
     case "technical-standard":
+    case "open-educational-resource":
       return "official-docs";
+    case "company-document":
+    case "user-document":
+    case "local-documentation":
+      return "downloads";
     default:
       break;
   }
@@ -45,6 +50,12 @@ export function resolveDownloadFolder(
       return "examples";
     case "api-specification":
       return "api";
+    case "markdown":
+      return "markdown";
+    case "html":
+      return "html";
+    case "json":
+      return "json";
     default:
       return "official-docs";
   }

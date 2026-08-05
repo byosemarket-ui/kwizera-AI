@@ -1,5 +1,6 @@
 import type { KnowledgeAcquisitionPreview } from "../knowledge-acquisition-engine/types.js";
 import type { KnowledgeStorageType } from "../knowledge-storage-engine/types.js";
+import type { KnowledgeExtractionDraft, KnowledgeItem } from "./knowledge-extraction-types.js";
 
 export interface StructuredKnowledge {
   title: string;
@@ -21,6 +22,10 @@ export interface StructuredKnowledge {
   prerequisites: string[];
   dependencies: string[];
   relatedKnowledge: string[];
+  definitions?: string[];
+  troubleshooting?: string[];
+  recommendations?: string[];
+  professionalStandards?: string[];
   difficultyLevel: "foundation" | "intermediate" | "advanced";
   confidenceScore: number;
   sourceMetadata: Array<{ name: string; type: string; reference?: string; reliability: number }>;
@@ -70,6 +75,86 @@ export class AiKnowledgeProcessingEngine {
       difficultyLevel: preview.confidenceScore >= 85 ? "advanced" : preview.confidenceScore >= 72 ? "intermediate" : "foundation",
       confidenceScore: preview.confidenceScore,
       sourceMetadata: preview.sources.map((source) => ({ ...source })),
+    };
+  }
+
+  /** Normalize a Step 5 extraction draft into StructuredKnowledge without going through acquisition preview. */
+  processExtractionDraft(draft: KnowledgeExtractionDraft): StructuredKnowledge {
+    const rules = unique(draft.rules);
+    const techniques = unique(draft.professionalTechniques);
+    const bestPractices = unique(draft.bestPractices);
+    const workflows = unique(draft.workflow);
+    const sections = [
+      section("Rules", "rules", rules),
+      section("Professional Techniques", "techniques", techniques),
+      section("Workflow", "workflow", workflows),
+      section("Examples", "examples", unique(draft.examples)),
+      section("Guidance", "guidance", unique([...bestPractices, ...draft.commonMistakes, ...draft.recommendations])),
+    ].filter((value): value is NonNullable<typeof value> => Boolean(value));
+
+    return {
+      title: `${draft.title} Knowledge Pack`,
+      category: draft.category,
+      domain: draft.domain,
+      description: draft.description,
+      sections,
+      concepts: unique(draft.coreConcepts).slice(0, 40),
+      entities: unique([draft.title, draft.domain, ...draft.coreConcepts.slice(0, 10)]),
+      terminology: unique([...draft.keywords, ...draft.coreConcepts]).slice(0, 40),
+      rules,
+      bestPractices,
+      professionalTechniques: techniques,
+      examples: unique(draft.examples),
+      commonMistakes: unique(draft.commonMistakes),
+      qualityRules: unique([...rules.filter((rule) => /\b(quality|sharp|consistent|accurate|safe|clean)\b/i.test(rule)), ...bestPractices]),
+      decisionRules: unique(draft.decisionRules),
+      workflowSteps: workflows,
+      prerequisites: workflows.filter((step) => /\b(first|before|prepare|set up)\b/i.test(step)),
+      dependencies: draft.coreConcepts.filter((concept) =>
+        /\b(light|lighting|camera|render|video|story|marketing|brand|motion|animation|edit|voice|music)\b/i.test(concept)
+      ),
+      relatedKnowledge: unique(draft.relatedTopics),
+      definitions: unique(draft.definitions),
+      troubleshooting: unique(draft.troubleshooting),
+      recommendations: unique(draft.recommendations),
+      professionalStandards: unique(draft.professionalStandards),
+      difficultyLevel: draft.confidenceScore >= 85 ? "advanced" : draft.confidenceScore >= 72 ? "intermediate" : "foundation",
+      confidenceScore: draft.confidenceScore,
+      sourceMetadata: draft.sourceMetadata.map((source) => ({
+        name: source.name,
+        type: source.type,
+        reference: source.reference,
+        reliability: source.reliability,
+      })),
+    };
+  }
+
+  /** Convert StructuredKnowledge + draft into the canonical KnowledgeItem shape. */
+  toKnowledgeItem(draft: KnowledgeExtractionDraft, structured: StructuredKnowledge, knowledgeId: string, version = 1): KnowledgeItem {
+    return {
+      knowledgeId,
+      title: draft.title,
+      domain: draft.domain,
+      category: draft.category,
+      description: draft.description,
+      coreConcepts: unique(draft.coreConcepts),
+      definitions: unique(draft.definitions),
+      rules: unique(structured.rules),
+      bestPractices: unique(structured.bestPractices),
+      professionalTechniques: unique(structured.professionalTechniques),
+      workflow: unique(structured.workflowSteps),
+      decisionRules: unique(structured.decisionRules),
+      commonMistakes: unique(structured.commonMistakes),
+      troubleshooting: unique(draft.troubleshooting),
+      recommendations: unique(draft.recommendations),
+      examples: unique(structured.examples),
+      professionalStandards: unique(draft.professionalStandards),
+      relatedTopics: unique(draft.relatedTopics),
+      keywords: unique(draft.keywords),
+      confidenceScore: draft.confidenceScore,
+      qualityScore: draft.qualityScore,
+      sourceMetadata: draft.sourceMetadata,
+      version,
     };
   }
 }
