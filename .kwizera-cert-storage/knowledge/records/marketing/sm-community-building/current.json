@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "sm-community-building",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Community Building",
+  "description": "Turning followers into participants who return, reply, and advocate.",
+  "summary": "Recommend strategies that grow durable audiences beyond reach spikes.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "community-building",
+    "community building",
+    "loyalty",
+    "replies",
+    "advocacy",
+    "belonging"
+  ],
+  "keywords": [
+    "community building",
+    "loyalty",
+    "replies",
+    "advocacy",
+    "belonging"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-engagement-strategy",
+    "fb-facebook-community-management",
+    "sm-social-audience-analysis",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:32.355Z",
+  "lastUpdated": "2026-08-08T19:03:32.355Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-community-building",
+  "integrityStatus": "verified",
+  "contentHash": "93ec8061c0cbc99deb8379823da3456b6cc3df5eb12ebec956039f821dee3926",
+  "searchableText": "community building turning followers into participants who return, reply, and advocate. recommend strategies that grow durable audiences beyond reach spikes. professional-social-fundamentals professional-social-fundamentals professional community-building community building loyalty replies advocacy belonging community building loyalty replies advocacy belonging",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "community-building-turning",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "community-building",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Recommend strategies that grow durable audiences beyond reach spikes.",
+    "professionalDefinition": "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-community-building",
+      "title": "Community Building",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Turning followers into participants who return, reply, and advocate.",
+      "coreConcepts": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "definitions": [
+        "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption.",
+        "Recommend strategies that grow durable audiences beyond reach spikes."
+      ],
+      "rules": [
+        "Practice: Reply with substance in peak windows",
+        "Practice: Create recurring series the community expects",
+        "Practice: Spotlight user voices ethically"
+      ],
+      "bestPractices": [
+        "Reply with substance in peak windows",
+        "Create recurring series the community expects",
+        "Spotlight user voices ethically"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Reply with substance in peak windows",
+        "Follow: Create recurring series the community expects",
+        "Follow: Spotlight user voices ethically"
+      ],
+      "commonMistakes": [
+        "Broadcast-only accounts",
+        "Ignoring comments after posting"
+      ],
+      "troubleshooting": [
+        "Avoid: Broadcast-only accounts",
+        "Avoid: Ignoring comments after posting"
+      ],
+      "recommendations": [
+        "Reply with substance in peak windows",
+        "Create recurring series the community expects",
+        "Spotlight user voices ethically"
+      ],
+      "examples": [
+        "Professional application of Community Building for platform-native content"
+      ],
+      "professionalStandards": [
+        "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "facebook-community-management",
+        "social-audience-analysis"
+      ],
+      "keywords": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:community-building",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Community Building",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Turning followers into participants who return, reply, and advocate.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend strategies that grow durable audiences beyond reach spikes."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Reply with substance in peak windows",
+            "Create recurring series the community expects",
+            "Spotlight user voices ethically"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Community Building for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "entities": [
+        "Community Building",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "rules": [
+        "Avoid: Broadcast-only accounts",
+        "Avoid: Ignoring comments after posting"
+      ],
+      "bestPractices": [
+        "Reply with substance in peak windows",
+        "Create recurring series the community expects",
+        "Spotlight user voices ethically"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Community Building for platform-native content"
+      ],
+      "commonMistakes": [
+        "Broadcast-only accounts",
+        "Ignoring comments after posting"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Reply with substance in peak windows",
+        "Practice: Create recurring series the community expects",
+        "Practice: Spotlight user voices ethically"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "branding-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sm-social-engagement-strategy",
+        "fb-facebook-community-management",
+        "sm-social-audience-analysis"
+      ],
+      "definitions": [
+        "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption.",
+        "Recommend strategies that grow durable audiences beyond reach spikes."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Reply with substance in peak windows",
+      "Create recurring series the community expects",
+      "Spotlight user voices ethically"
+    ],
+    "bestPractices": [
+      "Reply with substance in peak windows",
+      "Create recurring series the community expects",
+      "Spotlight user voices ethically"
+    ],
+    "decisionRules": [
+      "Practice: Reply with substance in peak windows",
+      "Practice: Create recurring series the community expects",
+      "Practice: Spotlight user voices ethically"
+    ]
+  }
+}

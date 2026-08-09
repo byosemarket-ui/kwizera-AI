@@ -1,0 +1,30 @@
+[
+  {
+    "checkId": "hc-1786203034757-b5c42d",
+    "timestamp": "2026-08-08T15:30:36.705Z",
+    "module": "system",
+    "healthScore": 97,
+    "level": "excellent",
+    "warnings": [],
+    "errors": [
+      "knowledge-foundation unavailable"
+    ],
+    "repairs": [],
+    "recommendations": [],
+    "performanceMs": 1948
+  },
+  {
+    "checkId": "hc-1786207446540-858981",
+    "timestamp": "2026-08-08T16:44:30.650Z",
+    "module": "system",
+    "healthScore": 97,
+    "level": "excellent",
+    "warnings": [],
+    "errors": [
+      "knowledge-foundation unavailable"
+    ],
+    "repairs": [],
+    "recommendations": [],
+    "performanceMs": 24110
+  }
+]

@@ -1,0 +1,360 @@
+{
+  "knowledgeId": "check-production-checklist",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-checklists",
+  "title": "Production Checklist",
+  "description": "A checklist for on-set technical checks, continuity, safety, capture, and media protection.",
+  "summary": "Help AI Me recommend production quality controls.",
+  "tags": [
+    "professional-checklists",
+    "professional",
+    "production-checklist",
+    "production checklist",
+    "shoot day",
+    "continuity",
+    "media backup",
+    "technical check"
+  ],
+  "keywords": [
+    "production checklist",
+    "shoot day",
+    "continuity",
+    "media backup",
+    "technical check"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "bp-production-best-practices",
+    "qrule-camera-quality-rules",
+    "qrule-lighting-quality-rules",
+    "qrule-audio-quality-rules",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:57.765Z",
+  "lastUpdated": "2026-08-08T19:18:57.765Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\check-production-checklist",
+  "integrityStatus": "verified",
+  "contentHash": "81b975c1b34e5fe1dacf9e531cf0d7d0d71eb0ce4920903695962d5fe4f80262",
+  "searchableText": "production checklist a checklist for on-set technical checks, continuity, safety, capture, and media protection. help ai me recommend production quality controls. professional-checklists professional-checklists professional production-checklist production checklist shoot day continuity media backup technical check production checklist shoot day continuity media backup technical check",
+  "classification": {
+    "category": "professional-checklists",
+    "topic": "production-checklist-checklist",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "production-checklist",
+    "kind": "professional-checklists",
+    "purpose": "Help AI Me recommend production quality controls.",
+    "professionalDefinition": "A production checklist is an operational control that verifies capture quality, continuity, safety, communication, and backups throughout a production day.",
+    "qualityRules": [
+      "Critical takes pass technical checks",
+      "Continuity and safety are monitored",
+      "Media backup is verified before wrap"
+    ],
+    "workflow": [
+      "Check equipment and settings",
+      "Confirm scene readiness",
+      "Capture and review critical takes",
+      "Log continuity and media",
+      "Back up and verify before wrap"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "check-production-checklist",
+      "title": "Production Checklist",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "description": "A checklist for on-set technical checks, continuity, safety, capture, and media protection.",
+      "coreConcepts": [
+        "production checklist",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "technical check"
+      ],
+      "definitions": [
+        "A production checklist is an operational control that verifies capture quality, continuity, safety, communication, and backups throughout a production day.",
+        "Help AI Me recommend production quality controls."
+      ],
+      "rules": [
+        "Quality rule: Critical takes pass technical checks",
+        "Quality rule: Continuity and safety are monitored",
+        "Quality rule: Media backup is verified before wrap"
+      ],
+      "bestPractices": [
+        "Run camera, lighting, and audio checks",
+        "Log good takes and continuity",
+        "Verify backups before wrap"
+      ],
+      "professionalTechniques": [
+        "Check equipment and settings",
+        "Confirm scene readiness",
+        "Capture and review critical takes",
+        "Log continuity and media",
+        "Back up and verify before wrap"
+      ],
+      "workflow": [
+        "Check equipment and settings",
+        "Confirm scene readiness",
+        "Capture and review critical takes",
+        "Log continuity and media",
+        "Back up and verify before wrap"
+      ],
+      "decisionRules": [
+        "Apply: Critical takes pass technical checks",
+        "Apply: Continuity and safety are monitored",
+        "Apply: Media backup is verified before wrap"
+      ],
+      "commonMistakes": [
+        "Only checking equipment at day start",
+        "Forgetting audio or media verification"
+      ],
+      "troubleshooting": [
+        "Avoid: Only checking equipment at day start",
+        "Avoid: Forgetting audio or media verification"
+      ],
+      "recommendations": [
+        "Run camera, lighting, and audio checks",
+        "Log good takes and continuity",
+        "Verify backups before wrap"
+      ],
+      "examples": [
+        "On-set report including exposure, audio check, take status, continuity notes, and two verified backups."
+      ],
+      "professionalStandards": [
+        "Critical takes pass technical checks",
+        "Continuity and safety are monitored",
+        "Media backup is verified before wrap"
+      ],
+      "relatedTopics": [
+        "production-best-practices",
+        "camera-quality-rules",
+        "lighting-quality-rules",
+        "audio-quality-rules"
+      ],
+      "keywords": [
+        "production checklist",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "technical check"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-checklist",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Production Checklist",
+      "category": "professional-checklists",
+      "domain": "industry-standards-knowledge",
+      "description": "A checklist for on-set technical checks, continuity, safety, capture, and media protection.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A production checklist is an operational control that verifies capture quality, continuity, safety, communication, and backups throughout a production day.",
+            "Help AI Me recommend production quality controls."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Critical takes pass technical checks",
+            "Continuity and safety are monitored",
+            "Media backup is verified before wrap"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Run camera, lighting, and audio checks",
+            "Log good takes and continuity",
+            "Verify backups before wrap"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Check equipment and settings",
+            "Confirm scene readiness",
+            "Capture and review critical takes",
+            "Log continuity and media",
+            "Back up and verify before wrap"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "On-set report including exposure, audio check, take status, continuity notes, and two verified backups."
+          ]
+        }
+      ],
+      "concepts": [
+        "production checklist",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "technical check"
+      ],
+      "entities": [
+        "Production Checklist",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "production checklist",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "technical check"
+      ],
+      "rules": [
+        "Critical takes pass technical checks",
+        "Continuity and safety are monitored",
+        "Media backup is verified before wrap"
+      ],
+      "bestPractices": [
+        "Run camera, lighting, and audio checks",
+        "Log good takes and continuity",
+        "Verify backups before wrap"
+      ],
+      "professionalTechniques": [
+        "Check equipment and settings",
+        "Confirm scene readiness",
+        "Capture and review critical takes",
+        "Log continuity and media",
+        "Back up and verify before wrap"
+      ],
+      "examples": [
+        "On-set report including exposure, audio check, take status, continuity notes, and two verified backups."
+      ],
+      "commonMistakes": [
+        "Only checking equipment at day start",
+        "Forgetting audio or media verification"
+      ],
+      "qualityRules": [
+        "Critical takes pass technical checks",
+        "Continuity and safety are monitored",
+        "Media backup is verified before wrap"
+      ],
+      "decisionRules": [
+        "Apply: Critical takes pass technical checks",
+        "Apply: Continuity and safety are monitored",
+        "Apply: Media backup is verified before wrap"
+      ],
+      "workflowSteps": [
+        "Check equipment and settings",
+        "Confirm scene readiness",
+        "Capture and review critical takes",
+        "Log continuity and media",
+        "Back up and verify before wrap"
+      ],
+      "prerequisites": [
+        "Check equipment and settings"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "bp-production-best-practices",
+        "qrule-camera-quality-rules",
+        "qrule-lighting-quality-rules",
+        "qrule-audio-quality-rules"
+      ],
+      "definitions": [
+        "A production checklist is an operational control that verifies capture quality, continuity, safety, communication, and backups throughout a production day."
+      ],
+      "troubleshooting": [
+        "Avoid: Only checking equipment at day start",
+        "Avoid: Forgetting audio or media verification"
+      ],
+      "recommendations": [
+        "Run camera, lighting, and audio checks",
+        "Log good takes and continuity",
+        "Verify backups before wrap"
+      ],
+      "professionalStandards": [
+        "Critical takes pass technical checks",
+        "Continuity and safety are monitored",
+        "Media backup is verified before wrap"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-checklist",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Run camera, lighting, and audio checks",
+      "Log good takes and continuity",
+      "Verify backups before wrap"
+    ],
+    "bestPractices": [
+      "Run camera, lighting, and audio checks",
+      "Log good takes and continuity",
+      "Verify backups before wrap"
+    ],
+    "decisionRules": [
+      "Quality rule: Critical takes pass technical checks",
+      "Quality rule: Continuity and safety are monitored",
+      "Quality rule: Media backup is verified before wrap"
+    ]
+  }
+}

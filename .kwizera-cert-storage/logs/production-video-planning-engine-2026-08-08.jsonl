@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:40.524Z","level":"info","event":"startup","message":"Production Video Planning Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-intelligence\\production\\engine"}}
+{"timestamp":"2026-08-08T19:46:44.011Z","level":"info","event":"startup","message":"Production Video Planning Engine startup complete","data":{"recordsLoaded":0}}

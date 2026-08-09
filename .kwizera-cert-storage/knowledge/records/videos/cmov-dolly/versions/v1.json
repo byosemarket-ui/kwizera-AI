@@ -1,0 +1,355 @@
+{
+  "knowledgeId": "cmov-dolly",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Dolly",
+  "description": "Camera moves toward or away from the subject on a path (track, wheels, or equivalent).",
+  "summary": "Change subject size with true perspective/parallax for immersion, intimacy, or reveal.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "dolly",
+    "track",
+    "parallax",
+    "push",
+    "pull"
+  ],
+  "keywords": [
+    "dolly",
+    "track",
+    "parallax",
+    "push",
+    "pull"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-push-in",
+    "cmov-pull-out",
+    "cmov-zoom",
+    "cmov-tracking-shot",
+    "cam-focus",
+    "cam-focal-length",
+    "cam-aperture",
+    "cam-depth-of-field",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-composition-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:24.981Z",
+  "lastUpdated": "2026-08-08T15:31:24.981Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-dolly",
+  "integrityStatus": "verified",
+  "contentHash": "b76590264fec77134cacd54042d56f7d2dba8c49c1fc5cb40d941ff347ab10dc",
+  "searchableText": "dolly camera moves toward or away from the subject on a path (track, wheels, or equivalent). change subject size with true perspective/parallax for immersion, intimacy, or reveal. professional-camera-movement camera-movement professional dolly track parallax push pull dolly track parallax push pull",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "dolly-camera-moves",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "dolly",
+    "kind": "camera-movement",
+    "purpose": "Change subject size with true perspective/parallax for immersion, intimacy, or reveal.",
+    "whenToUse": [
+      "Emotional push toward talent/product",
+      "Discovering space with parallax",
+      "Premium commercial production value"
+    ],
+    "whenNotToUse": [
+      "No path space or uneven floor without proper support",
+      "When a zoom is explicitly the desired stylistic language"
+    ],
+    "advantages": [
+      "Natural parallax",
+      "Strong cinematic presence"
+    ],
+    "limitations": [
+      "Needs space, time, and often crew",
+      "Focus more complex"
+    ],
+    "relatedCameraSettings": [
+      "focus",
+      "focal-length",
+      "aperture",
+      "depth-of-field"
+    ],
+    "relatedStorytellingTechniques": [
+      "intimacy increase",
+      "world reveal"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-dolly",
+      "title": "Dolly",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera moves toward or away from the subject on a path (track, wheels, or equivalent).",
+      "coreConcepts": [
+        "dolly",
+        "track",
+        "parallax",
+        "push",
+        "pull"
+      ],
+      "definitions": [
+        "Change subject size with true perspective/parallax for immersion, intimacy, or reveal."
+      ],
+      "rules": [
+        "Use when: Emotional push toward talent/product",
+        "Use when: Discovering space with parallax",
+        "Use when: Premium commercial production value",
+        "Do not use when: No path space or uneven floor without proper support",
+        "Do not use when: When a zoom is explicitly the desired stylistic language"
+      ],
+      "bestPractices": [
+        "Lay level track; mark start/end",
+        "Coordinate focus pull with distance change",
+        "Ease movement; avoid bumps"
+      ],
+      "professionalTechniques": [
+        "Natural parallax",
+        "Strong cinematic presence"
+      ],
+      "workflow": [
+        "Choose Dolly",
+        "Lay level track; mark start/end",
+        "Coordinate focus pull with distance change",
+        "Ease movement; avoid bumps"
+      ],
+      "decisionRules": [
+        "Use when: Emotional push toward talent/product",
+        "Use when: Discovering space with parallax",
+        "Use when: Premium commercial production value",
+        "Avoid when: No path space or uneven floor without proper support",
+        "Avoid when: When a zoom is explicitly the desired stylistic language"
+      ],
+      "commonMistakes": [
+        "Dolly zoom confusion",
+        "Pushing through soft focus"
+      ],
+      "troubleshooting": [
+        "Limitation: Needs space, time, and often crew",
+        "Limitation: Focus more complex"
+      ],
+      "recommendations": [
+        "Lay level track; mark start/end",
+        "Coordinate focus pull with distance change",
+        "Ease movement; avoid bumps"
+      ],
+      "examples": [
+        "Dolly in on testimonial peak emotion",
+        "Dolly out to reveal full product setup"
+      ],
+      "professionalStandards": [
+        "intimacy increase",
+        "world reveal"
+      ],
+      "relatedTopics": [
+        "push-in",
+        "pull-out",
+        "zoom",
+        "tracking-shot",
+        "focus",
+        "focal-length",
+        "aperture",
+        "depth-of-field"
+      ],
+      "keywords": [
+        "dolly",
+        "track",
+        "parallax",
+        "push",
+        "pull"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:dolly",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Dolly",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera moves toward or away from the subject on a path (track, wheels, or equivalent).",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Change subject size with true perspective/parallax for immersion, intimacy, or reveal."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Emotional push toward talent/product",
+            "Discovering space with parallax",
+            "Premium commercial production value"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "No path space or uneven floor without proper support",
+            "When a zoom is explicitly the desired stylistic language"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lay level track; mark start/end",
+            "Coordinate focus pull with distance change",
+            "Ease movement; avoid bumps"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Dolly in on testimonial peak emotion",
+            "Dolly out to reveal full product setup"
+          ]
+        }
+      ],
+      "concepts": [
+        "dolly",
+        "track",
+        "parallax",
+        "push",
+        "pull"
+      ],
+      "entities": [
+        "Dolly",
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "dolly",
+        "track",
+        "parallax",
+        "push",
+        "pull"
+      ],
+      "rules": [
+        "Avoid when: No path space or uneven floor without proper support",
+        "Avoid when: When a zoom is explicitly the desired stylistic language"
+      ],
+      "bestPractices": [
+        "Lay level track; mark start/end",
+        "Coordinate focus pull with distance change",
+        "Ease movement; avoid bumps"
+      ],
+      "professionalTechniques": [
+        "Natural parallax",
+        "Strong cinematic presence"
+      ],
+      "examples": [
+        "Dolly in on testimonial peak emotion",
+        "Dolly out to reveal full product setup"
+      ],
+      "commonMistakes": [
+        "Dolly zoom confusion",
+        "Pushing through soft focus"
+      ],
+      "qualityRules": [
+        "Needs space, time, and often crew",
+        "Focus more complex"
+      ],
+      "decisionRules": [
+        "Use when: Emotional push toward talent/product",
+        "Use when: Discovering space with parallax",
+        "Use when: Premium commercial production value",
+        "Do not use when: No path space or uneven floor without proper support",
+        "Do not use when: When a zoom is explicitly the desired stylistic language"
+      ],
+      "workflowSteps": [
+        "Lay level track; mark start/end",
+        "Coordinate focus pull with distance change",
+        "Ease movement; avoid bumps"
+      ],
+      "prerequisites": [
+        "focus",
+        "focal-length",
+        "aperture",
+        "depth-of-field"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-push-in",
+        "cmov-pull-out",
+        "cmov-zoom",
+        "cmov-tracking-shot"
+      ],
+      "definitions": [
+        "Change subject size with true perspective/parallax for immersion, intimacy, or reveal."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Lay level track; mark start/end",
+      "Coordinate focus pull with distance change",
+      "Ease movement; avoid bumps"
+    ],
+    "bestPractices": [
+      "Lay level track; mark start/end",
+      "Coordinate focus pull with distance change",
+      "Ease movement; avoid bumps"
+    ],
+    "decisionRules": [
+      "Use when: Emotional push toward talent/product",
+      "Use when: Discovering space with parallax",
+      "Use when: Premium commercial production value",
+      "Do not use when: No path space or uneven floor without proper support",
+      "Do not use when: When a zoom is explicitly the desired stylistic language"
+    ]
+  }
+}

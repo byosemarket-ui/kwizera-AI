@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-feature-presentation",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Feature Presentation",
+  "description": "Explaining what the product has in a scannable, visual way.",
+  "summary": "Support consideration content without dumping specs.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "feature-presentation",
+    "feature presentation",
+    "features",
+    "callouts",
+    "specs"
+  ],
+  "keywords": [
+    "feature presentation",
+    "features",
+    "callouts",
+    "specs"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-benefit-presentation",
+    "vmkt-product-demonstration",
+    "mkt-product-marketing",
+    "sales-value-proposition",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-product-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:17.736Z",
+  "lastUpdated": "2026-08-08T18:26:17.736Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-feature-presentation",
+  "integrityStatus": "verified",
+  "contentHash": "6bab27071e15f4bf062d5d89ab8ba9e726e44df8c17d562a5cd51c628f267c35",
+  "searchableText": "feature presentation explaining what the product has in a scannable, visual way. support consideration content without dumping specs. professional-video-marketing professional-video-marketing professional feature-presentation feature presentation features callouts specs feature presentation features callouts specs",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "feature-presentation-explaining",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "feature-presentation",
+    "kind": "professional-video-marketing",
+    "purpose": "Support consideration content without dumping specs.",
+    "professionalDefinition": "Feature presentation structures product attributes so they are understandable, ordered by importance, and visually indicated.",
+    "workflow": [
+      "Rank features",
+      "Storyboard callouts",
+      "Animate/edit",
+      "CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-feature-presentation",
+      "title": "Feature Presentation",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Explaining what the product has in a scannable, visual way.",
+      "coreConcepts": [
+        "feature presentation",
+        "features",
+        "callouts",
+        "specs"
+      ],
+      "definitions": [
+        "Feature presentation structures product attributes so they are understandable, ordered by importance, and visually indicated.",
+        "Support consideration content without dumping specs."
+      ],
+      "rules": [
+        "Practice: Prioritize top features",
+        "Practice: Visual callouts",
+        "Practice: Bridge each feature to a benefit"
+      ],
+      "bestPractices": [
+        "Prioritize top features",
+        "Visual callouts",
+        "Bridge each feature to a benefit"
+      ],
+      "professionalTechniques": [
+        "Rank features",
+        "Storyboard callouts",
+        "Animate/edit",
+        "CTA"
+      ],
+      "workflow": [
+        "Rank features",
+        "Storyboard callouts",
+        "Animate/edit",
+        "CTA"
+      ],
+      "decisionRules": [
+        "Follow: Prioritize top features",
+        "Follow: Visual callouts",
+        "Follow: Bridge each feature to a benefit"
+      ],
+      "commonMistakes": [
+        "Spec laundry lists",
+        "Features without benefits"
+      ],
+      "troubleshooting": [
+        "Avoid: Spec laundry lists",
+        "Avoid: Features without benefits"
+      ],
+      "recommendations": [
+        "Prioritize top features",
+        "Visual callouts",
+        "Bridge each feature to a benefit"
+      ],
+      "examples": [
+        "Three icon callouts: battery, waterproof, sync"
+      ],
+      "professionalStandards": [
+        "Feature presentation structures product attributes so they are understandable, ordered by importance, and visually indicated."
+      ],
+      "relatedTopics": [
+        "benefit-presentation",
+        "product-demonstration",
+        "product-marketing",
+        "value-proposition"
+      ],
+      "keywords": [
+        "feature presentation",
+        "features",
+        "callouts",
+        "specs"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:feature-presentation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Feature Presentation",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Explaining what the product has in a scannable, visual way.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Feature presentation structures product attributes so they are understandable, ordered by importance, and visually indicated."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Support consideration content without dumping specs."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Rank features",
+            "Storyboard callouts",
+            "Animate/edit",
+            "CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Prioritize top features",
+            "Visual callouts",
+            "Bridge each feature to a benefit"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Three icon callouts: battery, waterproof, sync"
+          ]
+        }
+      ],
+      "concepts": [
+        "feature presentation",
+        "features",
+        "callouts",
+        "specs"
+      ],
+      "entities": [
+        "Feature Presentation",
+        "marketing-knowledge",
+        "product-knowledge",
+        "sales-psychology",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "feature presentation",
+        "features",
+        "callouts",
+        "specs"
+      ],
+      "rules": [
+        "Avoid: Spec laundry lists",
+        "Avoid: Features without benefits"
+      ],
+      "bestPractices": [
+        "Prioritize top features",
+        "Visual callouts",
+        "Bridge each feature to a benefit"
+      ],
+      "professionalTechniques": [
+        "Rank features",
+        "Storyboard callouts",
+        "Animate/edit",
+        "CTA"
+      ],
+      "examples": [
+        "Three icon callouts: battery, waterproof, sync"
+      ],
+      "commonMistakes": [
+        "Spec laundry lists",
+        "Features without benefits"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Prioritize top features",
+        "Practice: Visual callouts",
+        "Practice: Bridge each feature to a benefit"
+      ],
+      "workflowSteps": [
+        "Rank features",
+        "Storyboard callouts",
+        "Animate/edit",
+        "CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "product-knowledge",
+        "sales-psychology",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-benefit-presentation",
+        "vmkt-product-demonstration",
+        "mkt-product-marketing",
+        "sales-value-proposition"
+      ],
+      "definitions": [
+        "Feature presentation structures product attributes so they are understandable, ordered by importance, and visually indicated.",
+        "Support consideration content without dumping specs."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Prioritize top features",
+      "Visual callouts",
+      "Bridge each feature to a benefit"
+    ],
+    "bestPractices": [
+      "Prioritize top features",
+      "Visual callouts",
+      "Bridge each feature to a benefit"
+    ],
+    "decisionRules": [
+      "Practice: Prioritize top features",
+      "Practice: Visual callouts",
+      "Practice: Bridge each feature to a benefit"
+    ]
+  }
+}

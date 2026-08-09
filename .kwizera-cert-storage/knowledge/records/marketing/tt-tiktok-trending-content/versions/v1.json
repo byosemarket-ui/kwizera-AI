@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "tt-tiktok-trending-content",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-tiktok",
+  "title": "Trending Content",
+  "description": "Adapting TikTok trends, sounds, and formats with brand safety.",
+  "summary": "Guide trend participation without losing brand.",
+  "tags": [
+    "professional-tiktok",
+    "professional",
+    "tiktok-trending-content",
+    "tiktok trends",
+    "sounds",
+    "challenges",
+    "format remakes"
+  ],
+  "keywords": [
+    "tiktok trends",
+    "sounds",
+    "challenges",
+    "format remakes"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-trend-analysis",
+    "tt-tiktok-hashtag-strategy",
+    "tt-tiktok-hook-creation",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:34.857Z",
+  "lastUpdated": "2026-08-08T19:03:34.857Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\tt-tiktok-trending-content",
+  "integrityStatus": "verified",
+  "contentHash": "ce0157f8c506a251a4fa08569a177f82037b5b16cd64357bc7a60bc9f38f824a",
+  "searchableText": "trending content adapting tiktok trends, sounds, and formats with brand safety. guide trend participation without losing brand. professional-tiktok professional-tiktok professional tiktok-trending-content tiktok trends sounds challenges format remakes tiktok trends sounds challenges format remakes",
+  "classification": {
+    "category": "professional-tiktok",
+    "topic": "trending-content-adapting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "tiktok-trending-content",
+    "kind": "professional-tiktok",
+    "purpose": "Guide trend participation without losing brand.",
+    "professionalDefinition": "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "tt-tiktok-trending-content",
+      "title": "Trending Content",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Adapting TikTok trends, sounds, and formats with brand safety.",
+      "coreConcepts": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "definitions": [
+        "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers.",
+        "Guide trend participation without losing brand."
+      ],
+      "rules": [
+        "Practice: Jump early when fit is high",
+        "Practice: Rewrite captions for brand voice",
+        "Practice: Track which trend variants convert"
+      ],
+      "bestPractices": [
+        "Jump early when fit is high",
+        "Rewrite captions for brand voice",
+        "Track which trend variants convert"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Jump early when fit is high",
+        "Follow: Rewrite captions for brand voice",
+        "Follow: Track which trend variants convert"
+      ],
+      "commonMistakes": [
+        "Trend for trend's sake",
+        "Ignoring sound licensing and brand safety"
+      ],
+      "troubleshooting": [
+        "Avoid: Trend for trend's sake",
+        "Avoid: Ignoring sound licensing and brand safety"
+      ],
+      "recommendations": [
+        "Jump early when fit is high",
+        "Rewrite captions for brand voice",
+        "Track which trend variants convert"
+      ],
+      "examples": [
+        "Professional application of Trending Content for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers."
+      ],
+      "relatedTopics": [
+        "social-trend-analysis",
+        "tiktok-hashtag-strategy",
+        "tiktok-hook-creation"
+      ],
+      "keywords": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-trending-content",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Trending Content",
+      "category": "professional-tiktok",
+      "domain": "tiktok-knowledge",
+      "description": "Adapting TikTok trends, sounds, and formats with brand safety.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Guide trend participation without losing brand."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Jump early when fit is high",
+            "Rewrite captions for brand voice",
+            "Track which trend variants convert"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Trending Content for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "entities": [
+        "Trending Content",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "rules": [
+        "Avoid: Trend for trend's sake",
+        "Avoid: Ignoring sound licensing and brand safety"
+      ],
+      "bestPractices": [
+        "Jump early when fit is high",
+        "Rewrite captions for brand voice",
+        "Track which trend variants convert"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Trending Content for platform-native content"
+      ],
+      "commonMistakes": [
+        "Trend for trend's sake",
+        "Ignoring sound licensing and brand safety"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Jump early when fit is high",
+        "Practice: Rewrite captions for brand voice",
+        "Practice: Track which trend variants convert"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-social-trend-analysis",
+        "tt-tiktok-hashtag-strategy",
+        "tt-tiktok-hook-creation"
+      ],
+      "definitions": [
+        "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers.",
+        "Guide trend participation without losing brand."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Jump early when fit is high",
+      "Rewrite captions for brand voice",
+      "Track which trend variants convert"
+    ],
+    "bestPractices": [
+      "Jump early when fit is high",
+      "Rewrite captions for brand voice",
+      "Track which trend variants convert"
+    ],
+    "decisionRules": [
+      "Practice: Jump early when fit is high",
+      "Practice: Rewrite captions for brand voice",
+      "Practice: Track which trend variants convert"
+    ]
+  }
+}

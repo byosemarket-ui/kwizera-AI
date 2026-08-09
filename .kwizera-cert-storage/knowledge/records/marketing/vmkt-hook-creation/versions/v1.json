@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-hook-creation",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Hook Creation",
+  "description": "Crafting the opening line/visual that earns the next seconds of attention.",
+  "summary": "Maximize thumb-stop and continuation rate.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "hook-creation",
+    "hook",
+    "thumb stop",
+    "opening line",
+    "pattern interrupt"
+  ],
+  "keywords": [
+    "hook",
+    "thumb stop",
+    "opening line",
+    "pattern interrupt"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-first-3-seconds-strategy",
+    "cust-attention-psychology",
+    "vmkt-audience-retention",
+    "mkt-video-marketing",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:11.782Z",
+  "lastUpdated": "2026-08-08T18:26:11.782Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-hook-creation",
+  "integrityStatus": "verified",
+  "contentHash": "1f97dbb05c05717f86780947780d0a783db85345b022a6f01f2310eb2e4658c7",
+  "searchableText": "hook creation crafting the opening line/visual that earns the next seconds of attention. maximize thumb-stop and continuation rate. professional-video-marketing professional-video-marketing professional hook-creation hook thumb stop opening line pattern interrupt hook thumb stop opening line pattern interrupt",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "hook-creation-crafting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "hook-creation",
+    "kind": "professional-video-marketing",
+    "purpose": "Maximize thumb-stop and continuation rate.",
+    "professionalDefinition": "Hook creation designs the initial pattern interrupt—visual, verbal, or textual—that stops scrolling and frames the promise.",
+    "workflow": [
+      "List hook angles",
+      "Script 5 variants",
+      "Shoot/edit",
+      "Test"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-hook-creation",
+      "title": "Hook Creation",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Crafting the opening line/visual that earns the next seconds of attention.",
+      "coreConcepts": [
+        "hook",
+        "thumb stop",
+        "opening line",
+        "pattern interrupt"
+      ],
+      "definitions": [
+        "Hook creation designs the initial pattern interrupt—visual, verbal, or textual—that stops scrolling and frames the promise.",
+        "Maximize thumb-stop and continuation rate."
+      ],
+      "rules": [
+        "Practice: Specific > generic",
+        "Practice: Show tension or novelty",
+        "Practice: Align hook to body content"
+      ],
+      "bestPractices": [
+        "Specific > generic",
+        "Show tension or novelty",
+        "Align hook to body content"
+      ],
+      "professionalTechniques": [
+        "List hook angles",
+        "Script 5 variants",
+        "Shoot/edit",
+        "Test"
+      ],
+      "workflow": [
+        "List hook angles",
+        "Script 5 variants",
+        "Shoot/edit",
+        "Test"
+      ],
+      "decisionRules": [
+        "Follow: Specific > generic",
+        "Follow: Show tension or novelty",
+        "Follow: Align hook to body content"
+      ],
+      "commonMistakes": [
+        "Misleading clickbait hooks",
+        "Logo-first hooks on social"
+      ],
+      "troubleshooting": [
+        "Avoid: Misleading clickbait hooks",
+        "Avoid: Logo-first hooks on social"
+      ],
+      "recommendations": [
+        "Specific > generic",
+        "Show tension or novelty",
+        "Align hook to body content"
+      ],
+      "examples": [
+        "‘You’re wasting 4 hours a week on this…’ + messy desk visual"
+      ],
+      "professionalStandards": [
+        "Hook creation designs the initial pattern interrupt—visual, verbal, or textual—that stops scrolling and frames the promise."
+      ],
+      "relatedTopics": [
+        "first-3-seconds-strategy",
+        "attention-psychology",
+        "audience-retention",
+        "video-marketing"
+      ],
+      "keywords": [
+        "hook",
+        "thumb stop",
+        "opening line",
+        "pattern interrupt"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:hook-creation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Hook Creation",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Crafting the opening line/visual that earns the next seconds of attention.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Hook creation designs the initial pattern interrupt—visual, verbal, or textual—that stops scrolling and frames the promise."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Maximize thumb-stop and continuation rate."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List hook angles",
+            "Script 5 variants",
+            "Shoot/edit",
+            "Test"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Specific > generic",
+            "Show tension or novelty",
+            "Align hook to body content"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "‘You’re wasting 4 hours a week on this…’ + messy desk visual"
+          ]
+        }
+      ],
+      "concepts": [
+        "hook",
+        "thumb stop",
+        "opening line",
+        "pattern interrupt"
+      ],
+      "entities": [
+        "Hook Creation",
+        "marketing-knowledge",
+        "customer-psychology",
+        "storytelling-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "hook",
+        "thumb stop",
+        "opening line",
+        "pattern interrupt"
+      ],
+      "rules": [
+        "Avoid: Misleading clickbait hooks",
+        "Avoid: Logo-first hooks on social"
+      ],
+      "bestPractices": [
+        "Specific > generic",
+        "Show tension or novelty",
+        "Align hook to body content"
+      ],
+      "professionalTechniques": [
+        "List hook angles",
+        "Script 5 variants",
+        "Shoot/edit",
+        "Test"
+      ],
+      "examples": [
+        "‘You’re wasting 4 hours a week on this…’ + messy desk visual"
+      ],
+      "commonMistakes": [
+        "Misleading clickbait hooks",
+        "Logo-first hooks on social"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Specific > generic",
+        "Practice: Show tension or novelty",
+        "Practice: Align hook to body content"
+      ],
+      "workflowSteps": [
+        "List hook angles",
+        "Script 5 variants",
+        "Shoot/edit",
+        "Test"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "customer-psychology",
+        "storytelling-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-first-3-seconds-strategy",
+        "cust-attention-psychology",
+        "vmkt-audience-retention",
+        "mkt-video-marketing"
+      ],
+      "definitions": [
+        "Hook creation designs the initial pattern interrupt—visual, verbal, or textual—that stops scrolling and frames the promise.",
+        "Maximize thumb-stop and continuation rate."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Specific > generic",
+      "Show tension or novelty",
+      "Align hook to body content"
+    ],
+    "bestPractices": [
+      "Specific > generic",
+      "Show tension or novelty",
+      "Align hook to body content"
+    ],
+    "decisionRules": [
+      "Practice: Specific > generic",
+      "Practice: Show tension or novelty",
+      "Practice: Align hook to body content"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "domainId": "video-production-knowledge",
+  "installedAt": "2026-08-08T16:55:28.645Z",
+  "install": {
+    "installed": true,
+    "topicsInstalled": 0,
+    "topicsUpdated": 19,
+    "bridgesInstalled": 0,
+    "relationshipsCreated": 0,
+    "packSynced": true,
+    "domainMarkedReady": true,
+    "issues": []
+  },
+  "topicIds": [
+    "video-production-fundamentals",
+    "types-of-marketing-videos",
+    "commercial-video-production",
+    "product-advertisement-videos",
+    "social-media-videos",
+    "corporate-videos",
+    "story-structure",
+    "shot-types",
+    "shot-planning",
+    "scene-planning",
+    "camera-coverage",
+    "video-pacing",
+    "visual-rhythm",
+    "video-style",
+    "production-workflow",
+    "pre-production",
+    "production",
+    "post-production",
+    "professional-planning-methods"
+  ]
+}

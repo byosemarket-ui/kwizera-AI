@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:22.258Z","level":"info","event":"startup","message":"Production Planning Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\product-intelligence\\production\\engine"}}
+{"timestamp":"2026-08-08T19:46:27.962Z","level":"info","event":"startup","message":"Production Planning Engine startup complete","data":{"recordsLoaded":0}}

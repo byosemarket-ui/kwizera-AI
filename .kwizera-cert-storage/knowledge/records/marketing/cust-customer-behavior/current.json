@@ -1,0 +1,300 @@
+{
+  "knowledgeId": "cust-customer-behavior",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Customer Behavior",
+  "description": "Observable patterns in how customers notice, evaluate, buy, and return.",
+  "summary": "Ground creative recommendations in how people actually act.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "customer-behavior",
+    "customer behavior",
+    "buyer behavior",
+    "usage context"
+  ],
+  "keywords": [
+    "customer behavior",
+    "buyer behavior",
+    "usage context"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-attention-psychology",
+    "cust-decision-making",
+    "mkt-marketing-customer-journey",
+    "cust-buying-motivation",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:42.713Z",
+  "lastUpdated": "2026-08-08T18:25:42.713Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-customer-behavior",
+  "integrityStatus": "verified",
+  "contentHash": "4a34ca4bbe3b8f7783a1942e314c69b1f2e67513ae1fedf6d29876d51785cae1",
+  "searchableText": "customer behavior observable patterns in how customers notice, evaluate, buy, and return. ground creative recommendations in how people actually act. professional-customer-psychology professional-customer-psychology professional customer-behavior customer behavior buyer behavior usage context customer behavior buyer behavior usage context",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "customer-behavior-observable",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "customer-behavior",
+    "kind": "professional-customer-psychology",
+    "purpose": "Ground creative recommendations in how people actually act.",
+    "professionalDefinition": "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty.",
+    "workflow": [
+      "Research behavior",
+      "Map frictions",
+      "Brief creative",
+      "Measure behavior change"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-customer-behavior",
+      "title": "Customer Behavior",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Observable patterns in how customers notice, evaluate, buy, and return.",
+      "coreConcepts": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "definitions": [
+        "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty.",
+        "Ground creative recommendations in how people actually act."
+      ],
+      "rules": [
+        "Practice: Observe real journeys",
+        "Practice: Separate stated vs revealed preference",
+        "Practice: Design for defaults and friction"
+      ],
+      "bestPractices": [
+        "Observe real journeys",
+        "Separate stated vs revealed preference",
+        "Design for defaults and friction"
+      ],
+      "professionalTechniques": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "workflow": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "decisionRules": [
+        "Follow: Observe real journeys",
+        "Follow: Separate stated vs revealed preference",
+        "Follow: Design for defaults and friction"
+      ],
+      "commonMistakes": [
+        "Assuming rational shoppers only",
+        "Ignoring context of use"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming rational shoppers only",
+        "Avoid: Ignoring context of use"
+      ],
+      "recommendations": [
+        "Observe real journeys",
+        "Separate stated vs revealed preference",
+        "Design for defaults and friction"
+      ],
+      "examples": [
+        "Mobile users skip intros → mandate hook-first edits"
+      ],
+      "professionalStandards": [
+        "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty."
+      ],
+      "relatedTopics": [
+        "attention-psychology",
+        "decision-making",
+        "marketing-customer-journey",
+        "buying-motivation"
+      ],
+      "keywords": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-behavior",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Customer Behavior",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "Observable patterns in how customers notice, evaluate, buy, and return.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Ground creative recommendations in how people actually act."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Research behavior",
+            "Map frictions",
+            "Brief creative",
+            "Measure behavior change"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Observe real journeys",
+            "Separate stated vs revealed preference",
+            "Design for defaults and friction"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Mobile users skip intros → mandate hook-first edits"
+          ]
+        }
+      ],
+      "concepts": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "entities": [
+        "Customer Behavior",
+        "customer-psychology",
+        "marketing-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "rules": [
+        "Avoid: Assuming rational shoppers only",
+        "Avoid: Ignoring context of use"
+      ],
+      "bestPractices": [
+        "Observe real journeys",
+        "Separate stated vs revealed preference",
+        "Design for defaults and friction"
+      ],
+      "professionalTechniques": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "examples": [
+        "Mobile users skip intros → mandate hook-first edits"
+      ],
+      "commonMistakes": [
+        "Assuming rational shoppers only",
+        "Ignoring context of use"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Observe real journeys",
+        "Practice: Separate stated vs revealed preference",
+        "Practice: Design for defaults and friction"
+      ],
+      "workflowSteps": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "marketing-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-attention-psychology",
+        "cust-decision-making",
+        "mkt-marketing-customer-journey",
+        "cust-buying-motivation"
+      ],
+      "definitions": [
+        "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty.",
+        "Ground creative recommendations in how people actually act."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Observe real journeys",
+      "Separate stated vs revealed preference",
+      "Design for defaults and friction"
+    ],
+    "bestPractices": [
+      "Observe real journeys",
+      "Separate stated vs revealed preference",
+      "Design for defaults and friction"
+    ],
+    "decisionRules": [
+      "Practice: Observe real journeys",
+      "Practice: Separate stated vs revealed preference",
+      "Practice: Design for defaults and friction"
+    ]
+  }
+}

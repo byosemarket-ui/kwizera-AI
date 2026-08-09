@@ -1,0 +1,336 @@
+{
+  "knowledgeId": "lit-shadows",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Shadows",
+  "description": "Designed absence of light that reveals form, depth, and mood.",
+  "summary": "Use shadow shape and density as compositional and storytelling tools—not accidents.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "shadows",
+    "contrast",
+    "form",
+    "neg fill",
+    "shade"
+  ],
+  "keywords": [
+    "shadows",
+    "contrast",
+    "form",
+    "neg fill",
+    "shade"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-hard-lighting",
+    "lit-soft-lighting",
+    "lit-fill-light",
+    "lit-low-key-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-storytelling-knowledge",
+    "lc-bridge-camera-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:27.049Z",
+  "lastUpdated": "2026-08-08T17:15:44.714Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-shadows",
+  "integrityStatus": "verified",
+  "contentHash": "85fe2a35c2ef2184bf9aae7cf45094bf984d9e7253ff51c0aacd3760a213eabb",
+  "searchableText": "shadows designed absence of light that reveals form, depth, and mood. use shadow shape and density as compositional and storytelling tools—not accidents. professional-lighting professional-lighting professional shadows contrast form neg fill shade shadows contrast form neg fill shade",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "shadows-designed-absence",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "shadows",
+    "kind": "professional-lighting",
+    "purpose": "Use shadow shape and density as compositional and storytelling tools—not accidents.",
+    "whenToUse": [
+      "Modeling faces/products",
+      "Hiding clutter",
+      "Dramatic beats"
+    ],
+    "whenNotToUse": [
+      "When critical text falls into unreadable shadow"
+    ],
+    "advantages": [
+      "Creates dimension",
+      "Directs eye"
+    ],
+    "limitations": [
+      "Noise and crushed detail if uncontrolled"
+    ],
+    "relatedCameraTechniques": [
+      "exposure latitude",
+      "ISO",
+      "contrast monitoring"
+    ],
+    "relatedStorytellingTechniques": [
+      "mystery",
+      "weight",
+      "focus"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-shadows",
+      "title": "Shadows",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Designed absence of light that reveals form, depth, and mood.",
+      "coreConcepts": [
+        "shadows",
+        "contrast",
+        "form",
+        "neg fill",
+        "shade"
+      ],
+      "definitions": [
+        "Use shadow shape and density as compositional and storytelling tools—not accidents."
+      ],
+      "rules": [
+        "Use when: Modeling faces/products",
+        "Use when: Hiding clutter",
+        "Use when: Dramatic beats",
+        "Do not use when: When critical text falls into unreadable shadow"
+      ],
+      "bestPractices": [
+        "Shape with flags/neg fill",
+        "Decide shadow edge (hard/soft)",
+        "Keep story-critical detail above noise floor"
+      ],
+      "professionalTechniques": [
+        "Creates dimension",
+        "Directs eye"
+      ],
+      "workflow": [
+        "Choose Shadows",
+        "Shape with flags/neg fill",
+        "Decide shadow edge (hard/soft)",
+        "Keep story-critical detail above noise floor"
+      ],
+      "decisionRules": [
+        "Use when: Modeling faces/products",
+        "Use when: Hiding clutter",
+        "Use when: Dramatic beats",
+        "Avoid when: When critical text falls into unreadable shadow"
+      ],
+      "commonMistakes": [
+        "Random multipole shadows",
+        "Blocking eyes unintentionally"
+      ],
+      "troubleshooting": [
+        "Limitation: Noise and crushed detail if uncontrolled"
+      ],
+      "recommendations": [
+        "Shape with flags/neg fill",
+        "Decide shadow edge (hard/soft)",
+        "Keep story-critical detail above noise floor"
+      ],
+      "examples": [
+        "Single shadow under bottle for grounded product beauty"
+      ],
+      "professionalStandards": [
+        "mystery",
+        "weight",
+        "focus"
+      ],
+      "relatedTopics": [
+        "hard-lighting",
+        "soft-lighting",
+        "fill-light",
+        "low-key-lighting"
+      ],
+      "keywords": [
+        "shadows",
+        "contrast",
+        "form",
+        "neg fill",
+        "shade"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:shadows",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Shadows",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Designed absence of light that reveals form, depth, and mood.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Use shadow shape and density as compositional and storytelling tools—not accidents."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Modeling faces/products",
+            "Hiding clutter",
+            "Dramatic beats"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When critical text falls into unreadable shadow"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Shape with flags/neg fill",
+            "Decide shadow edge (hard/soft)",
+            "Keep story-critical detail above noise floor"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Single shadow under bottle for grounded product beauty"
+          ]
+        }
+      ],
+      "concepts": [
+        "shadows",
+        "contrast",
+        "form",
+        "neg fill",
+        "shade"
+      ],
+      "entities": [
+        "Shadows",
+        "lighting-knowledge",
+        "composition-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "shadows",
+        "contrast",
+        "form",
+        "neg fill",
+        "shade"
+      ],
+      "rules": [
+        "Avoid when: When critical text falls into unreadable shadow"
+      ],
+      "bestPractices": [
+        "Shape with flags/neg fill",
+        "Decide shadow edge (hard/soft)",
+        "Keep story-critical detail above noise floor"
+      ],
+      "professionalTechniques": [
+        "Creates dimension",
+        "Directs eye"
+      ],
+      "examples": [
+        "Single shadow under bottle for grounded product beauty"
+      ],
+      "commonMistakes": [
+        "Random multipole shadows",
+        "Blocking eyes unintentionally"
+      ],
+      "qualityRules": [
+        "Noise and crushed detail if uncontrolled"
+      ],
+      "decisionRules": [
+        "Use when: Modeling faces/products",
+        "Use when: Hiding clutter",
+        "Use when: Dramatic beats",
+        "Do not use when: When critical text falls into unreadable shadow"
+      ],
+      "workflowSteps": [
+        "Shape with flags/neg fill",
+        "Decide shadow edge (hard/soft)",
+        "Keep story-critical detail above noise floor"
+      ],
+      "prerequisites": [
+        "exposure latitude",
+        "ISO",
+        "contrast monitoring"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "composition-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-hard-lighting",
+        "lit-soft-lighting",
+        "lit-fill-light",
+        "lit-low-key-lighting"
+      ],
+      "definitions": [
+        "Use shadow shape and density as compositional and storytelling tools—not accidents."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Shape with flags/neg fill",
+      "Decide shadow edge (hard/soft)",
+      "Keep story-critical detail above noise floor"
+    ],
+    "bestPractices": [
+      "Shape with flags/neg fill",
+      "Decide shadow edge (hard/soft)",
+      "Keep story-critical detail above noise floor"
+    ],
+    "decisionRules": [
+      "Use when: Modeling faces/products",
+      "Use when: Hiding clutter",
+      "Use when: Dramatic beats",
+      "Do not use when: When critical text falls into unreadable shadow"
+    ]
+  }
+}

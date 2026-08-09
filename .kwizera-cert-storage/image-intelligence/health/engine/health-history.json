@@ -1,0 +1,22 @@
+[
+  {
+    "checkId": "ii-hc-1786218396940-1dba92",
+    "timestamp": "2026-08-08T19:46:37.535Z",
+    "module": "system",
+    "healthScore": 94,
+    "level": "good",
+    "warnings": [
+      "Image intelligence cache not warmed"
+    ],
+    "errors": [
+      "image-intelligence-foundation unavailable",
+      "No quality predictions to validate relationships",
+      "Cache not warmed"
+    ],
+    "repairs": [],
+    "recommendations": [
+      "Run image intelligence optimization"
+    ],
+    "performanceMs": 595
+  }
+]

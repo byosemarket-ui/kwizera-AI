@@ -1,0 +1,329 @@
+{
+  "knowledgeId": "story-resolution",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Resolution",
+  "description": "The satisfying settling of conflict through the brand/product’s role.",
+  "summary": "Prove that change is real and attributable to the offer.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "resolution",
+    "payoff",
+    "solution",
+    "after state",
+    "closure"
+  ],
+  "keywords": [
+    "resolution",
+    "payoff",
+    "solution",
+    "after state",
+    "closure"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-ending",
+    "story-conflict",
+    "story-call-to-action-placement",
+    "scene-demonstration-scene",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-scene-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:06.683Z",
+  "lastUpdated": "2026-08-08T17:32:57.063Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-resolution",
+  "integrityStatus": "verified",
+  "contentHash": "2cd7320a5cb4d2c3470518a573c22566b0f5b33f2d29de5adcefcbbed0c303e6",
+  "searchableText": "resolution the satisfying settling of conflict through the brand/product’s role. prove that change is real and attributable to the offer. professional-storytelling professional-storytelling professional resolution payoff solution after state closure resolution payoff solution after state closure",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "resolution-satisfying-settling",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "resolution",
+    "kind": "professional-storytelling",
+    "purpose": "Prove that change is real and attributable to the offer.",
+    "professionalDefinition": "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established.",
+    "whenToUse": [
+      "After conflict is established",
+      "Before or with CTA"
+    ],
+    "whenNotToUse": [
+      "Before the audience feels the problem"
+    ],
+    "workflow": [
+      "State resolved state",
+      "Choose proof scene",
+      "Bridge to CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-resolution",
+      "title": "Resolution",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The satisfying settling of conflict through the brand/product’s role.",
+      "coreConcepts": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "definitions": [
+        "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established.",
+        "Prove that change is real and attributable to the offer."
+      ],
+      "rules": [
+        "Use when: After conflict is established",
+        "Use when: Before or with CTA",
+        "Do not use when: Before the audience feels the problem"
+      ],
+      "bestPractices": [
+        "Show before/after clearly",
+        "Use proof (demo, metric, testimonial)",
+        "Keep resolution honest"
+      ],
+      "professionalTechniques": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "workflow": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "decisionRules": [
+        "Use when: After conflict is established",
+        "Use when: Before or with CTA",
+        "Avoid when: Before the audience feels the problem"
+      ],
+      "commonMistakes": [
+        "Magical resolution without proof",
+        "Resolving a different problem than setup"
+      ],
+      "troubleshooting": [
+        "Avoid: Magical resolution without proof",
+        "Avoid: Resolving a different problem than setup"
+      ],
+      "recommendations": [
+        "Show before/after clearly",
+        "Use proof (demo, metric, testimonial)",
+        "Keep resolution honest"
+      ],
+      "examples": [
+        "Dashboard calm + 5-star quote + ‘Get started’"
+      ],
+      "professionalStandards": [
+        "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established."
+      ],
+      "relatedTopics": [
+        "ending",
+        "conflict",
+        "call-to-action-placement",
+        "demonstration-scene"
+      ],
+      "keywords": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:resolution",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Resolution",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "The satisfying settling of conflict through the brand/product’s role.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Prove that change is real and attributable to the offer."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "After conflict is established",
+            "Before or with CTA"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Before the audience feels the problem"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "State resolved state",
+            "Choose proof scene",
+            "Bridge to CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Show before/after clearly",
+            "Use proof (demo, metric, testimonial)",
+            "Keep resolution honest"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Dashboard calm + 5-star quote + ‘Get started’"
+          ]
+        }
+      ],
+      "concepts": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "entities": [
+        "Resolution",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge",
+        "scene-knowledge"
+      ],
+      "terminology": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "rules": [
+        "Avoid when: Before the audience feels the problem"
+      ],
+      "bestPractices": [
+        "Show before/after clearly",
+        "Use proof (demo, metric, testimonial)",
+        "Keep resolution honest"
+      ],
+      "professionalTechniques": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "examples": [
+        "Dashboard calm + 5-star quote + ‘Get started’"
+      ],
+      "commonMistakes": [
+        "Magical resolution without proof",
+        "Resolving a different problem than setup"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: After conflict is established",
+        "Use when: Before or with CTA",
+        "Do not use when: Before the audience feels the problem"
+      ],
+      "workflowSteps": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge",
+        "scene-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-ending",
+        "story-conflict",
+        "story-call-to-action-placement",
+        "scene-demonstration-scene"
+      ],
+      "definitions": [
+        "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established.",
+        "Prove that change is real and attributable to the offer."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Show before/after clearly",
+      "Use proof (demo, metric, testimonial)",
+      "Keep resolution honest"
+    ],
+    "bestPractices": [
+      "Show before/after clearly",
+      "Use proof (demo, metric, testimonial)",
+      "Keep resolution honest"
+    ],
+    "decisionRules": [
+      "Use when: After conflict is established",
+      "Use when: Before or with CTA",
+      "Do not use when: Before the audience feels the problem"
+    ]
+  }
+}

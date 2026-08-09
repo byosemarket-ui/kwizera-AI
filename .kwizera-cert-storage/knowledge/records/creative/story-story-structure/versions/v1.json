@@ -1,0 +1,345 @@
+{
+  "knowledgeId": "story-story-structure",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Story Structure",
+  "description": "The organized arrangement of beginning, development, climax, and close for marketing narratives.",
+  "summary": "Ensure pacing and information order support comprehension and conversion.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "story-structure",
+    "story structure",
+    "beats",
+    "arc",
+    "narrative order",
+    "pacing"
+  ],
+  "keywords": [
+    "story structure",
+    "beats",
+    "arc",
+    "narrative order",
+    "pacing"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-three-act-structure",
+    "story-beginning",
+    "story-middle",
+    "story-ending",
+    "story-narrative-flow",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:05.799Z",
+  "lastUpdated": "2026-08-08T15:34:05.799Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-story-structure",
+  "integrityStatus": "verified",
+  "contentHash": "0c26fd09710dd10a43b5f9e778a608c9c037dda5118a194ae81f1e7fbb120ee1",
+  "searchableText": "story structure the organized arrangement of beginning, development, climax, and close for marketing narratives. ensure pacing and information order support comprehension and conversion. professional-storytelling professional-storytelling professional story-structure story structure beats arc narrative order pacing story structure beats arc narrative order pacing",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "story-structure-organized",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "story-structure",
+    "kind": "professional-storytelling",
+    "purpose": "Ensure pacing and information order support comprehension and conversion.",
+    "professionalDefinition": "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc.",
+    "whenToUse": [
+      "Scripts over ~15 seconds",
+      "Multi-scene commercials",
+      "Explainers with persuasion goals"
+    ],
+    "whenNotToUse": [
+      "Single-shot pack reveals with no narrative ambition"
+    ],
+    "workflow": [
+      "Choose structure model",
+      "List beats",
+      "Assign scenes",
+      "Time-box each beat"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-story-structure",
+      "title": "Story Structure",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The organized arrangement of beginning, development, climax, and close for marketing narratives.",
+      "coreConcepts": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "definitions": [
+        "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc.",
+        "Ensure pacing and information order support comprehension and conversion."
+      ],
+      "rules": [
+        "Use when: Scripts over ~15 seconds",
+        "Use when: Multi-scene commercials",
+        "Use when: Explainers with persuasion goals",
+        "Do not use when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "bestPractices": [
+        "Lock beats before shooting",
+        "Map each beat to a scene purpose",
+        "Protect climax clarity"
+      ],
+      "professionalTechniques": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "workflow": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "decisionRules": [
+        "Use when: Scripts over ~15 seconds",
+        "Use when: Multi-scene commercials",
+        "Use when: Explainers with persuasion goals",
+        "Avoid when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "commonMistakes": [
+        "All middle, no hook",
+        "CTA before any value"
+      ],
+      "troubleshooting": [
+        "Avoid: All middle, no hook",
+        "Avoid: CTA before any value"
+      ],
+      "recommendations": [
+        "Lock beats before shooting",
+        "Map each beat to a scene purpose",
+        "Protect climax clarity"
+      ],
+      "examples": [
+        "15s social: hook → problem → product → proof → CTA"
+      ],
+      "professionalStandards": [
+        "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc."
+      ],
+      "relatedTopics": [
+        "three-act-structure",
+        "beginning",
+        "middle",
+        "ending",
+        "narrative-flow"
+      ],
+      "keywords": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:story-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Story Structure",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "The organized arrangement of beginning, development, climax, and close for marketing narratives.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Ensure pacing and information order support comprehension and conversion."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Scripts over ~15 seconds",
+            "Multi-scene commercials",
+            "Explainers with persuasion goals"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Single-shot pack reveals with no narrative ambition"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose structure model",
+            "List beats",
+            "Assign scenes",
+            "Time-box each beat"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lock beats before shooting",
+            "Map each beat to a scene purpose",
+            "Protect climax clarity"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "15s social: hook → problem → product → proof → CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "entities": [
+        "Story Structure",
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "rules": [
+        "Avoid when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "bestPractices": [
+        "Lock beats before shooting",
+        "Map each beat to a scene purpose",
+        "Protect climax clarity"
+      ],
+      "professionalTechniques": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "examples": [
+        "15s social: hook → problem → product → proof → CTA"
+      ],
+      "commonMistakes": [
+        "All middle, no hook",
+        "CTA before any value"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Scripts over ~15 seconds",
+        "Use when: Multi-scene commercials",
+        "Use when: Explainers with persuasion goals",
+        "Do not use when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "workflowSteps": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-three-act-structure",
+        "story-beginning",
+        "story-middle",
+        "story-ending",
+        "story-narrative-flow"
+      ],
+      "definitions": [
+        "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc.",
+        "Ensure pacing and information order support comprehension and conversion."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Lock beats before shooting",
+      "Map each beat to a scene purpose",
+      "Protect climax clarity"
+    ],
+    "bestPractices": [
+      "Lock beats before shooting",
+      "Map each beat to a scene purpose",
+      "Protect climax clarity"
+    ],
+    "decisionRules": [
+      "Use when: Scripts over ~15 seconds",
+      "Use when: Multi-scene commercials",
+      "Use when: Explainers with persuasion goals",
+      "Do not use when: Single-shot pack reveals with no narrative ambition"
+    ]
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "version": "1.0.0",
+  "domainIds": [
+    "animation-knowledge",
+    "motion-graphics-knowledge",
+    "rendering-knowledge"
+  ],
+  "installedAt": "2026-08-08T18:24:11.296Z",
+  "install": {
+    "installed": true,
+    "animationInstalled": 0,
+    "animationUpdated": 12,
+    "motionInstalled": 0,
+    "motionUpdated": 10,
+    "transitionInstalled": 0,
+    "transitionUpdated": 10,
+    "renderingInstalled": 0,
+    "renderingUpdated": 12,
+    "bridgesInstalled": 0,
+    "relationshipsCreated": 148,
+    "animationPackSynced": true,
+    "motionPackSynced": true,
+    "renderingPackSynced": true,
+    "domainsMarkedReady": true,
+    "issues": []
+  },
+  "animationTopicIds": [
+    "animation-fundamentals",
+    "principles-of-animation",
+    "timing",
+    "spacing",
+    "anticipation",
+    "squash-and-stretch",
+    "follow-through",
+    "secondary-action",
+    "staging",
+    "appeal",
+    "character-animation",
+    "product-animation"
+  ],
+  "motionTopicIds": [
+    "motion-design",
+    "motion-graphics-fundamentals",
+    "text-animation",
+    "logo-animation",
+    "icon-animation",
+    "ui-motion",
+    "motion-rhythm",
+    "motion-hierarchy",
+    "motion-timing",
+    "motion-style"
+  ],
+  "transitionTopicIds": [
+    "cut",
+    "fade",
+    "dissolve",
+    "wipe",
+    "match-cut",
+    "luma-transition",
+    "shape-transition",
+    "zoom-transition",
+    "camera-transition",
+    "creative-transitions"
+  ],
+  "renderingTopicIds": [
+    "rendering-fundamentals",
+    "render-pipeline",
+    "render-quality",
+    "resolution",
+    "frame-rate",
+    "bitrate",
+    "compression",
+    "video-codecs",
+    "color-space",
+    "hdr",
+    "export-settings",
+    "performance-optimization"
+  ]
+}

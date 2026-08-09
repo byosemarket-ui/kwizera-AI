@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "scene-scene-composition",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Scene Composition",
+  "description": "Arranging subjects, props, and space within a scene for clarity and hierarchy.",
+  "summary": "Make the scene’s story point readable in a single glance.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "scene-composition",
+    "scene composition",
+    "staging",
+    "blocking",
+    "visual hierarchy in scene"
+  ],
+  "keywords": [
+    "scene composition",
+    "staging",
+    "blocking",
+    "visual hierarchy in scene"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-environment-design",
+    "scene-props-selection",
+    "scene-background-selection",
+    "scene-hero-scene",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-composition-knowledge",
+    "ss-bridge-lighting-knowledge",
+    "ss-bridge-camera-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:07.304Z",
+  "lastUpdated": "2026-08-08T17:33:02.043Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-scene-composition",
+  "integrityStatus": "verified",
+  "contentHash": "c1b0891f2b3cfa207dfdc99928abd7407c9a7bf1cabc8f6d163e364a455e1110",
+  "searchableText": "scene composition arranging subjects, props, and space within a scene for clarity and hierarchy. make the scene’s story point readable in a single glance. professional-scene-design professional-scene-design professional scene-composition scene composition staging blocking visual hierarchy in scene scene composition staging blocking visual hierarchy in scene",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "scene-composition-arranging",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "scene-composition",
+    "kind": "professional-scene-design",
+    "purpose": "Make the scene’s story point readable in a single glance.",
+    "professionalDefinition": "Scene composition is the spatial and visual organization of elements inside a scene so the primary subject and action dominate attention.",
+    "whenToUse": [
+      "Hero and demo scenes",
+      "Any framed storytelling beat"
+    ],
+    "whenNotToUse": [
+      "Intentional chaos as stylistic conflict—only when motivated"
+    ],
+    "workflow": [
+      "Place hero",
+      "Dress supporting props",
+      "Check framing on camera"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-scene-composition",
+      "title": "Scene Composition",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "Arranging subjects, props, and space within a scene for clarity and hierarchy.",
+      "coreConcepts": [
+        "scene composition",
+        "staging",
+        "blocking",
+        "visual hierarchy in scene"
+      ],
+      "definitions": [
+        "Scene composition is the spatial and visual organization of elements inside a scene so the primary subject and action dominate attention.",
+        "Make the scene’s story point readable in a single glance."
+      ],
+      "rules": [
+        "Use when: Hero and demo scenes",
+        "Use when: Any framed storytelling beat",
+        "Do not use when: Intentional chaos as stylistic conflict—only when motivated"
+      ],
+      "bestPractices": [
+        "Clear subject",
+        "Supportive background",
+        "Use depth layers"
+      ],
+      "professionalTechniques": [
+        "Place hero",
+        "Dress supporting props",
+        "Check framing on camera"
+      ],
+      "workflow": [
+        "Place hero",
+        "Dress supporting props",
+        "Check framing on camera"
+      ],
+      "decisionRules": [
+        "Use when: Hero and demo scenes",
+        "Use when: Any framed storytelling beat",
+        "Avoid when: Intentional chaos as stylistic conflict—only when motivated"
+      ],
+      "commonMistakes": [
+        "Busy frames hiding product",
+        "Unmotivated symmetry"
+      ],
+      "troubleshooting": [
+        "Avoid: Busy frames hiding product",
+        "Avoid: Unmotivated symmetry"
+      ],
+      "recommendations": [
+        "Clear subject",
+        "Supportive background",
+        "Use depth layers"
+      ],
+      "examples": [
+        "Product centered with lifestyle depth behind, logo readable"
+      ],
+      "professionalStandards": [
+        "Scene composition is the spatial and visual organization of elements inside a scene so the primary subject and action dominate attention."
+      ],
+      "relatedTopics": [
+        "environment-design",
+        "props-selection",
+        "background-selection",
+        "hero-scene"
+      ],
+      "keywords": [
+        "scene composition",
+        "staging",
+        "blocking",
+        "visual hierarchy in scene"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:scene-composition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Scene Composition",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "Arranging subjects, props, and space within a scene for clarity and hierarchy.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Scene composition is the spatial and visual organization of elements inside a scene so the primary subject and action dominate attention."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make the scene’s story point readable in a single glance."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Hero and demo scenes",
+            "Any framed storytelling beat"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Intentional chaos as stylistic conflict—only when motivated"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Place hero",
+            "Dress supporting props",
+            "Check framing on camera"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Clear subject",
+            "Supportive background",
+            "Use depth layers"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product centered with lifestyle depth behind, logo readable"
+          ]
+        }
+      ],
+      "concepts": [
+        "scene composition",
+        "staging",
+        "blocking",
+        "visual hierarchy in scene"
+      ],
+      "entities": [
+        "Scene Composition",
+        "scene-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "scene composition",
+        "staging",
+        "blocking",
+        "visual hierarchy in scene"
+      ],
+      "rules": [
+        "Avoid when: Intentional chaos as stylistic conflict—only when motivated"
+      ],
+      "bestPractices": [
+        "Clear subject",
+        "Supportive background",
+        "Use depth layers"
+      ],
+      "professionalTechniques": [
+        "Place hero",
+        "Dress supporting props",
+        "Check framing on camera"
+      ],
+      "examples": [
+        "Product centered with lifestyle depth behind, logo readable"
+      ],
+      "commonMistakes": [
+        "Busy frames hiding product",
+        "Unmotivated symmetry"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Hero and demo scenes",
+        "Use when: Any framed storytelling beat",
+        "Do not use when: Intentional chaos as stylistic conflict—only when motivated"
+      ],
+      "workflowSteps": [
+        "Place hero",
+        "Dress supporting props",
+        "Check framing on camera"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-environment-design",
+        "scene-props-selection",
+        "scene-background-selection",
+        "scene-hero-scene"
+      ],
+      "definitions": [
+        "Scene composition is the spatial and visual organization of elements inside a scene so the primary subject and action dominate attention.",
+        "Make the scene’s story point readable in a single glance."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Clear subject",
+      "Supportive background",
+      "Use depth layers"
+    ],
+    "bestPractices": [
+      "Clear subject",
+      "Supportive background",
+      "Use depth layers"
+    ],
+    "decisionRules": [
+      "Use when: Hero and demo scenes",
+      "Use when: Any framed storytelling beat",
+      "Do not use when: Intentional chaos as stylistic conflict—only when motivated"
+    ]
+  }
+}

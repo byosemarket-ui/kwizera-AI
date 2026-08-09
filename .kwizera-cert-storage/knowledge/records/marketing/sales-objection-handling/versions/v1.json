@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "sales-objection-handling",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-sales-psychology",
+  "title": "Objection Handling",
+  "description": "Addressing doubts that block purchase inside creative and scripts.",
+  "summary": "Strengthen mid/bottom funnel video content.",
+  "tags": [
+    "professional-sales-psychology",
+    "professional",
+    "objection-handling",
+    "objection handling",
+    "objections",
+    "doubts",
+    "risk reversal"
+  ],
+  "keywords": [
+    "objection handling",
+    "objections",
+    "doubts",
+    "risk reversal"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-decision-making",
+    "sales-social-proof",
+    "vmkt-product-demonstration",
+    "cust-trust-building",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-product-knowledge",
+    "mbp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:10.244Z",
+  "lastUpdated": "2026-08-08T18:26:10.244Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sales-objection-handling",
+  "integrityStatus": "verified",
+  "contentHash": "8f0cc8e2abc0e7dcc1cd347e5bd902cbebbe7a84aab97e543f02127b8a8f93b9",
+  "searchableText": "objection handling addressing doubts that block purchase inside creative and scripts. strengthen mid/bottom funnel video content. professional-sales-psychology professional-sales-psychology professional objection-handling objection handling objections doubts risk reversal objection handling objections doubts risk reversal",
+  "classification": {
+    "category": "professional-sales-psychology",
+    "topic": "objection-handling-addressing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "objection-handling",
+    "kind": "professional-sales-psychology",
+    "purpose": "Strengthen mid/bottom funnel video content.",
+    "professionalDefinition": "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative.",
+    "workflow": [
+      "Mine objections",
+      "Map proof",
+      "Script answers",
+      "Place in MOF/BOF"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sales-objection-handling",
+      "title": "Objection Handling",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Addressing doubts that block purchase inside creative and scripts.",
+      "coreConcepts": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "definitions": [
+        "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative.",
+        "Strengthen mid/bottom funnel video content."
+      ],
+      "rules": [
+        "Practice: List top 3 objections",
+        "Practice: Answer with demo/proof",
+        "Practice: Keep tone respectful"
+      ],
+      "bestPractices": [
+        "List top 3 objections",
+        "Answer with demo/proof",
+        "Keep tone respectful"
+      ],
+      "professionalTechniques": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "workflow": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "decisionRules": [
+        "Follow: List top 3 objections",
+        "Follow: Answer with demo/proof",
+        "Follow: Keep tone respectful"
+      ],
+      "commonMistakes": [
+        "Ignoring obvious doubts",
+        "Defensive tone"
+      ],
+      "troubleshooting": [
+        "Avoid: Ignoring obvious doubts",
+        "Avoid: Defensive tone"
+      ],
+      "recommendations": [
+        "List top 3 objections",
+        "Answer with demo/proof",
+        "Keep tone respectful"
+      ],
+      "examples": [
+        "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+      ],
+      "professionalStandards": [
+        "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative."
+      ],
+      "relatedTopics": [
+        "decision-making",
+        "social-proof",
+        "product-demonstration",
+        "trust-building"
+      ],
+      "keywords": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:objection-handling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Objection Handling",
+      "category": "professional-sales-psychology",
+      "domain": "sales-psychology",
+      "description": "Addressing doubts that block purchase inside creative and scripts.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Strengthen mid/bottom funnel video content."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Mine objections",
+            "Map proof",
+            "Script answers",
+            "Place in MOF/BOF"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "List top 3 objections",
+            "Answer with demo/proof",
+            "Keep tone respectful"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+          ]
+        }
+      ],
+      "concepts": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "entities": [
+        "Objection Handling",
+        "sales-psychology",
+        "customer-psychology",
+        "product-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "rules": [
+        "Avoid: Ignoring obvious doubts",
+        "Avoid: Defensive tone"
+      ],
+      "bestPractices": [
+        "List top 3 objections",
+        "Answer with demo/proof",
+        "Keep tone respectful"
+      ],
+      "professionalTechniques": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "examples": [
+        "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+      ],
+      "commonMistakes": [
+        "Ignoring obvious doubts",
+        "Defensive tone"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: List top 3 objections",
+        "Practice: Answer with demo/proof",
+        "Practice: Keep tone respectful"
+      ],
+      "workflowSteps": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "sales-psychology",
+        "customer-psychology",
+        "product-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-decision-making",
+        "sales-social-proof",
+        "vmkt-product-demonstration",
+        "cust-trust-building"
+      ],
+      "definitions": [
+        "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative.",
+        "Strengthen mid/bottom funnel video content."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "List top 3 objections",
+      "Answer with demo/proof",
+      "Keep tone respectful"
+    ],
+    "bestPractices": [
+      "List top 3 objections",
+      "Answer with demo/proof",
+      "Keep tone respectful"
+    ],
+    "decisionRules": [
+      "Practice: List top 3 objections",
+      "Practice: Answer with demo/proof",
+      "Practice: Keep tone respectful"
+    ]
+  }
+}

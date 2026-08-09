@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:06.947Z","level":"info","event":"startup","message":"Music Generation Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\audio-generation\\music\\engine"}}
+{"timestamp":"2026-08-08T19:47:10.293Z","level":"info","event":"startup","message":"Music Generation Engine startup complete","data":{"recordsLoaded":0}}

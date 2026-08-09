@@ -16,6 +16,7 @@ const DOMAIN_PACK_HINTS: Array<{ slug: KnowledgePackSlug; terms: string[] }> = [
   { slug: "video-production", terms: ["video production", "production pipeline", "shoot day", "call sheet", "commercial"] },
   { slug: "customer-psychology", terms: ["customer psychology", "buyer psychology", "consumer behavior", "purchase intent"] },
   { slug: "sales-psychology", terms: ["sales psychology", "persuasion", "closing", "objection handling"] },
+  { slug: "industry-standards", terms: ["industry standards", "professional standards", "quality assurance", "quality rules", "quality checklist"] },
   { slug: "color-theory", terms: ["color theory", "color harmony", "complementary", "hue", "saturation", "grading"] },
   { slug: "typography", terms: ["typography", "typeface", "font pairing", "kerning", "leading"] },
   { slug: "social-media", terms: ["social media", "instagram", "tiktok", "reels", "shorts", "feed"] },
@@ -50,6 +51,7 @@ const DOMAIN_ID_TO_SLUG: Record<string, KnowledgePackSlug> = {
   "camera-movement-knowledge": "camera-movement",
   "customer-psychology-knowledge": "customer-psychology",
   "sales-psychology-knowledge": "sales-psychology",
+  "industry-standards-knowledge": "industry-standards",
 };
 
 /**

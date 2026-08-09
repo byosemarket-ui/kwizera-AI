@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T15:30:05.182Z","level":"info","event":"startup","message":"Video Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:05.197Z","level":"info","event":"startup","message":"Video Memory Engine startup complete","data":{"videosLoaded":0,"patternsLoaded":0,"durationMs":13}}
+{"timestamp":"2026-08-08T15:47:17.224Z","level":"info","event":"startup","message":"Video Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:17.435Z","level":"info","event":"startup","message":"Video Memory Engine startup complete","data":{"videosLoaded":0,"patternsLoaded":0,"durationMs":42}}

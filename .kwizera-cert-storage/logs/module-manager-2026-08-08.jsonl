@@ -1,0 +1,250 @@
+{"timestamp":"2026-08-08T15:30:03.424Z","level":"info","event":"state-change","message":"ai-core → ready","data":{"detail":"AI Core ready"}}
+{"timestamp":"2026-08-08T15:30:03.427Z","level":"info","event":"state-change","message":"ai-core → running","data":{"detail":"AI Core operational"}}
+{"timestamp":"2026-08-08T15:30:03.428Z","level":"info","event":"initialization","message":"AI Module Manager initialized","data":{"catalogSize":27,"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:10.037Z","level":"info","event":"state-change","message":"memory-engine → registered","data":{"detail":"Registered KWIZERA AI Persistent Memory Foundation"}}
+{"timestamp":"2026-08-08T15:30:10.072Z","level":"info","event":"registration","message":"Module registered: memory-engine","data":{"version":"0.1.0","slotId":"memory-engine"}}
+{"timestamp":"2026-08-08T15:30:10.147Z","level":"info","event":"state-change","message":"memory-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:10.159Z","level":"info","event":"state-change","message":"memory-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:10.232Z","level":"info","event":"state-change","message":"memory-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:10.244Z","level":"info","event":"state-change","message":"memory-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:10.247Z","level":"info","event":"performance","message":"Module startup memory-engine","data":{"startupMs":170}}
+{"timestamp":"2026-08-08T15:30:10.258Z","level":"info","event":"state-change","message":"reasoning-engine → registered","data":{"detail":"Registered KWIZERA AI Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:30:10.261Z","level":"info","event":"registration","message":"Module registered: reasoning-engine","data":{"version":"0.1.0","slotId":"reasoning-engine"}}
+{"timestamp":"2026-08-08T15:30:10.278Z","level":"info","event":"state-change","message":"reasoning-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:10.294Z","level":"info","event":"state-change","message":"reasoning-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:10.581Z","level":"info","event":"state-change","message":"reasoning-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:10.954Z","level":"info","event":"state-change","message":"reasoning-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:10.956Z","level":"info","event":"performance","message":"Module startup reasoning-engine","data":{"startupMs":692}}
+{"timestamp":"2026-08-08T15:30:10.968Z","level":"info","event":"state-change","message":"decision-engine → registered","data":{"detail":"Registered KWIZERA AI Decision Engine"}}
+{"timestamp":"2026-08-08T15:30:11.345Z","level":"info","event":"registration","message":"Module registered: decision-engine","data":{"version":"0.1.0","slotId":"decision-engine"}}
+{"timestamp":"2026-08-08T15:30:11.457Z","level":"info","event":"state-change","message":"decision-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:11.604Z","level":"info","event":"state-change","message":"decision-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:11.610Z","level":"info","event":"state-change","message":"decision-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:11.734Z","level":"info","event":"state-change","message":"decision-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:11.736Z","level":"info","event":"performance","message":"Module startup decision-engine","data":{"startupMs":388}}
+{"timestamp":"2026-08-08T15:30:11.909Z","level":"info","event":"state-change","message":"planning-engine → registered","data":{"detail":"Registered KWIZERA AI Planning Engine"}}
+{"timestamp":"2026-08-08T15:30:11.913Z","level":"info","event":"registration","message":"Module registered: planning-engine","data":{"version":"0.1.0","slotId":"planning-engine"}}
+{"timestamp":"2026-08-08T15:30:11.921Z","level":"info","event":"state-change","message":"planning-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:12.109Z","level":"info","event":"state-change","message":"planning-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:12.119Z","level":"info","event":"state-change","message":"planning-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:12.126Z","level":"info","event":"state-change","message":"planning-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:12.127Z","level":"info","event":"performance","message":"Module startup planning-engine","data":{"startupMs":212}}
+{"timestamp":"2026-08-08T15:30:12.137Z","level":"info","event":"state-change","message":"task-manager → registered","data":{"detail":"Registered KWIZERA AI Task Manager"}}
+{"timestamp":"2026-08-08T15:30:12.141Z","level":"info","event":"registration","message":"Module registered: task-manager","data":{"version":"0.1.0","slotId":"task-manager"}}
+{"timestamp":"2026-08-08T15:30:12.353Z","level":"info","event":"state-change","message":"task-manager → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:12.627Z","level":"info","event":"state-change","message":"task-manager → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:13.128Z","level":"info","event":"state-change","message":"task-manager → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:13.350Z","level":"info","event":"state-change","message":"task-manager → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:13.351Z","level":"info","event":"performance","message":"Module startup task-manager","data":{"startupMs":1208}}
+{"timestamp":"2026-08-08T15:30:13.366Z","level":"info","event":"state-change","message":"workflow-engine → registered","data":{"detail":"Registered KWIZERA AI Workflow Engine"}}
+{"timestamp":"2026-08-08T15:30:13.369Z","level":"info","event":"registration","message":"Module registered: workflow-engine","data":{"version":"0.1.0","slotId":"workflow-engine"}}
+{"timestamp":"2026-08-08T15:30:13.800Z","level":"info","event":"state-change","message":"workflow-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:14.084Z","level":"info","event":"state-change","message":"workflow-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:14.319Z","level":"info","event":"state-change","message":"workflow-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:14.553Z","level":"info","event":"state-change","message":"workflow-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:14.820Z","level":"info","event":"performance","message":"Module startup workflow-engine","data":{"startupMs":1178}}
+{"timestamp":"2026-08-08T15:30:15.402Z","level":"info","event":"state-change","message":"recommendation-engine → registered","data":{"detail":"Registered KWIZERA AI Recommendation Engine"}}
+{"timestamp":"2026-08-08T15:30:15.410Z","level":"info","event":"registration","message":"Module registered: recommendation-engine","data":{"version":"0.1.0","slotId":"recommendation-engine"}}
+{"timestamp":"2026-08-08T15:30:16.109Z","level":"info","event":"state-change","message":"recommendation-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:17.013Z","level":"info","event":"state-change","message":"recommendation-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:17.020Z","level":"info","event":"state-change","message":"recommendation-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:17.026Z","level":"info","event":"state-change","message":"recommendation-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:17.028Z","level":"info","event":"performance","message":"Module startup recommendation-engine","data":{"startupMs":1605}}
+{"timestamp":"2026-08-08T15:30:17.237Z","level":"info","event":"state-change","message":"multi-domain-engine → registered","data":{"detail":"Registered KWIZERA AI Multi-Domain Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:30:17.239Z","level":"info","event":"registration","message":"Module registered: multi-domain-engine","data":{"version":"0.1.0","slotId":"multi-domain-engine"}}
+{"timestamp":"2026-08-08T15:30:19.033Z","level":"info","event":"state-change","message":"multi-domain-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:19.050Z","level":"info","event":"state-change","message":"multi-domain-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:19.065Z","level":"info","event":"state-change","message":"multi-domain-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:19.380Z","level":"info","event":"state-change","message":"multi-domain-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:19.382Z","level":"info","event":"performance","message":"Module startup multi-domain-engine","data":{"startupMs":2141}}
+{"timestamp":"2026-08-08T15:30:19.394Z","level":"info","event":"state-change","message":"self-review-engine → registered","data":{"detail":"Registered KWIZERA AI Self-Review & Professional Evaluation Engine"}}
+{"timestamp":"2026-08-08T15:30:19.397Z","level":"info","event":"registration","message":"Module registered: self-review-engine","data":{"version":"0.1.0","slotId":"self-review-engine"}}
+{"timestamp":"2026-08-08T15:30:19.411Z","level":"info","event":"state-change","message":"self-review-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:19.644Z","level":"info","event":"state-change","message":"self-review-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:19.657Z","level":"info","event":"state-change","message":"self-review-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:19.665Z","level":"info","event":"state-change","message":"self-review-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:19.667Z","level":"info","event":"performance","message":"Module startup self-review-engine","data":{"startupMs":268}}
+{"timestamp":"2026-08-08T15:30:19.688Z","level":"info","event":"state-change","message":"professional-reasoning-certification → registered","data":{"detail":"Registered KWIZERA AI Professional Reasoning & Decision Certification"}}
+{"timestamp":"2026-08-08T15:30:19.691Z","level":"info","event":"registration","message":"Module registered: professional-reasoning-certification","data":{"version":"1.0.0","slotId":"professional-reasoning-certification"}}
+{"timestamp":"2026-08-08T15:30:20.050Z","level":"info","event":"state-change","message":"professional-reasoning-certification → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:20.066Z","level":"info","event":"state-change","message":"professional-reasoning-certification → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:20.082Z","level":"info","event":"state-change","message":"professional-reasoning-certification → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:20.207Z","level":"info","event":"state-change","message":"professional-reasoning-certification → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:30:20.209Z","level":"info","event":"performance","message":"Module startup professional-reasoning-certification","data":{"startupMs":516}}
+{"timestamp":"2026-08-08T15:47:13.023Z","level":"info","event":"state-change","message":"ai-core → ready","data":{"detail":"AI Core ready"}}
+{"timestamp":"2026-08-08T15:47:13.223Z","level":"info","event":"state-change","message":"ai-core → running","data":{"detail":"AI Core operational"}}
+{"timestamp":"2026-08-08T15:47:13.224Z","level":"info","event":"initialization","message":"AI Module Manager initialized","data":{"catalogSize":27,"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:28.613Z","level":"info","event":"state-change","message":"memory-engine → registered","data":{"detail":"Registered KWIZERA AI Persistent Memory Foundation"}}
+{"timestamp":"2026-08-08T15:47:28.616Z","level":"info","event":"registration","message":"Module registered: memory-engine","data":{"version":"0.1.0","slotId":"memory-engine"}}
+{"timestamp":"2026-08-08T15:47:28.665Z","level":"info","event":"state-change","message":"memory-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:28.675Z","level":"info","event":"state-change","message":"memory-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:28.758Z","level":"info","event":"state-change","message":"memory-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:28.920Z","level":"info","event":"state-change","message":"memory-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:28.923Z","level":"info","event":"performance","message":"Module startup memory-engine","data":{"startupMs":304}}
+{"timestamp":"2026-08-08T15:47:28.938Z","level":"info","event":"state-change","message":"reasoning-engine → registered","data":{"detail":"Registered KWIZERA AI Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:47:28.941Z","level":"info","event":"registration","message":"Module registered: reasoning-engine","data":{"version":"0.1.0","slotId":"reasoning-engine"}}
+{"timestamp":"2026-08-08T15:47:28.952Z","level":"info","event":"state-change","message":"reasoning-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.017Z","level":"info","event":"state-change","message":"reasoning-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.025Z","level":"info","event":"state-change","message":"reasoning-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.038Z","level":"info","event":"state-change","message":"reasoning-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.040Z","level":"info","event":"performance","message":"Module startup reasoning-engine","data":{"startupMs":97}}
+{"timestamp":"2026-08-08T15:47:29.060Z","level":"info","event":"state-change","message":"decision-engine → registered","data":{"detail":"Registered KWIZERA AI Decision Engine"}}
+{"timestamp":"2026-08-08T15:47:29.086Z","level":"info","event":"registration","message":"Module registered: decision-engine","data":{"version":"0.1.0","slotId":"decision-engine"}}
+{"timestamp":"2026-08-08T15:47:29.218Z","level":"info","event":"state-change","message":"decision-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.244Z","level":"info","event":"state-change","message":"decision-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.256Z","level":"info","event":"state-change","message":"decision-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.269Z","level":"info","event":"state-change","message":"decision-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.272Z","level":"info","event":"performance","message":"Module startup decision-engine","data":{"startupMs":183}}
+{"timestamp":"2026-08-08T15:47:29.747Z","level":"info","event":"state-change","message":"planning-engine → registered","data":{"detail":"Registered KWIZERA AI Planning Engine"}}
+{"timestamp":"2026-08-08T15:47:29.750Z","level":"info","event":"registration","message":"Module registered: planning-engine","data":{"version":"0.1.0","slotId":"planning-engine"}}
+{"timestamp":"2026-08-08T15:47:29.757Z","level":"info","event":"state-change","message":"planning-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.776Z","level":"info","event":"state-change","message":"planning-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.781Z","level":"info","event":"state-change","message":"planning-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.824Z","level":"info","event":"state-change","message":"planning-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.833Z","level":"info","event":"performance","message":"Module startup planning-engine","data":{"startupMs":77}}
+{"timestamp":"2026-08-08T15:47:29.930Z","level":"info","event":"state-change","message":"task-manager → registered","data":{"detail":"Registered KWIZERA AI Task Manager"}}
+{"timestamp":"2026-08-08T15:47:29.936Z","level":"info","event":"registration","message":"Module registered: task-manager","data":{"version":"0.1.0","slotId":"task-manager"}}
+{"timestamp":"2026-08-08T15:47:29.957Z","level":"info","event":"state-change","message":"task-manager → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.973Z","level":"info","event":"state-change","message":"task-manager → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:30.225Z","level":"info","event":"state-change","message":"task-manager → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.231Z","level":"info","event":"state-change","message":"task-manager → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.232Z","level":"info","event":"performance","message":"Module startup task-manager","data":{"startupMs":295}}
+{"timestamp":"2026-08-08T15:47:30.243Z","level":"info","event":"state-change","message":"workflow-engine → registered","data":{"detail":"Registered KWIZERA AI Workflow Engine"}}
+{"timestamp":"2026-08-08T15:47:30.245Z","level":"info","event":"registration","message":"Module registered: workflow-engine","data":{"version":"0.1.0","slotId":"workflow-engine"}}
+{"timestamp":"2026-08-08T15:47:30.253Z","level":"info","event":"state-change","message":"workflow-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:30.470Z","level":"info","event":"state-change","message":"workflow-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:30.478Z","level":"info","event":"state-change","message":"workflow-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.484Z","level":"info","event":"state-change","message":"workflow-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.487Z","level":"info","event":"performance","message":"Module startup workflow-engine","data":{"startupMs":239}}
+{"timestamp":"2026-08-08T15:47:30.495Z","level":"info","event":"state-change","message":"recommendation-engine → registered","data":{"detail":"Registered KWIZERA AI Recommendation Engine"}}
+{"timestamp":"2026-08-08T15:47:30.498Z","level":"info","event":"registration","message":"Module registered: recommendation-engine","data":{"version":"0.1.0","slotId":"recommendation-engine"}}
+{"timestamp":"2026-08-08T15:47:30.513Z","level":"info","event":"state-change","message":"recommendation-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:30.831Z","level":"info","event":"state-change","message":"recommendation-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:30.850Z","level":"info","event":"state-change","message":"recommendation-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.857Z","level":"info","event":"state-change","message":"recommendation-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.860Z","level":"info","event":"performance","message":"Module startup recommendation-engine","data":{"startupMs":360}}
+{"timestamp":"2026-08-08T15:47:31.027Z","level":"info","event":"state-change","message":"multi-domain-engine → registered","data":{"detail":"Registered KWIZERA AI Multi-Domain Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:47:31.030Z","level":"info","event":"registration","message":"Module registered: multi-domain-engine","data":{"version":"0.1.0","slotId":"multi-domain-engine"}}
+{"timestamp":"2026-08-08T15:47:31.039Z","level":"info","event":"state-change","message":"multi-domain-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.051Z","level":"info","event":"state-change","message":"multi-domain-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.057Z","level":"info","event":"state-change","message":"multi-domain-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.081Z","level":"info","event":"state-change","message":"multi-domain-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.083Z","level":"info","event":"performance","message":"Module startup multi-domain-engine","data":{"startupMs":51}}
+{"timestamp":"2026-08-08T15:47:31.091Z","level":"info","event":"state-change","message":"self-review-engine → registered","data":{"detail":"Registered KWIZERA AI Self-Review & Professional Evaluation Engine"}}
+{"timestamp":"2026-08-08T15:47:31.094Z","level":"info","event":"registration","message":"Module registered: self-review-engine","data":{"version":"0.1.0","slotId":"self-review-engine"}}
+{"timestamp":"2026-08-08T15:47:31.237Z","level":"info","event":"state-change","message":"self-review-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.261Z","level":"info","event":"state-change","message":"self-review-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.381Z","level":"info","event":"state-change","message":"self-review-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.399Z","level":"info","event":"state-change","message":"self-review-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.400Z","level":"info","event":"performance","message":"Module startup self-review-engine","data":{"startupMs":304}}
+{"timestamp":"2026-08-08T15:47:31.732Z","level":"info","event":"state-change","message":"professional-reasoning-certification → registered","data":{"detail":"Registered KWIZERA AI Professional Reasoning & Decision Certification"}}
+{"timestamp":"2026-08-08T15:47:31.734Z","level":"info","event":"registration","message":"Module registered: professional-reasoning-certification","data":{"version":"1.0.0","slotId":"professional-reasoning-certification"}}
+{"timestamp":"2026-08-08T15:47:31.741Z","level":"info","event":"state-change","message":"professional-reasoning-certification → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.870Z","level":"info","event":"state-change","message":"professional-reasoning-certification → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.878Z","level":"info","event":"state-change","message":"professional-reasoning-certification → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.922Z","level":"info","event":"state-change","message":"professional-reasoning-certification → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.926Z","level":"info","event":"performance","message":"Module startup professional-reasoning-certification","data":{"startupMs":189}}
+{"timestamp":"2026-08-08T19:46:19.463Z","level":"info","event":"state-change","message":"knowledge-engine → registered","data":{"detail":"Registered KWIZERA AI Knowledge Foundation"}}
+{"timestamp":"2026-08-08T19:46:19.550Z","level":"info","event":"registration","message":"Module registered: knowledge-engine","data":{"version":"0.1.0","slotId":"knowledge-engine"}}
+{"timestamp":"2026-08-08T19:46:19.686Z","level":"info","event":"state-change","message":"knowledge-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:19.719Z","level":"info","event":"state-change","message":"knowledge-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:19.879Z","level":"info","event":"state-change","message":"knowledge-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:19.886Z","level":"info","event":"state-change","message":"knowledge-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:19.888Z","level":"info","event":"performance","message":"Module startup knowledge-engine","data":{"startupMs":209}}
+{"timestamp":"2026-08-08T19:46:20.035Z","level":"info","event":"state-change","message":"conversation-engine → registered","data":{"detail":"Registered AI Me Conversation & Understanding Engine"}}
+{"timestamp":"2026-08-08T19:46:20.037Z","level":"info","event":"registration","message":"Module registered: conversation-engine","data":{"version":"1.0.0","slotId":"conversation-engine"}}
+{"timestamp":"2026-08-08T19:46:20.722Z","level":"info","event":"state-change","message":"conversation-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:20.731Z","level":"info","event":"state-change","message":"conversation-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:21.170Z","level":"info","event":"state-change","message":"conversation-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:21.236Z","level":"info","event":"state-change","message":"conversation-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:21.239Z","level":"info","event":"performance","message":"Module startup conversation-engine","data":{"startupMs":1199}}
+{"timestamp":"2026-08-08T19:46:30.470Z","level":"info","event":"state-change","message":"product-intelligence → registered","data":{"detail":"Registered KWIZERA AI Product Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:30.474Z","level":"info","event":"registration","message":"Module registered: product-intelligence","data":{"version":"0.1.0","slotId":"product-engine"}}
+{"timestamp":"2026-08-08T19:46:30.483Z","level":"info","event":"state-change","message":"product-intelligence → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:30.592Z","level":"info","event":"state-change","message":"product-intelligence → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:30.598Z","level":"info","event":"state-change","message":"product-intelligence → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:30.607Z","level":"info","event":"state-change","message":"product-intelligence → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:30.610Z","level":"info","event":"performance","message":"Module startup product-intelligence","data":{"startupMs":134}}
+{"timestamp":"2026-08-08T19:46:37.730Z","level":"info","event":"state-change","message":"image-intelligence → registered","data":{"detail":"Registered KWIZERA AI Image Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:37.734Z","level":"info","event":"registration","message":"Module registered: image-intelligence","data":{"version":"0.1.0","slotId":"image-engine"}}
+{"timestamp":"2026-08-08T19:46:37.743Z","level":"info","event":"state-change","message":"image-intelligence → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:37.894Z","level":"info","event":"state-change","message":"image-intelligence → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:38.013Z","level":"info","event":"state-change","message":"image-intelligence → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:38.019Z","level":"info","event":"state-change","message":"image-intelligence → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:38.021Z","level":"info","event":"performance","message":"Module startup image-intelligence","data":{"startupMs":284}}
+{"timestamp":"2026-08-08T19:46:44.604Z","level":"info","event":"state-change","message":"video-intelligence → registered","data":{"detail":"Registered KWIZERA AI Video Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:44.611Z","level":"info","event":"registration","message":"Module registered: video-intelligence","data":{"version":"0.1.0","slotId":"video-engine"}}
+{"timestamp":"2026-08-08T19:46:44.771Z","level":"info","event":"state-change","message":"video-intelligence → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:44.792Z","level":"info","event":"state-change","message":"video-intelligence → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:44.800Z","level":"info","event":"state-change","message":"video-intelligence → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:44.805Z","level":"info","event":"state-change","message":"video-intelligence → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:44.807Z","level":"info","event":"performance","message":"Module startup video-intelligence","data":{"startupMs":194}}
+{"timestamp":"2026-08-08T19:46:56.107Z","level":"info","event":"state-change","message":"video-generation → registered","data":{"detail":"Registered KWIZERA AI Video Generation Foundation"}}
+{"timestamp":"2026-08-08T19:46:56.113Z","level":"info","event":"registration","message":"Module registered: video-generation","data":{"version":"0.1.0","slotId":"video-generation-engine"}}
+{"timestamp":"2026-08-08T19:46:56.127Z","level":"info","event":"state-change","message":"video-generation → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:56.140Z","level":"info","event":"state-change","message":"video-generation → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:56.147Z","level":"info","event":"state-change","message":"video-generation → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:56.216Z","level":"info","event":"state-change","message":"video-generation → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:46:56.222Z","level":"info","event":"performance","message":"Module startup video-generation","data":{"startupMs":101}}
+{"timestamp":"2026-08-08T19:47:04.967Z","level":"info","event":"state-change","message":"image-generation → registered","data":{"detail":"Registered KWIZERA AI Image Generation Foundation"}}
+{"timestamp":"2026-08-08T19:47:04.969Z","level":"info","event":"registration","message":"Module registered: image-generation","data":{"version":"0.1.0","slotId":"image-generation-engine"}}
+{"timestamp":"2026-08-08T19:47:05.207Z","level":"info","event":"state-change","message":"image-generation → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:05.252Z","level":"info","event":"state-change","message":"image-generation → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:05.260Z","level":"info","event":"state-change","message":"image-generation → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:05.431Z","level":"info","event":"state-change","message":"image-generation → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:47:05.434Z","level":"info","event":"performance","message":"Module startup image-generation","data":{"startupMs":461}}
+{"timestamp":"2026-08-08T19:47:16.398Z","level":"info","event":"state-change","message":"audio-generation → registered","data":{"detail":"Registered KWIZERA AI Audio Generation Foundation"}}
+{"timestamp":"2026-08-08T19:47:16.401Z","level":"info","event":"registration","message":"Module registered: audio-generation","data":{"version":"0.1.0","slotId":"audio-generation-engine"}}
+{"timestamp":"2026-08-08T19:47:16.781Z","level":"info","event":"state-change","message":"audio-generation → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:17.439Z","level":"info","event":"state-change","message":"audio-generation → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:18.973Z","level":"info","event":"state-change","message":"audio-generation → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:19.264Z","level":"info","event":"state-change","message":"audio-generation → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:47:19.266Z","level":"info","event":"performance","message":"Module startup audio-generation","data":{"startupMs":2862}}
+{"timestamp":"2026-08-08T19:47:24.022Z","level":"info","event":"state-change","message":"recovery-engine → registered","data":{"detail":"Registered KWIZERA AI Recovery Engine"}}
+{"timestamp":"2026-08-08T19:47:24.037Z","level":"info","event":"registration","message":"Module registered: recovery-engine","data":{"version":"0.1.0","slotId":"recovery-engine"}}
+{"timestamp":"2026-08-08T19:47:24.048Z","level":"info","event":"state-change","message":"recovery-engine → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:24.057Z","level":"info","event":"state-change","message":"recovery-engine → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:24.068Z","level":"info","event":"state-change","message":"recovery-engine → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:24.243Z","level":"info","event":"state-change","message":"recovery-engine → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:47:24.246Z","level":"info","event":"performance","message":"Module startup recovery-engine","data":{"startupMs":204}}
+{"timestamp":"2026-08-08T19:47:28.267Z","level":"info","event":"state-change","message":"health-monitor → registered","data":{"detail":"Registered KWIZERA AI Health Monitor"}}
+{"timestamp":"2026-08-08T19:47:28.269Z","level":"info","event":"registration","message":"Module registered: health-monitor","data":{"version":"0.1.0","slotId":"health-monitor"}}
+{"timestamp":"2026-08-08T19:47:28.276Z","level":"info","event":"state-change","message":"health-monitor → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:28.293Z","level":"info","event":"state-change","message":"health-monitor → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:28.300Z","level":"info","event":"state-change","message":"health-monitor → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:28.374Z","level":"info","event":"state-change","message":"health-monitor → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:47:28.376Z","level":"info","event":"performance","message":"Module startup health-monitor","data":{"startupMs":105}}
+{"timestamp":"2026-08-08T19:47:30.363Z","level":"info","event":"state-change","message":"ai-model-management → registered","data":{"detail":"Registered KWIZERA AI Model Management"}}
+{"timestamp":"2026-08-08T19:47:30.366Z","level":"info","event":"registration","message":"Module registered: ai-model-management","data":{"version":"0.1.0","slotId":"ai-model-management"}}
+{"timestamp":"2026-08-08T19:47:30.372Z","level":"info","event":"state-change","message":"ai-model-management → initializing","data":{"detail":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:30.379Z","level":"info","event":"state-change","message":"ai-model-management → loading","data":{"detail":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:30.384Z","level":"info","event":"state-change","message":"ai-model-management → ready","data":{"detail":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:30.715Z","level":"info","event":"state-change","message":"ai-model-management → running","data":{"detail":"Module running"}}
+{"timestamp":"2026-08-08T19:47:30.717Z","level":"info","event":"performance","message":"Module startup ai-model-management","data":{"startupMs":349}}
+{"timestamp":"2026-08-08T19:49:53.117Z","level":"info","event":"state-change","message":"professional-reasoning-certification → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.308Z","level":"info","event":"state-change","message":"professional-reasoning-certification → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.309Z","level":"info","event":"state-change","message":"Module unloaded: professional-reasoning-certification"}
+{"timestamp":"2026-08-08T19:49:53.637Z","level":"info","event":"state-change","message":"self-review-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.845Z","level":"info","event":"state-change","message":"self-review-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.846Z","level":"info","event":"state-change","message":"Module unloaded: self-review-engine"}
+{"timestamp":"2026-08-08T19:49:53.852Z","level":"info","event":"state-change","message":"multi-domain-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.860Z","level":"info","event":"state-change","message":"multi-domain-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.861Z","level":"info","event":"state-change","message":"Module unloaded: multi-domain-engine"}
+{"timestamp":"2026-08-08T19:49:53.868Z","level":"info","event":"state-change","message":"recommendation-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.049Z","level":"info","event":"state-change","message":"recommendation-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.050Z","level":"info","event":"state-change","message":"Module unloaded: recommendation-engine"}
+{"timestamp":"2026-08-08T19:49:54.056Z","level":"info","event":"state-change","message":"workflow-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.069Z","level":"info","event":"state-change","message":"workflow-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.069Z","level":"info","event":"state-change","message":"Module unloaded: workflow-engine"}
+{"timestamp":"2026-08-08T19:49:54.075Z","level":"info","event":"state-change","message":"decision-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.255Z","level":"info","event":"state-change","message":"decision-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.255Z","level":"info","event":"state-change","message":"Module unloaded: decision-engine"}
+{"timestamp":"2026-08-08T19:49:54.261Z","level":"info","event":"state-change","message":"task-manager → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.268Z","level":"info","event":"state-change","message":"task-manager → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.269Z","level":"info","event":"state-change","message":"Module unloaded: task-manager"}
+{"timestamp":"2026-08-08T19:49:54.274Z","level":"info","event":"state-change","message":"planning-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.569Z","level":"info","event":"state-change","message":"planning-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.569Z","level":"info","event":"state-change","message":"Module unloaded: planning-engine"}
+{"timestamp":"2026-08-08T19:49:54.575Z","level":"info","event":"state-change","message":"reasoning-engine → stopping","data":{"detail":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.582Z","level":"info","event":"state-change","message":"reasoning-engine → stopped","data":{"detail":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.583Z","level":"info","event":"state-change","message":"Module unloaded: reasoning-engine"}

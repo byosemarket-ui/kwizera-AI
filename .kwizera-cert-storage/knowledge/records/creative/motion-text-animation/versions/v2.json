@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "motion-text-animation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Text Animation",
+  "description": "Animating typography for emphasis, rhythm, and readability.",
+  "summary": "Make messages scannable and memorable on mute-heavy platforms.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "text-animation",
+    "text animation",
+    "kinetic type",
+    "typography motion",
+    "titles"
+  ],
+  "keywords": [
+    "text animation",
+    "kinetic type",
+    "typography motion",
+    "titles"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-motion-rhythm",
+    "motion-motion-hierarchy",
+    "motion-motion-timing",
+    "motion-logo-animation",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-storytelling-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:56.775Z",
+  "lastUpdated": "2026-08-08T17:55:36.495Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-text-animation",
+  "integrityStatus": "verified",
+  "contentHash": "7014049816a99500f4b053ec98954e4fa5feab2193315b2dd1f9a1966db2e327",
+  "searchableText": "text animation animating typography for emphasis, rhythm, and readability. make messages scannable and memorable on mute-heavy platforms. professional-motion-graphics professional-motion-graphics professional text-animation text animation kinetic type typography motion titles text animation kinetic type typography motion titles",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "text-animation-animating",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "text-animation",
+    "kind": "professional-motion-graphics",
+    "purpose": "Make messages scannable and memorable on mute-heavy platforms.",
+    "professionalDefinition": "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy.",
+    "workflow": [
+      "Write short lines",
+      "Set reading time",
+      "Animate in hierarchy",
+      "Hold"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-text-animation",
+      "title": "Text Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Animating typography for emphasis, rhythm, and readability.",
+      "coreConcepts": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "definitions": [
+        "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy.",
+        "Make messages scannable and memorable on mute-heavy platforms."
+      ],
+      "rules": [
+        "Practice: Readable duration",
+        "Practice: Respect line length",
+        "Practice: Match brand type motion rules"
+      ],
+      "bestPractices": [
+        "Readable duration",
+        "Respect line length",
+        "Match brand type motion rules"
+      ],
+      "professionalTechniques": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "workflow": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "decisionRules": [
+        "Follow: Readable duration",
+        "Follow: Respect line length",
+        "Follow: Match brand type motion rules"
+      ],
+      "commonMistakes": [
+        "Word salad chaos",
+        "Animating faster than reading speed"
+      ],
+      "troubleshooting": [
+        "Avoid: Word salad chaos",
+        "Avoid: Animating faster than reading speed"
+      ],
+      "recommendations": [
+        "Readable duration",
+        "Respect line length",
+        "Match brand type motion rules"
+      ],
+      "examples": [
+        "Word-by-word punch for hook; elegant fade for luxury copy"
+      ],
+      "professionalStandards": [
+        "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy."
+      ],
+      "relatedTopics": [
+        "motion-rhythm",
+        "motion-hierarchy",
+        "motion-timing",
+        "logo-animation"
+      ],
+      "keywords": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:text-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Text Animation",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Animating typography for emphasis, rhythm, and readability.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make messages scannable and memorable on mute-heavy platforms."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Write short lines",
+            "Set reading time",
+            "Animate in hierarchy",
+            "Hold"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Readable duration",
+            "Respect line length",
+            "Match brand type motion rules"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Word-by-word punch for hook; elegant fade for luxury copy"
+          ]
+        }
+      ],
+      "concepts": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "entities": [
+        "Text Animation",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "rules": [
+        "Avoid: Word salad chaos",
+        "Avoid: Animating faster than reading speed"
+      ],
+      "bestPractices": [
+        "Readable duration",
+        "Respect line length",
+        "Match brand type motion rules"
+      ],
+      "professionalTechniques": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "examples": [
+        "Word-by-word punch for hook; elegant fade for luxury copy"
+      ],
+      "commonMistakes": [
+        "Word salad chaos",
+        "Animating faster than reading speed"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Readable duration",
+        "Practice: Respect line length",
+        "Practice: Match brand type motion rules"
+      ],
+      "workflowSteps": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-motion-rhythm",
+        "motion-motion-hierarchy",
+        "motion-motion-timing",
+        "motion-logo-animation"
+      ],
+      "definitions": [
+        "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy.",
+        "Make messages scannable and memorable on mute-heavy platforms."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Readable duration",
+      "Respect line length",
+      "Match brand type motion rules"
+    ],
+    "bestPractices": [
+      "Readable duration",
+      "Respect line length",
+      "Match brand type motion rules"
+    ],
+    "decisionRules": [
+      "Practice: Readable duration",
+      "Practice: Respect line length",
+      "Practice: Match brand type motion rules"
+    ]
+  }
+}

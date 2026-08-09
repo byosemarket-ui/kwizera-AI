@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "render-export-settings",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-rendering",
+  "title": "Export Settings",
+  "description": "The concrete preset choices for resolution, codec, audio, and metadata on export.",
+  "summary": "Produce platform-correct files efficiently and repeatedly.",
+  "tags": [
+    "professional-rendering",
+    "professional",
+    "export-settings",
+    "export settings",
+    "presets",
+    "delivery settings",
+    "encode preset"
+  ],
+  "keywords": [
+    "export settings",
+    "presets",
+    "delivery settings",
+    "encode preset"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "render-video-codecs",
+    "render-resolution",
+    "render-bitrate",
+    "render-frame-rate",
+    "render-render-pipeline",
+    "amr-bridge-rendering-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-video-editing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:09.190Z",
+  "lastUpdated": "2026-08-08T17:56:08.872Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\render-export-settings",
+  "integrityStatus": "verified",
+  "contentHash": "36f1c449dd45933c088c6f21f88c9d60a21f4c61835c0b68645d61ce598689ac",
+  "searchableText": "export settings the concrete preset choices for resolution, codec, audio, and metadata on export. produce platform-correct files efficiently and repeatedly. professional-rendering professional-rendering professional export-settings export settings presets delivery settings encode preset export settings presets delivery settings encode preset",
+  "classification": {
+    "category": "professional-rendering",
+    "topic": "export-settings-concrete",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "export-settings",
+    "kind": "professional-rendering",
+    "purpose": "Produce platform-correct files efficiently and repeatedly.",
+    "professionalDefinition": "Export settings are the configured parameters—format, codec, resolution, fps, bitrate, audio, and color tags—used to generate a deliverable file.",
+    "workflow": [
+      "Load preset",
+      "Override per job",
+      "Export",
+      "QC checklist"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "render-export-settings",
+      "title": "Export Settings",
+      "domain": "rendering-knowledge",
+      "category": "professional-rendering",
+      "description": "The concrete preset choices for resolution, codec, audio, and metadata on export.",
+      "coreConcepts": [
+        "export settings",
+        "presets",
+        "delivery settings",
+        "encode preset"
+      ],
+      "definitions": [
+        "Export settings are the configured parameters—format, codec, resolution, fps, bitrate, audio, and color tags—used to generate a deliverable file.",
+        "Produce platform-correct files efficiently and repeatedly."
+      ],
+      "rules": [
+        "Practice: Save presets per platform",
+        "Practice: Include loudness targets",
+        "Practice: Burn-in vs clean versions"
+      ],
+      "bestPractices": [
+        "Save presets per platform",
+        "Include loudness targets",
+        "Burn-in vs clean versions"
+      ],
+      "professionalTechniques": [
+        "Load preset",
+        "Override per job",
+        "Export",
+        "QC checklist"
+      ],
+      "workflow": [
+        "Load preset",
+        "Override per job",
+        "Export",
+        "QC checklist"
+      ],
+      "decisionRules": [
+        "Follow: Save presets per platform",
+        "Follow: Include loudness targets",
+        "Follow: Burn-in vs clean versions"
+      ],
+      "commonMistakes": [
+        "Wrong aspect",
+        "Muted audio tracks",
+        "Interlaced by accident"
+      ],
+      "troubleshooting": [
+        "Avoid: Wrong aspect",
+        "Avoid: Muted audio tracks",
+        "Avoid: Interlaced by accident"
+      ],
+      "recommendations": [
+        "Save presets per platform",
+        "Include loudness targets",
+        "Burn-in vs clean versions"
+      ],
+      "examples": [
+        "Instagram Reels 1080×1920 H.264 AAC stereo −14 LUFS"
+      ],
+      "professionalStandards": [
+        "Export settings are the configured parameters—format, codec, resolution, fps, bitrate, audio, and color tags—used to generate a deliverable file."
+      ],
+      "relatedTopics": [
+        "video-codecs",
+        "resolution",
+        "bitrate",
+        "frame-rate",
+        "render-pipeline"
+      ],
+      "keywords": [
+        "export settings",
+        "presets",
+        "delivery settings",
+        "encode preset"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:export-settings",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Export Settings",
+      "category": "professional-rendering",
+      "domain": "rendering-knowledge",
+      "description": "The concrete preset choices for resolution, codec, audio, and metadata on export.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Export settings are the configured parameters—format, codec, resolution, fps, bitrate, audio, and color tags—used to generate a deliverable file."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Produce platform-correct files efficiently and repeatedly."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Load preset",
+            "Override per job",
+            "Export",
+            "QC checklist"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Save presets per platform",
+            "Include loudness targets",
+            "Burn-in vs clean versions"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Instagram Reels 1080×1920 H.264 AAC stereo −14 LUFS"
+          ]
+        }
+      ],
+      "concepts": [
+        "export settings",
+        "presets",
+        "delivery settings",
+        "encode preset"
+      ],
+      "entities": [
+        "Export Settings",
+        "rendering-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "export settings",
+        "presets",
+        "delivery settings",
+        "encode preset"
+      ],
+      "rules": [
+        "Avoid: Wrong aspect",
+        "Avoid: Muted audio tracks",
+        "Avoid: Interlaced by accident"
+      ],
+      "bestPractices": [
+        "Save presets per platform",
+        "Include loudness targets",
+        "Burn-in vs clean versions"
+      ],
+      "professionalTechniques": [
+        "Load preset",
+        "Override per job",
+        "Export",
+        "QC checklist"
+      ],
+      "examples": [
+        "Instagram Reels 1080×1920 H.264 AAC stereo −14 LUFS"
+      ],
+      "commonMistakes": [
+        "Wrong aspect",
+        "Muted audio tracks",
+        "Interlaced by accident"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Save presets per platform",
+        "Practice: Include loudness targets",
+        "Practice: Burn-in vs clean versions"
+      ],
+      "workflowSteps": [
+        "Load preset",
+        "Override per job",
+        "Export",
+        "QC checklist"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "rendering-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "render-video-codecs",
+        "render-resolution",
+        "render-bitrate",
+        "render-frame-rate",
+        "render-render-pipeline"
+      ],
+      "definitions": [
+        "Export settings are the configured parameters—format, codec, resolution, fps, bitrate, audio, and color tags—used to generate a deliverable file.",
+        "Produce platform-correct files efficiently and repeatedly."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "rendering-knowledge",
+      "category": "professional-rendering",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Save presets per platform",
+      "Include loudness targets",
+      "Burn-in vs clean versions"
+    ],
+    "bestPractices": [
+      "Save presets per platform",
+      "Include loudness targets",
+      "Burn-in vs clean versions"
+    ],
+    "decisionRules": [
+      "Practice: Save presets per platform",
+      "Practice: Include loudness targets",
+      "Practice: Burn-in vs clean versions"
+    ]
+  }
+}

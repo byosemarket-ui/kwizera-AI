@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "std-review-process",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-industry-standards",
+  "title": "Review Process",
+  "description": "A disciplined critique and revision process tied to approved criteria.",
+  "summary": "Help AI Me recommend useful review sessions and feedback.",
+  "tags": [
+    "professional-industry-standards",
+    "professional",
+    "review-process",
+    "review process",
+    "creative review",
+    "feedback",
+    "revision",
+    "criteria"
+  ],
+  "keywords": [
+    "review process",
+    "creative review",
+    "feedback",
+    "revision",
+    "criteria"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "check-quality-review-checklist",
+    "std-approval-process",
+    "std-quality-assurance",
+    "qeval-content-consistency-evaluation",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:26.079Z",
+  "lastUpdated": "2026-08-08T19:18:26.079Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\std-review-process",
+  "integrityStatus": "verified",
+  "contentHash": "abafde0c46cfa672728cd1854cfedb9b4b63490c03ad8f74ad91217d56f06350",
+  "searchableText": "review process a disciplined critique and revision process tied to approved criteria. help ai me recommend useful review sessions and feedback. professional-industry-standards professional-industry-standards professional review-process review process creative review feedback revision criteria review process creative review feedback revision criteria",
+  "classification": {
+    "category": "professional-industry-standards",
+    "topic": "review-process-disciplined",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "review-process",
+    "kind": "professional-industry-standards",
+    "purpose": "Help AI Me recommend useful review sessions and feedback.",
+    "professionalDefinition": "A review process is a sequenced evaluation of creative, technical, and commercial criteria that produces actionable feedback and controlled revisions.",
+    "qualityRules": [
+      "Feedback states the criterion and evidence",
+      "Critical defects have priority",
+      "Approval status is unambiguous"
+    ],
+    "workflow": [
+      "Define scope and acceptance criteria",
+      "Apply the standard during work",
+      "Review evidence",
+      "Record exceptions",
+      "Approve or improve"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "std-review-process",
+      "title": "Review Process",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "description": "A disciplined critique and revision process tied to approved criteria.",
+      "coreConcepts": [
+        "review process",
+        "creative review",
+        "feedback",
+        "revision",
+        "criteria"
+      ],
+      "definitions": [
+        "A review process is a sequenced evaluation of creative, technical, and commercial criteria that produces actionable feedback and controlled revisions.",
+        "Help AI Me recommend useful review sessions and feedback."
+      ],
+      "rules": [
+        "Quality rule: Feedback states the criterion and evidence",
+        "Quality rule: Critical defects have priority",
+        "Quality rule: Approval status is unambiguous"
+      ],
+      "bestPractices": [
+        "Review against agreed criteria",
+        "Consolidate feedback by owner",
+        "Distinguish blockers from preferences"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "workflow": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "decisionRules": [
+        "Apply: Feedback states the criterion and evidence",
+        "Apply: Critical defects have priority",
+        "Apply: Approval status is unambiguous"
+      ],
+      "commonMistakes": [
+        "Unstructured group feedback",
+        "Contradictory requests without priority"
+      ],
+      "troubleshooting": [
+        "Avoid: Unstructured group feedback",
+        "Avoid: Contradictory requests without priority"
+      ],
+      "recommendations": [
+        "Review against agreed criteria",
+        "Consolidate feedback by owner",
+        "Distinguish blockers from preferences"
+      ],
+      "examples": [
+        "Professional application of Review Process in a studio review."
+      ],
+      "professionalStandards": [
+        "Feedback states the criterion and evidence",
+        "Critical defects have priority",
+        "Approval status is unambiguous"
+      ],
+      "relatedTopics": [
+        "quality-review-checklist",
+        "approval-process",
+        "quality-assurance",
+        "content-consistency-evaluation"
+      ],
+      "keywords": [
+        "review process",
+        "creative review",
+        "feedback",
+        "revision",
+        "criteria"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:review-process",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Review Process",
+      "category": "professional-industry-standards",
+      "domain": "industry-standards-knowledge",
+      "description": "A disciplined critique and revision process tied to approved criteria.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A review process is a sequenced evaluation of creative, technical, and commercial criteria that produces actionable feedback and controlled revisions.",
+            "Help AI Me recommend useful review sessions and feedback."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Feedback states the criterion and evidence",
+            "Critical defects have priority",
+            "Approval status is unambiguous"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Review against agreed criteria",
+            "Consolidate feedback by owner",
+            "Distinguish blockers from preferences"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define scope and acceptance criteria",
+            "Apply the standard during work",
+            "Review evidence",
+            "Record exceptions",
+            "Approve or improve"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Review Process in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "review process",
+        "creative review",
+        "feedback",
+        "revision",
+        "criteria"
+      ],
+      "entities": [
+        "Review Process",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "review process",
+        "creative review",
+        "feedback",
+        "revision",
+        "criteria"
+      ],
+      "rules": [
+        "Feedback states the criterion and evidence",
+        "Critical defects have priority",
+        "Approval status is unambiguous"
+      ],
+      "bestPractices": [
+        "Review against agreed criteria",
+        "Consolidate feedback by owner",
+        "Distinguish blockers from preferences"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "examples": [
+        "Professional application of Review Process in a studio review."
+      ],
+      "commonMistakes": [
+        "Unstructured group feedback",
+        "Contradictory requests without priority"
+      ],
+      "qualityRules": [
+        "Feedback states the criterion and evidence",
+        "Critical defects have priority",
+        "Approval status is unambiguous"
+      ],
+      "decisionRules": [
+        "Apply: Feedback states the criterion and evidence",
+        "Apply: Critical defects have priority",
+        "Apply: Approval status is unambiguous"
+      ],
+      "workflowSteps": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "prerequisites": [
+        "Define scope and acceptance criteria"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "check-quality-review-checklist",
+        "std-approval-process",
+        "std-quality-assurance",
+        "qeval-content-consistency-evaluation"
+      ],
+      "definitions": [
+        "A review process is a sequenced evaluation of creative, technical, and commercial criteria that produces actionable feedback and controlled revisions."
+      ],
+      "troubleshooting": [
+        "Avoid: Unstructured group feedback",
+        "Avoid: Contradictory requests without priority"
+      ],
+      "recommendations": [
+        "Review against agreed criteria",
+        "Consolidate feedback by owner",
+        "Distinguish blockers from preferences"
+      ],
+      "professionalStandards": [
+        "Feedback states the criterion and evidence",
+        "Critical defects have priority",
+        "Approval status is unambiguous"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:review-process",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Review against agreed criteria",
+      "Consolidate feedback by owner",
+      "Distinguish blockers from preferences"
+    ],
+    "bestPractices": [
+      "Review against agreed criteria",
+      "Consolidate feedback by owner",
+      "Distinguish blockers from preferences"
+    ],
+    "decisionRules": [
+      "Quality rule: Feedback states the criterion and evidence",
+      "Quality rule: Critical defects have priority",
+      "Quality rule: Approval status is unambiguous"
+    ]
+  }
+}

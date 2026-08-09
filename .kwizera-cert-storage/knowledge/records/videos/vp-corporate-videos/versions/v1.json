@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-corporate-videos",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Corporate Videos",
+  "description": "Professional standards for corporate storytelling: culture, explainers, leadership messages, and institutional credibility.",
+  "summary": "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone.",
+  "tags": [
+    "video-production",
+    "professional",
+    "corporate-videos",
+    "corporate",
+    "explainer",
+    "culture film",
+    "interview",
+    "B-roll"
+  ],
+  "keywords": [
+    "corporate",
+    "explainer",
+    "culture film",
+    "interview",
+    "B-roll"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 88,
+  "qualityScore": 88,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-story-structure",
+    "vp-scene-planning",
+    "vp-production-workflow",
+    "vp-types-of-marketing-videos",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-storytelling-knowledge",
+    "vp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:30:55.254Z",
+  "lastUpdated": "2026-08-08T15:30:55.254Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-corporate-videos",
+  "integrityStatus": "verified",
+  "contentHash": "da0b86639445a9a5837e7fb73088b721b538fdec837bb37c00ffae14f26eeffb",
+  "searchableText": "corporate videos professional standards for corporate storytelling: culture, explainers, leadership messages, and institutional credibility. corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone. professional-video-production video-production professional corporate-videos corporate explainer culture film interview b-roll corporate explainer culture film interview b-roll",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "corporate-videos-professional",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "corporate-videos",
+    "professionalDefinition": "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-corporate-videos",
+      "title": "Corporate Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional standards for corporate storytelling: culture, explainers, leadership messages, and institutional credibility.",
+      "coreConcepts": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "definitions": [
+        "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone."
+      ],
+      "rules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "bestPractices": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "professionalTechniques": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "workflow": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "decisionRules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "commonMistakes": [
+        "Wall-to-wall talking heads without visual proof.",
+        "Generic stock pacing that erases brand personality.",
+        "Unclear audience (internal vs customer vs investor)."
+      ],
+      "troubleshooting": [
+        "Avoid: Wall-to-wall talking heads without visual proof.",
+        "Avoid: Generic stock pacing that erases brand personality.",
+        "Avoid: Unclear audience (internal vs customer vs investor)."
+      ],
+      "recommendations": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "examples": [
+        "Employee culture film with three message pillars and workplace B-roll.",
+        "Explainer video mapping a service workflow for prospects."
+      ],
+      "professionalStandards": [
+        "Confidence 88/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "scene-planning",
+        "production-workflow",
+        "types-of-marketing-videos"
+      ],
+      "keywords": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:corporate-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Corporate Videos",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Professional standards for corporate storytelling: culture, explainers, leadership messages, and institutional credibility.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lead with human stakes or business outcome, not org-chart narration.",
+            "Balance interview A-roll with purposeful B-roll coverage.",
+            "Keep claims accurate and approval-tracked.",
+            "Design modular chapters for website and sales enablement reuse."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Confirm audience and approval stakeholders.",
+            "Outline message pillars and interview questions.",
+            "Capture interviews plus supporting operational B-roll.",
+            "Edit for clarity chapters; finish with brand packaging."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+            "Always secure stakeholder approval gates before public release.",
+            "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+            "Never invent metrics or customer claims without source approval."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Employee culture film with three message pillars and workplace B-roll.",
+            "Explainer video mapping a service workflow for prospects."
+          ]
+        }
+      ],
+      "concepts": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "entities": [
+        "Corporate Videos",
+        "video-production-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "rules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "bestPractices": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "professionalTechniques": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "examples": [
+        "Employee culture film with three message pillars and workplace B-roll.",
+        "Explainer video mapping a service workflow for prospects."
+      ],
+      "commonMistakes": [
+        "Wall-to-wall talking heads without visual proof.",
+        "Generic stock pacing that erases brand personality.",
+        "Unclear audience (internal vs customer vs investor)."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "workflowSteps": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "prerequisites": [
+        "Confirm audience and approval stakeholders."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-story-structure",
+        "vp-scene-planning",
+        "vp-production-workflow",
+        "vp-types-of-marketing-videos"
+      ],
+      "definitions": [
+        "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone."
+      ],
+      "troubleshooting": [
+        "Avoid: Wall-to-wall talking heads without visual proof.",
+        "Avoid: Generic stock pacing that erases brand personality.",
+        "Avoid: Unclear audience (internal vs customer vs investor)."
+      ],
+      "recommendations": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "intermediate",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

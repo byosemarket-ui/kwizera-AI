@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:07.191Z","level":"info","event":"startup","message":"Audio Mixing & Mastering Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\audio-generation\\mixing\\engine"}}
+{"timestamp":"2026-08-08T19:47:14.270Z","level":"info","event":"startup","message":"Audio Mixing & Mastering Engine startup complete","data":{"recordsLoaded":0}}

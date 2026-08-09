@@ -1,0 +1,114 @@
+{
+  "knowledgeId": "isq-bridge-animation-knowledge",
+  "knowledgeType": "industry-knowledge",
+  "category": "isq-domain-bridge",
+  "title": "Animation Knowledge (related)",
+  "description": "Motion and animation are reviewed for clarity and consistency.",
+  "summary": "Animation quality contributes to visual and technical readiness.",
+  "tags": [
+    "industry-standards",
+    "domain-bridge",
+    "animation-knowledge"
+  ],
+  "keywords": [
+    "animation-knowledge",
+    "industry",
+    "standards",
+    "quality",
+    "relationship"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-industry-standards"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:19:03.232Z",
+  "lastUpdated": "2026-08-08T19:19:03.232Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\isq-bridge-animation-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "76a9c948767aa60afb5e9a08d445c7d523450990ddcfedfe88fdfe8d73cae487",
+  "searchableText": "animation knowledge (related) motion and animation are reviewed for clarity and consistency. animation quality contributes to visual and technical readiness. isq-domain-bridge industry-standards domain-bridge animation-knowledge animation-knowledge industry standards quality relationship",
+  "classification": {
+    "category": "isq-domain-bridge",
+    "topic": "animation-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 88,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "bridgeDomainId": "animation-knowledge",
+    "relationshipAnchor": true,
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "qualityRules": [],
+    "decisionRules": [
+      "Relate industry standards and quality knowledge to animation-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Animation Knowledge (related)",
+      "category": "industry-standards-domain-bridge",
+      "domain": "animation-knowledge",
+      "description": "Motion and animation are reviewed for clarity and consistency.",
+      "sections": [
+        {
+          "title": "Relationship",
+          "kind": "guidance",
+          "items": [
+            "Motion and animation are reviewed for clarity and consistency."
+          ]
+        }
+      ],
+      "concepts": [
+        "animation-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "entities": [
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "animation-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate industry standards and quality knowledge to animation-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-industry-standards"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

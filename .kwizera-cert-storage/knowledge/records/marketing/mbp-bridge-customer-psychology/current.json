@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "mbp-bridge-customer-psychology",
+  "knowledgeType": "marketing-knowledge",
+  "category": "mbp-domain-bridge",
+  "title": "Customer Psychology Domain",
+  "description": "Hub for customer psychology expansion Step 7.",
+  "summary": "Primary domain for audience psychology topics.",
+  "tags": [
+    "marketing-branding-psychology",
+    "domain-bridge",
+    "customer-psychology"
+  ],
+  "keywords": [
+    "customer-psychology",
+    "marketing",
+    "branding",
+    "psychology",
+    "relationship"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-marketing-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:31.392Z",
+  "lastUpdated": "2026-08-08T18:26:31.392Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mbp-bridge-customer-psychology",
+  "integrityStatus": "verified",
+  "contentHash": "b90cf9ef2317a65246817df50ed57dbedfa14301f70e9e147530e34f9d3db9d5",
+  "searchableText": "customer psychology domain hub for customer psychology expansion step 7. primary domain for audience psychology topics. mbp-domain-bridge marketing-branding-psychology domain-bridge customer-psychology customer-psychology marketing branding psychology relationship",
+  "classification": {
+    "category": "mbp-domain-bridge",
+    "topic": "customer-psychology-domain",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "bridgeDomainId": "customer-psychology",
+    "relationshipAnchor": true,
+    "createsAdvertisements": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate marketing/branding/psychology knowledge to customer-psychology."
+    ],
+    "structuredKnowledge": {
+      "title": "Customer Psychology Domain",
+      "category": "domain-bridge",
+      "domain": "customer-psychology",
+      "description": "Hub for customer psychology expansion Step 7.",
+      "sections": [],
+      "concepts": [
+        "customer-psychology"
+      ],
+      "entities": [
+        "customer-psychology"
+      ],
+      "terminology": [
+        "customer-psychology"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate marketing/branding/psychology knowledge to customer-psychology."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "mkt-marketing-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

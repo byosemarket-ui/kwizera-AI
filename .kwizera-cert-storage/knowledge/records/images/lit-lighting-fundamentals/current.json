@@ -1,0 +1,339 @@
+{
+  "knowledgeId": "lit-lighting-fundamentals",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Lighting Fundamentals",
+  "description": "Core principles of how light quality, direction, intensity, and color shape image and mood.",
+  "summary": "Establish a controllable lighting language so every setup serves story, product clarity, and brand tone.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "lighting-fundamentals",
+    "lighting fundamentals",
+    "light quality",
+    "direction",
+    "intensity",
+    "mood"
+  ],
+  "keywords": [
+    "lighting fundamentals",
+    "light quality",
+    "direction",
+    "intensity",
+    "mood"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-key-light",
+    "lit-soft-lighting",
+    "lit-hard-lighting",
+    "lit-color-temperature",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-video-production-knowledge",
+    "lc-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:23.681Z",
+  "lastUpdated": "2026-08-08T17:15:30.789Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-lighting-fundamentals",
+  "integrityStatus": "verified",
+  "contentHash": "d94302418a43c7b4001e0f2a1e934932b818ee56dffb16160c7c0b8895eed7d7",
+  "searchableText": "lighting fundamentals core principles of how light quality, direction, intensity, and color shape image and mood. establish a controllable lighting language so every setup serves story, product clarity, and brand tone. professional-lighting professional-lighting professional lighting-fundamentals lighting fundamentals light quality direction intensity mood lighting fundamentals light quality direction intensity mood",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "lighting-fundamentals-core",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "lighting-fundamentals",
+    "kind": "professional-lighting",
+    "purpose": "Establish a controllable lighting language so every setup serves story, product clarity, and brand tone.",
+    "whenToUse": [
+      "Any professional shoot planning",
+      "Teaching crews a shared lighting vocabulary",
+      "Diagnosing look problems"
+    ],
+    "whenNotToUse": [
+      "When skipping to fixtures without defining intent"
+    ],
+    "advantages": [
+      "Transferable across stills and video",
+      "Prevents gear-first mistakes"
+    ],
+    "limitations": [
+      "Requires discipline before complex rigs"
+    ],
+    "relatedCameraTechniques": [
+      "exposure",
+      "white balance",
+      "aperture",
+      "ISO"
+    ],
+    "relatedStorytellingTechniques": [
+      "mood setting",
+      "attention direction",
+      "genre signaling"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-lighting-fundamentals",
+      "title": "Lighting Fundamentals",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Core principles of how light quality, direction, intensity, and color shape image and mood.",
+      "coreConcepts": [
+        "lighting fundamentals",
+        "light quality",
+        "direction",
+        "intensity",
+        "mood"
+      ],
+      "definitions": [
+        "Establish a controllable lighting language so every setup serves story, product clarity, and brand tone."
+      ],
+      "rules": [
+        "Use when: Any professional shoot planning",
+        "Use when: Teaching crews a shared lighting vocabulary",
+        "Use when: Diagnosing look problems",
+        "Do not use when: When skipping to fixtures without defining intent"
+      ],
+      "bestPractices": [
+        "Define mood and subject priority before placing lights",
+        "Control spill and reflections intentionally",
+        "Match lighting plan to camera exposure strategy"
+      ],
+      "professionalTechniques": [
+        "Transferable across stills and video",
+        "Prevents gear-first mistakes"
+      ],
+      "workflow": [
+        "Choose Lighting Fundamentals",
+        "Define mood and subject priority before placing lights",
+        "Control spill and reflections intentionally",
+        "Match lighting plan to camera exposure strategy"
+      ],
+      "decisionRules": [
+        "Use when: Any professional shoot planning",
+        "Use when: Teaching crews a shared lighting vocabulary",
+        "Use when: Diagnosing look problems",
+        "Avoid when: When skipping to fixtures without defining intent"
+      ],
+      "commonMistakes": [
+        "Adding lights without a key purpose",
+        "Ignoring how light direction changes form"
+      ],
+      "troubleshooting": [
+        "Limitation: Requires discipline before complex rigs"
+      ],
+      "recommendations": [
+        "Define mood and subject priority before placing lights",
+        "Control spill and reflections intentionally",
+        "Match lighting plan to camera exposure strategy"
+      ],
+      "examples": [
+        "Brief: soft commercial beauty vs hard industrial drama before choosing fixtures"
+      ],
+      "professionalStandards": [
+        "mood setting",
+        "attention direction",
+        "genre signaling"
+      ],
+      "relatedTopics": [
+        "key-light",
+        "soft-lighting",
+        "hard-lighting",
+        "color-temperature"
+      ],
+      "keywords": [
+        "lighting fundamentals",
+        "light quality",
+        "direction",
+        "intensity",
+        "mood"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:lighting-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Lighting Fundamentals",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Core principles of how light quality, direction, intensity, and color shape image and mood.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Establish a controllable lighting language so every setup serves story, product clarity, and brand tone."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Any professional shoot planning",
+            "Teaching crews a shared lighting vocabulary",
+            "Diagnosing look problems"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When skipping to fixtures without defining intent"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Define mood and subject priority before placing lights",
+            "Control spill and reflections intentionally",
+            "Match lighting plan to camera exposure strategy"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Brief: soft commercial beauty vs hard industrial drama before choosing fixtures"
+          ]
+        }
+      ],
+      "concepts": [
+        "lighting fundamentals",
+        "light quality",
+        "direction",
+        "intensity",
+        "mood"
+      ],
+      "entities": [
+        "Lighting Fundamentals",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "lighting fundamentals",
+        "light quality",
+        "direction",
+        "intensity",
+        "mood"
+      ],
+      "rules": [
+        "Avoid when: When skipping to fixtures without defining intent"
+      ],
+      "bestPractices": [
+        "Define mood and subject priority before placing lights",
+        "Control spill and reflections intentionally",
+        "Match lighting plan to camera exposure strategy"
+      ],
+      "professionalTechniques": [
+        "Transferable across stills and video",
+        "Prevents gear-first mistakes"
+      ],
+      "examples": [
+        "Brief: soft commercial beauty vs hard industrial drama before choosing fixtures"
+      ],
+      "commonMistakes": [
+        "Adding lights without a key purpose",
+        "Ignoring how light direction changes form"
+      ],
+      "qualityRules": [
+        "Requires discipline before complex rigs"
+      ],
+      "decisionRules": [
+        "Use when: Any professional shoot planning",
+        "Use when: Teaching crews a shared lighting vocabulary",
+        "Use when: Diagnosing look problems",
+        "Do not use when: When skipping to fixtures without defining intent"
+      ],
+      "workflowSteps": [
+        "Define mood and subject priority before placing lights",
+        "Control spill and reflections intentionally",
+        "Match lighting plan to camera exposure strategy"
+      ],
+      "prerequisites": [
+        "exposure",
+        "white balance",
+        "aperture",
+        "ISO"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-key-light",
+        "lit-soft-lighting",
+        "lit-hard-lighting",
+        "lit-color-temperature"
+      ],
+      "definitions": [
+        "Establish a controllable lighting language so every setup serves story, product clarity, and brand tone."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Define mood and subject priority before placing lights",
+      "Control spill and reflections intentionally",
+      "Match lighting plan to camera exposure strategy"
+    ],
+    "bestPractices": [
+      "Define mood and subject priority before placing lights",
+      "Control spill and reflections intentionally",
+      "Match lighting plan to camera exposure strategy"
+    ],
+    "decisionRules": [
+      "Use when: Any professional shoot planning",
+      "Use when: Teaching crews a shared lighting vocabulary",
+      "Use when: Diagnosing look problems",
+      "Do not use when: When skipping to fixtures without defining intent"
+    ]
+  }
+}

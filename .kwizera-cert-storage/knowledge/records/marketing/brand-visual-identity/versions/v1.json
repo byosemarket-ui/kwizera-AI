@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "brand-visual-identity",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Visual Identity",
+  "description": "The visual system—color, type, imagery, layout—that expresses the brand.",
+  "summary": "Guide art direction for video frames, motion, and product presentation.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "visual-identity",
+    "visual identity",
+    "brand visuals",
+    "art direction",
+    "design system"
+  ],
+  "keywords": [
+    "visual identity",
+    "brand visuals",
+    "art direction",
+    "design system"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "brand-brand-identity",
+    "brand-brand-consistency",
+    "brand-logo-usage",
+    "cust-product-perception",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-product-knowledge",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:41.075Z",
+  "lastUpdated": "2026-08-08T18:25:41.075Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-visual-identity",
+  "integrityStatus": "verified",
+  "contentHash": "146b6403c16fd5380fa228cd7351f072ac86c1d1fa75f9d38fb9a72cdc8dfc28",
+  "searchableText": "visual identity the visual system—color, type, imagery, layout—that expresses the brand. guide art direction for video frames, motion, and product presentation. professional-branding professional-branding professional visual-identity visual identity brand visuals art direction design system visual identity brand visuals art direction design system",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "visual-identity-visual",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "visual-identity",
+    "kind": "professional-branding",
+    "purpose": "Guide art direction for video frames, motion, and product presentation.",
+    "professionalDefinition": "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone.",
+    "workflow": [
+      "System components",
+      "Templates",
+      "Art direction brief",
+      "QA frames"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-visual-identity",
+      "title": "Visual Identity",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The visual system—color, type, imagery, layout—that expresses the brand.",
+      "coreConcepts": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "definitions": [
+        "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone.",
+        "Guide art direction for video frames, motion, and product presentation."
+      ],
+      "rules": [
+        "Practice: Limit palette",
+        "Practice: Define photography style",
+        "Practice: Design for motion-safe layouts"
+      ],
+      "bestPractices": [
+        "Limit palette",
+        "Define photography style",
+        "Design for motion-safe layouts"
+      ],
+      "professionalTechniques": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "workflow": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "decisionRules": [
+        "Follow: Limit palette",
+        "Follow: Define photography style",
+        "Follow: Design for motion-safe layouts"
+      ],
+      "commonMistakes": [
+        "Clashing campaign art direction",
+        "Illegible type on video"
+      ],
+      "troubleshooting": [
+        "Avoid: Clashing campaign art direction",
+        "Avoid: Illegible type on video"
+      ],
+      "recommendations": [
+        "Limit palette",
+        "Define photography style",
+        "Design for motion-safe layouts"
+      ],
+      "examples": [
+        "Consistent color grade and type system across all SKUs’ videos"
+      ],
+      "professionalStandards": [
+        "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone."
+      ],
+      "relatedTopics": [
+        "brand-identity",
+        "brand-consistency",
+        "logo-usage",
+        "product-perception"
+      ],
+      "keywords": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:visual-identity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Visual Identity",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "The visual system—color, type, imagery, layout—that expresses the brand.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Guide art direction for video frames, motion, and product presentation."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "System components",
+            "Templates",
+            "Art direction brief",
+            "QA frames"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Limit palette",
+            "Define photography style",
+            "Design for motion-safe layouts"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Consistent color grade and type system across all SKUs’ videos"
+          ]
+        }
+      ],
+      "concepts": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "entities": [
+        "Visual Identity",
+        "branding-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "rules": [
+        "Avoid: Clashing campaign art direction",
+        "Avoid: Illegible type on video"
+      ],
+      "bestPractices": [
+        "Limit palette",
+        "Define photography style",
+        "Design for motion-safe layouts"
+      ],
+      "professionalTechniques": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "examples": [
+        "Consistent color grade and type system across all SKUs’ videos"
+      ],
+      "commonMistakes": [
+        "Clashing campaign art direction",
+        "Illegible type on video"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Limit palette",
+        "Practice: Define photography style",
+        "Practice: Design for motion-safe layouts"
+      ],
+      "workflowSteps": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "brand-brand-identity",
+        "brand-brand-consistency",
+        "brand-logo-usage",
+        "cust-product-perception"
+      ],
+      "definitions": [
+        "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone.",
+        "Guide art direction for video frames, motion, and product presentation."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Limit palette",
+      "Define photography style",
+      "Design for motion-safe layouts"
+    ],
+    "bestPractices": [
+      "Limit palette",
+      "Define photography style",
+      "Design for motion-safe layouts"
+    ],
+    "decisionRules": [
+      "Practice: Limit palette",
+      "Practice: Define photography style",
+      "Practice: Design for motion-safe layouts"
+    ]
+  }
+}

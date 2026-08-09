@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "std-professional-workflows",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-industry-standards",
+  "title": "Professional Workflows",
+  "description": "Repeatable handoffs, ownership, and review sequences for dependable studio work.",
+  "summary": "Recommend reliable end-to-end work patterns.",
+  "tags": [
+    "professional-industry-standards",
+    "professional",
+    "professional-workflows",
+    "professional workflow",
+    "handoff",
+    "ownership",
+    "versioning",
+    "approval gate"
+  ],
+  "keywords": [
+    "professional workflow",
+    "handoff",
+    "ownership",
+    "versioning",
+    "approval gate"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-creative-workflows",
+    "std-review-process",
+    "std-approval-process",
+    "std-delivery-standards",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:21.802Z",
+  "lastUpdated": "2026-08-08T19:18:21.802Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\std-professional-workflows",
+  "integrityStatus": "verified",
+  "contentHash": "d46e4b9e853e89e142008f909d5764b17ae88dff4fa195262a90dc2bf107c38d",
+  "searchableText": "professional workflows repeatable handoffs, ownership, and review sequences for dependable studio work. recommend reliable end-to-end work patterns. professional-industry-standards professional-industry-standards professional professional-workflows professional workflow handoff ownership versioning approval gate professional workflow handoff ownership versioning approval gate",
+  "classification": {
+    "category": "professional-industry-standards",
+    "topic": "professional-workflows-repeatable",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "professional-workflows",
+    "kind": "professional-industry-standards",
+    "purpose": "Recommend reliable end-to-end work patterns.",
+    "professionalDefinition": "Professional workflows coordinate roles, inputs, decisions, versioning, and handoffs so quality does not depend on memory or informal assumptions.",
+    "qualityRules": [
+      "Each stage has a named owner",
+      "Inputs and outputs are documented",
+      "Approval gates occur before costly downstream work"
+    ],
+    "workflow": [
+      "Define scope and acceptance criteria",
+      "Apply the standard during work",
+      "Review evidence",
+      "Record exceptions",
+      "Approve or improve"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "std-professional-workflows",
+      "title": "Professional Workflows",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "description": "Repeatable handoffs, ownership, and review sequences for dependable studio work.",
+      "coreConcepts": [
+        "professional workflow",
+        "handoff",
+        "ownership",
+        "versioning",
+        "approval gate"
+      ],
+      "definitions": [
+        "Professional workflows coordinate roles, inputs, decisions, versioning, and handoffs so quality does not depend on memory or informal assumptions.",
+        "Recommend reliable end-to-end work patterns."
+      ],
+      "rules": [
+        "Quality rule: Each stage has a named owner",
+        "Quality rule: Inputs and outputs are documented",
+        "Quality rule: Approval gates occur before costly downstream work"
+      ],
+      "bestPractices": [
+        "Define owner and acceptance at each handoff",
+        "Version assets and decisions",
+        "Use explicit gates for irreversible steps"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "workflow": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "decisionRules": [
+        "Apply: Each stage has a named owner",
+        "Apply: Inputs and outputs are documented",
+        "Apply: Approval gates occur before costly downstream work"
+      ],
+      "commonMistakes": [
+        "Ambiguous ownership",
+        "Untracked changes between review rounds"
+      ],
+      "troubleshooting": [
+        "Avoid: Ambiguous ownership",
+        "Avoid: Untracked changes between review rounds"
+      ],
+      "recommendations": [
+        "Define owner and acceptance at each handoff",
+        "Version assets and decisions",
+        "Use explicit gates for irreversible steps"
+      ],
+      "examples": [
+        "Professional application of Professional Workflows in a studio review."
+      ],
+      "professionalStandards": [
+        "Each stage has a named owner",
+        "Inputs and outputs are documented",
+        "Approval gates occur before costly downstream work"
+      ],
+      "relatedTopics": [
+        "creative-workflows",
+        "review-process",
+        "approval-process",
+        "delivery-standards"
+      ],
+      "keywords": [
+        "professional workflow",
+        "handoff",
+        "ownership",
+        "versioning",
+        "approval gate"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:professional-workflows",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Professional Workflows",
+      "category": "professional-industry-standards",
+      "domain": "industry-standards-knowledge",
+      "description": "Repeatable handoffs, ownership, and review sequences for dependable studio work.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Professional workflows coordinate roles, inputs, decisions, versioning, and handoffs so quality does not depend on memory or informal assumptions.",
+            "Recommend reliable end-to-end work patterns."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Each stage has a named owner",
+            "Inputs and outputs are documented",
+            "Approval gates occur before costly downstream work"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Define owner and acceptance at each handoff",
+            "Version assets and decisions",
+            "Use explicit gates for irreversible steps"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define scope and acceptance criteria",
+            "Apply the standard during work",
+            "Review evidence",
+            "Record exceptions",
+            "Approve or improve"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Professional Workflows in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "professional workflow",
+        "handoff",
+        "ownership",
+        "versioning",
+        "approval gate"
+      ],
+      "entities": [
+        "Professional Workflows",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "professional workflow",
+        "handoff",
+        "ownership",
+        "versioning",
+        "approval gate"
+      ],
+      "rules": [
+        "Each stage has a named owner",
+        "Inputs and outputs are documented",
+        "Approval gates occur before costly downstream work"
+      ],
+      "bestPractices": [
+        "Define owner and acceptance at each handoff",
+        "Version assets and decisions",
+        "Use explicit gates for irreversible steps"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "examples": [
+        "Professional application of Professional Workflows in a studio review."
+      ],
+      "commonMistakes": [
+        "Ambiguous ownership",
+        "Untracked changes between review rounds"
+      ],
+      "qualityRules": [
+        "Each stage has a named owner",
+        "Inputs and outputs are documented",
+        "Approval gates occur before costly downstream work"
+      ],
+      "decisionRules": [
+        "Apply: Each stage has a named owner",
+        "Apply: Inputs and outputs are documented",
+        "Apply: Approval gates occur before costly downstream work"
+      ],
+      "workflowSteps": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "prerequisites": [
+        "Define scope and acceptance criteria"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-creative-workflows",
+        "std-review-process",
+        "std-approval-process",
+        "std-delivery-standards"
+      ],
+      "definitions": [
+        "Professional workflows coordinate roles, inputs, decisions, versioning, and handoffs so quality does not depend on memory or informal assumptions."
+      ],
+      "troubleshooting": [
+        "Avoid: Ambiguous ownership",
+        "Avoid: Untracked changes between review rounds"
+      ],
+      "recommendations": [
+        "Define owner and acceptance at each handoff",
+        "Version assets and decisions",
+        "Use explicit gates for irreversible steps"
+      ],
+      "professionalStandards": [
+        "Each stage has a named owner",
+        "Inputs and outputs are documented",
+        "Approval gates occur before costly downstream work"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:professional-workflows",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Define owner and acceptance at each handoff",
+      "Version assets and decisions",
+      "Use explicit gates for irreversible steps"
+    ],
+    "bestPractices": [
+      "Define owner and acceptance at each handoff",
+      "Version assets and decisions",
+      "Use explicit gates for irreversible steps"
+    ],
+    "decisionRules": [
+      "Quality rule: Each stage has a named owner",
+      "Quality rule: Inputs and outputs are documented",
+      "Quality rule: Approval gates occur before costly downstream work"
+    ]
+  }
+}

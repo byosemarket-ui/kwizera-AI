@@ -1,0 +1,296 @@
+{
+  "knowledgeId": "motion-motion-timing",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Motion Timing",
+  "description": "Duration standards for graphics, UI, and branded motion systems.",
+  "summary": "Speed craft and consistency across teams and templates.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "motion-timing",
+    "motion timing",
+    "duration tokens",
+    "easing standards"
+  ],
+  "keywords": [
+    "motion timing",
+    "duration tokens",
+    "easing standards"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-timing",
+    "motion-ui-motion",
+    "motion-motion-rhythm",
+    "anim-spacing",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:00.780Z",
+  "lastUpdated": "2026-08-08T15:37:00.780Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-motion-timing",
+  "integrityStatus": "verified",
+  "contentHash": "e4171be220aabbf0c94a938fcadb57995e4327ad2af58aaaed69d813a7f128c8",
+  "searchableText": "motion timing duration standards for graphics, ui, and branded motion systems. speed craft and consistency across teams and templates. professional-motion-graphics professional-motion-graphics professional motion-timing motion timing duration tokens easing standards motion timing duration tokens easing standards",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "motion-timing-duration",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "motion-timing",
+    "kind": "professional-motion-graphics",
+    "purpose": "Speed craft and consistency across teams and templates.",
+    "professionalDefinition": "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent.",
+    "workflow": [
+      "Define tokens",
+      "Apply to comps",
+      "QA across templates"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-motion-timing",
+      "title": "Motion Timing",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Duration standards for graphics, UI, and branded motion systems.",
+      "coreConcepts": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "definitions": [
+        "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent.",
+        "Speed craft and consistency across teams and templates."
+      ],
+      "rules": [
+        "Practice: Document tokens (e.g., 150/250/400ms)",
+        "Practice: Longer for large spatial moves",
+        "Practice: Test on target devices"
+      ],
+      "bestPractices": [
+        "Document tokens (e.g., 150/250/400ms)",
+        "Longer for large spatial moves",
+        "Test on target devices"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "workflow": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "decisionRules": [
+        "Follow: Document tokens (e.g., 150/250/400ms)",
+        "Follow: Longer for large spatial moves",
+        "Follow: Test on target devices"
+      ],
+      "commonMistakes": [
+        "Random durations per shot",
+        "Ignoring platform reading speed"
+      ],
+      "troubleshooting": [
+        "Avoid: Random durations per shot",
+        "Avoid: Ignoring platform reading speed"
+      ],
+      "recommendations": [
+        "Document tokens (e.g., 150/250/400ms)",
+        "Longer for large spatial moves",
+        "Test on target devices"
+      ],
+      "examples": [
+        "Brand book: micro 120ms, standard 240ms, expressive 480ms"
+      ],
+      "professionalStandards": [
+        "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent."
+      ],
+      "relatedTopics": [
+        "timing",
+        "ui-motion",
+        "motion-rhythm",
+        "spacing"
+      ],
+      "keywords": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-timing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Motion Timing",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Duration standards for graphics, UI, and branded motion systems.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Speed craft and consistency across teams and templates."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define tokens",
+            "Apply to comps",
+            "QA across templates"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Document tokens (e.g., 150/250/400ms)",
+            "Longer for large spatial moves",
+            "Test on target devices"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Brand book: micro 120ms, standard 240ms, expressive 480ms"
+          ]
+        }
+      ],
+      "concepts": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "entities": [
+        "Motion Timing",
+        "motion-graphics-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "rules": [
+        "Avoid: Random durations per shot",
+        "Avoid: Ignoring platform reading speed"
+      ],
+      "bestPractices": [
+        "Document tokens (e.g., 150/250/400ms)",
+        "Longer for large spatial moves",
+        "Test on target devices"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "examples": [
+        "Brand book: micro 120ms, standard 240ms, expressive 480ms"
+      ],
+      "commonMistakes": [
+        "Random durations per shot",
+        "Ignoring platform reading speed"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Document tokens (e.g., 150/250/400ms)",
+        "Practice: Longer for large spatial moves",
+        "Practice: Test on target devices"
+      ],
+      "workflowSteps": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-timing",
+        "motion-ui-motion",
+        "motion-motion-rhythm",
+        "anim-spacing"
+      ],
+      "definitions": [
+        "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent.",
+        "Speed craft and consistency across teams and templates."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Document tokens (e.g., 150/250/400ms)",
+      "Longer for large spatial moves",
+      "Test on target devices"
+    ],
+    "bestPractices": [
+      "Document tokens (e.g., 150/250/400ms)",
+      "Longer for large spatial moves",
+      "Test on target devices"
+    ],
+    "decisionRules": [
+      "Practice: Document tokens (e.g., 150/250/400ms)",
+      "Practice: Longer for large spatial moves",
+      "Practice: Test on target devices"
+    ]
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "vp-bridge-video-editing-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "video-production-domain-bridge",
+  "title": "Editing Knowledge (related domain)",
+  "description": "Relationship anchor to Video Editing Knowledge for pacing, rhythm, and finishing craft.",
+  "summary": "Production coverage and post-production editing are interdependent.",
+  "tags": [
+    "video-production",
+    "domain-bridge",
+    "video-editing-knowledge"
+  ],
+  "keywords": [
+    "video-editing-knowledge",
+    "video-production",
+    "relationship"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-video-production-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:10.843Z",
+  "lastUpdated": "2026-08-08T16:45:15.164Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-bridge-video-editing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "83eebf15a5dc355841beaf27ade37f443c93ca8516b7804615e038cdb11ae413",
+  "searchableText": "editing knowledge (related domain) relationship anchor to video editing knowledge for pacing, rhythm, and finishing craft. production coverage and post-production editing are interdependent. video-production-domain-bridge video-production domain-bridge video-editing-knowledge video-editing-knowledge video-production relationship",
+  "classification": {
+    "category": "video-production-domain-bridge",
+    "topic": "editing-knowledge-(related",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "bridgeDomainId": "video-editing-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate video production topics to video-editing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Editing Knowledge (related domain)",
+      "category": "domain-bridge",
+      "domain": "video-editing-knowledge",
+      "description": "Relationship anchor to Video Editing Knowledge for pacing, rhythm, and finishing craft.",
+      "sections": [],
+      "concepts": [
+        "video-editing-knowledge"
+      ],
+      "entities": [
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "video-editing-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate video production topics to video-editing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "vp-video-production-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

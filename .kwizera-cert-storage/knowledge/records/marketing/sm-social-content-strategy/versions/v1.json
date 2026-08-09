@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "sm-social-content-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Content Strategy",
+  "description": "Planning what to publish, why, for whom, and how it compounds over time.",
+  "summary": "Recommend coherent content mixes instead of one-off posts.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "social-content-strategy",
+    "content strategy",
+    "pillars",
+    "editorial",
+    "social plan",
+    "mix"
+  ],
+  "keywords": [
+    "content strategy",
+    "pillars",
+    "editorial",
+    "social plan",
+    "mix"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-content-calendar",
+    "sm-platform-selection",
+    "sm-social-media-fundamentals",
+    "sm-social-trend-analysis",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:31.818Z",
+  "lastUpdated": "2026-08-08T19:03:31.818Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-social-content-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "56449a74b707b8d10ee01c0ff9cd8877a5285b90023380f849af512731d12ea2",
+  "searchableText": "content strategy planning what to publish, why, for whom, and how it compounds over time. recommend coherent content mixes instead of one-off posts. professional-social-fundamentals professional-social-fundamentals professional social-content-strategy content strategy pillars editorial social plan mix content strategy pillars editorial social plan mix",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "content-strategy-planning",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "social-content-strategy",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Recommend coherent content mixes instead of one-off posts.",
+    "professionalDefinition": "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-social-content-strategy",
+      "title": "Content Strategy",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Planning what to publish, why, for whom, and how it compounds over time.",
+      "coreConcepts": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "definitions": [
+        "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content.",
+        "Recommend coherent content mixes instead of one-off posts."
+      ],
+      "rules": [
+        "Practice: Map pillars to funnel stages",
+        "Practice: Balance evergreen and timely content",
+        "Practice: Brief creative with platform constraints up front"
+      ],
+      "bestPractices": [
+        "Map pillars to funnel stages",
+        "Balance evergreen and timely content",
+        "Brief creative with platform constraints up front"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Map pillars to funnel stages",
+        "Follow: Balance evergreen and timely content",
+        "Follow: Brief creative with platform constraints up front"
+      ],
+      "commonMistakes": [
+        "Random posting without pillars",
+        "Only promotional posts"
+      ],
+      "troubleshooting": [
+        "Avoid: Random posting without pillars",
+        "Avoid: Only promotional posts"
+      ],
+      "recommendations": [
+        "Map pillars to funnel stages",
+        "Balance evergreen and timely content",
+        "Brief creative with platform constraints up front"
+      ],
+      "examples": [
+        "Professional application of Content Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content."
+      ],
+      "relatedTopics": [
+        "content-calendar",
+        "platform-selection",
+        "social-media-fundamentals",
+        "social-trend-analysis"
+      ],
+      "keywords": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-content-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Content Strategy",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Planning what to publish, why, for whom, and how it compounds over time.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend coherent content mixes instead of one-off posts."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Map pillars to funnel stages",
+            "Balance evergreen and timely content",
+            "Brief creative with platform constraints up front"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Content Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "entities": [
+        "Content Strategy",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "rules": [
+        "Avoid: Random posting without pillars",
+        "Avoid: Only promotional posts"
+      ],
+      "bestPractices": [
+        "Map pillars to funnel stages",
+        "Balance evergreen and timely content",
+        "Brief creative with platform constraints up front"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Content Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Random posting without pillars",
+        "Only promotional posts"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Map pillars to funnel stages",
+        "Practice: Balance evergreen and timely content",
+        "Practice: Brief creative with platform constraints up front"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-content-calendar",
+        "sm-platform-selection",
+        "sm-social-media-fundamentals",
+        "sm-social-trend-analysis"
+      ],
+      "definitions": [
+        "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content.",
+        "Recommend coherent content mixes instead of one-off posts."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Map pillars to funnel stages",
+      "Balance evergreen and timely content",
+      "Brief creative with platform constraints up front"
+    ],
+    "bestPractices": [
+      "Map pillars to funnel stages",
+      "Balance evergreen and timely content",
+      "Brief creative with platform constraints up front"
+    ],
+    "decisionRules": [
+      "Practice: Map pillars to funnel stages",
+      "Practice: Balance evergreen and timely content",
+      "Practice: Brief creative with platform constraints up front"
+    ]
+  }
+}

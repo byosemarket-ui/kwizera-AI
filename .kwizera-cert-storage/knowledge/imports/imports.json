@@ -1,0 +1,17 @@
+{
+  "imports": [],
+  "activation": {
+    "foundationReady": false,
+    "indexUpdated": true,
+    "graphUpdated": true,
+    "searchReady": true,
+    "reasoningReady": true,
+    "decisionReady": true,
+    "workflowReady": true,
+    "planningReady": true,
+    "memorySynced": true,
+    "domainsContentReady": [],
+    "importedCount": 0,
+    "activatedCount": 0
+  }
+}

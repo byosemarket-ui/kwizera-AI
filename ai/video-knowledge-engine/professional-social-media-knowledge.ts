@@ -7,7 +7,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiKnowledgeFoundation } from "../knowledge-foundation/knowledge-foundation.js";
 import { KnowledgeVerificationStatus } from "../knowledge-foundation/types.js";
-import { KnowledgeRelationType } from "../knowledge-graph-engine/types.js";
+import { KnowledgeNodeType, KnowledgeRelationType } from "../knowledge-graph-engine/types.js";
 import { KnowledgePackStore } from "../knowledge-processing-engine/knowledge-pack-store.js";
 import type { KnowledgeItem, KnowledgePack, KnowledgePackSlug } from "../knowledge-processing-engine/knowledge-extraction-types.js";
 import type { StructuredKnowledge } from "../knowledge-processing-engine/knowledge-processing-engine.js";
@@ -218,13 +218,32 @@ export class ProfessionalSocialMediaKnowledge {
       }
     }
 
-    const allIds = [...ALL_TOPICS().map((t) => t.knowledgeId), ...SM_DOMAIN_BRIDGES.map((b) => b.knowledgeId)];
-    for (const id of allIds) {
+    for (const topic of ALL_TOPICS()) {
       try {
-        foundation.getRetrievalEngine().invalidateCache(id);
-        await foundation.getGraphEngine().evolveGraph(id);
+        foundation.getRetrievalEngine().invalidateCache(topic.knowledgeId);
+        foundation.getGraphEngine().createNode(
+          topic.knowledgeId,
+          KnowledgeNodeType.BusinessConcept,
+          topic.name,
+          `${topic.name} ${topic.description} ${topic.keywords.join(" ")}`
+        );
       } catch (error) {
-        issues.push(`Graph evolve failed for ${id}: ${error instanceof Error ? error.message : String(error)}`);
+        issues.push(`Graph node creation failed for ${topic.knowledgeId}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    for (const bridge of SM_DOMAIN_BRIDGES) {
+      try {
+        foundation.getRetrievalEngine().invalidateCache(bridge.knowledgeId);
+        foundation.getGraphEngine().createNode(
+          bridge.knowledgeId,
+          KnowledgeNodeType.BusinessConcept,
+          bridge.title,
+          `${bridge.title} ${bridge.description} ${bridge.domainId}`
+        );
+      } catch (error) {
+        issues.push(
+          `Graph node creation failed for ${bridge.knowledgeId}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 

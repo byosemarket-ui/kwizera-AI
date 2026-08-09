@@ -1,0 +1,313 @@
+{
+  "knowledgeId": "anim-timing",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Timing",
+  "description": "How long actions take and how that duration communicates weight, urgency, and tone.",
+  "summary": "Make motion feel right for brand tone and product mass.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "timing",
+    "duration",
+    "frames",
+    "weight",
+    "tempo"
+  ],
+  "keywords": [
+    "timing",
+    "duration",
+    "frames",
+    "weight",
+    "tempo"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-spacing",
+    "motion-motion-timing",
+    "anim-principles-of-animation",
+    "render-frame-rate",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-rendering-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:50.478Z",
+  "lastUpdated": "2026-08-08T17:55:24.348Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-timing",
+  "integrityStatus": "verified",
+  "contentHash": "2532980bbdca14026bd8ea59a589e197b5837d8a168ce50cc971c3674a213754",
+  "searchableText": "timing how long actions take and how that duration communicates weight, urgency, and tone. make motion feel right for brand tone and product mass. professional-animation professional-animation professional timing duration frames weight tempo timing duration frames weight tempo",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "timing-long-actions",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "timing",
+    "kind": "professional-animation",
+    "purpose": "Make motion feel right for brand tone and product mass.",
+    "professionalDefinition": "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature.",
+    "workflow": [
+      "Block poses",
+      "Set duration",
+      "Adjust holds",
+      "Sync to audio if needed"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-timing",
+      "title": "Timing",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "How long actions take and how that duration communicates weight, urgency, and tone.",
+      "coreConcepts": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "definitions": [
+        "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature.",
+        "Make motion feel right for brand tone and product mass."
+      ],
+      "rules": [
+        "Practice: Match timing to mass and mood",
+        "Practice: Hold important poses",
+        "Practice: Test at delivery frame rate"
+      ],
+      "bestPractices": [
+        "Match timing to mass and mood",
+        "Hold important poses",
+        "Test at delivery frame rate"
+      ],
+      "professionalTechniques": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "workflow": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "decisionRules": [
+        "Follow: Match timing to mass and mood",
+        "Follow: Hold important poses",
+        "Follow: Test at delivery frame rate"
+      ],
+      "commonMistakes": [
+        "Everything same duration",
+        "Too fast to read on mobile"
+      ],
+      "troubleshooting": [
+        "Avoid: Everything same duration",
+        "Avoid: Too fast to read on mobile"
+      ],
+      "recommendations": [
+        "Match timing to mass and mood",
+        "Hold important poses",
+        "Test at delivery frame rate"
+      ],
+      "examples": [
+        "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel"
+      ],
+      "professionalStandards": [
+        "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature."
+      ],
+      "relatedTopics": [
+        "spacing",
+        "motion-timing",
+        "principles-of-animation",
+        "frame-rate"
+      ],
+      "keywords": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:timing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Timing",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "How long actions take and how that duration communicates weight, urgency, and tone.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make motion feel right for brand tone and product mass."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Block poses",
+            "Set duration",
+            "Adjust holds",
+            "Sync to audio if needed"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match timing to mass and mood",
+            "Hold important poses",
+            "Test at delivery frame rate"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel"
+          ]
+        }
+      ],
+      "concepts": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "entities": [
+        "Timing",
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "rules": [
+        "Avoid: Everything same duration",
+        "Avoid: Too fast to read on mobile"
+      ],
+      "bestPractices": [
+        "Match timing to mass and mood",
+        "Hold important poses",
+        "Test at delivery frame rate"
+      ],
+      "professionalTechniques": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "examples": [
+        "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel"
+      ],
+      "commonMistakes": [
+        "Everything same duration",
+        "Too fast to read on mobile"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Match timing to mass and mood",
+        "Practice: Hold important poses",
+        "Practice: Test at delivery frame rate"
+      ],
+      "workflowSteps": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-spacing",
+        "motion-motion-timing",
+        "anim-principles-of-animation",
+        "render-frame-rate"
+      ],
+      "definitions": [
+        "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature.",
+        "Make motion feel right for brand tone and product mass."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Match timing to mass and mood",
+      "Hold important poses",
+      "Test at delivery frame rate"
+    ],
+    "bestPractices": [
+      "Match timing to mass and mood",
+      "Hold important poses",
+      "Test at delivery frame rate"
+    ],
+    "decisionRules": [
+      "Practice: Match timing to mass and mood",
+      "Practice: Hold important poses",
+      "Practice: Test at delivery frame rate"
+    ]
+  }
+}

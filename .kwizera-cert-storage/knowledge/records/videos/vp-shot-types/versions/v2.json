@@ -1,0 +1,320 @@
+{
+  "knowledgeId": "vp-shot-types",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Shot Types",
+  "description": "Professional shot vocabulary used in production planning and editing: wide, medium, close-up, insert, POV, and supporting coverage.",
+  "summary": "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene.",
+  "tags": [
+    "video-production",
+    "professional",
+    "shot-types",
+    "shot types",
+    "wide",
+    "close-up",
+    "insert",
+    "coverage"
+  ],
+  "keywords": [
+    "shot types",
+    "wide",
+    "close-up",
+    "insert",
+    "coverage"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-shot-planning",
+    "vp-camera-coverage",
+    "vp-scene-planning",
+    "vp-product-advertisement-videos",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:55.980Z",
+  "lastUpdated": "2026-08-08T16:45:09.939Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-shot-types",
+  "integrityStatus": "verified",
+  "contentHash": "4dfb547cd856af3c5a97390fe718c530aff6b0f29e7d87b77c98fbe0e40c7f50",
+  "searchableText": "shot types professional shot vocabulary used in production planning and editing: wide, medium, close-up, insert, pov, and supporting coverage. shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene. professional-video-production video-production professional shot-types shot types wide close-up insert coverage shot types wide close-up insert coverage",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "shot-types-professional",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "shot-types",
+    "professionalDefinition": "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-shot-types",
+      "title": "Shot Types",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional shot vocabulary used in production planning and editing: wide, medium, close-up, insert, POV, and supporting coverage.",
+      "coreConcepts": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "definitions": [
+        "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene."
+      ],
+      "rules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "bestPractices": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "professionalTechniques": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "workflow": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "decisionRules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "commonMistakes": [
+        "Shooting only medium shots and trapping the edit.",
+        "Jumping shot sizes without motivation.",
+        "Close-ups without establishing geography."
+      ],
+      "troubleshooting": [
+        "Avoid: Shooting only medium shots and trapping the edit.",
+        "Avoid: Jumping shot sizes without motivation.",
+        "Avoid: Close-ups without establishing geography."
+      ],
+      "recommendations": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "examples": [
+        "Product scene: wide environment, medium usage, macro insert of detail.",
+        "Interview: medium talking head plus cutaway inserts of hands/work."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-planning",
+        "camera-coverage",
+        "scene-planning",
+        "product-advertisement-videos"
+      ],
+      "keywords": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:shot-types",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Shot Types",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Professional shot vocabulary used in production planning and editing: wide, medium, close-up, insert, POV, and supporting coverage.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Plan a mix of master, medium, and close coverage for editable scenes.",
+            "Use inserts to prove product detail or process clarity.",
+            "Match shot size progression to story intensity.",
+            "Document intended shot type on the shot list to avoid missing coverage."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Translate scene beats into required shot types.",
+            "Prioritize must-have sizes before stylistic extras.",
+            "Capture consistency of eye-line and screen direction.",
+            "Label takes by shot type for faster post."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If the edit needs options, always capture at least two shot sizes per key beat.",
+            "Always establish space before relying on close coverage.",
+            "When emotion is the goal, prefer closer framing after context is clear.",
+            "Never leave a product claim without a supporting insert when possible."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product scene: wide environment, medium usage, macro insert of detail.",
+            "Interview: medium talking head plus cutaway inserts of hands/work."
+          ]
+        }
+      ],
+      "concepts": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "entities": [
+        "Shot Types",
+        "camera-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "rules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "bestPractices": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "professionalTechniques": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "examples": [
+        "Product scene: wide environment, medium usage, macro insert of detail.",
+        "Interview: medium talking head plus cutaway inserts of hands/work."
+      ],
+      "commonMistakes": [
+        "Shooting only medium shots and trapping the edit.",
+        "Jumping shot sizes without motivation.",
+        "Close-ups without establishing geography."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "workflowSteps": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "prerequisites": [
+        "Translate scene beats into required shot types."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-shot-planning",
+        "vp-camera-coverage",
+        "vp-scene-planning",
+        "vp-product-advertisement-videos"
+      ],
+      "definitions": [
+        "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene."
+      ],
+      "troubleshooting": [
+        "Avoid: Shooting only medium shots and trapping the edit.",
+        "Avoid: Jumping shot sizes without motivation.",
+        "Avoid: Close-ups without establishing geography."
+      ],
+      "recommendations": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

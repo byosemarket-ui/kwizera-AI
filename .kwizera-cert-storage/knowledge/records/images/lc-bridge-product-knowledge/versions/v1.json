@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "lc-bridge-product-knowledge",
+  "knowledgeType": "image-knowledge",
+  "category": "lighting-composition-domain-bridge",
+  "title": "Product Photography / Product Knowledge (related)",
+  "description": "Product presentation depends on specialty lighting and composition.",
+  "summary": "Product lighting and subject placement prove product value.",
+  "tags": [
+    "lighting-composition",
+    "domain-bridge",
+    "product-knowledge"
+  ],
+  "keywords": [
+    "product-knowledge",
+    "lighting",
+    "composition",
+    "relationship"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-lighting-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:35.025Z",
+  "lastUpdated": "2026-08-08T15:32:35.025Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lc-bridge-product-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "a4fa503dc0902c778a7a90f9739285bd062056f640427721d74bb4fb1f2304ff",
+  "searchableText": "product photography / product knowledge (related) product presentation depends on specialty lighting and composition. product lighting and subject placement prove product value. lighting-composition-domain-bridge lighting-composition domain-bridge product-knowledge product-knowledge lighting composition relationship",
+  "classification": {
+    "category": "lighting-composition-domain-bridge",
+    "topic": "product-photography-product",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "bridgeDomainId": "product-knowledge",
+    "relationshipAnchor": true,
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate lighting/composition knowledge to product-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Product Photography / Product Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "product-knowledge",
+      "description": "Product presentation depends on specialty lighting and composition.",
+      "sections": [],
+      "concepts": [
+        "product-knowledge"
+      ],
+      "entities": [
+        "product-knowledge"
+      ],
+      "terminology": [
+        "product-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate lighting/composition knowledge to product-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "lit-lighting-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

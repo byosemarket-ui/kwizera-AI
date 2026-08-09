@@ -1,0 +1,303 @@
+{
+  "knowledgeId": "brand-brand-positioning",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Brand Positioning",
+  "description": "How the brand is meant to be perceived versus alternatives in the customer’s mind.",
+  "summary": "Keep messaging and creative differentiated.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "brand-positioning",
+    "brand positioning",
+    "differentiation",
+    "competitive frame"
+  ],
+  "keywords": [
+    "brand positioning",
+    "differentiation",
+    "competitive frame"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-value-proposition",
+    "brand-brand-story",
+    "mkt-product-marketing",
+    "sales-authority",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:25.115Z",
+  "lastUpdated": "2026-08-08T18:25:25.115Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-brand-positioning",
+  "integrityStatus": "verified",
+  "contentHash": "dc13af61f307b2d6ccc03a15c5b5aaf989f40cd73e5ff4114cf22c16219b0dcb",
+  "searchableText": "brand positioning how the brand is meant to be perceived versus alternatives in the customer’s mind. keep messaging and creative differentiated. professional-branding professional-branding professional brand-positioning brand positioning differentiation competitive frame brand positioning differentiation competitive frame",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "brand-positioning-brand",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-positioning",
+    "kind": "professional-branding",
+    "purpose": "Keep messaging and creative differentiated.",
+    "professionalDefinition": "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place.",
+    "workflow": [
+      "Research",
+      "Draft positioning",
+      "Test",
+      "Lock into briefs"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-brand-positioning",
+      "title": "Brand Positioning",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "How the brand is meant to be perceived versus alternatives in the customer’s mind.",
+      "coreConcepts": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "definitions": [
+        "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place.",
+        "Keep messaging and creative differentiated."
+      ],
+      "rules": [
+        "Practice: One sharp difference",
+        "Practice: Proof that supports the claim",
+        "Practice: Repeat consistently"
+      ],
+      "bestPractices": [
+        "One sharp difference",
+        "Proof that supports the claim",
+        "Repeat consistently"
+      ],
+      "professionalTechniques": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "workflow": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "decisionRules": [
+        "Follow: One sharp difference",
+        "Follow: Proof that supports the claim",
+        "Follow: Repeat consistently"
+      ],
+      "commonMistakes": [
+        "Generic ‘quality’ positioning",
+        "Positioning nobody believes"
+      ],
+      "troubleshooting": [
+        "Avoid: Generic ‘quality’ positioning",
+        "Avoid: Positioning nobody believes"
+      ],
+      "recommendations": [
+        "One sharp difference",
+        "Proof that supports the claim",
+        "Repeat consistently"
+      ],
+      "examples": [
+        "Position: fastest setup for non-technical teams — shown in 20s demo"
+      ],
+      "professionalStandards": [
+        "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place."
+      ],
+      "relatedTopics": [
+        "value-proposition",
+        "brand-story",
+        "product-marketing",
+        "authority"
+      ],
+      "keywords": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-positioning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Positioning",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "How the brand is meant to be perceived versus alternatives in the customer’s mind.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep messaging and creative differentiated."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Research",
+            "Draft positioning",
+            "Test",
+            "Lock into briefs"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One sharp difference",
+            "Proof that supports the claim",
+            "Repeat consistently"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Position: fastest setup for non-technical teams — shown in 20s demo"
+          ]
+        }
+      ],
+      "concepts": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "entities": [
+        "Brand Positioning",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "rules": [
+        "Avoid: Generic ‘quality’ positioning",
+        "Avoid: Positioning nobody believes"
+      ],
+      "bestPractices": [
+        "One sharp difference",
+        "Proof that supports the claim",
+        "Repeat consistently"
+      ],
+      "professionalTechniques": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "examples": [
+        "Position: fastest setup for non-technical teams — shown in 20s demo"
+      ],
+      "commonMistakes": [
+        "Generic ‘quality’ positioning",
+        "Positioning nobody believes"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: One sharp difference",
+        "Practice: Proof that supports the claim",
+        "Practice: Repeat consistently"
+      ],
+      "workflowSteps": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sales-value-proposition",
+        "brand-brand-story",
+        "mkt-product-marketing",
+        "sales-authority"
+      ],
+      "definitions": [
+        "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place.",
+        "Keep messaging and creative differentiated."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "One sharp difference",
+      "Proof that supports the claim",
+      "Repeat consistently"
+    ],
+    "bestPractices": [
+      "One sharp difference",
+      "Proof that supports the claim",
+      "Repeat consistently"
+    ],
+    "decisionRules": [
+      "Practice: One sharp difference",
+      "Practice: Proof that supports the claim",
+      "Practice: Repeat consistently"
+    ]
+  }
+}

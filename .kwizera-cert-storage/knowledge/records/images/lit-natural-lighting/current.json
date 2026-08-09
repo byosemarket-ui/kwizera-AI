@@ -1,0 +1,347 @@
+{
+  "knowledgeId": "lit-natural-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Natural Lighting",
+  "description": "Using sunlight, skylight, and available ambient daylight as primary illumination.",
+  "summary": "Create authentic, cost-efficient looks while managing time-of-day and weather constraints.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "natural-lighting",
+    "natural light",
+    "daylight",
+    "window light",
+    "golden hour",
+    "available light"
+  ],
+  "keywords": [
+    "natural light",
+    "daylight",
+    "window light",
+    "golden hour",
+    "available light"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-outdoor-lighting",
+    "lit-soft-lighting",
+    "lit-hard-lighting",
+    "lit-color-temperature",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-storytelling-knowledge",
+    "lc-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:23.899Z",
+  "lastUpdated": "2026-08-08T17:15:31.636Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-natural-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "d7b9645764a8d7349f741d0c4120afe2832c75aff21f037d5f3b224e4b93adfc",
+  "searchableText": "natural lighting using sunlight, skylight, and available ambient daylight as primary illumination. create authentic, cost-efficient looks while managing time-of-day and weather constraints. professional-lighting professional-lighting professional natural-lighting natural light daylight window light golden hour available light natural light daylight window light golden hour available light",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "natural-lighting-using",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "natural-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Create authentic, cost-efficient looks while managing time-of-day and weather constraints.",
+    "whenToUse": [
+      "Outdoor lifestyle",
+      "Window-lit interiors",
+      "Documentary authenticity"
+    ],
+    "whenNotToUse": [
+      "When schedule cannot follow sun",
+      "When color/contrast must be studio-locked"
+    ],
+    "advantages": [
+      "Believable rendering",
+      "Large soft sources (open sky)"
+    ],
+    "limitations": [
+      "Changing conditions",
+      "Hard to repeat exactly"
+    ],
+    "relatedCameraTechniques": [
+      "ND filters",
+      "white balance",
+      "exposure",
+      "frame rate for flicker-free ambient"
+    ],
+    "relatedStorytellingTechniques": [
+      "realism",
+      "time-of-day symbolism"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-natural-lighting",
+      "title": "Natural Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Using sunlight, skylight, and available ambient daylight as primary illumination.",
+      "coreConcepts": [
+        "natural light",
+        "daylight",
+        "window light",
+        "golden hour",
+        "available light"
+      ],
+      "definitions": [
+        "Create authentic, cost-efficient looks while managing time-of-day and weather constraints."
+      ],
+      "rules": [
+        "Use when: Outdoor lifestyle",
+        "Use when: Window-lit interiors",
+        "Use when: Documentary authenticity",
+        "Do not use when: When schedule cannot follow sun",
+        "Do not use when: When color/contrast must be studio-locked"
+      ],
+      "bestPractices": [
+        "Scout sun path",
+        "Use diffusion/bounce/neg fill",
+        "Protect continuity across hours"
+      ],
+      "professionalTechniques": [
+        "Believable rendering",
+        "Large soft sources (open sky)"
+      ],
+      "workflow": [
+        "Choose Natural Lighting",
+        "Scout sun path",
+        "Use diffusion/bounce/neg fill",
+        "Protect continuity across hours"
+      ],
+      "decisionRules": [
+        "Use when: Outdoor lifestyle",
+        "Use when: Window-lit interiors",
+        "Use when: Documentary authenticity",
+        "Avoid when: When schedule cannot follow sun",
+        "Avoid when: When color/contrast must be studio-locked"
+      ],
+      "commonMistakes": [
+        "Shooting midday without control",
+        "Mixed window + warm practicals unmanaged"
+      ],
+      "troubleshooting": [
+        "Limitation: Changing conditions",
+        "Limitation: Hard to repeat exactly"
+      ],
+      "recommendations": [
+        "Scout sun path",
+        "Use diffusion/bounce/neg fill",
+        "Protect continuity across hours"
+      ],
+      "examples": [
+        "Golden-hour product lifestyle with reflector fill"
+      ],
+      "professionalStandards": [
+        "realism",
+        "time-of-day symbolism"
+      ],
+      "relatedTopics": [
+        "outdoor-lighting",
+        "soft-lighting",
+        "hard-lighting",
+        "color-temperature"
+      ],
+      "keywords": [
+        "natural light",
+        "daylight",
+        "window light",
+        "golden hour",
+        "available light"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:natural-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Natural Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Using sunlight, skylight, and available ambient daylight as primary illumination.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create authentic, cost-efficient looks while managing time-of-day and weather constraints."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Outdoor lifestyle",
+            "Window-lit interiors",
+            "Documentary authenticity"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When schedule cannot follow sun",
+            "When color/contrast must be studio-locked"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Scout sun path",
+            "Use diffusion/bounce/neg fill",
+            "Protect continuity across hours"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Golden-hour product lifestyle with reflector fill"
+          ]
+        }
+      ],
+      "concepts": [
+        "natural light",
+        "daylight",
+        "window light",
+        "golden hour",
+        "available light"
+      ],
+      "entities": [
+        "Natural Lighting",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "natural light",
+        "daylight",
+        "window light",
+        "golden hour",
+        "available light"
+      ],
+      "rules": [
+        "Avoid when: When schedule cannot follow sun",
+        "Avoid when: When color/contrast must be studio-locked"
+      ],
+      "bestPractices": [
+        "Scout sun path",
+        "Use diffusion/bounce/neg fill",
+        "Protect continuity across hours"
+      ],
+      "professionalTechniques": [
+        "Believable rendering",
+        "Large soft sources (open sky)"
+      ],
+      "examples": [
+        "Golden-hour product lifestyle with reflector fill"
+      ],
+      "commonMistakes": [
+        "Shooting midday without control",
+        "Mixed window + warm practicals unmanaged"
+      ],
+      "qualityRules": [
+        "Changing conditions",
+        "Hard to repeat exactly"
+      ],
+      "decisionRules": [
+        "Use when: Outdoor lifestyle",
+        "Use when: Window-lit interiors",
+        "Use when: Documentary authenticity",
+        "Do not use when: When schedule cannot follow sun",
+        "Do not use when: When color/contrast must be studio-locked"
+      ],
+      "workflowSteps": [
+        "Scout sun path",
+        "Use diffusion/bounce/neg fill",
+        "Protect continuity across hours"
+      ],
+      "prerequisites": [
+        "ND filters",
+        "white balance",
+        "exposure",
+        "frame rate for flicker-free ambient"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-outdoor-lighting",
+        "lit-soft-lighting",
+        "lit-hard-lighting",
+        "lit-color-temperature"
+      ],
+      "definitions": [
+        "Create authentic, cost-efficient looks while managing time-of-day and weather constraints."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Scout sun path",
+      "Use diffusion/bounce/neg fill",
+      "Protect continuity across hours"
+    ],
+    "bestPractices": [
+      "Scout sun path",
+      "Use diffusion/bounce/neg fill",
+      "Protect continuity across hours"
+    ],
+    "decisionRules": [
+      "Use when: Outdoor lifestyle",
+      "Use when: Window-lit interiors",
+      "Use when: Documentary authenticity",
+      "Do not use when: When schedule cannot follow sun",
+      "Do not use when: When color/contrast must be studio-locked"
+    ]
+  }
+}

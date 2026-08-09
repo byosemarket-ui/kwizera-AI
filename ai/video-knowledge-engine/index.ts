@@ -8,6 +8,7 @@ export { ProfessionalStorytellingSceneKnowledge } from "./professional-storytell
 export { ProfessionalAnimationMotionRenderingKnowledge } from "./professional-animation-motion-rendering-knowledge.js";
 export { ProfessionalMarketingBrandingPsychologyKnowledge } from "./professional-marketing-branding-psychology-knowledge.js";
 export { ProfessionalSocialMediaKnowledge } from "./professional-social-media-knowledge.js";
+export { ProfessionalIndustryStandardsQualityKnowledge } from "./professional-industry-standards-quality-knowledge.js";
 export {
   PROFESSIONAL_VIDEO_PRODUCTION_TOPICS,
   VIDEO_PRODUCTION_DOMAIN_BRIDGES,
@@ -94,6 +95,23 @@ export {
   checkSmCatalogRelationships,
 } from "./professional-social-media-catalog.js";
 export {
+  PROFESSIONAL_STANDARDS_TOPICS,
+  PROFESSIONAL_QUALITY_RULES_TOPICS,
+  PROFESSIONAL_BEST_PRACTICES_TOPICS,
+  PROFESSIONAL_QUALITY_EVALUATION_TOPICS,
+  PROFESSIONAL_CHECKLIST_TOPICS,
+  ISQ_DOMAIN_BRIDGES,
+  REQUIRED_PROFESSIONAL_STANDARDS_TOPIC_IDS,
+  REQUIRED_QUALITY_RULES_TOPIC_IDS,
+  REQUIRED_BEST_PRACTICES_TOPIC_IDS,
+  REQUIRED_QUALITY_EVALUATION_TOPIC_IDS,
+  REQUIRED_PROFESSIONAL_CHECKLIST_TOPIC_IDS,
+  findIsqTopics,
+  getIsqTopic,
+  getAllIsqTopics,
+  checkIsqCatalogRelationships,
+} from "./professional-industry-standards-quality-catalog.js";
+export {
   PROFESSIONAL_VIDEO_PRODUCTION_VERSION,
   VIDEO_PRODUCTION_DOMAIN_ID,
   VIDEO_PRODUCTION_KNOWLEDGE_SOURCE,
@@ -147,6 +165,12 @@ export {
   SOCIAL_MEDIA_KNOWLEDGE_SOURCE,
   ProfessionalSocialMediaError,
 } from "./professional-social-media-types.js";
+export {
+  PROFESSIONAL_INDUSTRY_STANDARDS_QUALITY_VERSION,
+  INDUSTRY_STANDARDS_DOMAIN_ID,
+  INDUSTRY_STANDARDS_QUALITY_SOURCE,
+  ProfessionalIndustryStandardsQualityError,
+} from "./professional-industry-standards-quality-types.js";
 export type {
   ProfessionalVideoProductionTopic,
   VideoProductionTopicId,
@@ -228,6 +252,20 @@ export type {
   SmRecommendation,
   SmExplainResult,
 } from "./professional-social-media-types.js";
+export type {
+  ProfessionalIsqTopic,
+  ProfessionalStandardsTopicId,
+  QualityRulesTopicId,
+  ProfessionalBestPracticesTopicId,
+  QualityEvaluationTopicId,
+  ProfessionalChecklistTopicId,
+  AiMeIndustryStandardsAwareness,
+  IsqHealthReport,
+  IsqInstallResult,
+  IsqRecommendation,
+  IsqQualityEvaluation,
+  IsqExplainResult,
+} from "./professional-industry-standards-quality-types.js";
 export { VideoKnowledgeLogger } from "./video-logger.js";
 export { VideoType, EditingStyle, CameraShotType, VideoKnowledgeEngineError } from "./types.js";
 export type {

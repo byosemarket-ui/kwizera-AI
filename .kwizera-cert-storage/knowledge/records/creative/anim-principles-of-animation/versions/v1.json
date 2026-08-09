@@ -1,0 +1,311 @@
+{
+  "knowledgeId": "anim-principles-of-animation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Principles of Animation",
+  "description": "Classic animation principles adapted for commercial and motion-design work.",
+  "summary": "Give animators a checklist to elevate lifeless keyframes into professional motion.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "principles-of-animation",
+    "principles of animation",
+    "12 principles",
+    "Disney principles",
+    "motion craft"
+  ],
+  "keywords": [
+    "principles of animation",
+    "12 principles",
+    "Disney principles",
+    "motion craft"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-timing",
+    "anim-anticipation",
+    "anim-squash-and-stretch",
+    "anim-follow-through",
+    "anim-appeal",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:36:50.201Z",
+  "lastUpdated": "2026-08-08T15:36:50.201Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-principles-of-animation",
+  "integrityStatus": "verified",
+  "contentHash": "45bec30859d6bef7597a05f546a67d1722590658ce2e2fe46af7dc28af2fbded",
+  "searchableText": "principles of animation classic animation principles adapted for commercial and motion-design work. give animators a checklist to elevate lifeless keyframes into professional motion. professional-animation professional-animation professional principles-of-animation principles of animation 12 principles disney principles motion craft principles of animation 12 principles disney principles motion craft",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "principles-animation-classic",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "principles-of-animation",
+    "kind": "professional-animation",
+    "purpose": "Give animators a checklist to elevate lifeless keyframes into professional motion.",
+    "professionalDefinition": "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing.",
+    "workflow": [
+      "Pick 2–3 principles for the beat",
+      "Block",
+      "Layer secondaries",
+      "Review readability"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-principles-of-animation",
+      "title": "Principles of Animation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Classic animation principles adapted for commercial and motion-design work.",
+      "coreConcepts": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "definitions": [
+        "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing.",
+        "Give animators a checklist to elevate lifeless keyframes into professional motion."
+      ],
+      "rules": [
+        "Practice: Apply principles selectively per shot",
+        "Practice: Prioritize staging and timing first",
+        "Practice: Document which principles drive the shot"
+      ],
+      "bestPractices": [
+        "Apply principles selectively per shot",
+        "Prioritize staging and timing first",
+        "Document which principles drive the shot"
+      ],
+      "professionalTechniques": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "workflow": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "decisionRules": [
+        "Follow: Apply principles selectively per shot",
+        "Follow: Prioritize staging and timing first",
+        "Follow: Document which principles drive the shot"
+      ],
+      "commonMistakes": [
+        "Forcing all 12 principles into every clip",
+        "Ignoring staging for fancy secondary motion"
+      ],
+      "troubleshooting": [
+        "Avoid: Forcing all 12 principles into every clip",
+        "Avoid: Ignoring staging for fancy secondary motion"
+      ],
+      "recommendations": [
+        "Apply principles selectively per shot",
+        "Prioritize staging and timing first",
+        "Document which principles drive the shot"
+      ],
+      "examples": [
+        "Logo mark anticipates then snaps with soft overshoot"
+      ],
+      "professionalStandards": [
+        "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing."
+      ],
+      "relatedTopics": [
+        "timing",
+        "anticipation",
+        "squash-and-stretch",
+        "follow-through",
+        "appeal"
+      ],
+      "keywords": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:principles-of-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Principles of Animation",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "Classic animation principles adapted for commercial and motion-design work.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Give animators a checklist to elevate lifeless keyframes into professional motion."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Pick 2–3 principles for the beat",
+            "Block",
+            "Layer secondaries",
+            "Review readability"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Apply principles selectively per shot",
+            "Prioritize staging and timing first",
+            "Document which principles drive the shot"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Logo mark anticipates then snaps with soft overshoot"
+          ]
+        }
+      ],
+      "concepts": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "entities": [
+        "Principles of Animation",
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "rules": [
+        "Avoid: Forcing all 12 principles into every clip",
+        "Avoid: Ignoring staging for fancy secondary motion"
+      ],
+      "bestPractices": [
+        "Apply principles selectively per shot",
+        "Prioritize staging and timing first",
+        "Document which principles drive the shot"
+      ],
+      "professionalTechniques": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "examples": [
+        "Logo mark anticipates then snaps with soft overshoot"
+      ],
+      "commonMistakes": [
+        "Forcing all 12 principles into every clip",
+        "Ignoring staging for fancy secondary motion"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Apply principles selectively per shot",
+        "Practice: Prioritize staging and timing first",
+        "Practice: Document which principles drive the shot"
+      ],
+      "workflowSteps": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-timing",
+        "anim-anticipation",
+        "anim-squash-and-stretch",
+        "anim-follow-through",
+        "anim-appeal"
+      ],
+      "definitions": [
+        "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing.",
+        "Give animators a checklist to elevate lifeless keyframes into professional motion."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Apply principles selectively per shot",
+      "Prioritize staging and timing first",
+      "Document which principles drive the shot"
+    ],
+    "bestPractices": [
+      "Apply principles selectively per shot",
+      "Prioritize staging and timing first",
+      "Document which principles drive the shot"
+    ],
+    "decisionRules": [
+      "Practice: Apply principles selectively per shot",
+      "Practice: Prioritize staging and timing first",
+      "Practice: Document which principles drive the shot"
+    ]
+  }
+}

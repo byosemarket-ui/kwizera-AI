@@ -1,0 +1,335 @@
+{
+  "knowledgeId": "story-conflict",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Conflict",
+  "description": "The obstacle, tension, or unmet need that makes the story necessary.",
+  "summary": "Create urgency and meaning for the product or brand solution.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "conflict",
+    "obstacle",
+    "tension",
+    "problem",
+    "stakes"
+  ],
+  "keywords": [
+    "conflict",
+    "obstacle",
+    "tension",
+    "problem",
+    "stakes"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-middle",
+    "story-resolution",
+    "story-emotional-journey",
+    "story-product-storytelling",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-scene-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:06.642Z",
+  "lastUpdated": "2026-08-08T15:34:06.642Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-conflict",
+  "integrityStatus": "verified",
+  "contentHash": "4da8e8a9cf4970d41339e765a0de5ce9eab795024331ec089d3ace4149522860",
+  "searchableText": "conflict the obstacle, tension, or unmet need that makes the story necessary. create urgency and meaning for the product or brand solution. professional-storytelling professional-storytelling professional conflict obstacle tension problem stakes conflict obstacle tension problem stakes",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "conflict-obstacle,-tension,",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "conflict",
+    "kind": "professional-storytelling",
+    "purpose": "Create urgency and meaning for the product or brand solution.",
+    "professionalDefinition": "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution.",
+    "whenToUse": [
+      "Problem-aware audiences",
+      "Competitive categories",
+      "Transformation stories"
+    ],
+    "whenNotToUse": [
+      "When conflict feels manipulative or brand-inappropriate"
+    ],
+    "workflow": [
+      "Name conflict",
+      "Visualize it",
+      "Link to product capability"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-conflict",
+      "title": "Conflict",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The obstacle, tension, or unmet need that makes the story necessary.",
+      "coreConcepts": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "definitions": [
+        "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution.",
+        "Create urgency and meaning for the product or brand solution."
+      ],
+      "rules": [
+        "Use when: Problem-aware audiences",
+        "Use when: Competitive categories",
+        "Use when: Transformation stories",
+        "Do not use when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "bestPractices": [
+        "Make conflict specific and visual",
+        "Keep it solvable by the offer",
+        "Escalate once"
+      ],
+      "professionalTechniques": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "workflow": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "decisionRules": [
+        "Use when: Problem-aware audiences",
+        "Use when: Competitive categories",
+        "Use when: Transformation stories",
+        "Avoid when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "commonMistakes": [
+        "Vague ‘life is hard’ conflict",
+        "Conflict the product can’t address"
+      ],
+      "troubleshooting": [
+        "Avoid: Vague ‘life is hard’ conflict",
+        "Avoid: Conflict the product can’t address"
+      ],
+      "recommendations": [
+        "Make conflict specific and visual",
+        "Keep it solvable by the offer",
+        "Escalate once"
+      ],
+      "examples": [
+        "Inventory chaos visualized as overflowing tabs before inventory app"
+      ],
+      "professionalStandards": [
+        "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution."
+      ],
+      "relatedTopics": [
+        "middle",
+        "resolution",
+        "emotional-journey",
+        "product-storytelling"
+      ],
+      "keywords": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:conflict",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Conflict",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "The obstacle, tension, or unmet need that makes the story necessary.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create urgency and meaning for the product or brand solution."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Problem-aware audiences",
+            "Competitive categories",
+            "Transformation stories"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When conflict feels manipulative or brand-inappropriate"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Name conflict",
+            "Visualize it",
+            "Link to product capability"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Make conflict specific and visual",
+            "Keep it solvable by the offer",
+            "Escalate once"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Inventory chaos visualized as overflowing tabs before inventory app"
+          ]
+        }
+      ],
+      "concepts": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "entities": [
+        "Conflict",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge",
+        "scene-knowledge"
+      ],
+      "terminology": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "rules": [
+        "Avoid when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "bestPractices": [
+        "Make conflict specific and visual",
+        "Keep it solvable by the offer",
+        "Escalate once"
+      ],
+      "professionalTechniques": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "examples": [
+        "Inventory chaos visualized as overflowing tabs before inventory app"
+      ],
+      "commonMistakes": [
+        "Vague ‘life is hard’ conflict",
+        "Conflict the product can’t address"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Problem-aware audiences",
+        "Use when: Competitive categories",
+        "Use when: Transformation stories",
+        "Do not use when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "workflowSteps": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge",
+        "scene-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-middle",
+        "story-resolution",
+        "story-emotional-journey",
+        "story-product-storytelling"
+      ],
+      "definitions": [
+        "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution.",
+        "Create urgency and meaning for the product or brand solution."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Make conflict specific and visual",
+      "Keep it solvable by the offer",
+      "Escalate once"
+    ],
+    "bestPractices": [
+      "Make conflict specific and visual",
+      "Keep it solvable by the offer",
+      "Escalate once"
+    ],
+    "decisionRules": [
+      "Use when: Problem-aware audiences",
+      "Use when: Competitive categories",
+      "Use when: Transformation stories",
+      "Do not use when: When conflict feels manipulative or brand-inappropriate"
+    ]
+  }
+}

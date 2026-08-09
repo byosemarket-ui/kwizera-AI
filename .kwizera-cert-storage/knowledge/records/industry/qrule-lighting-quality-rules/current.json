@@ -1,0 +1,351 @@
+{
+  "knowledgeId": "qrule-lighting-quality-rules",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-rules",
+  "title": "Lighting Quality Rules",
+  "description": "Rules for motivated, controlled, consistent, and subject-supporting light.",
+  "summary": "Recommend lighting review criteria.",
+  "tags": [
+    "professional-quality-rules",
+    "professional",
+    "lighting-quality-rules",
+    "lighting quality",
+    "highlight",
+    "shadow",
+    "color temperature",
+    "continuity"
+  ],
+  "keywords": [
+    "lighting quality",
+    "highlight",
+    "shadow",
+    "color temperature",
+    "continuity"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qeval-visual-quality-evaluation",
+    "qrule-camera-quality-rules",
+    "check-production-checklist",
+    "bp-product-photography-best-practices",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:34.394Z",
+  "lastUpdated": "2026-08-08T19:18:34.394Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qrule-lighting-quality-rules",
+  "integrityStatus": "verified",
+  "contentHash": "31f83468546acd2249995d96b5a7a3e70f0b35d4c66e5f7c268bc77dbc85f1c1",
+  "searchableText": "lighting quality rules rules for motivated, controlled, consistent, and subject-supporting light. recommend lighting review criteria. professional-quality-rules professional-quality-rules professional lighting-quality-rules lighting quality highlight shadow color temperature continuity lighting quality highlight shadow color temperature continuity",
+  "classification": {
+    "category": "professional-quality-rules",
+    "topic": "lighting-quality-rules",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "lighting-quality-rules",
+    "kind": "professional-quality-rules",
+    "purpose": "Recommend lighting review criteria.",
+    "professionalDefinition": "Lighting quality rules judge whether light reveals the intended subject, supports mood, protects highlight and shadow detail, and remains consistent across a sequence.",
+    "qualityRules": [
+      "Light supports the intended subject and mood",
+      "Critical highlights and shadows retain useful detail",
+      "Color temperature and direction remain coherent"
+    ],
+    "workflow": [
+      "Inspect against the rule set",
+      "Identify material defects",
+      "Prioritize remediation",
+      "Re-review after correction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qrule-lighting-quality-rules",
+      "title": "Lighting Quality Rules",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "description": "Rules for motivated, controlled, consistent, and subject-supporting light.",
+      "coreConcepts": [
+        "lighting quality",
+        "highlight",
+        "shadow",
+        "color temperature",
+        "continuity"
+      ],
+      "definitions": [
+        "Lighting quality rules judge whether light reveals the intended subject, supports mood, protects highlight and shadow detail, and remains consistent across a sequence.",
+        "Recommend lighting review criteria."
+      ],
+      "rules": [
+        "Quality rule: Light supports the intended subject and mood",
+        "Quality rule: Critical highlights and shadows retain useful detail",
+        "Quality rule: Color temperature and direction remain coherent"
+      ],
+      "bestPractices": [
+        "Check skin or product tone against reference",
+        "Control spill and unwanted reflections",
+        "Match continuity between angles"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "workflow": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "decisionRules": [
+        "Apply: Light supports the intended subject and mood",
+        "Apply: Critical highlights and shadows retain useful detail",
+        "Apply: Color temperature and direction remain coherent"
+      ],
+      "commonMistakes": [
+        "Blown highlights on reflective products",
+        "Inconsistent color temperature across cuts"
+      ],
+      "troubleshooting": [
+        "Avoid: Blown highlights on reflective products",
+        "Avoid: Inconsistent color temperature across cuts"
+      ],
+      "recommendations": [
+        "Check skin or product tone against reference",
+        "Control spill and unwanted reflections",
+        "Match continuity between angles"
+      ],
+      "examples": [
+        "Professional application of Lighting Quality Rules in a studio review."
+      ],
+      "professionalStandards": [
+        "Light supports the intended subject and mood",
+        "Critical highlights and shadows retain useful detail",
+        "Color temperature and direction remain coherent"
+      ],
+      "relatedTopics": [
+        "visual-quality-evaluation",
+        "camera-quality-rules",
+        "production-checklist",
+        "product-photography-best-practices"
+      ],
+      "keywords": [
+        "lighting quality",
+        "highlight",
+        "shadow",
+        "color temperature",
+        "continuity"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:lighting-quality-rules",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Lighting Quality Rules",
+      "category": "professional-quality-rules",
+      "domain": "industry-standards-knowledge",
+      "description": "Rules for motivated, controlled, consistent, and subject-supporting light.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Lighting quality rules judge whether light reveals the intended subject, supports mood, protects highlight and shadow detail, and remains consistent across a sequence.",
+            "Recommend lighting review criteria."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Light supports the intended subject and mood",
+            "Critical highlights and shadows retain useful detail",
+            "Color temperature and direction remain coherent"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Check skin or product tone against reference",
+            "Control spill and unwanted reflections",
+            "Match continuity between angles"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Inspect against the rule set",
+            "Identify material defects",
+            "Prioritize remediation",
+            "Re-review after correction"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Lighting Quality Rules in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "lighting quality",
+        "highlight",
+        "shadow",
+        "color temperature",
+        "continuity"
+      ],
+      "entities": [
+        "Lighting Quality Rules",
+        "industry-standards-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "lighting quality",
+        "highlight",
+        "shadow",
+        "color temperature",
+        "continuity"
+      ],
+      "rules": [
+        "Light supports the intended subject and mood",
+        "Critical highlights and shadows retain useful detail",
+        "Color temperature and direction remain coherent"
+      ],
+      "bestPractices": [
+        "Check skin or product tone against reference",
+        "Control spill and unwanted reflections",
+        "Match continuity between angles"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "examples": [
+        "Professional application of Lighting Quality Rules in a studio review."
+      ],
+      "commonMistakes": [
+        "Blown highlights on reflective products",
+        "Inconsistent color temperature across cuts"
+      ],
+      "qualityRules": [
+        "Light supports the intended subject and mood",
+        "Critical highlights and shadows retain useful detail",
+        "Color temperature and direction remain coherent"
+      ],
+      "decisionRules": [
+        "Apply: Light supports the intended subject and mood",
+        "Apply: Critical highlights and shadows retain useful detail",
+        "Apply: Color temperature and direction remain coherent"
+      ],
+      "workflowSteps": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "prerequisites": [
+        "Inspect against the rule set"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qeval-visual-quality-evaluation",
+        "qrule-camera-quality-rules",
+        "check-production-checklist",
+        "bp-product-photography-best-practices"
+      ],
+      "definitions": [
+        "Lighting quality rules judge whether light reveals the intended subject, supports mood, protects highlight and shadow detail, and remains consistent across a sequence."
+      ],
+      "troubleshooting": [
+        "Avoid: Blown highlights on reflective products",
+        "Avoid: Inconsistent color temperature across cuts"
+      ],
+      "recommendations": [
+        "Check skin or product tone against reference",
+        "Control spill and unwanted reflections",
+        "Match continuity between angles"
+      ],
+      "professionalStandards": [
+        "Light supports the intended subject and mood",
+        "Critical highlights and shadows retain useful detail",
+        "Color temperature and direction remain coherent"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:lighting-quality-rules",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Check skin or product tone against reference",
+      "Control spill and unwanted reflections",
+      "Match continuity between angles"
+    ],
+    "bestPractices": [
+      "Check skin or product tone against reference",
+      "Control spill and unwanted reflections",
+      "Match continuity between angles"
+    ],
+    "decisionRules": [
+      "Quality rule: Light supports the intended subject and mood",
+      "Quality rule: Critical highlights and shadows retain useful detail",
+      "Quality rule: Color temperature and direction remain coherent"
+    ]
+  }
+}

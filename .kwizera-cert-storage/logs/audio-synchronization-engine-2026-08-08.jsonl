@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:49.800Z","level":"info","event":"startup","message":"Audio Synchronization Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-generation\\audio-sync\\engine"}}
+{"timestamp":"2026-08-08T19:46:53.714Z","level":"info","event":"startup","message":"Audio Synchronization Engine startup complete","data":{"recordsLoaded":0}}

@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "qeval-brand-consistency-evaluation",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-evaluation",
+  "title": "Brand Consistency Evaluation",
+  "description": "A review of identity, voice, claims, visual cues, and recognizable brand expression.",
+  "summary": "Recommend evidence-based brand quality review.",
+  "tags": [
+    "professional-quality-evaluation",
+    "professional",
+    "brand-consistency-evaluation",
+    "brand consistency",
+    "brand evaluation",
+    "voice",
+    "identity",
+    "guidelines"
+  ],
+  "keywords": [
+    "brand consistency",
+    "brand evaluation",
+    "voice",
+    "identity",
+    "guidelines"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "bp-branding-best-practices",
+    "qeval-content-consistency-evaluation",
+    "qrule-marketing-quality-rules",
+    "check-quality-review-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-social-media-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:57.387Z",
+  "lastUpdated": "2026-08-08T19:18:57.387Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qeval-brand-consistency-evaluation",
+  "integrityStatus": "verified",
+  "contentHash": "f36d2c3d908569ba6142d6069737504e06148ffabc7763c23791011bce158459",
+  "searchableText": "brand consistency evaluation a review of identity, voice, claims, visual cues, and recognizable brand expression. recommend evidence-based brand quality review. professional-quality-evaluation professional-quality-evaluation professional brand-consistency-evaluation brand consistency brand evaluation voice identity guidelines brand consistency brand evaluation voice identity guidelines",
+  "classification": {
+    "category": "professional-quality-evaluation",
+    "topic": "brand-consistency-evaluation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-consistency-evaluation",
+    "kind": "professional-quality-evaluation",
+    "purpose": "Recommend evidence-based brand quality review.",
+    "professionalDefinition": "Brand consistency evaluation verifies that work follows the documented brand system while adapting intentionally to audience, channel, and format.",
+    "qualityRules": [
+      "Core visual and verbal cues are recognizable",
+      "Claims and tone align with brand promise",
+      "Adaptations are appropriate and intentional"
+    ],
+    "workflow": [
+      "Set evaluation context",
+      "Inspect objective evidence",
+      "Score criteria",
+      "List material gaps",
+      "Recommend improvements"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qeval-brand-consistency-evaluation",
+      "title": "Brand Consistency Evaluation",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "description": "A review of identity, voice, claims, visual cues, and recognizable brand expression.",
+      "coreConcepts": [
+        "brand consistency",
+        "brand evaluation",
+        "voice",
+        "identity",
+        "guidelines"
+      ],
+      "definitions": [
+        "Brand consistency evaluation verifies that work follows the documented brand system while adapting intentionally to audience, channel, and format.",
+        "Recommend evidence-based brand quality review."
+      ],
+      "rules": [
+        "Quality rule: Core visual and verbal cues are recognizable",
+        "Quality rule: Claims and tone align with brand promise",
+        "Quality rule: Adaptations are appropriate and intentional"
+      ],
+      "bestPractices": [
+        "Compare against approved brand cues",
+        "Check voice and claims together",
+        "Review platform adaptations, not only master assets"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "workflow": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "decisionRules": [
+        "Apply: Core visual and verbal cues are recognizable",
+        "Apply: Claims and tone align with brand promise",
+        "Apply: Adaptations are appropriate and intentional"
+      ],
+      "commonMistakes": [
+        "Applying logos without brand meaning",
+        "Treating every channel adaptation as a brand violation"
+      ],
+      "troubleshooting": [
+        "Avoid: Applying logos without brand meaning",
+        "Avoid: Treating every channel adaptation as a brand violation"
+      ],
+      "recommendations": [
+        "Compare against approved brand cues",
+        "Check voice and claims together",
+        "Review platform adaptations, not only master assets"
+      ],
+      "examples": [
+        "Professional application of Brand Consistency Evaluation in a studio review."
+      ],
+      "professionalStandards": [
+        "Core visual and verbal cues are recognizable",
+        "Claims and tone align with brand promise",
+        "Adaptations are appropriate and intentional"
+      ],
+      "relatedTopics": [
+        "branding-best-practices",
+        "content-consistency-evaluation",
+        "marketing-quality-rules",
+        "quality-review-checklist"
+      ],
+      "keywords": [
+        "brand consistency",
+        "brand evaluation",
+        "voice",
+        "identity",
+        "guidelines"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:brand-consistency-evaluation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Consistency Evaluation",
+      "category": "professional-quality-evaluation",
+      "domain": "industry-standards-knowledge",
+      "description": "A review of identity, voice, claims, visual cues, and recognizable brand expression.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand consistency evaluation verifies that work follows the documented brand system while adapting intentionally to audience, channel, and format.",
+            "Recommend evidence-based brand quality review."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Core visual and verbal cues are recognizable",
+            "Claims and tone align with brand promise",
+            "Adaptations are appropriate and intentional"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Compare against approved brand cues",
+            "Check voice and claims together",
+            "Review platform adaptations, not only master assets"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set evaluation context",
+            "Inspect objective evidence",
+            "Score criteria",
+            "List material gaps",
+            "Recommend improvements"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Brand Consistency Evaluation in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "brand consistency",
+        "brand evaluation",
+        "voice",
+        "identity",
+        "guidelines"
+      ],
+      "entities": [
+        "Brand Consistency Evaluation",
+        "industry-standards-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "brand consistency",
+        "brand evaluation",
+        "voice",
+        "identity",
+        "guidelines"
+      ],
+      "rules": [
+        "Core visual and verbal cues are recognizable",
+        "Claims and tone align with brand promise",
+        "Adaptations are appropriate and intentional"
+      ],
+      "bestPractices": [
+        "Compare against approved brand cues",
+        "Check voice and claims together",
+        "Review platform adaptations, not only master assets"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "examples": [
+        "Professional application of Brand Consistency Evaluation in a studio review."
+      ],
+      "commonMistakes": [
+        "Applying logos without brand meaning",
+        "Treating every channel adaptation as a brand violation"
+      ],
+      "qualityRules": [
+        "Core visual and verbal cues are recognizable",
+        "Claims and tone align with brand promise",
+        "Adaptations are appropriate and intentional"
+      ],
+      "decisionRules": [
+        "Apply: Core visual and verbal cues are recognizable",
+        "Apply: Claims and tone align with brand promise",
+        "Apply: Adaptations are appropriate and intentional"
+      ],
+      "workflowSteps": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "prerequisites": [
+        "Set evaluation context"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "bp-branding-best-practices",
+        "qeval-content-consistency-evaluation",
+        "qrule-marketing-quality-rules",
+        "check-quality-review-checklist"
+      ],
+      "definitions": [
+        "Brand consistency evaluation verifies that work follows the documented brand system while adapting intentionally to audience, channel, and format."
+      ],
+      "troubleshooting": [
+        "Avoid: Applying logos without brand meaning",
+        "Avoid: Treating every channel adaptation as a brand violation"
+      ],
+      "recommendations": [
+        "Compare against approved brand cues",
+        "Check voice and claims together",
+        "Review platform adaptations, not only master assets"
+      ],
+      "professionalStandards": [
+        "Core visual and verbal cues are recognizable",
+        "Claims and tone align with brand promise",
+        "Adaptations are appropriate and intentional"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:brand-consistency-evaluation",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Compare against approved brand cues",
+      "Check voice and claims together",
+      "Review platform adaptations, not only master assets"
+    ],
+    "bestPractices": [
+      "Compare against approved brand cues",
+      "Check voice and claims together",
+      "Review platform adaptations, not only master assets"
+    ],
+    "decisionRules": [
+      "Quality rule: Core visual and verbal cues are recognizable",
+      "Quality rule: Claims and tone align with brand promise",
+      "Quality rule: Adaptations are appropriate and intentional"
+    ]
+  }
+}

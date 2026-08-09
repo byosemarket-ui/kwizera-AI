@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:35.492Z","level":"info","event":"startup","message":"Image Quality Prediction Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-intelligence\\quality-prediction\\engine"}}
+{"timestamp":"2026-08-08T19:46:36.922Z","level":"info","event":"startup","message":"Image Quality Prediction Engine startup complete","data":{"recordsLoaded":0}}

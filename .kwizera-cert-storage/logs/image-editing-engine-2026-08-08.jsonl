@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:00.415Z","level":"info","event":"startup","message":"Image Editing, Inpainting & Outpainting Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-generation\\editing\\engine"}}
+{"timestamp":"2026-08-08T19:47:03.420Z","level":"info","event":"startup","message":"Image Editing Engine startup complete","data":{"recordsLoaded":0}}

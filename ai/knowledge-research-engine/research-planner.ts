@@ -1,65 +1,44 @@
 import { randomUUID } from "node:crypto";
-import type { KnowledgeAcquisitionSourceType } from "../knowledge-acquisition-engine/types.js";
-import type { ResearchDomain, ResearchDomainPriority, ResearchPlan, ResearchTask } from "./types.js";
+import type { ResearchDomain, ResearchPlan, ResearchTask } from "./types.js";
+import {
+  listProfessionalResearchDomains,
+  matchProfessionalResearchDomains,
+} from "./professional-research-domains.js";
 
-interface DomainTemplateEntry {
-  suffix: string;
-  description: string;
-  priority: ResearchDomainPriority;
-  sourceTypes: KnowledgeAcquisitionSourceType[];
-}
+const AVERAGE_SOURCES_PER_DOMAIN = 3;
 
-/** Generic, topic-agnostic decomposition applied to any professional subject AI Me is asked to learn. */
-const DOMAIN_TEMPLATE: DomainTemplateEntry[] = [
-  {
-    suffix: "Fundamentals & Core Concepts",
-    description: "Foundational terminology, principles, and mental models for the topic.",
-    priority: "high",
-    sourceTypes: ["official-documentation", "technical-manual", "book"],
-  },
-  {
-    suffix: "Official Standards & Specifications",
-    description: "Authoritative standards, specifications, and official API references.",
-    priority: "high",
-    sourceTypes: ["technical-standard", "official-api-documentation"],
-  },
-  {
-    suffix: "Best Practices & Techniques",
-    description: "Professional techniques, methodologies, and recommended practices.",
-    priority: "medium",
-    sourceTypes: ["research-paper", "white-paper", "user-manual"],
-  },
-  {
-    suffix: "Tools & Software Workflows",
-    description: "Practical tool usage, software workflows, and production pipelines.",
-    priority: "medium",
-    sourceTypes: ["official-documentation", "approved-website"],
-  },
-  {
-    suffix: "Case Studies & Applied Examples",
-    description: "Real-world examples, case studies, and applied reference material.",
-    priority: "low",
-    sourceTypes: ["research-paper", "approved-website"],
-  },
-];
-
-const AVERAGE_SOURCES_PER_DOMAIN = 4;
-
-/** Builds a topic-agnostic research plan: identifies knowledge domains and a research task list. */
+/**
+ * Builds research plans constrained to professional creative-production domains.
+ * Unrelated subjects are rejected so Online Research never wanders off-scope.
+ */
 export class ResearchPlanner {
   buildPlan(topic: string): ResearchPlan {
     const trimmedTopic = topic.trim();
-    const domains: ResearchDomain[] = DOMAIN_TEMPLATE.map((entry) => ({
-      domain: `${trimmedTopic} — ${entry.suffix}`,
+    if (!trimmedTopic) throw new Error("Research topic must not be empty.");
+
+    const matched = matchProfessionalResearchDomains(trimmedTopic);
+    if (matched.length === 0) {
+      const allowed = listProfessionalResearchDomains().map((domain) => domain.label).join(", ");
+      throw new Error(
+        `Online research is limited to professional creative production domains (${allowed}). ` +
+          `Topic "${trimmedTopic}" is outside scope.`,
+      );
+    }
+
+    const domains: ResearchDomain[] = matched.map((entry) => ({
+      domain: entry.label,
       description: entry.description,
       priority: entry.priority,
       sourceTypes: entry.sourceTypes,
+      professionalDomainId: entry.id,
+      workspaceDomainId: entry.workspaceDomainId,
+      discoveryKinds: entry.discoveryKinds,
     }));
 
     const tasks: ResearchTask[] = domains.map((domain) => ({
       id: randomUUID(),
       domain: domain.domain,
-      description: `Research and gather trusted sources covering: ${domain.description}`,
+      description: `Discover and evaluate trusted ${domain.domain} sources: ${domain.description}`,
       sourceTypes: domain.sourceTypes,
       priority: domain.priority,
       status: "pending",
@@ -71,7 +50,8 @@ export class ResearchPlanner {
       createdAt: new Date().toISOString(),
       domains,
       tasks,
-      estimatedSourceCount: domains.length * AVERAGE_SOURCES_PER_DOMAIN,
+      estimatedSourceCount: Math.max(domains.length * AVERAGE_SOURCES_PER_DOMAIN, domains.length),
+      constrainedToProfessionalDomains: true,
     };
   }
 }

@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T15:30:26.814Z","level":"info","event":"startup","message":"Video Knowledge Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:27.832Z","level":"info","event":"startup","message":"Video Knowledge Engine startup complete","data":{"videosLoaded":0,"patternsLoaded":0,"durationMs":323}}
+{"timestamp":"2026-08-08T16:43:59.175Z","level":"info","event":"startup","message":"Video Knowledge Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T16:44:02.098Z","level":"info","event":"startup","message":"Video Knowledge Engine startup complete","data":{"videosLoaded":0,"patternsLoaded":0,"durationMs":2920}}

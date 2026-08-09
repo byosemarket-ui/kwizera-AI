@@ -7,6 +7,9 @@ export interface ResearchDomain {
   description: string;
   priority: ResearchDomainPriority;
   sourceTypes: KnowledgeAcquisitionSourceType[];
+  professionalDomainId?: string;
+  workspaceDomainId?: string;
+  discoveryKinds?: string[];
 }
 
 export type ResearchTaskStatus = "pending" | "in-progress" | "completed" | "skipped";
@@ -27,6 +30,7 @@ export interface ResearchPlan {
   domains: ResearchDomain[];
   tasks: ResearchTask[];
   estimatedSourceCount: number;
+  constrainedToProfessionalDomains?: boolean;
 }
 
 export interface RankedSourceCandidate {
@@ -35,10 +39,13 @@ export interface RankedSourceCandidate {
   type: KnowledgeAcquisitionSourceType;
   trustScore: number;
   qualityScore: number;
+  authorityScore: number;
   freshnessScore: number;
   relevanceScore: number;
   completenessScore: number;
   compositeScore: number;
+  accepted: boolean;
+  rejectionReason?: string;
 }
 
 export interface ResearchPreview {
@@ -212,4 +219,114 @@ export interface ResearchEventLogEntry {
   detail: string;
   planId?: string;
   downloadId?: string;
+}
+
+export type NetworkQuality = "excellent" | "good" | "fair" | "poor" | "unavailable";
+export type ConnectionStability = "stable" | "unstable" | "offline" | "unknown";
+
+export interface ConnectivitySnapshot {
+  checkedAt: string;
+  internetAvailable: boolean;
+  mode: "online" | "offline";
+  networkQuality: NetworkQuality;
+  connectionStability: ConnectionStability;
+  latencyMs: number | null;
+  professionalResearchMode: boolean;
+  detail: string;
+}
+
+export type ReviewStagingStatus = "pending-review" | "accepted-for-later-integration" | "rejected-from-review";
+
+export interface ReviewStagingRecord {
+  downloadId: string;
+  topic: string;
+  sourceId: string;
+  fileName: string;
+  stagedPath: string;
+  status: ReviewStagingStatus;
+  stagedAt: string;
+  reviewedAt?: string;
+  notes: string;
+}
+
+export type KnowledgeExtractionKind =
+  | "concept"
+  | "rule"
+  | "best-practice"
+  | "workflow"
+  | "definition"
+  | "example"
+  | "technical-recommendation";
+
+export interface KnowledgeExtractionPreviewItem {
+  kind: KnowledgeExtractionKind;
+  text: string;
+  sourceDownloadId: string;
+}
+
+export interface KnowledgeExtractionPreview {
+  downloadId: string;
+  topic: string;
+  extractedAt: string;
+  concepts: string[];
+  rules: string[];
+  bestPractices: string[];
+  workflows: string[];
+  definitions: string[];
+  examples: string[];
+  technicalRecommendations: string[];
+  rejectedSignals: string[];
+  qualityScore: number;
+  importedToKnowledgeFoundation: false;
+  summary: string;
+}
+
+export interface OnlineResearchSessionResult {
+  sessionId: string;
+  topic: string;
+  connectivity: ConnectivitySnapshot;
+  plan: ResearchPlan | null;
+  preview: ResearchPreview | null;
+  acceptedSources: RankedSourceCandidate[];
+  rejectedSources: Array<{ name: string; reason: string }>;
+  stagedDownloads: ReviewStagingRecord[];
+  extractionPreviews: KnowledgeExtractionPreview[];
+  recommendedTopics: string[];
+  usedLocalKnowledgeFoundationOnly: boolean;
+  knowledgeFoundationModified: false;
+  issuesFound: string[];
+  issuesRepaired: string[];
+  summary: string;
+}
+
+export interface AiMeOnlineResearchAwareness {
+  available: boolean;
+  enabled: boolean;
+  offlineFirst: boolean;
+  canDetectConnectivity: boolean;
+  canSearchTrustedSources: boolean;
+  canExplainSelection: boolean;
+  canExplainRejection: boolean;
+  canRecommendTopics: boolean;
+  canStageDownloadsForReview: boolean;
+  canExtractWithoutImport: boolean;
+  professionalResearchMode: boolean;
+  validationIntegrationDeferred: true;
+  summary: string;
+}
+
+export interface OnlineResearchReportData {
+  generatedAt: string;
+  existingResearchCapability: string;
+  componentsUpgraded: string[];
+  componentsCreated: string[];
+  internetDetectionStatus: string;
+  trustedSourcesDiscovered: Array<{ sourceId: string; name: string; compositeScore: number; accepted: boolean }>;
+  downloadCapability: string;
+  knowledgeExtractionQuality: string;
+  aiMeCapability: string;
+  issuesFound: string[];
+  issuesRepaired: string[];
+  testResults: Array<{ name: string; passed: boolean; detail: string }>;
+  remainingWorkBeforeStep2: string[];
 }

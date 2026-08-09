@@ -1,0 +1,302 @@
+{
+  "knowledgeId": "anim-secondary-action",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Secondary Action",
+  "description": "Supporting motion that enriches the main action without stealing focus.",
+  "summary": "Add richness and life while keeping hierarchy clear.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "secondary-action",
+    "secondary action",
+    "supporting motion",
+    "enrichment"
+  ],
+  "keywords": [
+    "secondary action",
+    "supporting motion",
+    "enrichment"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-follow-through",
+    "anim-staging",
+    "motion-motion-hierarchy",
+    "anim-character-animation",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-storytelling-knowledge",
+    "amr-bridge-motion-graphics-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:51.413Z",
+  "lastUpdated": "2026-08-08T17:55:28.831Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-secondary-action",
+  "integrityStatus": "verified",
+  "contentHash": "257682d9c76e4ed06fe170bf607cd05da8eed905c37f9ad52bf1e7ab0fd830f2",
+  "searchableText": "secondary action supporting motion that enriches the main action without stealing focus. add richness and life while keeping hierarchy clear. professional-animation professional-animation professional secondary-action secondary action supporting motion enrichment secondary action supporting motion enrichment",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "secondary-action-supporting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "secondary-action",
+    "kind": "professional-animation",
+    "purpose": "Add richness and life while keeping hierarchy clear.",
+    "professionalDefinition": "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate.",
+    "workflow": [
+      "Lock primary",
+      "Add one secondary",
+      "Balance",
+      "Mute extras"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-secondary-action",
+      "title": "Secondary Action",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Supporting motion that enriches the main action without stealing focus.",
+      "coreConcepts": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "definitions": [
+        "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate.",
+        "Add richness and life while keeping hierarchy clear."
+      ],
+      "rules": [
+        "Practice: Keep primary readable",
+        "Practice: Lower amplitude on secondaries",
+        "Practice: Cut secondaries that compete"
+      ],
+      "bestPractices": [
+        "Keep primary readable",
+        "Lower amplitude on secondaries",
+        "Cut secondaries that compete"
+      ],
+      "professionalTechniques": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "workflow": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "decisionRules": [
+        "Follow: Keep primary readable",
+        "Follow: Lower amplitude on secondaries",
+        "Follow: Cut secondaries that compete"
+      ],
+      "commonMistakes": [
+        "Secondary louder than primary",
+        "Busy loops"
+      ],
+      "troubleshooting": [
+        "Avoid: Secondary louder than primary",
+        "Avoid: Busy loops"
+      ],
+      "recommendations": [
+        "Keep primary readable",
+        "Lower amplitude on secondaries",
+        "Cut secondaries that compete"
+      ],
+      "examples": [
+        "Character blinks while speaking; sparkles after logo settle"
+      ],
+      "professionalStandards": [
+        "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate."
+      ],
+      "relatedTopics": [
+        "follow-through",
+        "staging",
+        "motion-hierarchy",
+        "character-animation"
+      ],
+      "keywords": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:secondary-action",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Secondary Action",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "Supporting motion that enriches the main action without stealing focus.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Add richness and life while keeping hierarchy clear."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Lock primary",
+            "Add one secondary",
+            "Balance",
+            "Mute extras"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Keep primary readable",
+            "Lower amplitude on secondaries",
+            "Cut secondaries that compete"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Character blinks while speaking; sparkles after logo settle"
+          ]
+        }
+      ],
+      "concepts": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "entities": [
+        "Secondary Action",
+        "animation-knowledge",
+        "storytelling-knowledge",
+        "motion-graphics-knowledge"
+      ],
+      "terminology": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "rules": [
+        "Avoid: Secondary louder than primary",
+        "Avoid: Busy loops"
+      ],
+      "bestPractices": [
+        "Keep primary readable",
+        "Lower amplitude on secondaries",
+        "Cut secondaries that compete"
+      ],
+      "professionalTechniques": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "examples": [
+        "Character blinks while speaking; sparkles after logo settle"
+      ],
+      "commonMistakes": [
+        "Secondary louder than primary",
+        "Busy loops"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Keep primary readable",
+        "Practice: Lower amplitude on secondaries",
+        "Practice: Cut secondaries that compete"
+      ],
+      "workflowSteps": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "storytelling-knowledge",
+        "motion-graphics-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-follow-through",
+        "anim-staging",
+        "motion-motion-hierarchy",
+        "anim-character-animation"
+      ],
+      "definitions": [
+        "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate.",
+        "Add richness and life while keeping hierarchy clear."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Keep primary readable",
+      "Lower amplitude on secondaries",
+      "Cut secondaries that compete"
+    ],
+    "bestPractices": [
+      "Keep primary readable",
+      "Lower amplitude on secondaries",
+      "Cut secondaries that compete"
+    ],
+    "decisionRules": [
+      "Practice: Keep primary readable",
+      "Practice: Lower amplitude on secondaries",
+      "Practice: Cut secondaries that compete"
+    ]
+  }
+}

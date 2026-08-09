@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "scene-scene-purpose",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Scene Purpose",
+  "description": "The single narrative or persuasion job a scene must accomplish.",
+  "summary": "Keep every scene necessary and cuttable if it fails its job.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "scene-purpose",
+    "scene purpose",
+    "scene job",
+    "narrative function",
+    "intent"
+  ],
+  "keywords": [
+    "scene purpose",
+    "scene job",
+    "narrative function",
+    "intent"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-scene-planning",
+    "scene-hero-scene",
+    "scene-demonstration-scene",
+    "story-story-structure",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:08.961Z",
+  "lastUpdated": "2026-08-08T15:34:08.961Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-scene-purpose",
+  "integrityStatus": "verified",
+  "contentHash": "f00479181519540c6fddd52bfbe216ee079a52de96213efc5a93de544dd45501",
+  "searchableText": "scene purpose the single narrative or persuasion job a scene must accomplish. keep every scene necessary and cuttable if it fails its job. professional-scene-design professional-scene-design professional scene-purpose scene purpose scene job narrative function intent scene purpose scene job narrative function intent",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "scene-purpose-single",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "scene-purpose",
+    "kind": "professional-scene-design",
+    "purpose": "Keep every scene necessary and cuttable if it fails its job.",
+    "professionalDefinition": "Scene purpose is the explicit statement of what the audience must understand or feel after the scene—hook, problem, proof, desire, or action.",
+    "whenToUse": [
+      "Planning every scene",
+      "Edit reviews"
+    ],
+    "whenNotToUse": [
+      "Scenes kept only because they look expensive"
+    ],
+    "workflow": [
+      "State purpose",
+      "Design coverage for it",
+      "Validate in cut"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-scene-purpose",
+      "title": "Scene Purpose",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "The single narrative or persuasion job a scene must accomplish.",
+      "coreConcepts": [
+        "scene purpose",
+        "scene job",
+        "narrative function",
+        "intent"
+      ],
+      "definitions": [
+        "Scene purpose is the explicit statement of what the audience must understand or feel after the scene—hook, problem, proof, desire, or action.",
+        "Keep every scene necessary and cuttable if it fails its job."
+      ],
+      "rules": [
+        "Use when: Planning every scene",
+        "Use when: Edit reviews",
+        "Do not use when: Scenes kept only because they look expensive"
+      ],
+      "bestPractices": [
+        "Write purpose on slate/card",
+        "Kill scenes without purpose",
+        "One purpose each"
+      ],
+      "professionalTechniques": [
+        "State purpose",
+        "Design coverage for it",
+        "Validate in cut"
+      ],
+      "workflow": [
+        "State purpose",
+        "Design coverage for it",
+        "Validate in cut"
+      ],
+      "decisionRules": [
+        "Use when: Planning every scene",
+        "Use when: Edit reviews",
+        "Avoid when: Scenes kept only because they look expensive"
+      ],
+      "commonMistakes": [
+        "Multi-purpose muddle",
+        "Pretty but purposeless"
+      ],
+      "troubleshooting": [
+        "Avoid: Multi-purpose muddle",
+        "Avoid: Pretty but purposeless"
+      ],
+      "recommendations": [
+        "Write purpose on slate/card",
+        "Kill scenes without purpose",
+        "One purpose each"
+      ],
+      "examples": [
+        "Purpose: prove waterproof → dunk demo scene only"
+      ],
+      "professionalStandards": [
+        "Scene purpose is the explicit statement of what the audience must understand or feel after the scene—hook, problem, proof, desire, or action."
+      ],
+      "relatedTopics": [
+        "scene-planning",
+        "hero-scene",
+        "demonstration-scene",
+        "story-structure"
+      ],
+      "keywords": [
+        "scene purpose",
+        "scene job",
+        "narrative function",
+        "intent"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:scene-purpose",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Scene Purpose",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "The single narrative or persuasion job a scene must accomplish.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Scene purpose is the explicit statement of what the audience must understand or feel after the scene—hook, problem, proof, desire, or action."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep every scene necessary and cuttable if it fails its job."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Planning every scene",
+            "Edit reviews"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Scenes kept only because they look expensive"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "State purpose",
+            "Design coverage for it",
+            "Validate in cut"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Write purpose on slate/card",
+            "Kill scenes without purpose",
+            "One purpose each"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Purpose: prove waterproof → dunk demo scene only"
+          ]
+        }
+      ],
+      "concepts": [
+        "scene purpose",
+        "scene job",
+        "narrative function",
+        "intent"
+      ],
+      "entities": [
+        "Scene Purpose",
+        "scene-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "scene purpose",
+        "scene job",
+        "narrative function",
+        "intent"
+      ],
+      "rules": [
+        "Avoid when: Scenes kept only because they look expensive"
+      ],
+      "bestPractices": [
+        "Write purpose on slate/card",
+        "Kill scenes without purpose",
+        "One purpose each"
+      ],
+      "professionalTechniques": [
+        "State purpose",
+        "Design coverage for it",
+        "Validate in cut"
+      ],
+      "examples": [
+        "Purpose: prove waterproof → dunk demo scene only"
+      ],
+      "commonMistakes": [
+        "Multi-purpose muddle",
+        "Pretty but purposeless"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Planning every scene",
+        "Use when: Edit reviews",
+        "Do not use when: Scenes kept only because they look expensive"
+      ],
+      "workflowSteps": [
+        "State purpose",
+        "Design coverage for it",
+        "Validate in cut"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-scene-planning",
+        "scene-hero-scene",
+        "scene-demonstration-scene",
+        "story-story-structure"
+      ],
+      "definitions": [
+        "Scene purpose is the explicit statement of what the audience must understand or feel after the scene—hook, problem, proof, desire, or action.",
+        "Keep every scene necessary and cuttable if it fails its job."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Write purpose on slate/card",
+      "Kill scenes without purpose",
+      "One purpose each"
+    ],
+    "bestPractices": [
+      "Write purpose on slate/card",
+      "Kill scenes without purpose",
+      "One purpose each"
+    ],
+    "decisionRules": [
+      "Use when: Planning every scene",
+      "Use when: Edit reviews",
+      "Do not use when: Scenes kept only because they look expensive"
+    ]
+  }
+}

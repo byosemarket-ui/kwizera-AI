@@ -1,0 +1,3856 @@
+{
+  "packId": "4f210bcd-3ab1-47c2-ab2b-b556d795af6c",
+  "packSlug": "social-media",
+  "domain": "social-media-knowledge",
+  "title": "Professional Social Media Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "sm-social-media-fundamentals",
+      "title": "Social Media Fundamentals",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Core principles of social platforms: attention, formats, community, and measurement.",
+      "coreConcepts": [
+        "social media fundamentals",
+        "platforms",
+        "attention",
+        "community",
+        "measurement"
+      ],
+      "definitions": [
+        "Social media fundamentals are the platform-agnostic practices for earning attention, building community, and measuring outcomes without confusing vanity metrics with business results.",
+        "Give AI Me a shared base before recommending any platform-specific strategy."
+      ],
+      "rules": [
+        "Practice: Define one primary outcome per channel",
+        "Practice: Match format to platform behavior",
+        "Practice: Measure engagement quality, not only reach"
+      ],
+      "bestPractices": [
+        "Define one primary outcome per channel",
+        "Match format to platform behavior",
+        "Measure engagement quality, not only reach"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Define one primary outcome per channel",
+        "Follow: Match format to platform behavior",
+        "Follow: Measure engagement quality, not only reach"
+      ],
+      "commonMistakes": [
+        "Posting the same asset everywhere unchanged",
+        "Chasing trends with no brand fit"
+      ],
+      "troubleshooting": [
+        "Avoid: Posting the same asset everywhere unchanged",
+        "Avoid: Chasing trends with no brand fit"
+      ],
+      "recommendations": [
+        "Define one primary outcome per channel",
+        "Match format to platform behavior",
+        "Measure engagement quality, not only reach"
+      ],
+      "examples": [
+        "Professional application of Social Media Fundamentals for platform-native content"
+      ],
+      "professionalStandards": [
+        "Social media fundamentals are the platform-agnostic practices for earning attention, building community, and measuring outcomes without confusing vanity metrics with business results."
+      ],
+      "relatedTopics": [
+        "social-content-strategy",
+        "platform-selection",
+        "social-engagement-strategy",
+        "social-audience-analysis"
+      ],
+      "keywords": [
+        "social media fundamentals",
+        "platforms",
+        "attention",
+        "community",
+        "measurement"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-media-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-social-content-strategy",
+      "title": "Content Strategy",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Planning what to publish, why, for whom, and how it compounds over time.",
+      "coreConcepts": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "definitions": [
+        "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content.",
+        "Recommend coherent content mixes instead of one-off posts."
+      ],
+      "rules": [
+        "Practice: Map pillars to funnel stages",
+        "Practice: Balance evergreen and timely content",
+        "Practice: Brief creative with platform constraints up front"
+      ],
+      "bestPractices": [
+        "Map pillars to funnel stages",
+        "Balance evergreen and timely content",
+        "Brief creative with platform constraints up front"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Map pillars to funnel stages",
+        "Follow: Balance evergreen and timely content",
+        "Follow: Brief creative with platform constraints up front"
+      ],
+      "commonMistakes": [
+        "Random posting without pillars",
+        "Only promotional posts"
+      ],
+      "troubleshooting": [
+        "Avoid: Random posting without pillars",
+        "Avoid: Only promotional posts"
+      ],
+      "recommendations": [
+        "Map pillars to funnel stages",
+        "Balance evergreen and timely content",
+        "Brief creative with platform constraints up front"
+      ],
+      "examples": [
+        "Professional application of Content Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content."
+      ],
+      "relatedTopics": [
+        "content-calendar",
+        "platform-selection",
+        "social-media-fundamentals",
+        "social-trend-analysis"
+      ],
+      "keywords": [
+        "content strategy",
+        "pillars",
+        "editorial",
+        "social plan",
+        "mix"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-content-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-social-audience-analysis",
+      "title": "Audience Analysis",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Understanding who follows, why they engage, and what language they use.",
+      "coreConcepts": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "definitions": [
+        "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content.",
+        "Ground platform and format recommendations in real audience behavior."
+      ],
+      "rules": [
+        "Practice: Separate primary and secondary audiences",
+        "Practice: Study comments and saves, not only likes",
+        "Practice: Validate assumptions with content tests"
+      ],
+      "bestPractices": [
+        "Separate primary and secondary audiences",
+        "Study comments and saves, not only likes",
+        "Validate assumptions with content tests"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Separate primary and secondary audiences",
+        "Follow: Study comments and saves, not only likes",
+        "Follow: Validate assumptions with content tests"
+      ],
+      "commonMistakes": [
+        "Assuming brand persona equals audience",
+        "Ignoring platform-specific audience skew"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming brand persona equals audience",
+        "Avoid: Ignoring platform-specific audience skew"
+      ],
+      "recommendations": [
+        "Separate primary and secondary audiences",
+        "Study comments and saves, not only likes",
+        "Validate assumptions with content tests"
+      ],
+      "examples": [
+        "Professional application of Audience Analysis for platform-native content"
+      ],
+      "professionalStandards": [
+        "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content."
+      ],
+      "relatedTopics": [
+        "platform-selection",
+        "social-engagement-strategy",
+        "community-building",
+        "social-content-strategy"
+      ],
+      "keywords": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-audience-analysis",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-platform-selection",
+      "title": "Platform Selection",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Choosing where to invest creative effort based on audience, format fit, and goals.",
+      "coreConcepts": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "definitions": [
+        "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently.",
+        "Enable AI Me to recommend the best platform for a goal or asset type."
+      ],
+      "rules": [
+        "Practice: Prioritize where the audience already spends time",
+        "Practice: Match message length to platform norms",
+        "Practice: Do not expand platforms before one is consistent"
+      ],
+      "bestPractices": [
+        "Prioritize where the audience already spends time",
+        "Match message length to platform norms",
+        "Do not expand platforms before one is consistent"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Prioritize where the audience already spends time",
+        "Follow: Match message length to platform norms",
+        "Follow: Do not expand platforms before one is consistent"
+      ],
+      "commonMistakes": [
+        "Being everywhere thinly",
+        "Choosing platforms for brand ego"
+      ],
+      "troubleshooting": [
+        "Avoid: Being everywhere thinly",
+        "Avoid: Choosing platforms for brand ego"
+      ],
+      "recommendations": [
+        "Prioritize where the audience already spends time",
+        "Match message length to platform norms",
+        "Do not expand platforms before one is consistent"
+      ],
+      "examples": [
+        "Professional application of Platform Selection for platform-native content"
+      ],
+      "professionalStandards": [
+        "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently."
+      ],
+      "relatedTopics": [
+        "social-media-fundamentals",
+        "social-content-strategy",
+        "tiktok-short-form-strategy",
+        "youtube-long-form-strategy"
+      ],
+      "keywords": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:platform-selection",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-community-building",
+      "title": "Community Building",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Turning followers into participants who return, reply, and advocate.",
+      "coreConcepts": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "definitions": [
+        "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption.",
+        "Recommend strategies that grow durable audiences beyond reach spikes."
+      ],
+      "rules": [
+        "Practice: Reply with substance in peak windows",
+        "Practice: Create recurring series the community expects",
+        "Practice: Spotlight user voices ethically"
+      ],
+      "bestPractices": [
+        "Reply with substance in peak windows",
+        "Create recurring series the community expects",
+        "Spotlight user voices ethically"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Reply with substance in peak windows",
+        "Follow: Create recurring series the community expects",
+        "Follow: Spotlight user voices ethically"
+      ],
+      "commonMistakes": [
+        "Broadcast-only accounts",
+        "Ignoring comments after posting"
+      ],
+      "troubleshooting": [
+        "Avoid: Broadcast-only accounts",
+        "Avoid: Ignoring comments after posting"
+      ],
+      "recommendations": [
+        "Reply with substance in peak windows",
+        "Create recurring series the community expects",
+        "Spotlight user voices ethically"
+      ],
+      "examples": [
+        "Professional application of Community Building for platform-native content"
+      ],
+      "professionalStandards": [
+        "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "facebook-community-management",
+        "social-audience-analysis"
+      ],
+      "keywords": [
+        "community building",
+        "loyalty",
+        "replies",
+        "advocacy",
+        "belonging"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:community-building",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-social-engagement-strategy",
+      "title": "Social Engagement Strategy",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Designing posts and replies that earn meaningful interaction.",
+      "coreConcepts": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "definitions": [
+        "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals.",
+        "Recommend audience engagement approaches across platforms."
+      ],
+      "rules": [
+        "Practice: Ask specific questions",
+        "Practice: Design for saves and shares",
+        "Practice: Close the loop when users respond"
+      ],
+      "bestPractices": [
+        "Ask specific questions",
+        "Design for saves and shares",
+        "Close the loop when users respond"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Ask specific questions",
+        "Follow: Design for saves and shares",
+        "Follow: Close the loop when users respond"
+      ],
+      "commonMistakes": [
+        "Engagement bait without value",
+        "Buying fake interaction"
+      ],
+      "troubleshooting": [
+        "Avoid: Engagement bait without value",
+        "Avoid: Buying fake interaction"
+      ],
+      "recommendations": [
+        "Ask specific questions",
+        "Design for saves and shares",
+        "Close the loop when users respond"
+      ],
+      "examples": [
+        "Professional application of Social Engagement Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals."
+      ],
+      "relatedTopics": [
+        "community-building",
+        "instagram-engagement-optimization",
+        "facebook-engagement-strategy",
+        "social-audience-analysis"
+      ],
+      "keywords": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-engagement-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-content-calendar",
+      "title": "Content Calendar",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Scheduling themes, formats, and cadence without over-promising volume.",
+      "coreConcepts": [
+        "content calendar",
+        "cadence",
+        "scheduling",
+        "editorial calendar",
+        "batching"
+      ],
+      "definitions": [
+        "A content calendar is an operational plan that sequences themes, formats, owners, and publish windows so quality stays consistent under real production constraints.",
+        "Recommend posting rhythms and planning systems."
+      ],
+      "rules": [
+        "Practice: Plan themes weeks ahead; leave slots for trends",
+        "Practice: Batch production by format",
+        "Practice: Review calendar weekly against performance"
+      ],
+      "bestPractices": [
+        "Plan themes weeks ahead; leave slots for trends",
+        "Batch production by format",
+        "Review calendar weekly against performance"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Plan themes weeks ahead; leave slots for trends",
+        "Follow: Batch production by format",
+        "Follow: Review calendar weekly against performance"
+      ],
+      "commonMistakes": [
+        "Unrealistic daily volume",
+        "No buffer for creative delays"
+      ],
+      "troubleshooting": [
+        "Avoid: Unrealistic daily volume",
+        "Avoid: No buffer for creative delays"
+      ],
+      "recommendations": [
+        "Plan themes weeks ahead; leave slots for trends",
+        "Batch production by format",
+        "Review calendar weekly against performance"
+      ],
+      "examples": [
+        "Professional application of Content Calendar for platform-native content"
+      ],
+      "professionalStandards": [
+        "A content calendar is an operational plan that sequences themes, formats, owners, and publish windows so quality stays consistent under real production constraints."
+      ],
+      "relatedTopics": [
+        "social-content-strategy",
+        "facebook-content-scheduling",
+        "tiktok-posting-best-practices"
+      ],
+      "keywords": [
+        "content calendar",
+        "cadence",
+        "scheduling",
+        "editorial calendar",
+        "batching"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:content-calendar",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sm-social-trend-analysis",
+      "title": "Trend Analysis",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Detecting, evaluating, and adapting trends without losing brand identity.",
+      "coreConcepts": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "definitions": [
+        "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative.",
+        "Help AI Me advise when to ride or skip a trend."
+      ],
+      "rules": [
+        "Practice: Score trends on fit, speed, and risk",
+        "Practice: Adapt, do not copy blindly",
+        "Practice: Retire trends that stop converting"
+      ],
+      "bestPractices": [
+        "Score trends on fit, speed, and risk",
+        "Adapt, do not copy blindly",
+        "Retire trends that stop converting"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Score trends on fit, speed, and risk",
+        "Follow: Adapt, do not copy blindly",
+        "Follow: Retire trends that stop converting"
+      ],
+      "commonMistakes": [
+        "Late trend chasing",
+        "Forcing brand into mismatched memes"
+      ],
+      "troubleshooting": [
+        "Avoid: Late trend chasing",
+        "Avoid: Forcing brand into mismatched memes"
+      ],
+      "recommendations": [
+        "Score trends on fit, speed, and risk",
+        "Adapt, do not copy blindly",
+        "Retire trends that stop converting"
+      ],
+      "examples": [
+        "Professional application of Trend Analysis for platform-native content"
+      ],
+      "professionalStandards": [
+        "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative."
+      ],
+      "relatedTopics": [
+        "tiktok-trending-content",
+        "social-content-strategy",
+        "platform-selection"
+      ],
+      "keywords": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-trend-analysis",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-best-practices",
+      "title": "TikTok Best Practices",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Native TikTok norms for authenticity, pacing, and discoverability.",
+      "coreConcepts": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "definitions": [
+        "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel.",
+        "Baseline recommendations for any TikTok content decision."
+      ],
+      "rules": [
+        "Practice: Lead with the hook in the first second",
+        "Practice: Use native captions and on-screen text",
+        "Practice: Sound and text must work with muted autoplay assumptions"
+      ],
+      "bestPractices": [
+        "Lead with the hook in the first second",
+        "Use native captions and on-screen text",
+        "Sound and text must work with muted autoplay assumptions"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Lead with the hook in the first second",
+        "Follow: Use native captions and on-screen text",
+        "Follow: Sound and text must work with muted autoplay assumptions"
+      ],
+      "commonMistakes": [
+        "Cross-posting horizontal ads unchanged",
+        "Overly salesy first frames"
+      ],
+      "troubleshooting": [
+        "Avoid: Cross-posting horizontal ads unchanged",
+        "Avoid: Overly salesy first frames"
+      ],
+      "recommendations": [
+        "Lead with the hook in the first second",
+        "Use native captions and on-screen text",
+        "Sound and text must work with muted autoplay assumptions"
+      ],
+      "examples": [
+        "Professional application of TikTok Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel."
+      ],
+      "relatedTopics": [
+        "tiktok-hook-creation",
+        "tiktok-short-form-strategy",
+        "tiktok-posting-best-practices"
+      ],
+      "keywords": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-short-form-strategy",
+      "title": "Short-form Video Strategy",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Planning series, loops, and value density for TikTok-length videos.",
+      "coreConcepts": [
+        "short-form strategy",
+        "tiktok series",
+        "loops",
+        "value density"
+      ],
+      "definitions": [
+        "TikTok short-form strategy designs concise narratives and loops that deliver a complete idea quickly while encouraging rewatches and follows.",
+        "Recommend how to structure TikTok content systems, not just single clips."
+      ],
+      "rules": [
+        "Practice: One idea per video",
+        "Practice: Design for rewatch loops",
+        "Practice: Series with recognizable openers"
+      ],
+      "bestPractices": [
+        "One idea per video",
+        "Design for rewatch loops",
+        "Series with recognizable openers"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: One idea per video",
+        "Follow: Design for rewatch loops",
+        "Follow: Series with recognizable openers"
+      ],
+      "commonMistakes": [
+        "Cramming long-form scripts into 20s",
+        "No series continuity"
+      ],
+      "troubleshooting": [
+        "Avoid: Cramming long-form scripts into 20s",
+        "Avoid: No series continuity"
+      ],
+      "recommendations": [
+        "One idea per video",
+        "Design for rewatch loops",
+        "Series with recognizable openers"
+      ],
+      "examples": [
+        "Professional application of Short-form Video Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok short-form strategy designs concise narratives and loops that deliver a complete idea quickly while encouraging rewatches and follows."
+      ],
+      "relatedTopics": [
+        "tiktok-video-length-optimization",
+        "tiktok-audience-retention",
+        "tiktok-best-practices"
+      ],
+      "keywords": [
+        "short-form strategy",
+        "tiktok series",
+        "loops",
+        "value density"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-short-form-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-hook-creation",
+      "title": "TikTok Hook Creation",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Opening frames and lines that stop the TikTok scroll (platform-specific).",
+      "coreConcepts": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "definitions": [
+        "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks.",
+        "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation."
+      ],
+      "rules": [
+        "Practice: Pattern interrupt visually",
+        "Practice: Promise a specific payoff",
+        "Practice: Show the product or problem immediately when relevant"
+      ],
+      "bestPractices": [
+        "Pattern interrupt visually",
+        "Promise a specific payoff",
+        "Show the product or problem immediately when relevant"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Pattern interrupt visually",
+        "Follow: Promise a specific payoff",
+        "Follow: Show the product or problem immediately when relevant"
+      ],
+      "commonMistakes": [
+        "Slow branded intros",
+        "Vague curiosity without payoff"
+      ],
+      "troubleshooting": [
+        "Avoid: Slow branded intros",
+        "Avoid: Vague curiosity without payoff"
+      ],
+      "recommendations": [
+        "Pattern interrupt visually",
+        "Promise a specific payoff",
+        "Show the product or problem immediately when relevant"
+      ],
+      "examples": [
+        "Professional application of TikTok Hook Creation for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks."
+      ],
+      "relatedTopics": [
+        "tiktok-audience-retention",
+        "tiktok-best-practices",
+        "tiktok-trending-content"
+      ],
+      "keywords": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-hook-creation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-audience-retention",
+      "title": "TikTok Audience Retention",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Keeping TikTok viewers watching through cuts, reveals, and open loops.",
+      "coreConcepts": [
+        "tiktok retention",
+        "watch through",
+        "drop-off",
+        "pacing"
+      ],
+      "definitions": [
+        "TikTok audience retention uses pacing, open loops, and visual change to minimize drop-off across the short watch window of the For You Page.",
+        "Explain and recommend retention tactics specific to TikTok."
+      ],
+      "rules": [
+        "Practice: Cut dead air",
+        "Practice: Preview the ending early",
+        "Practice: Change visual every 1–2 seconds when needed"
+      ],
+      "bestPractices": [
+        "Cut dead air",
+        "Preview the ending early",
+        "Change visual every 1–2 seconds when needed"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Cut dead air",
+        "Follow: Preview the ending early",
+        "Follow: Change visual every 1–2 seconds when needed"
+      ],
+      "commonMistakes": [
+        "Long static talking heads",
+        "Burying the payoff"
+      ],
+      "troubleshooting": [
+        "Avoid: Long static talking heads",
+        "Avoid: Burying the payoff"
+      ],
+      "recommendations": [
+        "Cut dead air",
+        "Preview the ending early",
+        "Change visual every 1–2 seconds when needed"
+      ],
+      "examples": [
+        "Professional application of TikTok Audience Retention for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok audience retention uses pacing, open loops, and visual change to minimize drop-off across the short watch window of the For You Page."
+      ],
+      "relatedTopics": [
+        "tiktok-hook-creation",
+        "tiktok-video-length-optimization",
+        "tiktok-short-form-strategy"
+      ],
+      "keywords": [
+        "tiktok retention",
+        "watch through",
+        "drop-off",
+        "pacing"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-audience-retention",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-trending-content",
+      "title": "Trending Content",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Adapting TikTok trends, sounds, and formats with brand safety.",
+      "coreConcepts": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "definitions": [
+        "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers.",
+        "Guide trend participation without losing brand."
+      ],
+      "rules": [
+        "Practice: Jump early when fit is high",
+        "Practice: Rewrite captions for brand voice",
+        "Practice: Track which trend variants convert"
+      ],
+      "bestPractices": [
+        "Jump early when fit is high",
+        "Rewrite captions for brand voice",
+        "Track which trend variants convert"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Jump early when fit is high",
+        "Follow: Rewrite captions for brand voice",
+        "Follow: Track which trend variants convert"
+      ],
+      "commonMistakes": [
+        "Trend for trend's sake",
+        "Ignoring sound licensing and brand safety"
+      ],
+      "troubleshooting": [
+        "Avoid: Trend for trend's sake",
+        "Avoid: Ignoring sound licensing and brand safety"
+      ],
+      "recommendations": [
+        "Jump early when fit is high",
+        "Rewrite captions for brand voice",
+        "Track which trend variants convert"
+      ],
+      "examples": [
+        "Professional application of Trending Content for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers."
+      ],
+      "relatedTopics": [
+        "social-trend-analysis",
+        "tiktok-hashtag-strategy",
+        "tiktok-hook-creation"
+      ],
+      "keywords": [
+        "tiktok trends",
+        "sounds",
+        "challenges",
+        "format remakes"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-trending-content",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-hashtag-strategy",
+      "title": "Hashtag Strategy",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Selecting TikTok hashtags for discoverability without spam patterns.",
+      "coreConcepts": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "definitions": [
+        "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever.",
+        "Recommend TikTok tagging practices."
+      ],
+      "rules": [
+        "Practice: Few relevant tags beat long spam lists",
+        "Practice: Include branded campaign tags when tracking",
+        "Practice: Prioritize content quality over tag volume"
+      ],
+      "bestPractices": [
+        "Few relevant tags beat long spam lists",
+        "Include branded campaign tags when tracking",
+        "Prioritize content quality over tag volume"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Few relevant tags beat long spam lists",
+        "Follow: Include branded campaign tags when tracking",
+        "Follow: Prioritize content quality over tag volume"
+      ],
+      "commonMistakes": [
+        "Copying unrelated viral tags",
+        "Hashtag-only discovery strategy"
+      ],
+      "troubleshooting": [
+        "Avoid: Copying unrelated viral tags",
+        "Avoid: Hashtag-only discovery strategy"
+      ],
+      "recommendations": [
+        "Few relevant tags beat long spam lists",
+        "Include branded campaign tags when tracking",
+        "Prioritize content quality over tag volume"
+      ],
+      "examples": [
+        "Professional application of Hashtag Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever."
+      ],
+      "relatedTopics": [
+        "tiktok-best-practices",
+        "tiktok-posting-best-practices",
+        "tiktok-trending-content"
+      ],
+      "keywords": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-hashtag-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-video-length-optimization",
+      "title": "Video Length Optimization",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Choosing TikTok durations that match idea complexity and retention.",
+      "coreConcepts": [
+        "tiktok length",
+        "duration",
+        "15 seconds",
+        "optimization"
+      ],
+      "definitions": [
+        "TikTok video length optimization selects the shortest duration that still delivers a complete payoff, then extends only when retention data supports it.",
+        "Recommend length decisions for TikTok creatives."
+      ],
+      "rules": [
+        "Practice: Default short; extend when retention holds",
+        "Practice: Cut middle bloat first",
+        "Practice: Test 15s vs 30s+ for the same hook"
+      ],
+      "bestPractices": [
+        "Default short; extend when retention holds",
+        "Cut middle bloat first",
+        "Test 15s vs 30s+ for the same hook"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Default short; extend when retention holds",
+        "Follow: Cut middle bloat first",
+        "Follow: Test 15s vs 30s+ for the same hook"
+      ],
+      "commonMistakes": [
+        "Padding to hit arbitrary length",
+        "Ending before the promised payoff"
+      ],
+      "troubleshooting": [
+        "Avoid: Padding to hit arbitrary length",
+        "Avoid: Ending before the promised payoff"
+      ],
+      "recommendations": [
+        "Default short; extend when retention holds",
+        "Cut middle bloat first",
+        "Test 15s vs 30s+ for the same hook"
+      ],
+      "examples": [
+        "Professional application of Video Length Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok video length optimization selects the shortest duration that still delivers a complete payoff, then extends only when retention data supports it."
+      ],
+      "relatedTopics": [
+        "tiktok-audience-retention",
+        "tiktok-short-form-strategy",
+        "tiktok-best-practices"
+      ],
+      "keywords": [
+        "tiktok length",
+        "duration",
+        "15 seconds",
+        "optimization"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-video-length-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "tt-tiktok-posting-best-practices",
+      "title": "Posting Best Practices",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "When and how to publish TikTok content for consistent learning loops.",
+      "coreConcepts": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "definitions": [
+        "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision.",
+        "Recommend posting strategies for TikTok."
+      ],
+      "rules": [
+        "Practice: Consistent cadence over burst spam",
+        "Practice: Write captions that clarify the hook",
+        "Practice: Review analytics within 24–48 hours"
+      ],
+      "bestPractices": [
+        "Consistent cadence over burst spam",
+        "Write captions that clarify the hook",
+        "Review analytics within 24–48 hours"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Consistent cadence over burst spam",
+        "Follow: Write captions that clarify the hook",
+        "Follow: Review analytics within 24–48 hours"
+      ],
+      "commonMistakes": [
+        "Dumping 10 videos then going silent",
+        "Ignoring cover/thumbnail frame"
+      ],
+      "troubleshooting": [
+        "Avoid: Dumping 10 videos then going silent",
+        "Avoid: Ignoring cover/thumbnail frame"
+      ],
+      "recommendations": [
+        "Consistent cadence over burst spam",
+        "Write captions that clarify the hook",
+        "Review analytics within 24–48 hours"
+      ],
+      "examples": [
+        "Professional application of Posting Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision."
+      ],
+      "relatedTopics": [
+        "content-calendar",
+        "tiktok-best-practices",
+        "tiktok-hashtag-strategy"
+      ],
+      "keywords": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-posting-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-reels-strategy",
+      "title": "Reels Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Using Instagram Reels for discovery while protecting brand look.",
+      "coreConcepts": [
+        "instagram reels",
+        "discovery",
+        "vertical video",
+        "covers"
+      ],
+      "definitions": [
+        "Reels strategy plans short vertical Instagram videos for discovery and profile visits, balancing trend participation with visual brand consistency.",
+        "Recommend Instagram Reels as a content format and growth surface."
+      ],
+      "rules": [
+        "Practice: Hook fast; brand within first frames",
+        "Practice: Design covers that fit the grid",
+        "Practice: Reuse winning hooks as feed stills when useful"
+      ],
+      "bestPractices": [
+        "Hook fast; brand within first frames",
+        "Design covers that fit the grid",
+        "Reuse winning hooks as feed stills when useful"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Hook fast; brand within first frames",
+        "Follow: Design covers that fit the grid",
+        "Follow: Reuse winning hooks as feed stills when useful"
+      ],
+      "commonMistakes": [
+        "Ignoring cover aesthetics",
+        "Treating Reels as only TikTok dumps"
+      ],
+      "troubleshooting": [
+        "Avoid: Ignoring cover aesthetics",
+        "Avoid: Treating Reels as only TikTok dumps"
+      ],
+      "recommendations": [
+        "Hook fast; brand within first frames",
+        "Design covers that fit the grid",
+        "Reuse winning hooks as feed stills when useful"
+      ],
+      "examples": [
+        "Professional application of Reels Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Reels strategy plans short vertical Instagram videos for discovery and profile visits, balancing trend participation with visual brand consistency."
+      ],
+      "relatedTopics": [
+        "instagram-visual-consistency",
+        "instagram-feed-strategy",
+        "tiktok-short-form-strategy"
+      ],
+      "keywords": [
+        "instagram reels",
+        "discovery",
+        "vertical video",
+        "covers"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-reels-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-feed-strategy",
+      "title": "Feed Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Planning the Instagram grid for brand memory and profile conversion.",
+      "coreConcepts": [
+        "instagram feed",
+        "grid",
+        "profile",
+        "pinned posts"
+      ],
+      "definitions": [
+        "Feed strategy designs the profile grid and permanent posts as a brand storefront—consistent visuals, clear value, and intentional sequencing.",
+        "Recommend feed content decisions for Instagram."
+      ],
+      "rules": [
+        "Practice: Plan grid in batches of 9",
+        "Practice: Alternate education, proof, and product",
+        "Practice: Optimize profile bio and pinned posts"
+      ],
+      "bestPractices": [
+        "Plan grid in batches of 9",
+        "Alternate education, proof, and product",
+        "Optimize profile bio and pinned posts"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Plan grid in batches of 9",
+        "Follow: Alternate education, proof, and product",
+        "Follow: Optimize profile bio and pinned posts"
+      ],
+      "commonMistakes": [
+        "Chaotic grid with no visual system",
+        "Only promotional tiles"
+      ],
+      "troubleshooting": [
+        "Avoid: Chaotic grid with no visual system",
+        "Avoid: Only promotional tiles"
+      ],
+      "recommendations": [
+        "Plan grid in batches of 9",
+        "Alternate education, proof, and product",
+        "Optimize profile bio and pinned posts"
+      ],
+      "examples": [
+        "Professional application of Feed Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Feed strategy designs the profile grid and permanent posts as a brand storefront—consistent visuals, clear value, and intentional sequencing."
+      ],
+      "relatedTopics": [
+        "instagram-visual-consistency",
+        "instagram-carousel-strategy",
+        "instagram-caption-strategy"
+      ],
+      "keywords": [
+        "instagram feed",
+        "grid",
+        "profile",
+        "pinned posts"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-feed-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-stories-strategy",
+      "title": "Stories Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Using ephemeral Stories for intimacy, polls, and behind-the-scenes.",
+      "coreConcepts": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "definitions": [
+        "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship.",
+        "Recommend Stories formats and engagement tactics."
+      ],
+      "rules": [
+        "Practice: Use polls and questions purposefully",
+        "Practice: Sequence stories like mini chapters",
+        "Practice: Drive to Highlights for evergreen"
+      ],
+      "bestPractices": [
+        "Use polls and questions purposefully",
+        "Sequence stories like mini chapters",
+        "Drive to Highlights for evergreen"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Use polls and questions purposefully",
+        "Follow: Sequence stories like mini chapters",
+        "Follow: Drive to Highlights for evergreen"
+      ],
+      "commonMistakes": [
+        "Story spam with no narrative",
+        "Never saving useful stories to Highlights"
+      ],
+      "troubleshooting": [
+        "Avoid: Story spam with no narrative",
+        "Avoid: Never saving useful stories to Highlights"
+      ],
+      "recommendations": [
+        "Use polls and questions purposefully",
+        "Sequence stories like mini chapters",
+        "Drive to Highlights for evergreen"
+      ],
+      "examples": [
+        "Professional application of Stories Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship."
+      ],
+      "relatedTopics": [
+        "instagram-engagement-optimization",
+        "community-building",
+        "instagram-feed-strategy"
+      ],
+      "keywords": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-stories-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-carousel-strategy",
+      "title": "Carousel Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Multi-slide Instagram posts for education, storytelling, and saves.",
+      "coreConcepts": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "definitions": [
+        "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide.",
+        "Recommend carousel as a high-save Instagram format."
+      ],
+      "rules": [
+        "Practice: Cover slide must earn the swipe",
+        "Practice: One idea per slide",
+        "Practice: End with save/share CTA"
+      ],
+      "bestPractices": [
+        "Cover slide must earn the swipe",
+        "One idea per slide",
+        "End with save/share CTA"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Cover slide must earn the swipe",
+        "Follow: One idea per slide",
+        "Follow: End with save/share CTA"
+      ],
+      "commonMistakes": [
+        "Walls of text",
+        "Weak first slide"
+      ],
+      "troubleshooting": [
+        "Avoid: Walls of text",
+        "Avoid: Weak first slide"
+      ],
+      "recommendations": [
+        "Cover slide must earn the swipe",
+        "One idea per slide",
+        "End with save/share CTA"
+      ],
+      "examples": [
+        "Professional application of Carousel Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide."
+      ],
+      "relatedTopics": [
+        "instagram-feed-strategy",
+        "instagram-caption-strategy",
+        "instagram-engagement-optimization"
+      ],
+      "keywords": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-carousel-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-visual-consistency",
+      "title": "Visual Consistency",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Maintaining recognizable Instagram aesthetics across formats.",
+      "coreConcepts": [
+        "visual consistency",
+        "instagram brand",
+        "grid aesthetic",
+        "templates"
+      ],
+      "definitions": [
+        "Visual consistency applies brand colors, typography, crop language, and lighting mood so Reels, feed, and Stories feel like one brand system.",
+        "Recommend branding decisions on Instagram without duplicating Step 7 brand-identity deep packs."
+      ],
+      "rules": [
+        "Practice: Define 3–5 visual rules",
+        "Practice: Templates for carousels and covers",
+        "Practice: Audit grid monthly"
+      ],
+      "bestPractices": [
+        "Define 3–5 visual rules",
+        "Templates for carousels and covers",
+        "Audit grid monthly"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Define 3–5 visual rules",
+        "Follow: Templates for carousels and covers",
+        "Follow: Audit grid monthly"
+      ],
+      "commonMistakes": [
+        "Every post a different aesthetic",
+        "Filters that fight product truth"
+      ],
+      "troubleshooting": [
+        "Avoid: Every post a different aesthetic",
+        "Avoid: Filters that fight product truth"
+      ],
+      "recommendations": [
+        "Define 3–5 visual rules",
+        "Templates for carousels and covers",
+        "Audit grid monthly"
+      ],
+      "examples": [
+        "Professional application of Visual Consistency for platform-native content"
+      ],
+      "professionalStandards": [
+        "Visual consistency applies brand colors, typography, crop language, and lighting mood so Reels, feed, and Stories feel like one brand system."
+      ],
+      "relatedTopics": [
+        "instagram-feed-strategy",
+        "instagram-reels-strategy",
+        "instagram-stories-strategy"
+      ],
+      "keywords": [
+        "visual consistency",
+        "instagram brand",
+        "grid aesthetic",
+        "templates"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-visual-consistency",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-engagement-optimization",
+      "title": "Engagement Optimization",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Improving Instagram interaction quality via creative and response design.",
+      "coreConcepts": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "definitions": [
+        "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone.",
+        "Recommend Instagram-specific engagement tactics."
+      ],
+      "rules": [
+        "Practice: Reply to early comments",
+        "Practice: Use carousels and Reels for save/share goals",
+        "Practice: Ask one clear question"
+      ],
+      "bestPractices": [
+        "Reply to early comments",
+        "Use carousels and Reels for save/share goals",
+        "Ask one clear question"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Reply to early comments",
+        "Follow: Use carousels and Reels for save/share goals",
+        "Follow: Ask one clear question"
+      ],
+      "commonMistakes": [
+        "Buying comments",
+        "Ignoring DMs that start from posts"
+      ],
+      "troubleshooting": [
+        "Avoid: Buying comments",
+        "Avoid: Ignoring DMs that start from posts"
+      ],
+      "recommendations": [
+        "Reply to early comments",
+        "Use carousels and Reels for save/share goals",
+        "Ask one clear question"
+      ],
+      "examples": [
+        "Professional application of Engagement Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "instagram-caption-strategy",
+        "instagram-stories-strategy"
+      ],
+      "keywords": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-engagement-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "ig-instagram-caption-strategy",
+      "title": "Caption Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Writing Instagram captions that clarify value and invite action.",
+      "coreConcepts": [
+        "instagram captions",
+        "copy",
+        "CTA",
+        "hashtags in caption"
+      ],
+      "definitions": [
+        "Caption strategy crafts scannable Instagram copy: hook line, value body, and a single CTA aligned with the visual.",
+        "Recommend caption structure for Instagram posts and Reels."
+      ],
+      "rules": [
+        "Practice: Front-load the benefit",
+        "Practice: Break lines for mobile scan",
+        "Practice: One CTA per caption"
+      ],
+      "bestPractices": [
+        "Front-load the benefit",
+        "Break lines for mobile scan",
+        "One CTA per caption"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Front-load the benefit",
+        "Follow: Break lines for mobile scan",
+        "Follow: One CTA per caption"
+      ],
+      "commonMistakes": [
+        "Keyword stuffing",
+        "Multiple competing CTAs"
+      ],
+      "troubleshooting": [
+        "Avoid: Keyword stuffing",
+        "Avoid: Multiple competing CTAs"
+      ],
+      "recommendations": [
+        "Front-load the benefit",
+        "Break lines for mobile scan",
+        "One CTA per caption"
+      ],
+      "examples": [
+        "Professional application of Caption Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Caption strategy crafts scannable Instagram copy: hook line, value body, and a single CTA aligned with the visual."
+      ],
+      "relatedTopics": [
+        "instagram-carousel-strategy",
+        "instagram-feed-strategy",
+        "instagram-engagement-optimization"
+      ],
+      "keywords": [
+        "instagram captions",
+        "copy",
+        "CTA",
+        "hashtags in caption"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-caption-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-page-strategy",
+      "title": "Facebook Page Strategy",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Positioning a Facebook Page as a trusted brand hub.",
+      "coreConcepts": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "definitions": [
+        "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity.",
+        "Recommend how to run a professional Facebook Page presence."
+      ],
+      "rules": [
+        "Practice: Complete page identity and CTAs",
+        "Practice: Pin proof or offer posts",
+        "Practice: Align page voice with brand guidelines"
+      ],
+      "bestPractices": [
+        "Complete page identity and CTAs",
+        "Pin proof or offer posts",
+        "Align page voice with brand guidelines"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Complete page identity and CTAs",
+        "Follow: Pin proof or offer posts",
+        "Follow: Align page voice with brand guidelines"
+      ],
+      "commonMistakes": [
+        "Neglected about section",
+        "Inconsistent page vs ads creative"
+      ],
+      "troubleshooting": [
+        "Avoid: Neglected about section",
+        "Avoid: Inconsistent page vs ads creative"
+      ],
+      "recommendations": [
+        "Complete page identity and CTAs",
+        "Pin proof or offer posts",
+        "Align page voice with brand guidelines"
+      ],
+      "examples": [
+        "Professional application of Facebook Page Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity."
+      ],
+      "relatedTopics": [
+        "facebook-community-management",
+        "facebook-content-scheduling",
+        "facebook-organic-reach"
+      ],
+      "keywords": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-page-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-video-strategy",
+      "title": "Video Strategy",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Facebook-native video for feed, Reels-adjacent, and community contexts.",
+      "coreConcepts": [
+        "facebook video",
+        "feed video",
+        "captions",
+        "aspect ratio"
+      ],
+      "definitions": [
+        "Facebook video strategy selects lengths, captions, and hooks suited to Facebook feed and group contexts, including square/vertical crops and sound-off viewing.",
+        "Recommend Facebook video formats and creative decisions."
+      ],
+      "rules": [
+        "Practice: Caption for sound-off",
+        "Practice: Hook in first 3 seconds",
+        "Practice: Match aspect ratio to placement"
+      ],
+      "bestPractices": [
+        "Caption for sound-off",
+        "Hook in first 3 seconds",
+        "Match aspect ratio to placement"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Caption for sound-off",
+        "Follow: Hook in first 3 seconds",
+        "Follow: Match aspect ratio to placement"
+      ],
+      "commonMistakes": [
+        "Uploading uncaptioned horizontal only",
+        "Ignoring Groups context"
+      ],
+      "troubleshooting": [
+        "Avoid: Uploading uncaptioned horizontal only",
+        "Avoid: Ignoring Groups context"
+      ],
+      "recommendations": [
+        "Caption for sound-off",
+        "Hook in first 3 seconds",
+        "Match aspect ratio to placement"
+      ],
+      "examples": [
+        "Professional application of Video Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook video strategy selects lengths, captions, and hooks suited to Facebook feed and group contexts, including square/vertical crops and sound-off viewing."
+      ],
+      "relatedTopics": [
+        "facebook-engagement-strategy",
+        "facebook-organic-reach",
+        "youtube-long-form-strategy"
+      ],
+      "keywords": [
+        "facebook video",
+        "feed video",
+        "captions",
+        "aspect ratio"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-video-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-community-management",
+      "title": "Community Management",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Moderating and nurturing Facebook Page and Group conversations.",
+      "coreConcepts": [
+        "facebook community",
+        "moderation",
+        "groups",
+        "response SLA"
+      ],
+      "definitions": [
+        "Facebook community management sets moderation rules, response SLAs, and escalation paths so comments and Groups stay safe, useful, and on-brand.",
+        "Recommend community operations on Facebook."
+      ],
+      "rules": [
+        "Practice: Publish community guidelines",
+        "Practice: Respond to questions publicly when useful",
+        "Practice: Escalate crises with a playbook"
+      ],
+      "bestPractices": [
+        "Publish community guidelines",
+        "Respond to questions publicly when useful",
+        "Escalate crises with a playbook"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Publish community guidelines",
+        "Follow: Respond to questions publicly when useful",
+        "Follow: Escalate crises with a playbook"
+      ],
+      "commonMistakes": [
+        "Deleting all criticism",
+        "No moderation coverage windows"
+      ],
+      "troubleshooting": [
+        "Avoid: Deleting all criticism",
+        "Avoid: No moderation coverage windows"
+      ],
+      "recommendations": [
+        "Publish community guidelines",
+        "Respond to questions publicly when useful",
+        "Escalate crises with a playbook"
+      ],
+      "examples": [
+        "Professional application of Community Management for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook community management sets moderation rules, response SLAs, and escalation paths so comments and Groups stay safe, useful, and on-brand."
+      ],
+      "relatedTopics": [
+        "community-building",
+        "facebook-engagement-strategy",
+        "facebook-page-strategy"
+      ],
+      "keywords": [
+        "facebook community",
+        "moderation",
+        "groups",
+        "response SLA"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-community-management",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-engagement-strategy",
+      "title": "Facebook Engagement Strategy",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Earning meaningful Facebook interactions from posts and replies.",
+      "coreConcepts": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "definitions": [
+        "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms.",
+        "Recommend Facebook-specific engagement approaches."
+      ],
+      "rules": [
+        "Practice: Invite stories and experiences",
+        "Practice: Use native formats people comment on",
+        "Practice: Seed discussion without fake bait"
+      ],
+      "bestPractices": [
+        "Invite stories and experiences",
+        "Use native formats people comment on",
+        "Seed discussion without fake bait"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Invite stories and experiences",
+        "Follow: Use native formats people comment on",
+        "Follow: Seed discussion without fake bait"
+      ],
+      "commonMistakes": [
+        "Engagement bait that violates norms",
+        "Ignoring comment threads"
+      ],
+      "troubleshooting": [
+        "Avoid: Engagement bait that violates norms",
+        "Avoid: Ignoring comment threads"
+      ],
+      "recommendations": [
+        "Invite stories and experiences",
+        "Use native formats people comment on",
+        "Seed discussion without fake bait"
+      ],
+      "examples": [
+        "Professional application of Facebook Engagement Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "facebook-community-management",
+        "facebook-video-strategy"
+      ],
+      "keywords": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-engagement-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-organic-reach",
+      "title": "Organic Reach",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Improving unpaid Facebook distribution through relevance and relationships.",
+      "coreConcepts": [
+        "facebook organic reach",
+        "distribution",
+        "algorithm",
+        "unpaid"
+      ],
+      "definitions": [
+        "Organic reach practice improves unpaid distribution by increasing meaningful interactions, posting consistently, and prioritizing content the audience completes and shares.",
+        "Explain organic reach constraints and levers on Facebook."
+      ],
+      "rules": [
+        "Practice: Prioritize saves/shares over empty reactions",
+        "Practice: Post when your audience is active",
+        "Practice: Encourage authentic shares"
+      ],
+      "bestPractices": [
+        "Prioritize saves/shares over empty reactions",
+        "Post when your audience is active",
+        "Encourage authentic shares"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Prioritize saves/shares over empty reactions",
+        "Follow: Post when your audience is active",
+        "Follow: Encourage authentic shares"
+      ],
+      "commonMistakes": [
+        "Blaming algorithm only",
+        "Buying fake engagement"
+      ],
+      "troubleshooting": [
+        "Avoid: Blaming algorithm only",
+        "Avoid: Buying fake engagement"
+      ],
+      "recommendations": [
+        "Prioritize saves/shares over empty reactions",
+        "Post when your audience is active",
+        "Encourage authentic shares"
+      ],
+      "examples": [
+        "Professional application of Organic Reach for platform-native content"
+      ],
+      "professionalStandards": [
+        "Organic reach practice improves unpaid distribution by increasing meaningful interactions, posting consistently, and prioritizing content the audience completes and shares."
+      ],
+      "relatedTopics": [
+        "facebook-content-scheduling",
+        "facebook-engagement-strategy",
+        "facebook-page-strategy"
+      ],
+      "keywords": [
+        "facebook organic reach",
+        "distribution",
+        "algorithm",
+        "unpaid"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-organic-reach",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "fb-facebook-content-scheduling",
+      "title": "Content Scheduling",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Planning Facebook publish times and queues without over-automation.",
+      "coreConcepts": [
+        "facebook scheduling",
+        "publish queue",
+        "timing",
+        "cadence"
+      ],
+      "definitions": [
+        "Facebook content scheduling coordinates publish windows, queues, and live moments so the Page stays active while preserving room for timely community posts.",
+        "Recommend Facebook posting and scheduling strategies."
+      ],
+      "rules": [
+        "Practice: Schedule evergreen; leave gaps for timely posts",
+        "Practice: Review queue weekly",
+        "Practice: Align schedule with community managers' reply hours"
+      ],
+      "bestPractices": [
+        "Schedule evergreen; leave gaps for timely posts",
+        "Review queue weekly",
+        "Align schedule with community managers' reply hours"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Schedule evergreen; leave gaps for timely posts",
+        "Follow: Review queue weekly",
+        "Follow: Align schedule with community managers' reply hours"
+      ],
+      "commonMistakes": [
+        "Fully automated silence after publish",
+        "Overstuffed queues"
+      ],
+      "troubleshooting": [
+        "Avoid: Fully automated silence after publish",
+        "Avoid: Overstuffed queues"
+      ],
+      "recommendations": [
+        "Schedule evergreen; leave gaps for timely posts",
+        "Review queue weekly",
+        "Align schedule with community managers' reply hours"
+      ],
+      "examples": [
+        "Professional application of Content Scheduling for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook content scheduling coordinates publish windows, queues, and live moments so the Page stays active while preserving room for timely community posts."
+      ],
+      "relatedTopics": [
+        "content-calendar",
+        "facebook-organic-reach",
+        "facebook-page-strategy"
+      ],
+      "keywords": [
+        "facebook scheduling",
+        "publish queue",
+        "timing",
+        "cadence"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-content-scheduling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-long-form-strategy",
+      "title": "Long-form Video Strategy",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Planning YouTube long-form videos for search, suggested, and loyalty.",
+      "coreConcepts": [
+        "youtube long-form",
+        "search",
+        "chapters",
+        "authority"
+      ],
+      "definitions": [
+        "YouTube long-form strategy designs chaptered, searchable videos that deliver depth, retain viewers, and support channel authority over time.",
+        "Recommend long-form YouTube content systems."
+      ],
+      "rules": [
+        "Practice: Promise and deliver a clear outcome",
+        "Practice: Use chapters and pattern",
+        "Practice: Design intros under ~20s then value"
+      ],
+      "bestPractices": [
+        "Promise and deliver a clear outcome",
+        "Use chapters and pattern",
+        "Design intros under ~20s then value"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Promise and deliver a clear outcome",
+        "Follow: Use chapters and pattern",
+        "Follow: Design intros under ~20s then value"
+      ],
+      "commonMistakes": [
+        "No search intent mapping",
+        "Meandering openings"
+      ],
+      "troubleshooting": [
+        "Avoid: No search intent mapping",
+        "Avoid: Meandering openings"
+      ],
+      "recommendations": [
+        "Promise and deliver a clear outcome",
+        "Use chapters and pattern",
+        "Design intros under ~20s then value"
+      ],
+      "examples": [
+        "Professional application of Long-form Video Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "YouTube long-form strategy designs chaptered, searchable videos that deliver depth, retain viewers, and support channel authority over time."
+      ],
+      "relatedTopics": [
+        "youtube-audience-retention",
+        "youtube-watch-time-optimization",
+        "youtube-title-optimization"
+      ],
+      "keywords": [
+        "youtube long-form",
+        "search",
+        "chapters",
+        "authority"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-long-form-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-shorts-strategy",
+      "title": "Shorts Strategy",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Using YouTube Shorts for discovery that feeds the long-form channel.",
+      "coreConcepts": [
+        "youtube shorts",
+        "discovery",
+        "vertical",
+        "funnel to long-form"
+      ],
+      "definitions": [
+        "YouTube Shorts strategy produces vertical discovery clips that stand alone while routing interested viewers into long-form playlists and subscriptions.",
+        "Recommend Shorts as a format bridging discovery and channel growth."
+      ],
+      "rules": [
+        "Practice: Complete idea in Shorts length",
+        "Practice: Tease related long-form without bait-only",
+        "Practice: Consistent series branding"
+      ],
+      "bestPractices": [
+        "Complete idea in Shorts length",
+        "Tease related long-form without bait-only",
+        "Consistent series branding"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Complete idea in Shorts length",
+        "Follow: Tease related long-form without bait-only",
+        "Follow: Consistent series branding"
+      ],
+      "commonMistakes": [
+        "Shorts with no channel path",
+        "Only recycling long-form middles poorly"
+      ],
+      "troubleshooting": [
+        "Avoid: Shorts with no channel path",
+        "Avoid: Only recycling long-form middles poorly"
+      ],
+      "recommendations": [
+        "Complete idea in Shorts length",
+        "Tease related long-form without bait-only",
+        "Consistent series branding"
+      ],
+      "examples": [
+        "Professional application of Shorts Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "YouTube Shorts strategy produces vertical discovery clips that stand alone while routing interested viewers into long-form playlists and subscriptions."
+      ],
+      "relatedTopics": [
+        "tiktok-short-form-strategy",
+        "youtube-long-form-strategy",
+        "youtube-audience-retention"
+      ],
+      "keywords": [
+        "youtube shorts",
+        "discovery",
+        "vertical",
+        "funnel to long-form"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-shorts-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-thumbnail-best-practices",
+      "title": "Thumbnail Best Practices",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Click-worthy YouTube thumbnails that stay honest and brand-safe.",
+      "coreConcepts": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "definitions": [
+        "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust.",
+        "Recommend thumbnail decisions for YouTube packaging."
+      ],
+      "rules": [
+        "Practice: One focal subject + short text",
+        "Practice: High contrast faces/objects",
+        "Practice: A/B test variants"
+      ],
+      "bestPractices": [
+        "One focal subject + short text",
+        "High contrast faces/objects",
+        "A/B test variants"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: One focal subject + short text",
+        "Follow: High contrast faces/objects",
+        "Follow: A/B test variants"
+      ],
+      "commonMistakes": [
+        "Misleading shock thumbnails",
+        "Unreadable tiny text"
+      ],
+      "troubleshooting": [
+        "Avoid: Misleading shock thumbnails",
+        "Avoid: Unreadable tiny text"
+      ],
+      "recommendations": [
+        "One focal subject + short text",
+        "High contrast faces/objects",
+        "A/B test variants"
+      ],
+      "examples": [
+        "Professional application of Thumbnail Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust."
+      ],
+      "relatedTopics": [
+        "youtube-title-optimization",
+        "youtube-long-form-strategy",
+        "youtube-watch-time-optimization"
+      ],
+      "keywords": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-thumbnail-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-title-optimization",
+      "title": "Title Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Writing YouTube titles for clarity, search, and click intent.",
+      "coreConcepts": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "definitions": [
+        "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content.",
+        "Recommend title patterns for YouTube."
+      ],
+      "rules": [
+        "Practice: Front-load the benefit or topic",
+        "Practice: Include searchable phrasing naturally",
+        "Practice: Avoid keyword stuffing"
+      ],
+      "bestPractices": [
+        "Front-load the benefit or topic",
+        "Include searchable phrasing naturally",
+        "Avoid keyword stuffing"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Front-load the benefit or topic",
+        "Follow: Include searchable phrasing naturally",
+        "Follow: Avoid keyword stuffing"
+      ],
+      "commonMistakes": [
+        "Vague clever titles",
+        "All-caps clickbait"
+      ],
+      "troubleshooting": [
+        "Avoid: Vague clever titles",
+        "Avoid: All-caps clickbait"
+      ],
+      "recommendations": [
+        "Front-load the benefit or topic",
+        "Include searchable phrasing naturally",
+        "Avoid keyword stuffing"
+      ],
+      "examples": [
+        "Professional application of Title Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content."
+      ],
+      "relatedTopics": [
+        "youtube-thumbnail-best-practices",
+        "youtube-description-optimization",
+        "youtube-long-form-strategy"
+      ],
+      "keywords": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-title-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-description-optimization",
+      "title": "Description Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Using YouTube descriptions for context, links, and discovery signals.",
+      "coreConcepts": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "definitions": [
+        "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam.",
+        "Recommend description and metadata practices."
+      ],
+      "rules": [
+        "Practice: Summarize value in the first lines",
+        "Practice: Add chapters and resources",
+        "Practice: Place CTAs without burying the summary"
+      ],
+      "bestPractices": [
+        "Summarize value in the first lines",
+        "Add chapters and resources",
+        "Place CTAs without burying the summary"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Summarize value in the first lines",
+        "Follow: Add chapters and resources",
+        "Follow: Place CTAs without burying the summary"
+      ],
+      "commonMistakes": [
+        "Empty descriptions",
+        "Keyword dumping"
+      ],
+      "troubleshooting": [
+        "Avoid: Empty descriptions",
+        "Avoid: Keyword dumping"
+      ],
+      "recommendations": [
+        "Summarize value in the first lines",
+        "Add chapters and resources",
+        "Place CTAs without burying the summary"
+      ],
+      "examples": [
+        "Professional application of Description Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam."
+      ],
+      "relatedTopics": [
+        "youtube-title-optimization",
+        "youtube-long-form-strategy",
+        "youtube-watch-time-optimization"
+      ],
+      "keywords": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-description-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-audience-retention",
+      "title": "YouTube Audience Retention",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Keeping YouTube viewers watching through structure and editing.",
+      "coreConcepts": [
+        "youtube retention",
+        "graph",
+        "drop-off",
+        "intro",
+        "rewatch"
+      ],
+      "definitions": [
+        "YouTube audience retention designs intros, pattern, and mid-video payoffs that reduce early drop-off and sustain attention across long-form and Shorts.",
+        "Explain retention decisions specific to YouTube (distinct from TikTok/vmkt retention)."
+      ],
+      "rules": [
+        "Practice: Show the payoff roadmap early",
+        "Practice: Remove fluff mid-video",
+        "Practice: Use visual change and open loops"
+      ],
+      "bestPractices": [
+        "Show the payoff roadmap early",
+        "Remove fluff mid-video",
+        "Use visual change and open loops"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Show the payoff roadmap early",
+        "Follow: Remove fluff mid-video",
+        "Follow: Use visual change and open loops"
+      ],
+      "commonMistakes": [
+        "Long channel branding before value",
+        "No mid-video rehooks"
+      ],
+      "troubleshooting": [
+        "Avoid: Long channel branding before value",
+        "Avoid: No mid-video rehooks"
+      ],
+      "recommendations": [
+        "Show the payoff roadmap early",
+        "Remove fluff mid-video",
+        "Use visual change and open loops"
+      ],
+      "examples": [
+        "Professional application of YouTube Audience Retention for platform-native content"
+      ],
+      "professionalStandards": [
+        "YouTube audience retention designs intros, pattern, and mid-video payoffs that reduce early drop-off and sustain attention across long-form and Shorts."
+      ],
+      "relatedTopics": [
+        "youtube-watch-time-optimization",
+        "youtube-long-form-strategy",
+        "youtube-shorts-strategy"
+      ],
+      "keywords": [
+        "youtube retention",
+        "graph",
+        "drop-off",
+        "intro",
+        "rewatch"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-audience-retention",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "yt-youtube-watch-time-optimization",
+      "title": "Watch Time Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Increasing total watch time via packaging, series, and session design.",
+      "coreConcepts": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "definitions": [
+        "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent.",
+        "Recommend strategies that grow YouTube watch time sustainably."
+      ],
+      "rules": [
+        "Practice: Build playlist sessions",
+        "Practice: End screens to related videos",
+        "Practice: Improve retention before chasing length alone"
+      ],
+      "bestPractices": [
+        "Build playlist sessions",
+        "End screens to related videos",
+        "Improve retention before chasing length alone"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Build playlist sessions",
+        "Follow: End screens to related videos",
+        "Follow: Improve retention before chasing length alone"
+      ],
+      "commonMistakes": [
+        "Artificial length padding",
+        "Mismatched suggested videos"
+      ],
+      "troubleshooting": [
+        "Avoid: Artificial length padding",
+        "Avoid: Mismatched suggested videos"
+      ],
+      "recommendations": [
+        "Build playlist sessions",
+        "End screens to related videos",
+        "Improve retention before chasing length alone"
+      ],
+      "examples": [
+        "Professional application of Watch Time Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent."
+      ],
+      "relatedTopics": [
+        "youtube-audience-retention",
+        "youtube-long-form-strategy",
+        "youtube-thumbnail-best-practices"
+      ],
+      "keywords": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-watch-time-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Social Media Knowledge Pack",
+    "category": "professional-social-media",
+    "domain": "social-media-knowledge",
+    "description": "Curated professional social media knowledge for AI Me (does not publish content automatically).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Social Media Fundamentals",
+          "Content Strategy",
+          "Audience Analysis",
+          "Platform Selection",
+          "Community Building",
+          "Social Engagement Strategy",
+          "Content Calendar",
+          "Trend Analysis",
+          "TikTok Best Practices",
+          "Short-form Video Strategy",
+          "TikTok Hook Creation",
+          "TikTok Audience Retention",
+          "Trending Content",
+          "Hashtag Strategy",
+          "Video Length Optimization",
+          "Posting Best Practices",
+          "Reels Strategy",
+          "Feed Strategy",
+          "Stories Strategy",
+          "Carousel Strategy",
+          "Visual Consistency",
+          "Engagement Optimization",
+          "Caption Strategy",
+          "Facebook Page Strategy",
+          "Video Strategy",
+          "Community Management",
+          "Facebook Engagement Strategy",
+          "Organic Reach",
+          "Content Scheduling",
+          "Long-form Video Strategy",
+          "Shorts Strategy",
+          "Thumbnail Best Practices",
+          "Title Optimization",
+          "Description Optimization",
+          "YouTube Audience Retention",
+          "Watch Time Optimization"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Define one primary outcome per channel",
+          "Match format to platform behavior",
+          "Measure engagement quality, not only reach",
+          "Map pillars to funnel stages",
+          "Balance evergreen and timely content",
+          "Brief creative with platform constraints up front",
+          "Separate primary and secondary audiences",
+          "Study comments and saves, not only likes",
+          "Validate assumptions with content tests",
+          "Prioritize where the audience already spends time",
+          "Match message length to platform norms",
+          "Do not expand platforms before one is consistent",
+          "Reply with substance in peak windows",
+          "Create recurring series the community expects",
+          "Spotlight user voices ethically",
+          "Ask specific questions",
+          "Design for saves and shares",
+          "Close the loop when users respond",
+          "Plan themes weeks ahead; leave slots for trends",
+          "Batch production by format",
+          "Review calendar weekly against performance",
+          "Score trends on fit, speed, and risk",
+          "Adapt, do not copy blindly",
+          "Retire trends that stop converting",
+          "Lead with the hook in the first second",
+          "Use native captions and on-screen text",
+          "Sound and text must work with muted autoplay assumptions",
+          "One idea per video",
+          "Design for rewatch loops",
+          "Series with recognizable openers",
+          "Pattern interrupt visually",
+          "Promise a specific payoff",
+          "Show the product or problem immediately when relevant",
+          "Cut dead air",
+          "Preview the ending early",
+          "Change visual every 1–2 seconds when needed",
+          "Jump early when fit is high",
+          "Rewrite captions for brand voice",
+          "Track which trend variants convert",
+          "Few relevant tags beat long spam lists"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement",
+          "Diagnose goal",
+          "Apply platform norms",
+          "Draft creative brief",
+          "Review against best practices",
+          "Plan measurement"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Professional application of Social Media Fundamentals for platform-native content",
+          "Professional application of Content Strategy for platform-native content",
+          "Professional application of Audience Analysis for platform-native content",
+          "Professional application of Platform Selection for platform-native content",
+          "Professional application of Community Building for platform-native content",
+          "Professional application of Social Engagement Strategy for platform-native content",
+          "Professional application of Content Calendar for platform-native content",
+          "Professional application of Trend Analysis for platform-native content",
+          "Professional application of TikTok Best Practices for platform-native content",
+          "Professional application of Short-form Video Strategy for platform-native content",
+          "Professional application of TikTok Hook Creation for platform-native content",
+          "Professional application of TikTok Audience Retention for platform-native content",
+          "Professional application of Trending Content for platform-native content",
+          "Professional application of Hashtag Strategy for platform-native content",
+          "Professional application of Video Length Optimization for platform-native content",
+          "Professional application of Posting Best Practices for platform-native content",
+          "Professional application of Reels Strategy for platform-native content",
+          "Professional application of Feed Strategy for platform-native content",
+          "Professional application of Stories Strategy for platform-native content",
+          "Professional application of Carousel Strategy for platform-native content",
+          "Professional application of Visual Consistency for platform-native content",
+          "Professional application of Engagement Optimization for platform-native content",
+          "Professional application of Caption Strategy for platform-native content",
+          "Professional application of Facebook Page Strategy for platform-native content",
+          "Professional application of Video Strategy for platform-native content",
+          "Professional application of Community Management for platform-native content",
+          "Professional application of Facebook Engagement Strategy for platform-native content",
+          "Professional application of Organic Reach for platform-native content",
+          "Professional application of Content Scheduling for platform-native content",
+          "Professional application of Long-form Video Strategy for platform-native content"
+        ]
+      }
+    ],
+    "concepts": [
+      "social media fundamentals",
+      "platforms",
+      "attention",
+      "community",
+      "measurement",
+      "content strategy",
+      "pillars",
+      "editorial",
+      "social plan",
+      "mix",
+      "audience analysis",
+      "persona",
+      "behavior",
+      "comments",
+      "demographics",
+      "platform selection",
+      "where to post",
+      "channel fit",
+      "priority platforms",
+      "community building",
+      "loyalty",
+      "replies",
+      "advocacy",
+      "belonging",
+      "engagement strategy",
+      "saves",
+      "shares",
+      "interaction",
+      "content calendar",
+      "cadence",
+      "scheduling",
+      "editorial calendar",
+      "batching",
+      "trend analysis",
+      "viral",
+      "sounds",
+      "formats",
+      "cultural moment",
+      "tiktok best practices",
+      "native",
+      "vertical",
+      "authenticity",
+      "discoverability",
+      "short-form strategy",
+      "tiktok series",
+      "loops",
+      "value density",
+      "tiktok hook",
+      "first second",
+      "scroll stop"
+    ],
+    "entities": [
+      "Social Media Fundamentals",
+      "Content Strategy",
+      "Audience Analysis",
+      "Platform Selection",
+      "Community Building",
+      "Social Engagement Strategy",
+      "Content Calendar",
+      "Trend Analysis",
+      "TikTok Best Practices",
+      "Short-form Video Strategy",
+      "TikTok Hook Creation",
+      "TikTok Audience Retention",
+      "Trending Content",
+      "Hashtag Strategy",
+      "Video Length Optimization",
+      "Posting Best Practices",
+      "Reels Strategy",
+      "Feed Strategy",
+      "Stories Strategy",
+      "Carousel Strategy",
+      "Visual Consistency",
+      "Engagement Optimization",
+      "Caption Strategy",
+      "Facebook Page Strategy",
+      "Video Strategy",
+      "Community Management",
+      "Facebook Engagement Strategy",
+      "Organic Reach",
+      "Content Scheduling",
+      "Long-form Video Strategy",
+      "Shorts Strategy",
+      "Thumbnail Best Practices",
+      "Title Optimization",
+      "Description Optimization",
+      "YouTube Audience Retention",
+      "Watch Time Optimization"
+    ],
+    "terminology": [
+      "social media fundamentals",
+      "platforms",
+      "attention",
+      "community",
+      "measurement",
+      "content strategy",
+      "pillars",
+      "editorial",
+      "social plan",
+      "mix",
+      "audience analysis",
+      "persona",
+      "behavior",
+      "comments",
+      "demographics",
+      "platform selection",
+      "where to post",
+      "channel fit",
+      "priority platforms",
+      "community building",
+      "loyalty",
+      "replies",
+      "advocacy",
+      "belonging",
+      "engagement strategy",
+      "saves",
+      "shares",
+      "interaction",
+      "content calendar",
+      "cadence",
+      "scheduling",
+      "editorial calendar",
+      "batching",
+      "trend analysis",
+      "viral",
+      "sounds",
+      "formats",
+      "cultural moment",
+      "tiktok best practices",
+      "native",
+      "vertical",
+      "authenticity",
+      "discoverability",
+      "short-form strategy",
+      "tiktok series",
+      "loops",
+      "value density",
+      "tiktok hook",
+      "first second",
+      "scroll stop"
+    ],
+    "rules": [
+      "Practice: Define one primary outcome per channel",
+      "Practice: Match format to platform behavior",
+      "Practice: Measure engagement quality, not only reach",
+      "Practice: Map pillars to funnel stages",
+      "Practice: Balance evergreen and timely content",
+      "Practice: Brief creative with platform constraints up front",
+      "Practice: Separate primary and secondary audiences",
+      "Practice: Study comments and saves, not only likes",
+      "Practice: Validate assumptions with content tests",
+      "Practice: Prioritize where the audience already spends time",
+      "Practice: Match message length to platform norms",
+      "Practice: Do not expand platforms before one is consistent",
+      "Practice: Reply with substance in peak windows",
+      "Practice: Create recurring series the community expects",
+      "Practice: Spotlight user voices ethically",
+      "Practice: Ask specific questions",
+      "Practice: Design for saves and shares",
+      "Practice: Close the loop when users respond",
+      "Practice: Plan themes weeks ahead; leave slots for trends",
+      "Practice: Batch production by format",
+      "Practice: Review calendar weekly against performance",
+      "Practice: Score trends on fit, speed, and risk",
+      "Practice: Adapt, do not copy blindly",
+      "Practice: Retire trends that stop converting",
+      "Practice: Lead with the hook in the first second",
+      "Practice: Use native captions and on-screen text",
+      "Practice: Sound and text must work with muted autoplay assumptions",
+      "Practice: One idea per video",
+      "Practice: Design for rewatch loops",
+      "Practice: Series with recognizable openers",
+      "Practice: Pattern interrupt visually",
+      "Practice: Promise a specific payoff",
+      "Practice: Show the product or problem immediately when relevant",
+      "Practice: Cut dead air",
+      "Practice: Preview the ending early",
+      "Practice: Change visual every 1–2 seconds when needed",
+      "Practice: Jump early when fit is high",
+      "Practice: Rewrite captions for brand voice",
+      "Practice: Track which trend variants convert",
+      "Practice: Few relevant tags beat long spam lists"
+    ],
+    "bestPractices": [
+      "Define one primary outcome per channel",
+      "Match format to platform behavior",
+      "Measure engagement quality, not only reach",
+      "Map pillars to funnel stages",
+      "Balance evergreen and timely content",
+      "Brief creative with platform constraints up front",
+      "Separate primary and secondary audiences",
+      "Study comments and saves, not only likes",
+      "Validate assumptions with content tests",
+      "Prioritize where the audience already spends time",
+      "Match message length to platform norms",
+      "Do not expand platforms before one is consistent",
+      "Reply with substance in peak windows",
+      "Create recurring series the community expects",
+      "Spotlight user voices ethically",
+      "Ask specific questions",
+      "Design for saves and shares",
+      "Close the loop when users respond",
+      "Plan themes weeks ahead; leave slots for trends",
+      "Batch production by format",
+      "Review calendar weekly against performance",
+      "Score trends on fit, speed, and risk",
+      "Adapt, do not copy blindly",
+      "Retire trends that stop converting",
+      "Lead with the hook in the first second",
+      "Use native captions and on-screen text",
+      "Sound and text must work with muted autoplay assumptions",
+      "One idea per video",
+      "Design for rewatch loops",
+      "Series with recognizable openers",
+      "Pattern interrupt visually",
+      "Promise a specific payoff",
+      "Show the product or problem immediately when relevant",
+      "Cut dead air",
+      "Preview the ending early",
+      "Change visual every 1–2 seconds when needed",
+      "Jump early when fit is high",
+      "Rewrite captions for brand voice",
+      "Track which trend variants convert",
+      "Few relevant tags beat long spam lists"
+    ],
+    "professionalTechniques": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "examples": [
+      "Professional application of Social Media Fundamentals for platform-native content",
+      "Professional application of Content Strategy for platform-native content",
+      "Professional application of Audience Analysis for platform-native content",
+      "Professional application of Platform Selection for platform-native content",
+      "Professional application of Community Building for platform-native content",
+      "Professional application of Social Engagement Strategy for platform-native content",
+      "Professional application of Content Calendar for platform-native content",
+      "Professional application of Trend Analysis for platform-native content",
+      "Professional application of TikTok Best Practices for platform-native content",
+      "Professional application of Short-form Video Strategy for platform-native content",
+      "Professional application of TikTok Hook Creation for platform-native content",
+      "Professional application of TikTok Audience Retention for platform-native content",
+      "Professional application of Trending Content for platform-native content",
+      "Professional application of Hashtag Strategy for platform-native content",
+      "Professional application of Video Length Optimization for platform-native content",
+      "Professional application of Posting Best Practices for platform-native content",
+      "Professional application of Reels Strategy for platform-native content",
+      "Professional application of Feed Strategy for platform-native content",
+      "Professional application of Stories Strategy for platform-native content",
+      "Professional application of Carousel Strategy for platform-native content",
+      "Professional application of Visual Consistency for platform-native content",
+      "Professional application of Engagement Optimization for platform-native content",
+      "Professional application of Caption Strategy for platform-native content",
+      "Professional application of Facebook Page Strategy for platform-native content",
+      "Professional application of Video Strategy for platform-native content",
+      "Professional application of Community Management for platform-native content",
+      "Professional application of Facebook Engagement Strategy for platform-native content",
+      "Professional application of Organic Reach for platform-native content",
+      "Professional application of Content Scheduling for platform-native content",
+      "Professional application of Long-form Video Strategy for platform-native content"
+    ],
+    "commonMistakes": [
+      "Posting the same asset everywhere unchanged",
+      "Chasing trends with no brand fit",
+      "Random posting without pillars",
+      "Only promotional posts",
+      "Assuming brand persona equals audience",
+      "Ignoring platform-specific audience skew",
+      "Being everywhere thinly",
+      "Choosing platforms for brand ego",
+      "Broadcast-only accounts",
+      "Ignoring comments after posting",
+      "Engagement bait without value",
+      "Buying fake interaction",
+      "Unrealistic daily volume",
+      "No buffer for creative delays",
+      "Late trend chasing",
+      "Forcing brand into mismatched memes",
+      "Cross-posting horizontal ads unchanged",
+      "Overly salesy first frames",
+      "Cramming long-form scripts into 20s",
+      "No series continuity",
+      "Slow branded intros",
+      "Vague curiosity without payoff",
+      "Long static talking heads",
+      "Burying the payoff",
+      "Trend for trend's sake",
+      "Ignoring sound licensing and brand safety",
+      "Copying unrelated viral tags",
+      "Hashtag-only discovery strategy",
+      "Padding to hit arbitrary length",
+      "Ending before the promised payoff"
+    ],
+    "qualityRules": [
+      "Social media fundamentals are the platform-agnostic practices for earning attention, building community, and measuring outcomes without confusing vanity metrics with business results.",
+      "Social content strategy aligns brand pillars, audience needs, and platform formats into a repeatable publishing system with clear roles for awareness, engagement, and conversion content.",
+      "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content.",
+      "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently.",
+      "Community building cultivates belonging and repeated interaction through responsive moderation, shared rituals, and content that invites contribution—not only consumption.",
+      "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals.",
+      "A content calendar is an operational plan that sequences themes, formats, owners, and publish windows so quality stays consistent under real production constraints.",
+      "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative.",
+      "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel.",
+      "TikTok short-form strategy designs concise narratives and loops that deliver a complete idea quickly while encouraging rewatches and follows.",
+      "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks.",
+      "TikTok audience retention uses pacing, open loops, and visual change to minimize drop-off across the short watch window of the For You Page.",
+      "TikTok trending content practice selects rising sounds and formats early enough to matter, then remakes them with brand-relevant stakes and clear offers.",
+      "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever.",
+      "TikTok video length optimization selects the shortest duration that still delivers a complete payoff, then extends only when retention data supports it.",
+      "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision.",
+      "Reels strategy plans short vertical Instagram videos for discovery and profile visits, balancing trend participation with visual brand consistency.",
+      "Feed strategy designs the profile grid and permanent posts as a brand storefront—consistent visuals, clear value, and intentional sequencing.",
+      "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship.",
+      "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide."
+    ],
+    "decisionRules": [
+      "Follow: Define one primary outcome per channel",
+      "Follow: Match format to platform behavior",
+      "Follow: Measure engagement quality, not only reach",
+      "Follow: Map pillars to funnel stages",
+      "Follow: Balance evergreen and timely content",
+      "Follow: Brief creative with platform constraints up front",
+      "Follow: Separate primary and secondary audiences",
+      "Follow: Study comments and saves, not only likes",
+      "Follow: Validate assumptions with content tests",
+      "Follow: Prioritize where the audience already spends time",
+      "Follow: Match message length to platform norms",
+      "Follow: Do not expand platforms before one is consistent",
+      "Follow: Reply with substance in peak windows",
+      "Follow: Create recurring series the community expects",
+      "Follow: Spotlight user voices ethically",
+      "Follow: Ask specific questions",
+      "Follow: Design for saves and shares",
+      "Follow: Close the loop when users respond",
+      "Follow: Plan themes weeks ahead; leave slots for trends",
+      "Follow: Batch production by format",
+      "Follow: Review calendar weekly against performance",
+      "Follow: Score trends on fit, speed, and risk",
+      "Follow: Adapt, do not copy blindly",
+      "Follow: Retire trends that stop converting",
+      "Follow: Lead with the hook in the first second",
+      "Follow: Use native captions and on-screen text",
+      "Follow: Sound and text must work with muted autoplay assumptions",
+      "Follow: One idea per video",
+      "Follow: Design for rewatch loops",
+      "Follow: Series with recognizable openers",
+      "Follow: Pattern interrupt visually",
+      "Follow: Promise a specific payoff",
+      "Follow: Show the product or problem immediately when relevant",
+      "Follow: Cut dead air",
+      "Follow: Preview the ending early",
+      "Follow: Change visual every 1–2 seconds when needed",
+      "Follow: Jump early when fit is high",
+      "Follow: Rewrite captions for brand voice",
+      "Follow: Track which trend variants convert",
+      "Follow: Few relevant tags beat long spam lists"
+    ],
+    "workflowSteps": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement",
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "prerequisites": [
+      "Define audience and goals before selecting platforms and formats."
+    ],
+    "dependencies": [
+      "marketing-knowledge",
+      "branding-knowledge",
+      "storytelling-knowledge",
+      "video-production-knowledge"
+    ],
+    "relatedKnowledge": [
+      "sm-social-media-fundamentals",
+      "sm-social-content-strategy",
+      "sm-social-audience-analysis",
+      "sm-platform-selection",
+      "sm-community-building",
+      "sm-social-engagement-strategy",
+      "sm-content-calendar",
+      "sm-social-trend-analysis",
+      "tt-tiktok-best-practices",
+      "tt-tiktok-short-form-strategy",
+      "tt-tiktok-hook-creation",
+      "tt-tiktok-audience-retention",
+      "tt-tiktok-trending-content",
+      "tt-tiktok-hashtag-strategy",
+      "tt-tiktok-video-length-optimization",
+      "tt-tiktok-posting-best-practices",
+      "ig-instagram-reels-strategy",
+      "ig-instagram-feed-strategy",
+      "ig-instagram-stories-strategy",
+      "ig-instagram-carousel-strategy",
+      "ig-instagram-visual-consistency",
+      "ig-instagram-engagement-optimization",
+      "ig-instagram-caption-strategy",
+      "fb-facebook-page-strategy",
+      "fb-facebook-video-strategy",
+      "fb-facebook-community-management",
+      "fb-facebook-engagement-strategy",
+      "fb-facebook-organic-reach",
+      "fb-facebook-content-scheduling",
+      "yt-youtube-long-form-strategy",
+      "yt-youtube-shorts-strategy",
+      "yt-youtube-thumbnail-best-practices",
+      "yt-youtube-title-optimization",
+      "yt-youtube-description-optimization",
+      "yt-youtube-audience-retention",
+      "yt-youtube-watch-time-optimization"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 92,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Social Media Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-social-media-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "25d3c588f95e2fa8da4530ac1f9b626957702d1994bb9a1950291f5e6692059a",
+  "createdAt": "2026-08-08T19:18:05.800Z",
+  "updatedAt": "2026-08-08T19:18:05.953Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

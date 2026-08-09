@@ -1,0 +1,299 @@
+{
+  "knowledgeId": "sales-reciprocity",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-sales-psychology",
+  "title": "Reciprocity",
+  "description": "Giving value first to encourage a fair return action.",
+  "summary": "Design lead magnets and educational video that earn the CTA.",
+  "tags": [
+    "professional-sales-psychology",
+    "professional",
+    "reciprocity",
+    "give first",
+    "lead magnet psychology"
+  ],
+  "keywords": [
+    "reciprocity",
+    "give first",
+    "lead magnet psychology"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-lead-generation",
+    "mkt-content-marketing",
+    "sales-cta-strategy",
+    "sales-value-proposition",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:06.371Z",
+  "lastUpdated": "2026-08-08T18:26:06.371Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sales-reciprocity",
+  "integrityStatus": "verified",
+  "contentHash": "a204c067a3aeba8ded5f11412c8d846782f65944bead8f9d987346df4dfb603d",
+  "searchableText": "reciprocity giving value first to encourage a fair return action. design lead magnets and educational video that earn the cta. professional-sales-psychology professional-sales-psychology professional reciprocity give first lead magnet psychology reciprocity give first lead magnet psychology",
+  "classification": {
+    "category": "professional-sales-psychology",
+    "topic": "reciprocity-giving-value",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "reciprocity",
+    "kind": "professional-sales-psychology",
+    "purpose": "Design lead magnets and educational video that earn the CTA.",
+    "professionalDefinition": "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask.",
+    "workflow": [
+      "Define gift",
+      "Deliver in content",
+      "Bridge to ask",
+      "Measure"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sales-reciprocity",
+      "title": "Reciprocity",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Giving value first to encourage a fair return action.",
+      "coreConcepts": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "definitions": [
+        "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask.",
+        "Design lead magnets and educational video that earn the CTA."
+      ],
+      "rules": [
+        "Practice: Give real value first",
+        "Practice: Ask proportionate to gift",
+        "Practice: Avoid manipulative ‘free’"
+      ],
+      "bestPractices": [
+        "Give real value first",
+        "Ask proportionate to gift",
+        "Avoid manipulative ‘free’"
+      ],
+      "professionalTechniques": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "workflow": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "decisionRules": [
+        "Follow: Give real value first",
+        "Follow: Ask proportionate to gift",
+        "Follow: Avoid manipulative ‘free’"
+      ],
+      "commonMistakes": [
+        "Empty freebies",
+        "Huge ask after tiny gift"
+      ],
+      "troubleshooting": [
+        "Avoid: Empty freebies",
+        "Avoid: Huge ask after tiny gift"
+      ],
+      "recommendations": [
+        "Give real value first",
+        "Ask proportionate to gift",
+        "Avoid manipulative ‘free’"
+      ],
+      "examples": [
+        "Free template download CTA after tutorial video"
+      ],
+      "professionalStandards": [
+        "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask."
+      ],
+      "relatedTopics": [
+        "lead-generation",
+        "content-marketing",
+        "cta-strategy",
+        "value-proposition"
+      ],
+      "keywords": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:reciprocity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Reciprocity",
+      "category": "professional-sales-psychology",
+      "domain": "sales-psychology",
+      "description": "Giving value first to encourage a fair return action.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Design lead magnets and educational video that earn the CTA."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define gift",
+            "Deliver in content",
+            "Bridge to ask",
+            "Measure"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Give real value first",
+            "Ask proportionate to gift",
+            "Avoid manipulative ‘free’"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Free template download CTA after tutorial video"
+          ]
+        }
+      ],
+      "concepts": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "entities": [
+        "Reciprocity",
+        "sales-psychology",
+        "marketing-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "rules": [
+        "Avoid: Empty freebies",
+        "Avoid: Huge ask after tiny gift"
+      ],
+      "bestPractices": [
+        "Give real value first",
+        "Ask proportionate to gift",
+        "Avoid manipulative ‘free’"
+      ],
+      "professionalTechniques": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "examples": [
+        "Free template download CTA after tutorial video"
+      ],
+      "commonMistakes": [
+        "Empty freebies",
+        "Huge ask after tiny gift"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Give real value first",
+        "Practice: Ask proportionate to gift",
+        "Practice: Avoid manipulative ‘free’"
+      ],
+      "workflowSteps": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "sales-psychology",
+        "marketing-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "mkt-lead-generation",
+        "mkt-content-marketing",
+        "sales-cta-strategy",
+        "sales-value-proposition"
+      ],
+      "definitions": [
+        "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask.",
+        "Design lead magnets and educational video that earn the CTA."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Give real value first",
+      "Ask proportionate to gift",
+      "Avoid manipulative ‘free’"
+    ],
+    "bestPractices": [
+      "Give real value first",
+      "Ask proportionate to gift",
+      "Avoid manipulative ‘free’"
+    ],
+    "decisionRules": [
+      "Practice: Give real value first",
+      "Practice: Ask proportionate to gift",
+      "Practice: Avoid manipulative ‘free’"
+    ]
+  }
+}

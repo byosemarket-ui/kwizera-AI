@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "cam-bridge-storytelling-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "camera-domain-bridge",
+  "title": "Storytelling Knowledge (related)",
+  "description": "Camera movement and perspective choices express narrative intent.",
+  "summary": "Moves and angles are storytelling tools.",
+  "tags": [
+    "camera",
+    "domain-bridge",
+    "storytelling-knowledge"
+  ],
+  "keywords": [
+    "storytelling-knowledge",
+    "camera",
+    "relationship"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-camera-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:27.415Z",
+  "lastUpdated": "2026-08-08T15:31:27.415Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-bridge-storytelling-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "3fb9af7d65b7b6c8c6d2d7fa8a956d18641fbf86dafa65c1ad51304fd61718ec",
+  "searchableText": "storytelling knowledge (related) camera movement and perspective choices express narrative intent. moves and angles are storytelling tools. camera-domain-bridge camera domain-bridge storytelling-knowledge storytelling-knowledge camera relationship",
+  "classification": {
+    "category": "camera-domain-bridge",
+    "topic": "storytelling-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "bridgeDomainId": "storytelling-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate camera knowledge to storytelling-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Storytelling Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "storytelling-knowledge",
+      "description": "Camera movement and perspective choices express narrative intent.",
+      "sections": [],
+      "concepts": [
+        "storytelling-knowledge"
+      ],
+      "entities": [
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "storytelling-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate camera knowledge to storytelling-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "cam-camera-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

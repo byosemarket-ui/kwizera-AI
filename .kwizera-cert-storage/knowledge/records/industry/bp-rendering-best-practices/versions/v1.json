@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "bp-rendering-best-practices",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-best-practices",
+  "title": "Rendering Best Practices",
+  "description": "Export planning and validation practices for dependable delivery.",
+  "summary": "Recommend professional rendering and export workflows.",
+  "tags": [
+    "professional-best-practices",
+    "professional",
+    "rendering-best-practices",
+    "rendering best practices",
+    "export preset",
+    "master",
+    "delivery",
+    "QC"
+  ],
+  "keywords": [
+    "rendering best practices",
+    "export preset",
+    "master",
+    "delivery",
+    "QC"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qrule-rendering-quality-rules",
+    "std-delivery-standards",
+    "check-publishing-checklist",
+    "std-technical-standards",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-animation-knowledge",
+    "isq-bridge-rendering-knowledge",
+    "isq-bridge-video-editing-knowledge",
+    "isq-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:39.883Z",
+  "lastUpdated": "2026-08-08T19:18:39.883Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\bp-rendering-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "b9804f37a7b68136615e440a2baace7d81b7da047b85fa8d787bc786dfccb787",
+  "searchableText": "rendering best practices export planning and validation practices for dependable delivery. recommend professional rendering and export workflows. professional-best-practices professional-best-practices professional rendering-best-practices rendering best practices export preset master delivery qc rendering best practices export preset master delivery qc",
+  "classification": {
+    "category": "professional-best-practices",
+    "topic": "rendering-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "rendering-best-practices",
+    "kind": "professional-best-practices",
+    "purpose": "Recommend professional rendering and export workflows.",
+    "professionalDefinition": "Rendering best practices produce the correct master and channel derivatives through controlled export presets, encoded-file inspection, and documented delivery checks.",
+    "qualityRules": [
+      "Master is preserved",
+      "Each export meets its platform profile",
+      "Final delivered file is inspected end-to-end"
+    ],
+    "workflow": [
+      "Set the objective",
+      "Select proven practice",
+      "Execute consistently",
+      "Measure result",
+      "Improve the next iteration"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "bp-rendering-best-practices",
+      "title": "Rendering Best Practices",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "description": "Export planning and validation practices for dependable delivery.",
+      "coreConcepts": [
+        "rendering best practices",
+        "export preset",
+        "master",
+        "delivery",
+        "QC"
+      ],
+      "definitions": [
+        "Rendering best practices produce the correct master and channel derivatives through controlled export presets, encoded-file inspection, and documented delivery checks.",
+        "Recommend professional rendering and export workflows."
+      ],
+      "rules": [
+        "Quality rule: Master is preserved",
+        "Quality rule: Each export meets its platform profile",
+        "Quality rule: Final delivered file is inspected end-to-end"
+      ],
+      "bestPractices": [
+        "Use approved export presets",
+        "Render a short test when settings change",
+        "Inspect final encodes rather than source timeline only"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "workflow": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "decisionRules": [
+        "Apply: Master is preserved",
+        "Apply: Each export meets its platform profile",
+        "Apply: Final delivered file is inspected end-to-end"
+      ],
+      "commonMistakes": [
+        "Overwriting the master",
+        "Shipping an untested platform derivative"
+      ],
+      "troubleshooting": [
+        "Avoid: Overwriting the master",
+        "Avoid: Shipping an untested platform derivative"
+      ],
+      "recommendations": [
+        "Use approved export presets",
+        "Render a short test when settings change",
+        "Inspect final encodes rather than source timeline only"
+      ],
+      "examples": [
+        "Professional application of Rendering Best Practices in a studio review."
+      ],
+      "professionalStandards": [
+        "Master is preserved",
+        "Each export meets its platform profile",
+        "Final delivered file is inspected end-to-end"
+      ],
+      "relatedTopics": [
+        "rendering-quality-rules",
+        "delivery-standards",
+        "publishing-checklist",
+        "technical-standards"
+      ],
+      "keywords": [
+        "rendering best practices",
+        "export preset",
+        "master",
+        "delivery",
+        "QC"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:rendering-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Rendering Best Practices",
+      "category": "professional-best-practices",
+      "domain": "industry-standards-knowledge",
+      "description": "Export planning and validation practices for dependable delivery.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Rendering best practices produce the correct master and channel derivatives through controlled export presets, encoded-file inspection, and documented delivery checks.",
+            "Recommend professional rendering and export workflows."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Master is preserved",
+            "Each export meets its platform profile",
+            "Final delivered file is inspected end-to-end"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use approved export presets",
+            "Render a short test when settings change",
+            "Inspect final encodes rather than source timeline only"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set the objective",
+            "Select proven practice",
+            "Execute consistently",
+            "Measure result",
+            "Improve the next iteration"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Rendering Best Practices in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "rendering best practices",
+        "export preset",
+        "master",
+        "delivery",
+        "QC"
+      ],
+      "entities": [
+        "Rendering Best Practices",
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "rendering best practices",
+        "export preset",
+        "master",
+        "delivery",
+        "QC"
+      ],
+      "rules": [
+        "Master is preserved",
+        "Each export meets its platform profile",
+        "Final delivered file is inspected end-to-end"
+      ],
+      "bestPractices": [
+        "Use approved export presets",
+        "Render a short test when settings change",
+        "Inspect final encodes rather than source timeline only"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "examples": [
+        "Professional application of Rendering Best Practices in a studio review."
+      ],
+      "commonMistakes": [
+        "Overwriting the master",
+        "Shipping an untested platform derivative"
+      ],
+      "qualityRules": [
+        "Master is preserved",
+        "Each export meets its platform profile",
+        "Final delivered file is inspected end-to-end"
+      ],
+      "decisionRules": [
+        "Apply: Master is preserved",
+        "Apply: Each export meets its platform profile",
+        "Apply: Final delivered file is inspected end-to-end"
+      ],
+      "workflowSteps": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "prerequisites": [
+        "Set the objective"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qrule-rendering-quality-rules",
+        "std-delivery-standards",
+        "check-publishing-checklist",
+        "std-technical-standards"
+      ],
+      "definitions": [
+        "Rendering best practices produce the correct master and channel derivatives through controlled export presets, encoded-file inspection, and documented delivery checks."
+      ],
+      "troubleshooting": [
+        "Avoid: Overwriting the master",
+        "Avoid: Shipping an untested platform derivative"
+      ],
+      "recommendations": [
+        "Use approved export presets",
+        "Render a short test when settings change",
+        "Inspect final encodes rather than source timeline only"
+      ],
+      "professionalStandards": [
+        "Master is preserved",
+        "Each export meets its platform profile",
+        "Final delivered file is inspected end-to-end"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:rendering-best-practices",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Use approved export presets",
+      "Render a short test when settings change",
+      "Inspect final encodes rather than source timeline only"
+    ],
+    "bestPractices": [
+      "Use approved export presets",
+      "Render a short test when settings change",
+      "Inspect final encodes rather than source timeline only"
+    ],
+    "decisionRules": [
+      "Quality rule: Master is preserved",
+      "Quality rule: Each export meets its platform profile",
+      "Quality rule: Final delivered file is inspected end-to-end"
+    ]
+  }
+}

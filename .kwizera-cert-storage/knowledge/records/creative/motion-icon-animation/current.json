@@ -1,0 +1,302 @@
+{
+  "knowledgeId": "motion-icon-animation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Icon Animation",
+  "description": "Micro-motion for icons that clarifies state and delight without noise.",
+  "summary": "Improve UI clarity and feature explainers.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "icon-animation",
+    "icon animation",
+    "microinteraction",
+    "icon motion"
+  ],
+  "keywords": [
+    "icon animation",
+    "microinteraction",
+    "icon motion"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-ui-motion",
+    "anim-spacing",
+    "motion-motion-timing",
+    "anim-product-animation",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:58.583Z",
+  "lastUpdated": "2026-08-08T17:55:39.958Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-icon-animation",
+  "integrityStatus": "verified",
+  "contentHash": "61f9351dd951691cc230949ae1f61d03db541f9aca2ef34fd2111dbb2e5769b1",
+  "searchableText": "icon animation micro-motion for icons that clarifies state and delight without noise. improve ui clarity and feature explainers. professional-motion-graphics professional-motion-graphics professional icon-animation icon animation microinteraction icon motion icon animation microinteraction icon motion",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "icon-animation-micro-motion",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "icon-animation",
+    "kind": "professional-motion-graphics",
+    "purpose": "Improve UI clarity and feature explainers.",
+    "professionalDefinition": "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights.",
+    "workflow": [
+      "Define state",
+      "Animate change",
+      "Ease",
+      "Export Lottie/video as needed"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-icon-animation",
+      "title": "Icon Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Micro-motion for icons that clarifies state and delight without noise.",
+      "coreConcepts": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "definitions": [
+        "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights.",
+        "Improve UI clarity and feature explainers."
+      ],
+      "rules": [
+        "Practice: Keep loops subtle",
+        "Practice: Prefer morphs over spins",
+        "Practice: Match UI motion tokens"
+      ],
+      "bestPractices": [
+        "Keep loops subtle",
+        "Prefer morphs over spins",
+        "Match UI motion tokens"
+      ],
+      "professionalTechniques": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "workflow": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "decisionRules": [
+        "Follow: Keep loops subtle",
+        "Follow: Prefer morphs over spins",
+        "Follow: Match UI motion tokens"
+      ],
+      "commonMistakes": [
+        "Hypnotic loops",
+        "Inconsistent stroke timing"
+      ],
+      "troubleshooting": [
+        "Avoid: Hypnotic loops",
+        "Avoid: Inconsistent stroke timing"
+      ],
+      "recommendations": [
+        "Keep loops subtle",
+        "Prefer morphs over spins",
+        "Match UI motion tokens"
+      ],
+      "examples": [
+        "Checkmark draw-on; cart icon bounce on add"
+      ],
+      "professionalStandards": [
+        "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights."
+      ],
+      "relatedTopics": [
+        "ui-motion",
+        "spacing",
+        "motion-timing",
+        "product-animation"
+      ],
+      "keywords": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:icon-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Icon Animation",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Micro-motion for icons that clarifies state and delight without noise.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Improve UI clarity and feature explainers."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define state",
+            "Animate change",
+            "Ease",
+            "Export Lottie/video as needed"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Keep loops subtle",
+            "Prefer morphs over spins",
+            "Match UI motion tokens"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Checkmark draw-on; cart icon bounce on add"
+          ]
+        }
+      ],
+      "concepts": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "entities": [
+        "Icon Animation",
+        "motion-graphics-knowledge",
+        "animation-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "rules": [
+        "Avoid: Hypnotic loops",
+        "Avoid: Inconsistent stroke timing"
+      ],
+      "bestPractices": [
+        "Keep loops subtle",
+        "Prefer morphs over spins",
+        "Match UI motion tokens"
+      ],
+      "professionalTechniques": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "examples": [
+        "Checkmark draw-on; cart icon bounce on add"
+      ],
+      "commonMistakes": [
+        "Hypnotic loops",
+        "Inconsistent stroke timing"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Keep loops subtle",
+        "Practice: Prefer morphs over spins",
+        "Practice: Match UI motion tokens"
+      ],
+      "workflowSteps": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "animation-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-ui-motion",
+        "anim-spacing",
+        "motion-motion-timing",
+        "anim-product-animation"
+      ],
+      "definitions": [
+        "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights.",
+        "Improve UI clarity and feature explainers."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Keep loops subtle",
+      "Prefer morphs over spins",
+      "Match UI motion tokens"
+    ],
+    "bestPractices": [
+      "Keep loops subtle",
+      "Prefer morphs over spins",
+      "Match UI motion tokens"
+    ],
+    "decisionRules": [
+      "Practice: Keep loops subtle",
+      "Practice: Prefer morphs over spins",
+      "Practice: Match UI motion tokens"
+    ]
+  }
+}

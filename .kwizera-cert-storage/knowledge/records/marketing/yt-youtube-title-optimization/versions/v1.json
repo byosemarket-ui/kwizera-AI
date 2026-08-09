@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "yt-youtube-title-optimization",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-youtube",
+  "title": "Title Optimization",
+  "description": "Writing YouTube titles for clarity, search, and click intent.",
+  "summary": "Recommend title patterns for YouTube.",
+  "tags": [
+    "professional-youtube",
+    "professional",
+    "youtube-title-optimization",
+    "youtube title",
+    "SEO",
+    "click intent",
+    "search language"
+  ],
+  "keywords": [
+    "youtube title",
+    "SEO",
+    "click intent",
+    "search language"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "yt-youtube-thumbnail-best-practices",
+    "yt-youtube-description-optimization",
+    "yt-youtube-long-form-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:41.829Z",
+  "lastUpdated": "2026-08-08T19:03:41.829Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\yt-youtube-title-optimization",
+  "integrityStatus": "verified",
+  "contentHash": "e79ec19dd1f1bf6f645b10d3bfd15a3aed73cfdbe504adfb91b327b2d800ddb9",
+  "searchableText": "title optimization writing youtube titles for clarity, search, and click intent. recommend title patterns for youtube. professional-youtube professional-youtube professional youtube-title-optimization youtube title seo click intent search language youtube title seo click intent search language",
+  "classification": {
+    "category": "professional-youtube",
+    "topic": "title-optimization-writing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "youtube-title-optimization",
+    "kind": "professional-youtube",
+    "purpose": "Recommend title patterns for YouTube.",
+    "professionalDefinition": "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "yt-youtube-title-optimization",
+      "title": "Title Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Writing YouTube titles for clarity, search, and click intent.",
+      "coreConcepts": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "definitions": [
+        "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content.",
+        "Recommend title patterns for YouTube."
+      ],
+      "rules": [
+        "Practice: Front-load the benefit or topic",
+        "Practice: Include searchable phrasing naturally",
+        "Practice: Avoid keyword stuffing"
+      ],
+      "bestPractices": [
+        "Front-load the benefit or topic",
+        "Include searchable phrasing naturally",
+        "Avoid keyword stuffing"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Front-load the benefit or topic",
+        "Follow: Include searchable phrasing naturally",
+        "Follow: Avoid keyword stuffing"
+      ],
+      "commonMistakes": [
+        "Vague clever titles",
+        "All-caps clickbait"
+      ],
+      "troubleshooting": [
+        "Avoid: Vague clever titles",
+        "Avoid: All-caps clickbait"
+      ],
+      "recommendations": [
+        "Front-load the benefit or topic",
+        "Include searchable phrasing naturally",
+        "Avoid keyword stuffing"
+      ],
+      "examples": [
+        "Professional application of Title Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content."
+      ],
+      "relatedTopics": [
+        "youtube-thumbnail-best-practices",
+        "youtube-description-optimization",
+        "youtube-long-form-strategy"
+      ],
+      "keywords": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-title-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Title Optimization",
+      "category": "professional-youtube",
+      "domain": "youtube-knowledge",
+      "description": "Writing YouTube titles for clarity, search, and click intent.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend title patterns for YouTube."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Front-load the benefit or topic",
+            "Include searchable phrasing naturally",
+            "Avoid keyword stuffing"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Title Optimization for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "entities": [
+        "Title Optimization",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "youtube title",
+        "SEO",
+        "click intent",
+        "search language"
+      ],
+      "rules": [
+        "Avoid: Vague clever titles",
+        "Avoid: All-caps clickbait"
+      ],
+      "bestPractices": [
+        "Front-load the benefit or topic",
+        "Include searchable phrasing naturally",
+        "Avoid keyword stuffing"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Title Optimization for platform-native content"
+      ],
+      "commonMistakes": [
+        "Vague clever titles",
+        "All-caps clickbait"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Front-load the benefit or topic",
+        "Practice: Include searchable phrasing naturally",
+        "Practice: Avoid keyword stuffing"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "yt-youtube-thumbnail-best-practices",
+        "yt-youtube-description-optimization",
+        "yt-youtube-long-form-strategy"
+      ],
+      "definitions": [
+        "Title optimization crafts YouTube titles that match viewer search language and curiosity while remaining truthful to the video content.",
+        "Recommend title patterns for YouTube."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "youtube-knowledge",
+      "category": "professional-youtube",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Front-load the benefit or topic",
+      "Include searchable phrasing naturally",
+      "Avoid keyword stuffing"
+    ],
+    "bestPractices": [
+      "Front-load the benefit or topic",
+      "Include searchable phrasing naturally",
+      "Avoid keyword stuffing"
+    ],
+    "decisionRules": [
+      "Practice: Front-load the benefit or topic",
+      "Practice: Include searchable phrasing naturally",
+      "Practice: Avoid keyword stuffing"
+    ]
+  }
+}

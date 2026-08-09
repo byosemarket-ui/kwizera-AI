@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-audience-retention",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Audience Retention",
+  "description": "Keeping viewers watching through pacing, open loops, and payoffs.",
+  "summary": "Improve average view duration and completion for algorithm and persuasion.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "audience-retention",
+    "audience retention",
+    "watch time",
+    "completion rate",
+    "open loops"
+  ],
+  "keywords": [
+    "audience retention",
+    "watch time",
+    "completion rate",
+    "open loops"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-hook-creation",
+    "vmkt-first-3-seconds-strategy",
+    "vmkt-ending-strategy",
+    "mkt-video-marketing",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-video-editing-knowledge",
+    "mbp-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:14.327Z",
+  "lastUpdated": "2026-08-08T18:26:14.327Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-audience-retention",
+  "integrityStatus": "verified",
+  "contentHash": "e6d19e4999f01c11d4f47487e758c328613643a8eb662ecdb255337874c095f0",
+  "searchableText": "audience retention keeping viewers watching through pacing, open loops, and payoffs. improve average view duration and completion for algorithm and persuasion. professional-video-marketing professional-video-marketing professional audience-retention audience retention watch time completion rate open loops audience retention watch time completion rate open loops",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "audience-retention-keeping",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "audience-retention",
+    "kind": "professional-video-marketing",
+    "purpose": "Improve average view duration and completion for algorithm and persuasion.",
+    "professionalDefinition": "Audience retention craft uses curiosity loops, pattern variation, and timely payoffs to sustain watch time across the video.",
+    "workflow": [
+      "Map retention risks",
+      "Add open loops",
+      "Trim",
+      "Read retention graph"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-audience-retention",
+      "title": "Audience Retention",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Keeping viewers watching through pacing, open loops, and payoffs.",
+      "coreConcepts": [
+        "audience retention",
+        "watch time",
+        "completion rate",
+        "open loops"
+      ],
+      "definitions": [
+        "Audience retention craft uses curiosity loops, pattern variation, and timely payoffs to sustain watch time across the video.",
+        "Improve average view duration and completion for algorithm and persuasion."
+      ],
+      "rules": [
+        "Practice: Open loops then pay off",
+        "Practice: Vary shot size/pace",
+        "Practice: Cut fluff"
+      ],
+      "bestPractices": [
+        "Open loops then pay off",
+        "Vary shot size/pace",
+        "Cut fluff"
+      ],
+      "professionalTechniques": [
+        "Map retention risks",
+        "Add open loops",
+        "Trim",
+        "Read retention graph"
+      ],
+      "workflow": [
+        "Map retention risks",
+        "Add open loops",
+        "Trim",
+        "Read retention graph"
+      ],
+      "decisionRules": [
+        "Follow: Open loops then pay off",
+        "Follow: Vary shot size/pace",
+        "Follow: Cut fluff"
+      ],
+      "commonMistakes": [
+        "Long windups",
+        "Payoff delayed too far"
+      ],
+      "troubleshooting": [
+        "Avoid: Long windups",
+        "Avoid: Payoff delayed too far"
+      ],
+      "recommendations": [
+        "Open loops then pay off",
+        "Vary shot size/pace",
+        "Cut fluff"
+      ],
+      "examples": [
+        "‘Stay for the third tip’ open loop paid off at 0:45"
+      ],
+      "professionalStandards": [
+        "Audience retention craft uses curiosity loops, pattern variation, and timely payoffs to sustain watch time across the video."
+      ],
+      "relatedTopics": [
+        "hook-creation",
+        "first-3-seconds-strategy",
+        "ending-strategy",
+        "video-marketing"
+      ],
+      "keywords": [
+        "audience retention",
+        "watch time",
+        "completion rate",
+        "open loops"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:audience-retention",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Audience Retention",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Keeping viewers watching through pacing, open loops, and payoffs.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Audience retention craft uses curiosity loops, pattern variation, and timely payoffs to sustain watch time across the video."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Improve average view duration and completion for algorithm and persuasion."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Map retention risks",
+            "Add open loops",
+            "Trim",
+            "Read retention graph"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Open loops then pay off",
+            "Vary shot size/pace",
+            "Cut fluff"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "‘Stay for the third tip’ open loop paid off at 0:45"
+          ]
+        }
+      ],
+      "concepts": [
+        "audience retention",
+        "watch time",
+        "completion rate",
+        "open loops"
+      ],
+      "entities": [
+        "Audience Retention",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "audience retention",
+        "watch time",
+        "completion rate",
+        "open loops"
+      ],
+      "rules": [
+        "Avoid: Long windups",
+        "Avoid: Payoff delayed too far"
+      ],
+      "bestPractices": [
+        "Open loops then pay off",
+        "Vary shot size/pace",
+        "Cut fluff"
+      ],
+      "professionalTechniques": [
+        "Map retention risks",
+        "Add open loops",
+        "Trim",
+        "Read retention graph"
+      ],
+      "examples": [
+        "‘Stay for the third tip’ open loop paid off at 0:45"
+      ],
+      "commonMistakes": [
+        "Long windups",
+        "Payoff delayed too far"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Open loops then pay off",
+        "Practice: Vary shot size/pace",
+        "Practice: Cut fluff"
+      ],
+      "workflowSteps": [
+        "Map retention risks",
+        "Add open loops",
+        "Trim",
+        "Read retention graph"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-hook-creation",
+        "vmkt-first-3-seconds-strategy",
+        "vmkt-ending-strategy",
+        "mkt-video-marketing"
+      ],
+      "definitions": [
+        "Audience retention craft uses curiosity loops, pattern variation, and timely payoffs to sustain watch time across the video.",
+        "Improve average view duration and completion for algorithm and persuasion."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Open loops then pay off",
+      "Vary shot size/pace",
+      "Cut fluff"
+    ],
+    "bestPractices": [
+      "Open loops then pay off",
+      "Vary shot size/pace",
+      "Cut fluff"
+    ],
+    "decisionRules": [
+      "Practice: Open loops then pay off",
+      "Practice: Vary shot size/pace",
+      "Practice: Cut fluff"
+    ]
+  }
+}

@@ -9,6 +9,7 @@ import {
   INSTAGRAM_DOMAIN_ID,
   PROFESSIONAL_FACEBOOK_TOPICS,
   PROFESSIONAL_INSTAGRAM_TOPICS,
+  ProfessionalSocialMediaKnowledge,
   PROFESSIONAL_SOCIAL_FUNDAMENTALS_TOPICS,
   PROFESSIONAL_TIKTOK_TOPICS,
   PROFESSIONAL_YOUTUBE_TOPICS,
@@ -18,6 +19,7 @@ import {
   REQUIRED_TIKTOK_TOPIC_IDS,
   REQUIRED_YOUTUBE_TOPIC_IDS,
   SOCIAL_MEDIA_DOMAIN_ID,
+  SM_DOMAIN_BRIDGES,
   TIKTOK_DOMAIN_ID,
   YOUTUBE_DOMAIN_ID,
   checkSmCatalogRelationships,
@@ -51,9 +53,73 @@ describe("Professional Social Media Knowledge (Expansion Step 8)", () => {
 
     const ids = getAllSmTopics().map((t) => t.knowledgeId);
     expect(new Set(ids).size).toBe(ids.length);
+    const semanticTitles = getAllSmTopics().map((t) => t.name.trim().toLowerCase());
+    expect(new Set(semanticTitles).size).toBe(semanticTitles.length);
 
     const rel = checkSmCatalogRelationships();
     expect(rel.broken).toEqual([]);
+  });
+
+  it("persists the complete catalog and explicit graph relationships in isolation", async () => {
+    const records = new Map<string, Record<string, unknown>>();
+    const domains = new Map<string, { metadata: { contentReady: boolean } }>();
+    const graphNodes = new Set<string>();
+    const graphEdges = new Set<string>();
+
+    const foundation = {
+      getStorageEngine: () => ({
+        getRecord: async (knowledgeId: string) => {
+          const record = records.get(knowledgeId);
+          return record ? { success: true, record } : { success: false, record: undefined };
+        },
+        storeRecord: async (record: { knowledgeId: string }) => {
+          records.set(record.knowledgeId, record);
+          return { success: true };
+        },
+        updateRecord: async (knowledgeId: string, updates: Record<string, unknown>) => {
+          records.set(knowledgeId, { ...(records.get(knowledgeId) ?? {}), ...updates });
+          return { success: true };
+        },
+      }),
+      getRetrievalEngine: () => ({ invalidateCache: () => undefined }),
+      getGraphEngine: () => ({
+        createNode: (nodeId: string) => {
+          graphNodes.add(nodeId);
+          return { nodeId };
+        },
+        createRelationship: (input: {
+          sourceId: string;
+          targetId: string;
+          relationshipType: string;
+        }) => {
+          if (!graphNodes.has(input.sourceId) || !graphNodes.has(input.targetId)) return null;
+          const key = `${input.sourceId}|${input.targetId}|${input.relationshipType}`;
+          if (graphEdges.has(key)) return null;
+          graphEdges.add(key);
+          return { relationshipId: key };
+        },
+      }),
+      getKnowledgeDomainPlanner: () => ({
+        markDomainContentReady: (domainId: string, contentReady: boolean) => {
+          domains.set(domainId, { metadata: { contentReady } });
+        },
+        getDomain: (domainId: string) => domains.get(domainId),
+      }),
+      getKnowledgeExtractionEngine: () => ({ reloadPacks: async () => undefined }),
+    };
+
+    const socialMedia = new ProfessionalSocialMediaKnowledge();
+    socialMedia.initialize(foundation as never, storageRoot);
+    await socialMedia.runStartup();
+
+    const install = socialMedia.getLastInstall();
+    expect(install?.installed).toBe(true);
+    expect(install?.relationshipsCreated).toBeGreaterThan(50);
+    expect(records.size).toBe(getAllSmTopics().length + SM_DOMAIN_BRIDGES.length);
+    expect(graphNodes.size).toBe(records.size);
+    expect(graphEdges.size).toBe(install?.relationshipsCreated);
+    expect((await socialMedia.runHealthCheck()).healthy).toBe(true);
+    expect(fs.existsSync(path.join(storageRoot, "knowledge", "packs", "social-media", "pack.json"))).toBe(true);
   });
 
   // Full foundation startup re-runs Steps 1–8 expansions (~60+ min on typical hardware).

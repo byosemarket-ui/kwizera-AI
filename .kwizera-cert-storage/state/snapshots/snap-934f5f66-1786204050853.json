@@ -1,0 +1,52 @@
+{
+  "snapshotId": "snap-934f5f66-1786204050853",
+  "timestamp": "2026-08-08T15:47:30.853Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "operational",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:28.759Z"
+      },
+      "reasoning-engine": {
+        "id": "reasoning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.026Z"
+      },
+      "decision-engine": {
+        "id": "decision-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.257Z"
+      },
+      "planning-engine": {
+        "id": "planning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.783Z"
+      },
+      "task-manager": {
+        "id": "task-manager",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.226Z"
+      },
+      "workflow-engine": {
+        "id": "workflow-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.479Z"
+      },
+      "recommendation-engine": {
+        "id": "recommendation-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.851Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

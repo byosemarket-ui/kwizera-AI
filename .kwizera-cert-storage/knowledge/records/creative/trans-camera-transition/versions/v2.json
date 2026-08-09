@@ -1,0 +1,311 @@
+{
+  "knowledgeId": "trans-camera-transition",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Camera Transition",
+  "description": "Transitions motivated by simulated or real camera moves (whip, push, orbit).",
+  "summary": "Maintain cinematic continuity between scenes.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "camera-transition",
+    "camera transition",
+    "whip pan",
+    "push transition",
+    "parallax bridge"
+  ],
+  "keywords": [
+    "camera transition",
+    "whip pan",
+    "push transition",
+    "parallax bridge"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "trans-match-cut",
+    "trans-zoom-transition",
+    "trans-cut",
+    "trans-creative-transitions",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-camera-knowledge",
+    "amr-bridge-video-editing-knowledge",
+    "amr-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:04.783Z",
+  "lastUpdated": "2026-08-08T17:56:01.540Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-camera-transition",
+  "integrityStatus": "verified",
+  "contentHash": "c9c95a2fd89f9b17aa1d1df6a37be686f8df5b5ea01dfc2e6b88e171f56fd996",
+  "searchableText": "camera transition transitions motivated by simulated or real camera moves (whip, push, orbit). maintain cinematic continuity between scenes. professional-transitions professional-transitions professional camera-transition camera transition whip pan push transition parallax bridge camera transition whip pan push transition parallax bridge",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "camera-transition-transitions",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "camera-transition",
+    "kind": "professional-transitions",
+    "purpose": "Maintain cinematic continuity between scenes.",
+    "professionalDefinition": "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic.",
+    "workflow": [
+      "Choose move",
+      "Match vectors",
+      "Blend/cut at blur peak",
+      "Stabilize landing"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-camera-transition",
+      "title": "Camera Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Transitions motivated by simulated or real camera moves (whip, push, orbit).",
+      "coreConcepts": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "definitions": [
+        "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic.",
+        "Maintain cinematic continuity between scenes."
+      ],
+      "rules": [
+        "Practice: Match direction and speed",
+        "Practice: Plan on set when possible",
+        "Practice: Use motion blur"
+      ],
+      "bestPractices": [
+        "Match direction and speed",
+        "Plan on set when possible",
+        "Use motion blur"
+      ],
+      "professionalTechniques": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "workflow": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "decisionRules": [
+        "Follow: Match direction and speed",
+        "Follow: Plan on set when possible",
+        "Follow: Use motion blur"
+      ],
+      "commonMistakes": [
+        "Unmotivated whip spam",
+        "Direction mismatches"
+      ],
+      "troubleshooting": [
+        "Avoid: Unmotivated whip spam",
+        "Avoid: Direction mismatches"
+      ],
+      "recommendations": [
+        "Match direction and speed",
+        "Plan on set when possible",
+        "Use motion blur"
+      ],
+      "examples": [
+        "Whip pan from lifestyle to studio hero"
+      ],
+      "professionalStandards": [
+        "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic."
+      ],
+      "relatedTopics": [
+        "match-cut",
+        "zoom-transition",
+        "cut",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:camera-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Camera Transition",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "Transitions motivated by simulated or real camera moves (whip, push, orbit).",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Maintain cinematic continuity between scenes."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose move",
+            "Match vectors",
+            "Blend/cut at blur peak",
+            "Stabilize landing"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match direction and speed",
+            "Plan on set when possible",
+            "Use motion blur"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Whip pan from lifestyle to studio hero"
+          ]
+        }
+      ],
+      "concepts": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "entities": [
+        "Camera Transition",
+        "motion-graphics-knowledge",
+        "camera-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "rules": [
+        "Avoid: Unmotivated whip spam",
+        "Avoid: Direction mismatches"
+      ],
+      "bestPractices": [
+        "Match direction and speed",
+        "Plan on set when possible",
+        "Use motion blur"
+      ],
+      "professionalTechniques": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "examples": [
+        "Whip pan from lifestyle to studio hero"
+      ],
+      "commonMistakes": [
+        "Unmotivated whip spam",
+        "Direction mismatches"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Match direction and speed",
+        "Practice: Plan on set when possible",
+        "Practice: Use motion blur"
+      ],
+      "workflowSteps": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "camera-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "trans-match-cut",
+        "trans-zoom-transition",
+        "trans-cut",
+        "trans-creative-transitions"
+      ],
+      "definitions": [
+        "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic.",
+        "Maintain cinematic continuity between scenes."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Match direction and speed",
+      "Plan on set when possible",
+      "Use motion blur"
+    ],
+    "bestPractices": [
+      "Match direction and speed",
+      "Plan on set when possible",
+      "Use motion blur"
+    ],
+    "decisionRules": [
+      "Practice: Match direction and speed",
+      "Practice: Plan on set when possible",
+      "Practice: Use motion blur"
+    ]
+  }
+}

@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "fb-facebook-engagement-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-facebook",
+  "title": "Facebook Engagement Strategy",
+  "description": "Earning meaningful Facebook interactions from posts and replies.",
+  "summary": "Recommend Facebook-specific engagement approaches.",
+  "tags": [
+    "professional-facebook",
+    "professional",
+    "facebook-engagement-strategy",
+    "facebook engagement",
+    "comments",
+    "shares",
+    "discussion"
+  ],
+  "keywords": [
+    "facebook engagement",
+    "comments",
+    "shares",
+    "discussion"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-engagement-strategy",
+    "fb-facebook-community-management",
+    "fb-facebook-video-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-sales-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:39.346Z",
+  "lastUpdated": "2026-08-08T19:03:39.346Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\fb-facebook-engagement-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "3723bc61fc590f568237e68c6d30e82946765cb81e1006ca00360317bd112282",
+  "searchableText": "facebook engagement strategy earning meaningful facebook interactions from posts and replies. recommend facebook-specific engagement approaches. professional-facebook professional-facebook professional facebook-engagement-strategy facebook engagement comments shares discussion facebook engagement comments shares discussion",
+  "classification": {
+    "category": "professional-facebook",
+    "topic": "facebook-engagement-strategy",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "facebook-engagement-strategy",
+    "kind": "professional-facebook",
+    "purpose": "Recommend Facebook-specific engagement approaches.",
+    "professionalDefinition": "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "fb-facebook-engagement-strategy",
+      "title": "Facebook Engagement Strategy",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Earning meaningful Facebook interactions from posts and replies.",
+      "coreConcepts": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "definitions": [
+        "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms.",
+        "Recommend Facebook-specific engagement approaches."
+      ],
+      "rules": [
+        "Practice: Invite stories and experiences",
+        "Practice: Use native formats people comment on",
+        "Practice: Seed discussion without fake bait"
+      ],
+      "bestPractices": [
+        "Invite stories and experiences",
+        "Use native formats people comment on",
+        "Seed discussion without fake bait"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Invite stories and experiences",
+        "Follow: Use native formats people comment on",
+        "Follow: Seed discussion without fake bait"
+      ],
+      "commonMistakes": [
+        "Engagement bait that violates norms",
+        "Ignoring comment threads"
+      ],
+      "troubleshooting": [
+        "Avoid: Engagement bait that violates norms",
+        "Avoid: Ignoring comment threads"
+      ],
+      "recommendations": [
+        "Invite stories and experiences",
+        "Use native formats people comment on",
+        "Seed discussion without fake bait"
+      ],
+      "examples": [
+        "Professional application of Facebook Engagement Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "facebook-community-management",
+        "facebook-video-strategy"
+      ],
+      "keywords": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-engagement-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Facebook Engagement Strategy",
+      "category": "professional-facebook",
+      "domain": "facebook-knowledge",
+      "description": "Earning meaningful Facebook interactions from posts and replies.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend Facebook-specific engagement approaches."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Invite stories and experiences",
+            "Use native formats people comment on",
+            "Seed discussion without fake bait"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Facebook Engagement Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "entities": [
+        "Facebook Engagement Strategy",
+        "social-media-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "terminology": [
+        "facebook engagement",
+        "comments",
+        "shares",
+        "discussion"
+      ],
+      "rules": [
+        "Avoid: Engagement bait that violates norms",
+        "Avoid: Ignoring comment threads"
+      ],
+      "bestPractices": [
+        "Invite stories and experiences",
+        "Use native formats people comment on",
+        "Seed discussion without fake bait"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Facebook Engagement Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Engagement bait that violates norms",
+        "Ignoring comment threads"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Invite stories and experiences",
+        "Practice: Use native formats people comment on",
+        "Practice: Seed discussion without fake bait"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-social-engagement-strategy",
+        "fb-facebook-community-management",
+        "fb-facebook-video-strategy"
+      ],
+      "definitions": [
+        "Facebook engagement strategy designs posts and reply behavior that spark discussion and shares within Page and Group audiences while staying compliant with platform norms.",
+        "Recommend Facebook-specific engagement approaches."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "facebook-knowledge",
+      "category": "professional-facebook",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Invite stories and experiences",
+      "Use native formats people comment on",
+      "Seed discussion without fake bait"
+    ],
+    "bestPractices": [
+      "Invite stories and experiences",
+      "Use native formats people comment on",
+      "Seed discussion without fake bait"
+    ],
+    "decisionRules": [
+      "Practice: Invite stories and experiences",
+      "Practice: Use native formats people comment on",
+      "Practice: Seed discussion without fake bait"
+    ]
+  }
+}

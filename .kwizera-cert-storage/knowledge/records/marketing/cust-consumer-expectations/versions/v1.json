@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "cust-consumer-expectations",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Consumer Expectations",
+  "description": "What audiences expect from category, brand, and platform experiences.",
+  "summary": "Avoid creative that violates category or platform expectations unintentionally.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "consumer-expectations",
+    "consumer expectations",
+    "category norms",
+    "promise",
+    "standards"
+  ],
+  "keywords": [
+    "consumer expectations",
+    "category norms",
+    "promise",
+    "standards"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-customer-satisfaction",
+    "brand-brand-trust",
+    "cust-product-perception",
+    "vmkt-first-3-seconds-strategy",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:54.422Z",
+  "lastUpdated": "2026-08-08T18:25:54.422Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-consumer-expectations",
+  "integrityStatus": "verified",
+  "contentHash": "557d4515d3118ff33644f4b80c47c29b8326ca678dce5c7b376b82a894da6b9e",
+  "searchableText": "consumer expectations what audiences expect from category, brand, and platform experiences. avoid creative that violates category or platform expectations unintentionally. professional-customer-psychology professional-customer-psychology professional consumer-expectations consumer expectations category norms promise standards consumer expectations category norms promise standards",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "consumer-expectations-what",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "consumer-expectations",
+    "kind": "professional-customer-psychology",
+    "purpose": "Avoid creative that violates category or platform expectations unintentionally.",
+    "professionalDefinition": "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust.",
+    "workflow": [
+      "Audit expectations",
+      "Align promise",
+      "Deliver proof",
+      "Measure satisfaction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-consumer-expectations",
+      "title": "Consumer Expectations",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "What audiences expect from category, brand, and platform experiences.",
+      "coreConcepts": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "definitions": [
+        "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust.",
+        "Avoid creative that violates category or platform expectations unintentionally."
+      ],
+      "rules": [
+        "Practice: Know category codes",
+        "Practice: Exceed on the brand difference",
+        "Practice: Set expectations ads can keep"
+      ],
+      "bestPractices": [
+        "Know category codes",
+        "Exceed on the brand difference",
+        "Set expectations ads can keep"
+      ],
+      "professionalTechniques": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "workflow": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "decisionRules": [
+        "Follow: Know category codes",
+        "Follow: Exceed on the brand difference",
+        "Follow: Set expectations ads can keep"
+      ],
+      "commonMistakes": [
+        "Overpromising in hooks",
+        "Breaking platform norms without intent"
+      ],
+      "troubleshooting": [
+        "Avoid: Overpromising in hooks",
+        "Avoid: Breaking platform norms without intent"
+      ],
+      "recommendations": [
+        "Know category codes",
+        "Exceed on the brand difference",
+        "Set expectations ads can keep"
+      ],
+      "examples": [
+        "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation"
+      ],
+      "professionalStandards": [
+        "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust."
+      ],
+      "relatedTopics": [
+        "customer-satisfaction",
+        "brand-trust",
+        "product-perception",
+        "first-3-seconds-strategy"
+      ],
+      "keywords": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:consumer-expectations",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Consumer Expectations",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "What audiences expect from category, brand, and platform experiences.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Avoid creative that violates category or platform expectations unintentionally."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Audit expectations",
+            "Align promise",
+            "Deliver proof",
+            "Measure satisfaction"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Know category codes",
+            "Exceed on the brand difference",
+            "Set expectations ads can keep"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation"
+          ]
+        }
+      ],
+      "concepts": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "entities": [
+        "Consumer Expectations",
+        "customer-psychology",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "rules": [
+        "Avoid: Overpromising in hooks",
+        "Avoid: Breaking platform norms without intent"
+      ],
+      "bestPractices": [
+        "Know category codes",
+        "Exceed on the brand difference",
+        "Set expectations ads can keep"
+      ],
+      "professionalTechniques": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "examples": [
+        "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation"
+      ],
+      "commonMistakes": [
+        "Overpromising in hooks",
+        "Breaking platform norms without intent"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Know category codes",
+        "Practice: Exceed on the brand difference",
+        "Practice: Set expectations ads can keep"
+      ],
+      "workflowSteps": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-customer-satisfaction",
+        "brand-brand-trust",
+        "cust-product-perception",
+        "vmkt-first-3-seconds-strategy"
+      ],
+      "definitions": [
+        "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust.",
+        "Avoid creative that violates category or platform expectations unintentionally."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Know category codes",
+      "Exceed on the brand difference",
+      "Set expectations ads can keep"
+    ],
+    "bestPractices": [
+      "Know category codes",
+      "Exceed on the brand difference",
+      "Set expectations ads can keep"
+    ],
+    "decisionRules": [
+      "Practice: Know category codes",
+      "Practice: Exceed on the brand difference",
+      "Practice: Set expectations ads can keep"
+    ]
+  }
+}

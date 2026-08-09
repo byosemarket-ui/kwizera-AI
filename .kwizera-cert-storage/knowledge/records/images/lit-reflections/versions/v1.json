@@ -1,0 +1,343 @@
+{
+  "knowledgeId": "lit-reflections",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Reflections",
+  "description": "Managing specular reflections on glossy, chrome, glass, and wet surfaces.",
+  "summary": "Make reflective products readable and premium by shaping what the surface mirrors.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "reflections",
+    "specular",
+    "gloss",
+    "chrome",
+    "glass"
+  ],
+  "keywords": [
+    "reflections",
+    "specular",
+    "gloss",
+    "chrome",
+    "glass"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-product-lighting",
+    "lit-soft-lighting",
+    "lit-hard-lighting",
+    "lit-key-light",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:27.132Z",
+  "lastUpdated": "2026-08-08T15:32:27.132Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-reflections",
+  "integrityStatus": "verified",
+  "contentHash": "6d70ec4b0547be629a61173bb5d6f8bba83c78a318403eefde3aa46f8d43dd15",
+  "searchableText": "reflections managing specular reflections on glossy, chrome, glass, and wet surfaces. make reflective products readable and premium by shaping what the surface mirrors. professional-lighting professional-lighting professional reflections specular gloss chrome glass reflections specular gloss chrome glass",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "reflections-managing-specular",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "reflections",
+    "kind": "professional-lighting",
+    "purpose": "Make reflective products readable and premium by shaping what the surface mirrors.",
+    "whenToUse": [
+      "Electronics",
+      "Automotive/paint",
+      "Glass bottles",
+      "Watches"
+    ],
+    "whenNotToUse": [
+      "Ignoring reflection as ‘fix later’ on hero chrome"
+    ],
+    "advantages": [
+      "Defines premium materials",
+      "Can create graphic light shapes"
+    ],
+    "limitations": [
+      "Shows crew/gear easily",
+      "Time-consuming"
+    ],
+    "relatedCameraTechniques": [
+      "polarizing filter",
+      "camera angle vs reflection angle",
+      "highlight protection"
+    ],
+    "relatedStorytellingTechniques": [
+      "luxury proof",
+      "material honesty"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-reflections",
+      "title": "Reflections",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Managing specular reflections on glossy, chrome, glass, and wet surfaces.",
+      "coreConcepts": [
+        "reflections",
+        "specular",
+        "gloss",
+        "chrome",
+        "glass"
+      ],
+      "definitions": [
+        "Make reflective products readable and premium by shaping what the surface mirrors."
+      ],
+      "rules": [
+        "Use when: Electronics",
+        "Use when: Automotive/paint",
+        "Use when: Glass bottles",
+        "Use when: Watches",
+        "Do not use when: Ignoring reflection as ‘fix later’ on hero chrome"
+      ],
+      "bestPractices": [
+        "Light the reflection, not only the object",
+        "Use large soft sources and black cards",
+        "Polarize when helpful"
+      ],
+      "professionalTechniques": [
+        "Defines premium materials",
+        "Can create graphic light shapes"
+      ],
+      "workflow": [
+        "Choose Reflections",
+        "Light the reflection, not only the object",
+        "Use large soft sources and black cards",
+        "Polarize when helpful"
+      ],
+      "decisionRules": [
+        "Use when: Electronics",
+        "Use when: Automotive/paint",
+        "Use when: Glass bottles",
+        "Use when: Watches",
+        "Avoid when: Ignoring reflection as ‘fix later’ on hero chrome"
+      ],
+      "commonMistakes": [
+        "Hot specular blowouts",
+        "Visible softbox shapes unwanted"
+      ],
+      "troubleshooting": [
+        "Limitation: Shows crew/gear easily",
+        "Limitation: Time-consuming"
+      ],
+      "recommendations": [
+        "Light the reflection, not only the object",
+        "Use large soft sources and black cards",
+        "Polarize when helpful"
+      ],
+      "examples": [
+        "Graduated white card reflection on smartphone face"
+      ],
+      "professionalStandards": [
+        "luxury proof",
+        "material honesty"
+      ],
+      "relatedTopics": [
+        "product-lighting",
+        "soft-lighting",
+        "hard-lighting",
+        "key-light"
+      ],
+      "keywords": [
+        "reflections",
+        "specular",
+        "gloss",
+        "chrome",
+        "glass"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:reflections",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Reflections",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Managing specular reflections on glossy, chrome, glass, and wet surfaces.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make reflective products readable and premium by shaping what the surface mirrors."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Electronics",
+            "Automotive/paint",
+            "Glass bottles",
+            "Watches"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Ignoring reflection as ‘fix later’ on hero chrome"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Light the reflection, not only the object",
+            "Use large soft sources and black cards",
+            "Polarize when helpful"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Graduated white card reflection on smartphone face"
+          ]
+        }
+      ],
+      "concepts": [
+        "reflections",
+        "specular",
+        "gloss",
+        "chrome",
+        "glass"
+      ],
+      "entities": [
+        "Reflections",
+        "lighting-knowledge",
+        "product-knowledge",
+        "camera-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "reflections",
+        "specular",
+        "gloss",
+        "chrome",
+        "glass"
+      ],
+      "rules": [
+        "Avoid when: Ignoring reflection as ‘fix later’ on hero chrome"
+      ],
+      "bestPractices": [
+        "Light the reflection, not only the object",
+        "Use large soft sources and black cards",
+        "Polarize when helpful"
+      ],
+      "professionalTechniques": [
+        "Defines premium materials",
+        "Can create graphic light shapes"
+      ],
+      "examples": [
+        "Graduated white card reflection on smartphone face"
+      ],
+      "commonMistakes": [
+        "Hot specular blowouts",
+        "Visible softbox shapes unwanted"
+      ],
+      "qualityRules": [
+        "Shows crew/gear easily",
+        "Time-consuming"
+      ],
+      "decisionRules": [
+        "Use when: Electronics",
+        "Use when: Automotive/paint",
+        "Use when: Glass bottles",
+        "Use when: Watches",
+        "Do not use when: Ignoring reflection as ‘fix later’ on hero chrome"
+      ],
+      "workflowSteps": [
+        "Light the reflection, not only the object",
+        "Use large soft sources and black cards",
+        "Polarize when helpful"
+      ],
+      "prerequisites": [
+        "polarizing filter",
+        "camera angle vs reflection angle",
+        "highlight protection"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "product-knowledge",
+        "camera-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-product-lighting",
+        "lit-soft-lighting",
+        "lit-hard-lighting",
+        "lit-key-light"
+      ],
+      "definitions": [
+        "Make reflective products readable and premium by shaping what the surface mirrors."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Light the reflection, not only the object",
+      "Use large soft sources and black cards",
+      "Polarize when helpful"
+    ],
+    "bestPractices": [
+      "Light the reflection, not only the object",
+      "Use large soft sources and black cards",
+      "Polarize when helpful"
+    ],
+    "decisionRules": [
+      "Use when: Electronics",
+      "Use when: Automotive/paint",
+      "Use when: Glass bottles",
+      "Use when: Watches",
+      "Do not use when: Ignoring reflection as ‘fix later’ on hero chrome"
+    ]
+  }
+}

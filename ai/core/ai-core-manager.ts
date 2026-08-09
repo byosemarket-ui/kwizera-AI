@@ -23,6 +23,14 @@ import { AiPlanningEngine } from "../planning/planning-engine.js";
 import { createPlanningEnginePlugin } from "../planning/planning-engine-plugin.js";
 import { AiWorkflowEngine } from "../workflow/workflow-engine.js";
 import { createWorkflowEnginePlugin } from "../workflow/workflow-engine-plugin.js";
+import { AiRecommendationEngine } from "../recommendation/recommendation-engine.js";
+import { createRecommendationEnginePlugin } from "../recommendation/recommendation-engine-plugin.js";
+import { AiMultiDomainEngine } from "../multi-domain/multi-domain-engine.js";
+import { createMultiDomainEnginePlugin } from "../multi-domain/multi-domain-engine-plugin.js";
+import { AiSelfReviewEngine } from "../self-review/self-review-engine.js";
+import { createSelfReviewEnginePlugin } from "../self-review/self-review-engine-plugin.js";
+import { AiProfessionalReasoningCertificationEngine } from "../professional-reasoning-certification/professional-reasoning-certification-engine.js";
+import { createProfessionalReasoningCertificationPlugin } from "../professional-reasoning-certification/professional-reasoning-certification-plugin.js";
 import { AiTaskManager } from "../task-manager/task-manager.js";
 import { createTaskManagerPlugin } from "../task-manager/task-manager-plugin.js";
 import { AiModuleManager } from "../module-manager/module-manager.js";
@@ -63,6 +71,10 @@ export interface AiCoreManagerOptions {
   skipDecisionEngine?: boolean;
   skipPlanningEngine?: boolean;
   skipWorkflowEngine?: boolean;
+  skipRecommendationEngine?: boolean;
+  skipMultiDomainEngine?: boolean;
+  skipSelfReviewEngine?: boolean;
+  skipProfessionalReasoningCertification?: boolean;
   skipTaskManager?: boolean;
   skipMemoryFoundation?: boolean;
   skipKnowledgeFoundation?: boolean;
@@ -98,6 +110,10 @@ export class AiCoreManager {
   private _reasoningEngine: AiReasoningEngine | null = null;
   private _planningEngine: AiPlanningEngine | null = null;
   private _workflowEngine: AiWorkflowEngine | null = null;
+  private _recommendationEngine: AiRecommendationEngine | null = null;
+  private _multiDomainEngine: AiMultiDomainEngine | null = null;
+  private _selfReviewEngine: AiSelfReviewEngine | null = null;
+  private _professionalReasoningCertification: AiProfessionalReasoningCertificationEngine | null = null;
   private _taskManager: AiTaskManager | null = null;
   private _moduleManager: AiModuleManager | null = null;
   private _communicationBus: AiCommunicationBus | null = null;
@@ -254,6 +270,33 @@ export class AiCoreManager {
       }
       const workflowPlugin = createWorkflowEnginePlugin(this._workflowEngine, this);
       await this._moduleManager.registerAndInitialize(workflowPlugin);
+    }
+
+    if (!this.options.skipRecommendationEngine) {
+      this._recommendationEngine = new AiRecommendationEngine({ storageRoot });
+      const recommendationPlugin = createRecommendationEnginePlugin(this._recommendationEngine, this);
+      await this._moduleManager.registerAndInitialize(recommendationPlugin);
+    }
+
+    if (!this.options.skipMultiDomainEngine) {
+      this._multiDomainEngine = new AiMultiDomainEngine({ storageRoot });
+      const multiDomainPlugin = createMultiDomainEnginePlugin(this._multiDomainEngine, this);
+      await this._moduleManager.registerAndInitialize(multiDomainPlugin);
+    }
+
+    if (!this.options.skipSelfReviewEngine) {
+      this._selfReviewEngine = new AiSelfReviewEngine({ storageRoot });
+      const selfReviewPlugin = createSelfReviewEnginePlugin(this._selfReviewEngine, this);
+      await this._moduleManager.registerAndInitialize(selfReviewPlugin);
+    }
+
+    if (!this.options.skipProfessionalReasoningCertification) {
+      this._professionalReasoningCertification = new AiProfessionalReasoningCertificationEngine({ storageRoot });
+      const certificationPlugin = createProfessionalReasoningCertificationPlugin(
+        this._professionalReasoningCertification,
+        this
+      );
+      await this._moduleManager.registerAndInitialize(certificationPlugin);
     }
 
     if (!this.options.skipKnowledgeFoundation) {
@@ -571,6 +614,22 @@ export class AiCoreManager {
     return this._workflowEngine;
   }
 
+  get recommendationEngine(): AiRecommendationEngine | null {
+    return this._recommendationEngine;
+  }
+
+  get multiDomainEngine(): AiMultiDomainEngine | null {
+    return this._multiDomainEngine;
+  }
+
+  get selfReviewEngine(): AiSelfReviewEngine | null {
+    return this._selfReviewEngine;
+  }
+
+  get professionalReasoningCertification(): AiProfessionalReasoningCertificationEngine | null {
+    return this._professionalReasoningCertification;
+  }
+
   get taskManager(): AiTaskManager | null {
     return this._taskManager;
   }
@@ -701,6 +760,18 @@ export class AiCoreManager {
       await this._memoryFoundation.shutdown();
     }
     if (this._moduleManager) {
+      if (this._professionalReasoningCertification) {
+        await this._moduleManager.unloadModule("professional-reasoning-certification");
+      }
+      if (this._selfReviewEngine) {
+        await this._moduleManager.unloadModule("self-review-engine");
+      }
+      if (this._multiDomainEngine) {
+        await this._moduleManager.unloadModule("multi-domain-engine");
+      }
+      if (this._recommendationEngine) {
+        await this._moduleManager.unloadModule("recommendation-engine");
+      }
       if (this._workflowEngine) {
         await this._moduleManager.unloadModule("workflow-engine");
       }
@@ -719,6 +790,18 @@ export class AiCoreManager {
     } else {
       if (this._decisionEngine) {
         await this.registry.shutdownModule("decision-engine", this.logger);
+      }
+      if (this._professionalReasoningCertification) {
+        await this.registry.shutdownModule("professional-reasoning-certification", this.logger);
+      }
+      if (this._selfReviewEngine) {
+        await this.registry.shutdownModule("self-review-engine", this.logger);
+      }
+      if (this._multiDomainEngine) {
+        await this.registry.shutdownModule("multi-domain-engine", this.logger);
+      }
+      if (this._recommendationEngine) {
+        await this.registry.shutdownModule("recommendation-engine", this.logger);
       }
       if (this._workflowEngine) {
         await this.registry.shutdownModule("workflow-engine", this.logger);

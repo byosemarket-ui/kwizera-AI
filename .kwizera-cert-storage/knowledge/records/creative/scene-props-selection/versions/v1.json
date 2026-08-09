@@ -1,0 +1,330 @@
+{
+  "knowledgeId": "scene-props-selection",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Props Selection",
+  "description": "Choosing objects that support story, brand, and product readability.",
+  "summary": "Add meaning and realism without clutter or brand conflict.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "props-selection",
+    "props",
+    "prop styling",
+    "set dressing objects",
+    "hero props"
+  ],
+  "keywords": [
+    "props",
+    "prop styling",
+    "set dressing objects",
+    "hero props"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-scene-composition",
+    "scene-environment-design",
+    "scene-product-reveal-scene",
+    "scene-scene-continuity",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-branding-knowledge",
+    "ss-bridge-composition-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:11.382Z",
+  "lastUpdated": "2026-08-08T15:34:11.382Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-props-selection",
+  "integrityStatus": "verified",
+  "contentHash": "4619abeb5d9647705622991430109d2e3626e4f4438c048a37ffac32dd9ec8fb",
+  "searchableText": "props selection choosing objects that support story, brand, and product readability. add meaning and realism without clutter or brand conflict. professional-scene-design professional-scene-design professional props-selection props prop styling set dressing objects hero props props prop styling set dressing objects hero props",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "props-selection-choosing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "props-selection",
+    "kind": "professional-scene-design",
+    "purpose": "Add meaning and realism without clutter or brand conflict.",
+    "professionalDefinition": "Props selection is the curated choice of physical objects that motivate action, signal lifestyle, and reinforce product context.",
+    "whenToUse": [
+      "Tabletop",
+      "Lifestyle",
+      "Demo setups"
+    ],
+    "whenNotToUse": [
+      "Props that compete with the hero product"
+    ],
+    "workflow": [
+      "List story needs",
+      "Source props",
+      "Dress and photo-ref"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-props-selection",
+      "title": "Props Selection",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "Choosing objects that support story, brand, and product readability.",
+      "coreConcepts": [
+        "props",
+        "prop styling",
+        "set dressing objects",
+        "hero props"
+      ],
+      "definitions": [
+        "Props selection is the curated choice of physical objects that motivate action, signal lifestyle, and reinforce product context.",
+        "Add meaning and realism without clutter or brand conflict."
+      ],
+      "rules": [
+        "Use when: Tabletop",
+        "Use when: Lifestyle",
+        "Use when: Demo setups",
+        "Do not use when: Props that compete with the hero product"
+      ],
+      "bestPractices": [
+        "Fewer better props",
+        "Period/brand accurate",
+        "Continuity labeled"
+      ],
+      "professionalTechniques": [
+        "List story needs",
+        "Source props",
+        "Dress and photo-ref"
+      ],
+      "workflow": [
+        "List story needs",
+        "Source props",
+        "Dress and photo-ref"
+      ],
+      "decisionRules": [
+        "Use when: Tabletop",
+        "Use when: Lifestyle",
+        "Use when: Demo setups",
+        "Avoid when: Props that compete with the hero product"
+      ],
+      "commonMistakes": [
+        "Prop spam",
+        "Competitor logos in frame"
+      ],
+      "troubleshooting": [
+        "Avoid: Prop spam",
+        "Avoid: Competitor logos in frame"
+      ],
+      "recommendations": [
+        "Fewer better props",
+        "Period/brand accurate",
+        "Continuity labeled"
+      ],
+      "examples": [
+        "Morning props: mug, keys, product pouch—only three"
+      ],
+      "professionalStandards": [
+        "Props selection is the curated choice of physical objects that motivate action, signal lifestyle, and reinforce product context."
+      ],
+      "relatedTopics": [
+        "scene-composition",
+        "environment-design",
+        "product-reveal-scene",
+        "scene-continuity"
+      ],
+      "keywords": [
+        "props",
+        "prop styling",
+        "set dressing objects",
+        "hero props"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:props-selection",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Props Selection",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "Choosing objects that support story, brand, and product readability.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Props selection is the curated choice of physical objects that motivate action, signal lifestyle, and reinforce product context."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Add meaning and realism without clutter or brand conflict."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Tabletop",
+            "Lifestyle",
+            "Demo setups"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Props that compete with the hero product"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List story needs",
+            "Source props",
+            "Dress and photo-ref"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Fewer better props",
+            "Period/brand accurate",
+            "Continuity labeled"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Morning props: mug, keys, product pouch—only three"
+          ]
+        }
+      ],
+      "concepts": [
+        "props",
+        "prop styling",
+        "set dressing objects",
+        "hero props"
+      ],
+      "entities": [
+        "Props Selection",
+        "scene-knowledge",
+        "product-knowledge",
+        "branding-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "props",
+        "prop styling",
+        "set dressing objects",
+        "hero props"
+      ],
+      "rules": [
+        "Avoid when: Props that compete with the hero product"
+      ],
+      "bestPractices": [
+        "Fewer better props",
+        "Period/brand accurate",
+        "Continuity labeled"
+      ],
+      "professionalTechniques": [
+        "List story needs",
+        "Source props",
+        "Dress and photo-ref"
+      ],
+      "examples": [
+        "Morning props: mug, keys, product pouch—only three"
+      ],
+      "commonMistakes": [
+        "Prop spam",
+        "Competitor logos in frame"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Tabletop",
+        "Use when: Lifestyle",
+        "Use when: Demo setups",
+        "Do not use when: Props that compete with the hero product"
+      ],
+      "workflowSteps": [
+        "List story needs",
+        "Source props",
+        "Dress and photo-ref"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "product-knowledge",
+        "branding-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-scene-composition",
+        "scene-environment-design",
+        "scene-product-reveal-scene",
+        "scene-scene-continuity"
+      ],
+      "definitions": [
+        "Props selection is the curated choice of physical objects that motivate action, signal lifestyle, and reinforce product context.",
+        "Add meaning and realism without clutter or brand conflict."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Fewer better props",
+      "Period/brand accurate",
+      "Continuity labeled"
+    ],
+    "bestPractices": [
+      "Fewer better props",
+      "Period/brand accurate",
+      "Continuity labeled"
+    ],
+    "decisionRules": [
+      "Use when: Tabletop",
+      "Use when: Lifestyle",
+      "Use when: Demo setups",
+      "Do not use when: Props that compete with the hero product"
+    ]
+  }
+}

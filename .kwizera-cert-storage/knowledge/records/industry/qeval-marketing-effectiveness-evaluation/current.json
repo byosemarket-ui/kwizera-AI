@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "qeval-marketing-effectiveness-evaluation",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-evaluation",
+  "title": "Marketing Effectiveness Evaluation",
+  "description": "A review of audience fit, message clarity, proof, action, and meaningful performance signals.",
+  "summary": "Explain how professionals assess commercial effectiveness without creating advertising automatically.",
+  "tags": [
+    "professional-quality-evaluation",
+    "professional",
+    "marketing-effectiveness-evaluation",
+    "marketing effectiveness",
+    "funnel",
+    "audience fit",
+    "conversion",
+    "proof"
+  ],
+  "keywords": [
+    "marketing effectiveness",
+    "funnel",
+    "audience fit",
+    "conversion",
+    "proof"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qrule-marketing-quality-rules",
+    "bp-content-optimization-best-practices",
+    "qeval-brand-consistency-evaluation",
+    "bp-social-media-best-practices",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-social-media-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:57.105Z",
+  "lastUpdated": "2026-08-08T19:18:57.105Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qeval-marketing-effectiveness-evaluation",
+  "integrityStatus": "verified",
+  "contentHash": "8fb8f7544f18c41b63ca87776ddba8be622c087fde660848bd16e0951f884cb1",
+  "searchableText": "marketing effectiveness evaluation a review of audience fit, message clarity, proof, action, and meaningful performance signals. explain how professionals assess commercial effectiveness without creating advertising automatically. professional-quality-evaluation professional-quality-evaluation professional marketing-effectiveness-evaluation marketing effectiveness funnel audience fit conversion proof marketing effectiveness funnel audience fit conversion proof",
+  "classification": {
+    "category": "professional-quality-evaluation",
+    "topic": "marketing-effectiveness-evaluation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "marketing-effectiveness-evaluation",
+    "kind": "professional-quality-evaluation",
+    "purpose": "Explain how professionals assess commercial effectiveness without creating advertising automatically.",
+    "professionalDefinition": "Marketing effectiveness evaluation checks whether content reaches an appropriate audience with a credible message, relevant proof, and a measurable next action.",
+    "qualityRules": [
+      "Message aligns with an audience need",
+      "Claims are supported by evidence",
+      "CTA is appropriate to audience readiness"
+    ],
+    "workflow": [
+      "Set evaluation context",
+      "Inspect objective evidence",
+      "Score criteria",
+      "List material gaps",
+      "Recommend improvements"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qeval-marketing-effectiveness-evaluation",
+      "title": "Marketing Effectiveness Evaluation",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "description": "A review of audience fit, message clarity, proof, action, and meaningful performance signals.",
+      "coreConcepts": [
+        "marketing effectiveness",
+        "funnel",
+        "audience fit",
+        "conversion",
+        "proof"
+      ],
+      "definitions": [
+        "Marketing effectiveness evaluation checks whether content reaches an appropriate audience with a credible message, relevant proof, and a measurable next action.",
+        "Explain how professionals assess commercial effectiveness without creating advertising automatically."
+      ],
+      "rules": [
+        "Quality rule: Message aligns with an audience need",
+        "Quality rule: Claims are supported by evidence",
+        "Quality rule: CTA is appropriate to audience readiness"
+      ],
+      "bestPractices": [
+        "Link metrics to funnel objective",
+        "Check claims and proof together",
+        "Evaluate conversion quality, not just volume"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "workflow": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "decisionRules": [
+        "Apply: Message aligns with an audience need",
+        "Apply: Claims are supported by evidence",
+        "Apply: CTA is appropriate to audience readiness"
+      ],
+      "commonMistakes": [
+        "Treating impressions as success",
+        "Ignoring audience mismatch"
+      ],
+      "troubleshooting": [
+        "Avoid: Treating impressions as success",
+        "Avoid: Ignoring audience mismatch"
+      ],
+      "recommendations": [
+        "Link metrics to funnel objective",
+        "Check claims and proof together",
+        "Evaluate conversion quality, not just volume"
+      ],
+      "examples": [
+        "Professional application of Marketing Effectiveness Evaluation in a studio review."
+      ],
+      "professionalStandards": [
+        "Message aligns with an audience need",
+        "Claims are supported by evidence",
+        "CTA is appropriate to audience readiness"
+      ],
+      "relatedTopics": [
+        "marketing-quality-rules",
+        "content-optimization-best-practices",
+        "brand-consistency-evaluation",
+        "social-media-best-practices"
+      ],
+      "keywords": [
+        "marketing effectiveness",
+        "funnel",
+        "audience fit",
+        "conversion",
+        "proof"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:marketing-effectiveness-evaluation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Marketing Effectiveness Evaluation",
+      "category": "professional-quality-evaluation",
+      "domain": "industry-standards-knowledge",
+      "description": "A review of audience fit, message clarity, proof, action, and meaningful performance signals.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Marketing effectiveness evaluation checks whether content reaches an appropriate audience with a credible message, relevant proof, and a measurable next action.",
+            "Explain how professionals assess commercial effectiveness without creating advertising automatically."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Message aligns with an audience need",
+            "Claims are supported by evidence",
+            "CTA is appropriate to audience readiness"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Link metrics to funnel objective",
+            "Check claims and proof together",
+            "Evaluate conversion quality, not just volume"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set evaluation context",
+            "Inspect objective evidence",
+            "Score criteria",
+            "List material gaps",
+            "Recommend improvements"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Marketing Effectiveness Evaluation in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "marketing effectiveness",
+        "funnel",
+        "audience fit",
+        "conversion",
+        "proof"
+      ],
+      "entities": [
+        "Marketing Effectiveness Evaluation",
+        "industry-standards-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "marketing effectiveness",
+        "funnel",
+        "audience fit",
+        "conversion",
+        "proof"
+      ],
+      "rules": [
+        "Message aligns with an audience need",
+        "Claims are supported by evidence",
+        "CTA is appropriate to audience readiness"
+      ],
+      "bestPractices": [
+        "Link metrics to funnel objective",
+        "Check claims and proof together",
+        "Evaluate conversion quality, not just volume"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "examples": [
+        "Professional application of Marketing Effectiveness Evaluation in a studio review."
+      ],
+      "commonMistakes": [
+        "Treating impressions as success",
+        "Ignoring audience mismatch"
+      ],
+      "qualityRules": [
+        "Message aligns with an audience need",
+        "Claims are supported by evidence",
+        "CTA is appropriate to audience readiness"
+      ],
+      "decisionRules": [
+        "Apply: Message aligns with an audience need",
+        "Apply: Claims are supported by evidence",
+        "Apply: CTA is appropriate to audience readiness"
+      ],
+      "workflowSteps": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "prerequisites": [
+        "Set evaluation context"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qrule-marketing-quality-rules",
+        "bp-content-optimization-best-practices",
+        "qeval-brand-consistency-evaluation",
+        "bp-social-media-best-practices"
+      ],
+      "definitions": [
+        "Marketing effectiveness evaluation checks whether content reaches an appropriate audience with a credible message, relevant proof, and a measurable next action."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating impressions as success",
+        "Avoid: Ignoring audience mismatch"
+      ],
+      "recommendations": [
+        "Link metrics to funnel objective",
+        "Check claims and proof together",
+        "Evaluate conversion quality, not just volume"
+      ],
+      "professionalStandards": [
+        "Message aligns with an audience need",
+        "Claims are supported by evidence",
+        "CTA is appropriate to audience readiness"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:marketing-effectiveness-evaluation",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Link metrics to funnel objective",
+      "Check claims and proof together",
+      "Evaluate conversion quality, not just volume"
+    ],
+    "bestPractices": [
+      "Link metrics to funnel objective",
+      "Check claims and proof together",
+      "Evaluate conversion quality, not just volume"
+    ],
+    "decisionRules": [
+      "Quality rule: Message aligns with an audience need",
+      "Quality rule: Claims are supported by evidence",
+      "Quality rule: CTA is appropriate to audience readiness"
+    ]
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-social-media-videos",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Social Media Videos",
+  "description": "Platform-native production and editing principles for short-form and feed video across social channels.",
+  "summary": "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption.",
+  "tags": [
+    "video-production",
+    "professional",
+    "social-media-videos",
+    "social media",
+    "short-form",
+    "vertical",
+    "captions",
+    "hook"
+  ],
+  "keywords": [
+    "social media",
+    "short-form",
+    "vertical",
+    "captions",
+    "hook"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-types-of-marketing-videos",
+    "vp-video-pacing",
+    "vp-visual-rhythm",
+    "vp-video-style",
+    "vp-bridge-marketing-knowledge",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:30:55.226Z",
+  "lastUpdated": "2026-08-08T15:30:55.226Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-social-media-videos",
+  "integrityStatus": "verified",
+  "contentHash": "8e711f3ae0dcba61ba195f1258e1a86cf2b194c523c96efb36738c6c47e8ae7c",
+  "searchableText": "social media videos platform-native production and editing principles for short-form and feed video across social channels. social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption. professional-video-production video-production professional social-media-videos social media short-form vertical captions hook social media short-form vertical captions hook",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "social-media-videos",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "social-media-videos",
+    "professionalDefinition": "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-social-media-videos",
+      "title": "Social Media Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Platform-native production and editing principles for short-form and feed video across social channels.",
+      "coreConcepts": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "definitions": [
+        "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption."
+      ],
+      "rules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "bestPractices": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "professionalTechniques": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "workflow": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "decisionRules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "commonMistakes": [
+        "Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Relying on audio-only hooks.",
+        "Overlong intros before the first value beat."
+      ],
+      "troubleshooting": [
+        "Avoid: Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Avoid: Relying on audio-only hooks.",
+        "Avoid: Overlong intros before the first value beat."
+      ],
+      "recommendations": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "examples": [
+        "15-second vertical product tip with burned-in captions and sticker CTA.",
+        "Carousel-style multi-clip series from one shoot day."
+      ],
+      "professionalStandards": [
+        "Confidence 91/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "types-of-marketing-videos",
+        "video-pacing",
+        "visual-rhythm",
+        "video-style"
+      ],
+      "keywords": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:social-media-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Social Media Videos",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Platform-native production and editing principles for short-form and feed video across social channels.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Design for vertical or platform-native aspect ratios from pre-production.",
+            "Front-load the hook and on-screen text for muted viewers.",
+            "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+            "Produce reusable shot kits that can become multiple platform cutdowns."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Select platform and length target.",
+            "Write scroll-stopping first frame and first three seconds.",
+            "Shoot with vertical-safe framing and caption space.",
+            "Edit tight loops or clear end-screen CTAs."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If the platform is feed-based, always plan a visual hook without sound.",
+            "Always reserve lower-third and edge safe areas for UI overlays.",
+            "When adapting a long film, redesign structure rather than speed-ramping only.",
+            "Never publish social cuts without caption QA."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "15-second vertical product tip with burned-in captions and sticker CTA.",
+            "Carousel-style multi-clip series from one shoot day."
+          ]
+        }
+      ],
+      "concepts": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "entities": [
+        "Social Media Videos",
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "rules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "bestPractices": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "professionalTechniques": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "examples": [
+        "15-second vertical product tip with burned-in captions and sticker CTA.",
+        "Carousel-style multi-clip series from one shoot day."
+      ],
+      "commonMistakes": [
+        "Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Relying on audio-only hooks.",
+        "Overlong intros before the first value beat."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "workflowSteps": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "prerequisites": [
+        "Select platform and length target."
+      ],
+      "dependencies": [
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-types-of-marketing-videos",
+        "vp-video-pacing",
+        "vp-visual-rhythm",
+        "vp-video-style"
+      ],
+      "definitions": [
+        "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption."
+      ],
+      "troubleshooting": [
+        "Avoid: Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Avoid: Relying on audio-only hooks.",
+        "Avoid: Overlong intros before the first value beat."
+      ],
+      "recommendations": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

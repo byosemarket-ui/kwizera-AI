@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "cam-bridge-rendering-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "camera-domain-bridge",
+  "title": "Rendering Knowledge (related)",
+  "description": "Capture resolution, frame rate, and color affect finishing and delivery.",
+  "summary": "Camera capture specs constrain rendering/export.",
+  "tags": [
+    "camera",
+    "domain-bridge",
+    "rendering-knowledge"
+  ],
+  "keywords": [
+    "rendering-knowledge",
+    "camera",
+    "relationship"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-camera-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:27.493Z",
+  "lastUpdated": "2026-08-08T15:31:27.493Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-bridge-rendering-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "7815aa8eeed91f818d04be87aa22e31e11e5fa8da26b7e13c08a5ac1680f9219",
+  "searchableText": "rendering knowledge (related) capture resolution, frame rate, and color affect finishing and delivery. camera capture specs constrain rendering/export. camera-domain-bridge camera domain-bridge rendering-knowledge rendering-knowledge camera relationship",
+  "classification": {
+    "category": "camera-domain-bridge",
+    "topic": "rendering-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "bridgeDomainId": "rendering-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate camera knowledge to rendering-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Rendering Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "rendering-knowledge",
+      "description": "Capture resolution, frame rate, and color affect finishing and delivery.",
+      "sections": [],
+      "concepts": [
+        "rendering-knowledge"
+      ],
+      "entities": [
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "rendering-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate camera knowledge to rendering-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "cam-camera-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

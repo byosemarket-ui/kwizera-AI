@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "tt-tiktok-hashtag-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-tiktok",
+  "title": "Hashtag Strategy",
+  "description": "Selecting TikTok hashtags for discoverability without spam patterns.",
+  "summary": "Recommend TikTok tagging practices.",
+  "tags": [
+    "professional-tiktok",
+    "professional",
+    "tiktok-hashtag-strategy",
+    "tiktok hashtags",
+    "discovery",
+    "campaign tags",
+    "categorization"
+  ],
+  "keywords": [
+    "tiktok hashtags",
+    "discovery",
+    "campaign tags",
+    "categorization"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 88,
+  "qualityScore": 87,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "tt-tiktok-best-practices",
+    "tt-tiktok-posting-best-practices",
+    "tt-tiktok-trending-content",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-product-knowledge",
+    "sm-bridge-sales-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:34.950Z",
+  "lastUpdated": "2026-08-08T19:03:34.950Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\tt-tiktok-hashtag-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "fc3e6a54010c5fc53fb180ee0d3a4021b9ca252704bc3199b05d10b4bad5158b",
+  "searchableText": "hashtag strategy selecting tiktok hashtags for discoverability without spam patterns. recommend tiktok tagging practices. professional-tiktok professional-tiktok professional tiktok-hashtag-strategy tiktok hashtags discovery campaign tags categorization tiktok hashtags discovery campaign tags categorization",
+  "classification": {
+    "category": "professional-tiktok",
+    "topic": "hashtag-strategy-selecting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 91,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "tiktok-hashtag-strategy",
+    "kind": "professional-tiktok",
+    "purpose": "Recommend TikTok tagging practices.",
+    "professionalDefinition": "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "tt-tiktok-hashtag-strategy",
+      "title": "Hashtag Strategy",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Selecting TikTok hashtags for discoverability without spam patterns.",
+      "coreConcepts": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "definitions": [
+        "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever.",
+        "Recommend TikTok tagging practices."
+      ],
+      "rules": [
+        "Practice: Few relevant tags beat long spam lists",
+        "Practice: Include branded campaign tags when tracking",
+        "Practice: Prioritize content quality over tag volume"
+      ],
+      "bestPractices": [
+        "Few relevant tags beat long spam lists",
+        "Include branded campaign tags when tracking",
+        "Prioritize content quality over tag volume"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Few relevant tags beat long spam lists",
+        "Follow: Include branded campaign tags when tracking",
+        "Follow: Prioritize content quality over tag volume"
+      ],
+      "commonMistakes": [
+        "Copying unrelated viral tags",
+        "Hashtag-only discovery strategy"
+      ],
+      "troubleshooting": [
+        "Avoid: Copying unrelated viral tags",
+        "Avoid: Hashtag-only discovery strategy"
+      ],
+      "recommendations": [
+        "Few relevant tags beat long spam lists",
+        "Include branded campaign tags when tracking",
+        "Prioritize content quality over tag volume"
+      ],
+      "examples": [
+        "Professional application of Hashtag Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever."
+      ],
+      "relatedTopics": [
+        "tiktok-best-practices",
+        "tiktok-posting-best-practices",
+        "tiktok-trending-content"
+      ],
+      "keywords": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-hashtag-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Hashtag Strategy",
+      "category": "professional-tiktok",
+      "domain": "tiktok-knowledge",
+      "description": "Selecting TikTok hashtags for discoverability without spam patterns.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend TikTok tagging practices."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Few relevant tags beat long spam lists",
+            "Include branded campaign tags when tracking",
+            "Prioritize content quality over tag volume"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Hashtag Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "entities": [
+        "Hashtag Strategy",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "product-knowledge",
+        "sales-psychology"
+      ],
+      "terminology": [
+        "tiktok hashtags",
+        "discovery",
+        "campaign tags",
+        "categorization"
+      ],
+      "rules": [
+        "Avoid: Copying unrelated viral tags",
+        "Avoid: Hashtag-only discovery strategy"
+      ],
+      "bestPractices": [
+        "Few relevant tags beat long spam lists",
+        "Include branded campaign tags when tracking",
+        "Prioritize content quality over tag volume"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Hashtag Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Copying unrelated viral tags",
+        "Hashtag-only discovery strategy"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Few relevant tags beat long spam lists",
+        "Practice: Include branded campaign tags when tracking",
+        "Practice: Prioritize content quality over tag volume"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "product-knowledge",
+        "sales-psychology"
+      ],
+      "relatedKnowledge": [
+        "tt-tiktok-best-practices",
+        "tt-tiktok-posting-best-practices",
+        "tt-tiktok-trending-content"
+      ],
+      "definitions": [
+        "TikTok hashtag strategy balances niche, campaign, and broad discovery tags to aid categorization without relying on hashtags as the primary growth lever.",
+        "Recommend TikTok tagging practices."
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "difficulty": "intermediate",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Few relevant tags beat long spam lists",
+      "Include branded campaign tags when tracking",
+      "Prioritize content quality over tag volume"
+    ],
+    "bestPractices": [
+      "Few relevant tags beat long spam lists",
+      "Include branded campaign tags when tracking",
+      "Prioritize content quality over tag volume"
+    ],
+    "decisionRules": [
+      "Practice: Few relevant tags beat long spam lists",
+      "Practice: Include branded campaign tags when tracking",
+      "Practice: Prioritize content quality over tag volume"
+    ]
+  }
+}

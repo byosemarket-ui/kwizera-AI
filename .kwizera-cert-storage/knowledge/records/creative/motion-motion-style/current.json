@@ -1,0 +1,302 @@
+{
+  "knowledgeId": "motion-motion-style",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Motion Style",
+  "description": "The aesthetic fingerprint of motion—editorial, playful, corporate, cinematic.",
+  "summary": "Keep campaigns visually coherent and on-brand.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "motion-style",
+    "motion style",
+    "aesthetic",
+    "brand motion personality"
+  ],
+  "keywords": [
+    "motion style",
+    "aesthetic",
+    "brand motion personality"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-motion-design",
+    "motion-logo-animation",
+    "anim-appeal",
+    "trans-creative-transitions",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-animation-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:01.304Z",
+  "lastUpdated": "2026-08-08T17:55:47.667Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-motion-style",
+  "integrityStatus": "verified",
+  "contentHash": "ec69213d896e8467d93aa36b1895aa0a78d35376cd937f9f23204e67a8da0b54",
+  "searchableText": "motion style the aesthetic fingerprint of motion—editorial, playful, corporate, cinematic. keep campaigns visually coherent and on-brand. professional-motion-graphics professional-motion-graphics professional motion-style motion style aesthetic brand motion personality motion style aesthetic brand motion personality",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "motion-style-aesthetic",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "motion-style",
+    "kind": "professional-motion-graphics",
+    "purpose": "Keep campaigns visually coherent and on-brand.",
+    "professionalDefinition": "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality.",
+    "workflow": [
+      "Mood refs",
+      "Style frames",
+      "Pilot shot",
+      "Systematize"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-motion-style",
+      "title": "Motion Style",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "The aesthetic fingerprint of motion—editorial, playful, corporate, cinematic.",
+      "coreConcepts": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "definitions": [
+        "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality.",
+        "Keep campaigns visually coherent and on-brand."
+      ],
+      "rules": [
+        "Practice: Write a motion style frame",
+        "Practice: Limit to 1–2 style drivers",
+        "Practice: Reuse across assets"
+      ],
+      "bestPractices": [
+        "Write a motion style frame",
+        "Limit to 1–2 style drivers",
+        "Reuse across assets"
+      ],
+      "professionalTechniques": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "workflow": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "decisionRules": [
+        "Follow: Write a motion style frame",
+        "Follow: Limit to 1–2 style drivers",
+        "Follow: Reuse across assets"
+      ],
+      "commonMistakes": [
+        "Style mashups",
+        "Trend-chasing off-brand"
+      ],
+      "troubleshooting": [
+        "Avoid: Style mashups",
+        "Avoid: Trend-chasing off-brand"
+      ],
+      "recommendations": [
+        "Write a motion style frame",
+        "Limit to 1–2 style drivers",
+        "Reuse across assets"
+      ],
+      "examples": [
+        "Soft editorial fades vs snappy social pops for same brand tiers"
+      ],
+      "professionalStandards": [
+        "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality."
+      ],
+      "relatedTopics": [
+        "motion-design",
+        "logo-animation",
+        "appeal",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-style",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Motion Style",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "The aesthetic fingerprint of motion—editorial, playful, corporate, cinematic.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep campaigns visually coherent and on-brand."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Mood refs",
+            "Style frames",
+            "Pilot shot",
+            "Systematize"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Write a motion style frame",
+            "Limit to 1–2 style drivers",
+            "Reuse across assets"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Soft editorial fades vs snappy social pops for same brand tiers"
+          ]
+        }
+      ],
+      "concepts": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "entities": [
+        "Motion Style",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "rules": [
+        "Avoid: Style mashups",
+        "Avoid: Trend-chasing off-brand"
+      ],
+      "bestPractices": [
+        "Write a motion style frame",
+        "Limit to 1–2 style drivers",
+        "Reuse across assets"
+      ],
+      "professionalTechniques": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "examples": [
+        "Soft editorial fades vs snappy social pops for same brand tiers"
+      ],
+      "commonMistakes": [
+        "Style mashups",
+        "Trend-chasing off-brand"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Write a motion style frame",
+        "Practice: Limit to 1–2 style drivers",
+        "Practice: Reuse across assets"
+      ],
+      "workflowSteps": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-motion-design",
+        "motion-logo-animation",
+        "anim-appeal",
+        "trans-creative-transitions"
+      ],
+      "definitions": [
+        "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality.",
+        "Keep campaigns visually coherent and on-brand."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Write a motion style frame",
+      "Limit to 1–2 style drivers",
+      "Reuse across assets"
+    ],
+    "bestPractices": [
+      "Write a motion style frame",
+      "Limit to 1–2 style drivers",
+      "Reuse across assets"
+    ],
+    "decisionRules": [
+      "Practice: Write a motion style frame",
+      "Practice: Limit to 1–2 style drivers",
+      "Practice: Reuse across assets"
+    ]
+  }
+}

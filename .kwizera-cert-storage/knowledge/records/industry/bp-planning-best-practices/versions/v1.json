@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "bp-planning-best-practices",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-best-practices",
+  "title": "Planning Best Practices",
+  "description": "Upfront practices that reduce ambiguity, rework, and avoidable production risk.",
+  "summary": "Recommend professional preparation for any creative initiative.",
+  "tags": [
+    "professional-best-practices",
+    "professional",
+    "planning-best-practices",
+    "planning best practices",
+    "brief",
+    "scope",
+    "risk",
+    "success criteria"
+  ],
+  "keywords": [
+    "planning best practices",
+    "brief",
+    "scope",
+    "risk",
+    "success criteria"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "check-pre-production-checklist",
+    "std-professional-workflows",
+    "std-production-standards",
+    "std-quality-assurance",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:38.298Z",
+  "lastUpdated": "2026-08-08T19:18:38.298Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\bp-planning-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "c8b9ce1c23e5e5015b119ba5104bb73edb7776512d4a4a4a40603e11df55441a",
+  "searchableText": "planning best practices upfront practices that reduce ambiguity, rework, and avoidable production risk. recommend professional preparation for any creative initiative. professional-best-practices professional-best-practices professional planning-best-practices planning best practices brief scope risk success criteria planning best practices brief scope risk success criteria",
+  "classification": {
+    "category": "professional-best-practices",
+    "topic": "planning-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "planning-best-practices",
+    "kind": "professional-best-practices",
+    "purpose": "Recommend professional preparation for any creative initiative.",
+    "professionalDefinition": "Planning best practices turn a broad request into a documented objective, audience, scope, constraints, quality criteria, schedule, and decision path before production begins.",
+    "qualityRules": [
+      "Brief, audience, and acceptance criteria are documented",
+      "Dependencies and rights are known",
+      "Review gates are scheduled before work starts"
+    ],
+    "workflow": [
+      "Set the objective",
+      "Select proven practice",
+      "Execute consistently",
+      "Measure result",
+      "Improve the next iteration"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "bp-planning-best-practices",
+      "title": "Planning Best Practices",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "description": "Upfront practices that reduce ambiguity, rework, and avoidable production risk.",
+      "coreConcepts": [
+        "planning best practices",
+        "brief",
+        "scope",
+        "risk",
+        "success criteria"
+      ],
+      "definitions": [
+        "Planning best practices turn a broad request into a documented objective, audience, scope, constraints, quality criteria, schedule, and decision path before production begins.",
+        "Recommend professional preparation for any creative initiative."
+      ],
+      "rules": [
+        "Quality rule: Brief, audience, and acceptance criteria are documented",
+        "Quality rule: Dependencies and rights are known",
+        "Quality rule: Review gates are scheduled before work starts"
+      ],
+      "bestPractices": [
+        "Write a measurable brief",
+        "Identify risks and dependencies early",
+        "Define success before selecting tactics"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "workflow": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "decisionRules": [
+        "Apply: Brief, audience, and acceptance criteria are documented",
+        "Apply: Dependencies and rights are known",
+        "Apply: Review gates are scheduled before work starts"
+      ],
+      "commonMistakes": [
+        "Starting with execution before objectives",
+        "No allowance for review or revisions"
+      ],
+      "troubleshooting": [
+        "Avoid: Starting with execution before objectives",
+        "Avoid: No allowance for review or revisions"
+      ],
+      "recommendations": [
+        "Write a measurable brief",
+        "Identify risks and dependencies early",
+        "Define success before selecting tactics"
+      ],
+      "examples": [
+        "Professional application of Planning Best Practices in a studio review."
+      ],
+      "professionalStandards": [
+        "Brief, audience, and acceptance criteria are documented",
+        "Dependencies and rights are known",
+        "Review gates are scheduled before work starts"
+      ],
+      "relatedTopics": [
+        "pre-production-checklist",
+        "professional-workflows",
+        "production-standards",
+        "quality-assurance"
+      ],
+      "keywords": [
+        "planning best practices",
+        "brief",
+        "scope",
+        "risk",
+        "success criteria"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:planning-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Planning Best Practices",
+      "category": "professional-best-practices",
+      "domain": "industry-standards-knowledge",
+      "description": "Upfront practices that reduce ambiguity, rework, and avoidable production risk.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Planning best practices turn a broad request into a documented objective, audience, scope, constraints, quality criteria, schedule, and decision path before production begins.",
+            "Recommend professional preparation for any creative initiative."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Brief, audience, and acceptance criteria are documented",
+            "Dependencies and rights are known",
+            "Review gates are scheduled before work starts"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Write a measurable brief",
+            "Identify risks and dependencies early",
+            "Define success before selecting tactics"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set the objective",
+            "Select proven practice",
+            "Execute consistently",
+            "Measure result",
+            "Improve the next iteration"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Planning Best Practices in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "planning best practices",
+        "brief",
+        "scope",
+        "risk",
+        "success criteria"
+      ],
+      "entities": [
+        "Planning Best Practices",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "planning best practices",
+        "brief",
+        "scope",
+        "risk",
+        "success criteria"
+      ],
+      "rules": [
+        "Brief, audience, and acceptance criteria are documented",
+        "Dependencies and rights are known",
+        "Review gates are scheduled before work starts"
+      ],
+      "bestPractices": [
+        "Write a measurable brief",
+        "Identify risks and dependencies early",
+        "Define success before selecting tactics"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "examples": [
+        "Professional application of Planning Best Practices in a studio review."
+      ],
+      "commonMistakes": [
+        "Starting with execution before objectives",
+        "No allowance for review or revisions"
+      ],
+      "qualityRules": [
+        "Brief, audience, and acceptance criteria are documented",
+        "Dependencies and rights are known",
+        "Review gates are scheduled before work starts"
+      ],
+      "decisionRules": [
+        "Apply: Brief, audience, and acceptance criteria are documented",
+        "Apply: Dependencies and rights are known",
+        "Apply: Review gates are scheduled before work starts"
+      ],
+      "workflowSteps": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "prerequisites": [
+        "Set the objective"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "check-pre-production-checklist",
+        "std-professional-workflows",
+        "std-production-standards",
+        "std-quality-assurance"
+      ],
+      "definitions": [
+        "Planning best practices turn a broad request into a documented objective, audience, scope, constraints, quality criteria, schedule, and decision path before production begins."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting with execution before objectives",
+        "Avoid: No allowance for review or revisions"
+      ],
+      "recommendations": [
+        "Write a measurable brief",
+        "Identify risks and dependencies early",
+        "Define success before selecting tactics"
+      ],
+      "professionalStandards": [
+        "Brief, audience, and acceptance criteria are documented",
+        "Dependencies and rights are known",
+        "Review gates are scheduled before work starts"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:planning-best-practices",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Write a measurable brief",
+      "Identify risks and dependencies early",
+      "Define success before selecting tactics"
+    ],
+    "bestPractices": [
+      "Write a measurable brief",
+      "Identify risks and dependencies early",
+      "Define success before selecting tactics"
+    ],
+    "decisionRules": [
+      "Quality rule: Brief, audience, and acceptance criteria are documented",
+      "Quality rule: Dependencies and rights are known",
+      "Quality rule: Review gates are scheduled before work starts"
+    ]
+  }
+}

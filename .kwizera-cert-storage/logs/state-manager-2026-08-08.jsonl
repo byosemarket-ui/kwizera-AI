@@ -1,0 +1,361 @@
+{"timestamp":"2026-08-08T15:30:02.411Z","level":"info","event":"state-change","message":"AI State Manager initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:02.881Z","level":"info","event":"state-change","message":"application: stopped → starting","data":{"reason":"state-update"}}
+{"timestamp":"2026-08-08T15:30:03.216Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f01cfc1c-1786203003197","data":{"reason":"application-start","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:03.218Z","level":"info","event":"state-change","message":"application: starting → loading","data":{"reason":"state-update"}}
+{"timestamp":"2026-08-08T15:30:10.032Z","level":"info","event":"state-change","message":"module:memory-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Persistent Memory Foundation"}}
+{"timestamp":"2026-08-08T15:30:10.035Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f6a2abf3-1786203010033","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.076Z","level":"info","event":"state-change","message":"module:memory-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:10.145Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0fd2ec4e-1786203010078","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.153Z","level":"info","event":"state-change","message":"module:memory-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:10.156Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a9c94998-1786203010154","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.165Z","level":"info","event":"state-change","message":"module:memory-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:10.228Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-81b26ec1-1786203010172","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.234Z","level":"info","event":"state-change","message":"module:memory-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:10.241Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-5616ec33-1786203010235","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.253Z","level":"info","event":"state-change","message":"module:reasoning-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:30:10.256Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e530d553-1786203010255","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.269Z","level":"info","event":"state-change","message":"module:reasoning-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:10.276Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-1cf79aa7-1786203010273","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.287Z","level":"info","event":"state-change","message":"module:reasoning-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:10.292Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fbe017c7-1786203010289","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.296Z","level":"info","event":"state-change","message":"module:reasoning-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:10.577Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-60e3145a-1786203010297","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.584Z","level":"info","event":"state-change","message":"module:reasoning-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:10.952Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-151b5c9b-1786203010585","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:10.962Z","level":"info","event":"state-change","message":"module:decision-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Decision Engine"}}
+{"timestamp":"2026-08-08T15:30:10.965Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-98298655-1786203010963","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.349Z","level":"info","event":"state-change","message":"module:decision-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:11.456Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9ecc1993-1786203011350","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.599Z","level":"info","event":"state-change","message":"module:decision-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:11.602Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-afeae04c-1786203011600","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.605Z","level":"info","event":"state-change","message":"module:decision-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:11.608Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-1bc50d2d-1786203011606","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.612Z","level":"info","event":"state-change","message":"module:decision-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:11.733Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f545c3d0-1786203011613","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.740Z","level":"info","event":"state-change","message":"module:planning-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Planning Engine"}}
+{"timestamp":"2026-08-08T15:30:11.907Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-836a81c7-1786203011741","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.916Z","level":"info","event":"state-change","message":"module:planning-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:11.918Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-41d0c06e-1786203011917","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:11.931Z","level":"info","event":"state-change","message":"module:planning-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:12.107Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-472feacf-1786203011931","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.114Z","level":"info","event":"state-change","message":"module:planning-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:12.117Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a16335ae-1786203012115","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.120Z","level":"info","event":"state-change","message":"module:planning-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:12.124Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b8ec5019-1786203012123","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.133Z","level":"info","event":"state-change","message":"module:task-manager: unknown → registered","data":{"reason":"Registered KWIZERA AI Task Manager"}}
+{"timestamp":"2026-08-08T15:30:12.136Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f0221e4f-1786203012134","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.143Z","level":"info","event":"state-change","message":"module:task-manager: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:12.352Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-74993acf-1786203012144","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.360Z","level":"info","event":"state-change","message":"module:task-manager: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:12.625Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-38c42f9b-1786203012361","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:12.629Z","level":"info","event":"state-change","message":"module:task-manager: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:13.126Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ef5ce1b5-1786203012630","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:13.129Z","level":"info","event":"state-change","message":"module:task-manager: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:13.348Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-bdb39ba4-1786203013130","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:13.362Z","level":"info","event":"state-change","message":"module:workflow-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Workflow Engine"}}
+{"timestamp":"2026-08-08T15:30:13.365Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-c54c5509-1786203013363","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:13.378Z","level":"info","event":"state-change","message":"module:workflow-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:13.497Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6deb7524-1786203013379","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:14.078Z","level":"info","event":"state-change","message":"module:workflow-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:14.082Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-c0e39c1a-1786203014080","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:14.085Z","level":"info","event":"state-change","message":"module:workflow-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:14.303Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-de257e86-1786203014086","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:14.329Z","level":"info","event":"state-change","message":"module:workflow-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:14.539Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-40cda792-1786203014336","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:14.825Z","level":"info","event":"state-change","message":"module:recommendation-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Recommendation Engine"}}
+{"timestamp":"2026-08-08T15:30:15.372Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a2d07cb6-1786203014826","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:15.424Z","level":"info","event":"state-change","message":"module:recommendation-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:16.101Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-4a599d5a-1786203015427","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:16.376Z","level":"info","event":"state-change","message":"module:recommendation-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:17.011Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-65835eda-1786203016377","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:17.016Z","level":"info","event":"state-change","message":"module:recommendation-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:17.019Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0ff11620-1786203017017","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:17.022Z","level":"info","event":"state-change","message":"module:recommendation-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:17.025Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7bd07ab8-1786203017023","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:17.031Z","level":"info","event":"state-change","message":"module:multi-domain-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Multi-Domain Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:30:17.235Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6a6164f4-1786203017033","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:17.900Z","level":"info","event":"state-change","message":"module:multi-domain-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:18.983Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9fc16500-1786203017901","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.043Z","level":"info","event":"state-change","message":"module:multi-domain-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:19.047Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9b32b818-1786203019045","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.058Z","level":"info","event":"state-change","message":"module:multi-domain-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:19.063Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-630b2866-1786203019060","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.068Z","level":"info","event":"state-change","message":"module:multi-domain-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:19.376Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-89dc4bf3-1786203019069","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.386Z","level":"info","event":"state-change","message":"module:self-review-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Self-Review & Professional Evaluation Engine"}}
+{"timestamp":"2026-08-08T15:30:19.393Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-39f0578e-1786203019387","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.399Z","level":"info","event":"state-change","message":"module:self-review-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:19.402Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6a6de6e7-1786203019400","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.416Z","level":"info","event":"state-change","message":"module:self-review-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:19.637Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-767ca8fb-1786203019416","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.646Z","level":"info","event":"state-change","message":"module:self-review-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:19.654Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-334068eb-1786203019647","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.659Z","level":"info","event":"state-change","message":"module:self-review-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:19.663Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fb8303ef-1786203019661","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.683Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: unknown → registered","data":{"reason":"Registered KWIZERA AI Professional Reasoning & Decision Certification"}}
+{"timestamp":"2026-08-08T15:30:19.687Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-1a2cef83-1786203019685","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:19.694Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:30:20.048Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9bfdbf7c-1786203019695","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:20.058Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:30:20.065Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-dfdd470f-1786203020059","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:20.068Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:30:20.080Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b8ac375d-1786203020069","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:30:20.083Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:30:20.205Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-551274f2-1786203020084","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:10.520Z","level":"info","event":"state-change","message":"AI State Manager initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:12.472Z","level":"info","event":"snapshot","message":"Snapshot saved: recovery-a771f09d","data":{"reason":"unexpected-shutdown-recovery","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:12.473Z","level":"warn","event":"recovery","message":"Recovered from unclean shutdown; 0 workflow(s), 0 task(s) preserved","data":{"snapshotId":"snap-f01cfc1c-1786203003197","unfinishedWorkflows":[],"unfinishedTasks":[]}}
+{"timestamp":"2026-08-08T15:47:12.860Z","level":"info","event":"state-change","message":"application: starting → recovering","data":{"reason":"unexpected-shutdown-recovery"}}
+{"timestamp":"2026-08-08T15:47:12.920Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fadad4f5-1786204032877","data":{"reason":"recovery-complete","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:12.944Z","level":"info","event":"state-change","message":"application: recovering → loading","data":{"reason":"state-update"}}
+{"timestamp":"2026-08-08T15:47:28.137Z","level":"info","event":"state-change","message":"module:memory-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Persistent Memory Foundation"}}
+{"timestamp":"2026-08-08T15:47:28.167Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0b58ad17-1786204048138","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.619Z","level":"info","event":"state-change","message":"module:memory-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:28.663Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-abac1314-1786204048620","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.668Z","level":"info","event":"state-change","message":"module:memory-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:28.673Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-048686c0-1786204048669","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.677Z","level":"info","event":"state-change","message":"module:memory-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:28.756Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-37e5c556-1786204048678","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.760Z","level":"info","event":"state-change","message":"module:memory-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:28.918Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7754dc09-1786204048761","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.934Z","level":"info","event":"state-change","message":"module:reasoning-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:47:28.937Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-28249175-1786204048935","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.947Z","level":"info","event":"state-change","message":"module:reasoning-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:28.951Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6f290c39-1786204048949","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:28.960Z","level":"info","event":"state-change","message":"module:reasoning-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.014Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-eddf748c-1786204048961","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.020Z","level":"info","event":"state-change","message":"module:reasoning-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.023Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a4c571ba-1786204049022","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.027Z","level":"info","event":"state-change","message":"module:reasoning-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.036Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7abe965e-1786204049032","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.056Z","level":"info","event":"state-change","message":"module:decision-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Decision Engine"}}
+{"timestamp":"2026-08-08T15:47:29.059Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-4f8cef0f-1786204049057","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.088Z","level":"info","event":"state-change","message":"module:decision-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.216Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-70d14cfb-1786204049089","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.240Z","level":"info","event":"state-change","message":"module:decision-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.242Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-db18a110-1786204049240","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.249Z","level":"info","event":"state-change","message":"module:decision-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.255Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e3072919-1786204049251","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.258Z","level":"info","event":"state-change","message":"module:decision-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.260Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-474c661c-1786204049259","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.275Z","level":"info","event":"state-change","message":"module:planning-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Planning Engine"}}
+{"timestamp":"2026-08-08T15:47:29.745Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8fa8bc3e-1786204049276","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.753Z","level":"info","event":"state-change","message":"module:planning-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.755Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a03407a0-1786204049754","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.770Z","level":"info","event":"state-change","message":"module:planning-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.774Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7e409e33-1786204049771","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.777Z","level":"info","event":"state-change","message":"module:planning-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:29.780Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-5c1c9453-1786204049778","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.784Z","level":"info","event":"state-change","message":"module:planning-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:29.805Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-3620c1b0-1786204049785","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.910Z","level":"info","event":"state-change","message":"module:task-manager: unknown → registered","data":{"reason":"Registered KWIZERA AI Task Manager"}}
+{"timestamp":"2026-08-08T15:47:29.914Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7e6db047-1786204049911","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.938Z","level":"info","event":"state-change","message":"module:task-manager: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:29.955Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-bcfe8732-1786204049939","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.968Z","level":"info","event":"state-change","message":"module:task-manager: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:29.971Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0adacfbf-1786204049969","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:29.974Z","level":"info","event":"state-change","message":"module:task-manager: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.224Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-2581db66-1786204049975","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.227Z","level":"info","event":"state-change","message":"module:task-manager: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.229Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-df20de15-1786204050228","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.237Z","level":"info","event":"state-change","message":"module:workflow-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Workflow Engine"}}
+{"timestamp":"2026-08-08T15:47:30.241Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-13c163a6-1786204050237","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.247Z","level":"info","event":"state-change","message":"module:workflow-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:30.250Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f8c2e9f2-1786204050248","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.397Z","level":"info","event":"state-change","message":"module:workflow-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:30.468Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a0851256-1786204050398","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.473Z","level":"info","event":"state-change","message":"module:workflow-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.476Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ba7fae76-1786204050474","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.479Z","level":"info","event":"state-change","message":"module:workflow-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.483Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b95af91d-1786204050480","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.491Z","level":"info","event":"state-change","message":"module:recommendation-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Recommendation Engine"}}
+{"timestamp":"2026-08-08T15:47:30.494Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9367f182-1786204050492","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.501Z","level":"info","event":"state-change","message":"module:recommendation-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:30.512Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-d5122b62-1786204050503","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.519Z","level":"info","event":"state-change","message":"module:recommendation-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:30.522Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7e99cac7-1786204050521","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.845Z","level":"info","event":"state-change","message":"module:recommendation-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:30.849Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9aa676eb-1786204050847","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.852Z","level":"info","event":"state-change","message":"module:recommendation-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:30.855Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-934f5f66-1786204050853","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:30.864Z","level":"info","event":"state-change","message":"module:multi-domain-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Multi-Domain Reasoning Engine"}}
+{"timestamp":"2026-08-08T15:47:31.024Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-3fa5744f-1786204050865","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.033Z","level":"info","event":"state-change","message":"module:multi-domain-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.037Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-2203a5d1-1786204051034","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.044Z","level":"info","event":"state-change","message":"module:multi-domain-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.049Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6928ab84-1786204051046","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.053Z","level":"info","event":"state-change","message":"module:multi-domain-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.055Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-bd101b8f-1786204051054","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.059Z","level":"info","event":"state-change","message":"module:multi-domain-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.079Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-bcb8baff-1786204051060","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.086Z","level":"info","event":"state-change","message":"module:self-review-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Self-Review & Professional Evaluation Engine"}}
+{"timestamp":"2026-08-08T15:47:31.089Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-069b3cf2-1786204051087","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.096Z","level":"info","event":"state-change","message":"module:self-review-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.234Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-79d5288f-1786204051097","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.250Z","level":"info","event":"state-change","message":"module:self-review-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.255Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8790dee3-1786204051252","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.269Z","level":"info","event":"state-change","message":"module:self-review-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.379Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-2b76b820-1786204051270","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.383Z","level":"info","event":"state-change","message":"module:self-review-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.397Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-eaecab47-1786204051385","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.406Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: unknown → registered","data":{"reason":"Registered KWIZERA AI Professional Reasoning & Decision Certification"}}
+{"timestamp":"2026-08-08T15:47:31.730Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ace8d5f1-1786204051412","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.737Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T15:47:31.739Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-132ecf48-1786204051737","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.745Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T15:47:31.868Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b4754669-1786204051746","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.872Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T15:47:31.876Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6c815b18-1786204051874","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T15:47:31.880Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T15:47:31.883Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f72839a9-1786204051881","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:18.561Z","level":"info","event":"state-change","message":"module:knowledge-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Knowledge Foundation"}}
+{"timestamp":"2026-08-08T19:46:18.996Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-1b6937c5-1786218378737","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:19.679Z","level":"info","event":"state-change","message":"module:knowledge-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:19.683Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8a045b29-1786218379681","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:19.702Z","level":"info","event":"state-change","message":"module:knowledge-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:19.716Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-3c6fe35c-1786218379703","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:19.734Z","level":"info","event":"state-change","message":"module:knowledge-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:19.878Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-414f2301-1786218379735","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:19.882Z","level":"info","event":"state-change","message":"module:knowledge-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:19.884Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ec07212c-1786218379883","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:20.024Z","level":"info","event":"state-change","message":"module:conversation-engine: unknown → registered","data":{"reason":"Registered AI Me Conversation & Understanding Engine"}}
+{"timestamp":"2026-08-08T19:46:20.034Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-642c482f-1786218380024","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:20.039Z","level":"info","event":"state-change","message":"module:conversation-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:20.234Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ad9f1ec3-1786218380040","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:20.726Z","level":"info","event":"state-change","message":"module:conversation-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:20.729Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-d4809cf0-1786218380727","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:20.733Z","level":"info","event":"state-change","message":"module:conversation-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:21.167Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-94f6acc3-1786218380733","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:21.172Z","level":"info","event":"state-change","message":"module:conversation-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:21.234Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-836d0c19-1786218381173","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:30.455Z","level":"info","event":"state-change","message":"module:product-intelligence: unknown → registered","data":{"reason":"Registered KWIZERA AI Product Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:30.468Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-48934b6d-1786218390456","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:30.476Z","level":"info","event":"state-change","message":"module:product-intelligence: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:30.482Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-1024ceed-1786218390477","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:30.487Z","level":"info","event":"state-change","message":"module:product-intelligence: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:30.591Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fdac1cc3-1786218390488","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:30.594Z","level":"info","event":"state-change","message":"module:product-intelligence: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:30.597Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9ddd699d-1786218390595","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:30.602Z","level":"info","event":"state-change","message":"module:product-intelligence: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:30.605Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-63e0f9d0-1786218390604","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:37.561Z","level":"info","event":"state-change","message":"module:image-intelligence: unknown → registered","data":{"reason":"Registered KWIZERA AI Image Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:37.728Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-54790255-1786218397710","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:37.737Z","level":"info","event":"state-change","message":"module:image-intelligence: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:37.740Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-4abce0fb-1786218397738","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:37.749Z","level":"info","event":"state-change","message":"module:image-intelligence: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:37.890Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-de532194-1786218397750","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:37.910Z","level":"info","event":"state-change","message":"module:image-intelligence: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:37.917Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-3aefcf83-1786218397911","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:38.015Z","level":"info","event":"state-change","message":"module:image-intelligence: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:38.017Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a174efac-1786218398015","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:44.552Z","level":"info","event":"state-change","message":"module:video-intelligence: unknown → registered","data":{"reason":"Registered KWIZERA AI Video Intelligence Foundation"}}
+{"timestamp":"2026-08-08T19:46:44.602Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ee6a8433-1786218404590","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:44.613Z","level":"info","event":"state-change","message":"module:video-intelligence: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:44.761Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-baedd0b5-1786218404615","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:44.778Z","level":"info","event":"state-change","message":"module:video-intelligence: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:44.788Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ac53152f-1786218404779","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:44.795Z","level":"info","event":"state-change","message":"module:video-intelligence: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:44.798Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-4732e1ef-1786218404796","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:44.802Z","level":"info","event":"state-change","message":"module:video-intelligence: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:44.804Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-95e4ba46-1786218404803","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:55.638Z","level":"info","event":"state-change","message":"module:video-generation: unknown → registered","data":{"reason":"Registered KWIZERA AI Video Generation Foundation"}}
+{"timestamp":"2026-08-08T19:46:56.104Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-735ac170-1786218415639","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:56.121Z","level":"info","event":"state-change","message":"module:video-generation: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:46:56.125Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-47c0cf36-1786218416122","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:56.131Z","level":"info","event":"state-change","message":"module:video-generation: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:46:56.138Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8b65b799-1786218416132","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:56.142Z","level":"info","event":"state-change","message":"module:video-generation: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:46:56.145Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-d0492a32-1786218416143","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:46:56.148Z","level":"info","event":"state-change","message":"module:video-generation: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:46:56.214Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e8914c49-1786218416151","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:04.963Z","level":"info","event":"state-change","message":"module:image-generation: unknown → registered","data":{"reason":"Registered KWIZERA AI Image Generation Foundation"}}
+{"timestamp":"2026-08-08T19:47:04.966Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e544306c-1786218424964","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:04.995Z","level":"info","event":"state-change","message":"module:image-generation: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:05.205Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-f5ee22ce-1786218424996","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:05.210Z","level":"info","event":"state-change","message":"module:image-generation: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:05.251Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-74b4fd9d-1786218425211","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:05.255Z","level":"info","event":"state-change","message":"module:image-generation: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:05.259Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fde465bf-1786218425256","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:05.270Z","level":"info","event":"state-change","message":"module:image-generation: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:47:05.352Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-58db80cc-1786218425348","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:16.077Z","level":"info","event":"state-change","message":"module:audio-generation: unknown → registered","data":{"reason":"Registered KWIZERA AI Audio Generation Foundation"}}
+{"timestamp":"2026-08-08T19:47:16.397Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9988c72f-1786218436078","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:16.512Z","level":"info","event":"state-change","message":"module:audio-generation: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:16.736Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-06ed0ee5-1786218436719","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:17.398Z","level":"info","event":"state-change","message":"module:audio-generation: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:17.437Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-9b4e7674-1786218437435","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:17.773Z","level":"info","event":"state-change","message":"module:audio-generation: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:18.971Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-59a3af0e-1786218437774","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:18.976Z","level":"info","event":"state-change","message":"module:audio-generation: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:47:19.262Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-623d17be-1786218439014","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:23.276Z","level":"info","event":"state-change","message":"application: loading → ready","data":{"reason":"state-update"}}
+{"timestamp":"2026-08-08T19:47:23.793Z","level":"info","event":"state-change","message":"module:recovery-engine: unknown → registered","data":{"reason":"Registered KWIZERA AI Recovery Engine"}}
+{"timestamp":"2026-08-08T19:47:24.011Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-81c2ea5f-1786218443794","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:24.041Z","level":"info","event":"state-change","message":"module:recovery-engine: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:24.046Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-5fd9bf83-1786218444043","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:24.052Z","level":"info","event":"state-change","message":"module:recovery-engine: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:24.055Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-7d9f1131-1786218444053","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:24.060Z","level":"info","event":"state-change","message":"module:recovery-engine: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:24.066Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-ebfb0235-1786218444063","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:24.071Z","level":"info","event":"state-change","message":"module:recovery-engine: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:47:24.241Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6af43987-1786218444072","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:28.057Z","level":"info","event":"state-change","message":"module:health-monitor: unknown → registered","data":{"reason":"Registered KWIZERA AI Health Monitor"}}
+{"timestamp":"2026-08-08T19:47:28.265Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e3ff208d-1786218448253","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:28.271Z","level":"info","event":"state-change","message":"module:health-monitor: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:28.275Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e5f26dd9-1786218448272","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:28.285Z","level":"info","event":"state-change","message":"module:health-monitor: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:28.292Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-a3f3dfb4-1786218448287","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:28.295Z","level":"info","event":"state-change","message":"module:health-monitor: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:28.298Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-514f989b-1786218448296","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:28.302Z","level":"info","event":"state-change","message":"module:health-monitor: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:47:28.373Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-84cfbc93-1786218448303","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:30.075Z","level":"info","event":"state-change","message":"module:ai-model-management: unknown → registered","data":{"reason":"Registered KWIZERA AI Model Management"}}
+{"timestamp":"2026-08-08T19:47:30.362Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-5f116a71-1786218450075","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:30.368Z","level":"info","event":"state-change","message":"module:ai-model-management: registered → initializing","data":{"reason":"Initializing module"}}
+{"timestamp":"2026-08-08T19:47:30.370Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-07d7f4c5-1786218450369","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:30.375Z","level":"info","event":"state-change","message":"module:ai-model-management: initializing → loading","data":{"reason":"Loading module"}}
+{"timestamp":"2026-08-08T19:47:30.378Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b256d9ad-1786218450376","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:30.381Z","level":"info","event":"state-change","message":"module:ai-model-management: loading → ready","data":{"reason":"Module ready"}}
+{"timestamp":"2026-08-08T19:47:30.383Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8d1ec91e-1786218450381","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:30.386Z","level":"info","event":"state-change","message":"module:ai-model-management: ready → running","data":{"reason":"Module running"}}
+{"timestamp":"2026-08-08T19:47:30.714Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-3d79e0d6-1786218450387","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:47:39.019Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-869e2cfd-1786218458963","data":{"reason":"application-ready","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.025Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.115Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-b6e03bfc-1786218593051","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.303Z","level":"info","event":"state-change","message":"module:professional-reasoning-certification: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.306Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-e5849376-1786218593304","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.311Z","level":"info","event":"state-change","message":"module:self-review-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.636Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6116d8f2-1786218593311","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.840Z","level":"info","event":"state-change","message":"module:self-review-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.843Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-c594147d-1786218593842","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.847Z","level":"info","event":"state-change","message":"module:multi-domain-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.850Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-c4f02edd-1786218593848","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.856Z","level":"info","event":"state-change","message":"module:multi-domain-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:53.858Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-2f65e2cf-1786218593856","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.864Z","level":"info","event":"state-change","message":"module:recommendation-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:53.866Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-8ecb527e-1786218593865","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:53.871Z","level":"info","event":"state-change","message":"module:recommendation-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.048Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0ebb5050-1786218593871","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.052Z","level":"info","event":"state-change","message":"module:workflow-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.054Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-6c6195a3-1786218594053","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.063Z","level":"info","event":"state-change","message":"module:workflow-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.066Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-fbf4638f-1786218594063","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.071Z","level":"info","event":"state-change","message":"module:decision-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.074Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-5f7c95d1-1786218594072","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.084Z","level":"info","event":"state-change","message":"module:decision-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.253Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-515c7858-1786218594085","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.257Z","level":"info","event":"state-change","message":"module:task-manager: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.260Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-cbe6fdb9-1786218594258","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.264Z","level":"info","event":"state-change","message":"module:task-manager: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.266Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-34a2af45-1786218594265","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.270Z","level":"info","event":"state-change","message":"module:planning-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.273Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-2181ba04-1786218594271","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.277Z","level":"info","event":"state-change","message":"module:planning-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.567Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-0cdfbef3-1786218594278","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.571Z","level":"info","event":"state-change","message":"module:reasoning-engine: running → stopping","data":{"reason":"Stopping module"}}
+{"timestamp":"2026-08-08T19:49:54.574Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-48d36542-1786218594572","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.578Z","level":"info","event":"state-change","message":"module:reasoning-engine: stopping → stopped","data":{"reason":"Module stopped"}}
+{"timestamp":"2026-08-08T19:49:54.581Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-edb93959-1786218594579","data":{"reason":"module-state-change","cleanShutdown":false}}
+{"timestamp":"2026-08-08T19:49:54.589Z","level":"info","event":"state-change","message":"application: ready → stopping","data":{"reason":"state-update"}}
+{"timestamp":"2026-08-08T19:49:54.593Z","level":"info","event":"snapshot","message":"Snapshot saved: snap-52287f6c-1786218594590","data":{"reason":"requested","cleanShutdown":true}}
+{"timestamp":"2026-08-08T19:49:54.600Z","level":"info","event":"state-change","message":"application: stopping → stopped","data":{"reason":"state-update"}}

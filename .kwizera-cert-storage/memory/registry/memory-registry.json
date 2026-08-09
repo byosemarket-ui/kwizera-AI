@@ -1,0 +1,232 @@
+{
+  "foundationVersion": "0.1.0",
+  "storageRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage",
+  "lastUpdated": "2026-08-08T19:49:49.096Z",
+  "modules": [
+    {
+      "memoryId": "persistent-memory",
+      "memoryName": "Relationship Memory",
+      "version": "0.1.0",
+      "status": "registered",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\relationships",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:18.485Z",
+      "accessPermissions": [
+        "read",
+        "write",
+        "update"
+      ],
+      "category": "persistent-memory",
+      "implemented": true
+    },
+    {
+      "memoryId": "project-memory",
+      "memoryName": "Project Memory",
+      "version": "0.1.0",
+      "status": "registered",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\projects",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:16.343Z",
+      "accessPermissions": [
+        "read",
+        "write",
+        "update"
+      ],
+      "category": "project-memory",
+      "implemented": true
+    },
+    {
+      "memoryId": "product-memory",
+      "memoryName": "Product Memory",
+      "version": "0.1.0",
+      "status": "registered",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\products",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:18.054Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "product-memory",
+      "implemented": true
+    },
+    {
+      "memoryId": "video-memory",
+      "memoryName": "Video Memory",
+      "version": "0.1.0",
+      "status": "registered",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\videos",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:17.393Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "video-memory",
+      "implemented": true
+    },
+    {
+      "memoryId": "marketing-memory",
+      "memoryName": "Marketing Memory",
+      "version": "0.1.0",
+      "status": "registered",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\marketing",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:17.995Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "marketing-memory",
+      "implemented": true
+    },
+    {
+      "memoryId": "knowledge-memory",
+      "memoryName": "Knowledge Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine",
+        "knowledge-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\knowledge",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "knowledge-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "language-memory",
+      "memoryName": "Language Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\language",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "language-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "learning-memory",
+      "memoryName": "Learning Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine",
+        "learning-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\learning",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write",
+        "update"
+      ],
+      "category": "learning-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "user-preference-memory",
+      "memoryName": "User Preference Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\user-preferences",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write",
+        "update"
+      ],
+      "category": "user-preference-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "workflow-memory",
+      "memoryName": "Workflow Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine",
+        "workflow-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\workflows",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "workflow-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "decision-memory",
+      "memoryName": "Decision Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine",
+        "decision-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\decisions",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "decision-memory",
+      "implemented": false
+    },
+    {
+      "memoryId": "reasoning-memory",
+      "memoryName": "Reasoning Memory",
+      "version": "0.0.0",
+      "status": "prepared",
+      "dependencies": [
+        "memory-engine",
+        "reasoning-engine"
+      ],
+      "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\reasoning",
+      "healthStatus": "excellent",
+      "lastUpdate": "2026-08-08T15:47:13.969Z",
+      "accessPermissions": [
+        "read",
+        "write"
+      ],
+      "category": "reasoning-memory",
+      "implemented": false
+    }
+  ]
+}

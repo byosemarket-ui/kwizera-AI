@@ -1,0 +1,326 @@
+{
+  "knowledgeId": "vp-product-advertisement-videos",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Product Advertisement Videos",
+  "description": "How to present products on camera so features, benefits, and desire are clear through framing, motion, and editorial emphasis.",
+  "summary": "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing.",
+  "tags": [
+    "video-production",
+    "professional",
+    "product-advertisement-videos",
+    "product ad",
+    "hero shot",
+    "demo",
+    "packaging",
+    "benefit"
+  ],
+  "keywords": [
+    "product ad",
+    "hero shot",
+    "demo",
+    "packaging",
+    "benefit"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-commercial-video-production",
+    "vp-shot-types",
+    "vp-shot-planning",
+    "vp-scene-planning",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-lighting-knowledge",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:30:55.175Z",
+  "lastUpdated": "2026-08-08T15:30:55.175Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-product-advertisement-videos",
+  "integrityStatus": "verified",
+  "contentHash": "cb6638216ef196306d338e8a7b45c95ac64133d396ac7778f435a9ebee33b64c",
+  "searchableText": "product advertisement videos how to present products on camera so features, benefits, and desire are clear through framing, motion, and editorial emphasis. product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing. professional-video-production video-production professional product-advertisement-videos product ad hero shot demo packaging benefit product ad hero shot demo packaging benefit",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "product-advertisement-videos",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-advertisement-videos",
+    "professionalDefinition": "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-product-advertisement-videos",
+      "title": "Product Advertisement Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "How to present products on camera so features, benefits, and desire are clear through framing, motion, and editorial emphasis.",
+      "coreConcepts": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "definitions": [
+        "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing."
+      ],
+      "rules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "bestPractices": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "professionalTechniques": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "workflow": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "decisionRules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "commonMistakes": [
+        "Beauty footage without proof of use or outcome.",
+        "Inconsistent product orientation across shots.",
+        "Busy backgrounds competing with packaging detail."
+      ],
+      "troubleshooting": [
+        "Avoid: Beauty footage without proof of use or outcome.",
+        "Avoid: Inconsistent product orientation across shots.",
+        "Avoid: Busy backgrounds competing with packaging detail."
+      ],
+      "recommendations": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "examples": [
+        "Skincare ad: texture macro → application → result claim → purchase CTA.",
+        "Hardware demo: problem setup → product in action → specs overlay → buy now."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "commercial-video-production",
+        "shot-types",
+        "shot-planning",
+        "scene-planning"
+      ],
+      "keywords": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:product-advertisement-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Advertisement Videos",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "How to present products on camera so features, benefits, and desire are clear through framing, motion, and editorial emphasis.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Establish the product hero early and return to it as a visual anchor.",
+            "Demonstrate benefit in use, not only beauty close-ups.",
+            "Control reflections, labels, and packaging readability.",
+            "Sync motion and cut points to the product's most persuasive moment."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List must-show features and must-prove benefits.",
+            "Plan hero, detail, context, and usage coverage.",
+            "Capture controlled lighting for texture and brand color accuracy.",
+            "Edit feature → benefit → proof → CTA."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If a feature cannot be shown, do not claim it as a visual proof beat.",
+            "Always keep packaging readable for at least one clear hero moment.",
+            "When in doubt between style and clarity, choose clarity for product ads.",
+            "Never hide the product for more than a few seconds in short ads."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Skincare ad: texture macro → application → result claim → purchase CTA.",
+            "Hardware demo: problem setup → product in action → specs overlay → buy now."
+          ]
+        }
+      ],
+      "concepts": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "entities": [
+        "Product Advertisement Videos",
+        "video-production-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "rules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "bestPractices": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "professionalTechniques": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "examples": [
+        "Skincare ad: texture macro → application → result claim → purchase CTA.",
+        "Hardware demo: problem setup → product in action → specs overlay → buy now."
+      ],
+      "commonMistakes": [
+        "Beauty footage without proof of use or outcome.",
+        "Inconsistent product orientation across shots.",
+        "Busy backgrounds competing with packaging detail."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "workflowSteps": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "prerequisites": [
+        "List must-show features and must-prove benefits."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-commercial-video-production",
+        "vp-shot-types",
+        "vp-shot-planning",
+        "vp-scene-planning"
+      ],
+      "definitions": [
+        "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing."
+      ],
+      "troubleshooting": [
+        "Avoid: Beauty footage without proof of use or outcome.",
+        "Avoid: Inconsistent product orientation across shots.",
+        "Avoid: Busy backgrounds competing with packaging detail."
+      ],
+      "recommendations": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "check-quality-review-checklist",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-checklists",
+  "title": "Quality Review Checklist",
+  "description": "A cross-discipline checklist for creative, technical, brand, audience, and delivery quality.",
+  "summary": "Give AI Me a universal professional review guide.",
+  "tags": [
+    "professional-checklists",
+    "professional",
+    "quality-review-checklist",
+    "quality review checklist",
+    "QC",
+    "acceptance criteria",
+    "defects",
+    "review gate"
+  ],
+  "keywords": [
+    "quality review checklist",
+    "QC",
+    "acceptance criteria",
+    "defects",
+    "review gate"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-quality-assurance",
+    "std-review-process",
+    "qeval-visual-quality-evaluation",
+    "check-final-approval-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:58.691Z",
+  "lastUpdated": "2026-08-08T19:18:58.691Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\check-quality-review-checklist",
+  "integrityStatus": "verified",
+  "contentHash": "9bd4eeaf30eddf850e6ddcff7b7dd017b9045a1d2d14022d69a84e586f7dcdbb",
+  "searchableText": "quality review checklist a cross-discipline checklist for creative, technical, brand, audience, and delivery quality. give ai me a universal professional review guide. professional-checklists professional-checklists professional quality-review-checklist quality review checklist qc acceptance criteria defects review gate quality review checklist qc acceptance criteria defects review gate",
+  "classification": {
+    "category": "professional-checklists",
+    "topic": "quality-review-checklist",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 95,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "quality-review-checklist",
+    "kind": "professional-checklists",
+    "purpose": "Give AI Me a universal professional review guide.",
+    "professionalDefinition": "A quality review checklist is a consolidated control list that checks the material quality criteria of a deliverable before it advances to final approval.",
+    "qualityRules": [
+      "Creative, technical, and commercial criteria are checked",
+      "Critical defects are resolved or formally accepted",
+      "Review outcome is recorded"
+    ],
+    "workflow": [
+      "Set review scope",
+      "Check creative and audience criteria",
+      "Check technical and delivery criteria",
+      "Record defects",
+      "Confirm resolution or escalation"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "check-quality-review-checklist",
+      "title": "Quality Review Checklist",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "description": "A cross-discipline checklist for creative, technical, brand, audience, and delivery quality.",
+      "coreConcepts": [
+        "quality review checklist",
+        "QC",
+        "acceptance criteria",
+        "defects",
+        "review gate"
+      ],
+      "definitions": [
+        "A quality review checklist is a consolidated control list that checks the material quality criteria of a deliverable before it advances to final approval.",
+        "Give AI Me a universal professional review guide."
+      ],
+      "rules": [
+        "Quality rule: Creative, technical, and commercial criteria are checked",
+        "Quality rule: Critical defects are resolved or formally accepted",
+        "Quality rule: Review outcome is recorded"
+      ],
+      "bestPractices": [
+        "Review in the intended context",
+        "Use specialist checks for high-risk areas",
+        "Record pass, fail, and exception evidence"
+      ],
+      "professionalTechniques": [
+        "Set review scope",
+        "Check creative and audience criteria",
+        "Check technical and delivery criteria",
+        "Record defects",
+        "Confirm resolution or escalation"
+      ],
+      "workflow": [
+        "Set review scope",
+        "Check creative and audience criteria",
+        "Check technical and delivery criteria",
+        "Record defects",
+        "Confirm resolution or escalation"
+      ],
+      "decisionRules": [
+        "Apply: Creative, technical, and commercial criteria are checked",
+        "Apply: Critical defects are resolved or formally accepted",
+        "Apply: Review outcome is recorded"
+      ],
+      "commonMistakes": [
+        "One person reviewing everything without criteria",
+        "Treating minor preferences as blocking defects"
+      ],
+      "troubleshooting": [
+        "Avoid: One person reviewing everything without criteria",
+        "Avoid: Treating minor preferences as blocking defects"
+      ],
+      "recommendations": [
+        "Review in the intended context",
+        "Use specialist checks for high-risk areas",
+        "Record pass, fail, and exception evidence"
+      ],
+      "examples": [
+        "Final QC grid covering visual, audio, story, brand, claims, platform, and file integrity."
+      ],
+      "professionalStandards": [
+        "Creative, technical, and commercial criteria are checked",
+        "Critical defects are resolved or formally accepted",
+        "Review outcome is recorded"
+      ],
+      "relatedTopics": [
+        "quality-assurance",
+        "review-process",
+        "visual-quality-evaluation",
+        "final-approval-checklist"
+      ],
+      "keywords": [
+        "quality review checklist",
+        "QC",
+        "acceptance criteria",
+        "defects",
+        "review gate"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:quality-review-checklist",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Quality Review Checklist",
+      "category": "professional-checklists",
+      "domain": "industry-standards-knowledge",
+      "description": "A cross-discipline checklist for creative, technical, brand, audience, and delivery quality.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A quality review checklist is a consolidated control list that checks the material quality criteria of a deliverable before it advances to final approval.",
+            "Give AI Me a universal professional review guide."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Creative, technical, and commercial criteria are checked",
+            "Critical defects are resolved or formally accepted",
+            "Review outcome is recorded"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Review in the intended context",
+            "Use specialist checks for high-risk areas",
+            "Record pass, fail, and exception evidence"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set review scope",
+            "Check creative and audience criteria",
+            "Check technical and delivery criteria",
+            "Record defects",
+            "Confirm resolution or escalation"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Final QC grid covering visual, audio, story, brand, claims, platform, and file integrity."
+          ]
+        }
+      ],
+      "concepts": [
+        "quality review checklist",
+        "QC",
+        "acceptance criteria",
+        "defects",
+        "review gate"
+      ],
+      "entities": [
+        "Quality Review Checklist",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "quality review checklist",
+        "QC",
+        "acceptance criteria",
+        "defects",
+        "review gate"
+      ],
+      "rules": [
+        "Creative, technical, and commercial criteria are checked",
+        "Critical defects are resolved or formally accepted",
+        "Review outcome is recorded"
+      ],
+      "bestPractices": [
+        "Review in the intended context",
+        "Use specialist checks for high-risk areas",
+        "Record pass, fail, and exception evidence"
+      ],
+      "professionalTechniques": [
+        "Set review scope",
+        "Check creative and audience criteria",
+        "Check technical and delivery criteria",
+        "Record defects",
+        "Confirm resolution or escalation"
+      ],
+      "examples": [
+        "Final QC grid covering visual, audio, story, brand, claims, platform, and file integrity."
+      ],
+      "commonMistakes": [
+        "One person reviewing everything without criteria",
+        "Treating minor preferences as blocking defects"
+      ],
+      "qualityRules": [
+        "Creative, technical, and commercial criteria are checked",
+        "Critical defects are resolved or formally accepted",
+        "Review outcome is recorded"
+      ],
+      "decisionRules": [
+        "Apply: Creative, technical, and commercial criteria are checked",
+        "Apply: Critical defects are resolved or formally accepted",
+        "Apply: Review outcome is recorded"
+      ],
+      "workflowSteps": [
+        "Set review scope",
+        "Check creative and audience criteria",
+        "Check technical and delivery criteria",
+        "Record defects",
+        "Confirm resolution or escalation"
+      ],
+      "prerequisites": [
+        "Set review scope"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-quality-assurance",
+        "std-review-process",
+        "qeval-visual-quality-evaluation",
+        "check-final-approval-checklist"
+      ],
+      "definitions": [
+        "A quality review checklist is a consolidated control list that checks the material quality criteria of a deliverable before it advances to final approval."
+      ],
+      "troubleshooting": [
+        "Avoid: One person reviewing everything without criteria",
+        "Avoid: Treating minor preferences as blocking defects"
+      ],
+      "recommendations": [
+        "Review in the intended context",
+        "Use specialist checks for high-risk areas",
+        "Record pass, fail, and exception evidence"
+      ],
+      "professionalStandards": [
+        "Creative, technical, and commercial criteria are checked",
+        "Critical defects are resolved or formally accepted",
+        "Review outcome is recorded"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:quality-review-checklist",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Review in the intended context",
+      "Use specialist checks for high-risk areas",
+      "Record pass, fail, and exception evidence"
+    ],
+    "bestPractices": [
+      "Review in the intended context",
+      "Use specialist checks for high-risk areas",
+      "Record pass, fail, and exception evidence"
+    ],
+    "decisionRules": [
+      "Quality rule: Creative, technical, and commercial criteria are checked",
+      "Quality rule: Critical defects are resolved or formally accepted",
+      "Quality rule: Review outcome is recorded"
+    ]
+  }
+}

@@ -1,0 +1,351 @@
+{
+  "knowledgeId": "qrule-storytelling-quality-rules",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-rules",
+  "title": "Storytelling Quality Rules",
+  "description": "Rules for clear stakes, coherent structure, audience relevance, and earned payoff.",
+  "summary": "Help AI Me evaluate story quality through transparent criteria.",
+  "tags": [
+    "professional-quality-rules",
+    "professional",
+    "storytelling-quality-rules",
+    "storytelling quality",
+    "narrative",
+    "stakes",
+    "payoff",
+    "story arc"
+  ],
+  "keywords": [
+    "storytelling quality",
+    "narrative",
+    "stakes",
+    "payoff",
+    "story arc"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qeval-story-quality-evaluation",
+    "qrule-editing-quality-rules",
+    "std-creative-workflows",
+    "bp-content-optimization-best-practices",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-video-editing-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:36.137Z",
+  "lastUpdated": "2026-08-08T19:18:36.137Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qrule-storytelling-quality-rules",
+  "integrityStatus": "verified",
+  "contentHash": "48e4babf55a0ce93637318c0062668927d917832d5403a9517cfbbc20dc58021",
+  "searchableText": "storytelling quality rules rules for clear stakes, coherent structure, audience relevance, and earned payoff. help ai me evaluate story quality through transparent criteria. professional-quality-rules professional-quality-rules professional storytelling-quality-rules storytelling quality narrative stakes payoff story arc storytelling quality narrative stakes payoff story arc",
+  "classification": {
+    "category": "professional-quality-rules",
+    "topic": "storytelling-quality-rules",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "storytelling-quality-rules",
+    "kind": "professional-quality-rules",
+    "purpose": "Help AI Me evaluate story quality through transparent criteria.",
+    "professionalDefinition": "Storytelling quality rules evaluate whether a narrative establishes context, advances an understandable change, maintains emotional or informational momentum, and resolves with value.",
+    "qualityRules": [
+      "The audience can understand the central message",
+      "Each beat advances the intended journey",
+      "The ending delivers or directs toward the promised value"
+    ],
+    "workflow": [
+      "Inspect against the rule set",
+      "Identify material defects",
+      "Prioritize remediation",
+      "Re-review after correction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qrule-storytelling-quality-rules",
+      "title": "Storytelling Quality Rules",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "description": "Rules for clear stakes, coherent structure, audience relevance, and earned payoff.",
+      "coreConcepts": [
+        "storytelling quality",
+        "narrative",
+        "stakes",
+        "payoff",
+        "story arc"
+      ],
+      "definitions": [
+        "Storytelling quality rules evaluate whether a narrative establishes context, advances an understandable change, maintains emotional or informational momentum, and resolves with value.",
+        "Help AI Me evaluate story quality through transparent criteria."
+      ],
+      "rules": [
+        "Quality rule: The audience can understand the central message",
+        "Quality rule: Each beat advances the intended journey",
+        "Quality rule: The ending delivers or directs toward the promised value"
+      ],
+      "bestPractices": [
+        "Clarify audience, promise, and payoff",
+        "Give each scene a purpose",
+        "Use conflict or tension proportionate to the message"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "workflow": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "decisionRules": [
+        "Apply: The audience can understand the central message",
+        "Apply: Each beat advances the intended journey",
+        "Apply: The ending delivers or directs toward the promised value"
+      ],
+      "commonMistakes": [
+        "A beautiful sequence with no message",
+        "Introducing a CTA before value is established"
+      ],
+      "troubleshooting": [
+        "Avoid: A beautiful sequence with no message",
+        "Avoid: Introducing a CTA before value is established"
+      ],
+      "recommendations": [
+        "Clarify audience, promise, and payoff",
+        "Give each scene a purpose",
+        "Use conflict or tension proportionate to the message"
+      ],
+      "examples": [
+        "Professional application of Storytelling Quality Rules in a studio review."
+      ],
+      "professionalStandards": [
+        "The audience can understand the central message",
+        "Each beat advances the intended journey",
+        "The ending delivers or directs toward the promised value"
+      ],
+      "relatedTopics": [
+        "story-quality-evaluation",
+        "editing-quality-rules",
+        "creative-workflows",
+        "content-optimization-best-practices"
+      ],
+      "keywords": [
+        "storytelling quality",
+        "narrative",
+        "stakes",
+        "payoff",
+        "story arc"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:storytelling-quality-rules",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Storytelling Quality Rules",
+      "category": "professional-quality-rules",
+      "domain": "industry-standards-knowledge",
+      "description": "Rules for clear stakes, coherent structure, audience relevance, and earned payoff.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Storytelling quality rules evaluate whether a narrative establishes context, advances an understandable change, maintains emotional or informational momentum, and resolves with value.",
+            "Help AI Me evaluate story quality through transparent criteria."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "The audience can understand the central message",
+            "Each beat advances the intended journey",
+            "The ending delivers or directs toward the promised value"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Clarify audience, promise, and payoff",
+            "Give each scene a purpose",
+            "Use conflict or tension proportionate to the message"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Inspect against the rule set",
+            "Identify material defects",
+            "Prioritize remediation",
+            "Re-review after correction"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Storytelling Quality Rules in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "storytelling quality",
+        "narrative",
+        "stakes",
+        "payoff",
+        "story arc"
+      ],
+      "entities": [
+        "Storytelling Quality Rules",
+        "industry-standards-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "storytelling quality",
+        "narrative",
+        "stakes",
+        "payoff",
+        "story arc"
+      ],
+      "rules": [
+        "The audience can understand the central message",
+        "Each beat advances the intended journey",
+        "The ending delivers or directs toward the promised value"
+      ],
+      "bestPractices": [
+        "Clarify audience, promise, and payoff",
+        "Give each scene a purpose",
+        "Use conflict or tension proportionate to the message"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "examples": [
+        "Professional application of Storytelling Quality Rules in a studio review."
+      ],
+      "commonMistakes": [
+        "A beautiful sequence with no message",
+        "Introducing a CTA before value is established"
+      ],
+      "qualityRules": [
+        "The audience can understand the central message",
+        "Each beat advances the intended journey",
+        "The ending delivers or directs toward the promised value"
+      ],
+      "decisionRules": [
+        "Apply: The audience can understand the central message",
+        "Apply: Each beat advances the intended journey",
+        "Apply: The ending delivers or directs toward the promised value"
+      ],
+      "workflowSteps": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "prerequisites": [
+        "Inspect against the rule set"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qeval-story-quality-evaluation",
+        "qrule-editing-quality-rules",
+        "std-creative-workflows",
+        "bp-content-optimization-best-practices"
+      ],
+      "definitions": [
+        "Storytelling quality rules evaluate whether a narrative establishes context, advances an understandable change, maintains emotional or informational momentum, and resolves with value."
+      ],
+      "troubleshooting": [
+        "Avoid: A beautiful sequence with no message",
+        "Avoid: Introducing a CTA before value is established"
+      ],
+      "recommendations": [
+        "Clarify audience, promise, and payoff",
+        "Give each scene a purpose",
+        "Use conflict or tension proportionate to the message"
+      ],
+      "professionalStandards": [
+        "The audience can understand the central message",
+        "Each beat advances the intended journey",
+        "The ending delivers or directs toward the promised value"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:storytelling-quality-rules",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Clarify audience, promise, and payoff",
+      "Give each scene a purpose",
+      "Use conflict or tension proportionate to the message"
+    ],
+    "bestPractices": [
+      "Clarify audience, promise, and payoff",
+      "Give each scene a purpose",
+      "Use conflict or tension proportionate to the message"
+    ],
+    "decisionRules": [
+      "Quality rule: The audience can understand the central message",
+      "Quality rule: Each beat advances the intended journey",
+      "Quality rule: The ending delivers or directs toward the promised value"
+    ]
+  }
+}

@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-ending-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Ending Strategy",
+  "description": "How videos close for memory, branding, and action.",
+  "summary": "Avoid weak endings that waste acquired attention.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "ending-strategy",
+    "ending strategy",
+    "video close",
+    "end card strategy",
+    "payoff"
+  ],
+  "keywords": [
+    "ending strategy",
+    "video close",
+    "end card strategy",
+    "payoff"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-video-cta-placement",
+    "vmkt-hook-creation",
+    "brand-brand-consistency",
+    "vmkt-audience-retention",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:24.802Z",
+  "lastUpdated": "2026-08-08T18:26:24.802Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-ending-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "ff8adf277de450cca9ed7be62415dbf181589a5117d05edce6ca46f00f4f8347",
+  "searchableText": "ending strategy how videos close for memory, branding, and action. avoid weak endings that waste acquired attention. professional-video-marketing professional-video-marketing professional ending-strategy ending strategy video close end card strategy payoff ending strategy video close end card strategy payoff",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "ending-strategy-videos",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "ending-strategy",
+    "kind": "professional-video-marketing",
+    "purpose": "Avoid weak endings that waste acquired attention.",
+    "professionalDefinition": "Ending strategy designs the final seconds—payoff, brand lockup, CTA, and emotional residue—so the video finishes with purpose.",
+    "workflow": [
+      "Write payoff",
+      "Design end card",
+      "Time hold",
+      "QC on mute"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-ending-strategy",
+      "title": "Ending Strategy",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "How videos close for memory, branding, and action.",
+      "coreConcepts": [
+        "ending strategy",
+        "video close",
+        "end card strategy",
+        "payoff"
+      ],
+      "definitions": [
+        "Ending strategy designs the final seconds—payoff, brand lockup, CTA, and emotional residue—so the video finishes with purpose.",
+        "Avoid weak endings that waste acquired attention."
+      ],
+      "rules": [
+        "Practice: Pay off open loops",
+        "Practice: Clear brand + CTA",
+        "Practice: Hold long enough to read"
+      ],
+      "bestPractices": [
+        "Pay off open loops",
+        "Clear brand + CTA",
+        "Hold long enough to read"
+      ],
+      "professionalTechniques": [
+        "Write payoff",
+        "Design end card",
+        "Time hold",
+        "QC on mute"
+      ],
+      "workflow": [
+        "Write payoff",
+        "Design end card",
+        "Time hold",
+        "QC on mute"
+      ],
+      "decisionRules": [
+        "Follow: Pay off open loops",
+        "Follow: Clear brand + CTA",
+        "Follow: Hold long enough to read"
+      ],
+      "commonMistakes": [
+        "Abrupt stop",
+        "Multiple competing end asks"
+      ],
+      "troubleshooting": [
+        "Avoid: Abrupt stop",
+        "Avoid: Multiple competing end asks"
+      ],
+      "recommendations": [
+        "Pay off open loops",
+        "Clear brand + CTA",
+        "Hold long enough to read"
+      ],
+      "examples": [
+        "Resolve story → logo → single CTA"
+      ],
+      "professionalStandards": [
+        "Ending strategy designs the final seconds—payoff, brand lockup, CTA, and emotional residue—so the video finishes with purpose."
+      ],
+      "relatedTopics": [
+        "video-cta-placement",
+        "hook-creation",
+        "brand-consistency",
+        "audience-retention"
+      ],
+      "keywords": [
+        "ending strategy",
+        "video close",
+        "end card strategy",
+        "payoff"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:ending-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Ending Strategy",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "How videos close for memory, branding, and action.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Ending strategy designs the final seconds—payoff, brand lockup, CTA, and emotional residue—so the video finishes with purpose."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Avoid weak endings that waste acquired attention."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Write payoff",
+            "Design end card",
+            "Time hold",
+            "QC on mute"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Pay off open loops",
+            "Clear brand + CTA",
+            "Hold long enough to read"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Resolve story → logo → single CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "ending strategy",
+        "video close",
+        "end card strategy",
+        "payoff"
+      ],
+      "entities": [
+        "Ending Strategy",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "ending strategy",
+        "video close",
+        "end card strategy",
+        "payoff"
+      ],
+      "rules": [
+        "Avoid: Abrupt stop",
+        "Avoid: Multiple competing end asks"
+      ],
+      "bestPractices": [
+        "Pay off open loops",
+        "Clear brand + CTA",
+        "Hold long enough to read"
+      ],
+      "professionalTechniques": [
+        "Write payoff",
+        "Design end card",
+        "Time hold",
+        "QC on mute"
+      ],
+      "examples": [
+        "Resolve story → logo → single CTA"
+      ],
+      "commonMistakes": [
+        "Abrupt stop",
+        "Multiple competing end asks"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Pay off open loops",
+        "Practice: Clear brand + CTA",
+        "Practice: Hold long enough to read"
+      ],
+      "workflowSteps": [
+        "Write payoff",
+        "Design end card",
+        "Time hold",
+        "QC on mute"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-video-cta-placement",
+        "vmkt-hook-creation",
+        "brand-brand-consistency",
+        "vmkt-audience-retention"
+      ],
+      "definitions": [
+        "Ending strategy designs the final seconds—payoff, brand lockup, CTA, and emotional residue—so the video finishes with purpose.",
+        "Avoid weak endings that waste acquired attention."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Pay off open loops",
+      "Clear brand + CTA",
+      "Hold long enough to read"
+    ],
+    "bestPractices": [
+      "Pay off open loops",
+      "Clear brand + CTA",
+      "Hold long enough to read"
+    ],
+    "decisionRules": [
+      "Practice: Pay off open loops",
+      "Practice: Clear brand + CTA",
+      "Practice: Hold long enough to read"
+    ]
+  }
+}

@@ -1,0 +1,311 @@
+{
+  "knowledgeId": "anim-animation-fundamentals",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Animation Fundamentals",
+  "description": "Core ideas of change over time—pose, motion, weight, and readability—for marketing and product animation.",
+  "summary": "Establish a shared language so every animated beat serves clarity and persuasion.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "animation-fundamentals",
+    "animation fundamentals",
+    "motion basics",
+    "keyframes",
+    "pose"
+  ],
+  "keywords": [
+    "animation fundamentals",
+    "motion basics",
+    "keyframes",
+    "pose"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-principles-of-animation",
+    "anim-timing",
+    "anim-staging",
+    "anim-product-animation",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-storytelling-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:36:49.531Z",
+  "lastUpdated": "2026-08-08T15:36:49.531Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-animation-fundamentals",
+  "integrityStatus": "verified",
+  "contentHash": "1854e95adbce0d864ebf901707275be2f6d99614e8141688e8d0acd766b4d836",
+  "searchableText": "animation fundamentals core ideas of change over time—pose, motion, weight, and readability—for marketing and product animation. establish a shared language so every animated beat serves clarity and persuasion. professional-animation professional-animation professional animation-fundamentals animation fundamentals motion basics keyframes pose animation fundamentals motion basics keyframes pose",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "animation-fundamentals-core",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "animation-fundamentals",
+    "kind": "professional-animation",
+    "purpose": "Establish a shared language so every animated beat serves clarity and persuasion.",
+    "professionalDefinition": "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation.",
+    "workflow": [
+      "Clarify intent",
+      "Block key poses",
+      "Add timing/spacing",
+      "Polish arcs"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-animation-fundamentals",
+      "title": "Animation Fundamentals",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Core ideas of change over time—pose, motion, weight, and readability—for marketing and product animation.",
+      "coreConcepts": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "definitions": [
+        "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation.",
+        "Establish a shared language so every animated beat serves clarity and persuasion."
+      ],
+      "rules": [
+        "Practice: Define the story job of each move",
+        "Practice: Prefer readable silhouettes",
+        "Practice: Animate on purpose, not decoration"
+      ],
+      "bestPractices": [
+        "Define the story job of each move",
+        "Prefer readable silhouettes",
+        "Animate on purpose, not decoration"
+      ],
+      "professionalTechniques": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "workflow": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "decisionRules": [
+        "Follow: Define the story job of each move",
+        "Follow: Prefer readable silhouettes",
+        "Follow: Animate on purpose, not decoration"
+      ],
+      "commonMistakes": [
+        "Motion without meaning",
+        "Over-animating every element"
+      ],
+      "troubleshooting": [
+        "Avoid: Motion without meaning",
+        "Avoid: Over-animating every element"
+      ],
+      "recommendations": [
+        "Define the story job of each move",
+        "Prefer readable silhouettes",
+        "Animate on purpose, not decoration"
+      ],
+      "examples": [
+        "Product float with subtle settle instead of constant spin"
+      ],
+      "professionalStandards": [
+        "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation."
+      ],
+      "relatedTopics": [
+        "principles-of-animation",
+        "timing",
+        "staging",
+        "product-animation"
+      ],
+      "keywords": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:animation-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Animation Fundamentals",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "Core ideas of change over time—pose, motion, weight, and readability—for marketing and product animation.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Establish a shared language so every animated beat serves clarity and persuasion."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Clarify intent",
+            "Block key poses",
+            "Add timing/spacing",
+            "Polish arcs"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Define the story job of each move",
+            "Prefer readable silhouettes",
+            "Animate on purpose, not decoration"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product float with subtle settle instead of constant spin"
+          ]
+        }
+      ],
+      "concepts": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "entities": [
+        "Animation Fundamentals",
+        "animation-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "rules": [
+        "Avoid: Motion without meaning",
+        "Avoid: Over-animating every element"
+      ],
+      "bestPractices": [
+        "Define the story job of each move",
+        "Prefer readable silhouettes",
+        "Animate on purpose, not decoration"
+      ],
+      "professionalTechniques": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "examples": [
+        "Product float with subtle settle instead of constant spin"
+      ],
+      "commonMistakes": [
+        "Motion without meaning",
+        "Over-animating every element"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Define the story job of each move",
+        "Practice: Prefer readable silhouettes",
+        "Practice: Animate on purpose, not decoration"
+      ],
+      "workflowSteps": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-principles-of-animation",
+        "anim-timing",
+        "anim-staging",
+        "anim-product-animation"
+      ],
+      "definitions": [
+        "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation.",
+        "Establish a shared language so every animated beat serves clarity and persuasion."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Define the story job of each move",
+      "Prefer readable silhouettes",
+      "Animate on purpose, not decoration"
+    ],
+    "bestPractices": [
+      "Define the story job of each move",
+      "Prefer readable silhouettes",
+      "Animate on purpose, not decoration"
+    ],
+    "decisionRules": [
+      "Practice: Define the story job of each move",
+      "Practice: Prefer readable silhouettes",
+      "Practice: Animate on purpose, not decoration"
+    ]
+  }
+}

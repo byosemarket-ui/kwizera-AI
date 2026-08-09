@@ -1,0 +1,350 @@
+{
+  "knowledgeId": "cmov-orbit-shot",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Orbit Shot",
+  "description": "Camera circles a subject, keeping it as the rotational center.",
+  "summary": "Showcase a product or person in three dimensions and create premium attention.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "orbit-shot",
+    "orbit",
+    "circle",
+    "360",
+    "arc around"
+  ],
+  "keywords": [
+    "orbit",
+    "circle",
+    "360",
+    "arc around"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-dolly",
+    "cmov-gimbal",
+    "cmov-truck",
+    "cmov-static-shot",
+    "cam-focus",
+    "cam-exposure",
+    "cam-white-balance",
+    "cam-aperture",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-lighting-knowledge",
+    "cam-bridge-composition-knowledge",
+    "cam-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:26.006Z",
+  "lastUpdated": "2026-08-08T16:55:35.902Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-orbit-shot",
+  "integrityStatus": "verified",
+  "contentHash": "9d5270de2f06312384af348bdc34a57ab44716e84ce7ffaa5de5b0d47450345a",
+  "searchableText": "orbit shot camera circles a subject, keeping it as the rotational center. showcase a product or person in three dimensions and create premium attention. professional-camera-movement camera-movement professional orbit-shot orbit circle 360 arc around orbit circle 360 arc around",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "orbit-shot-camera",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "orbit-shot",
+    "kind": "camera-movement",
+    "purpose": "Showcase a product or person in three dimensions and create premium attention.",
+    "whenToUse": [
+      "360 product beauty",
+      "Hero talent moments",
+      "Highlighting form and finish"
+    ],
+    "whenNotToUse": [
+      "Cluttered backgrounds that spin distractingly",
+      "Talent dizziness/safety issues"
+    ],
+    "advantages": [
+      "Dimensional product understanding",
+      "High perceived production value"
+    ],
+    "limitations": [
+      "Lighting continuity around circle is hard",
+      "Reflections/crew in chrome"
+    ],
+    "relatedCameraSettings": [
+      "focus",
+      "exposure",
+      "white-balance",
+      "aperture"
+    ],
+    "relatedStorytellingTechniques": [
+      "hero showcase",
+      "dimensional proof"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-orbit-shot",
+      "title": "Orbit Shot",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera circles a subject, keeping it as the rotational center.",
+      "coreConcepts": [
+        "orbit",
+        "circle",
+        "360",
+        "arc around"
+      ],
+      "definitions": [
+        "Showcase a product or person in three dimensions and create premium attention."
+      ],
+      "rules": [
+        "Use when: 360 product beauty",
+        "Use when: Hero talent moments",
+        "Use when: Highlighting form and finish",
+        "Do not use when: Cluttered backgrounds that spin distractingly",
+        "Do not use when: Talent dizziness/safety issues"
+      ],
+      "bestPractices": [
+        "Light for the full orbit",
+        "Keep subject center locked",
+        "Control background simplicity"
+      ],
+      "professionalTechniques": [
+        "Dimensional product understanding",
+        "High perceived production value"
+      ],
+      "workflow": [
+        "Choose Orbit Shot",
+        "Light for the full orbit",
+        "Keep subject center locked",
+        "Control background simplicity"
+      ],
+      "decisionRules": [
+        "Use when: 360 product beauty",
+        "Use when: Hero talent moments",
+        "Use when: Highlighting form and finish",
+        "Avoid when: Cluttered backgrounds that spin distractingly",
+        "Avoid when: Talent dizziness/safety issues"
+      ],
+      "commonMistakes": [
+        "Uneven speed",
+        "Visible crew/reflections"
+      ],
+      "troubleshooting": [
+        "Limitation: Lighting continuity around circle is hard",
+        "Limitation: Reflections/crew in chrome"
+      ],
+      "recommendations": [
+        "Light for the full orbit",
+        "Keep subject center locked",
+        "Control background simplicity"
+      ],
+      "examples": [
+        "Orbit a sneaker on a turntable-equivalent move",
+        "Circle a speaker at key statement"
+      ],
+      "professionalStandards": [
+        "hero showcase",
+        "dimensional proof"
+      ],
+      "relatedTopics": [
+        "dolly",
+        "gimbal",
+        "truck",
+        "static-shot",
+        "focus",
+        "exposure",
+        "white-balance",
+        "aperture"
+      ],
+      "keywords": [
+        "orbit",
+        "circle",
+        "360",
+        "arc around"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:orbit-shot",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Orbit Shot",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera circles a subject, keeping it as the rotational center.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Showcase a product or person in three dimensions and create premium attention."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "360 product beauty",
+            "Hero talent moments",
+            "Highlighting form and finish"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Cluttered backgrounds that spin distractingly",
+            "Talent dizziness/safety issues"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Light for the full orbit",
+            "Keep subject center locked",
+            "Control background simplicity"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Orbit a sneaker on a turntable-equivalent move",
+            "Circle a speaker at key statement"
+          ]
+        }
+      ],
+      "concepts": [
+        "orbit",
+        "circle",
+        "360",
+        "arc around"
+      ],
+      "entities": [
+        "Orbit Shot",
+        "camera-movement-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "orbit",
+        "circle",
+        "360",
+        "arc around"
+      ],
+      "rules": [
+        "Avoid when: Cluttered backgrounds that spin distractingly",
+        "Avoid when: Talent dizziness/safety issues"
+      ],
+      "bestPractices": [
+        "Light for the full orbit",
+        "Keep subject center locked",
+        "Control background simplicity"
+      ],
+      "professionalTechniques": [
+        "Dimensional product understanding",
+        "High perceived production value"
+      ],
+      "examples": [
+        "Orbit a sneaker on a turntable-equivalent move",
+        "Circle a speaker at key statement"
+      ],
+      "commonMistakes": [
+        "Uneven speed",
+        "Visible crew/reflections"
+      ],
+      "qualityRules": [
+        "Lighting continuity around circle is hard",
+        "Reflections/crew in chrome"
+      ],
+      "decisionRules": [
+        "Use when: 360 product beauty",
+        "Use when: Hero talent moments",
+        "Use when: Highlighting form and finish",
+        "Do not use when: Cluttered backgrounds that spin distractingly",
+        "Do not use when: Talent dizziness/safety issues"
+      ],
+      "workflowSteps": [
+        "Light for the full orbit",
+        "Keep subject center locked",
+        "Control background simplicity"
+      ],
+      "prerequisites": [
+        "focus",
+        "exposure",
+        "white-balance",
+        "aperture"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-dolly",
+        "cmov-gimbal",
+        "cmov-truck",
+        "cmov-static-shot"
+      ],
+      "definitions": [
+        "Showcase a product or person in three dimensions and create premium attention."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Light for the full orbit",
+      "Keep subject center locked",
+      "Control background simplicity"
+    ],
+    "bestPractices": [
+      "Light for the full orbit",
+      "Keep subject center locked",
+      "Control background simplicity"
+    ],
+    "decisionRules": [
+      "Use when: 360 product beauty",
+      "Use when: Hero talent moments",
+      "Use when: Highlighting form and finish",
+      "Do not use when: Cluttered backgrounds that spin distractingly",
+      "Do not use when: Talent dizziness/safety issues"
+    ]
+  }
+}

@@ -1,0 +1,343 @@
+{
+  "knowledgeId": "lit-product-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Product Lighting",
+  "description": "Lighting strategies that prove form, material, label readability, and desirability of products.",
+  "summary": "Sell the product’s physical truth and brand promise through controlled light.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "product-lighting",
+    "product lighting",
+    "pack shot",
+    "tabletop",
+    "ecommerce light",
+    "hero product"
+  ],
+  "keywords": [
+    "product lighting",
+    "pack shot",
+    "tabletop",
+    "ecommerce light",
+    "hero product"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-reflections",
+    "lit-soft-lighting",
+    "lit-three-point-lighting",
+    "lit-high-key-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-composition-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:28.640Z",
+  "lastUpdated": "2026-08-08T15:32:28.640Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-product-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "299bbe23e1c9080faef4f89476851e6610253824c58c7752216e3a6ef1ea3c54",
+  "searchableText": "product lighting lighting strategies that prove form, material, label readability, and desirability of products. sell the product’s physical truth and brand promise through controlled light. professional-lighting professional-lighting professional product-lighting product lighting pack shot tabletop ecommerce light hero product product lighting pack shot tabletop ecommerce light hero product",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "product-lighting-lighting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Sell the product’s physical truth and brand promise through controlled light.",
+    "whenToUse": [
+      "Ecommerce",
+      "Pack shots",
+      "Feature demos",
+      "Hero commercials"
+    ],
+    "whenNotToUse": [
+      "Lifestyle-only plates where product is incidental background"
+    ],
+    "advantages": [
+      "Clarity of features",
+      "Consistent catalog look"
+    ],
+    "limitations": [
+      "Can look sterile without lifestyle accents"
+    ],
+    "relatedCameraTechniques": [
+      "macro focus",
+      "deeper DOF for text",
+      "accurate WB"
+    ],
+    "relatedStorytellingTechniques": [
+      "benefit proof",
+      "desire",
+      "trust"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-product-lighting",
+      "title": "Product Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Lighting strategies that prove form, material, label readability, and desirability of products.",
+      "coreConcepts": [
+        "product lighting",
+        "pack shot",
+        "tabletop",
+        "ecommerce light",
+        "hero product"
+      ],
+      "definitions": [
+        "Sell the product’s physical truth and brand promise through controlled light."
+      ],
+      "rules": [
+        "Use when: Ecommerce",
+        "Use when: Pack shots",
+        "Use when: Feature demos",
+        "Use when: Hero commercials",
+        "Do not use when: Lifestyle-only plates where product is incidental background"
+      ],
+      "bestPractices": [
+        "Prioritize label/logo readability",
+        "Control speculars",
+        "Match tabletop and lifestyle keys"
+      ],
+      "professionalTechniques": [
+        "Clarity of features",
+        "Consistent catalog look"
+      ],
+      "workflow": [
+        "Choose Product Lighting",
+        "Prioritize label/logo readability",
+        "Control speculars",
+        "Match tabletop and lifestyle keys"
+      ],
+      "decisionRules": [
+        "Use when: Ecommerce",
+        "Use when: Pack shots",
+        "Use when: Feature demos",
+        "Use when: Hero commercials",
+        "Avoid when: Lifestyle-only plates where product is incidental background"
+      ],
+      "commonMistakes": [
+        "Beauty without readable branding",
+        "Color casts on packaging"
+      ],
+      "troubleshooting": [
+        "Limitation: Can look sterile without lifestyle accents"
+      ],
+      "recommendations": [
+        "Prioritize label/logo readability",
+        "Control speculars",
+        "Match tabletop and lifestyle keys"
+      ],
+      "examples": [
+        "Soft overhead + side accent + controlled base reflection for cosmetics"
+      ],
+      "professionalStandards": [
+        "benefit proof",
+        "desire",
+        "trust"
+      ],
+      "relatedTopics": [
+        "reflections",
+        "soft-lighting",
+        "three-point-lighting",
+        "high-key-lighting"
+      ],
+      "keywords": [
+        "product lighting",
+        "pack shot",
+        "tabletop",
+        "ecommerce light",
+        "hero product"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:product-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Lighting strategies that prove form, material, label readability, and desirability of products.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Sell the product’s physical truth and brand promise through controlled light."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Ecommerce",
+            "Pack shots",
+            "Feature demos",
+            "Hero commercials"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Lifestyle-only plates where product is incidental background"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Prioritize label/logo readability",
+            "Control speculars",
+            "Match tabletop and lifestyle keys"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Soft overhead + side accent + controlled base reflection for cosmetics"
+          ]
+        }
+      ],
+      "concepts": [
+        "product lighting",
+        "pack shot",
+        "tabletop",
+        "ecommerce light",
+        "hero product"
+      ],
+      "entities": [
+        "Product Lighting",
+        "lighting-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "product lighting",
+        "pack shot",
+        "tabletop",
+        "ecommerce light",
+        "hero product"
+      ],
+      "rules": [
+        "Avoid when: Lifestyle-only plates where product is incidental background"
+      ],
+      "bestPractices": [
+        "Prioritize label/logo readability",
+        "Control speculars",
+        "Match tabletop and lifestyle keys"
+      ],
+      "professionalTechniques": [
+        "Clarity of features",
+        "Consistent catalog look"
+      ],
+      "examples": [
+        "Soft overhead + side accent + controlled base reflection for cosmetics"
+      ],
+      "commonMistakes": [
+        "Beauty without readable branding",
+        "Color casts on packaging"
+      ],
+      "qualityRules": [
+        "Can look sterile without lifestyle accents"
+      ],
+      "decisionRules": [
+        "Use when: Ecommerce",
+        "Use when: Pack shots",
+        "Use when: Feature demos",
+        "Use when: Hero commercials",
+        "Do not use when: Lifestyle-only plates where product is incidental background"
+      ],
+      "workflowSteps": [
+        "Prioritize label/logo readability",
+        "Control speculars",
+        "Match tabletop and lifestyle keys"
+      ],
+      "prerequisites": [
+        "macro focus",
+        "deeper DOF for text",
+        "accurate WB"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-reflections",
+        "lit-soft-lighting",
+        "lit-three-point-lighting",
+        "lit-high-key-lighting"
+      ],
+      "definitions": [
+        "Sell the product’s physical truth and brand promise through controlled light."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Prioritize label/logo readability",
+      "Control speculars",
+      "Match tabletop and lifestyle keys"
+    ],
+    "bestPractices": [
+      "Prioritize label/logo readability",
+      "Control speculars",
+      "Match tabletop and lifestyle keys"
+    ],
+    "decisionRules": [
+      "Use when: Ecommerce",
+      "Use when: Pack shots",
+      "Use when: Feature demos",
+      "Use when: Hero commercials",
+      "Do not use when: Lifestyle-only plates where product is incidental background"
+    ]
+  }
+}

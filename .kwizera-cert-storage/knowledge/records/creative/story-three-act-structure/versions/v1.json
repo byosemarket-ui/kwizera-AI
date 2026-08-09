@@ -1,0 +1,348 @@
+{
+  "knowledgeId": "story-three-act-structure",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Three-Act Structure",
+  "description": "Classic setup, confrontation, and resolution adapted for commercial length.",
+  "summary": "Provide a reliable arc template for brand and product films of any length.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "three-act-structure",
+    "three-act",
+    "setup",
+    "confrontation",
+    "resolution",
+    "acts"
+  ],
+  "keywords": [
+    "three-act",
+    "setup",
+    "confrontation",
+    "resolution",
+    "acts"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-story-structure",
+    "story-beginning",
+    "story-middle",
+    "story-ending",
+    "story-conflict",
+    "story-resolution",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:06.043Z",
+  "lastUpdated": "2026-08-08T15:34:06.043Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-three-act-structure",
+  "integrityStatus": "verified",
+  "contentHash": "15c0223f775da06404f5f4c3172579fbfcbe9e9f252eec5279bc1a9acf5e0cab",
+  "searchableText": "three-act structure classic setup, confrontation, and resolution adapted for commercial length. provide a reliable arc template for brand and product films of any length. professional-storytelling professional-storytelling professional three-act-structure three-act setup confrontation resolution acts three-act setup confrontation resolution acts",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "three-act-structure-classic",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "three-act-structure",
+    "kind": "professional-storytelling",
+    "purpose": "Provide a reliable arc template for brand and product films of any length.",
+    "professionalDefinition": "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime.",
+    "whenToUse": [
+      "Brand films",
+      "Founder stories",
+      "Longer product narratives"
+    ],
+    "whenNotToUse": [
+      "Ultra-short bumper ads that only need one beat"
+    ],
+    "workflow": [
+      "Write Act I hook",
+      "Escalate Act II conflict",
+      "Resolve with brand role",
+      "Place CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-three-act-structure",
+      "title": "Three-Act Structure",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Classic setup, confrontation, and resolution adapted for commercial length.",
+      "coreConcepts": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "definitions": [
+        "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime.",
+        "Provide a reliable arc template for brand and product films of any length."
+      ],
+      "rules": [
+        "Use when: Brand films",
+        "Use when: Founder stories",
+        "Use when: Longer product narratives",
+        "Do not use when: Ultra-short bumper ads that only need one beat"
+      ],
+      "bestPractices": [
+        "Compress acts proportionally",
+        "Place turning points clearly",
+        "End Act III with action"
+      ],
+      "professionalTechniques": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "workflow": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Founder stories",
+        "Use when: Longer product narratives",
+        "Avoid when: Ultra-short bumper ads that only need one beat"
+      ],
+      "commonMistakes": [
+        "Act II wandering without escalation",
+        "Resolution without CTA"
+      ],
+      "troubleshooting": [
+        "Avoid: Act II wandering without escalation",
+        "Avoid: Resolution without CTA"
+      ],
+      "recommendations": [
+        "Compress acts proportionally",
+        "Place turning points clearly",
+        "End Act III with action"
+      ],
+      "examples": [
+        "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA"
+      ],
+      "professionalStandards": [
+        "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime."
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "beginning",
+        "middle",
+        "ending",
+        "conflict",
+        "resolution"
+      ],
+      "keywords": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:three-act-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Three-Act Structure",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "Classic setup, confrontation, and resolution adapted for commercial length.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Provide a reliable arc template for brand and product films of any length."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Brand films",
+            "Founder stories",
+            "Longer product narratives"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Ultra-short bumper ads that only need one beat"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Write Act I hook",
+            "Escalate Act II conflict",
+            "Resolve with brand role",
+            "Place CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Compress acts proportionally",
+            "Place turning points clearly",
+            "End Act III with action"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "entities": [
+        "Three-Act Structure",
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "rules": [
+        "Avoid when: Ultra-short bumper ads that only need one beat"
+      ],
+      "bestPractices": [
+        "Compress acts proportionally",
+        "Place turning points clearly",
+        "End Act III with action"
+      ],
+      "professionalTechniques": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "examples": [
+        "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA"
+      ],
+      "commonMistakes": [
+        "Act II wandering without escalation",
+        "Resolution without CTA"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Founder stories",
+        "Use when: Longer product narratives",
+        "Do not use when: Ultra-short bumper ads that only need one beat"
+      ],
+      "workflowSteps": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-story-structure",
+        "story-beginning",
+        "story-middle",
+        "story-ending",
+        "story-conflict",
+        "story-resolution"
+      ],
+      "definitions": [
+        "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime.",
+        "Provide a reliable arc template for brand and product films of any length."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Compress acts proportionally",
+      "Place turning points clearly",
+      "End Act III with action"
+    ],
+    "bestPractices": [
+      "Compress acts proportionally",
+      "Place turning points clearly",
+      "End Act III with action"
+    ],
+    "decisionRules": [
+      "Use when: Brand films",
+      "Use when: Founder stories",
+      "Use when: Longer product narratives",
+      "Do not use when: Ultra-short bumper ads that only need one beat"
+    ]
+  }
+}

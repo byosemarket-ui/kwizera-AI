@@ -1,0 +1,330 @@
+{
+  "knowledgeId": "story-narrative-flow",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Narrative Flow",
+  "description": "The continuous progression of information and emotion so viewers never lose the thread.",
+  "summary": "Keep attention glued by making each beat feel inevitable and useful.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "narrative-flow",
+    "narrative flow",
+    "causality",
+    "continuity of story",
+    "beat progression"
+  ],
+  "keywords": [
+    "narrative flow",
+    "causality",
+    "continuity of story",
+    "beat progression"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-story-structure",
+    "story-emotional-journey",
+    "scene-scene-transition-planning",
+    "story-visual-storytelling",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-video-production-knowledge",
+    "ss-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:06.141Z",
+  "lastUpdated": "2026-08-08T17:32:54.965Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-narrative-flow",
+  "integrityStatus": "verified",
+  "contentHash": "c6a3d11503564346be922c0e23a434ccd050509ce186967d92a68227847c7319",
+  "searchableText": "narrative flow the continuous progression of information and emotion so viewers never lose the thread. keep attention glued by making each beat feel inevitable and useful. professional-storytelling professional-storytelling professional narrative-flow narrative flow causality continuity of story beat progression narrative flow causality continuity of story beat progression",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "narrative-flow-continuous",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "narrative-flow",
+    "kind": "professional-storytelling",
+    "purpose": "Keep attention glued by making each beat feel inevitable and useful.",
+    "professionalDefinition": "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one.",
+    "whenToUse": [
+      "Multi-scene edits",
+      "Storyboards",
+      "Script revisions"
+    ],
+    "whenNotToUse": [
+      "Montage-only mood pieces with intentional discontinuity"
+    ],
+    "workflow": [
+      "List beat questions",
+      "Reorder for causality",
+      "Check emotion handoffs"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-narrative-flow",
+      "title": "Narrative Flow",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The continuous progression of information and emotion so viewers never lose the thread.",
+      "coreConcepts": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "definitions": [
+        "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one.",
+        "Keep attention glued by making each beat feel inevitable and useful."
+      ],
+      "rules": [
+        "Use when: Multi-scene edits",
+        "Use when: Storyboards",
+        "Use when: Script revisions",
+        "Do not use when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "bestPractices": [
+        "Ask what question each cut answers",
+        "Remove orphan beats",
+        "Bridge emotion across scenes"
+      ],
+      "professionalTechniques": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "workflow": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "decisionRules": [
+        "Use when: Multi-scene edits",
+        "Use when: Storyboards",
+        "Use when: Script revisions",
+        "Avoid when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "commonMistakes": [
+        "Jumping to demo before problem is felt",
+        "Random B-roll breaks"
+      ],
+      "troubleshooting": [
+        "Avoid: Jumping to demo before problem is felt",
+        "Avoid: Random B-roll breaks"
+      ],
+      "recommendations": [
+        "Ask what question each cut answers",
+        "Remove orphan beats",
+        "Bridge emotion across scenes"
+      ],
+      "examples": [
+        "Problem felt → curiosity → reveal → proof → desire → CTA"
+      ],
+      "professionalStandards": [
+        "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one."
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "emotional-journey",
+        "scene-transition-planning",
+        "visual-storytelling"
+      ],
+      "keywords": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:narrative-flow",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Narrative Flow",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "The continuous progression of information and emotion so viewers never lose the thread.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep attention glued by making each beat feel inevitable and useful."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Multi-scene edits",
+            "Storyboards",
+            "Script revisions"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Montage-only mood pieces with intentional discontinuity"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List beat questions",
+            "Reorder for causality",
+            "Check emotion handoffs"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Ask what question each cut answers",
+            "Remove orphan beats",
+            "Bridge emotion across scenes"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Problem felt → curiosity → reveal → proof → desire → CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "entities": [
+        "Narrative Flow",
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "video-production-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "rules": [
+        "Avoid when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "bestPractices": [
+        "Ask what question each cut answers",
+        "Remove orphan beats",
+        "Bridge emotion across scenes"
+      ],
+      "professionalTechniques": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "examples": [
+        "Problem felt → curiosity → reveal → proof → desire → CTA"
+      ],
+      "commonMistakes": [
+        "Jumping to demo before problem is felt",
+        "Random B-roll breaks"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Multi-scene edits",
+        "Use when: Storyboards",
+        "Use when: Script revisions",
+        "Do not use when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "workflowSteps": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "scene-knowledge",
+        "video-production-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-story-structure",
+        "story-emotional-journey",
+        "scene-scene-transition-planning",
+        "story-visual-storytelling"
+      ],
+      "definitions": [
+        "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one.",
+        "Keep attention glued by making each beat feel inevitable and useful."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Ask what question each cut answers",
+      "Remove orphan beats",
+      "Bridge emotion across scenes"
+    ],
+    "bestPractices": [
+      "Ask what question each cut answers",
+      "Remove orphan beats",
+      "Bridge emotion across scenes"
+    ],
+    "decisionRules": [
+      "Use when: Multi-scene edits",
+      "Use when: Storyboards",
+      "Use when: Script revisions",
+      "Do not use when: Montage-only mood pieces with intentional discontinuity"
+    ]
+  }
+}

@@ -1,0 +1,360 @@
+{
+  "knowledgeId": "bp-production-best-practices",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-best-practices",
+  "title": "Production Best Practices",
+  "description": "Disciplined on-set and production habits that protect creative and technical quality.",
+  "summary": "Recommend practical habits for professional production.",
+  "tags": [
+    "professional-best-practices",
+    "professional",
+    "production-best-practices",
+    "production best practices",
+    "on set",
+    "backup",
+    "continuity",
+    "technical check"
+  ],
+  "keywords": [
+    "production best practices",
+    "on set",
+    "backup",
+    "continuity",
+    "technical check"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "check-production-checklist",
+    "std-production-standards",
+    "qrule-camera-quality-rules",
+    "qrule-lighting-quality-rules",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:39.061Z",
+  "lastUpdated": "2026-08-08T19:18:39.061Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\bp-production-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "dbccee6e15c2fceb15e27081b5f4fc350c657d6630f11a39434de6309b43c87c",
+  "searchableText": "production best practices disciplined on-set and production habits that protect creative and technical quality. recommend practical habits for professional production. professional-best-practices professional-best-practices professional production-best-practices production best practices on set backup continuity technical check production best practices on set backup continuity technical check",
+  "classification": {
+    "category": "professional-best-practices",
+    "topic": "production-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "production-best-practices",
+    "kind": "professional-best-practices",
+    "purpose": "Recommend practical habits for professional production.",
+    "professionalDefinition": "Production best practices combine preparation, capture verification, collaboration, safety, continuity, and media protection into dependable daily execution.",
+    "qualityRules": [
+      "Critical takes are reviewed before moving on",
+      "Assets are backed up and labeled",
+      "Safety and rights controls are respected"
+    ],
+    "workflow": [
+      "Set the objective",
+      "Select proven practice",
+      "Execute consistently",
+      "Measure result",
+      "Improve the next iteration"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "bp-production-best-practices",
+      "title": "Production Best Practices",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "description": "Disciplined on-set and production habits that protect creative and technical quality.",
+      "coreConcepts": [
+        "production best practices",
+        "on set",
+        "backup",
+        "continuity",
+        "technical check"
+      ],
+      "definitions": [
+        "Production best practices combine preparation, capture verification, collaboration, safety, continuity, and media protection into dependable daily execution.",
+        "Recommend practical habits for professional production."
+      ],
+      "rules": [
+        "Quality rule: Critical takes are reviewed before moving on",
+        "Quality rule: Assets are backed up and labeled",
+        "Quality rule: Safety and rights controls are respected"
+      ],
+      "bestPractices": [
+        "Run technical checks before critical takes",
+        "Maintain continuity notes",
+        "Back up verified media on the production day"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "workflow": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "decisionRules": [
+        "Apply: Critical takes are reviewed before moving on",
+        "Apply: Assets are backed up and labeled",
+        "Apply: Safety and rights controls are respected"
+      ],
+      "commonMistakes": [
+        "Assuming the first take is technically usable",
+        "Deferring media management until after travel"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming the first take is technically usable",
+        "Avoid: Deferring media management until after travel"
+      ],
+      "recommendations": [
+        "Run technical checks before critical takes",
+        "Maintain continuity notes",
+        "Back up verified media on the production day"
+      ],
+      "examples": [
+        "Professional application of Production Best Practices in a studio review."
+      ],
+      "professionalStandards": [
+        "Critical takes are reviewed before moving on",
+        "Assets are backed up and labeled",
+        "Safety and rights controls are respected"
+      ],
+      "relatedTopics": [
+        "production-checklist",
+        "production-standards",
+        "camera-quality-rules",
+        "lighting-quality-rules"
+      ],
+      "keywords": [
+        "production best practices",
+        "on set",
+        "backup",
+        "continuity",
+        "technical check"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Production Best Practices",
+      "category": "professional-best-practices",
+      "domain": "industry-standards-knowledge",
+      "description": "Disciplined on-set and production habits that protect creative and technical quality.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Production best practices combine preparation, capture verification, collaboration, safety, continuity, and media protection into dependable daily execution.",
+            "Recommend practical habits for professional production."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Critical takes are reviewed before moving on",
+            "Assets are backed up and labeled",
+            "Safety and rights controls are respected"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Run technical checks before critical takes",
+            "Maintain continuity notes",
+            "Back up verified media on the production day"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set the objective",
+            "Select proven practice",
+            "Execute consistently",
+            "Measure result",
+            "Improve the next iteration"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Production Best Practices in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "production best practices",
+        "on set",
+        "backup",
+        "continuity",
+        "technical check"
+      ],
+      "entities": [
+        "Production Best Practices",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "production best practices",
+        "on set",
+        "backup",
+        "continuity",
+        "technical check"
+      ],
+      "rules": [
+        "Critical takes are reviewed before moving on",
+        "Assets are backed up and labeled",
+        "Safety and rights controls are respected"
+      ],
+      "bestPractices": [
+        "Run technical checks before critical takes",
+        "Maintain continuity notes",
+        "Back up verified media on the production day"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "examples": [
+        "Professional application of Production Best Practices in a studio review."
+      ],
+      "commonMistakes": [
+        "Assuming the first take is technically usable",
+        "Deferring media management until after travel"
+      ],
+      "qualityRules": [
+        "Critical takes are reviewed before moving on",
+        "Assets are backed up and labeled",
+        "Safety and rights controls are respected"
+      ],
+      "decisionRules": [
+        "Apply: Critical takes are reviewed before moving on",
+        "Apply: Assets are backed up and labeled",
+        "Apply: Safety and rights controls are respected"
+      ],
+      "workflowSteps": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "prerequisites": [
+        "Set the objective"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "check-production-checklist",
+        "std-production-standards",
+        "qrule-camera-quality-rules",
+        "qrule-lighting-quality-rules"
+      ],
+      "definitions": [
+        "Production best practices combine preparation, capture verification, collaboration, safety, continuity, and media protection into dependable daily execution."
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming the first take is technically usable",
+        "Avoid: Deferring media management until after travel"
+      ],
+      "recommendations": [
+        "Run technical checks before critical takes",
+        "Maintain continuity notes",
+        "Back up verified media on the production day"
+      ],
+      "professionalStandards": [
+        "Critical takes are reviewed before moving on",
+        "Assets are backed up and labeled",
+        "Safety and rights controls are respected"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-best-practices",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Run technical checks before critical takes",
+      "Maintain continuity notes",
+      "Back up verified media on the production day"
+    ],
+    "bestPractices": [
+      "Run technical checks before critical takes",
+      "Maintain continuity notes",
+      "Back up verified media on the production day"
+    ],
+    "decisionRules": [
+      "Quality rule: Critical takes are reviewed before moving on",
+      "Quality rule: Assets are backed up and labeled",
+      "Quality rule: Safety and rights controls are respected"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 export { AiWorkflowEngine } from "./workflow-engine.js";
 export { createWorkflowEnginePlugin } from "./workflow-engine-plugin.js";
 export { WorkflowHistoryStore } from "./workflow-history-store.js";
+export { ProfessionalWorkflowMemoryStore } from "./professional-workflow-memory.js";
 export { WorkflowLogger } from "./workflow-logger.js";
 export { TaskScheduler } from "./task-scheduler.js";
 export { TaskCoordinator } from "./task-coordinator.js";
@@ -26,3 +27,18 @@ export type {
   WorkflowResult,
   WorkflowEngineStatusReport,
 } from "./types.js";
+export type {
+  AiMeProfessionalWorkflowAwareness,
+  ProfessionalWorkflowDefinition,
+  ProfessionalWorkflowDependency,
+  ProfessionalWorkflowExecutionEvent,
+  ProfessionalWorkflowExecutionResult,
+  ProfessionalWorkflowExplanation,
+  ProfessionalWorkflowHealthReport,
+  ProfessionalWorkflowMemoryRecord,
+  ProfessionalWorkflowModification,
+  ProfessionalWorkflowRepairResult,
+  ProfessionalWorkflowRequest,
+  ProfessionalWorkflowResult,
+  ProfessionalWorkflowTask,
+} from "./professional-workflow-types.js";

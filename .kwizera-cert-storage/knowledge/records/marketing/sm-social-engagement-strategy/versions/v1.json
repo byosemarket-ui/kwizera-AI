@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "sm-social-engagement-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Social Engagement Strategy",
+  "description": "Designing posts and replies that earn meaningful interaction.",
+  "summary": "Recommend audience engagement approaches across platforms.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "social-engagement-strategy",
+    "engagement strategy",
+    "comments",
+    "saves",
+    "shares",
+    "interaction"
+  ],
+  "keywords": [
+    "engagement strategy",
+    "comments",
+    "saves",
+    "shares",
+    "interaction"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-community-building",
+    "ig-instagram-engagement-optimization",
+    "fb-facebook-engagement-strategy",
+    "sm-social-audience-analysis",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-sales-psychology",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:32.724Z",
+  "lastUpdated": "2026-08-08T19:03:32.724Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-social-engagement-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "99cac45ce054d305d627a1002519eef5539e59347ccea080aae18693c3fc9040",
+  "searchableText": "social engagement strategy designing posts and replies that earn meaningful interaction. recommend audience engagement approaches across platforms. professional-social-fundamentals professional-social-fundamentals professional social-engagement-strategy engagement strategy comments saves shares interaction engagement strategy comments saves shares interaction",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "social-engagement-strategy",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "social-engagement-strategy",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Recommend audience engagement approaches across platforms.",
+    "professionalDefinition": "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-social-engagement-strategy",
+      "title": "Social Engagement Strategy",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Designing posts and replies that earn meaningful interaction.",
+      "coreConcepts": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "definitions": [
+        "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals.",
+        "Recommend audience engagement approaches across platforms."
+      ],
+      "rules": [
+        "Practice: Ask specific questions",
+        "Practice: Design for saves and shares",
+        "Practice: Close the loop when users respond"
+      ],
+      "bestPractices": [
+        "Ask specific questions",
+        "Design for saves and shares",
+        "Close the loop when users respond"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Ask specific questions",
+        "Follow: Design for saves and shares",
+        "Follow: Close the loop when users respond"
+      ],
+      "commonMistakes": [
+        "Engagement bait without value",
+        "Buying fake interaction"
+      ],
+      "troubleshooting": [
+        "Avoid: Engagement bait without value",
+        "Avoid: Buying fake interaction"
+      ],
+      "recommendations": [
+        "Ask specific questions",
+        "Design for saves and shares",
+        "Close the loop when users respond"
+      ],
+      "examples": [
+        "Professional application of Social Engagement Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals."
+      ],
+      "relatedTopics": [
+        "community-building",
+        "instagram-engagement-optimization",
+        "facebook-engagement-strategy",
+        "social-audience-analysis"
+      ],
+      "keywords": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-engagement-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Social Engagement Strategy",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Designing posts and replies that earn meaningful interaction.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend audience engagement approaches across platforms."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Ask specific questions",
+            "Design for saves and shares",
+            "Close the loop when users respond"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Social Engagement Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "entities": [
+        "Social Engagement Strategy",
+        "social-media-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "engagement strategy",
+        "comments",
+        "saves",
+        "shares",
+        "interaction"
+      ],
+      "rules": [
+        "Avoid: Engagement bait without value",
+        "Avoid: Buying fake interaction"
+      ],
+      "bestPractices": [
+        "Ask specific questions",
+        "Design for saves and shares",
+        "Close the loop when users respond"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Social Engagement Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Engagement bait without value",
+        "Buying fake interaction"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Ask specific questions",
+        "Practice: Design for saves and shares",
+        "Practice: Close the loop when users respond"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sm-community-building",
+        "ig-instagram-engagement-optimization",
+        "fb-facebook-engagement-strategy",
+        "sm-social-audience-analysis"
+      ],
+      "definitions": [
+        "Social engagement strategy plans prompts, formats, and response loops that increase quality interactions (saves, shares, thoughtful comments) aligned with brand goals.",
+        "Recommend audience engagement approaches across platforms."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Ask specific questions",
+      "Design for saves and shares",
+      "Close the loop when users respond"
+    ],
+    "bestPractices": [
+      "Ask specific questions",
+      "Design for saves and shares",
+      "Close the loop when users respond"
+    ],
+    "decisionRules": [
+      "Practice: Ask specific questions",
+      "Practice: Design for saves and shares",
+      "Practice: Close the loop when users respond"
+    ]
+  }
+}

@@ -9,6 +9,7 @@ import { DecisionValidator } from "./decision-validator.js";
 import { QualityEvaluator } from "./quality-evaluator.js";
 import { SolutionGenerator } from "./solution-generator.js";
 import { SolutionScorer } from "./solution-scorer.js";
+import { ProfessionalDecisionMemoryStore } from "./professional-decision-memory.js";
 import { StubKnowledgeSearchProvider, type KnowledgeSearchProvider } from "./providers/knowledge-search-provider.js";
 import { StubMemorySearchProvider, type MemorySearchProvider } from "./providers/memory-search-provider.js";
 import {
@@ -23,10 +24,21 @@ import {
   DecisionStep,
   WorkflowHandoff,
 } from "./types.js";
+import type {
+  AiMeProfessionalDecisionAwareness,
+  ProfessionalDecisionFramework,
+  ProfessionalDecisionHealthReport,
+  ProfessionalDecisionMemoryRecord,
+  ProfessionalDecisionOption,
+  ProfessionalDecisionRepairResult,
+  ProfessionalDecisionRequest,
+  ProfessionalDecisionResult,
+} from "./professional-decision-types.js";
 import type { AiReasoningEngine } from "../reasoning/reasoning-engine.js";
 import { mapDecisionTypeToReasoningType } from "../reasoning/decision-type-mapper.js";
 import type { AiPlanningEngine } from "../planning/planning-engine.js";
 import { mapDecisionTypeToPlanningType } from "../planning/decision-type-mapper.js";
+import type { ProfessionalKnowledgeReasoningResult } from "../knowledge-reasoning-engine/types.js";
 
 export interface AiDecisionEngineOptions {
   storageRoot: string;
@@ -36,11 +48,13 @@ export interface AiDecisionEngineOptions {
 
 /**
  * KWIZERA AI Decision Engine — central intelligent decision authority.
- * Step 2B: No AI models. No business module implementations.
+ * Workflow decide() remains Step 2B authority. decideProfessional() adds
+ * Knowledge-Foundation Decision Intelligence (Step 2) without duplicating reasoning logic.
  */
 export class AiDecisionEngine {
   readonly logger = new DecisionLogger();
   readonly history = new DecisionHistoryStore();
+  readonly professionalMemory = new ProfessionalDecisionMemoryStore();
   readonly priorityManager = new DecisionPriorityManager();
   readonly qualityEvaluator = new QualityEvaluator();
   readonly solutionGenerator = new SolutionGenerator();
@@ -51,10 +65,13 @@ export class AiDecisionEngine {
   private readonly knowledgeProvider: KnowledgeSearchProvider;
   private readonly storageRoot: string;
   private readonly decisionDurations: number[] = [];
+  private readonly professionalDecisionDurations: number[] = [];
   private initialized = false;
   private core: AiCoreManager | null = null;
   private reasoningEngine: AiReasoningEngine | null = null;
   private planningEngine: AiPlanningEngine | null = null;
+  private lastProfessionalResult: ProfessionalDecisionResult | null = null;
+  private lastProfessionalHealth: ProfessionalDecisionHealthReport | null = null;
 
   constructor(options: AiDecisionEngineOptions) {
     this.storageRoot = options.storageRoot;
@@ -70,11 +87,13 @@ export class AiDecisionEngine {
 
     this.logger.initialize(logDir);
     this.history.initialize(decisionsDir);
+    this.professionalMemory.initialize(decisionsDir);
     this.initialized = true;
 
     this.logger.log("info", "decision", "Decision Engine initialized", {
       logDirectory: logDir,
       decisionsDirectory: decisionsDir,
+      professionalDecisionMemory: this.professionalMemory.getMemoryPath(),
     });
   }
 
@@ -403,6 +422,292 @@ export class AiDecisionEngine {
     }
   }
 
+  /**
+   * Professional Decision Intelligence — knowledge-foundation grounded decisions.
+   * Consumes AiKnowledgeReasoningEngine.reasonProfessional(); does not generate media
+   * and does not invoke Planning Intelligence.
+   */
+  async decideProfessional(input: ProfessionalDecisionRequest): Promise<ProfessionalDecisionResult> {
+    if (!this.initialized || !this.core) {
+      throw new DecisionEngineError("Decision Engine not initialized", "NOT_INITIALIZED");
+    }
+
+    const start = performance.now();
+    const decisionId = randomUUID();
+    const request = input.request.trim();
+    const objective = input.objective?.trim() || request;
+    const constraints = uniqueStrings([
+      ...(input.constraints ?? []),
+      ...detectConstraints(request, input.context ?? {}),
+    ]);
+    const availableResources = uniqueStrings([
+      ...(input.availableResources ?? []),
+      ...detectResources(input.context ?? {}),
+    ]);
+
+    this.priorityManager.acquire(DecisionPriority.Normal, decisionId);
+
+    try {
+      const foundation = this.core.knowledgeFoundation;
+      if (!foundation?.isStartupComplete()) {
+        return this.buildUnsupportedProfessionalDecision({
+          decisionId,
+          request,
+          objective,
+          constraints,
+          availableResources,
+          start,
+          reason: "Knowledge Foundation is not ready — professional decisions require verified knowledge.",
+        });
+      }
+
+      const reasoningEngine = foundation.getKnowledgeReasoningEngine();
+      const professionalReasoning = await reasoningEngine.reasonProfessional({
+        request,
+        objective,
+        context: input.context ?? {},
+        requiredDomains: input.requiredDomains,
+        limit: input.limit ?? 12,
+        includeDomainModules: input.includeDomainModules !== false,
+      });
+
+      if (!professionalReasoning.grounded || !professionalReasoning.selected) {
+        return this.buildUnsupportedProfessionalDecision({
+          decisionId,
+          request,
+          objective,
+          constraints,
+          availableResources,
+          start,
+          reason: "No verified Knowledge Foundation evidence supports this decision.",
+          professionalReasoning,
+        });
+      }
+
+      const similar = this.professionalMemory.findSimilar(objective, professionalReasoning.domainsUsed, 5);
+      const learnedFromHistory = similar.length > 0;
+      const historyBoost = learnedFromHistory
+        ? Math.min(6, similar.filter((item) => item.finalDecision === professionalReasoning.selected?.guidance).length * 2)
+        : 0;
+
+      const options = buildProfessionalOptions(professionalReasoning);
+      const selectedOption = options.find((option) => option.selected) ?? options[0];
+      const confidenceScore = clamp(
+        Math.round(professionalReasoning.confidenceScore + historyBoost - constraintsPenalty(constraints, professionalReasoning)),
+        0,
+        100
+      );
+
+      const bestPractices = uniqueStrings([
+        ...professionalReasoning.improvements,
+        ...professionalReasoning.decisionRules.slice(0, 6),
+        ...professionalReasoning.knowledgeUsed.flatMap((item) => item.guidance ? [item.guidance] : []).slice(0, 2),
+      ]).slice(0, 10);
+
+      const framework: ProfessionalDecisionFramework = {
+        objective,
+        availableOptions: options,
+        advantages: uniqueStrings(options.flatMap((option) => option.advantages)).slice(0, 8),
+        disadvantages: uniqueStrings(options.flatMap((option) => option.disadvantages)).slice(0, 8),
+        risks: uniqueStrings([...professionalReasoning.risks, ...options.flatMap((option) => option.risks)]).slice(0, 8),
+        professionalStandards: professionalReasoning.professionalStandards.slice(0, 12),
+        bestPractices,
+        confidenceScore,
+        finalRecommendation: selectedOption?.guidance ?? professionalReasoning.selected.guidance,
+      };
+
+      const knowledgePacksUsed = uniqueStrings([
+        ...professionalReasoning.domainContributions.map((item) => item.sourceModule),
+        ...professionalReasoning.knowledgeUsed.map((item) => item.source),
+        ...professionalReasoning.domainsUsed,
+      ]);
+
+      const explanation = {
+        whySelected: professionalReasoning.explanation,
+        knowledgePacksUsed,
+        knowledgeIdsUsed: uniqueStrings([
+          ...professionalReasoning.knowledgeUsed.map((item) => item.knowledgeId),
+          ...professionalReasoning.relatedKnowledgeIds,
+        ]),
+        professionalStandardsApplied: framework.professionalStandards,
+        alternativesRejected: professionalReasoning.rejectedOptions.map((option) => ({
+          title: option.title,
+          reason: option.rejectionReason ?? option.reason,
+        })),
+        expectedOutcome: buildExpectedOutcome(selectedOption, framework, similar),
+        domainsUsed: professionalReasoning.domainsUsed,
+      };
+
+      const memoryRecord: ProfessionalDecisionMemoryRecord = {
+        decisionId,
+        context: {
+          request,
+          objective,
+          constraints,
+          availableResources,
+          missingInformation: professionalReasoning.missingInformation.map((item) => item.field),
+        },
+        knowledgeUsed: professionalReasoning.knowledgeUsed.map((item) => ({
+          knowledgeId: item.knowledgeId,
+          title: item.title,
+          domain: item.domain,
+          source: item.source,
+        })),
+        reasoningPath: professionalReasoning.processSteps.map((step) => `${step.step}. ${step.name}: ${step.detail}`),
+        finalDecision: framework.finalRecommendation,
+        confidenceScore,
+        timestamp: new Date().toISOString(),
+        relatedKnowledgePacks: knowledgePacksUsed,
+        domainsUsed: professionalReasoning.domainsUsed,
+        priorDecisionIds: similar.map((item) => item.decisionId),
+        grounded: true,
+      };
+
+      this.professionalMemory.append(memoryRecord);
+
+      const durationMs = Math.round(performance.now() - start);
+      this.professionalDecisionDurations.push(durationMs);
+
+      const result: ProfessionalDecisionResult = {
+        decisionId,
+        available: true,
+        grounded: true,
+        unsupported: false,
+        objective,
+        constraints,
+        availableResources,
+        missingInformation: professionalReasoning.missingInformation.map((item) => ({
+          field: item.field,
+          severity: item.severity,
+          reason: item.reason,
+        })),
+        framework,
+        explanation,
+        confidenceScore,
+        confidenceExplanation: `${professionalReasoning.confidenceExplanation} Decision Intelligence confidence ${confidenceScore}/100${
+          learnedFromHistory ? ` after consulting ${similar.length} prior professional decision(s).` : "."
+        }`,
+        memoryRecord,
+        professionalReasoningAvailable: true,
+        multiDomain: professionalReasoning.multiDomain,
+        learnedFromHistory,
+        durationMs,
+      };
+
+      this.lastProfessionalResult = structuredClone(result);
+      this.logger.log("info", "decision", "Professional decision recorded", {
+        decisionId,
+        confidenceScore,
+        grounded: true,
+        domains: professionalReasoning.domainsUsed,
+      });
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.log("error", "error", "Professional decision failed", { decisionId, error: message });
+      throw new DecisionEngineError(message, "PROFESSIONAL_DECISION_FAILED");
+    } finally {
+      this.priorityManager.release(decisionId);
+    }
+  }
+
+  getAiMeProfessionalDecisionAwareness(): AiMeProfessionalDecisionAwareness {
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    return {
+      available: this.initialized && foundationReady,
+      enabled: this.initialized && foundationReady,
+      summary:
+        "AI Me can make professional, explainable decisions using the Knowledge Foundation and Professional Reasoning Engine. Every decision records objective, options, risks, standards, confidence, and memory for future learning. Planning Intelligence is available through the Planning Engine (planProfessional). Workflow Intelligence is not enabled in this step.",
+      capabilities: [
+        "make professional decisions",
+        "compare multiple solutions",
+        "recommend the best workflow",
+        "explain every decision",
+        "improve future decisions using decision history",
+      ],
+      groundedInKnowledgeFoundation: true,
+      planningIntelligenceEnabled: true,
+      decisionHistoryCount: this.professionalMemory.getCount(),
+      lastConfidenceScore: this.lastProfessionalResult?.confidenceScore ?? null,
+    };
+  }
+
+  getLastProfessionalDecision(): ProfessionalDecisionResult | null {
+    return this.lastProfessionalResult ? structuredClone(this.lastProfessionalResult) : null;
+  }
+
+  getProfessionalDecisionHistory(): ProfessionalDecisionMemoryRecord[] {
+    return this.professionalMemory.getAll().map((record) => structuredClone(record));
+  }
+
+  async runProfessionalDecisionHealthCheck(): Promise<ProfessionalDecisionHealthReport> {
+    const issues: string[] = [];
+    if (!this.initialized) issues.push("Decision Engine is not initialized.");
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    if (!foundationReady) issues.push("Knowledge Foundation startup is incomplete.");
+    const memoryWritable = this.professionalMemory.ensureWritable();
+    if (!memoryWritable) issues.push("Professional decision memory is not writable.");
+
+    let canDecide = false;
+    if (this.initialized && foundationReady) {
+      try {
+        const sample =
+          this.lastProfessionalResult?.grounded && this.lastProfessionalResult.confidenceScore > 0
+            ? this.lastProfessionalResult
+            : await this.decideProfessional({
+                request: "recommend professional camera lighting for a product advertisement",
+                objective: "Select a knowledge-backed lighting decision",
+                context: { product: "demo product", audience: "general buyers" },
+                requiredDomains: ["camera-knowledge", "lighting-knowledge", "industry-standards-knowledge"],
+                includeDomainModules: true,
+              });
+        canDecide = sample.grounded && !sample.unsupported && Boolean(sample.framework.finalRecommendation);
+        if (!sample.grounded) issues.push("Sample professional decision was not grounded.");
+        if (!sample.explanation.whySelected) issues.push("Sample professional decision explanation is empty.");
+      } catch (error) {
+        issues.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    const report: ProfessionalDecisionHealthReport = {
+      healthy: issues.length === 0 && canDecide && memoryWritable,
+      initialized: this.initialized,
+      foundationReady,
+      canDecide,
+      memoryWritable,
+      issues,
+      checkedAt: new Date().toISOString(),
+    };
+    this.lastProfessionalHealth = report;
+    return structuredClone(report);
+  }
+
+  async repairProfessionalDecisionIntelligence(): Promise<ProfessionalDecisionRepairResult> {
+    const actions: string[] = [];
+    if (this.professionalMemory.ensureWritable()) {
+      actions.push("Ensured professional decision memory is writable.");
+    }
+    const health = await this.runProfessionalDecisionHealthCheck();
+    if (!health.healthy && this.core?.knowledgeFoundation?.isStartupComplete()) {
+      await this.decideProfessional({
+        request: "professional video production workflow decision",
+        objective: "Validate professional decision path",
+        includeDomainModules: true,
+      });
+      actions.push("Re-ran grounded professional decision sample.");
+    }
+    const recheck = await this.runProfessionalDecisionHealthCheck();
+    return {
+      repaired: recheck.healthy,
+      actions,
+      remainingIssues: recheck.issues,
+    };
+  }
+
+  getLastProfessionalDecisionHealth(): ProfessionalDecisionHealthReport | null {
+    return this.lastProfessionalHealth ? structuredClone(this.lastProfessionalHealth) : null;
+  }
+
   buildStatusReport(): DecisionEngineStatusReport {
     const total = this.decisionDurations.length;
     const averageDecisionMs =
@@ -412,25 +717,119 @@ export class AiDecisionEngine {
 
     const approved = this.history.getAll().filter((r) => r.status === DecisionStatus.Approved);
     const accuracy =
-      total > 0 ? Math.round((approved.length / this.history.getCount()) * 100) : 100;
+      total > 0 ? Math.round((approved.length / Math.max(1, this.history.getCount())) * 100) : 100;
 
     const knownIssues: string[] = [];
     if (!this.initialized) {
       knownIssues.push("Decision Engine not initialized");
     }
+    if (!this.core?.knowledgeFoundation?.isStartupComplete()) {
+      knownIssues.push("Professional Decision Intelligence waiting on Knowledge Foundation");
+    }
 
-    const checks = [this.initialized, this.history.getHistoryPath() !== null];
+    const checks = [
+      this.initialized,
+      this.history.getHistoryPath() !== null,
+      this.professionalMemory.isReady(),
+    ];
     const readinessScore = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
     return {
       decisionEngineStatus: this.initialized ? "operational" : "not-initialized",
       decisionAccuracy: accuracy,
       validationStatus: this.initialized ? "ready" : "not-ready",
-      performance: { averageDecisionMs, totalDecisions: this.history.getCount() },
+      performance: {
+        averageDecisionMs,
+        totalDecisions: this.history.getCount() + this.professionalMemory.getCount(),
+      },
       knownIssues,
       readinessScore,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  private buildUnsupportedProfessionalDecision(input: {
+    decisionId: string;
+    request: string;
+    objective: string;
+    constraints: string[];
+    availableResources: string[];
+    start: number;
+    reason: string;
+    professionalReasoning?: ProfessionalKnowledgeReasoningResult;
+  }): ProfessionalDecisionResult {
+    const memoryRecord: ProfessionalDecisionMemoryRecord = {
+      decisionId: input.decisionId,
+      context: {
+        request: input.request,
+        objective: input.objective,
+        constraints: input.constraints,
+        availableResources: input.availableResources,
+        missingInformation: input.professionalReasoning?.missingInformation.map((item) => item.field) ?? [
+          "verified-knowledge",
+        ],
+      },
+      knowledgeUsed: [],
+      reasoningPath: input.professionalReasoning?.processSteps.map((step) => `${step.step}. ${step.name}`) ?? [
+        "1. Understand the request",
+        "2. Knowledge Foundation unavailable or ungrounded",
+      ],
+      finalDecision: input.reason,
+      confidenceScore: 0,
+      timestamp: new Date().toISOString(),
+      relatedKnowledgePacks: [],
+      domainsUsed: input.professionalReasoning?.domainsUsed ?? [],
+      priorDecisionIds: [],
+      grounded: false,
+    };
+    this.professionalMemory.append(memoryRecord);
+
+    const durationMs = Math.round(performance.now() - input.start);
+    this.professionalDecisionDurations.push(durationMs);
+
+    const result: ProfessionalDecisionResult = {
+      decisionId: input.decisionId,
+      available: false,
+      grounded: false,
+      unsupported: true,
+      objective: input.objective,
+      constraints: input.constraints,
+      availableResources: input.availableResources,
+      missingInformation: input.professionalReasoning?.missingInformation.map((item) => ({
+        field: item.field,
+        severity: item.severity,
+        reason: item.reason,
+      })) ?? [{ field: "verified-knowledge", severity: "critical", reason: input.reason }],
+      framework: {
+        objective: input.objective,
+        availableOptions: [],
+        advantages: [],
+        disadvantages: [],
+        risks: [input.reason],
+        professionalStandards: input.professionalReasoning?.professionalStandards ?? [],
+        bestPractices: [],
+        confidenceScore: 0,
+        finalRecommendation: input.reason,
+      },
+      explanation: {
+        whySelected: input.reason,
+        knowledgePacksUsed: [],
+        knowledgeIdsUsed: [],
+        professionalStandardsApplied: [],
+        alternativesRejected: [],
+        expectedOutcome: "No professional decision can be issued without Knowledge Foundation evidence.",
+        domainsUsed: input.professionalReasoning?.domainsUsed ?? [],
+      },
+      confidenceScore: 0,
+      confidenceExplanation: "Confidence is 0 because the decision is unsupported by verified knowledge.",
+      memoryRecord,
+      professionalReasoningAvailable: Boolean(input.professionalReasoning),
+      multiDomain: Boolean(input.professionalReasoning?.multiDomain),
+      learnedFromHistory: false,
+      durationMs,
+    };
+    this.lastProfessionalResult = structuredClone(result);
+    return result;
   }
 
   private buildIncompleteResult(input: {
@@ -516,4 +915,85 @@ export class AiDecisionEngine {
       requestId: input.request.requestId,
     };
   }
+}
+
+function buildProfessionalOptions(reasoning: ProfessionalKnowledgeReasoningResult): ProfessionalDecisionOption[] {
+  const fromConsidered = reasoning.consideredOptions.map((option, index) => ({
+    optionId: option.knowledgeId || `option-${index + 1}`,
+    title: option.title,
+    domain: option.domain,
+    guidance: option.guidance,
+    advantages: option.advantages,
+    disadvantages: option.disadvantages,
+    risks: option.disadvantages.slice(0, 2),
+    confidenceScore: option.confidenceScore,
+    selected: option.selected,
+    rejectionReason: option.rejectionReason,
+    knowledgeId: option.knowledgeId,
+  }));
+  if (fromConsidered.length > 0) return fromConsidered;
+  if (!reasoning.selected) return [];
+  return [
+    {
+      optionId: reasoning.selected.knowledgeId,
+      title: reasoning.selected.knowledgeId,
+      domain: reasoning.domainsUsed[0] ?? "knowledge-foundation",
+      guidance: reasoning.selected.guidance,
+      advantages: reasoning.improvements.slice(0, 3),
+      disadvantages: reasoning.risks.slice(0, 2),
+      risks: reasoning.risks.slice(0, 2),
+      confidenceScore: reasoning.confidenceScore,
+      selected: true,
+      knowledgeId: reasoning.selected.knowledgeId,
+    },
+  ];
+}
+
+function buildExpectedOutcome(
+  selected: ProfessionalDecisionOption | undefined,
+  framework: ProfessionalDecisionFramework,
+  similar: ProfessionalDecisionMemoryRecord[]
+): string {
+  const base = selected
+    ? `Applying ${selected.title} is expected to follow stored professional standards with confidence ${framework.confidenceScore}/100.`
+    : `No grounded option is available.`;
+  if (!similar.length) return base;
+  return `${base} Consistent with ${similar.length} prior professional decision(s) in related domains.`;
+}
+
+function detectConstraints(request: string, context: Record<string, unknown>): string[] {
+  const constraints: string[] = [];
+  const text = request.toLowerCase();
+  if (/\bbudget|low cost|cheap\b/.test(text) || context.budget) constraints.push("budget");
+  if (/\bdeadline|urgent|asap|time.?limit\b/.test(text) || context.deadline) constraints.push("time");
+  if (/\bmobile|phone|vertical\b/.test(text) || context.platform) constraints.push("platform-format");
+  if (/\boffline|no internet\b/.test(text)) constraints.push("offline-only");
+  if (context.brandVoice || context.brand) constraints.push("brand-voice");
+  return constraints;
+}
+
+function detectResources(context: Record<string, unknown>): string[] {
+  const resources: string[] = [];
+  if (context.product || context.productName) resources.push("product-context");
+  if (context.audience || context.targetAudience) resources.push("audience-context");
+  if (context.platform || context.channel) resources.push("delivery-platform");
+  if (context.brand || context.brandVoice) resources.push("brand-context");
+  if (context.footage || context.assets) resources.push("existing-assets");
+  return resources;
+}
+
+function constraintsPenalty(
+  constraints: string[],
+  reasoning: ProfessionalKnowledgeReasoningResult
+): number {
+  const importantMissing = reasoning.missingInformation.filter((item) => item.severity === "important").length;
+  return constraints.length * 1 + importantMissing * 2;
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === "string").map((value) => value.trim()).filter(Boolean))];
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

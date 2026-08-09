@@ -1,0 +1,326 @@
+{
+  "knowledgeId": "comp-headroom",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Headroom",
+  "description": "Vertical space above a subject’s head within the frame.",
+  "summary": "Keep portraits comfortable and professional by avoiding cramped or excessive top space.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "headroom",
+    "top space",
+    "portrait framing",
+    "interview framing"
+  ],
+  "keywords": [
+    "headroom",
+    "top space",
+    "portrait framing",
+    "interview framing"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-look-room",
+    "comp-eye-line",
+    "comp-subject-placement",
+    "comp-rule-of-thirds",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-video-production-knowledge",
+    "lc-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:32.023Z",
+  "lastUpdated": "2026-08-08T15:32:32.023Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-headroom",
+  "integrityStatus": "verified",
+  "contentHash": "1401d91dd355a11ec41e50ee5d9cdd98dfb832c408389e2593e03abbb0240b79",
+  "searchableText": "headroom vertical space above a subject’s head within the frame. keep portraits comfortable and professional by avoiding cramped or excessive top space. professional-composition professional-composition professional headroom top space portrait framing interview framing headroom top space portrait framing interview framing",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "headroom-vertical-space",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "headroom",
+    "kind": "professional-composition",
+    "purpose": "Keep portraits comfortable and professional by avoiding cramped or excessive top space.",
+    "whenToUse": [
+      "Interviews",
+      "Talking heads",
+      "Standing portraits"
+    ],
+    "whenNotToUse": [
+      "Intentional extreme crops for style"
+    ],
+    "advantages": [
+      "Polished default",
+      "Prevents awkward cuts"
+    ],
+    "limitations": [
+      "Platform UI may steal top space—plan safe areas"
+    ],
+    "relatedCameraTechniques": [
+      "eye-level height",
+      "aspect ratio safe frames"
+    ],
+    "relatedStorytellingTechniques": [
+      "respect",
+      "presence"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-headroom",
+      "title": "Headroom",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Vertical space above a subject’s head within the frame.",
+      "coreConcepts": [
+        "headroom",
+        "top space",
+        "portrait framing",
+        "interview framing"
+      ],
+      "definitions": [
+        "Keep portraits comfortable and professional by avoiding cramped or excessive top space."
+      ],
+      "rules": [
+        "Use when: Interviews",
+        "Use when: Talking heads",
+        "Use when: Standing portraits",
+        "Do not use when: Intentional extreme crops for style"
+      ],
+      "bestPractices": [
+        "Leave modest headroom",
+        "Account for social UI overlays",
+        "Match headroom across coverage"
+      ],
+      "professionalTechniques": [
+        "Polished default",
+        "Prevents awkward cuts"
+      ],
+      "workflow": [
+        "Choose Headroom",
+        "Leave modest headroom",
+        "Account for social UI overlays",
+        "Match headroom across coverage"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Talking heads",
+        "Use when: Standing portraits",
+        "Avoid when: Intentional extreme crops for style"
+      ],
+      "commonMistakes": [
+        "Too much ceiling",
+        "Cutting skulls"
+      ],
+      "troubleshooting": [
+        "Limitation: Platform UI may steal top space—plan safe areas"
+      ],
+      "recommendations": [
+        "Leave modest headroom",
+        "Account for social UI overlays",
+        "Match headroom across coverage"
+      ],
+      "examples": [
+        "Medium interview with consistent headroom across cameras"
+      ],
+      "professionalStandards": [
+        "respect",
+        "presence"
+      ],
+      "relatedTopics": [
+        "look-room",
+        "eye-line",
+        "subject-placement",
+        "rule-of-thirds"
+      ],
+      "keywords": [
+        "headroom",
+        "top space",
+        "portrait framing",
+        "interview framing"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:headroom",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Headroom",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Vertical space above a subject’s head within the frame.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep portraits comfortable and professional by avoiding cramped or excessive top space."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Interviews",
+            "Talking heads",
+            "Standing portraits"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Intentional extreme crops for style"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Leave modest headroom",
+            "Account for social UI overlays",
+            "Match headroom across coverage"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Medium interview with consistent headroom across cameras"
+          ]
+        }
+      ],
+      "concepts": [
+        "headroom",
+        "top space",
+        "portrait framing",
+        "interview framing"
+      ],
+      "entities": [
+        "Headroom",
+        "composition-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "headroom",
+        "top space",
+        "portrait framing",
+        "interview framing"
+      ],
+      "rules": [
+        "Avoid when: Intentional extreme crops for style"
+      ],
+      "bestPractices": [
+        "Leave modest headroom",
+        "Account for social UI overlays",
+        "Match headroom across coverage"
+      ],
+      "professionalTechniques": [
+        "Polished default",
+        "Prevents awkward cuts"
+      ],
+      "examples": [
+        "Medium interview with consistent headroom across cameras"
+      ],
+      "commonMistakes": [
+        "Too much ceiling",
+        "Cutting skulls"
+      ],
+      "qualityRules": [
+        "Platform UI may steal top space—plan safe areas"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Talking heads",
+        "Use when: Standing portraits",
+        "Do not use when: Intentional extreme crops for style"
+      ],
+      "workflowSteps": [
+        "Leave modest headroom",
+        "Account for social UI overlays",
+        "Match headroom across coverage"
+      ],
+      "prerequisites": [
+        "eye-level height",
+        "aspect ratio safe frames"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-look-room",
+        "comp-eye-line",
+        "comp-subject-placement",
+        "comp-rule-of-thirds"
+      ],
+      "definitions": [
+        "Keep portraits comfortable and professional by avoiding cramped or excessive top space."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Leave modest headroom",
+      "Account for social UI overlays",
+      "Match headroom across coverage"
+    ],
+    "bestPractices": [
+      "Leave modest headroom",
+      "Account for social UI overlays",
+      "Match headroom across coverage"
+    ],
+    "decisionRules": [
+      "Use when: Interviews",
+      "Use when: Talking heads",
+      "Use when: Standing portraits",
+      "Do not use when: Intentional extreme crops for style"
+    ]
+  }
+}

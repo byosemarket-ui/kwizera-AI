@@ -474,6 +474,9 @@ export class KnowledgeExtractionEngine {
 }
 
 function storageTypeForPack(slug: KnowledgePackSlug): KnowledgeStorageType {
+  if (slug === "industry-standards") {
+    return KnowledgeStorageType.Industry;
+  }
   if (["marketing", "branding", "social-media", "customer-psychology", "sales-psychology"].includes(slug)) {
     return KnowledgeStorageType.Marketing;
   }

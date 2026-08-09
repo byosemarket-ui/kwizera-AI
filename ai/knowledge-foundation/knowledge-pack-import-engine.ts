@@ -43,6 +43,7 @@ const PACK_SLUG_TO_DOMAIN: Record<string, string[]> = {
   "color-theory": ["color-theory-knowledge"],
   typography: ["typography-knowledge"],
   "social-media": ["social-media-knowledge", "marketing-knowledge"],
+  "industry-standards": ["industry-standards-knowledge"],
   general: ["technical-knowledge"],
 };
 

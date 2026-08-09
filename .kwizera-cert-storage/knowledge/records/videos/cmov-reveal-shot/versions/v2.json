@@ -1,0 +1,352 @@
+{
+  "knowledgeId": "cmov-reveal-shot",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Reveal Shot",
+  "description": "A move (pan, tilt, dolly, pull-out, etc.) structured to disclose new visual information.",
+  "summary": "Control information timing—hide then show—for surprise, clarity, or persuasion.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "reveal-shot",
+    "reveal",
+    "unveil",
+    "payoff",
+    "hide and show"
+  ],
+  "keywords": [
+    "reveal",
+    "unveil",
+    "payoff",
+    "hide and show"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-pull-out",
+    "cmov-pan",
+    "cmov-tilt",
+    "cmov-push-in",
+    "cam-focus",
+    "cam-exposure",
+    "cam-shutter-speed",
+    "cam-aspect-ratio",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-video-editing-knowledge",
+    "cam-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:26.420Z",
+  "lastUpdated": "2026-08-08T16:55:37.162Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-reveal-shot",
+  "integrityStatus": "verified",
+  "contentHash": "96e2917a5714e7e555a2fdbcd02a1a121ec888ba074b4f9b71a68066fae7829e",
+  "searchableText": "reveal shot a move (pan, tilt, dolly, pull-out, etc.) structured to disclose new visual information. control information timing—hide then show—for surprise, clarity, or persuasion. professional-camera-movement camera-movement professional reveal-shot reveal unveil payoff hide and show reveal unveil payoff hide and show",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "reveal-shot-move",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "reveal-shot",
+    "kind": "camera-movement",
+    "purpose": "Control information timing—hide then show—for surprise, clarity, or persuasion.",
+    "whenToUse": [
+      "Product unveils",
+      "Punchline visuals",
+      "Before/after transitions"
+    ],
+    "whenNotToUse": [
+      "When clarity demands showing information immediately",
+      "Cheap surprise without payoff"
+    ],
+    "advantages": [
+      "Strong attention control",
+      "Memorable structure"
+    ],
+    "limitations": [
+      "Fails if reveal content is weak",
+      "Timing must match edit/music"
+    ],
+    "relatedCameraSettings": [
+      "focus",
+      "exposure",
+      "shutter-speed",
+      "aspect-ratio"
+    ],
+    "relatedStorytellingTechniques": [
+      "information control",
+      "surprise",
+      "payoff"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-reveal-shot",
+      "title": "Reveal Shot",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "A move (pan, tilt, dolly, pull-out, etc.) structured to disclose new visual information.",
+      "coreConcepts": [
+        "reveal",
+        "unveil",
+        "payoff",
+        "hide and show"
+      ],
+      "definitions": [
+        "Control information timing—hide then show—for surprise, clarity, or persuasion."
+      ],
+      "rules": [
+        "Use when: Product unveils",
+        "Use when: Punchline visuals",
+        "Use when: Before/after transitions",
+        "Do not use when: When clarity demands showing information immediately",
+        "Do not use when: Cheap surprise without payoff"
+      ],
+      "bestPractices": [
+        "Hide intentionally; reveal cleanly",
+        "Land on a composed hero frame",
+        "Sync with sound/VO cue"
+      ],
+      "professionalTechniques": [
+        "Strong attention control",
+        "Memorable structure"
+      ],
+      "workflow": [
+        "Choose Reveal Shot",
+        "Hide intentionally; reveal cleanly",
+        "Land on a composed hero frame",
+        "Sync with sound/VO cue"
+      ],
+      "decisionRules": [
+        "Use when: Product unveils",
+        "Use when: Punchline visuals",
+        "Use when: Before/after transitions",
+        "Avoid when: When clarity demands showing information immediately",
+        "Avoid when: Cheap surprise without payoff"
+      ],
+      "commonMistakes": [
+        "Telegraphing the reveal",
+        "Messy end frame"
+      ],
+      "troubleshooting": [
+        "Limitation: Fails if reveal content is weak",
+        "Limitation: Timing must match edit/music"
+      ],
+      "recommendations": [
+        "Hide intentionally; reveal cleanly",
+        "Land on a composed hero frame",
+        "Sync with sound/VO cue"
+      ],
+      "examples": [
+        "Pan off blur to sharp product",
+        "Pull out from hands to full gift box"
+      ],
+      "professionalStandards": [
+        "information control",
+        "surprise",
+        "payoff"
+      ],
+      "relatedTopics": [
+        "pull-out",
+        "pan",
+        "tilt",
+        "push-in",
+        "focus",
+        "exposure",
+        "shutter-speed",
+        "aspect-ratio"
+      ],
+      "keywords": [
+        "reveal",
+        "unveil",
+        "payoff",
+        "hide and show"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:reveal-shot",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Reveal Shot",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "A move (pan, tilt, dolly, pull-out, etc.) structured to disclose new visual information.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Control information timing—hide then show—for surprise, clarity, or persuasion."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Product unveils",
+            "Punchline visuals",
+            "Before/after transitions"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When clarity demands showing information immediately",
+            "Cheap surprise without payoff"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Hide intentionally; reveal cleanly",
+            "Land on a composed hero frame",
+            "Sync with sound/VO cue"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Pan off blur to sharp product",
+            "Pull out from hands to full gift box"
+          ]
+        }
+      ],
+      "concepts": [
+        "reveal",
+        "unveil",
+        "payoff",
+        "hide and show"
+      ],
+      "entities": [
+        "Reveal Shot",
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "reveal",
+        "unveil",
+        "payoff",
+        "hide and show"
+      ],
+      "rules": [
+        "Avoid when: When clarity demands showing information immediately",
+        "Avoid when: Cheap surprise without payoff"
+      ],
+      "bestPractices": [
+        "Hide intentionally; reveal cleanly",
+        "Land on a composed hero frame",
+        "Sync with sound/VO cue"
+      ],
+      "professionalTechniques": [
+        "Strong attention control",
+        "Memorable structure"
+      ],
+      "examples": [
+        "Pan off blur to sharp product",
+        "Pull out from hands to full gift box"
+      ],
+      "commonMistakes": [
+        "Telegraphing the reveal",
+        "Messy end frame"
+      ],
+      "qualityRules": [
+        "Fails if reveal content is weak",
+        "Timing must match edit/music"
+      ],
+      "decisionRules": [
+        "Use when: Product unveils",
+        "Use when: Punchline visuals",
+        "Use when: Before/after transitions",
+        "Do not use when: When clarity demands showing information immediately",
+        "Do not use when: Cheap surprise without payoff"
+      ],
+      "workflowSteps": [
+        "Hide intentionally; reveal cleanly",
+        "Land on a composed hero frame",
+        "Sync with sound/VO cue"
+      ],
+      "prerequisites": [
+        "focus",
+        "exposure",
+        "shutter-speed",
+        "aspect-ratio"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-pull-out",
+        "cmov-pan",
+        "cmov-tilt",
+        "cmov-push-in"
+      ],
+      "definitions": [
+        "Control information timing—hide then show—for surprise, clarity, or persuasion."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Hide intentionally; reveal cleanly",
+      "Land on a composed hero frame",
+      "Sync with sound/VO cue"
+    ],
+    "bestPractices": [
+      "Hide intentionally; reveal cleanly",
+      "Land on a composed hero frame",
+      "Sync with sound/VO cue"
+    ],
+    "decisionRules": [
+      "Use when: Product unveils",
+      "Use when: Punchline visuals",
+      "Use when: Before/after transitions",
+      "Do not use when: When clarity demands showing information immediately",
+      "Do not use when: Cheap surprise without payoff"
+    ]
+  }
+}

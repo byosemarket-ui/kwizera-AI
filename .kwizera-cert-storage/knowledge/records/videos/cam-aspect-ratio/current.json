@@ -1,0 +1,328 @@
+{
+  "knowledgeId": "cam-aspect-ratio",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-settings",
+  "title": "Aspect Ratio",
+  "description": "Framing proportions for cinematic, social, and multi-platform delivery.",
+  "summary": "Aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens.",
+  "tags": [
+    "camera",
+    "professional",
+    "aspect-ratio",
+    "aspect ratio",
+    "16:9",
+    "9:16",
+    "safe frame",
+    "crop"
+  ],
+  "keywords": [
+    "aspect ratio",
+    "16:9",
+    "9:16",
+    "safe frame",
+    "crop"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-camera-resolution",
+    "cam-camera-fundamentals",
+    "cam-lens-types",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-composition-knowledge",
+    "cam-bridge-video-production-knowledge",
+    "cam-bridge-rendering-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:22.780Z",
+  "lastUpdated": "2026-08-08T16:55:30.227Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-aspect-ratio",
+  "integrityStatus": "verified",
+  "contentHash": "86e982c26aa17b269f33e7dec95ce0821e9df129dd78b80e7b057f6fa1e6e9a6",
+  "searchableText": "aspect ratio framing proportions for cinematic, social, and multi-platform delivery. aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens. professional-camera-settings camera professional aspect-ratio aspect ratio 16:9 9:16 safe frame crop aspect ratio 16:9 9:16 safe frame crop",
+  "classification": {
+    "category": "professional-camera-settings",
+    "topic": "aspect-ratio-framing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "aspect-ratio",
+    "kind": "camera-setting",
+    "professionalDefinition": "Aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens.",
+    "knowledgeItem": {
+      "knowledgeId": "cam-aspect-ratio",
+      "title": "Aspect Ratio",
+      "domain": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "description": "Framing proportions for cinematic, social, and multi-platform delivery.",
+      "coreConcepts": [
+        "aspect ratio",
+        "16:9",
+        "9:16",
+        "safe frame",
+        "crop"
+      ],
+      "definitions": [
+        "Aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens."
+      ],
+      "rules": [
+        "If dual delivery is required, compose to the intersection of safe areas.",
+        "Always keep logos and faces inside the strictest crop.",
+        "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+        "Never discover vertical crop problems only at export."
+      ],
+      "bestPractices": [
+        "Design composition for the primary aspect ratio first.",
+        "Protect title-safe and UI-safe areas for social overlays.",
+        "Plan dual-aspect coverage when both horizontal and vertical deliverables are required.",
+        "Keep product and faces inside common crop zones."
+      ],
+      "professionalTechniques": [
+        "Confirm primary and secondary aspect ratios.",
+        "Mark safe frames on monitor.",
+        "Compose and shoot to protected zones.",
+        "Validate crops in editorial proxies."
+      ],
+      "workflow": [
+        "Confirm primary and secondary aspect ratios.",
+        "Mark safe frames on monitor.",
+        "Compose and shoot to protected zones.",
+        "Validate crops in editorial proxies."
+      ],
+      "decisionRules": [
+        "If dual delivery is required, compose to the intersection of safe areas.",
+        "Always keep logos and faces inside the strictest crop.",
+        "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+        "Never discover vertical crop problems only at export."
+      ],
+      "commonMistakes": [
+        "Composing only for 16:9 then crushing into 9:16.",
+        "Placing CTAs in unsafe edges.",
+        "Changing aspect mid-campaign without re-composition."
+      ],
+      "troubleshooting": [
+        "Avoid: Composing only for 16:9 then crushing into 9:16.",
+        "Avoid: Placing CTAs in unsafe edges.",
+        "Avoid: Changing aspect mid-campaign without re-composition."
+      ],
+      "recommendations": [
+        "Design composition for the primary aspect ratio first.",
+        "Protect title-safe and UI-safe areas for social overlays.",
+        "Plan dual-aspect coverage when both horizontal and vertical deliverables are required.",
+        "Keep product and faces inside common crop zones."
+      ],
+      "examples": [
+        "16:9 brand film with 9:16 cutdown framed on set.",
+        "1:1 product loop for feed placements."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated camera standard"
+      ],
+      "relatedTopics": [
+        "camera-resolution",
+        "camera-fundamentals",
+        "lens-types"
+      ],
+      "keywords": [
+        "aspect ratio",
+        "16:9",
+        "9:16",
+        "safe frame",
+        "crop"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:aspect-ratio",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Aspect Ratio",
+      "category": "professional-camera-settings",
+      "domain": "camera-knowledge",
+      "description": "Framing proportions for cinematic, social, and multi-platform delivery.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Design composition for the primary aspect ratio first.",
+            "Protect title-safe and UI-safe areas for social overlays.",
+            "Plan dual-aspect coverage when both horizontal and vertical deliverables are required.",
+            "Keep product and faces inside common crop zones."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Confirm primary and secondary aspect ratios.",
+            "Mark safe frames on monitor.",
+            "Compose and shoot to protected zones.",
+            "Validate crops in editorial proxies."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If dual delivery is required, compose to the intersection of safe areas.",
+            "Always keep logos and faces inside the strictest crop.",
+            "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+            "Never discover vertical crop problems only at export."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "16:9 brand film with 9:16 cutdown framed on set.",
+            "1:1 product loop for feed placements."
+          ]
+        }
+      ],
+      "concepts": [
+        "aspect ratio",
+        "16:9",
+        "9:16",
+        "safe frame",
+        "crop"
+      ],
+      "entities": [
+        "Aspect Ratio",
+        "camera-knowledge",
+        "composition-knowledge",
+        "video-production-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "aspect ratio",
+        "16:9",
+        "9:16",
+        "safe frame",
+        "crop"
+      ],
+      "rules": [
+        "If dual delivery is required, compose to the intersection of safe areas.",
+        "Always keep logos and faces inside the strictest crop.",
+        "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+        "Never discover vertical crop problems only at export."
+      ],
+      "bestPractices": [
+        "Design composition for the primary aspect ratio first.",
+        "Protect title-safe and UI-safe areas for social overlays.",
+        "Plan dual-aspect coverage when both horizontal and vertical deliverables are required.",
+        "Keep product and faces inside common crop zones."
+      ],
+      "professionalTechniques": [
+        "Confirm primary and secondary aspect ratios.",
+        "Mark safe frames on monitor.",
+        "Compose and shoot to protected zones.",
+        "Validate crops in editorial proxies."
+      ],
+      "examples": [
+        "16:9 brand film with 9:16 cutdown framed on set.",
+        "1:1 product loop for feed placements."
+      ],
+      "commonMistakes": [
+        "Composing only for 16:9 then crushing into 9:16.",
+        "Placing CTAs in unsafe edges.",
+        "Changing aspect mid-campaign without re-composition."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If dual delivery is required, compose to the intersection of safe areas.",
+        "Always keep logos and faces inside the strictest crop.",
+        "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+        "Never discover vertical crop problems only at export."
+      ],
+      "workflowSteps": [
+        "Confirm primary and secondary aspect ratios.",
+        "Mark safe frames on monitor.",
+        "Compose and shoot to protected zones.",
+        "Validate crops in editorial proxies."
+      ],
+      "prerequisites": [
+        "Confirm primary and secondary aspect ratios."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "composition-knowledge",
+        "video-production-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cam-camera-resolution",
+        "cam-camera-fundamentals",
+        "cam-lens-types"
+      ],
+      "definitions": [
+        "Aspect ratio is the width-to-height proportion of the image; it shapes composition, safe areas, and how content adapts across screens."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Confirm primary and secondary aspect ratios.",
+      "Mark safe frames on monitor.",
+      "Compose and shoot to protected zones.",
+      "Validate crops in editorial proxies."
+    ],
+    "bestPractices": [
+      "Design composition for the primary aspect ratio first.",
+      "Protect title-safe and UI-safe areas for social overlays.",
+      "Plan dual-aspect coverage when both horizontal and vertical deliverables are required.",
+      "Keep product and faces inside common crop zones."
+    ],
+    "decisionRules": [
+      "If dual delivery is required, compose to the intersection of safe areas.",
+      "Always keep logos and faces inside the strictest crop.",
+      "When aspect conflicts with style, redesign framing rather than letterbox as a fix-all.",
+      "Never discover vertical crop problems only at export."
+    ]
+  }
+}

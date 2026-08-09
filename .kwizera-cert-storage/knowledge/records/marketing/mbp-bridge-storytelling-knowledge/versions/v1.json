@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "mbp-bridge-storytelling-knowledge",
+  "knowledgeType": "marketing-knowledge",
+  "category": "mbp-domain-bridge",
+  "title": "Storytelling Knowledge (related)",
+  "description": "Marketing creative inherits narrative craft.",
+  "summary": "Hooks and journeys use storytelling structures.",
+  "tags": [
+    "marketing-branding-psychology",
+    "domain-bridge",
+    "storytelling-knowledge"
+  ],
+  "keywords": [
+    "storytelling-knowledge",
+    "marketing",
+    "branding",
+    "psychology",
+    "relationship"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-marketing-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:34.044Z",
+  "lastUpdated": "2026-08-08T18:26:34.044Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mbp-bridge-storytelling-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "6bc1763978757b8ddd2e69eeee5c17f686c690cbdfee91c0e92bdc0013202e8d",
+  "searchableText": "storytelling knowledge (related) marketing creative inherits narrative craft. hooks and journeys use storytelling structures. mbp-domain-bridge marketing-branding-psychology domain-bridge storytelling-knowledge storytelling-knowledge marketing branding psychology relationship",
+  "classification": {
+    "category": "mbp-domain-bridge",
+    "topic": "storytelling-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "bridgeDomainId": "storytelling-knowledge",
+    "relationshipAnchor": true,
+    "createsAdvertisements": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate marketing/branding/psychology knowledge to storytelling-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Storytelling Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "storytelling-knowledge",
+      "description": "Marketing creative inherits narrative craft.",
+      "sections": [],
+      "concepts": [
+        "storytelling-knowledge"
+      ],
+      "entities": [
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "storytelling-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate marketing/branding/psychology knowledge to storytelling-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "mkt-marketing-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

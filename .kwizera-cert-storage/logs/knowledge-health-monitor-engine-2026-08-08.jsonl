@@ -1,0 +1,8 @@
+{"timestamp":"2026-08-08T15:30:34.741Z","level":"info","event":"startup","message":"Knowledge Health Monitor initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:36.707Z","level":"info","event":"health-check","message":"Knowledge health check complete","data":{"checkId":"hc-1786203034757-b5c42d","overallScore":97,"overallLevel":"excellent","warnings":0}}
+{"timestamp":"2026-08-08T15:30:36.734Z","level":"info","event":"audit","message":"Knowledge audit complete","data":{"auditId":"audit-1786203036709","valid":true,"durationMs":25}}
+{"timestamp":"2026-08-08T15:30:36.811Z","level":"info","event":"startup","message":"Knowledge Health Monitor startup complete","data":{"overallScore":97,"overallLevel":"excellent","durationMs":2067}}
+{"timestamp":"2026-08-08T16:44:06.385Z","level":"info","event":"startup","message":"Knowledge Health Monitor initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T16:44:30.659Z","level":"info","event":"health-check","message":"Knowledge health check complete","data":{"checkId":"hc-1786207446540-858981","overallScore":97,"overallLevel":"excellent","warnings":0}}
+{"timestamp":"2026-08-08T16:44:47.535Z","level":"info","event":"audit","message":"Knowledge audit complete","data":{"auditId":"audit-1786207470662","valid":true,"durationMs":16873}}
+{"timestamp":"2026-08-08T16:44:47.537Z","level":"info","event":"startup","message":"Knowledge Health Monitor startup complete","data":{"overallScore":97,"overallLevel":"excellent","durationMs":41054}}

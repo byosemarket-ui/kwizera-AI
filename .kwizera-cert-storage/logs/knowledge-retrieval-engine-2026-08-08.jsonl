@@ -1,0 +1,43 @@
+{"timestamp":"2026-08-08T15:30:25.987Z","level":"info","event":"startup","message":"Knowledge Retrieval Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:26.251Z","level":"info","event":"startup","message":"Knowledge Retrieval Engine startup complete","data":{"indexedRecords":0}}
+{"timestamp":"2026-08-08T15:48:30.953Z","level":"info","event":"startup","message":"Knowledge Retrieval Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:48:30.955Z","level":"info","event":"startup","message":"Knowledge Retrieval Engine startup complete","data":{"indexedRecords":213}}
+{"timestamp":"2026-08-08T19:45:57.475Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"isq-bridge-social-media-knowledge"}}
+{"timestamp":"2026-08-08T19:45:57.785Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":77,"results":12,"searchMs":58645,"retrievalMs":3823}}
+{"timestamp":"2026-08-08T19:45:57.861Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":80,"resultCount":12}}
+{"timestamp":"2026-08-08T19:46:03.815Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:46:03.826Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":59,"results":8,"searchMs":5308,"retrievalMs":5228}}
+{"timestamp":"2026-08-08T19:46:03.828Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":84,"resultCount":8}}
+{"timestamp":"2026-08-08T19:46:13.153Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"isq-bridge-social-media-knowledge"}}
+{"timestamp":"2026-08-08T19:46:13.156Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":67,"results":8,"searchMs":8386,"retrievalMs":736}}
+{"timestamp":"2026-08-08T19:46:13.158Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":80,"resultCount":8}}
+{"timestamp":"2026-08-08T19:48:19.928Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:19.930Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":183,"results":12,"searchMs":33274,"retrievalMs":825}}
+{"timestamp":"2026-08-08T19:48:19.992Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":85,"resultCount":12}}
+{"timestamp":"2026-08-08T19:48:40.396Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:40.403Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":200,"results":12,"searchMs":19151,"retrievalMs":842}}
+{"timestamp":"2026-08-08T19:48:40.405Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":85,"resultCount":12}}
+{"timestamp":"2026-08-08T19:48:47.053Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:47.056Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":122,"results":12,"searchMs":6391,"retrievalMs":1244}}
+{"timestamp":"2026-08-08T19:48:47.065Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":86,"resultCount":12}}
+{"timestamp":"2026-08-08T19:48:52.770Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:52.771Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":78,"results":12,"searchMs":5124,"retrievalMs":611}}
+{"timestamp":"2026-08-08T19:48:52.778Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":87,"resultCount":12}}
+{"timestamp":"2026-08-08T19:48:55.095Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:55.097Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":35,"results":12,"searchMs":2251,"retrievalMs":959}}
+{"timestamp":"2026-08-08T19:48:55.098Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":87,"resultCount":12}}
+{"timestamp":"2026-08-08T19:48:58.797Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:48:58.798Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":95,"results":12,"searchMs":3477,"retrievalMs":992}}
+{"timestamp":"2026-08-08T19:48:58.800Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":88,"resultCount":12}}
+{"timestamp":"2026-08-08T19:49:17.783Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:49:18.074Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":173,"results":12,"searchMs":18354,"retrievalMs":3083}}
+{"timestamp":"2026-08-08T19:49:18.203Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":88,"resultCount":12}}
+{"timestamp":"2026-08-08T19:49:23.500Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:49:23.502Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":111,"results":12,"searchMs":5249,"retrievalMs":1886}}
+{"timestamp":"2026-08-08T19:49:23.503Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":89,"resultCount":12}}
+{"timestamp":"2026-08-08T19:49:30.029Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:49:30.031Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":229,"results":12,"searchMs":6298,"retrievalMs":389}}
+{"timestamp":"2026-08-08T19:49:30.032Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":90,"resultCount":12}}
+{"timestamp":"2026-08-08T19:49:43.050Z","level":"info","event":"related","message":"Found 5 related knowledge records","data":{"sourceId":"qrule-lighting-quality-rules"}}
+{"timestamp":"2026-08-08T19:49:43.052Z","level":"info","event":"search","message":"Knowledge search complete","data":{"mode":"hybrid","candidates":242,"results":12,"searchMs":12972,"retrievalMs":568}}
+{"timestamp":"2026-08-08T19:49:43.053Z","level":"info","event":"ranking","message":"Knowledge ranking complete","data":{"topScore":90,"resultCount":12}}

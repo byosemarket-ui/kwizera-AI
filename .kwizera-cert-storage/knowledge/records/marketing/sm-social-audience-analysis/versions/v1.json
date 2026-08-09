@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "sm-social-audience-analysis",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Audience Analysis",
+  "description": "Understanding who follows, why they engage, and what language they use.",
+  "summary": "Ground platform and format recommendations in real audience behavior.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "social-audience-analysis",
+    "audience analysis",
+    "persona",
+    "behavior",
+    "comments",
+    "demographics"
+  ],
+  "keywords": [
+    "audience analysis",
+    "persona",
+    "behavior",
+    "comments",
+    "demographics"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-platform-selection",
+    "sm-social-engagement-strategy",
+    "sm-community-building",
+    "sm-social-content-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-sales-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:31.998Z",
+  "lastUpdated": "2026-08-08T19:03:31.998Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-social-audience-analysis",
+  "integrityStatus": "verified",
+  "contentHash": "0d5ead2b3eecfe2d17a85d52d498acf1fedb6bd80589141140d0fb8627fc921b",
+  "searchableText": "audience analysis understanding who follows, why they engage, and what language they use. ground platform and format recommendations in real audience behavior. professional-social-fundamentals professional-social-fundamentals professional social-audience-analysis audience analysis persona behavior comments demographics audience analysis persona behavior comments demographics",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "audience-analysis-understanding",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "social-audience-analysis",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Ground platform and format recommendations in real audience behavior.",
+    "professionalDefinition": "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-social-audience-analysis",
+      "title": "Audience Analysis",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Understanding who follows, why they engage, and what language they use.",
+      "coreConcepts": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "definitions": [
+        "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content.",
+        "Ground platform and format recommendations in real audience behavior."
+      ],
+      "rules": [
+        "Practice: Separate primary and secondary audiences",
+        "Practice: Study comments and saves, not only likes",
+        "Practice: Validate assumptions with content tests"
+      ],
+      "bestPractices": [
+        "Separate primary and secondary audiences",
+        "Study comments and saves, not only likes",
+        "Validate assumptions with content tests"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Separate primary and secondary audiences",
+        "Follow: Study comments and saves, not only likes",
+        "Follow: Validate assumptions with content tests"
+      ],
+      "commonMistakes": [
+        "Assuming brand persona equals audience",
+        "Ignoring platform-specific audience skew"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming brand persona equals audience",
+        "Avoid: Ignoring platform-specific audience skew"
+      ],
+      "recommendations": [
+        "Separate primary and secondary audiences",
+        "Study comments and saves, not only likes",
+        "Validate assumptions with content tests"
+      ],
+      "examples": [
+        "Professional application of Audience Analysis for platform-native content"
+      ],
+      "professionalStandards": [
+        "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content."
+      ],
+      "relatedTopics": [
+        "platform-selection",
+        "social-engagement-strategy",
+        "community-building",
+        "social-content-strategy"
+      ],
+      "keywords": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-audience-analysis",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Audience Analysis",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Understanding who follows, why they engage, and what language they use.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Ground platform and format recommendations in real audience behavior."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Separate primary and secondary audiences",
+            "Study comments and saves, not only likes",
+            "Validate assumptions with content tests"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Audience Analysis for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "entities": [
+        "Audience Analysis",
+        "social-media-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "terminology": [
+        "audience analysis",
+        "persona",
+        "behavior",
+        "comments",
+        "demographics"
+      ],
+      "rules": [
+        "Avoid: Assuming brand persona equals audience",
+        "Avoid: Ignoring platform-specific audience skew"
+      ],
+      "bestPractices": [
+        "Separate primary and secondary audiences",
+        "Study comments and saves, not only likes",
+        "Validate assumptions with content tests"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Audience Analysis for platform-native content"
+      ],
+      "commonMistakes": [
+        "Assuming brand persona equals audience",
+        "Ignoring platform-specific audience skew"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Separate primary and secondary audiences",
+        "Practice: Study comments and saves, not only likes",
+        "Practice: Validate assumptions with content tests"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-platform-selection",
+        "sm-social-engagement-strategy",
+        "sm-community-building",
+        "sm-social-content-strategy"
+      ],
+      "definitions": [
+        "Audience analysis gathers demographic, behavioral, and psychographic signals to tailor formats, hooks, and offers to the people who actually consume the content.",
+        "Ground platform and format recommendations in real audience behavior."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Separate primary and secondary audiences",
+      "Study comments and saves, not only likes",
+      "Validate assumptions with content tests"
+    ],
+    "bestPractices": [
+      "Separate primary and secondary audiences",
+      "Study comments and saves, not only likes",
+      "Validate assumptions with content tests"
+    ],
+    "decisionRules": [
+      "Practice: Separate primary and secondary audiences",
+      "Practice: Study comments and saves, not only likes",
+      "Practice: Validate assumptions with content tests"
+    ]
+  }
+}

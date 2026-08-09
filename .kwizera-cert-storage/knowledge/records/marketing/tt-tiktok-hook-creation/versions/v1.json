@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "tt-tiktok-hook-creation",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-tiktok",
+  "title": "TikTok Hook Creation",
+  "description": "Opening frames and lines that stop the TikTok scroll (platform-specific).",
+  "summary": "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation.",
+  "tags": [
+    "professional-tiktok",
+    "professional",
+    "tiktok-hook-creation",
+    "tiktok hook",
+    "first second",
+    "scroll stop",
+    "pattern interrupt"
+  ],
+  "keywords": [
+    "tiktok hook",
+    "first second",
+    "scroll stop",
+    "pattern interrupt"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "tt-tiktok-audience-retention",
+    "tt-tiktok-best-practices",
+    "tt-tiktok-trending-content",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-video-editing-knowledge",
+    "sm-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:34.075Z",
+  "lastUpdated": "2026-08-08T19:03:34.075Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\tt-tiktok-hook-creation",
+  "integrityStatus": "verified",
+  "contentHash": "e429f8915fa2f311ad36e3c14e225da9133895630853766fe447af0ab9229f9a",
+  "searchableText": "tiktok hook creation opening frames and lines that stop the tiktok scroll (platform-specific). recommend tiktok-native hooks without duplicating step 7 vmkt-hook-creation. professional-tiktok professional-tiktok professional tiktok-hook-creation tiktok hook first second scroll stop pattern interrupt tiktok hook first second scroll stop pattern interrupt",
+  "classification": {
+    "category": "professional-tiktok",
+    "topic": "tiktok-hook-creation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "tiktok-hook-creation",
+    "kind": "professional-tiktok",
+    "purpose": "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation.",
+    "professionalDefinition": "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "tt-tiktok-hook-creation",
+      "title": "TikTok Hook Creation",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Opening frames and lines that stop the TikTok scroll (platform-specific).",
+      "coreConcepts": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "definitions": [
+        "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks.",
+        "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation."
+      ],
+      "rules": [
+        "Practice: Pattern interrupt visually",
+        "Practice: Promise a specific payoff",
+        "Practice: Show the product or problem immediately when relevant"
+      ],
+      "bestPractices": [
+        "Pattern interrupt visually",
+        "Promise a specific payoff",
+        "Show the product or problem immediately when relevant"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Pattern interrupt visually",
+        "Follow: Promise a specific payoff",
+        "Follow: Show the product or problem immediately when relevant"
+      ],
+      "commonMistakes": [
+        "Slow branded intros",
+        "Vague curiosity without payoff"
+      ],
+      "troubleshooting": [
+        "Avoid: Slow branded intros",
+        "Avoid: Vague curiosity without payoff"
+      ],
+      "recommendations": [
+        "Pattern interrupt visually",
+        "Promise a specific payoff",
+        "Show the product or problem immediately when relevant"
+      ],
+      "examples": [
+        "Professional application of TikTok Hook Creation for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks."
+      ],
+      "relatedTopics": [
+        "tiktok-audience-retention",
+        "tiktok-best-practices",
+        "tiktok-trending-content"
+      ],
+      "keywords": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-hook-creation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "TikTok Hook Creation",
+      "category": "professional-tiktok",
+      "domain": "tiktok-knowledge",
+      "description": "Opening frames and lines that stop the TikTok scroll (platform-specific).",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Pattern interrupt visually",
+            "Promise a specific payoff",
+            "Show the product or problem immediately when relevant"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of TikTok Hook Creation for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "entities": [
+        "TikTok Hook Creation",
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology",
+        "video-editing-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "tiktok hook",
+        "first second",
+        "scroll stop",
+        "pattern interrupt"
+      ],
+      "rules": [
+        "Avoid: Slow branded intros",
+        "Avoid: Vague curiosity without payoff"
+      ],
+      "bestPractices": [
+        "Pattern interrupt visually",
+        "Promise a specific payoff",
+        "Show the product or problem immediately when relevant"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of TikTok Hook Creation for platform-native content"
+      ],
+      "commonMistakes": [
+        "Slow branded intros",
+        "Vague curiosity without payoff"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Pattern interrupt visually",
+        "Practice: Promise a specific payoff",
+        "Practice: Show the product or problem immediately when relevant"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology",
+        "video-editing-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "tt-tiktok-audience-retention",
+        "tt-tiktok-best-practices",
+        "tt-tiktok-trending-content"
+      ],
+      "definitions": [
+        "TikTok hook creation crafts the first 1–3 seconds of visual and verbal intrigue tailored to For You Page scrolling behavior—distinct from generic video-marketing hooks.",
+        "Recommend TikTok-native hooks without duplicating Step 7 vmkt-hook-creation."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Pattern interrupt visually",
+      "Promise a specific payoff",
+      "Show the product or problem immediately when relevant"
+    ],
+    "bestPractices": [
+      "Pattern interrupt visually",
+      "Promise a specific payoff",
+      "Show the product or problem immediately when relevant"
+    ],
+    "decisionRules": [
+      "Practice: Pattern interrupt visually",
+      "Practice: Promise a specific payoff",
+      "Practice: Show the product or problem immediately when relevant"
+    ]
+  }
+}

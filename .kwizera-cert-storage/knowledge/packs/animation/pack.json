@@ -1,0 +1,1581 @@
+{
+  "packId": "46fd9fb9-1417-4270-922c-d330c2b61c82",
+  "packSlug": "animation",
+  "domain": "animation-knowledge",
+  "title": "Professional Animation Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "anim-animation-fundamentals",
+      "title": "Animation Fundamentals",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Core ideas of change over time—pose, motion, weight, and readability—for marketing and product animation.",
+      "coreConcepts": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "definitions": [
+        "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation.",
+        "Establish a shared language so every animated beat serves clarity and persuasion."
+      ],
+      "rules": [
+        "Practice: Define the story job of each move",
+        "Practice: Prefer readable silhouettes",
+        "Practice: Animate on purpose, not decoration"
+      ],
+      "bestPractices": [
+        "Define the story job of each move",
+        "Prefer readable silhouettes",
+        "Animate on purpose, not decoration"
+      ],
+      "professionalTechniques": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "workflow": [
+        "Clarify intent",
+        "Block key poses",
+        "Add timing/spacing",
+        "Polish arcs"
+      ],
+      "decisionRules": [
+        "Follow: Define the story job of each move",
+        "Follow: Prefer readable silhouettes",
+        "Follow: Animate on purpose, not decoration"
+      ],
+      "commonMistakes": [
+        "Motion without meaning",
+        "Over-animating every element"
+      ],
+      "troubleshooting": [
+        "Avoid: Motion without meaning",
+        "Avoid: Over-animating every element"
+      ],
+      "recommendations": [
+        "Define the story job of each move",
+        "Prefer readable silhouettes",
+        "Animate on purpose, not decoration"
+      ],
+      "examples": [
+        "Product float with subtle settle instead of constant spin"
+      ],
+      "professionalStandards": [
+        "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation."
+      ],
+      "relatedTopics": [
+        "principles-of-animation",
+        "timing",
+        "staging",
+        "product-animation"
+      ],
+      "keywords": [
+        "animation fundamentals",
+        "motion basics",
+        "keyframes",
+        "pose"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:animation-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-principles-of-animation",
+      "title": "Principles of Animation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Classic animation principles adapted for commercial and motion-design work.",
+      "coreConcepts": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "definitions": [
+        "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing.",
+        "Give animators a checklist to elevate lifeless keyframes into professional motion."
+      ],
+      "rules": [
+        "Practice: Apply principles selectively per shot",
+        "Practice: Prioritize staging and timing first",
+        "Practice: Document which principles drive the shot"
+      ],
+      "bestPractices": [
+        "Apply principles selectively per shot",
+        "Prioritize staging and timing first",
+        "Document which principles drive the shot"
+      ],
+      "professionalTechniques": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "workflow": [
+        "Pick 2–3 principles for the beat",
+        "Block",
+        "Layer secondaries",
+        "Review readability"
+      ],
+      "decisionRules": [
+        "Follow: Apply principles selectively per shot",
+        "Follow: Prioritize staging and timing first",
+        "Follow: Document which principles drive the shot"
+      ],
+      "commonMistakes": [
+        "Forcing all 12 principles into every clip",
+        "Ignoring staging for fancy secondary motion"
+      ],
+      "troubleshooting": [
+        "Avoid: Forcing all 12 principles into every clip",
+        "Avoid: Ignoring staging for fancy secondary motion"
+      ],
+      "recommendations": [
+        "Apply principles selectively per shot",
+        "Prioritize staging and timing first",
+        "Document which principles drive the shot"
+      ],
+      "examples": [
+        "Logo mark anticipates then snaps with soft overshoot"
+      ],
+      "professionalStandards": [
+        "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing."
+      ],
+      "relatedTopics": [
+        "timing",
+        "anticipation",
+        "squash-and-stretch",
+        "follow-through",
+        "appeal"
+      ],
+      "keywords": [
+        "principles of animation",
+        "12 principles",
+        "Disney principles",
+        "motion craft"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:principles-of-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-timing",
+      "title": "Timing",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "How long actions take and how that duration communicates weight, urgency, and tone.",
+      "coreConcepts": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "definitions": [
+        "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature.",
+        "Make motion feel right for brand tone and product mass."
+      ],
+      "rules": [
+        "Practice: Match timing to mass and mood",
+        "Practice: Hold important poses",
+        "Practice: Test at delivery frame rate"
+      ],
+      "bestPractices": [
+        "Match timing to mass and mood",
+        "Hold important poses",
+        "Test at delivery frame rate"
+      ],
+      "professionalTechniques": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "workflow": [
+        "Block poses",
+        "Set duration",
+        "Adjust holds",
+        "Sync to audio if needed"
+      ],
+      "decisionRules": [
+        "Follow: Match timing to mass and mood",
+        "Follow: Hold important poses",
+        "Follow: Test at delivery frame rate"
+      ],
+      "commonMistakes": [
+        "Everything same duration",
+        "Too fast to read on mobile"
+      ],
+      "troubleshooting": [
+        "Avoid: Everything same duration",
+        "Avoid: Too fast to read on mobile"
+      ],
+      "recommendations": [
+        "Match timing to mass and mood",
+        "Hold important poses",
+        "Test at delivery frame rate"
+      ],
+      "examples": [
+        "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel"
+      ],
+      "professionalStandards": [
+        "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature."
+      ],
+      "relatedTopics": [
+        "spacing",
+        "motion-timing",
+        "principles-of-animation",
+        "frame-rate"
+      ],
+      "keywords": [
+        "timing",
+        "duration",
+        "frames",
+        "weight",
+        "tempo"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:timing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-spacing",
+      "title": "Spacing",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Distance between poses that creates ease-in/out, acceleration, and deceleration.",
+      "coreConcepts": [
+        "spacing",
+        "easing",
+        "ease in out",
+        "interpolation",
+        "velocity"
+      ],
+      "definitions": [
+        "Spacing is the distribution of in-betweens that shapes velocity curves—slow-ins, slow-outs, and linear vs. organic motion.",
+        "Control how motion feels soft, mechanical, or energetic."
+      ],
+      "rules": [
+        "Practice: Ease into and out of key poses",
+        "Practice: Reserve linear for mechanical UI",
+        "Practice: Graph-edit for polish"
+      ],
+      "bestPractices": [
+        "Ease into and out of key poses",
+        "Reserve linear for mechanical UI",
+        "Graph-edit for polish"
+      ],
+      "professionalTechniques": [
+        "Set keys",
+        "Shape easing",
+        "Check arcs",
+        "Trim excess bounce"
+      ],
+      "workflow": [
+        "Set keys",
+        "Shape easing",
+        "Check arcs",
+        "Trim excess bounce"
+      ],
+      "decisionRules": [
+        "Follow: Ease into and out of key poses",
+        "Follow: Reserve linear for mechanical UI",
+        "Follow: Graph-edit for polish"
+      ],
+      "commonMistakes": [
+        "Linear everything",
+        "Overshoot that never settles"
+      ],
+      "troubleshooting": [
+        "Avoid: Linear everything",
+        "Avoid: Overshoot that never settles"
+      ],
+      "recommendations": [
+        "Ease into and out of key poses",
+        "Reserve linear for mechanical UI",
+        "Graph-edit for polish"
+      ],
+      "examples": [
+        "Soft ease-out on product landing; linear scrub on progress bar"
+      ],
+      "professionalStandards": [
+        "Spacing is the distribution of in-betweens that shapes velocity curves—slow-ins, slow-outs, and linear vs. organic motion."
+      ],
+      "relatedTopics": [
+        "timing",
+        "motion-rhythm",
+        "follow-through",
+        "ui-motion"
+      ],
+      "keywords": [
+        "spacing",
+        "easing",
+        "ease in out",
+        "interpolation",
+        "velocity"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:spacing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-anticipation",
+      "title": "Anticipation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "A preparatory move that telegraphs the main action so viewers can follow it.",
+      "coreConcepts": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "definitions": [
+        "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action.",
+        "Improve readability and make reveals feel intentional."
+      ],
+      "rules": [
+        "Practice: Scale anticipation to action size",
+        "Practice: Keep it short on social",
+        "Practice: Use for logo snaps and character jumps"
+      ],
+      "bestPractices": [
+        "Scale anticipation to action size",
+        "Keep it short on social",
+        "Use for logo snaps and character jumps"
+      ],
+      "professionalTechniques": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "workflow": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "decisionRules": [
+        "Follow: Scale anticipation to action size",
+        "Follow: Keep it short on social",
+        "Follow: Use for logo snaps and character jumps"
+      ],
+      "commonMistakes": [
+        "No wind-up on big moves",
+        "Anticipation longer than the action"
+      ],
+      "troubleshooting": [
+        "Avoid: No wind-up on big moves",
+        "Avoid: Anticipation longer than the action"
+      ],
+      "recommendations": [
+        "Scale anticipation to action size",
+        "Keep it short on social",
+        "Use for logo snaps and character jumps"
+      ],
+      "examples": [
+        "Button depresses slightly before card expands"
+      ],
+      "professionalStandards": [
+        "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action."
+      ],
+      "relatedTopics": [
+        "principles-of-animation",
+        "staging",
+        "product-animation",
+        "logo-animation"
+      ],
+      "keywords": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:anticipation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-squash-and-stretch",
+      "title": "Squash and Stretch",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Volume-preserving deformation that sells flexibility, impact, and life.",
+      "coreConcepts": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "definitions": [
+        "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force.",
+        "Add life to characters and playful product moments without breaking believability."
+      ],
+      "rules": [
+        "Practice: Preserve volume",
+        "Practice: Dial down for premium/realistic brands",
+        "Practice: Use on impacts and landings"
+      ],
+      "bestPractices": [
+        "Preserve volume",
+        "Dial down for premium/realistic brands",
+        "Use on impacts and landings"
+      ],
+      "professionalTechniques": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "workflow": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "decisionRules": [
+        "Follow: Preserve volume",
+        "Follow: Dial down for premium/realistic brands",
+        "Follow: Use on impacts and landings"
+      ],
+      "commonMistakes": [
+        "Melting logos unprofessionally",
+        "Breaking rigid product materials"
+      ],
+      "troubleshooting": [
+        "Avoid: Melting logos unprofessionally",
+        "Avoid: Breaking rigid product materials"
+      ],
+      "recommendations": [
+        "Preserve volume",
+        "Dial down for premium/realistic brands",
+        "Use on impacts and landings"
+      ],
+      "examples": [
+        "Ball bounce; soft icon pop on notification"
+      ],
+      "professionalStandards": [
+        "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force."
+      ],
+      "relatedTopics": [
+        "follow-through",
+        "character-animation",
+        "appeal",
+        "principles-of-animation"
+      ],
+      "keywords": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:squash-and-stretch",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-follow-through",
+      "title": "Follow Through",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Parts that continue moving after the main body stops, selling inertia.",
+      "coreConcepts": [
+        "follow through",
+        "inertia",
+        "overlap",
+        "settle"
+      ],
+      "definitions": [
+        "Follow-through is residual motion of appendages or secondary parts after the primary mass has stopped.",
+        "Make stops feel physical rather than robotic."
+      ],
+      "rules": [
+        "Practice: Offset secondary timing",
+        "Practice: Settle cleanly",
+        "Practice: Match material stiffness"
+      ],
+      "bestPractices": [
+        "Offset secondary timing",
+        "Settle cleanly",
+        "Match material stiffness"
+      ],
+      "professionalTechniques": [
+        "Animate core",
+        "Offset tails/cloth/labels",
+        "Damp to rest"
+      ],
+      "workflow": [
+        "Animate core",
+        "Offset tails/cloth/labels",
+        "Damp to rest"
+      ],
+      "decisionRules": [
+        "Follow: Offset secondary timing",
+        "Follow: Settle cleanly",
+        "Follow: Match material stiffness"
+      ],
+      "commonMistakes": [
+        "Everything stops on the same frame",
+        "Endless wobble"
+      ],
+      "troubleshooting": [
+        "Avoid: Everything stops on the same frame",
+        "Avoid: Endless wobble"
+      ],
+      "recommendations": [
+        "Offset secondary timing",
+        "Settle cleanly",
+        "Match material stiffness"
+      ],
+      "examples": [
+        "Coat tails after character stop; hangtag swing after product settle"
+      ],
+      "professionalStandards": [
+        "Follow-through is residual motion of appendages or secondary parts after the primary mass has stopped."
+      ],
+      "relatedTopics": [
+        "secondary-action",
+        "spacing",
+        "character-animation",
+        "product-animation"
+      ],
+      "keywords": [
+        "follow through",
+        "inertia",
+        "overlap",
+        "settle"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:follow-through",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-secondary-action",
+      "title": "Secondary Action",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Supporting motion that enriches the main action without stealing focus.",
+      "coreConcepts": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "definitions": [
+        "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate.",
+        "Add richness and life while keeping hierarchy clear."
+      ],
+      "rules": [
+        "Practice: Keep primary readable",
+        "Practice: Lower amplitude on secondaries",
+        "Practice: Cut secondaries that compete"
+      ],
+      "bestPractices": [
+        "Keep primary readable",
+        "Lower amplitude on secondaries",
+        "Cut secondaries that compete"
+      ],
+      "professionalTechniques": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "workflow": [
+        "Lock primary",
+        "Add one secondary",
+        "Balance",
+        "Mute extras"
+      ],
+      "decisionRules": [
+        "Follow: Keep primary readable",
+        "Follow: Lower amplitude on secondaries",
+        "Follow: Cut secondaries that compete"
+      ],
+      "commonMistakes": [
+        "Secondary louder than primary",
+        "Busy loops"
+      ],
+      "troubleshooting": [
+        "Avoid: Secondary louder than primary",
+        "Avoid: Busy loops"
+      ],
+      "recommendations": [
+        "Keep primary readable",
+        "Lower amplitude on secondaries",
+        "Cut secondaries that compete"
+      ],
+      "examples": [
+        "Character blinks while speaking; sparkles after logo settle"
+      ],
+      "professionalStandards": [
+        "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate."
+      ],
+      "relatedTopics": [
+        "follow-through",
+        "staging",
+        "motion-hierarchy",
+        "character-animation"
+      ],
+      "keywords": [
+        "secondary action",
+        "supporting motion",
+        "enrichment"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:secondary-action",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-staging",
+      "title": "Staging",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Presenting an idea so the audience’s eye knows exactly what matters.",
+      "coreConcepts": [
+        "staging",
+        "readability",
+        "focus",
+        "presentation"
+      ],
+      "definitions": [
+        "Staging is the clear presentation of an action or idea through pose, composition, contrast, and timing so intent is unmistakable.",
+        "Ensure commercial messages read instantly, especially on small screens."
+      ],
+      "rules": [
+        "Practice: One idea at a time",
+        "Practice: Use contrast and stillness",
+        "Practice: Silhouette-test poses"
+      ],
+      "bestPractices": [
+        "One idea at a time",
+        "Use contrast and stillness",
+        "Silhouette-test poses"
+      ],
+      "professionalTechniques": [
+        "State the idea",
+        "Clear the frame",
+        "Pose for silhouette",
+        "Time the hold"
+      ],
+      "workflow": [
+        "State the idea",
+        "Clear the frame",
+        "Pose for silhouette",
+        "Time the hold"
+      ],
+      "decisionRules": [
+        "Follow: One idea at a time",
+        "Follow: Use contrast and stillness",
+        "Follow: Silhouette-test poses"
+      ],
+      "commonMistakes": [
+        "Competing focal points",
+        "Action hidden in clutter"
+      ],
+      "troubleshooting": [
+        "Avoid: Competing focal points",
+        "Avoid: Action hidden in clutter"
+      ],
+      "recommendations": [
+        "One idea at a time",
+        "Use contrast and stillness",
+        "Silhouette-test poses"
+      ],
+      "examples": [
+        "Single product lit and still before feature callout animates in"
+      ],
+      "professionalStandards": [
+        "Staging is the clear presentation of an action or idea through pose, composition, contrast, and timing so intent is unmistakable."
+      ],
+      "relatedTopics": [
+        "appeal",
+        "motion-hierarchy",
+        "animation-fundamentals",
+        "principles-of-animation"
+      ],
+      "keywords": [
+        "staging",
+        "readability",
+        "focus",
+        "presentation"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:staging",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-appeal",
+      "title": "Appeal",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "The magnetic quality that makes designs and motion enjoyable to watch.",
+      "coreConcepts": [
+        "appeal",
+        "charm",
+        "watchability",
+        "design appeal"
+      ],
+      "definitions": [
+        "Appeal is the combination of design clarity, charming motion, and tasteful restraint that makes characters or graphics engaging.",
+        "Increase watchability and brand likability without gimmicks."
+      ],
+      "rules": [
+        "Practice: Simplify shapes",
+        "Practice: Polish arcs",
+        "Practice: Match brand personality"
+      ],
+      "bestPractices": [
+        "Simplify shapes",
+        "Polish arcs",
+        "Match brand personality"
+      ],
+      "professionalTechniques": [
+        "Refine design",
+        "Animate with taste",
+        "Peer review appeal"
+      ],
+      "workflow": [
+        "Refine design",
+        "Animate with taste",
+        "Peer review appeal"
+      ],
+      "decisionRules": [
+        "Follow: Simplify shapes",
+        "Follow: Polish arcs",
+        "Follow: Match brand personality"
+      ],
+      "commonMistakes": [
+        "Ugly overcomplexity",
+        "Trying to be cute off-brand"
+      ],
+      "troubleshooting": [
+        "Avoid: Ugly overcomplexity",
+        "Avoid: Trying to be cute off-brand"
+      ],
+      "recommendations": [
+        "Simplify shapes",
+        "Polish arcs",
+        "Match brand personality"
+      ],
+      "examples": [
+        "Friendly mascot walk; elegant type settle for luxury"
+      ],
+      "professionalStandards": [
+        "Appeal is the combination of design clarity, charming motion, and tasteful restraint that makes characters or graphics engaging."
+      ],
+      "relatedTopics": [
+        "character-animation",
+        "motion-style",
+        "staging",
+        "principles-of-animation"
+      ],
+      "keywords": [
+        "appeal",
+        "charm",
+        "watchability",
+        "design appeal"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:appeal",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-character-animation",
+      "title": "Character Animation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Animating people, mascots, or personas with acting, weight, and emotion.",
+      "coreConcepts": [
+        "character animation",
+        "acting",
+        "mascot",
+        "performance"
+      ],
+      "definitions": [
+        "Character animation is performance-driven motion of a character that communicates intent, emotion, and personality through pose and timing.",
+        "Humanize brands and make stories emotionally clear."
+      ],
+      "rules": [
+        "Practice: Act the beat",
+        "Practice: Strong keys before polish",
+        "Practice: Keep face/eye focus readable"
+      ],
+      "bestPractices": [
+        "Act the beat",
+        "Strong keys before polish",
+        "Keep face/eye focus readable"
+      ],
+      "professionalTechniques": [
+        "Reference acting",
+        "Block keys",
+        "Breakdowns",
+        "Lipsync/polish"
+      ],
+      "workflow": [
+        "Reference acting",
+        "Block keys",
+        "Breakdowns",
+        "Lipsync/polish"
+      ],
+      "decisionRules": [
+        "Follow: Act the beat",
+        "Follow: Strong keys before polish",
+        "Follow: Keep face/eye focus readable"
+      ],
+      "commonMistakes": [
+        "Floating feet",
+        "Emotionless loops"
+      ],
+      "troubleshooting": [
+        "Avoid: Floating feet",
+        "Avoid: Emotionless loops"
+      ],
+      "recommendations": [
+        "Act the beat",
+        "Strong keys before polish",
+        "Keep face/eye focus readable"
+      ],
+      "examples": [
+        "Mascot reacts to product reveal with anticipation and settle"
+      ],
+      "professionalStandards": [
+        "Character animation is performance-driven motion of a character that communicates intent, emotion, and personality through pose and timing."
+      ],
+      "relatedTopics": [
+        "appeal",
+        "anticipation",
+        "follow-through",
+        "staging"
+      ],
+      "keywords": [
+        "character animation",
+        "acting",
+        "mascot",
+        "performance"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:character-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "anim-product-animation",
+      "title": "Product Animation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Motion that proves form, features, and desirability of physical or digital products.",
+      "coreConcepts": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "definitions": [
+        "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value.",
+        "Sell understanding and desire without live footage when needed."
+      ],
+      "rules": [
+        "Practice: Keep scale honest",
+        "Practice: Highlight one feature per beat",
+        "Practice: End on hero rest pose"
+      ],
+      "bestPractices": [
+        "Keep scale honest",
+        "Highlight one feature per beat",
+        "End on hero rest pose"
+      ],
+      "professionalTechniques": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "workflow": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "decisionRules": [
+        "Follow: Keep scale honest",
+        "Follow: Highlight one feature per beat",
+        "Follow: End on hero rest pose"
+      ],
+      "commonMistakes": [
+        "Endless spin with no story",
+        "Hiding the logo"
+      ],
+      "troubleshooting": [
+        "Avoid: Endless spin with no story",
+        "Avoid: Hiding the logo"
+      ],
+      "recommendations": [
+        "Keep scale honest",
+        "Highlight one feature per beat",
+        "End on hero rest pose"
+      ],
+      "examples": [
+        "Exploded view then reassemble; soft float with specular pass"
+      ],
+      "professionalStandards": [
+        "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value."
+      ],
+      "relatedTopics": [
+        "staging",
+        "timing",
+        "logo-animation",
+        "render-quality"
+      ],
+      "keywords": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:product-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Animation Knowledge Pack",
+    "category": "professional-animation",
+    "domain": "animation-knowledge",
+    "description": "Curated professional animation/motion/rendering knowledge for AI Me (not render/generation).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Animation Fundamentals",
+          "Principles of Animation",
+          "Timing",
+          "Spacing",
+          "Anticipation",
+          "Squash and Stretch",
+          "Follow Through",
+          "Secondary Action",
+          "Staging",
+          "Appeal",
+          "Character Animation",
+          "Product Animation"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Define the story job of each move",
+          "Prefer readable silhouettes",
+          "Animate on purpose, not decoration",
+          "Apply principles selectively per shot",
+          "Prioritize staging and timing first",
+          "Document which principles drive the shot",
+          "Match timing to mass and mood",
+          "Hold important poses",
+          "Test at delivery frame rate",
+          "Ease into and out of key poses",
+          "Reserve linear for mechanical UI",
+          "Graph-edit for polish",
+          "Scale anticipation to action size",
+          "Keep it short on social",
+          "Use for logo snaps and character jumps",
+          "Preserve volume",
+          "Dial down for premium/realistic brands",
+          "Use on impacts and landings",
+          "Offset secondary timing",
+          "Settle cleanly",
+          "Match material stiffness",
+          "Keep primary readable",
+          "Lower amplitude on secondaries",
+          "Cut secondaries that compete",
+          "One idea at a time",
+          "Use contrast and stillness",
+          "Silhouette-test poses",
+          "Simplify shapes",
+          "Polish arcs",
+          "Match brand personality",
+          "Act the beat",
+          "Strong keys before polish",
+          "Keep face/eye focus readable",
+          "Keep scale honest",
+          "Highlight one feature per beat",
+          "End on hero rest pose"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Clarify intent",
+          "Block key poses",
+          "Add timing/spacing",
+          "Polish arcs",
+          "Pick 2–3 principles for the beat",
+          "Block",
+          "Layer secondaries",
+          "Review readability",
+          "Block poses",
+          "Set duration",
+          "Adjust holds",
+          "Sync to audio if needed",
+          "Set keys",
+          "Shape easing",
+          "Check arcs",
+          "Trim excess bounce",
+          "Define main action",
+          "Add reverse/prepare beat",
+          "Time tightly",
+          "Review clarity",
+          "Identify impact",
+          "Add squash",
+          "Recover stretch",
+          "Settle to rest",
+          "Animate core",
+          "Offset tails/cloth/labels",
+          "Damp to rest",
+          "Lock primary",
+          "Add one secondary",
+          "Balance",
+          "Mute extras",
+          "State the idea",
+          "Clear the frame",
+          "Pose for silhouette",
+          "Time the hold",
+          "Refine design",
+          "Animate with taste",
+          "Peer review appeal",
+          "Reference acting",
+          "Block keys"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Product float with subtle settle instead of constant spin",
+          "Logo mark anticipates then snaps with soft overshoot",
+          "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel",
+          "Soft ease-out on product landing; linear scrub on progress bar",
+          "Button depresses slightly before card expands",
+          "Ball bounce; soft icon pop on notification",
+          "Coat tails after character stop; hangtag swing after product settle",
+          "Character blinks while speaking; sparkles after logo settle",
+          "Single product lit and still before feature callout animates in",
+          "Friendly mascot walk; elegant type settle for luxury",
+          "Mascot reacts to product reveal with anticipation and settle",
+          "Exploded view then reassemble; soft float with specular pass"
+        ]
+      }
+    ],
+    "concepts": [
+      "animation fundamentals",
+      "motion basics",
+      "keyframes",
+      "pose",
+      "principles of animation",
+      "12 principles",
+      "Disney principles",
+      "motion craft",
+      "timing",
+      "duration",
+      "frames",
+      "weight",
+      "tempo",
+      "spacing",
+      "easing",
+      "ease in out",
+      "interpolation",
+      "velocity",
+      "anticipation",
+      "wind-up",
+      "prepare",
+      "telegraph",
+      "squash and stretch",
+      "deform",
+      "elasticity",
+      "impact",
+      "follow through",
+      "inertia",
+      "overlap",
+      "settle",
+      "secondary action",
+      "supporting motion",
+      "enrichment",
+      "staging",
+      "readability",
+      "focus",
+      "presentation",
+      "appeal",
+      "charm",
+      "watchability",
+      "design appeal",
+      "character animation",
+      "acting",
+      "mascot",
+      "performance",
+      "product animation",
+      "turntable",
+      "exploded view",
+      "3D product"
+    ],
+    "entities": [
+      "Animation Fundamentals",
+      "Principles of Animation",
+      "Timing",
+      "Spacing",
+      "Anticipation",
+      "Squash and Stretch",
+      "Follow Through",
+      "Secondary Action",
+      "Staging",
+      "Appeal",
+      "Character Animation",
+      "Product Animation"
+    ],
+    "terminology": [
+      "animation fundamentals",
+      "motion basics",
+      "keyframes",
+      "pose",
+      "principles of animation",
+      "12 principles",
+      "Disney principles",
+      "motion craft",
+      "timing",
+      "duration",
+      "frames",
+      "weight",
+      "tempo",
+      "spacing",
+      "easing",
+      "ease in out",
+      "interpolation",
+      "velocity",
+      "anticipation",
+      "wind-up",
+      "prepare",
+      "telegraph",
+      "squash and stretch",
+      "deform",
+      "elasticity",
+      "impact",
+      "follow through",
+      "inertia",
+      "overlap",
+      "settle",
+      "secondary action",
+      "supporting motion",
+      "enrichment",
+      "staging",
+      "readability",
+      "focus",
+      "presentation",
+      "appeal",
+      "charm",
+      "watchability",
+      "design appeal",
+      "character animation",
+      "acting",
+      "mascot",
+      "performance",
+      "product animation",
+      "turntable",
+      "exploded view",
+      "3D product"
+    ],
+    "rules": [
+      "Practice: Define the story job of each move",
+      "Practice: Prefer readable silhouettes",
+      "Practice: Animate on purpose, not decoration",
+      "Practice: Apply principles selectively per shot",
+      "Practice: Prioritize staging and timing first",
+      "Practice: Document which principles drive the shot",
+      "Practice: Match timing to mass and mood",
+      "Practice: Hold important poses",
+      "Practice: Test at delivery frame rate",
+      "Practice: Ease into and out of key poses",
+      "Practice: Reserve linear for mechanical UI",
+      "Practice: Graph-edit for polish",
+      "Practice: Scale anticipation to action size",
+      "Practice: Keep it short on social",
+      "Practice: Use for logo snaps and character jumps",
+      "Practice: Preserve volume",
+      "Practice: Dial down for premium/realistic brands",
+      "Practice: Use on impacts and landings",
+      "Practice: Offset secondary timing",
+      "Practice: Settle cleanly",
+      "Practice: Match material stiffness",
+      "Practice: Keep primary readable",
+      "Practice: Lower amplitude on secondaries",
+      "Practice: Cut secondaries that compete",
+      "Practice: One idea at a time",
+      "Practice: Use contrast and stillness",
+      "Practice: Silhouette-test poses",
+      "Practice: Simplify shapes",
+      "Practice: Polish arcs",
+      "Practice: Match brand personality",
+      "Practice: Act the beat",
+      "Practice: Strong keys before polish",
+      "Practice: Keep face/eye focus readable",
+      "Practice: Keep scale honest",
+      "Practice: Highlight one feature per beat",
+      "Practice: End on hero rest pose"
+    ],
+    "bestPractices": [
+      "Define the story job of each move",
+      "Prefer readable silhouettes",
+      "Animate on purpose, not decoration",
+      "Apply principles selectively per shot",
+      "Prioritize staging and timing first",
+      "Document which principles drive the shot",
+      "Match timing to mass and mood",
+      "Hold important poses",
+      "Test at delivery frame rate",
+      "Ease into and out of key poses",
+      "Reserve linear for mechanical UI",
+      "Graph-edit for polish",
+      "Scale anticipation to action size",
+      "Keep it short on social",
+      "Use for logo snaps and character jumps",
+      "Preserve volume",
+      "Dial down for premium/realistic brands",
+      "Use on impacts and landings",
+      "Offset secondary timing",
+      "Settle cleanly",
+      "Match material stiffness",
+      "Keep primary readable",
+      "Lower amplitude on secondaries",
+      "Cut secondaries that compete",
+      "One idea at a time",
+      "Use contrast and stillness",
+      "Silhouette-test poses",
+      "Simplify shapes",
+      "Polish arcs",
+      "Match brand personality",
+      "Act the beat",
+      "Strong keys before polish",
+      "Keep face/eye focus readable",
+      "Keep scale honest",
+      "Highlight one feature per beat",
+      "End on hero rest pose"
+    ],
+    "professionalTechniques": [
+      "Clarify intent",
+      "Block key poses",
+      "Add timing/spacing",
+      "Polish arcs",
+      "Pick 2–3 principles for the beat",
+      "Block",
+      "Layer secondaries",
+      "Review readability",
+      "Block poses",
+      "Set duration",
+      "Adjust holds",
+      "Sync to audio if needed",
+      "Set keys",
+      "Shape easing",
+      "Check arcs",
+      "Trim excess bounce",
+      "Define main action",
+      "Add reverse/prepare beat",
+      "Time tightly",
+      "Review clarity",
+      "Identify impact",
+      "Add squash",
+      "Recover stretch",
+      "Settle to rest",
+      "Animate core",
+      "Offset tails/cloth/labels",
+      "Damp to rest",
+      "Lock primary",
+      "Add one secondary",
+      "Balance",
+      "Mute extras",
+      "State the idea",
+      "Clear the frame",
+      "Pose for silhouette",
+      "Time the hold",
+      "Refine design",
+      "Animate with taste",
+      "Peer review appeal",
+      "Reference acting",
+      "Block keys"
+    ],
+    "examples": [
+      "Product float with subtle settle instead of constant spin",
+      "Logo mark anticipates then snaps with soft overshoot",
+      "Heavy appliance: slower settle; UI toggle: snappy 120–200ms feel",
+      "Soft ease-out on product landing; linear scrub on progress bar",
+      "Button depresses slightly before card expands",
+      "Ball bounce; soft icon pop on notification",
+      "Coat tails after character stop; hangtag swing after product settle",
+      "Character blinks while speaking; sparkles after logo settle",
+      "Single product lit and still before feature callout animates in",
+      "Friendly mascot walk; elegant type settle for luxury",
+      "Mascot reacts to product reveal with anticipation and settle",
+      "Exploded view then reassemble; soft float with specular pass"
+    ],
+    "commonMistakes": [
+      "Motion without meaning",
+      "Over-animating every element",
+      "Forcing all 12 principles into every clip",
+      "Ignoring staging for fancy secondary motion",
+      "Everything same duration",
+      "Too fast to read on mobile",
+      "Linear everything",
+      "Overshoot that never settles",
+      "No wind-up on big moves",
+      "Anticipation longer than the action",
+      "Melting logos unprofessionally",
+      "Breaking rigid product materials",
+      "Everything stops on the same frame",
+      "Endless wobble",
+      "Secondary louder than primary",
+      "Busy loops",
+      "Competing focal points",
+      "Action hidden in clutter",
+      "Ugly overcomplexity",
+      "Trying to be cute off-brand",
+      "Floating feet",
+      "Emotionless loops",
+      "Endless spin with no story",
+      "Hiding the logo"
+    ],
+    "qualityRules": [
+      "Animation fundamentals are the baseline skills of making motion feel intentional, readable, and purposeful across 2D, 3D, and simple object animation.",
+      "The principles of animation are proven motion laws—timing, anticipation, staging, follow-through, and more—used to make movement believable and appealing.",
+      "Timing is the duration of an action across frames, controlling perceived mass, energy, and emotional temperature.",
+      "Spacing is the distribution of in-betweens that shapes velocity curves—slow-ins, slow-outs, and linear vs. organic motion.",
+      "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action.",
+      "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force.",
+      "Follow-through is residual motion of appendages or secondary parts after the primary mass has stopped.",
+      "Secondary action is additional motion that supports the primary action’s story and emotion while remaining subordinate.",
+      "Staging is the clear presentation of an action or idea through pose, composition, contrast, and timing so intent is unmistakable.",
+      "Appeal is the combination of design clarity, charming motion, and tasteful restraint that makes characters or graphics engaging.",
+      "Character animation is performance-driven motion of a character that communicates intent, emotion, and personality through pose and timing.",
+      "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value."
+    ],
+    "decisionRules": [
+      "Follow: Define the story job of each move",
+      "Follow: Prefer readable silhouettes",
+      "Follow: Animate on purpose, not decoration",
+      "Follow: Apply principles selectively per shot",
+      "Follow: Prioritize staging and timing first",
+      "Follow: Document which principles drive the shot",
+      "Follow: Match timing to mass and mood",
+      "Follow: Hold important poses",
+      "Follow: Test at delivery frame rate",
+      "Follow: Ease into and out of key poses",
+      "Follow: Reserve linear for mechanical UI",
+      "Follow: Graph-edit for polish",
+      "Follow: Scale anticipation to action size",
+      "Follow: Keep it short on social",
+      "Follow: Use for logo snaps and character jumps",
+      "Follow: Preserve volume",
+      "Follow: Dial down for premium/realistic brands",
+      "Follow: Use on impacts and landings",
+      "Follow: Offset secondary timing",
+      "Follow: Settle cleanly",
+      "Follow: Match material stiffness",
+      "Follow: Keep primary readable",
+      "Follow: Lower amplitude on secondaries",
+      "Follow: Cut secondaries that compete",
+      "Follow: One idea at a time",
+      "Follow: Use contrast and stillness",
+      "Follow: Silhouette-test poses",
+      "Follow: Simplify shapes",
+      "Follow: Polish arcs",
+      "Follow: Match brand personality",
+      "Follow: Act the beat",
+      "Follow: Strong keys before polish",
+      "Follow: Keep face/eye focus readable",
+      "Follow: Keep scale honest",
+      "Follow: Highlight one feature per beat",
+      "Follow: End on hero rest pose"
+    ],
+    "workflowSteps": [
+      "Clarify intent",
+      "Block key poses",
+      "Add timing/spacing",
+      "Polish arcs",
+      "Pick 2–3 principles for the beat",
+      "Block",
+      "Layer secondaries",
+      "Review readability",
+      "Block poses",
+      "Set duration",
+      "Adjust holds",
+      "Sync to audio if needed",
+      "Set keys",
+      "Shape easing",
+      "Check arcs",
+      "Trim excess bounce",
+      "Define main action",
+      "Add reverse/prepare beat",
+      "Time tightly",
+      "Review clarity",
+      "Identify impact",
+      "Add squash",
+      "Recover stretch",
+      "Settle to rest",
+      "Animate core",
+      "Offset tails/cloth/labels",
+      "Damp to rest",
+      "Lock primary",
+      "Add one secondary",
+      "Balance",
+      "Mute extras",
+      "State the idea",
+      "Clear the frame",
+      "Pose for silhouette",
+      "Time the hold",
+      "Refine design",
+      "Animate with taste",
+      "Peer review appeal",
+      "Reference acting",
+      "Block keys"
+    ],
+    "prerequisites": [
+      "Define communication intent before animating or exporting."
+    ],
+    "dependencies": [
+      "video-production-knowledge",
+      "marketing-knowledge",
+      "video-editing-knowledge"
+    ],
+    "relatedKnowledge": [
+      "anim-animation-fundamentals",
+      "anim-principles-of-animation",
+      "anim-timing",
+      "anim-spacing",
+      "anim-anticipation",
+      "anim-squash-and-stretch",
+      "anim-follow-through",
+      "anim-secondary-action",
+      "anim-staging",
+      "anim-appeal",
+      "anim-character-animation",
+      "anim-product-animation"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 92,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-animation-motion-rendering-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "90ec7b47107842792bd622acd0de092eea67e5880493b0e63ee0dfed470f0e7a",
+  "createdAt": "2026-08-08T18:23:31.779Z",
+  "updatedAt": "2026-08-08T18:23:32.934Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

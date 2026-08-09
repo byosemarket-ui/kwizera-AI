@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-video-cta-placement",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Call-To-Action Placement",
+  "description": "Where CTAs appear in video timelines and frames (distinct from CTA strategy and storytelling CTA topics).",
+  "summary": "Recommend when/where to show CTAs in video without duplicating sales CTA strategy.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "video-cta-placement",
+    "CTA placement",
+    "end card",
+    "mid-roll CTA",
+    "video ask"
+  ],
+  "keywords": [
+    "CTA placement",
+    "end card",
+    "mid-roll CTA",
+    "video ask"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-cta-strategy",
+    "vmkt-ending-strategy",
+    "mkt-conversion-optimization",
+    "vmkt-audience-retention",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-video-editing-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:23.470Z",
+  "lastUpdated": "2026-08-08T18:26:23.470Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-video-cta-placement",
+  "integrityStatus": "verified",
+  "contentHash": "44414e1de35316a870df9eb31fb270f8c5654c9886028860c0b72843b4d16974",
+  "searchableText": "call-to-action placement where ctas appear in video timelines and frames (distinct from cta strategy and storytelling cta topics). recommend when/where to show ctas in video without duplicating sales cta strategy. professional-video-marketing professional-video-marketing professional video-cta-placement cta placement end card mid-roll cta video ask cta placement end card mid-roll cta video ask",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "call-to-action-placement-where",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "video-cta-placement",
+    "kind": "professional-video-marketing",
+    "purpose": "Recommend when/where to show CTAs in video without duplicating sales CTA strategy.",
+    "professionalDefinition": "Video CTA placement decides timed and spatial positioning of asks—mid-roll, end card, lower-third—so action is visible and earned.",
+    "workflow": [
+      "Choose primary CTA",
+      "Place after proof",
+      "Design end card",
+      "Test mid-CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-video-cta-placement",
+      "title": "Call-To-Action Placement",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Where CTAs appear in video timelines and frames (distinct from CTA strategy and storytelling CTA topics).",
+      "coreConcepts": [
+        "CTA placement",
+        "end card",
+        "mid-roll CTA",
+        "video ask"
+      ],
+      "definitions": [
+        "Video CTA placement decides timed and spatial positioning of asks—mid-roll, end card, lower-third—so action is visible and earned.",
+        "Recommend when/where to show CTAs in video without duplicating sales CTA strategy."
+      ],
+      "rules": [
+        "Practice: End card always for conversion films",
+        "Practice: Soft mid-CTA on longer videos",
+        "Practice: Clear safe areas"
+      ],
+      "bestPractices": [
+        "End card always for conversion films",
+        "Soft mid-CTA on longer videos",
+        "Clear safe areas"
+      ],
+      "professionalTechniques": [
+        "Choose primary CTA",
+        "Place after proof",
+        "Design end card",
+        "Test mid-CTA"
+      ],
+      "workflow": [
+        "Choose primary CTA",
+        "Place after proof",
+        "Design end card",
+        "Test mid-CTA"
+      ],
+      "decisionRules": [
+        "Follow: End card always for conversion films",
+        "Follow: Soft mid-CTA on longer videos",
+        "Follow: Clear safe areas"
+      ],
+      "commonMistakes": [
+        "CTA before value",
+        "CTA buried in clutter"
+      ],
+      "troubleshooting": [
+        "Avoid: CTA before value",
+        "Avoid: CTA buried in clutter"
+      ],
+      "recommendations": [
+        "End card always for conversion films",
+        "Soft mid-CTA on longer videos",
+        "Clear safe areas"
+      ],
+      "examples": [
+        "Demo proof at 0:20; end card Shop now 3s hold"
+      ],
+      "professionalStandards": [
+        "Video CTA placement decides timed and spatial positioning of asks—mid-roll, end card, lower-third—so action is visible and earned."
+      ],
+      "relatedTopics": [
+        "cta-strategy",
+        "ending-strategy",
+        "conversion-optimization",
+        "audience-retention"
+      ],
+      "keywords": [
+        "CTA placement",
+        "end card",
+        "mid-roll CTA",
+        "video ask"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:video-cta-placement",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Call-To-Action Placement",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Where CTAs appear in video timelines and frames (distinct from CTA strategy and storytelling CTA topics).",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Video CTA placement decides timed and spatial positioning of asks—mid-roll, end card, lower-third—so action is visible and earned."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend when/where to show CTAs in video without duplicating sales CTA strategy."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose primary CTA",
+            "Place after proof",
+            "Design end card",
+            "Test mid-CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "End card always for conversion films",
+            "Soft mid-CTA on longer videos",
+            "Clear safe areas"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Demo proof at 0:20; end card Shop now 3s hold"
+          ]
+        }
+      ],
+      "concepts": [
+        "CTA placement",
+        "end card",
+        "mid-roll CTA",
+        "video ask"
+      ],
+      "entities": [
+        "Call-To-Action Placement",
+        "marketing-knowledge",
+        "sales-psychology",
+        "video-editing-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "CTA placement",
+        "end card",
+        "mid-roll CTA",
+        "video ask"
+      ],
+      "rules": [
+        "Avoid: CTA before value",
+        "Avoid: CTA buried in clutter"
+      ],
+      "bestPractices": [
+        "End card always for conversion films",
+        "Soft mid-CTA on longer videos",
+        "Clear safe areas"
+      ],
+      "professionalTechniques": [
+        "Choose primary CTA",
+        "Place after proof",
+        "Design end card",
+        "Test mid-CTA"
+      ],
+      "examples": [
+        "Demo proof at 0:20; end card Shop now 3s hold"
+      ],
+      "commonMistakes": [
+        "CTA before value",
+        "CTA buried in clutter"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: End card always for conversion films",
+        "Practice: Soft mid-CTA on longer videos",
+        "Practice: Clear safe areas"
+      ],
+      "workflowSteps": [
+        "Choose primary CTA",
+        "Place after proof",
+        "Design end card",
+        "Test mid-CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "sales-psychology",
+        "video-editing-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sales-cta-strategy",
+        "vmkt-ending-strategy",
+        "mkt-conversion-optimization",
+        "vmkt-audience-retention"
+      ],
+      "definitions": [
+        "Video CTA placement decides timed and spatial positioning of asks—mid-roll, end card, lower-third—so action is visible and earned.",
+        "Recommend when/where to show CTAs in video without duplicating sales CTA strategy."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "End card always for conversion films",
+      "Soft mid-CTA on longer videos",
+      "Clear safe areas"
+    ],
+    "bestPractices": [
+      "End card always for conversion films",
+      "Soft mid-CTA on longer videos",
+      "Clear safe areas"
+    ],
+    "decisionRules": [
+      "Practice: End card always for conversion films",
+      "Practice: Soft mid-CTA on longer videos",
+      "Practice: Clear safe areas"
+    ]
+  }
+}

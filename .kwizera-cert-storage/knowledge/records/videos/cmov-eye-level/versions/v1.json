@@ -1,0 +1,342 @@
+{
+  "knowledgeId": "cmov-eye-level",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Eye Level",
+  "description": "Camera height near the subject's eye line for neutral, relatable perspective.",
+  "summary": "Create natural connection and unbiased observational framing.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "eye-level",
+    "eye level",
+    "neutral angle",
+    "eye line",
+    "interview height"
+  ],
+  "keywords": [
+    "eye level",
+    "neutral angle",
+    "eye line",
+    "interview height"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-low-angle",
+    "cmov-high-angle",
+    "cmov-static-shot",
+    "cmov-pov-shot",
+    "cam-focal-length",
+    "cam-aperture",
+    "cam-focus",
+    "cam-white-balance",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-composition-knowledge",
+    "cam-bridge-camera-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:26.882Z",
+  "lastUpdated": "2026-08-08T15:31:26.882Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-eye-level",
+  "integrityStatus": "verified",
+  "contentHash": "0edde2b4c9c49a85fc43b54c6201251de36af8d79fcfa4d766532d20fda158dc",
+  "searchableText": "eye level camera height near the subject's eye line for neutral, relatable perspective. create natural connection and unbiased observational framing. professional-camera-movement camera-movement professional eye-level eye level neutral angle eye line interview height eye level neutral angle eye line interview height",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "level-camera-height",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "eye-level",
+    "kind": "camera-movement",
+    "purpose": "Create natural connection and unbiased observational framing.",
+    "whenToUse": [
+      "Interviews",
+      "Conversational scenes",
+      "Relatable product demos"
+    ],
+    "whenNotToUse": [
+      "When power dynamics should be skewed intentionally"
+    ],
+    "advantages": [
+      "Neutral and trustworthy",
+      "Flattering default for faces"
+    ],
+    "limitations": [
+      "Less dramatic than motivated high/low angles"
+    ],
+    "relatedCameraSettings": [
+      "focal-length",
+      "aperture",
+      "focus",
+      "white-balance"
+    ],
+    "relatedStorytellingTechniques": [
+      "neutrality",
+      "empathy",
+      "direct address"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-eye-level",
+      "title": "Eye Level",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera height near the subject's eye line for neutral, relatable perspective.",
+      "coreConcepts": [
+        "eye level",
+        "neutral angle",
+        "eye line",
+        "interview height"
+      ],
+      "definitions": [
+        "Create natural connection and unbiased observational framing."
+      ],
+      "rules": [
+        "Use when: Interviews",
+        "Use when: Conversational scenes",
+        "Use when: Relatable product demos",
+        "Do not use when: When power dynamics should be skewed intentionally"
+      ],
+      "bestPractices": [
+        "Match eye line across coverage",
+        "Seat camera to talent height",
+        "Keep consistent across multi-cam"
+      ],
+      "professionalTechniques": [
+        "Neutral and trustworthy",
+        "Flattering default for faces"
+      ],
+      "workflow": [
+        "Choose Eye Level",
+        "Match eye line across coverage",
+        "Seat camera to talent height",
+        "Keep consistent across multi-cam"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Conversational scenes",
+        "Use when: Relatable product demos",
+        "Avoid when: When power dynamics should be skewed intentionally"
+      ],
+      "commonMistakes": [
+        "Camera too high creating unnoticed high angle",
+        "Mismatched eye lines between shots"
+      ],
+      "troubleshooting": [
+        "Limitation: Less dramatic than motivated high/low angles"
+      ],
+      "recommendations": [
+        "Match eye line across coverage",
+        "Seat camera to talent height",
+        "Keep consistent across multi-cam"
+      ],
+      "examples": [
+        "Standard testimonial framing",
+        "Demo to camera at standing eye height"
+      ],
+      "professionalStandards": [
+        "neutrality",
+        "empathy",
+        "direct address"
+      ],
+      "relatedTopics": [
+        "low-angle",
+        "high-angle",
+        "static-shot",
+        "pov-shot",
+        "focal-length",
+        "aperture",
+        "focus",
+        "white-balance"
+      ],
+      "keywords": [
+        "eye level",
+        "neutral angle",
+        "eye line",
+        "interview height"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:eye-level",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Eye Level",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera height near the subject's eye line for neutral, relatable perspective.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create natural connection and unbiased observational framing."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Interviews",
+            "Conversational scenes",
+            "Relatable product demos"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When power dynamics should be skewed intentionally"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match eye line across coverage",
+            "Seat camera to talent height",
+            "Keep consistent across multi-cam"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Standard testimonial framing",
+            "Demo to camera at standing eye height"
+          ]
+        }
+      ],
+      "concepts": [
+        "eye level",
+        "neutral angle",
+        "eye line",
+        "interview height"
+      ],
+      "entities": [
+        "Eye Level",
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge",
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "eye level",
+        "neutral angle",
+        "eye line",
+        "interview height"
+      ],
+      "rules": [
+        "Avoid when: When power dynamics should be skewed intentionally"
+      ],
+      "bestPractices": [
+        "Match eye line across coverage",
+        "Seat camera to talent height",
+        "Keep consistent across multi-cam"
+      ],
+      "professionalTechniques": [
+        "Neutral and trustworthy",
+        "Flattering default for faces"
+      ],
+      "examples": [
+        "Standard testimonial framing",
+        "Demo to camera at standing eye height"
+      ],
+      "commonMistakes": [
+        "Camera too high creating unnoticed high angle",
+        "Mismatched eye lines between shots"
+      ],
+      "qualityRules": [
+        "Less dramatic than motivated high/low angles"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Conversational scenes",
+        "Use when: Relatable product demos",
+        "Do not use when: When power dynamics should be skewed intentionally"
+      ],
+      "workflowSteps": [
+        "Match eye line across coverage",
+        "Seat camera to talent height",
+        "Keep consistent across multi-cam"
+      ],
+      "prerequisites": [
+        "focal-length",
+        "aperture",
+        "focus",
+        "white-balance"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge",
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-low-angle",
+        "cmov-high-angle",
+        "cmov-static-shot",
+        "cmov-pov-shot"
+      ],
+      "definitions": [
+        "Create natural connection and unbiased observational framing."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Match eye line across coverage",
+      "Seat camera to talent height",
+      "Keep consistent across multi-cam"
+    ],
+    "bestPractices": [
+      "Match eye line across coverage",
+      "Seat camera to talent height",
+      "Keep consistent across multi-cam"
+    ],
+    "decisionRules": [
+      "Use when: Interviews",
+      "Use when: Conversational scenes",
+      "Use when: Relatable product demos",
+      "Do not use when: When power dynamics should be skewed intentionally"
+    ]
+  }
+}

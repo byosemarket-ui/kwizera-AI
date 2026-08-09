@@ -1,0 +1,97 @@
+{
+  "knowledgeId": "ss-bridge-camera-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "storytelling-scene-domain-bridge",
+  "title": "Camera Knowledge (related)",
+  "description": "Story and scenes are executed through camera framing and exposure.",
+  "summary": "Camera settings realize visual storytelling choices.",
+  "tags": [
+    "storytelling-scene",
+    "domain-bridge",
+    "camera-knowledge"
+  ],
+  "keywords": [
+    "camera-knowledge",
+    "storytelling",
+    "scene",
+    "relationship"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-storytelling-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:12.518Z",
+  "lastUpdated": "2026-08-08T17:33:13.835Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\ss-bridge-camera-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "dbe5b489e1c01d7f21288deff9ef3e52033ed58dc97ba83cb9269f2d19f202c5",
+  "searchableText": "camera knowledge (related) story and scenes are executed through camera framing and exposure. camera settings realize visual storytelling choices. storytelling-scene-domain-bridge storytelling-scene domain-bridge camera-knowledge camera-knowledge storytelling scene relationship",
+  "classification": {
+    "category": "storytelling-scene-domain-bridge",
+    "topic": "camera-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "bridgeDomainId": "camera-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate storytelling/scene knowledge to camera-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Camera Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "camera-knowledge",
+      "description": "Story and scenes are executed through camera framing and exposure.",
+      "sections": [],
+      "concepts": [
+        "camera-knowledge"
+      ],
+      "entities": [
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "camera-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate storytelling/scene knowledge to camera-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "story-storytelling-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

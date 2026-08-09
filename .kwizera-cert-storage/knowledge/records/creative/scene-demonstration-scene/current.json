@@ -1,0 +1,336 @@
+{
+  "knowledgeId": "scene-demonstration-scene",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Demonstration Scene",
+  "description": "Scenes that prove how the product works through visible action.",
+  "summary": "Deliver evidence that reduces risk and builds belief.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "demonstration-scene",
+    "demonstration",
+    "demo scene",
+    "how it works",
+    "proof scene"
+  ],
+  "keywords": [
+    "demonstration",
+    "demo scene",
+    "how it works",
+    "proof scene"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-product-storytelling",
+    "story-resolution",
+    "scene-comparison-scene",
+    "scene-scene-purpose",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-camera-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:09.454Z",
+  "lastUpdated": "2026-08-08T17:33:06.888Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-demonstration-scene",
+  "integrityStatus": "verified",
+  "contentHash": "a89417dec4a9767c24552efa28e5e71296178f024053908f6d477bbaacfae910",
+  "searchableText": "demonstration scene scenes that prove how the product works through visible action. deliver evidence that reduces risk and builds belief. professional-scene-design professional-scene-design professional demonstration-scene demonstration demo scene how it works proof scene demonstration demo scene how it works proof scene",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "demonstration-scene-scenes",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "demonstration-scene",
+    "kind": "professional-scene-design",
+    "purpose": "Deliver evidence that reduces risk and builds belief.",
+    "professionalDefinition": "A demonstration scene is a purpose-built unit showing product function, feature interaction, or performance under observable conditions.",
+    "whenToUse": [
+      "Feature-led products",
+      "Consideration-stage ads",
+      "Explainers"
+    ],
+    "whenNotToUse": [
+      "When demo is legally restricted or unsafe to imply"
+    ],
+    "workflow": [
+      "Pick claim",
+      "Design demo action",
+      "Capture clean coverage",
+      "Add proof titles if needed"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-demonstration-scene",
+      "title": "Demonstration Scene",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "Scenes that prove how the product works through visible action.",
+      "coreConcepts": [
+        "demonstration",
+        "demo scene",
+        "how it works",
+        "proof scene"
+      ],
+      "definitions": [
+        "A demonstration scene is a purpose-built unit showing product function, feature interaction, or performance under observable conditions.",
+        "Deliver evidence that reduces risk and builds belief."
+      ],
+      "rules": [
+        "Use when: Feature-led products",
+        "Use when: Consideration-stage ads",
+        "Use when: Explainers",
+        "Do not use when: When demo is legally restricted or unsafe to imply"
+      ],
+      "bestPractices": [
+        "One feature per demo beat",
+        "Readable hands/UI",
+        "Before/after when possible"
+      ],
+      "professionalTechniques": [
+        "Pick claim",
+        "Design demo action",
+        "Capture clean coverage",
+        "Add proof titles if needed"
+      ],
+      "workflow": [
+        "Pick claim",
+        "Design demo action",
+        "Capture clean coverage",
+        "Add proof titles if needed"
+      ],
+      "decisionRules": [
+        "Use when: Feature-led products",
+        "Use when: Consideration-stage ads",
+        "Use when: Explainers",
+        "Avoid when: When demo is legally restricted or unsafe to imply"
+      ],
+      "commonMistakes": [
+        "Too fast to comprehend",
+        "Demo of unused features"
+      ],
+      "troubleshooting": [
+        "Avoid: Too fast to comprehend",
+        "Avoid: Demo of unused features"
+      ],
+      "recommendations": [
+        "One feature per demo beat",
+        "Readable hands/UI",
+        "Before/after when possible"
+      ],
+      "examples": [
+        "Wipe-clean demo of stain on fabric with timer overlay"
+      ],
+      "professionalStandards": [
+        "A demonstration scene is a purpose-built unit showing product function, feature interaction, or performance under observable conditions."
+      ],
+      "relatedTopics": [
+        "product-storytelling",
+        "resolution",
+        "comparison-scene",
+        "scene-purpose"
+      ],
+      "keywords": [
+        "demonstration",
+        "demo scene",
+        "how it works",
+        "proof scene"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:demonstration-scene",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Demonstration Scene",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "Scenes that prove how the product works through visible action.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A demonstration scene is a purpose-built unit showing product function, feature interaction, or performance under observable conditions."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Deliver evidence that reduces risk and builds belief."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Feature-led products",
+            "Consideration-stage ads",
+            "Explainers"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When demo is legally restricted or unsafe to imply"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Pick claim",
+            "Design demo action",
+            "Capture clean coverage",
+            "Add proof titles if needed"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One feature per demo beat",
+            "Readable hands/UI",
+            "Before/after when possible"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Wipe-clean demo of stain on fabric with timer overlay"
+          ]
+        }
+      ],
+      "concepts": [
+        "demonstration",
+        "demo scene",
+        "how it works",
+        "proof scene"
+      ],
+      "entities": [
+        "Demonstration Scene",
+        "scene-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "demonstration",
+        "demo scene",
+        "how it works",
+        "proof scene"
+      ],
+      "rules": [
+        "Avoid when: When demo is legally restricted or unsafe to imply"
+      ],
+      "bestPractices": [
+        "One feature per demo beat",
+        "Readable hands/UI",
+        "Before/after when possible"
+      ],
+      "professionalTechniques": [
+        "Pick claim",
+        "Design demo action",
+        "Capture clean coverage",
+        "Add proof titles if needed"
+      ],
+      "examples": [
+        "Wipe-clean demo of stain on fabric with timer overlay"
+      ],
+      "commonMistakes": [
+        "Too fast to comprehend",
+        "Demo of unused features"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Feature-led products",
+        "Use when: Consideration-stage ads",
+        "Use when: Explainers",
+        "Do not use when: When demo is legally restricted or unsafe to imply"
+      ],
+      "workflowSteps": [
+        "Pick claim",
+        "Design demo action",
+        "Capture clean coverage",
+        "Add proof titles if needed"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-product-storytelling",
+        "story-resolution",
+        "scene-comparison-scene",
+        "scene-scene-purpose"
+      ],
+      "definitions": [
+        "A demonstration scene is a purpose-built unit showing product function, feature interaction, or performance under observable conditions.",
+        "Deliver evidence that reduces risk and builds belief."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "One feature per demo beat",
+      "Readable hands/UI",
+      "Before/after when possible"
+    ],
+    "bestPractices": [
+      "One feature per demo beat",
+      "Readable hands/UI",
+      "Before/after when possible"
+    ],
+    "decisionRules": [
+      "Use when: Feature-led products",
+      "Use when: Consideration-stage ads",
+      "Use when: Explainers",
+      "Do not use when: When demo is legally restricted or unsafe to imply"
+    ]
+  }
+}

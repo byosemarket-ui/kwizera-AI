@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "cam-bridge-camera-movement-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "camera-domain-bridge",
+  "title": "Camera Movement Knowledge Domain",
+  "description": "Hub for professional camera movement and angle vocabulary.",
+  "summary": "Child domain of camera-knowledge for moves and angles.",
+  "tags": [
+    "camera",
+    "domain-bridge",
+    "camera-movement-knowledge"
+  ],
+  "keywords": [
+    "camera-movement-knowledge",
+    "camera",
+    "relationship"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-camera-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:27.086Z",
+  "lastUpdated": "2026-08-08T15:31:27.086Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-bridge-camera-movement-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "488f0c24c21cfe60a9e217963a7a06508c513429832863b74c08824135af149d",
+  "searchableText": "camera movement knowledge domain hub for professional camera movement and angle vocabulary. child domain of camera-knowledge for moves and angles. camera-domain-bridge camera domain-bridge camera-movement-knowledge camera-movement-knowledge camera relationship",
+  "classification": {
+    "category": "camera-domain-bridge",
+    "topic": "camera-movement-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "bridgeDomainId": "camera-movement-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate camera knowledge to camera-movement-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Camera Movement Knowledge Domain",
+      "category": "domain-bridge",
+      "domain": "camera-movement-knowledge",
+      "description": "Hub for professional camera movement and angle vocabulary.",
+      "sections": [],
+      "concepts": [
+        "camera-movement-knowledge"
+      ],
+      "entities": [
+        "camera-movement-knowledge"
+      ],
+      "terminology": [
+        "camera-movement-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate camera knowledge to camera-movement-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "cam-camera-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

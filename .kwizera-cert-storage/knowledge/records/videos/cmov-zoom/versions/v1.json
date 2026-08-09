@@ -1,0 +1,346 @@
+{
+  "knowledgeId": "cmov-zoom",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Zoom",
+  "description": "Optical (or controlled digital) change of focal length during a shot.",
+  "summary": "Punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "zoom",
+    "punch in",
+    "optical zoom",
+    "snap zoom"
+  ],
+  "keywords": [
+    "zoom",
+    "punch in",
+    "optical zoom",
+    "snap zoom"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-dolly",
+    "cmov-push-in",
+    "cmov-pull-out",
+    "cam-focal-length",
+    "cam-focus",
+    "cam-aperture",
+    "cam-camera-resolution",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:24.936Z",
+  "lastUpdated": "2026-08-08T15:31:24.936Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-zoom",
+  "integrityStatus": "verified",
+  "contentHash": "c49f8cf6b05c59a132b62bde55d03d3a7564fa5dd7af69e3aa61d1503ad633ec",
+  "searchableText": "zoom optical (or controlled digital) change of focal length during a shot. punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms. professional-camera-movement camera-movement professional zoom punch in optical zoom snap zoom zoom punch in optical zoom snap zoom",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "zoom-optical-controlled",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "zoom",
+    "kind": "camera-movement",
+    "purpose": "Punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms.",
+    "whenToUse": [
+      "Emphasis punches",
+      "Live/event reframing",
+      "Stylized snap zooms"
+    ],
+    "whenNotToUse": [
+      "When dolly push is needed for true perspective change",
+      "Unmotivated slow zooms that feel dated without style intent"
+    ],
+    "advantages": [
+      "Fast reframing",
+      "No track space required"
+    ],
+    "limitations": [
+      "Lacks parallax of a dolly",
+      "Zoom breathing and quality loss on poor lenses"
+    ],
+    "relatedCameraSettings": [
+      "focal-length",
+      "focus",
+      "aperture",
+      "camera-resolution"
+    ],
+    "relatedStorytellingTechniques": [
+      "emphasis",
+      "tension build"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-zoom",
+      "title": "Zoom",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Optical (or controlled digital) change of focal length during a shot.",
+      "coreConcepts": [
+        "zoom",
+        "punch in",
+        "optical zoom",
+        "snap zoom"
+      ],
+      "definitions": [
+        "Punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms."
+      ],
+      "rules": [
+        "Use when: Emphasis punches",
+        "Use when: Live/event reframing",
+        "Use when: Stylized snap zooms",
+        "Do not use when: When dolly push is needed for true perspective change",
+        "Do not use when: Unmotivated slow zooms that feel dated without style intent"
+      ],
+      "bestPractices": [
+        "Prefer optical zoom; avoid heavy digital crop",
+        "Motorize for smooth speed",
+        "Combine with focus pulls intentionally"
+      ],
+      "professionalTechniques": [
+        "Fast reframing",
+        "No track space required"
+      ],
+      "workflow": [
+        "Choose Zoom",
+        "Prefer optical zoom; avoid heavy digital crop",
+        "Motorize for smooth speed",
+        "Combine with focus pulls intentionally"
+      ],
+      "decisionRules": [
+        "Use when: Emphasis punches",
+        "Use when: Live/event reframing",
+        "Use when: Stylized snap zooms",
+        "Avoid when: When dolly push is needed for true perspective change",
+        "Avoid when: Unmotivated slow zooms that feel dated without style intent"
+      ],
+      "commonMistakes": [
+        "Confusing zoom with dolly",
+        "Uneven manual zoom speed"
+      ],
+      "troubleshooting": [
+        "Limitation: Lacks parallax of a dolly",
+        "Limitation: Zoom breathing and quality loss on poor lenses"
+      ],
+      "recommendations": [
+        "Prefer optical zoom; avoid heavy digital crop",
+        "Motorize for smooth speed",
+        "Combine with focus pulls intentionally"
+      ],
+      "examples": [
+        "Snap zoom to product reaction",
+        "Slow zoom into interview eyes for intensity"
+      ],
+      "professionalStandards": [
+        "emphasis",
+        "tension build"
+      ],
+      "relatedTopics": [
+        "dolly",
+        "push-in",
+        "pull-out",
+        "focal-length",
+        "focus",
+        "aperture",
+        "camera-resolution"
+      ],
+      "keywords": [
+        "zoom",
+        "punch in",
+        "optical zoom",
+        "snap zoom"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:zoom",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Zoom",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Optical (or controlled digital) change of focal length during a shot.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Emphasis punches",
+            "Live/event reframing",
+            "Stylized snap zooms"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When dolly push is needed for true perspective change",
+            "Unmotivated slow zooms that feel dated without style intent"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Prefer optical zoom; avoid heavy digital crop",
+            "Motorize for smooth speed",
+            "Combine with focus pulls intentionally"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Snap zoom to product reaction",
+            "Slow zoom into interview eyes for intensity"
+          ]
+        }
+      ],
+      "concepts": [
+        "zoom",
+        "punch in",
+        "optical zoom",
+        "snap zoom"
+      ],
+      "entities": [
+        "Zoom",
+        "camera-movement-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "zoom",
+        "punch in",
+        "optical zoom",
+        "snap zoom"
+      ],
+      "rules": [
+        "Avoid when: When dolly push is needed for true perspective change",
+        "Avoid when: Unmotivated slow zooms that feel dated without style intent"
+      ],
+      "bestPractices": [
+        "Prefer optical zoom; avoid heavy digital crop",
+        "Motorize for smooth speed",
+        "Combine with focus pulls intentionally"
+      ],
+      "professionalTechniques": [
+        "Fast reframing",
+        "No track space required"
+      ],
+      "examples": [
+        "Snap zoom to product reaction",
+        "Slow zoom into interview eyes for intensity"
+      ],
+      "commonMistakes": [
+        "Confusing zoom with dolly",
+        "Uneven manual zoom speed"
+      ],
+      "qualityRules": [
+        "Lacks parallax of a dolly",
+        "Zoom breathing and quality loss on poor lenses"
+      ],
+      "decisionRules": [
+        "Use when: Emphasis punches",
+        "Use when: Live/event reframing",
+        "Use when: Stylized snap zooms",
+        "Do not use when: When dolly push is needed for true perspective change",
+        "Do not use when: Unmotivated slow zooms that feel dated without style intent"
+      ],
+      "workflowSteps": [
+        "Prefer optical zoom; avoid heavy digital crop",
+        "Motorize for smooth speed",
+        "Combine with focus pulls intentionally"
+      ],
+      "prerequisites": [
+        "focal-length",
+        "focus",
+        "aperture",
+        "camera-resolution"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-dolly",
+        "cmov-push-in",
+        "cmov-pull-out"
+      ],
+      "definitions": [
+        "Punch in/out on a subject without moving the camera body; create stylistic emphasis or snap zooms."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Prefer optical zoom; avoid heavy digital crop",
+      "Motorize for smooth speed",
+      "Combine with focus pulls intentionally"
+    ],
+    "bestPractices": [
+      "Prefer optical zoom; avoid heavy digital crop",
+      "Motorize for smooth speed",
+      "Combine with focus pulls intentionally"
+    ],
+    "decisionRules": [
+      "Use when: Emphasis punches",
+      "Use when: Live/event reframing",
+      "Use when: Stylized snap zooms",
+      "Do not use when: When dolly push is needed for true perspective change",
+      "Do not use when: Unmotivated slow zooms that feel dated without style intent"
+    ]
+  }
+}

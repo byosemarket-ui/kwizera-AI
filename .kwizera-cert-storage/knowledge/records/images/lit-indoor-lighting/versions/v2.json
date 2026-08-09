@@ -1,0 +1,344 @@
+{
+  "knowledgeId": "lit-indoor-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Indoor Lighting",
+  "description": "Controlling interiors with practicals, windows, and supplemental fixtures.",
+  "summary": "Build believable interior ambience while maintaining exposure and color control.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "indoor-lighting",
+    "indoor lighting",
+    "interiors",
+    "practicals",
+    "window balance",
+    "studio interior"
+  ],
+  "keywords": [
+    "indoor lighting",
+    "interiors",
+    "practicals",
+    "window balance",
+    "studio interior"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-artificial-lighting",
+    "lit-color-temperature",
+    "lit-natural-lighting",
+    "lit-three-point-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-video-production-knowledge",
+    "lc-bridge-storytelling-knowledge",
+    "lc-bridge-camera-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:29.154Z",
+  "lastUpdated": "2026-08-08T17:15:49.648Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-indoor-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "b3b8e88f7dcd01bb2be47fdcb256a405697f0f566d5204cb20487a786fe9869f",
+  "searchableText": "indoor lighting controlling interiors with practicals, windows, and supplemental fixtures. build believable interior ambience while maintaining exposure and color control. professional-lighting professional-lighting professional indoor-lighting indoor lighting interiors practicals window balance studio interior indoor lighting interiors practicals window balance studio interior",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "indoor-lighting-controlling",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "indoor-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Build believable interior ambience while maintaining exposure and color control.",
+    "whenToUse": [
+      "Offices",
+      "Homes",
+      "Retail sets",
+      "Studio interiors"
+    ],
+    "whenNotToUse": [
+      "When full daylight exterior is the plate"
+    ],
+    "advantages": [
+      "Motivated practical storytelling",
+      "Weather-independent"
+    ],
+    "limitations": [
+      "Mixed CCT common",
+      "Power/ceiling constraints"
+    ],
+    "relatedCameraTechniques": [
+      "dual ISO",
+      "WB lock",
+      "highlight protection on windows"
+    ],
+    "relatedStorytellingTechniques": [
+      "domestic warmth",
+      "corporate clarity"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-indoor-lighting",
+      "title": "Indoor Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Controlling interiors with practicals, windows, and supplemental fixtures.",
+      "coreConcepts": [
+        "indoor lighting",
+        "interiors",
+        "practicals",
+        "window balance",
+        "studio interior"
+      ],
+      "definitions": [
+        "Build believable interior ambience while maintaining exposure and color control."
+      ],
+      "rules": [
+        "Use when: Offices",
+        "Use when: Homes",
+        "Use when: Retail sets",
+        "Use when: Studio interiors",
+        "Do not use when: When full daylight exterior is the plate"
+      ],
+      "bestPractices": [
+        "Motivate keys from practicals/windows",
+        "Gel/LED match",
+        "Flag windows or balance exposure"
+      ],
+      "professionalTechniques": [
+        "Motivated practical storytelling",
+        "Weather-independent"
+      ],
+      "workflow": [
+        "Choose Indoor Lighting",
+        "Motivate keys from practicals/windows",
+        "Gel/LED match",
+        "Flag windows or balance exposure"
+      ],
+      "decisionRules": [
+        "Use when: Offices",
+        "Use when: Homes",
+        "Use when: Retail sets",
+        "Use when: Studio interiors",
+        "Avoid when: When full daylight exterior is the plate"
+      ],
+      "commonMistakes": [
+        "Flat overhead-only office look",
+        "Uncontrolled mixed Kelvin"
+      ],
+      "troubleshooting": [
+        "Limitation: Mixed CCT common",
+        "Limitation: Power/ceiling constraints"
+      ],
+      "recommendations": [
+        "Motivate keys from practicals/windows",
+        "Gel/LED match",
+        "Flag windows or balance exposure"
+      ],
+      "examples": [
+        "Lamp practical as motivated key with soft augmentation"
+      ],
+      "professionalStandards": [
+        "domestic warmth",
+        "corporate clarity"
+      ],
+      "relatedTopics": [
+        "artificial-lighting",
+        "color-temperature",
+        "natural-lighting",
+        "three-point-lighting"
+      ],
+      "keywords": [
+        "indoor lighting",
+        "interiors",
+        "practicals",
+        "window balance",
+        "studio interior"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:indoor-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Indoor Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Controlling interiors with practicals, windows, and supplemental fixtures.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Build believable interior ambience while maintaining exposure and color control."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Offices",
+            "Homes",
+            "Retail sets",
+            "Studio interiors"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When full daylight exterior is the plate"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Motivate keys from practicals/windows",
+            "Gel/LED match",
+            "Flag windows or balance exposure"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Lamp practical as motivated key with soft augmentation"
+          ]
+        }
+      ],
+      "concepts": [
+        "indoor lighting",
+        "interiors",
+        "practicals",
+        "window balance",
+        "studio interior"
+      ],
+      "entities": [
+        "Indoor Lighting",
+        "lighting-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "indoor lighting",
+        "interiors",
+        "practicals",
+        "window balance",
+        "studio interior"
+      ],
+      "rules": [
+        "Avoid when: When full daylight exterior is the plate"
+      ],
+      "bestPractices": [
+        "Motivate keys from practicals/windows",
+        "Gel/LED match",
+        "Flag windows or balance exposure"
+      ],
+      "professionalTechniques": [
+        "Motivated practical storytelling",
+        "Weather-independent"
+      ],
+      "examples": [
+        "Lamp practical as motivated key with soft augmentation"
+      ],
+      "commonMistakes": [
+        "Flat overhead-only office look",
+        "Uncontrolled mixed Kelvin"
+      ],
+      "qualityRules": [
+        "Mixed CCT common",
+        "Power/ceiling constraints"
+      ],
+      "decisionRules": [
+        "Use when: Offices",
+        "Use when: Homes",
+        "Use when: Retail sets",
+        "Use when: Studio interiors",
+        "Do not use when: When full daylight exterior is the plate"
+      ],
+      "workflowSteps": [
+        "Motivate keys from practicals/windows",
+        "Gel/LED match",
+        "Flag windows or balance exposure"
+      ],
+      "prerequisites": [
+        "dual ISO",
+        "WB lock",
+        "highlight protection on windows"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-artificial-lighting",
+        "lit-color-temperature",
+        "lit-natural-lighting",
+        "lit-three-point-lighting"
+      ],
+      "definitions": [
+        "Build believable interior ambience while maintaining exposure and color control."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Motivate keys from practicals/windows",
+      "Gel/LED match",
+      "Flag windows or balance exposure"
+    ],
+    "bestPractices": [
+      "Motivate keys from practicals/windows",
+      "Gel/LED match",
+      "Flag windows or balance exposure"
+    ],
+    "decisionRules": [
+      "Use when: Offices",
+      "Use when: Homes",
+      "Use when: Retail sets",
+      "Use when: Studio interiors",
+      "Do not use when: When full daylight exterior is the plate"
+    ]
+  }
+}

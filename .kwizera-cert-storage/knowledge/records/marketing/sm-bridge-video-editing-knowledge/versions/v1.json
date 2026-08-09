@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "sm-bridge-video-editing-knowledge",
+  "knowledgeType": "marketing-knowledge",
+  "category": "sm-domain-bridge",
+  "title": "Video Editing Knowledge (related)",
+  "description": "Retention and platform pacing depend on edit craft.",
+  "summary": "Editors realize hooks, captions, and end cards.",
+  "tags": [
+    "social-media",
+    "domain-bridge",
+    "video-editing-knowledge"
+  ],
+  "keywords": [
+    "video-editing-knowledge",
+    "social",
+    "media",
+    "platform",
+    "relationship"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-media-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:44.617Z",
+  "lastUpdated": "2026-08-08T19:03:44.617Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-bridge-video-editing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "128f7d313eb795f0d5f479a1fb9089a85f400ef70933ba58a7ab9eca06c55167",
+  "searchableText": "video editing knowledge (related) retention and platform pacing depend on edit craft. editors realize hooks, captions, and end cards. sm-domain-bridge social-media domain-bridge video-editing-knowledge video-editing-knowledge social media platform relationship",
+  "classification": {
+    "category": "sm-domain-bridge",
+    "topic": "video-editing-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "bridgeDomainId": "video-editing-knowledge",
+    "relationshipAnchor": true,
+    "publishesContent": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate social media knowledge to video-editing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Video Editing Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "video-editing-knowledge",
+      "description": "Retention and platform pacing depend on edit craft.",
+      "sections": [],
+      "concepts": [
+        "video-editing-knowledge"
+      ],
+      "entities": [
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "video-editing-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate social media knowledge to video-editing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "sm-social-media-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

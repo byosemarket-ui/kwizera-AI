@@ -1,0 +1,340 @@
+{
+  "knowledgeId": "lit-outdoor-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Outdoor Lighting",
+  "description": "Shaping daylight and adding portable fixtures for exterior control.",
+  "summary": "Keep outdoor images consistent and flattering despite sun movement and weather.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "outdoor-lighting",
+    "outdoor lighting",
+    "sunlight control",
+    "silk",
+    "reflector",
+    "exterior"
+  ],
+  "keywords": [
+    "outdoor lighting",
+    "sunlight control",
+    "silk",
+    "reflector",
+    "exterior"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-natural-lighting",
+    "lit-hard-lighting",
+    "lit-soft-lighting",
+    "lit-color-temperature",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:29.340Z",
+  "lastUpdated": "2026-08-08T17:15:50.641Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-outdoor-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "3f13744a7e1a5f5a2993cd2994a884aefca26a091043f8fae1e92cad37361129",
+  "searchableText": "outdoor lighting shaping daylight and adding portable fixtures for exterior control. keep outdoor images consistent and flattering despite sun movement and weather. professional-lighting professional-lighting professional outdoor-lighting outdoor lighting sunlight control silk reflector exterior outdoor lighting sunlight control silk reflector exterior",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "outdoor-lighting-shaping",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "outdoor-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Keep outdoor images consistent and flattering despite sun movement and weather.",
+    "whenToUse": [
+      "Lifestyle exteriors",
+      "Architecture",
+      "Event coverage with sun"
+    ],
+    "whenNotToUse": [
+      "When interiors are primary"
+    ],
+    "advantages": [
+      "Scale and realism",
+      "Beautiful natural ambience"
+    ],
+    "limitations": [
+      "Time windows",
+      "Wind on modifiers"
+    ],
+    "relatedCameraTechniques": [
+      "ND",
+      "polarizer",
+      "fast frame planning for changing light"
+    ],
+    "relatedStorytellingTechniques": [
+      "freedom",
+      "adventure",
+      "authenticity"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-outdoor-lighting",
+      "title": "Outdoor Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Shaping daylight and adding portable fixtures for exterior control.",
+      "coreConcepts": [
+        "outdoor lighting",
+        "sunlight control",
+        "silk",
+        "reflector",
+        "exterior"
+      ],
+      "definitions": [
+        "Keep outdoor images consistent and flattering despite sun movement and weather."
+      ],
+      "rules": [
+        "Use when: Lifestyle exteriors",
+        "Use when: Architecture",
+        "Use when: Event coverage with sun",
+        "Do not use when: When interiors are primary"
+      ],
+      "bestPractices": [
+        "Diffuse or shade harsh sun",
+        "Use bounce/neg",
+        "Plan backlight sun positions"
+      ],
+      "professionalTechniques": [
+        "Scale and realism",
+        "Beautiful natural ambience"
+      ],
+      "workflow": [
+        "Choose Outdoor Lighting",
+        "Diffuse or shade harsh sun",
+        "Use bounce/neg",
+        "Plan backlight sun positions"
+      ],
+      "decisionRules": [
+        "Use when: Lifestyle exteriors",
+        "Use when: Architecture",
+        "Use when: Event coverage with sun",
+        "Avoid when: When interiors are primary"
+      ],
+      "commonMistakes": [
+        "Racoon-eye noon sun",
+        "Ignoring background exposure blows"
+      ],
+      "troubleshooting": [
+        "Limitation: Time windows",
+        "Limitation: Wind on modifiers"
+      ],
+      "recommendations": [
+        "Diffuse or shade harsh sun",
+        "Use bounce/neg",
+        "Plan backlight sun positions"
+      ],
+      "examples": [
+        "Silk overhead + reflector fill for midday interview"
+      ],
+      "professionalStandards": [
+        "freedom",
+        "adventure",
+        "authenticity"
+      ],
+      "relatedTopics": [
+        "natural-lighting",
+        "hard-lighting",
+        "soft-lighting",
+        "color-temperature"
+      ],
+      "keywords": [
+        "outdoor lighting",
+        "sunlight control",
+        "silk",
+        "reflector",
+        "exterior"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:outdoor-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Outdoor Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Shaping daylight and adding portable fixtures for exterior control.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep outdoor images consistent and flattering despite sun movement and weather."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Lifestyle exteriors",
+            "Architecture",
+            "Event coverage with sun"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When interiors are primary"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Diffuse or shade harsh sun",
+            "Use bounce/neg",
+            "Plan backlight sun positions"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Silk overhead + reflector fill for midday interview"
+          ]
+        }
+      ],
+      "concepts": [
+        "outdoor lighting",
+        "sunlight control",
+        "silk",
+        "reflector",
+        "exterior"
+      ],
+      "entities": [
+        "Outdoor Lighting",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "outdoor lighting",
+        "sunlight control",
+        "silk",
+        "reflector",
+        "exterior"
+      ],
+      "rules": [
+        "Avoid when: When interiors are primary"
+      ],
+      "bestPractices": [
+        "Diffuse or shade harsh sun",
+        "Use bounce/neg",
+        "Plan backlight sun positions"
+      ],
+      "professionalTechniques": [
+        "Scale and realism",
+        "Beautiful natural ambience"
+      ],
+      "examples": [
+        "Silk overhead + reflector fill for midday interview"
+      ],
+      "commonMistakes": [
+        "Racoon-eye noon sun",
+        "Ignoring background exposure blows"
+      ],
+      "qualityRules": [
+        "Time windows",
+        "Wind on modifiers"
+      ],
+      "decisionRules": [
+        "Use when: Lifestyle exteriors",
+        "Use when: Architecture",
+        "Use when: Event coverage with sun",
+        "Do not use when: When interiors are primary"
+      ],
+      "workflowSteps": [
+        "Diffuse or shade harsh sun",
+        "Use bounce/neg",
+        "Plan backlight sun positions"
+      ],
+      "prerequisites": [
+        "ND",
+        "polarizer",
+        "fast frame planning for changing light"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-natural-lighting",
+        "lit-hard-lighting",
+        "lit-soft-lighting",
+        "lit-color-temperature"
+      ],
+      "definitions": [
+        "Keep outdoor images consistent and flattering despite sun movement and weather."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Diffuse or shade harsh sun",
+      "Use bounce/neg",
+      "Plan backlight sun positions"
+    ],
+    "bestPractices": [
+      "Diffuse or shade harsh sun",
+      "Use bounce/neg",
+      "Plan backlight sun positions"
+    ],
+    "decisionRules": [
+      "Use when: Lifestyle exteriors",
+      "Use when: Architecture",
+      "Use when: Event coverage with sun",
+      "Do not use when: When interiors are primary"
+    ]
+  }
+}

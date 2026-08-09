@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:34.750Z","level":"info","event":"startup","message":"Object Detection Intelligence Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-intelligence\\object-detection\\engine"}}
+{"timestamp":"2026-08-08T19:46:35.800Z","level":"info","event":"startup","message":"Object Detection Intelligence Engine startup complete","data":{"recordsLoaded":0}}

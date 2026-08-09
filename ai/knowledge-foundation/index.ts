@@ -4,8 +4,147 @@ export { KnowledgeRegistry } from "./knowledge-registry.js";
 export { KnowledgeStorageManager } from "./knowledge-storage.js";
 export { KnowledgePackImportEngine } from "./knowledge-pack-import-engine.js";
 export { KnowledgeImportError } from "./knowledge-import-types.js";
+export { KnowledgeValidationIntegrationEngine } from "../knowledge-validation-integration/knowledge-validation-integration-engine.js";
+export { KNOWLEDGE_VALIDATION_INTEGRATION_VERSION } from "../knowledge-validation-integration/types.js";
+export type {
+  AiMeKnowledgeValidationIntegrationAwareness,
+  KnowledgeCandidateInput,
+  KnowledgeValidationIntegrationExplainResult,
+  KnowledgeValidationIntegrationReportData,
+  KnowledgeValidationIntegrationResult,
+  ValidatedKnowledgeItem,
+} from "../knowledge-validation-integration/types.js";
+export { AiKnowledgeEvolutionEngine } from "../knowledge-evolution/knowledge-evolution-engine.js";
+export { KNOWLEDGE_EVOLUTION_VERSION } from "../knowledge-evolution/types.js";
+export type {
+  AiMeKnowledgeEvolutionAwareness,
+  KnowledgeEvolutionExplainResult,
+  KnowledgeEvolutionReportData,
+  KnowledgeEvolutionResult,
+} from "../knowledge-evolution/types.js";
+export { AiFeedbackIntelligenceEngine } from "../feedback-intelligence/feedback-intelligence-engine.js";
+export { FEEDBACK_INTELLIGENCE_VERSION } from "../feedback-intelligence/types.js";
+export type {
+  AiMeFeedbackIntelligenceAwareness,
+  FeedbackInput,
+  FeedbackIntelligenceExplainResult,
+  FeedbackIntelligenceReportData,
+  FeedbackIntelligenceResult,
+} from "../feedback-intelligence/types.js";
+export { AiPerformanceAnalyticsEngine } from "../performance-analytics/performance-analytics-engine.js";
+export { PERFORMANCE_ANALYTICS_VERSION } from "../performance-analytics/types.js";
+export type {
+  AiMePerformanceAnalyticsAwareness,
+  PerformanceAnalyticsExplainResult,
+  PerformanceAnalyticsReportData,
+  PerformanceAnalyticsResult,
+  ProductionSessionInput,
+} from "../performance-analytics/types.js";
+export { AiAutonomousLearningEngine } from "../autonomous-learning/autonomous-learning-engine.js";
+export { AUTONOMOUS_LEARNING_VERSION } from "../autonomous-learning/types.js";
+export type {
+  AiMeAutonomousLearningAwareness,
+  AutonomousLearningCandidate,
+  AutonomousLearningExplainResult,
+  AutonomousLearningReportData,
+  AutonomousLearningResult,
+} from "../autonomous-learning/types.js";
+export { AiWorkflowModelOptimizationEngine } from "../workflow-model-optimization/workflow-model-optimization-engine.js";
+export { WORKFLOW_MODEL_OPTIMIZATION_VERSION } from "../workflow-model-optimization/types.js";
+export type {
+  AiMeWorkflowModelOptimizationAwareness,
+  WorkflowModelOptimizationExplainResult,
+  WorkflowModelOptimizationInput,
+  WorkflowModelOptimizationReportData,
+  WorkflowModelOptimizationResult,
+} from "../workflow-model-optimization/types.js";
+export { AiAutonomousImprovementEngine } from "../autonomous-improvement/autonomous-improvement-engine.js";
+export { AUTONOMOUS_IMPROVEMENT_VERSION } from "../autonomous-improvement/types.js";
+export type {
+  AiMeAutonomousImprovementAwareness,
+  AutonomousImprovementCycleInput,
+  AutonomousImprovementExplainResult,
+  AutonomousImprovementReportData,
+  AutonomousImprovementResult,
+} from "../autonomous-improvement/types.js";
+export { AiAutonomousIntelligenceValidationEngine } from "../autonomous-intelligence-validation/autonomous-intelligence-validation-engine.js";
+export { AUTONOMOUS_INTELLIGENCE_VALIDATION_VERSION } from "../autonomous-intelligence-validation/types.js";
+export type {
+  AiMeAutonomousIntelligenceValidationAwareness,
+  AutonomousIntelligenceValidationExplainResult,
+  AutonomousIntelligenceValidationReportData,
+  AutonomousIntelligenceValidationResult,
+} from "../autonomous-intelligence-validation/types.js";
+export { AiLearningCertificationEngine } from "../learning-certification/learning-certification-engine.js";
+export {
+  LEARNING_CERTIFICATION_VERSION,
+  LEARNING_CONTINUOUS_IMPROVEMENT_PRODUCT_VERSION,
+} from "../learning-certification/types.js";
+export type {
+  AiMeLearningCertificationAwareness,
+  LearningCertificationExplainResult,
+  LearningCertificationReportData,
+  LearningCertificationResult,
+} from "../learning-certification/types.js";
+export { AiPersonalProjectWorkspaceEngine } from "../personal-project-workspace/personal-project-workspace-engine.js";
+export { PERSONAL_PROJECT_WORKSPACE_VERSION } from "../personal-project-workspace/types.js";
+export type {
+  AiMePersonalWorkspaceAwareness,
+  CreateWorkspaceProjectInput,
+  PersonalProjectWorkspaceResult,
+  PersonalWorkspaceExplainResult,
+  PersonalWorkspaceReportData,
+} from "../personal-project-workspace/types.js";
+export { AiLocalAssetLibraryEngine } from "../local-asset-library/local-asset-library-engine.js";
+export { LOCAL_ASSET_LIBRARY_VERSION } from "../local-asset-library/types.js";
+export type {
+  AiMeLocalAssetLibraryAwareness,
+  AssetImportInput,
+  LocalAssetLibraryExplainResult,
+  LocalAssetLibraryReportData,
+  LocalAssetLibraryResult,
+} from "../local-asset-library/types.js";
+export { AiLocalProductionQueueEngine } from "../local-production-queue/local-production-queue-engine.js";
+export { LOCAL_PRODUCTION_QUEUE_VERSION } from "../local-production-queue/types.js";
+export type {
+  AiMeLocalProductionQueueAwareness,
+  EnqueueJobInput,
+  LocalProductionQueueExplainResult,
+  LocalProductionQueueReportData,
+  LocalProductionQueueResult,
+} from "../local-production-queue/types.js";
+export { AiLocalResourceManagerEngine } from "../local-resource-manager/local-resource-manager-engine.js";
+export { LOCAL_RESOURCE_MANAGER_VERSION } from "../local-resource-manager/types.js";
+export type {
+  AiMeLocalResourceManagerAwareness,
+  LocalResourceManagerExplainResult,
+  LocalResourceManagerReportData,
+  LocalResourceManagerResult,
+  ProductionMode,
+} from "../local-resource-manager/types.js";
+export { AiAutomationEngine } from "../automation-engine/automation-engine.js";
+export { AUTOMATION_ENGINE_VERSION } from "../automation-engine/types.js";
+export type {
+  AiMeAutomationEngineAwareness,
+  AutomationEngineExplainResult,
+  AutomationEngineReportData,
+  AutomationEngineResult,
+} from "../automation-engine/types.js";
+export { AiWorkspaceManagerEngine } from "../workspace-manager/workspace-manager-engine.js";
+export { WORKSPACE_MANAGER_VERSION } from "../workspace-manager/types.js";
+export type {
+  AiMeWorkspaceManagerAwareness,
+  WorkspaceManagerExplainResult,
+  WorkspaceManagerReportData,
+  WorkspaceManagerResult,
+} from "../workspace-manager/types.js";
 export { KnowledgeSeedingCertifier } from "./knowledge-seeding-certifier.js";
 export { KnowledgePersistenceVerifier } from "./knowledge-persistence-verifier.js";
+export { ProfessionalKnowledgeCertificationEngine } from "./professional-knowledge-certification-engine.js";
+export {
+  ProfessionalKnowledgeCertificationError,
+  PROFESSIONAL_KNOWLEDGE_EXPANSION_VERSION,
+} from "./professional-knowledge-certification-types.js";
 export { KnowledgeSeedingError, KNOWLEDGE_SEEDING_VERSION } from "./knowledge-seeding-types.js";
 export type {
   KnowledgeImportStatus,
@@ -27,6 +166,16 @@ export type {
   KnowledgeSeedingRepairResult,
   KnowledgeSeedingReportData,
 } from "./knowledge-seeding-types.js";
+export type {
+  ProfessionalCertificationCheckStatus,
+  ProfessionalKnowledgeCertificationCheck,
+  ProfessionalKnowledgeDomainCertification,
+  ProfessionalKnowledgeCapabilityVerification,
+  ProfessionalKnowledgeFoundationVerification,
+  ProfessionalKnowledgeCertificationResult,
+  ProfessionalKnowledgeCertificationRepairResult,
+  AiMeProfessionalKnowledgeCertificationAwareness,
+} from "./professional-knowledge-certification-types.js";
 export { AiKnowledgeStorageEngine } from "../knowledge-storage-engine/knowledge-storage-engine.js";
 export { AiKnowledgeRetrievalEngine } from "../knowledge-retrieval-engine/knowledge-retrieval-engine.js";
 export { AiKnowledgeGraphEngine } from "../knowledge-graph-engine/knowledge-graph-engine.js";

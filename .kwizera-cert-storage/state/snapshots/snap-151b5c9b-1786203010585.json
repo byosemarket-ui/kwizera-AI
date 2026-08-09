@@ -1,0 +1,27 @@
+{
+  "snapshotId": "snap-151b5c9b-1786203010585",
+  "timestamp": "2026-08-08T15:30:10.585Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "offline",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:30:10.233Z"
+      },
+      "reasoning-engine": {
+        "id": "reasoning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:30:10.583Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

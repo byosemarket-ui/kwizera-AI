@@ -1,0 +1,330 @@
+{
+  "knowledgeId": "cam-frame-rate",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-settings",
+  "title": "Frame Rate",
+  "description": "Selecting and maintaining frame rates for natural motion, slow motion, and platform norms.",
+  "summary": "Frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards.",
+  "tags": [
+    "camera",
+    "professional",
+    "frame-rate",
+    "frame rate",
+    "fps",
+    "24fps",
+    "slow motion",
+    "timebase"
+  ],
+  "keywords": [
+    "frame rate",
+    "fps",
+    "24fps",
+    "slow motion",
+    "timebase"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-shutter-speed",
+    "cam-exposure",
+    "cam-camera-resolution",
+    "cam-camera-fundamentals",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-video-editing-knowledge",
+    "cam-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:22.624Z",
+  "lastUpdated": "2026-08-08T15:31:22.624Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-frame-rate",
+  "integrityStatus": "verified",
+  "contentHash": "34b29efdd6989ff5b060669ad4b46046f10d00e0ff4c78a719bfb4a13b4e1f31",
+  "searchableText": "frame rate selecting and maintaining frame rates for natural motion, slow motion, and platform norms. frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards. professional-camera-settings camera professional frame-rate frame rate fps 24fps slow motion timebase frame rate fps 24fps slow motion timebase",
+  "classification": {
+    "category": "professional-camera-settings",
+    "topic": "frame-rate-selecting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "frame-rate",
+    "kind": "camera-setting",
+    "professionalDefinition": "Frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards.",
+    "knowledgeItem": {
+      "knowledgeId": "cam-frame-rate",
+      "title": "Frame Rate",
+      "domain": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "description": "Selecting and maintaining frame rates for natural motion, slow motion, and platform norms.",
+      "coreConcepts": [
+        "frame rate",
+        "fps",
+        "24fps",
+        "slow motion",
+        "timebase"
+      ],
+      "definitions": [
+        "Frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards."
+      ],
+      "rules": [
+        "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+        "Always keep primary dialogue scenes at one consistent rate.",
+        "When platforms differ, prefer separate masters over awkward speed changes.",
+        "Never change frame rate mid-scene without editorial approval."
+      ],
+      "bestPractices": [
+        "Lock project frame rate early and keep camera timebase consistent.",
+        "Shoot higher rates only when slow motion is planned and lit for it.",
+        "Match shutter relative to frame rate for natural motion blur.",
+        "Document any mixed-rate shots for editorial."
+      ],
+      "professionalTechniques": [
+        "Choose story cadence (cinematic vs broadcast/social).",
+        "Set camera and project frame rate.",
+        "Plan high-speed shots and lighting compensation.",
+        "Confirm editorial conform path."
+      ],
+      "workflow": [
+        "Choose story cadence (cinematic vs broadcast/social).",
+        "Set camera and project frame rate.",
+        "Plan high-speed shots and lighting compensation.",
+        "Confirm editorial conform path."
+      ],
+      "decisionRules": [
+        "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+        "Always keep primary dialogue scenes at one consistent rate.",
+        "When platforms differ, prefer separate masters over awkward speed changes.",
+        "Never change frame rate mid-scene without editorial approval."
+      ],
+      "commonMistakes": [
+        "Mixing 24 and 30 fps without a conversion plan.",
+        "Shooting slow-mo underexposed because light was set for 24 fps.",
+        "Ignoring platform expectations (e.g., social vs cinematic cadence)."
+      ],
+      "troubleshooting": [
+        "Avoid: Mixing 24 and 30 fps without a conversion plan.",
+        "Avoid: Shooting slow-mo underexposed because light was set for 24 fps.",
+        "Avoid: Ignoring platform expectations (e.g., social vs cinematic cadence)."
+      ],
+      "recommendations": [
+        "Lock project frame rate early and keep camera timebase consistent.",
+        "Shoot higher rates only when slow motion is planned and lit for it.",
+        "Match shutter relative to frame rate for natural motion blur.",
+        "Document any mixed-rate shots for editorial."
+      ],
+      "examples": [
+        "24 fps commercial with 120 fps product pour slow-mo inserts.",
+        "30 fps corporate explainer for web delivery."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated camera standard"
+      ],
+      "relatedTopics": [
+        "shutter-speed",
+        "exposure",
+        "camera-resolution",
+        "camera-fundamentals"
+      ],
+      "keywords": [
+        "frame rate",
+        "fps",
+        "24fps",
+        "slow motion",
+        "timebase"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:frame-rate",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Frame Rate",
+      "category": "professional-camera-settings",
+      "domain": "camera-knowledge",
+      "description": "Selecting and maintaining frame rates for natural motion, slow motion, and platform norms.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lock project frame rate early and keep camera timebase consistent.",
+            "Shoot higher rates only when slow motion is planned and lit for it.",
+            "Match shutter relative to frame rate for natural motion blur.",
+            "Document any mixed-rate shots for editorial."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose story cadence (cinematic vs broadcast/social).",
+            "Set camera and project frame rate.",
+            "Plan high-speed shots and lighting compensation.",
+            "Confirm editorial conform path."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+            "Always keep primary dialogue scenes at one consistent rate.",
+            "When platforms differ, prefer separate masters over awkward speed changes.",
+            "Never change frame rate mid-scene without editorial approval."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "24 fps commercial with 120 fps product pour slow-mo inserts.",
+            "30 fps corporate explainer for web delivery."
+          ]
+        }
+      ],
+      "concepts": [
+        "frame rate",
+        "fps",
+        "24fps",
+        "slow motion",
+        "timebase"
+      ],
+      "entities": [
+        "Frame Rate",
+        "camera-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "frame rate",
+        "fps",
+        "24fps",
+        "slow motion",
+        "timebase"
+      ],
+      "rules": [
+        "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+        "Always keep primary dialogue scenes at one consistent rate.",
+        "When platforms differ, prefer separate masters over awkward speed changes.",
+        "Never change frame rate mid-scene without editorial approval."
+      ],
+      "bestPractices": [
+        "Lock project frame rate early and keep camera timebase consistent.",
+        "Shoot higher rates only when slow motion is planned and lit for it.",
+        "Match shutter relative to frame rate for natural motion blur.",
+        "Document any mixed-rate shots for editorial."
+      ],
+      "professionalTechniques": [
+        "Choose story cadence (cinematic vs broadcast/social).",
+        "Set camera and project frame rate.",
+        "Plan high-speed shots and lighting compensation.",
+        "Confirm editorial conform path."
+      ],
+      "examples": [
+        "24 fps commercial with 120 fps product pour slow-mo inserts.",
+        "30 fps corporate explainer for web delivery."
+      ],
+      "commonMistakes": [
+        "Mixing 24 and 30 fps without a conversion plan.",
+        "Shooting slow-mo underexposed because light was set for 24 fps.",
+        "Ignoring platform expectations (e.g., social vs cinematic cadence)."
+      ],
+      "qualityRules": [
+        "Lock project frame rate early and keep camera timebase consistent."
+      ],
+      "decisionRules": [
+        "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+        "Always keep primary dialogue scenes at one consistent rate.",
+        "When platforms differ, prefer separate masters over awkward speed changes.",
+        "Never change frame rate mid-scene without editorial approval."
+      ],
+      "workflowSteps": [
+        "Choose story cadence (cinematic vs broadcast/social).",
+        "Set camera and project frame rate.",
+        "Plan high-speed shots and lighting compensation.",
+        "Confirm editorial conform path."
+      ],
+      "prerequisites": [
+        "Choose story cadence (cinematic vs broadcast/social)."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cam-shutter-speed",
+        "cam-exposure",
+        "cam-camera-resolution",
+        "cam-camera-fundamentals"
+      ],
+      "definitions": [
+        "Frame rate is the number of frames captured per second; it governs motion cadence, slow-motion capability, and compatibility with editing and delivery standards."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Choose story cadence (cinematic vs broadcast/social).",
+      "Set camera and project frame rate.",
+      "Plan high-speed shots and lighting compensation.",
+      "Confirm editorial conform path."
+    ],
+    "bestPractices": [
+      "Lock project frame rate early and keep camera timebase consistent.",
+      "Shoot higher rates only when slow motion is planned and lit for it.",
+      "Match shutter relative to frame rate for natural motion blur.",
+      "Document any mixed-rate shots for editorial."
+    ],
+    "decisionRules": [
+      "If slow motion is required, increase light or ISO budget before rolling high frame rate.",
+      "Always keep primary dialogue scenes at one consistent rate.",
+      "When platforms differ, prefer separate masters over awkward speed changes.",
+      "Never change frame rate mid-scene without editorial approval."
+    ]
+  }
+}

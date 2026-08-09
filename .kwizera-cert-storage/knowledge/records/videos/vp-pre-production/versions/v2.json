@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "vp-pre-production",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Pre-production",
+  "description": "Professional pre-production: research, scripting, planning, casting, locations, schedules, and risk control before cameras roll.",
+  "summary": "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins.",
+  "tags": [
+    "video-production",
+    "professional",
+    "pre-production",
+    "call sheet",
+    "storyboard",
+    "schedule",
+    "clearances"
+  ],
+  "keywords": [
+    "pre-production",
+    "call sheet",
+    "storyboard",
+    "schedule",
+    "clearances"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-professional-planning-methods",
+    "vp-shot-planning",
+    "vp-scene-planning",
+    "vp-production-workflow",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-lighting-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:58.847Z",
+  "lastUpdated": "2026-08-08T16:45:11.845Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-pre-production",
+  "integrityStatus": "verified",
+  "contentHash": "d82119bc448e51d4074767c856380133726bea2578ce526cbd150675dd4ab3bf",
+  "searchableText": "pre-production professional pre-production: research, scripting, planning, casting, locations, schedules, and risk control before cameras roll. pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins. professional-video-production video-production professional pre-production call sheet storyboard schedule clearances pre-production call sheet storyboard schedule clearances",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "pre-production-professional-pre-production:",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "pre-production",
+    "professionalDefinition": "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-pre-production",
+      "title": "Pre-production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional pre-production: research, scripting, planning, casting, locations, schedules, and risk control before cameras roll.",
+      "coreConcepts": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "definitions": [
+        "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins."
+      ],
+      "rules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "bestPractices": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "professionalTechniques": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "workflow": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "decisionRules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "commonMistakes": [
+        "Treating pre-production as optional paperwork.",
+        "Underestimating setup and transition time.",
+        "Leaving legal clearances to post."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating pre-production as optional paperwork.",
+        "Avoid: Underestimating setup and transition time.",
+        "Avoid: Leaving legal clearances to post."
+      ],
+      "recommendations": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "examples": [
+        "One-day product shoot packet with prioritized shot list and lighting plot notes.",
+        "Multi-location corporate schedule with travel and interview buffers."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "professional-planning-methods",
+        "shot-planning",
+        "scene-planning",
+        "production-workflow"
+      ],
+      "keywords": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:pre-production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Pre-production",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Professional pre-production: research, scripting, planning, casting, locations, schedules, and risk control before cameras roll.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lock creative intent and deliverables before booking heavy spend.",
+            "Build shot lists, call sheets, and contingency plans.",
+            "Scout locations for sound, power, light, and brand fit.",
+            "Clear talent, music, and location rights early."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Brief → concept → script/storyboard.",
+            "Budget, schedule, and resource plan.",
+            "Location/talent/tech prep.",
+            "Final production packet and readiness check."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If rights or claims are uncleared, do not shoot those moments.",
+            "Always include contingency time for critical setups.",
+            "When budget shrinks, cut scope in pre-production—not quality on set.",
+            "Never arrive on set without a shared shot priority list."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "One-day product shoot packet with prioritized shot list and lighting plot notes.",
+            "Multi-location corporate schedule with travel and interview buffers."
+          ]
+        }
+      ],
+      "concepts": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "entities": [
+        "Pre-production",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge"
+      ],
+      "terminology": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "rules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "bestPractices": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "professionalTechniques": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "examples": [
+        "One-day product shoot packet with prioritized shot list and lighting plot notes.",
+        "Multi-location corporate schedule with travel and interview buffers."
+      ],
+      "commonMistakes": [
+        "Treating pre-production as optional paperwork.",
+        "Underestimating setup and transition time.",
+        "Leaving legal clearances to post."
+      ],
+      "qualityRules": [
+        "Clear talent, music, and location rights early."
+      ],
+      "decisionRules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "workflowSteps": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "prerequisites": [
+        "Brief → concept → script/storyboard."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-professional-planning-methods",
+        "vp-shot-planning",
+        "vp-scene-planning",
+        "vp-production-workflow"
+      ],
+      "definitions": [
+        "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating pre-production as optional paperwork.",
+        "Avoid: Underestimating setup and transition time.",
+        "Avoid: Leaving legal clearances to post."
+      ],
+      "recommendations": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

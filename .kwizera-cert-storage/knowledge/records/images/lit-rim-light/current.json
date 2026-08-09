@@ -1,0 +1,337 @@
+{
+  "knowledgeId": "lit-rim-light",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Rim Light",
+  "description": "A focused edge highlight outlining the subject’s contour.",
+  "summary": "Create a crisp silhouette edge for premium, graphic, or dramatic emphasis.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "rim-light",
+    "rim light",
+    "edge highlight",
+    "contour light",
+    "outline"
+  ],
+  "keywords": [
+    "rim light",
+    "edge highlight",
+    "contour light",
+    "outline"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-back-light",
+    "lit-hard-lighting",
+    "lit-product-lighting",
+    "lit-low-key-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:25.564Z",
+  "lastUpdated": "2026-08-08T17:15:36.601Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-rim-light",
+  "integrityStatus": "verified",
+  "contentHash": "1629450151b2bd4f6565a3a6f24d6bcad85362c2f2439f13dee0043fc488941d",
+  "searchableText": "rim light a focused edge highlight outlining the subject’s contour. create a crisp silhouette edge for premium, graphic, or dramatic emphasis. professional-lighting professional-lighting professional rim-light rim light edge highlight contour light outline rim light edge highlight contour light outline",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "light-focused-edge",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "rim-light",
+    "kind": "professional-lighting",
+    "purpose": "Create a crisp silhouette edge for premium, graphic, or dramatic emphasis.",
+    "whenToUse": [
+      "Product contour hero",
+      "Athletic/power portraits",
+      "Dark-background commercials"
+    ],
+    "whenNotToUse": [
+      "Soft documentary naturalism",
+      "When reflections already outline chrome products"
+    ],
+    "advantages": [
+      "Strong graphic read",
+      "Premium feel"
+    ],
+    "limitations": [
+      "Narrow angle tolerance",
+      "Can look gimmicky"
+    ],
+    "relatedCameraTechniques": [
+      "precise framing of highlight edge",
+      "polarizer for glare control"
+    ],
+    "relatedStorytellingTechniques": [
+      "hero outline",
+      "power silhouette"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-rim-light",
+      "title": "Rim Light",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "A focused edge highlight outlining the subject’s contour.",
+      "coreConcepts": [
+        "rim light",
+        "edge highlight",
+        "contour light",
+        "outline"
+      ],
+      "definitions": [
+        "Create a crisp silhouette edge for premium, graphic, or dramatic emphasis."
+      ],
+      "rules": [
+        "Use when: Product contour hero",
+        "Use when: Athletic/power portraits",
+        "Use when: Dark-background commercials",
+        "Do not use when: Soft documentary naturalism",
+        "Do not use when: When reflections already outline chrome products"
+      ],
+      "bestPractices": [
+        "Feather the rim",
+        "Match color to brand mood",
+        "Keep face exposure independent"
+      ],
+      "professionalTechniques": [
+        "Strong graphic read",
+        "Premium feel"
+      ],
+      "workflow": [
+        "Choose Rim Light",
+        "Feather the rim",
+        "Match color to brand mood",
+        "Keep face exposure independent"
+      ],
+      "decisionRules": [
+        "Use when: Product contour hero",
+        "Use when: Athletic/power portraits",
+        "Use when: Dark-background commercials",
+        "Avoid when: Soft documentary naturalism",
+        "Avoid when: When reflections already outline chrome products"
+      ],
+      "commonMistakes": [
+        "Rim wrapping onto cheeks unwanted",
+        "Color clash with key"
+      ],
+      "troubleshooting": [
+        "Limitation: Narrow angle tolerance",
+        "Limitation: Can look gimmicky"
+      ],
+      "recommendations": [
+        "Feather the rim",
+        "Match color to brand mood",
+        "Keep face exposure independent"
+      ],
+      "examples": [
+        "Cool rim on black sneaker edges against void background"
+      ],
+      "professionalStandards": [
+        "hero outline",
+        "power silhouette"
+      ],
+      "relatedTopics": [
+        "back-light",
+        "hard-lighting",
+        "product-lighting",
+        "low-key-lighting"
+      ],
+      "keywords": [
+        "rim light",
+        "edge highlight",
+        "contour light",
+        "outline"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:rim-light",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Rim Light",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "A focused edge highlight outlining the subject’s contour.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create a crisp silhouette edge for premium, graphic, or dramatic emphasis."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Product contour hero",
+            "Athletic/power portraits",
+            "Dark-background commercials"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Soft documentary naturalism",
+            "When reflections already outline chrome products"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Feather the rim",
+            "Match color to brand mood",
+            "Keep face exposure independent"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Cool rim on black sneaker edges against void background"
+          ]
+        }
+      ],
+      "concepts": [
+        "rim light",
+        "edge highlight",
+        "contour light",
+        "outline"
+      ],
+      "entities": [
+        "Rim Light",
+        "lighting-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "rim light",
+        "edge highlight",
+        "contour light",
+        "outline"
+      ],
+      "rules": [
+        "Avoid when: Soft documentary naturalism",
+        "Avoid when: When reflections already outline chrome products"
+      ],
+      "bestPractices": [
+        "Feather the rim",
+        "Match color to brand mood",
+        "Keep face exposure independent"
+      ],
+      "professionalTechniques": [
+        "Strong graphic read",
+        "Premium feel"
+      ],
+      "examples": [
+        "Cool rim on black sneaker edges against void background"
+      ],
+      "commonMistakes": [
+        "Rim wrapping onto cheeks unwanted",
+        "Color clash with key"
+      ],
+      "qualityRules": [
+        "Narrow angle tolerance",
+        "Can look gimmicky"
+      ],
+      "decisionRules": [
+        "Use when: Product contour hero",
+        "Use when: Athletic/power portraits",
+        "Use when: Dark-background commercials",
+        "Do not use when: Soft documentary naturalism",
+        "Do not use when: When reflections already outline chrome products"
+      ],
+      "workflowSteps": [
+        "Feather the rim",
+        "Match color to brand mood",
+        "Keep face exposure independent"
+      ],
+      "prerequisites": [
+        "precise framing of highlight edge",
+        "polarizer for glare control"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-back-light",
+        "lit-hard-lighting",
+        "lit-product-lighting",
+        "lit-low-key-lighting"
+      ],
+      "definitions": [
+        "Create a crisp silhouette edge for premium, graphic, or dramatic emphasis."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Feather the rim",
+      "Match color to brand mood",
+      "Keep face exposure independent"
+    ],
+    "bestPractices": [
+      "Feather the rim",
+      "Match color to brand mood",
+      "Keep face exposure independent"
+    ],
+    "decisionRules": [
+      "Use when: Product contour hero",
+      "Use when: Athletic/power portraits",
+      "Use when: Dark-background commercials",
+      "Do not use when: Soft documentary naturalism",
+      "Do not use when: When reflections already outline chrome products"
+    ]
+  }
+}

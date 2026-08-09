@@ -1,0 +1,311 @@
+{
+  "knowledgeId": "anim-product-animation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Product Animation",
+  "description": "Motion that proves form, features, and desirability of physical or digital products.",
+  "summary": "Sell understanding and desire without live footage when needed.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "product-animation",
+    "product animation",
+    "turntable",
+    "exploded view",
+    "3D product"
+  ],
+  "keywords": [
+    "product animation",
+    "turntable",
+    "exploded view",
+    "3D product"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-staging",
+    "anim-timing",
+    "motion-logo-animation",
+    "render-render-quality",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-rendering-knowledge",
+    "amr-bridge-lighting-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:36:52.596Z",
+  "lastUpdated": "2026-08-08T15:36:52.596Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-product-animation",
+  "integrityStatus": "verified",
+  "contentHash": "ac929ff74909cdb4ab601cd58eee23e3ce8df830e5a54f83b5333da8aafff687",
+  "searchableText": "product animation motion that proves form, features, and desirability of physical or digital products. sell understanding and desire without live footage when needed. professional-animation professional-animation professional product-animation product animation turntable exploded view 3d product product animation turntable exploded view 3d product",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "product-animation-motion",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-animation",
+    "kind": "professional-animation",
+    "purpose": "Sell understanding and desire without live footage when needed.",
+    "professionalDefinition": "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value.",
+    "workflow": [
+      "Hero still",
+      "Orbit/feature beats",
+      "Callouts",
+      "Settle + CTA hold"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-product-animation",
+      "title": "Product Animation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Motion that proves form, features, and desirability of physical or digital products.",
+      "coreConcepts": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "definitions": [
+        "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value.",
+        "Sell understanding and desire without live footage when needed."
+      ],
+      "rules": [
+        "Practice: Keep scale honest",
+        "Practice: Highlight one feature per beat",
+        "Practice: End on hero rest pose"
+      ],
+      "bestPractices": [
+        "Keep scale honest",
+        "Highlight one feature per beat",
+        "End on hero rest pose"
+      ],
+      "professionalTechniques": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "workflow": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "decisionRules": [
+        "Follow: Keep scale honest",
+        "Follow: Highlight one feature per beat",
+        "Follow: End on hero rest pose"
+      ],
+      "commonMistakes": [
+        "Endless spin with no story",
+        "Hiding the logo"
+      ],
+      "troubleshooting": [
+        "Avoid: Endless spin with no story",
+        "Avoid: Hiding the logo"
+      ],
+      "recommendations": [
+        "Keep scale honest",
+        "Highlight one feature per beat",
+        "End on hero rest pose"
+      ],
+      "examples": [
+        "Exploded view then reassemble; soft float with specular pass"
+      ],
+      "professionalStandards": [
+        "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value."
+      ],
+      "relatedTopics": [
+        "staging",
+        "timing",
+        "logo-animation",
+        "render-quality"
+      ],
+      "keywords": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:product-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Animation",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "Motion that proves form, features, and desirability of physical or digital products.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Sell understanding and desire without live footage when needed."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Hero still",
+            "Orbit/feature beats",
+            "Callouts",
+            "Settle + CTA hold"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Keep scale honest",
+            "Highlight one feature per beat",
+            "End on hero rest pose"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Exploded view then reassemble; soft float with specular pass"
+          ]
+        }
+      ],
+      "concepts": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "entities": [
+        "Product Animation",
+        "animation-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge",
+        "lighting-knowledge"
+      ],
+      "terminology": [
+        "product animation",
+        "turntable",
+        "exploded view",
+        "3D product"
+      ],
+      "rules": [
+        "Avoid: Endless spin with no story",
+        "Avoid: Hiding the logo"
+      ],
+      "bestPractices": [
+        "Keep scale honest",
+        "Highlight one feature per beat",
+        "End on hero rest pose"
+      ],
+      "professionalTechniques": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "examples": [
+        "Exploded view then reassemble; soft float with specular pass"
+      ],
+      "commonMistakes": [
+        "Endless spin with no story",
+        "Hiding the logo"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Keep scale honest",
+        "Practice: Highlight one feature per beat",
+        "Practice: End on hero rest pose"
+      ],
+      "workflowSteps": [
+        "Hero still",
+        "Orbit/feature beats",
+        "Callouts",
+        "Settle + CTA hold"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge",
+        "lighting-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-staging",
+        "anim-timing",
+        "motion-logo-animation",
+        "render-render-quality"
+      ],
+      "definitions": [
+        "Product animation is purposeful motion of a product—turntables, feature callouts, assembly, or micro-interactions—that clarifies value.",
+        "Sell understanding and desire without live footage when needed."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Keep scale honest",
+      "Highlight one feature per beat",
+      "End on hero rest pose"
+    ],
+    "bestPractices": [
+      "Keep scale honest",
+      "Highlight one feature per beat",
+      "End on hero rest pose"
+    ],
+    "decisionRules": [
+      "Practice: Keep scale honest",
+      "Practice: Highlight one feature per beat",
+      "Practice: End on hero rest pose"
+    ]
+  }
+}

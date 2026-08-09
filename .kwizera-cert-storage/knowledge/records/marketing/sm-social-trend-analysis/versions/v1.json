@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "sm-social-trend-analysis",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Trend Analysis",
+  "description": "Detecting, evaluating, and adapting trends without losing brand identity.",
+  "summary": "Help AI Me advise when to ride or skip a trend.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "social-trend-analysis",
+    "trend analysis",
+    "viral",
+    "sounds",
+    "formats",
+    "cultural moment"
+  ],
+  "keywords": [
+    "trend analysis",
+    "viral",
+    "sounds",
+    "formats",
+    "cultural moment"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "tt-tiktok-trending-content",
+    "sm-social-content-strategy",
+    "sm-platform-selection",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:33.585Z",
+  "lastUpdated": "2026-08-08T19:03:33.585Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-social-trend-analysis",
+  "integrityStatus": "verified",
+  "contentHash": "6546036da724fbc607e29ddbc6fe237c4289b1924052c776146ba9d7488d6a93",
+  "searchableText": "trend analysis detecting, evaluating, and adapting trends without losing brand identity. help ai me advise when to ride or skip a trend. professional-social-fundamentals professional-social-fundamentals professional social-trend-analysis trend analysis viral sounds formats cultural moment trend analysis viral sounds formats cultural moment",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "trend-analysis-detecting,",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "social-trend-analysis",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Help AI Me advise when to ride or skip a trend.",
+    "professionalDefinition": "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-social-trend-analysis",
+      "title": "Trend Analysis",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Detecting, evaluating, and adapting trends without losing brand identity.",
+      "coreConcepts": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "definitions": [
+        "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative.",
+        "Help AI Me advise when to ride or skip a trend."
+      ],
+      "rules": [
+        "Practice: Score trends on fit, speed, and risk",
+        "Practice: Adapt, do not copy blindly",
+        "Practice: Retire trends that stop converting"
+      ],
+      "bestPractices": [
+        "Score trends on fit, speed, and risk",
+        "Adapt, do not copy blindly",
+        "Retire trends that stop converting"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Score trends on fit, speed, and risk",
+        "Follow: Adapt, do not copy blindly",
+        "Follow: Retire trends that stop converting"
+      ],
+      "commonMistakes": [
+        "Late trend chasing",
+        "Forcing brand into mismatched memes"
+      ],
+      "troubleshooting": [
+        "Avoid: Late trend chasing",
+        "Avoid: Forcing brand into mismatched memes"
+      ],
+      "recommendations": [
+        "Score trends on fit, speed, and risk",
+        "Adapt, do not copy blindly",
+        "Retire trends that stop converting"
+      ],
+      "examples": [
+        "Professional application of Trend Analysis for platform-native content"
+      ],
+      "professionalStandards": [
+        "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative."
+      ],
+      "relatedTopics": [
+        "tiktok-trending-content",
+        "social-content-strategy",
+        "platform-selection"
+      ],
+      "keywords": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:social-trend-analysis",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Trend Analysis",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Detecting, evaluating, and adapting trends without losing brand identity.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Help AI Me advise when to ride or skip a trend."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Score trends on fit, speed, and risk",
+            "Adapt, do not copy blindly",
+            "Retire trends that stop converting"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Trend Analysis for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "entities": [
+        "Trend Analysis",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "trend analysis",
+        "viral",
+        "sounds",
+        "formats",
+        "cultural moment"
+      ],
+      "rules": [
+        "Avoid: Late trend chasing",
+        "Avoid: Forcing brand into mismatched memes"
+      ],
+      "bestPractices": [
+        "Score trends on fit, speed, and risk",
+        "Adapt, do not copy blindly",
+        "Retire trends that stop converting"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Trend Analysis for platform-native content"
+      ],
+      "commonMistakes": [
+        "Late trend chasing",
+        "Forcing brand into mismatched memes"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Score trends on fit, speed, and risk",
+        "Practice: Adapt, do not copy blindly",
+        "Practice: Retire trends that stop converting"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "tt-tiktok-trending-content",
+        "sm-social-content-strategy",
+        "sm-platform-selection"
+      ],
+      "definitions": [
+        "Trend analysis evaluates rising formats, sounds, and topics for brand fit, production feasibility, and risk before adapting them into on-brand creative.",
+        "Help AI Me advise when to ride or skip a trend."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Score trends on fit, speed, and risk",
+      "Adapt, do not copy blindly",
+      "Retire trends that stop converting"
+    ],
+    "bestPractices": [
+      "Score trends on fit, speed, and risk",
+      "Adapt, do not copy blindly",
+      "Retire trends that stop converting"
+    ],
+    "decisionRules": [
+      "Practice: Score trends on fit, speed, and risk",
+      "Practice: Adapt, do not copy blindly",
+      "Practice: Retire trends that stop converting"
+    ]
+  }
+}

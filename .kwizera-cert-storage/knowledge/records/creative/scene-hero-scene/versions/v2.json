@@ -1,0 +1,333 @@
+{
+  "knowledgeId": "scene-hero-scene",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Hero Scene",
+  "description": "A premium, high-attention scene that showcases the product or brand at peak desire.",
+  "summary": "Create the memorable visual peak of the commercial.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "hero-scene",
+    "hero scene",
+    "hero shot",
+    "beauty scene",
+    "peak moment"
+  ],
+  "keywords": [
+    "hero scene",
+    "hero shot",
+    "beauty scene",
+    "peak moment"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-product-reveal-scene",
+    "scene-scene-composition",
+    "story-visual-storytelling",
+    "scene-lifestyle-scene",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-lighting-knowledge",
+    "ss-bridge-composition-knowledge",
+    "ss-bridge-camera-movement-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:09.273Z",
+  "lastUpdated": "2026-08-08T17:33:06.425Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-hero-scene",
+  "integrityStatus": "verified",
+  "contentHash": "27f2145f2f3e664a9be6bb81eb8df100b1ad9988f6a7bf06474db80222ef873d",
+  "searchableText": "hero scene a premium, high-attention scene that showcases the product or brand at peak desire. create the memorable visual peak of the commercial. professional-scene-design professional-scene-design professional hero-scene hero scene hero shot beauty scene peak moment hero scene hero shot beauty scene peak moment",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "hero-scene-premium,",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "hero-scene",
+    "kind": "professional-scene-design",
+    "purpose": "Create the memorable visual peak of the commercial.",
+    "professionalDefinition": "A hero scene is a carefully lit and composed set-piece designed to maximize desirability and clarity of the product or brand moment.",
+    "whenToUse": [
+      "Product launches",
+      "Brand peaks",
+      "Keyframe social stills"
+    ],
+    "whenNotToUse": [
+      "Every scene—overuse dilutes impact"
+    ],
+    "workflow": [
+      "Choose hero moment",
+      "Design light/comp",
+      "Shoot coverage of peak"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-hero-scene",
+      "title": "Hero Scene",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "A premium, high-attention scene that showcases the product or brand at peak desire.",
+      "coreConcepts": [
+        "hero scene",
+        "hero shot",
+        "beauty scene",
+        "peak moment"
+      ],
+      "definitions": [
+        "A hero scene is a carefully lit and composed set-piece designed to maximize desirability and clarity of the product or brand moment.",
+        "Create the memorable visual peak of the commercial."
+      ],
+      "rules": [
+        "Use when: Product launches",
+        "Use when: Brand peaks",
+        "Use when: Keyframe social stills",
+        "Do not use when: Every scene—overuse dilutes impact"
+      ],
+      "bestPractices": [
+        "Best lighting/composition budget here",
+        "Readable logo/form",
+        "Minimal distraction"
+      ],
+      "professionalTechniques": [
+        "Choose hero moment",
+        "Design light/comp",
+        "Shoot coverage of peak"
+      ],
+      "workflow": [
+        "Choose hero moment",
+        "Design light/comp",
+        "Shoot coverage of peak"
+      ],
+      "decisionRules": [
+        "Use when: Product launches",
+        "Use when: Brand peaks",
+        "Use when: Keyframe social stills",
+        "Avoid when: Every scene—overuse dilutes impact"
+      ],
+      "commonMistakes": [
+        "Hero look without story context",
+        "Obscured product"
+      ],
+      "troubleshooting": [
+        "Avoid: Hero look without story context",
+        "Avoid: Obscured product"
+      ],
+      "recommendations": [
+        "Best lighting/composition budget here",
+        "Readable logo/form",
+        "Minimal distraction"
+      ],
+      "examples": [
+        "Slow orbit of watch face with rim light and clean void"
+      ],
+      "professionalStandards": [
+        "A hero scene is a carefully lit and composed set-piece designed to maximize desirability and clarity of the product or brand moment."
+      ],
+      "relatedTopics": [
+        "product-reveal-scene",
+        "scene-composition",
+        "visual-storytelling",
+        "lifestyle-scene"
+      ],
+      "keywords": [
+        "hero scene",
+        "hero shot",
+        "beauty scene",
+        "peak moment"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:hero-scene",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Hero Scene",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "A premium, high-attention scene that showcases the product or brand at peak desire.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A hero scene is a carefully lit and composed set-piece designed to maximize desirability and clarity of the product or brand moment."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create the memorable visual peak of the commercial."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Product launches",
+            "Brand peaks",
+            "Keyframe social stills"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Every scene—overuse dilutes impact"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose hero moment",
+            "Design light/comp",
+            "Shoot coverage of peak"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Best lighting/composition budget here",
+            "Readable logo/form",
+            "Minimal distraction"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Slow orbit of watch face with rim light and clean void"
+          ]
+        }
+      ],
+      "concepts": [
+        "hero scene",
+        "hero shot",
+        "beauty scene",
+        "peak moment"
+      ],
+      "entities": [
+        "Hero Scene",
+        "scene-knowledge",
+        "product-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge",
+        "camera-movement-knowledge"
+      ],
+      "terminology": [
+        "hero scene",
+        "hero shot",
+        "beauty scene",
+        "peak moment"
+      ],
+      "rules": [
+        "Avoid when: Every scene—overuse dilutes impact"
+      ],
+      "bestPractices": [
+        "Best lighting/composition budget here",
+        "Readable logo/form",
+        "Minimal distraction"
+      ],
+      "professionalTechniques": [
+        "Choose hero moment",
+        "Design light/comp",
+        "Shoot coverage of peak"
+      ],
+      "examples": [
+        "Slow orbit of watch face with rim light and clean void"
+      ],
+      "commonMistakes": [
+        "Hero look without story context",
+        "Obscured product"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Product launches",
+        "Use when: Brand peaks",
+        "Use when: Keyframe social stills",
+        "Do not use when: Every scene—overuse dilutes impact"
+      ],
+      "workflowSteps": [
+        "Choose hero moment",
+        "Design light/comp",
+        "Shoot coverage of peak"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "product-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge",
+        "camera-movement-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-product-reveal-scene",
+        "scene-scene-composition",
+        "story-visual-storytelling",
+        "scene-lifestyle-scene"
+      ],
+      "definitions": [
+        "A hero scene is a carefully lit and composed set-piece designed to maximize desirability and clarity of the product or brand moment.",
+        "Create the memorable visual peak of the commercial."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Best lighting/composition budget here",
+      "Readable logo/form",
+      "Minimal distraction"
+    ],
+    "bestPractices": [
+      "Best lighting/composition budget here",
+      "Readable logo/form",
+      "Minimal distraction"
+    ],
+    "decisionRules": [
+      "Use when: Product launches",
+      "Use when: Brand peaks",
+      "Use when: Keyframe social stills",
+      "Do not use when: Every scene—overuse dilutes impact"
+    ]
+  }
+}

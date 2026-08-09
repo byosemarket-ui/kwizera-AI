@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "sm-bridge-video-production-knowledge",
+  "knowledgeType": "marketing-knowledge",
+  "category": "sm-domain-bridge",
+  "title": "Video Production Knowledge (related)",
+  "description": "Social video is produced with professional production craft.",
+  "summary": "Production delivers platform-ready assets.",
+  "tags": [
+    "social-media",
+    "domain-bridge",
+    "video-production-knowledge"
+  ],
+  "keywords": [
+    "video-production-knowledge",
+    "social",
+    "media",
+    "platform",
+    "relationship"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-media-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:44.115Z",
+  "lastUpdated": "2026-08-08T19:03:44.115Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-bridge-video-production-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "2d8da6bab3d189b0195d293803acbebd24beacd8aaacbeccf9fc63467fc07529",
+  "searchableText": "video production knowledge (related) social video is produced with professional production craft. production delivers platform-ready assets. sm-domain-bridge social-media domain-bridge video-production-knowledge video-production-knowledge social media platform relationship",
+  "classification": {
+    "category": "sm-domain-bridge",
+    "topic": "video-production-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "bridgeDomainId": "video-production-knowledge",
+    "relationshipAnchor": true,
+    "publishesContent": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate social media knowledge to video-production-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Video Production Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "video-production-knowledge",
+      "description": "Social video is produced with professional production craft.",
+      "sections": [],
+      "concepts": [
+        "video-production-knowledge"
+      ],
+      "entities": [
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "video-production-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate social media knowledge to video-production-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "sm-social-media-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

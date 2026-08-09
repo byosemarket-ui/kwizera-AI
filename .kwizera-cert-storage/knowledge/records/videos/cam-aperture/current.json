@@ -1,0 +1,329 @@
+{
+  "knowledgeId": "cam-aperture",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-settings",
+  "title": "Aperture",
+  "description": "Controlling light intake and depth of field with iris/f-stop choices.",
+  "summary": "Aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation.",
+  "tags": [
+    "camera",
+    "professional",
+    "aperture",
+    "f-stop",
+    "t-stop",
+    "iris",
+    "bokeh"
+  ],
+  "keywords": [
+    "aperture",
+    "f-stop",
+    "t-stop",
+    "iris",
+    "bokeh"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-depth-of-field",
+    "cam-exposure",
+    "cam-iso",
+    "cam-focus",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-lighting-knowledge",
+    "cam-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:23.080Z",
+  "lastUpdated": "2026-08-08T16:55:30.755Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-aperture",
+  "integrityStatus": "verified",
+  "contentHash": "7644267229edb2ddafb99f41f026b2dbc7e04a06a15cf8af9bc47f56a010a194",
+  "searchableText": "aperture controlling light intake and depth of field with iris/f-stop choices. aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation. professional-camera-settings camera professional aperture f-stop t-stop iris bokeh aperture f-stop t-stop iris bokeh",
+  "classification": {
+    "category": "professional-camera-settings",
+    "topic": "aperture-controlling-light",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "aperture",
+    "kind": "camera-setting",
+    "professionalDefinition": "Aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation.",
+    "knowledgeItem": {
+      "knowledgeId": "cam-aperture",
+      "title": "Aperture",
+      "domain": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "description": "Controlling light intake and depth of field with iris/f-stop choices.",
+      "coreConcepts": [
+        "aperture",
+        "f-stop",
+        "t-stop",
+        "iris",
+        "bokeh"
+      ],
+      "definitions": [
+        "Aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation."
+      ],
+      "rules": [
+        "If focus reliability is at risk, deepen DOF before blaming the operator.",
+        "Always match apertures on intercut coverage unless motivated.",
+        "When lighting is limited, open aperture before dirtying ISO past limits.",
+        "Never chase bokeh at the expense of readable product text."
+      ],
+      "bestPractices": [
+        "Choose aperture for depth-of-field intent, then balance ISO/shutter.",
+        "Avoid the extremes of a lens unless the look is intentional and sharp enough.",
+        "Keep dialogue coverage apertures consistent when matching eye focus.",
+        "Watch diffraction softness at very small apertures."
+      ],
+      "professionalTechniques": [
+        "Decide DOF target for the scene.",
+        "Set aperture (T-stop) accordingly.",
+        "Balance exposure with ISO and shutter.",
+        "Confirm critical focus at that aperture."
+      ],
+      "workflow": [
+        "Decide DOF target for the scene.",
+        "Set aperture (T-stop) accordingly.",
+        "Balance exposure with ISO and shutter.",
+        "Confirm critical focus at that aperture."
+      ],
+      "decisionRules": [
+        "If focus reliability is at risk, deepen DOF before blaming the operator.",
+        "Always match apertures on intercut coverage unless motivated.",
+        "When lighting is limited, open aperture before dirtying ISO past limits.",
+        "Never chase bokeh at the expense of readable product text."
+      ],
+      "commonMistakes": [
+        "Opening wide for 'cinematic' look then missing focus on eyes.",
+        "Stopping down without adjusting lighting/ISO plan.",
+        "Inconsistent T-stops across multi-cam."
+      ],
+      "troubleshooting": [
+        "Avoid: Opening wide for 'cinematic' look then missing focus on eyes.",
+        "Avoid: Stopping down without adjusting lighting/ISO plan.",
+        "Avoid: Inconsistent T-stops across multi-cam."
+      ],
+      "recommendations": [
+        "Choose aperture for depth-of-field intent, then balance ISO/shutter.",
+        "Avoid the extremes of a lens unless the look is intentional and sharp enough.",
+        "Keep dialogue coverage apertures consistent when matching eye focus.",
+        "Watch diffraction softness at very small apertures."
+      ],
+      "examples": [
+        "Wide aperture product hero with soft background.",
+        "Stopped-down tabletop for edge-to-edge packaging sharpness."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated camera standard"
+      ],
+      "relatedTopics": [
+        "depth-of-field",
+        "exposure",
+        "iso",
+        "focus"
+      ],
+      "keywords": [
+        "aperture",
+        "f-stop",
+        "t-stop",
+        "iris",
+        "bokeh"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:aperture",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Aperture",
+      "category": "professional-camera-settings",
+      "domain": "camera-knowledge",
+      "description": "Controlling light intake and depth of field with iris/f-stop choices.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Choose aperture for depth-of-field intent, then balance ISO/shutter.",
+            "Avoid the extremes of a lens unless the look is intentional and sharp enough.",
+            "Keep dialogue coverage apertures consistent when matching eye focus.",
+            "Watch diffraction softness at very small apertures."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Decide DOF target for the scene.",
+            "Set aperture (T-stop) accordingly.",
+            "Balance exposure with ISO and shutter.",
+            "Confirm critical focus at that aperture."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If focus reliability is at risk, deepen DOF before blaming the operator.",
+            "Always match apertures on intercut coverage unless motivated.",
+            "When lighting is limited, open aperture before dirtying ISO past limits.",
+            "Never chase bokeh at the expense of readable product text."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Wide aperture product hero with soft background.",
+            "Stopped-down tabletop for edge-to-edge packaging sharpness."
+          ]
+        }
+      ],
+      "concepts": [
+        "aperture",
+        "f-stop",
+        "t-stop",
+        "iris",
+        "bokeh"
+      ],
+      "entities": [
+        "Aperture",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "aperture",
+        "f-stop",
+        "t-stop",
+        "iris",
+        "bokeh"
+      ],
+      "rules": [
+        "If focus reliability is at risk, deepen DOF before blaming the operator.",
+        "Always match apertures on intercut coverage unless motivated.",
+        "When lighting is limited, open aperture before dirtying ISO past limits.",
+        "Never chase bokeh at the expense of readable product text."
+      ],
+      "bestPractices": [
+        "Choose aperture for depth-of-field intent, then balance ISO/shutter.",
+        "Avoid the extremes of a lens unless the look is intentional and sharp enough.",
+        "Keep dialogue coverage apertures consistent when matching eye focus.",
+        "Watch diffraction softness at very small apertures."
+      ],
+      "professionalTechniques": [
+        "Decide DOF target for the scene.",
+        "Set aperture (T-stop) accordingly.",
+        "Balance exposure with ISO and shutter.",
+        "Confirm critical focus at that aperture."
+      ],
+      "examples": [
+        "Wide aperture product hero with soft background.",
+        "Stopped-down tabletop for edge-to-edge packaging sharpness."
+      ],
+      "commonMistakes": [
+        "Opening wide for 'cinematic' look then missing focus on eyes.",
+        "Stopping down without adjusting lighting/ISO plan.",
+        "Inconsistent T-stops across multi-cam."
+      ],
+      "qualityRules": [
+        "Keep dialogue coverage apertures consistent when matching eye focus."
+      ],
+      "decisionRules": [
+        "If focus reliability is at risk, deepen DOF before blaming the operator.",
+        "Always match apertures on intercut coverage unless motivated.",
+        "When lighting is limited, open aperture before dirtying ISO past limits.",
+        "Never chase bokeh at the expense of readable product text."
+      ],
+      "workflowSteps": [
+        "Decide DOF target for the scene.",
+        "Set aperture (T-stop) accordingly.",
+        "Balance exposure with ISO and shutter.",
+        "Confirm critical focus at that aperture."
+      ],
+      "prerequisites": [
+        "Decide DOF target for the scene."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cam-depth-of-field",
+        "cam-exposure",
+        "cam-iso",
+        "cam-focus"
+      ],
+      "definitions": [
+        "Aperture is the iris opening that regulates light and depth of field; it is a primary creative and exposure control in professional camera operation."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Decide DOF target for the scene.",
+      "Set aperture (T-stop) accordingly.",
+      "Balance exposure with ISO and shutter.",
+      "Confirm critical focus at that aperture."
+    ],
+    "bestPractices": [
+      "Choose aperture for depth-of-field intent, then balance ISO/shutter.",
+      "Avoid the extremes of a lens unless the look is intentional and sharp enough.",
+      "Keep dialogue coverage apertures consistent when matching eye focus.",
+      "Watch diffraction softness at very small apertures."
+    ],
+    "decisionRules": [
+      "If focus reliability is at risk, deepen DOF before blaming the operator.",
+      "Always match apertures on intercut coverage unless motivated.",
+      "When lighting is limited, open aperture before dirtying ISO past limits.",
+      "Never chase bokeh at the expense of readable product text."
+    ]
+  }
+}

@@ -1,0 +1,330 @@
+{
+  "knowledgeId": "cam-camera-resolution",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-settings",
+  "title": "Camera Resolution",
+  "description": "Capture resolution choices relative to delivery, reframing, and finishing quality.",
+  "summary": "Camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs.",
+  "tags": [
+    "camera",
+    "professional",
+    "camera-resolution",
+    "resolution",
+    "4K",
+    "1080",
+    "oversample",
+    "reframe"
+  ],
+  "keywords": [
+    "resolution",
+    "4K",
+    "1080",
+    "oversample",
+    "reframe"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-aspect-ratio",
+    "cam-frame-rate",
+    "cam-camera-types",
+    "cam-camera-sensors",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-rendering-knowledge",
+    "cam-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:22.511Z",
+  "lastUpdated": "2026-08-08T16:55:29.404Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-camera-resolution",
+  "integrityStatus": "verified",
+  "contentHash": "e570179cd0335f85ef156254ab18b23630f817eb869608b08056fd04301ececc",
+  "searchableText": "camera resolution capture resolution choices relative to delivery, reframing, and finishing quality. camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs. professional-camera-settings camera professional camera-resolution resolution 4k 1080 oversample reframe resolution 4k 1080 oversample reframe",
+  "classification": {
+    "category": "professional-camera-settings",
+    "topic": "camera-resolution-capture",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "camera-resolution",
+    "kind": "camera-setting",
+    "professionalDefinition": "Camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs.",
+    "knowledgeItem": {
+      "knowledgeId": "cam-camera-resolution",
+      "title": "Camera Resolution",
+      "domain": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "description": "Capture resolution choices relative to delivery, reframing, and finishing quality.",
+      "coreConcepts": [
+        "resolution",
+        "4K",
+        "1080",
+        "oversample",
+        "reframe"
+      ],
+      "definitions": [
+        "Camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs."
+      ],
+      "rules": [
+        "If vertical cutdowns are required, capture with crop margin or dual framing.",
+        "Always meet the highest contracted delivery resolution.",
+        "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+        "Never deliver upscaled soft footage as a substitute for planned resolution."
+      ],
+      "bestPractices": [
+        "Capture at or above delivery resolution with headroom for reframing when useful.",
+        "Do not oversample blindly if storage, heat, or rolling shutter suffer.",
+        "Align resolution with intended crop for vertical cutdowns.",
+        "Confirm monitoring resolution matches critical focus needs."
+      ],
+      "professionalTechniques": [
+        "List master and cutdown delivery resolutions.",
+        "Choose capture resolution with intentional oversample margin.",
+        "Validate codec bitrate for that resolution.",
+        "Plan vertical/safe crops if needed."
+      ],
+      "workflow": [
+        "List master and cutdown delivery resolutions.",
+        "Choose capture resolution with intentional oversample margin.",
+        "Validate codec bitrate for that resolution.",
+        "Plan vertical/safe crops if needed."
+      ],
+      "decisionRules": [
+        "If vertical cutdowns are required, capture with crop margin or dual framing.",
+        "Always meet the highest contracted delivery resolution.",
+        "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+        "Never deliver upscaled soft footage as a substitute for planned resolution."
+      ],
+      "commonMistakes": [
+        "Shooting 4K for a 1080 delivery without a reframing plan and paying unnecessary cost.",
+        "Undersampling and trying to invent detail in post.",
+        "Ignoring pixel pitch/noise tradeoffs at high resolution + high ISO."
+      ],
+      "troubleshooting": [
+        "Avoid: Shooting 4K for a 1080 delivery without a reframing plan and paying unnecessary cost.",
+        "Avoid: Undersampling and trying to invent detail in post.",
+        "Avoid: Ignoring pixel pitch/noise tradeoffs at high resolution + high ISO."
+      ],
+      "recommendations": [
+        "Capture at or above delivery resolution with headroom for reframing when useful.",
+        "Do not oversample blindly if storage, heat, or rolling shutter suffer.",
+        "Align resolution with intended crop for vertical cutdowns.",
+        "Confirm monitoring resolution matches critical focus needs."
+      ],
+      "examples": [
+        "4K capture for 1080 master plus vertical social crop.",
+        "6K open-gate for anamorphic-style reframing in a commercial."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated camera standard"
+      ],
+      "relatedTopics": [
+        "aspect-ratio",
+        "frame-rate",
+        "camera-types",
+        "camera-sensors"
+      ],
+      "keywords": [
+        "resolution",
+        "4K",
+        "1080",
+        "oversample",
+        "reframe"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:camera-resolution",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Camera Resolution",
+      "category": "professional-camera-settings",
+      "domain": "camera-knowledge",
+      "description": "Capture resolution choices relative to delivery, reframing, and finishing quality.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Capture at or above delivery resolution with headroom for reframing when useful.",
+            "Do not oversample blindly if storage, heat, or rolling shutter suffer.",
+            "Align resolution with intended crop for vertical cutdowns.",
+            "Confirm monitoring resolution matches critical focus needs."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List master and cutdown delivery resolutions.",
+            "Choose capture resolution with intentional oversample margin.",
+            "Validate codec bitrate for that resolution.",
+            "Plan vertical/safe crops if needed."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If vertical cutdowns are required, capture with crop margin or dual framing.",
+            "Always meet the highest contracted delivery resolution.",
+            "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+            "Never deliver upscaled soft footage as a substitute for planned resolution."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "4K capture for 1080 master plus vertical social crop.",
+            "6K open-gate for anamorphic-style reframing in a commercial."
+          ]
+        }
+      ],
+      "concepts": [
+        "resolution",
+        "4K",
+        "1080",
+        "oversample",
+        "reframe"
+      ],
+      "entities": [
+        "Camera Resolution",
+        "camera-knowledge",
+        "rendering-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "resolution",
+        "4K",
+        "1080",
+        "oversample",
+        "reframe"
+      ],
+      "rules": [
+        "If vertical cutdowns are required, capture with crop margin or dual framing.",
+        "Always meet the highest contracted delivery resolution.",
+        "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+        "Never deliver upscaled soft footage as a substitute for planned resolution."
+      ],
+      "bestPractices": [
+        "Capture at or above delivery resolution with headroom for reframing when useful.",
+        "Do not oversample blindly if storage, heat, or rolling shutter suffer.",
+        "Align resolution with intended crop for vertical cutdowns.",
+        "Confirm monitoring resolution matches critical focus needs."
+      ],
+      "professionalTechniques": [
+        "List master and cutdown delivery resolutions.",
+        "Choose capture resolution with intentional oversample margin.",
+        "Validate codec bitrate for that resolution.",
+        "Plan vertical/safe crops if needed."
+      ],
+      "examples": [
+        "4K capture for 1080 master plus vertical social crop.",
+        "6K open-gate for anamorphic-style reframing in a commercial."
+      ],
+      "commonMistakes": [
+        "Shooting 4K for a 1080 delivery without a reframing plan and paying unnecessary cost.",
+        "Undersampling and trying to invent detail in post.",
+        "Ignoring pixel pitch/noise tradeoffs at high resolution + high ISO."
+      ],
+      "qualityRules": [
+        "Confirm monitoring resolution matches critical focus needs."
+      ],
+      "decisionRules": [
+        "If vertical cutdowns are required, capture with crop margin or dual framing.",
+        "Always meet the highest contracted delivery resolution.",
+        "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+        "Never deliver upscaled soft footage as a substitute for planned resolution."
+      ],
+      "workflowSteps": [
+        "List master and cutdown delivery resolutions.",
+        "Choose capture resolution with intentional oversample margin.",
+        "Validate codec bitrate for that resolution.",
+        "Plan vertical/safe crops if needed."
+      ],
+      "prerequisites": [
+        "List master and cutdown delivery resolutions."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "rendering-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cam-aspect-ratio",
+        "cam-frame-rate",
+        "cam-camera-types",
+        "cam-camera-sensors"
+      ],
+      "definitions": [
+        "Camera resolution is the pixel count captured; professionals select it to protect delivery specs, allow reframing, and balance data rate with finishing needs."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "List master and cutdown delivery resolutions.",
+      "Choose capture resolution with intentional oversample margin.",
+      "Validate codec bitrate for that resolution.",
+      "Plan vertical/safe crops if needed."
+    ],
+    "bestPractices": [
+      "Capture at or above delivery resolution with headroom for reframing when useful.",
+      "Do not oversample blindly if storage, heat, or rolling shutter suffer.",
+      "Align resolution with intended crop for vertical cutdowns.",
+      "Confirm monitoring resolution matches critical focus needs."
+    ],
+    "decisionRules": [
+      "If vertical cutdowns are required, capture with crop margin or dual framing.",
+      "Always meet the highest contracted delivery resolution.",
+      "When heat or media limits threaten the day, reduce resolution before reducing story coverage.",
+      "Never deliver upscaled soft footage as a substitute for planned resolution."
+    ]
+  }
+}

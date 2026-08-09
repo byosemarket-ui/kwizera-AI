@@ -52,6 +52,7 @@ export class KnowledgeSourceValidator {
     "professional-animation-motion-rendering-knowledge",
     "professional-marketing-branding-psychology-knowledge",
     "professional-social-media-knowledge",
+    "professional-industry-standards-quality-knowledge",
   ]);
 
   constructor(

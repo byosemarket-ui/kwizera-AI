@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "intervalHours": 24,
+  "backupType": "scheduled",
+  "lastRun": "2026-08-08T15:30:09.070Z",
+  "nextRun": "2026-08-09T15:30:09.070Z"
+}

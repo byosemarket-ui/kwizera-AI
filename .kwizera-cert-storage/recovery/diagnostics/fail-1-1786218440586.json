@@ -1,0 +1,11 @@
+{
+  "failureId": "fail-1-1786218440586",
+  "failureType": "unexpected-shutdown",
+  "affectedComponent": "state-manager",
+  "rootCause": "Recovered from unclean shutdown; 0 workflow(s), 0 task(s) preserved",
+  "timestamp": "2026-08-08T19:47:20.586Z",
+  "severity": "high",
+  "diagnostics": {
+    "planId": "plan-6ee5e243"
+  }
+}

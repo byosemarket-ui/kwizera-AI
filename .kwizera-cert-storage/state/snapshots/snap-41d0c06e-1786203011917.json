@@ -1,0 +1,37 @@
+{
+  "snapshotId": "snap-41d0c06e-1786203011917",
+  "timestamp": "2026-08-08T15:30:11.917Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "offline",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:30:10.233Z"
+      },
+      "reasoning-engine": {
+        "id": "reasoning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:30:10.583Z"
+      },
+      "decision-engine": {
+        "id": "decision-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:30:11.611Z"
+      },
+      "planning-engine": {
+        "id": "planning-engine",
+        "state": "initializing",
+        "updatedAt": "2026-08-08T15:30:11.914Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

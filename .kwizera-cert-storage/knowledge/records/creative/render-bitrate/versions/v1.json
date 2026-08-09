@@ -1,0 +1,313 @@
+{
+  "knowledgeId": "render-bitrate",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-rendering",
+  "title": "Bitrate",
+  "description": "Data rate controlling how much information an encode retains per second.",
+  "summary": "Balance quality and bandwidth/storage constraints.",
+  "tags": [
+    "professional-rendering",
+    "professional",
+    "bitrate",
+    "Mbps",
+    "VBR",
+    "CBR",
+    "data rate"
+  ],
+  "keywords": [
+    "bitrate",
+    "Mbps",
+    "VBR",
+    "CBR",
+    "data rate"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "render-compression",
+    "render-video-codecs",
+    "render-render-quality",
+    "render-export-settings",
+    "amr-bridge-rendering-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:07.754Z",
+  "lastUpdated": "2026-08-08T15:37:07.754Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\render-bitrate",
+  "integrityStatus": "verified",
+  "contentHash": "d38b5bf053894819715045229cd3a2bf79f2c9ea4d7ac922f792ffb6e66ca827",
+  "searchableText": "bitrate data rate controlling how much information an encode retains per second. balance quality and bandwidth/storage constraints. professional-rendering professional-rendering professional bitrate mbps vbr cbr data rate bitrate mbps vbr cbr data rate",
+  "classification": {
+    "category": "professional-rendering",
+    "topic": "bitrate-data-rate",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "bitrate",
+    "kind": "professional-rendering",
+    "purpose": "Balance quality and bandwidth/storage constraints.",
+    "professionalDefinition": "Bitrate is the volume of data allocated per second of media, strongly influencing compression artifacts and file size.",
+    "workflow": [
+      "Check platform guide",
+      "Set bitrate",
+      "Sample encode",
+      "QC"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "render-bitrate",
+      "title": "Bitrate",
+      "domain": "rendering-knowledge",
+      "category": "professional-rendering",
+      "description": "Data rate controlling how much information an encode retains per second.",
+      "coreConcepts": [
+        "bitrate",
+        "Mbps",
+        "VBR",
+        "CBR",
+        "data rate"
+      ],
+      "definitions": [
+        "Bitrate is the volume of data allocated per second of media, strongly influencing compression artifacts and file size.",
+        "Balance quality and bandwidth/storage constraints."
+      ],
+      "rules": [
+        "Practice: VBR 2-pass when available",
+        "Practice: Higher bitrate for high motion/detail",
+        "Practice: Follow platform recommendations"
+      ],
+      "bestPractices": [
+        "VBR 2-pass when available",
+        "Higher bitrate for high motion/detail",
+        "Follow platform recommendations"
+      ],
+      "professionalTechniques": [
+        "Check platform guide",
+        "Set bitrate",
+        "Sample encode",
+        "QC"
+      ],
+      "workflow": [
+        "Check platform guide",
+        "Set bitrate",
+        "Sample encode",
+        "QC"
+      ],
+      "decisionRules": [
+        "Follow: VBR 2-pass when available",
+        "Follow: Higher bitrate for high motion/detail",
+        "Follow: Follow platform recommendations"
+      ],
+      "commonMistakes": [
+        "Too low on text-heavy motion graphics",
+        "Huge files with no quality gain"
+      ],
+      "troubleshooting": [
+        "Avoid: Too low on text-heavy motion graphics",
+        "Avoid: Huge files with no quality gain"
+      ],
+      "recommendations": [
+        "VBR 2-pass when available",
+        "Higher bitrate for high motion/detail",
+        "Follow platform recommendations"
+      ],
+      "examples": [
+        "1080p H.264 ~8–12 Mbps for crisp titles"
+      ],
+      "professionalStandards": [
+        "Bitrate is the volume of data allocated per second of media, strongly influencing compression artifacts and file size."
+      ],
+      "relatedTopics": [
+        "compression",
+        "video-codecs",
+        "render-quality",
+        "export-settings"
+      ],
+      "keywords": [
+        "bitrate",
+        "Mbps",
+        "VBR",
+        "CBR",
+        "data rate"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:bitrate",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Bitrate",
+      "category": "professional-rendering",
+      "domain": "rendering-knowledge",
+      "description": "Data rate controlling how much information an encode retains per second.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Bitrate is the volume of data allocated per second of media, strongly influencing compression artifacts and file size."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Balance quality and bandwidth/storage constraints."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Check platform guide",
+            "Set bitrate",
+            "Sample encode",
+            "QC"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "VBR 2-pass when available",
+            "Higher bitrate for high motion/detail",
+            "Follow platform recommendations"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "1080p H.264 ~8–12 Mbps for crisp titles"
+          ]
+        }
+      ],
+      "concepts": [
+        "bitrate",
+        "Mbps",
+        "VBR",
+        "CBR",
+        "data rate"
+      ],
+      "entities": [
+        "Bitrate",
+        "rendering-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "bitrate",
+        "Mbps",
+        "VBR",
+        "CBR",
+        "data rate"
+      ],
+      "rules": [
+        "Avoid: Too low on text-heavy motion graphics",
+        "Avoid: Huge files with no quality gain"
+      ],
+      "bestPractices": [
+        "VBR 2-pass when available",
+        "Higher bitrate for high motion/detail",
+        "Follow platform recommendations"
+      ],
+      "professionalTechniques": [
+        "Check platform guide",
+        "Set bitrate",
+        "Sample encode",
+        "QC"
+      ],
+      "examples": [
+        "1080p H.264 ~8–12 Mbps for crisp titles"
+      ],
+      "commonMistakes": [
+        "Too low on text-heavy motion graphics",
+        "Huge files with no quality gain"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: VBR 2-pass when available",
+        "Practice: Higher bitrate for high motion/detail",
+        "Practice: Follow platform recommendations"
+      ],
+      "workflowSteps": [
+        "Check platform guide",
+        "Set bitrate",
+        "Sample encode",
+        "QC"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "rendering-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "render-compression",
+        "render-video-codecs",
+        "render-render-quality",
+        "render-export-settings"
+      ],
+      "definitions": [
+        "Bitrate is the volume of data allocated per second of media, strongly influencing compression artifacts and file size.",
+        "Balance quality and bandwidth/storage constraints."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "rendering-knowledge",
+      "category": "professional-rendering",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "VBR 2-pass when available",
+      "Higher bitrate for high motion/detail",
+      "Follow platform recommendations"
+    ],
+    "bestPractices": [
+      "VBR 2-pass when available",
+      "Higher bitrate for high motion/detail",
+      "Follow platform recommendations"
+    ],
+    "decisionRules": [
+      "Practice: VBR 2-pass when available",
+      "Practice: Higher bitrate for high motion/detail",
+      "Practice: Follow platform recommendations"
+    ]
+  }
+}

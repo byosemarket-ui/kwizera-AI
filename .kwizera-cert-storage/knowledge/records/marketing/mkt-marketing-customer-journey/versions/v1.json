@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "mkt-marketing-customer-journey",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Customer Journey",
+  "description": "Marketing-stage journey mapping (distinct from narrative customer-journey in storytelling knowledge).",
+  "summary": "Recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "marketing-customer-journey",
+    "customer journey",
+    "touchpoints",
+    "journey map",
+    "marketing journey"
+  ],
+  "keywords": [
+    "customer journey",
+    "touchpoints",
+    "journey map",
+    "marketing journey"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-marketing-funnel",
+    "cust-customer-behavior",
+    "cust-decision-making",
+    "cust-customer-retention",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:17.286Z",
+  "lastUpdated": "2026-08-08T18:25:17.286Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-marketing-customer-journey",
+  "integrityStatus": "verified",
+  "contentHash": "b8b6b37d1b4f7512d2159d77383c67b8a180873b77eac70fb6d15cfdd7fc83b4",
+  "searchableText": "customer journey marketing-stage journey mapping (distinct from narrative customer-journey in storytelling knowledge). recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge. professional-marketing professional-marketing professional marketing-customer-journey customer journey touchpoints journey map marketing journey customer journey touchpoints journey map marketing journey",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "customer-journey-marketing-stage",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "marketing-customer-journey",
+    "kind": "professional-marketing",
+    "purpose": "Recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge.",
+    "professionalDefinition": "Marketing customer journey maps touchpoints and decisions from first attention to retention, guiding message sequence and channel choice.",
+    "workflow": [
+      "Research journey",
+      "Find drop-offs",
+      "Brief creative for gaps",
+      "Measure stage conversion"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-marketing-customer-journey",
+      "title": "Customer Journey",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Marketing-stage journey mapping (distinct from narrative customer-journey in storytelling knowledge).",
+      "coreConcepts": [
+        "customer journey",
+        "touchpoints",
+        "journey map",
+        "marketing journey"
+      ],
+      "definitions": [
+        "Marketing customer journey maps touchpoints and decisions from first attention to retention, guiding message sequence and channel choice.",
+        "Recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge."
+      ],
+      "rules": [
+        "Practice: Map jobs-to-be-done per stage",
+        "Practice: Remove friction points",
+        "Practice: Use video where attention is highest"
+      ],
+      "bestPractices": [
+        "Map jobs-to-be-done per stage",
+        "Remove friction points",
+        "Use video where attention is highest"
+      ],
+      "professionalTechniques": [
+        "Research journey",
+        "Find drop-offs",
+        "Brief creative for gaps",
+        "Measure stage conversion"
+      ],
+      "workflow": [
+        "Research journey",
+        "Find drop-offs",
+        "Brief creative for gaps",
+        "Measure stage conversion"
+      ],
+      "decisionRules": [
+        "Follow: Map jobs-to-be-done per stage",
+        "Follow: Remove friction points",
+        "Follow: Use video where attention is highest"
+      ],
+      "commonMistakes": [
+        "Assuming linear journeys",
+        "Ignoring post-purchase"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming linear journeys",
+        "Avoid: Ignoring post-purchase"
+      ],
+      "recommendations": [
+        "Map jobs-to-be-done per stage",
+        "Remove friction points",
+        "Use video where attention is highest"
+      ],
+      "examples": [
+        "Retarget cart abandoners with objection-handling demo"
+      ],
+      "professionalStandards": [
+        "Marketing customer journey maps touchpoints and decisions from first attention to retention, guiding message sequence and channel choice."
+      ],
+      "relatedTopics": [
+        "marketing-funnel",
+        "customer-behavior",
+        "decision-making",
+        "customer-retention"
+      ],
+      "keywords": [
+        "customer journey",
+        "touchpoints",
+        "journey map",
+        "marketing journey"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:marketing-customer-journey",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Customer Journey",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Marketing-stage journey mapping (distinct from narrative customer-journey in storytelling knowledge).",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Marketing customer journey maps touchpoints and decisions from first attention to retention, guiding message sequence and channel choice."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Research journey",
+            "Find drop-offs",
+            "Brief creative for gaps",
+            "Measure stage conversion"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Map jobs-to-be-done per stage",
+            "Remove friction points",
+            "Use video where attention is highest"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Retarget cart abandoners with objection-handling demo"
+          ]
+        }
+      ],
+      "concepts": [
+        "customer journey",
+        "touchpoints",
+        "journey map",
+        "marketing journey"
+      ],
+      "entities": [
+        "Customer Journey",
+        "marketing-knowledge",
+        "customer-psychology",
+        "social-media-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "customer journey",
+        "touchpoints",
+        "journey map",
+        "marketing journey"
+      ],
+      "rules": [
+        "Avoid: Assuming linear journeys",
+        "Avoid: Ignoring post-purchase"
+      ],
+      "bestPractices": [
+        "Map jobs-to-be-done per stage",
+        "Remove friction points",
+        "Use video where attention is highest"
+      ],
+      "professionalTechniques": [
+        "Research journey",
+        "Find drop-offs",
+        "Brief creative for gaps",
+        "Measure stage conversion"
+      ],
+      "examples": [
+        "Retarget cart abandoners with objection-handling demo"
+      ],
+      "commonMistakes": [
+        "Assuming linear journeys",
+        "Ignoring post-purchase"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Map jobs-to-be-done per stage",
+        "Practice: Remove friction points",
+        "Practice: Use video where attention is highest"
+      ],
+      "workflowSteps": [
+        "Research journey",
+        "Find drop-offs",
+        "Brief creative for gaps",
+        "Measure stage conversion"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "customer-psychology",
+        "social-media-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "mkt-marketing-funnel",
+        "cust-customer-behavior",
+        "cust-decision-making",
+        "cust-customer-retention"
+      ],
+      "definitions": [
+        "Marketing customer journey maps touchpoints and decisions from first attention to retention, guiding message sequence and channel choice.",
+        "Recommend journey-aware campaigns without duplicating storytelling narrative journey knowledge."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Map jobs-to-be-done per stage",
+      "Remove friction points",
+      "Use video where attention is highest"
+    ],
+    "bestPractices": [
+      "Map jobs-to-be-done per stage",
+      "Remove friction points",
+      "Use video where attention is highest"
+    ],
+    "decisionRules": [
+      "Practice: Map jobs-to-be-done per stage",
+      "Practice: Remove friction points",
+      "Practice: Use video where attention is highest"
+    ]
+  }
+}

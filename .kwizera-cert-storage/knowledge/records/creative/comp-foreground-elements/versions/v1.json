@@ -1,0 +1,334 @@
+{
+  "knowledgeId": "comp-foreground-elements",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Foreground Elements",
+  "description": "Objects placed closer to camera to add depth, context, or selective reveal.",
+  "summary": "Layer the frame and create parallax or discovery without losing the subject.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "foreground-elements",
+    "foreground",
+    "FG elements",
+    "layers",
+    "parallax layers"
+  ],
+  "keywords": [
+    "foreground",
+    "FG elements",
+    "layers",
+    "parallax layers"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-depth",
+    "comp-framing",
+    "comp-leading-lines",
+    "comp-background-selection",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:32.794Z",
+  "lastUpdated": "2026-08-08T15:32:32.794Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-foreground-elements",
+  "integrityStatus": "verified",
+  "contentHash": "49e0cf947a6445fd44889d07e7b1c823ac2a3a1cdeb569fdc2a89a640ee8a254",
+  "searchableText": "foreground elements objects placed closer to camera to add depth, context, or selective reveal. layer the frame and create parallax or discovery without losing the subject. professional-composition professional-composition professional foreground-elements foreground fg elements layers parallax layers foreground fg elements layers parallax layers",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "foreground-elements-objects",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "foreground-elements",
+    "kind": "professional-composition",
+    "purpose": "Layer the frame and create parallax or discovery without losing the subject.",
+    "whenToUse": [
+      "Cinematic depth",
+      "Product among ingredients",
+      "Environmental immersion"
+    ],
+    "whenNotToUse": [
+      "When FG blocks logo/face critical reads"
+    ],
+    "advantages": [
+      "Depth quickly",
+      "Premium production cue"
+    ],
+    "limitations": [
+      "Distraction risk",
+      "Focus complexity"
+    ],
+    "relatedCameraTechniques": [
+      "shallow DOF",
+      "push-ins with parallax",
+      "focus pulls"
+    ],
+    "relatedStorytellingTechniques": [
+      "immersion",
+      "discovery",
+      "appetite cues"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-foreground-elements",
+      "title": "Foreground Elements",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Objects placed closer to camera to add depth, context, or selective reveal.",
+      "coreConcepts": [
+        "foreground",
+        "FG elements",
+        "layers",
+        "parallax layers"
+      ],
+      "definitions": [
+        "Layer the frame and create parallax or discovery without losing the subject."
+      ],
+      "rules": [
+        "Use when: Cinematic depth",
+        "Use when: Product among ingredients",
+        "Use when: Environmental immersion",
+        "Do not use when: When FG blocks logo/face critical reads"
+      ],
+      "bestPractices": [
+        "Keep FG softer or darker",
+        "Use sparse recognizable shapes",
+        "Motivate FG story-wise"
+      ],
+      "professionalTechniques": [
+        "Depth quickly",
+        "Premium production cue"
+      ],
+      "workflow": [
+        "Choose Foreground Elements",
+        "Keep FG softer or darker",
+        "Use sparse recognizable shapes",
+        "Motivate FG story-wise"
+      ],
+      "decisionRules": [
+        "Use when: Cinematic depth",
+        "Use when: Product among ingredients",
+        "Use when: Environmental immersion",
+        "Avoid when: When FG blocks logo/face critical reads"
+      ],
+      "commonMistakes": [
+        "Busy FG junk",
+        "Accidental focus on FG"
+      ],
+      "troubleshooting": [
+        "Limitation: Distraction risk",
+        "Limitation: Focus complexity"
+      ],
+      "recommendations": [
+        "Keep FG softer or darker",
+        "Use sparse recognizable shapes",
+        "Motivate FG story-wise"
+      ],
+      "examples": [
+        "Out-of-focus glassware FG with sharp cocktail hero"
+      ],
+      "professionalStandards": [
+        "immersion",
+        "discovery",
+        "appetite cues"
+      ],
+      "relatedTopics": [
+        "depth",
+        "framing",
+        "leading-lines",
+        "background-selection"
+      ],
+      "keywords": [
+        "foreground",
+        "FG elements",
+        "layers",
+        "parallax layers"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:foreground-elements",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Foreground Elements",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Objects placed closer to camera to add depth, context, or selective reveal.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Layer the frame and create parallax or discovery without losing the subject."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Cinematic depth",
+            "Product among ingredients",
+            "Environmental immersion"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When FG blocks logo/face critical reads"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Keep FG softer or darker",
+            "Use sparse recognizable shapes",
+            "Motivate FG story-wise"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Out-of-focus glassware FG with sharp cocktail hero"
+          ]
+        }
+      ],
+      "concepts": [
+        "foreground",
+        "FG elements",
+        "layers",
+        "parallax layers"
+      ],
+      "entities": [
+        "Foreground Elements",
+        "composition-knowledge",
+        "camera-knowledge",
+        "product-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "foreground",
+        "FG elements",
+        "layers",
+        "parallax layers"
+      ],
+      "rules": [
+        "Avoid when: When FG blocks logo/face critical reads"
+      ],
+      "bestPractices": [
+        "Keep FG softer or darker",
+        "Use sparse recognizable shapes",
+        "Motivate FG story-wise"
+      ],
+      "professionalTechniques": [
+        "Depth quickly",
+        "Premium production cue"
+      ],
+      "examples": [
+        "Out-of-focus glassware FG with sharp cocktail hero"
+      ],
+      "commonMistakes": [
+        "Busy FG junk",
+        "Accidental focus on FG"
+      ],
+      "qualityRules": [
+        "Distraction risk",
+        "Focus complexity"
+      ],
+      "decisionRules": [
+        "Use when: Cinematic depth",
+        "Use when: Product among ingredients",
+        "Use when: Environmental immersion",
+        "Do not use when: When FG blocks logo/face critical reads"
+      ],
+      "workflowSteps": [
+        "Keep FG softer or darker",
+        "Use sparse recognizable shapes",
+        "Motivate FG story-wise"
+      ],
+      "prerequisites": [
+        "shallow DOF",
+        "push-ins with parallax",
+        "focus pulls"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "camera-knowledge",
+        "product-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-depth",
+        "comp-framing",
+        "comp-leading-lines",
+        "comp-background-selection"
+      ],
+      "definitions": [
+        "Layer the frame and create parallax or discovery without losing the subject."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Keep FG softer or darker",
+      "Use sparse recognizable shapes",
+      "Motivate FG story-wise"
+    ],
+    "bestPractices": [
+      "Keep FG softer or darker",
+      "Use sparse recognizable shapes",
+      "Motivate FG story-wise"
+    ],
+    "decisionRules": [
+      "Use when: Cinematic depth",
+      "Use when: Product among ingredients",
+      "Use when: Environmental immersion",
+      "Do not use when: When FG blocks logo/face critical reads"
+    ]
+  }
+}

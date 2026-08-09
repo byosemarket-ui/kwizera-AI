@@ -16,6 +16,24 @@ import { ProductIntelligenceManager } from "../../ai/product-intelligence/produc
 import { createProductIntelligencePlugin } from "../../ai/product-intelligence/product-intelligence-plugin.js";
 import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-intelligence-manager.js";
 import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
+import { ProductAssetPreparationManager } from "../../ai/product-asset-preparation/product-asset-preparation-manager.js";
+import { createProductAssetPreparationPlugin } from "../../ai/product-asset-preparation/product-asset-preparation-plugin.js";
+import { ProductScenePlanningManager } from "../../ai/product-scene-planning/product-scene-planning-manager.js";
+import { createProductScenePlanningPlugin } from "../../ai/product-scene-planning/product-scene-planning-plugin.js";
+import { ProductStoryboardManager } from "../../ai/product-storyboard/product-storyboard-manager.js";
+import { createProductStoryboardPlugin } from "../../ai/product-storyboard/product-storyboard-plugin.js";
+import { ProductPromptOrchestrationManager } from "../../ai/product-prompt-orchestration/product-prompt-orchestration-manager.js";
+import { createProductPromptOrchestrationPlugin } from "../../ai/product-prompt-orchestration/product-prompt-orchestration-plugin.js";
+import { ProductImageGenerationManager } from "../../ai/product-image-generation/product-image-generation-manager.js";
+import { createProductImageGenerationPlugin } from "../../ai/product-image-generation/product-image-generation-plugin.js";
+import { ProductVideoGenerationManager } from "../../ai/product-video-generation/product-video-generation-manager.js";
+import { createProductVideoGenerationPlugin } from "../../ai/product-video-generation/product-video-generation-plugin.js";
+import { ProductAudioGenerationManager } from "../../ai/product-audio-generation/product-audio-generation-manager.js";
+import { createProductAudioGenerationPlugin } from "../../ai/product-audio-generation/product-audio-generation-plugin.js";
+import { ProductRenderingExportManager } from "../../ai/product-rendering-export/product-rendering-export-manager.js";
+import { createProductRenderingExportPlugin } from "../../ai/product-rendering-export/product-rendering-export-plugin.js";
+import { CreativeGenerationCertificationManager } from "../../ai/creative-generation-certification/creative-generation-certification-manager.js";
+import { createCreativeGenerationCertificationPlugin } from "../../ai/creative-generation-certification/creative-generation-certification-plugin.js";
 import { ProductPhotographyManager } from "../../ai/product-photography/product-photography-manager.js";
 import { MarketingIntelligenceManager } from "../../ai/marketing-intelligence/marketing-intelligence-manager.js";
 import { createMarketingIntelligencePlugin } from "../../ai/marketing-intelligence/marketing-intelligence-plugin.js";
@@ -66,6 +84,15 @@ let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
 let productIntelligenceManager: ProductIntelligenceManager | null = null;
 let imageIntelligenceManager: ImageIntelligenceManager | null = null;
+let productAssetPreparationManager: ProductAssetPreparationManager | null = null;
+let productScenePlanningManager: ProductScenePlanningManager | null = null;
+let productStoryboardManager: ProductStoryboardManager | null = null;
+let productPromptOrchestrationManager: ProductPromptOrchestrationManager | null = null;
+let productImageGenerationManager: ProductImageGenerationManager | null = null;
+let productVideoGenerationManager: ProductVideoGenerationManager | null = null;
+let productAudioGenerationManager: ProductAudioGenerationManager | null = null;
+let productRenderingExportManager: ProductRenderingExportManager | null = null;
+let creativeGenerationCertificationManager: CreativeGenerationCertificationManager | null = null;
 let productPhotographyManager: ProductPhotographyManager | null = null;
 let marketingIntelligenceManager: MarketingIntelligenceManager | null = null;
 let marketingContentManager: MarketingContentManager | null = null;
@@ -203,6 +230,42 @@ export function getProductIntelligenceManager(): ProductIntelligenceManager | nu
 
 export function getImageIntelligenceManager(): ImageIntelligenceManager | null {
   return imageIntelligenceManager;
+}
+
+export function getProductAssetPreparationManager(): ProductAssetPreparationManager | null {
+  return productAssetPreparationManager;
+}
+
+export function getProductScenePlanningManager(): ProductScenePlanningManager | null {
+  return productScenePlanningManager;
+}
+
+export function getProductStoryboardManager(): ProductStoryboardManager | null {
+  return productStoryboardManager;
+}
+
+export function getProductPromptOrchestrationManager(): ProductPromptOrchestrationManager | null {
+  return productPromptOrchestrationManager;
+}
+
+export function getProductImageGenerationManager(): ProductImageGenerationManager | null {
+  return productImageGenerationManager;
+}
+
+export function getProductVideoGenerationManager(): ProductVideoGenerationManager | null {
+  return productVideoGenerationManager;
+}
+
+export function getProductAudioGenerationManager(): ProductAudioGenerationManager | null {
+  return productAudioGenerationManager;
+}
+
+export function getProductRenderingExportManager(): ProductRenderingExportManager | null {
+  return productRenderingExportManager;
+}
+
+export function getCreativeGenerationCertificationManager(): CreativeGenerationCertificationManager | null {
+  return creativeGenerationCertificationManager;
 }
 
 export function getProductPhotographyManager(): ProductPhotographyManager | null {
@@ -393,6 +456,217 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await productIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createProductIntelligencePlugin(productIntelligenceManager, manager));
       productIntelligenceManager.attachImageIntelligence(imageIntelligenceManager);
+      manager.conversationEngine?.setProductIntelligenceProvider({
+        isInitialized: () => productIntelligenceManager!.isInitialized(),
+        analyzeProductIntelligence: (projectId) => productIntelligenceManager!.analyzeProductIntelligence(projectId),
+        explainProduct: (projectId) => productIntelligenceManager!.explainProduct(projectId),
+        getAiMeProductIntelligenceAwareness: () => productIntelligenceManager!.getAiMeProductIntelligenceAwareness(),
+      });
+      productAssetPreparationManager = new ProductAssetPreparationManager();
+      await productAssetPreparationManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        images: imageIntelligenceManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductAssetPreparationPlugin(productAssetPreparationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductAssetPreparationProvider({
+        isInitialized: () => productAssetPreparationManager!.isInitialized(),
+        prepareProductAssets: (projectId) => productAssetPreparationManager!.prepareProductAssets(projectId),
+        explainAssetQuality: (projectId) => productAssetPreparationManager!.explainAssetQuality(projectId),
+        detectMissingAngles: (projectId) => productAssetPreparationManager!.detectMissingAngles(projectId),
+        recommendAdditionalPhotos: (projectId) => productAssetPreparationManager!.recommendAdditionalPhotos(projectId),
+        getAiMeProductAssetAwareness: () => productAssetPreparationManager!.getAiMeProductAssetAwareness(),
+      });
+      pipelineManager.attachProductAssetPreparation(productAssetPreparationManager);
+      productScenePlanningManager = new ProductScenePlanningManager();
+      await productScenePlanningManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductScenePlanningPlugin(productScenePlanningManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductScenePlanningProvider({
+        isInitialized: () => productScenePlanningManager!.isInitialized(),
+        planProductScenes: (projectId) => productScenePlanningManager!.planProductScenes(projectId),
+        explainScenes: (projectId) => productScenePlanningManager!.explainScenes(projectId),
+        recommendSceneOrder: (projectId) => productScenePlanningManager!.recommendSceneOrder(projectId),
+        detectMissingScenes: (projectId) => productScenePlanningManager!.detectMissingScenes(projectId),
+        detectWeakMarketingFlow: (projectId) => productScenePlanningManager!.detectWeakMarketingFlow(projectId),
+        getAiMeProductScenePlanningAwareness: () => productScenePlanningManager!.getAiMeProductScenePlanningAwareness(),
+      });
+      pipelineManager.attachProductScenePlanning(productScenePlanningManager);
+      productStoryboardManager = new ProductStoryboardManager();
+      await productStoryboardManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductStoryboardPlugin(productStoryboardManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductStoryboardProvider({
+        isInitialized: () => productStoryboardManager!.isInitialized(),
+        generateStoryboardAndScript: (projectId) => productStoryboardManager!.generateStoryboardAndScript(projectId),
+        explainStoryboard: (projectId) => productStoryboardManager!.explainStoryboard(projectId),
+        recommendImprovements: (projectId) => productStoryboardManager!.recommendImprovements(projectId),
+        detectMissingScenes: (projectId) => productStoryboardManager!.detectMissingScenes(projectId),
+        detectWeakMarketingFlow: (projectId) => productStoryboardManager!.detectWeakMarketingFlow(projectId),
+        getAiMeProductStoryboardAwareness: () => productStoryboardManager!.getAiMeProductStoryboardAwareness(),
+      });
+      pipelineManager.attachProductStoryboard(productStoryboardManager);
+      productPromptOrchestrationManager = new ProductPromptOrchestrationManager();
+      await productPromptOrchestrationManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+        storyboards: productStoryboardManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductPromptOrchestrationPlugin(productPromptOrchestrationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductPromptOrchestrationProvider({
+        isInitialized: () => productPromptOrchestrationManager!.isInitialized(),
+        orchestratePromptsAndModels: (projectId) => productPromptOrchestrationManager!.orchestratePromptsAndModels(projectId),
+        explainOrchestration: (projectId) => productPromptOrchestrationManager!.explainOrchestration(projectId),
+        recommendPromptImprovements: (projectId) => productPromptOrchestrationManager!.recommendPromptImprovements(projectId),
+        detectPromptConflicts: (projectId) => productPromptOrchestrationManager!.detectPromptConflicts(projectId),
+        detectOrchestrationFailures: (projectId) => productPromptOrchestrationManager!.detectOrchestrationFailures(projectId),
+        getAiMeProductPromptOrchestrationAwareness: () => productPromptOrchestrationManager!.getAiMeProductPromptOrchestrationAwareness(),
+      });
+      pipelineManager.attachProductPromptOrchestration(productPromptOrchestrationManager);
+      productImageGenerationManager = new ProductImageGenerationManager();
+      await productImageGenerationManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+        storyboards: productStoryboardManager,
+        orchestration: productPromptOrchestrationManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductImageGenerationPlugin(productImageGenerationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductImageGenerationProvider({
+        isInitialized: () => productImageGenerationManager!.isInitialized(),
+        generateProductSceneImages: (projectId) => productImageGenerationManager!.generateProductSceneImages(projectId),
+        explainGeneration: (projectId) => productImageGenerationManager!.explainGeneration(projectId),
+        recommendImageImprovements: (projectId) => productImageGenerationManager!.recommendImageImprovements(projectId),
+        getAiMeProductImageGenerationAwareness: () => productImageGenerationManager!.getAiMeProductImageGenerationAwareness(),
+      });
+      pipelineManager.attachProductImageGeneration(productImageGenerationManager);
+      productVideoGenerationManager = new ProductVideoGenerationManager();
+      await productVideoGenerationManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+        storyboards: productStoryboardManager,
+        orchestration: productPromptOrchestrationManager,
+        images: productImageGenerationManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductVideoGenerationPlugin(productVideoGenerationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductVideoGenerationProvider({
+        isInitialized: () => productVideoGenerationManager!.isInitialized(),
+        generateProductSceneVideos: (projectId) => productVideoGenerationManager!.generateProductSceneVideos(projectId),
+        explainGeneration: (projectId) => productVideoGenerationManager!.explainGeneration(projectId),
+        recommendImprovements: (projectId) => productVideoGenerationManager!.recommendImprovements(projectId),
+        getAiMeProductVideoGenerationAwareness: () => productVideoGenerationManager!.getAiMeProductVideoGenerationAwareness(),
+      });
+      pipelineManager.attachProductVideoGeneration(productVideoGenerationManager);
+      productAudioGenerationManager = new ProductAudioGenerationManager();
+      await productAudioGenerationManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+        storyboards: productStoryboardManager,
+        orchestration: productPromptOrchestrationManager,
+        videos: productVideoGenerationManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductAudioGenerationPlugin(productAudioGenerationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductAudioGenerationProvider({
+        isInitialized: () => productAudioGenerationManager!.isInitialized(),
+        generateProductAudio: (projectId) => productAudioGenerationManager!.generateProductAudio(projectId),
+        explainGeneration: (projectId) => productAudioGenerationManager!.explainGeneration(projectId),
+        recommendBetterAudio: (projectId) => productAudioGenerationManager!.recommendBetterAudio(projectId),
+        detectAudioQualityProblems: (projectId) => productAudioGenerationManager!.detectAudioQualityProblems(projectId),
+        getAiMeProductAudioGenerationAwareness: () => productAudioGenerationManager!.getAiMeProductAudioGenerationAwareness(),
+      });
+      pipelineManager.attachProductAudioGeneration(productAudioGenerationManager);
+      productRenderingExportManager = new ProductRenderingExportManager();
+      await productRenderingExportManager.initialize(storageRoot, {
+        core: manager,
+        workspace: workspaceManager,
+        products: productIntelligenceManager,
+        assets: productAssetPreparationManager,
+        scenes: productScenePlanningManager,
+        storyboards: productStoryboardManager,
+        orchestration: productPromptOrchestrationManager,
+        videos: productVideoGenerationManager,
+        audio: productAudioGenerationManager,
+      });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createProductRenderingExportPlugin(productRenderingExportManager, manager),
+        );
+      }
+      manager.conversationEngine?.setProductRenderingExportProvider({
+        isInitialized: () => productRenderingExportManager!.isInitialized(),
+        renderAndPackage: (projectId) => productRenderingExportManager!.renderAndPackage(projectId),
+        explainRender: (projectId) => productRenderingExportManager!.explainRender(projectId),
+        recommendExportSettings: (projectId) => productRenderingExportManager!.recommendExportSettings(projectId),
+        detectRenderingProblems: (projectId) => productRenderingExportManager!.detectRenderingProblems(projectId),
+        comparePresets: (projectId) => productRenderingExportManager!.comparePresets(projectId),
+        rerender: (projectId) => productRenderingExportManager!.rerender(projectId),
+        getAiMeProductRenderingExportAwareness: () => productRenderingExportManager!.getAiMeProductRenderingExportAwareness(),
+      });
+      pipelineManager.attachProductRenderingExport(productRenderingExportManager);
+      creativeGenerationCertificationManager = new CreativeGenerationCertificationManager();
+      await creativeGenerationCertificationManager.initialize(storageRoot, { core: manager });
+      if (manager.moduleManager) {
+        await manager.moduleManager.registerAndInitialize(
+          createCreativeGenerationCertificationPlugin(creativeGenerationCertificationManager, manager),
+        );
+      }
+      manager.conversationEngine?.setCreativeGenerationCertificationProvider({
+        isInitialized: () => creativeGenerationCertificationManager!.isInitialized(),
+        certify: (options) => creativeGenerationCertificationManager!.certify(options),
+        explainCertification: () => creativeGenerationCertificationManager!.explainCertification(),
+        getLatest: () => creativeGenerationCertificationManager!.getLatest(),
+        getAiMeCreativeGenerationCertificationAwareness: () =>
+          creativeGenerationCertificationManager!.getAiMeCreativeGenerationCertificationAwareness(),
+      });
       productPhotographyManager = new ProductPhotographyManager(workspaceManager, imageGenerationManager, productIntelligenceManager, imageIntelligenceManager, reviewManager);
       await productPhotographyManager.initialize(storageRoot);
         marketingIntelligenceManager = new MarketingIntelligenceManager();

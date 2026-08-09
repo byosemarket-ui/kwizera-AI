@@ -1,0 +1,2320 @@
+{
+  "packId": "13beb941-46fd-4e61-b734-b418ff7c3c47",
+  "packSlug": "motion",
+  "domain": "motion-graphics-knowledge",
+  "title": "Professional Motion Graphics & Transitions Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "motion-motion-design",
+      "title": "Motion Design",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "The discipline of designing animated visual communication for brands and interfaces.",
+      "coreConcepts": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "definitions": [
+        "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform.",
+        "Unify style, timing, and hierarchy into a coherent motion language."
+      ],
+      "rules": [
+        "Practice: Design stills that animate well",
+        "Practice: Build a motion system",
+        "Practice: Prototype on device"
+      ],
+      "bestPractices": [
+        "Design stills that animate well",
+        "Build a motion system",
+        "Prototype on device"
+      ],
+      "professionalTechniques": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "workflow": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "decisionRules": [
+        "Follow: Design stills that animate well",
+        "Follow: Build a motion system",
+        "Follow: Prototype on device"
+      ],
+      "commonMistakes": [
+        "Decorating instead of communicating",
+        "Inconsistent easing across a brand"
+      ],
+      "troubleshooting": [
+        "Avoid: Decorating instead of communicating",
+        "Avoid: Inconsistent easing across a brand"
+      ],
+      "recommendations": [
+        "Design stills that animate well",
+        "Build a motion system",
+        "Prototype on device"
+      ],
+      "examples": [
+        "Brand open + lower-third system for a campaign"
+      ],
+      "professionalStandards": [
+        "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform."
+      ],
+      "relatedTopics": [
+        "motion-graphics-fundamentals",
+        "motion-style",
+        "motion-hierarchy",
+        "text-animation"
+      ],
+      "keywords": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-design",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-motion-graphics-fundamentals",
+      "title": "Motion Graphics Fundamentals",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Building blocks of kinetic graphics: layout, type, shape, and timed reveals.",
+      "coreConcepts": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "definitions": [
+        "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics.",
+        "Teach readable animated graphics for ads, explainers, and social."
+      ],
+      "rules": [
+        "Practice: Type legibility first",
+        "Practice: Limit simultaneous moves",
+        "Practice: Safe margins for platforms"
+      ],
+      "bestPractices": [
+        "Type legibility first",
+        "Limit simultaneous moves",
+        "Safe margins for platforms"
+      ],
+      "professionalTechniques": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "workflow": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "decisionRules": [
+        "Follow: Type legibility first",
+        "Follow: Limit simultaneous moves",
+        "Follow: Safe margins for platforms"
+      ],
+      "commonMistakes": [
+        "Tiny type in motion",
+        "Edge-clipped graphics"
+      ],
+      "troubleshooting": [
+        "Avoid: Tiny type in motion",
+        "Avoid: Edge-clipped graphics"
+      ],
+      "recommendations": [
+        "Type legibility first",
+        "Limit simultaneous moves",
+        "Safe margins for platforms"
+      ],
+      "examples": [
+        "Kinetic list of three benefits with staggered fades"
+      ],
+      "professionalStandards": [
+        "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics."
+      ],
+      "relatedTopics": [
+        "text-animation",
+        "motion-timing",
+        "motion-hierarchy",
+        "staging"
+      ],
+      "keywords": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-graphics-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-text-animation",
+      "title": "Text Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Animating typography for emphasis, rhythm, and readability.",
+      "coreConcepts": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "definitions": [
+        "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy.",
+        "Make messages scannable and memorable on mute-heavy platforms."
+      ],
+      "rules": [
+        "Practice: Readable duration",
+        "Practice: Respect line length",
+        "Practice: Match brand type motion rules"
+      ],
+      "bestPractices": [
+        "Readable duration",
+        "Respect line length",
+        "Match brand type motion rules"
+      ],
+      "professionalTechniques": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "workflow": [
+        "Write short lines",
+        "Set reading time",
+        "Animate in hierarchy",
+        "Hold"
+      ],
+      "decisionRules": [
+        "Follow: Readable duration",
+        "Follow: Respect line length",
+        "Follow: Match brand type motion rules"
+      ],
+      "commonMistakes": [
+        "Word salad chaos",
+        "Animating faster than reading speed"
+      ],
+      "troubleshooting": [
+        "Avoid: Word salad chaos",
+        "Avoid: Animating faster than reading speed"
+      ],
+      "recommendations": [
+        "Readable duration",
+        "Respect line length",
+        "Match brand type motion rules"
+      ],
+      "examples": [
+        "Word-by-word punch for hook; elegant fade for luxury copy"
+      ],
+      "professionalStandards": [
+        "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy."
+      ],
+      "relatedTopics": [
+        "motion-rhythm",
+        "motion-hierarchy",
+        "motion-timing",
+        "logo-animation"
+      ],
+      "keywords": [
+        "text animation",
+        "kinetic type",
+        "typography motion",
+        "titles"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:text-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-logo-animation",
+      "title": "Logo Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Bringing brand marks to life with controlled, on-brand motion.",
+      "coreConcepts": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "definitions": [
+        "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity.",
+        "Create recognizable brand punctuation at open/close."
+      ],
+      "rules": [
+        "Practice: Protect logo geometry",
+        "Practice: End on approved lockup",
+        "Practice: Keep under a few seconds for social"
+      ],
+      "bestPractices": [
+        "Protect logo geometry",
+        "End on approved lockup",
+        "Keep under a few seconds for social"
+      ],
+      "professionalTechniques": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "workflow": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "decisionRules": [
+        "Follow: Protect logo geometry",
+        "Follow: End on approved lockup",
+        "Follow: Keep under a few seconds for social"
+      ],
+      "commonMistakes": [
+        "Warping trademark shapes",
+        "Overlong intros"
+      ],
+      "troubleshooting": [
+        "Avoid: Warping trademark shapes",
+        "Avoid: Overlong intros"
+      ],
+      "recommendations": [
+        "Protect logo geometry",
+        "End on approved lockup",
+        "Keep under a few seconds for social"
+      ],
+      "examples": [
+        "Stroke draw + settle; 3D light pass then flat lockup"
+      ],
+      "professionalStandards": [
+        "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity."
+      ],
+      "relatedTopics": [
+        "anticipation",
+        "appeal",
+        "motion-style",
+        "export-settings"
+      ],
+      "keywords": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:logo-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-icon-animation",
+      "title": "Icon Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Micro-motion for icons that clarifies state and delight without noise.",
+      "coreConcepts": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "definitions": [
+        "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights.",
+        "Improve UI clarity and feature explainers."
+      ],
+      "rules": [
+        "Practice: Keep loops subtle",
+        "Practice: Prefer morphs over spins",
+        "Practice: Match UI motion tokens"
+      ],
+      "bestPractices": [
+        "Keep loops subtle",
+        "Prefer morphs over spins",
+        "Match UI motion tokens"
+      ],
+      "professionalTechniques": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "workflow": [
+        "Define state",
+        "Animate change",
+        "Ease",
+        "Export Lottie/video as needed"
+      ],
+      "decisionRules": [
+        "Follow: Keep loops subtle",
+        "Follow: Prefer morphs over spins",
+        "Follow: Match UI motion tokens"
+      ],
+      "commonMistakes": [
+        "Hypnotic loops",
+        "Inconsistent stroke timing"
+      ],
+      "troubleshooting": [
+        "Avoid: Hypnotic loops",
+        "Avoid: Inconsistent stroke timing"
+      ],
+      "recommendations": [
+        "Keep loops subtle",
+        "Prefer morphs over spins",
+        "Match UI motion tokens"
+      ],
+      "examples": [
+        "Checkmark draw-on; cart icon bounce on add"
+      ],
+      "professionalStandards": [
+        "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights."
+      ],
+      "relatedTopics": [
+        "ui-motion",
+        "spacing",
+        "motion-timing",
+        "product-animation"
+      ],
+      "keywords": [
+        "icon animation",
+        "microinteraction",
+        "icon motion"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:icon-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-ui-motion",
+      "title": "UI Motion",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Interface transitions and feedback motion for products and product videos.",
+      "coreConcepts": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "definitions": [
+        "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy.",
+        "Make digital products feel coherent and trustworthy."
+      ],
+      "rules": [
+        "Practice: Shared durations/easings",
+        "Practice: Motion follows user action",
+        "Practice: Reduce motion accessibility options"
+      ],
+      "bestPractices": [
+        "Shared durations/easings",
+        "Motion follows user action",
+        "Reduce motion accessibility options"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "workflow": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "decisionRules": [
+        "Follow: Shared durations/easings",
+        "Follow: Motion follows user action",
+        "Follow: Reduce motion accessibility options"
+      ],
+      "commonMistakes": [
+        "Parallax overload",
+        "Blocking interactions with long animation"
+      ],
+      "troubleshooting": [
+        "Avoid: Parallax overload",
+        "Avoid: Blocking interactions with long animation"
+      ],
+      "recommendations": [
+        "Shared durations/easings",
+        "Motion follows user action",
+        "Reduce motion accessibility options"
+      ],
+      "examples": [
+        "Sheet slides up 280ms ease-out; success toast fades"
+      ],
+      "professionalStandards": [
+        "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy."
+      ],
+      "relatedTopics": [
+        "motion-timing",
+        "spacing",
+        "icon-animation",
+        "motion-hierarchy"
+      ],
+      "keywords": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:ui-motion",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-motion-rhythm",
+      "title": "Motion Rhythm",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "The patterned timing of moves that creates musical or editorial pulse.",
+      "coreConcepts": [
+        "motion rhythm",
+        "beat sync",
+        "tempo",
+        "pulse"
+      ],
+      "definitions": [
+        "Motion rhythm is the recurring pattern of accents, holds, and releases that gives a sequence musicality and brand tempo.",
+        "Align graphics to music and keep attention through patterned beats."
+      ],
+      "rules": [
+        "Practice: Hit accents on audio",
+        "Practice: Alternate dense/sparse beats",
+        "Practice: Don’t sync every frame literally"
+      ],
+      "bestPractices": [
+        "Hit accents on audio",
+        "Alternate dense/sparse beats",
+        "Don’t sync every frame literally"
+      ],
+      "professionalTechniques": [
+        "Mark audio beats",
+        "Assign accents",
+        "Offset supporting layers",
+        "Review mute"
+      ],
+      "workflow": [
+        "Mark audio beats",
+        "Assign accents",
+        "Offset supporting layers",
+        "Review mute"
+      ],
+      "decisionRules": [
+        "Follow: Hit accents on audio",
+        "Follow: Alternate dense/sparse beats",
+        "Follow: Don’t sync every frame literally"
+      ],
+      "commonMistakes": [
+        "Arrhythmic chaos",
+        "Constant same interval"
+      ],
+      "troubleshooting": [
+        "Avoid: Arrhythmic chaos",
+        "Avoid: Constant same interval"
+      ],
+      "recommendations": [
+        "Hit accents on audio",
+        "Alternate dense/sparse beats",
+        "Don’t sync every frame literally"
+      ],
+      "examples": [
+        "Benefit cards snap on snare hits"
+      ],
+      "professionalStandards": [
+        "Motion rhythm is the recurring pattern of accents, holds, and releases that gives a sequence musicality and brand tempo."
+      ],
+      "relatedTopics": [
+        "motion-timing",
+        "text-animation",
+        "timing",
+        "cut"
+      ],
+      "keywords": [
+        "motion rhythm",
+        "beat sync",
+        "tempo",
+        "pulse"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-rhythm",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-motion-hierarchy",
+      "title": "Motion Hierarchy",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Ordering what moves first and strongest so attention follows the message.",
+      "coreConcepts": [
+        "motion hierarchy",
+        "attention order",
+        "primary motion"
+      ],
+      "definitions": [
+        "Motion hierarchy prioritizes animated elements by amplitude, timing, and contrast so the primary message leads.",
+        "Prevent visual competition in dense graphics packages."
+      ],
+      "rules": [
+        "Practice: One hero move",
+        "Practice: Stagger supports",
+        "Practice: Stillness as hierarchy tool"
+      ],
+      "bestPractices": [
+        "One hero move",
+        "Stagger supports",
+        "Stillness as hierarchy tool"
+      ],
+      "professionalTechniques": [
+        "Rank elements",
+        "Assign energy budgets",
+        "Animate",
+        "Mute rivals"
+      ],
+      "workflow": [
+        "Rank elements",
+        "Assign energy budgets",
+        "Animate",
+        "Mute rivals"
+      ],
+      "decisionRules": [
+        "Follow: One hero move",
+        "Follow: Stagger supports",
+        "Follow: Stillness as hierarchy tool"
+      ],
+      "commonMistakes": [
+        "Everything moves equally",
+        "Background louder than title"
+      ],
+      "troubleshooting": [
+        "Avoid: Everything moves equally",
+        "Avoid: Background louder than title"
+      ],
+      "recommendations": [
+        "One hero move",
+        "Stagger supports",
+        "Stillness as hierarchy tool"
+      ],
+      "examples": [
+        "Title scales in; supporting icons fade later at lower amplitude"
+      ],
+      "professionalStandards": [
+        "Motion hierarchy prioritizes animated elements by amplitude, timing, and contrast so the primary message leads."
+      ],
+      "relatedTopics": [
+        "staging",
+        "text-animation",
+        "secondary-action",
+        "motion-design"
+      ],
+      "keywords": [
+        "motion hierarchy",
+        "attention order",
+        "primary motion"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-hierarchy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-motion-timing",
+      "title": "Motion Timing",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Duration standards for graphics, UI, and branded motion systems.",
+      "coreConcepts": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "definitions": [
+        "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent.",
+        "Speed craft and consistency across teams and templates."
+      ],
+      "rules": [
+        "Practice: Document tokens (e.g., 150/250/400ms)",
+        "Practice: Longer for large spatial moves",
+        "Practice: Test on target devices"
+      ],
+      "bestPractices": [
+        "Document tokens (e.g., 150/250/400ms)",
+        "Longer for large spatial moves",
+        "Test on target devices"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "workflow": [
+        "Define tokens",
+        "Apply to comps",
+        "QA across templates"
+      ],
+      "decisionRules": [
+        "Follow: Document tokens (e.g., 150/250/400ms)",
+        "Follow: Longer for large spatial moves",
+        "Follow: Test on target devices"
+      ],
+      "commonMistakes": [
+        "Random durations per shot",
+        "Ignoring platform reading speed"
+      ],
+      "troubleshooting": [
+        "Avoid: Random durations per shot",
+        "Avoid: Ignoring platform reading speed"
+      ],
+      "recommendations": [
+        "Document tokens (e.g., 150/250/400ms)",
+        "Longer for large spatial moves",
+        "Test on target devices"
+      ],
+      "examples": [
+        "Brand book: micro 120ms, standard 240ms, expressive 480ms"
+      ],
+      "professionalStandards": [
+        "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent."
+      ],
+      "relatedTopics": [
+        "timing",
+        "ui-motion",
+        "motion-rhythm",
+        "spacing"
+      ],
+      "keywords": [
+        "motion timing",
+        "duration tokens",
+        "easing standards"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-timing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "motion-motion-style",
+      "title": "Motion Style",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "The aesthetic fingerprint of motion—editorial, playful, corporate, cinematic.",
+      "coreConcepts": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "definitions": [
+        "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality.",
+        "Keep campaigns visually coherent and on-brand."
+      ],
+      "rules": [
+        "Practice: Write a motion style frame",
+        "Practice: Limit to 1–2 style drivers",
+        "Practice: Reuse across assets"
+      ],
+      "bestPractices": [
+        "Write a motion style frame",
+        "Limit to 1–2 style drivers",
+        "Reuse across assets"
+      ],
+      "professionalTechniques": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "workflow": [
+        "Mood refs",
+        "Style frames",
+        "Pilot shot",
+        "Systematize"
+      ],
+      "decisionRules": [
+        "Follow: Write a motion style frame",
+        "Follow: Limit to 1–2 style drivers",
+        "Follow: Reuse across assets"
+      ],
+      "commonMistakes": [
+        "Style mashups",
+        "Trend-chasing off-brand"
+      ],
+      "troubleshooting": [
+        "Avoid: Style mashups",
+        "Avoid: Trend-chasing off-brand"
+      ],
+      "recommendations": [
+        "Write a motion style frame",
+        "Limit to 1–2 style drivers",
+        "Reuse across assets"
+      ],
+      "examples": [
+        "Soft editorial fades vs snappy social pops for same brand tiers"
+      ],
+      "professionalStandards": [
+        "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality."
+      ],
+      "relatedTopics": [
+        "motion-design",
+        "logo-animation",
+        "appeal",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "motion style",
+        "aesthetic",
+        "brand motion personality"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-style",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-cut",
+      "title": "Cut",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "An instantaneous change from one shot to another—the default editorial transition.",
+      "coreConcepts": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "definitions": [
+        "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity.",
+        "Maintain energy and clarity; the workhorse of professional editing."
+      ],
+      "rules": [
+        "Practice: Cut on action when possible",
+        "Practice: Match continuity",
+        "Practice: Prefer cuts unless a blend adds meaning"
+      ],
+      "bestPractices": [
+        "Cut on action when possible",
+        "Match continuity",
+        "Prefer cuts unless a blend adds meaning"
+      ],
+      "professionalTechniques": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "workflow": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "decisionRules": [
+        "Follow: Cut on action when possible",
+        "Follow: Match continuity",
+        "Follow: Prefer cuts unless a blend adds meaning"
+      ],
+      "commonMistakes": [
+        "Cutting mid-blink awkwardly",
+        "Using fancy transitions as default"
+      ],
+      "troubleshooting": [
+        "Avoid: Cutting mid-blink awkwardly",
+        "Avoid: Using fancy transitions as default"
+      ],
+      "recommendations": [
+        "Cut on action when possible",
+        "Match continuity",
+        "Prefer cuts unless a blend adds meaning"
+      ],
+      "examples": [
+        "Action match from pour start to mid-pour angle"
+      ],
+      "professionalStandards": [
+        "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity."
+      ],
+      "relatedTopics": [
+        "match-cut",
+        "motion-rhythm",
+        "fade",
+        "dissolve"
+      ],
+      "keywords": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:cut",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-fade",
+      "title": "Fade",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Transition to/from black (or a color) signaling time, chapter, or closure.",
+      "coreConcepts": [
+        "fade",
+        "fade in",
+        "fade out",
+        "fade to black"
+      ],
+      "definitions": [
+        "A fade gradually changes opacity to or from a solid color, typically black, to indicate passage of time or structural boundaries.",
+        "Softly open/close chapters or end films."
+      ],
+      "rules": [
+        "Practice: Use sparingly",
+        "Practice: Fade-out for endings",
+        "Practice: Match audio fades"
+      ],
+      "bestPractices": [
+        "Use sparingly",
+        "Fade-out for endings",
+        "Match audio fades"
+      ],
+      "professionalTechniques": [
+        "Decide meaning",
+        "Set duration",
+        "Align audio",
+        "Review"
+      ],
+      "workflow": [
+        "Decide meaning",
+        "Set duration",
+        "Align audio",
+        "Review"
+      ],
+      "decisionRules": [
+        "Follow: Use sparingly",
+        "Follow: Fade-out for endings",
+        "Follow: Match audio fades"
+      ],
+      "commonMistakes": [
+        "Fading every scene",
+        "Long fades killing pace"
+      ],
+      "troubleshooting": [
+        "Avoid: Fading every scene",
+        "Avoid: Long fades killing pace"
+      ],
+      "recommendations": [
+        "Use sparingly",
+        "Fade-out for endings",
+        "Match audio fades"
+      ],
+      "examples": [
+        "Fade from black into brand film; fade out under CTA"
+      ],
+      "professionalStandards": [
+        "A fade gradually changes opacity to or from a solid color, typically black, to indicate passage of time or structural boundaries."
+      ],
+      "relatedTopics": [
+        "dissolve",
+        "cut",
+        "export-settings",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "fade",
+        "fade in",
+        "fade out",
+        "fade to black"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:fade",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-dissolve",
+      "title": "Dissolve",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Crossfade between two images suggesting connection or soft time passage.",
+      "coreConcepts": [
+        "dissolve",
+        "crossfade",
+        "mix",
+        "blend transition"
+      ],
+      "definitions": [
+        "A dissolve (crossfade) overlaps the end of one shot with the start of another by blending opacity.",
+        "Link ideas gently or compress time without a hard cut."
+      ],
+      "rules": [
+        "Practice: Motivate the blend",
+        "Practice: Watch mid-dissolve mud",
+        "Practice: Keep durations intentional"
+      ],
+      "bestPractices": [
+        "Motivate the blend",
+        "Watch mid-dissolve mud",
+        "Keep durations intentional"
+      ],
+      "professionalTechniques": [
+        "Align overlapping handles",
+        "Set dissolve length",
+        "Check midpoint"
+      ],
+      "workflow": [
+        "Align overlapping handles",
+        "Set dissolve length",
+        "Check midpoint"
+      ],
+      "decisionRules": [
+        "Follow: Motivate the blend",
+        "Follow: Watch mid-dissolve mud",
+        "Follow: Keep durations intentional"
+      ],
+      "commonMistakes": [
+        "Default dissolve everywhere",
+        "Unrelated shots blended"
+      ],
+      "troubleshooting": [
+        "Avoid: Default dissolve everywhere",
+        "Avoid: Unrelated shots blended"
+      ],
+      "recommendations": [
+        "Motivate the blend",
+        "Watch mid-dissolve mud",
+        "Keep durations intentional"
+      ],
+      "examples": [
+        "Morning to night city dissolve; idea A morphs conceptually to B"
+      ],
+      "professionalStandards": [
+        "A dissolve (crossfade) overlaps the end of one shot with the start of another by blending opacity."
+      ],
+      "relatedTopics": [
+        "fade",
+        "match-cut",
+        "luma-transition",
+        "cut"
+      ],
+      "keywords": [
+        "dissolve",
+        "crossfade",
+        "mix",
+        "blend transition"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:dissolve",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-wipe",
+      "title": "Wipe",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "A geometric leading edge that replaces one shot with another.",
+      "coreConcepts": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "definitions": [
+        "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot.",
+        "Stylized scene changes or chapter markers."
+      ],
+      "rules": [
+        "Practice: Match brand geometry",
+        "Practice: Avoid dated default wipes",
+        "Practice: Use with graphic packages"
+      ],
+      "bestPractices": [
+        "Match brand geometry",
+        "Avoid dated default wipes",
+        "Use with graphic packages"
+      ],
+      "professionalTechniques": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "workflow": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "decisionRules": [
+        "Follow: Match brand geometry",
+        "Follow: Avoid dated default wipes",
+        "Follow: Use with graphic packages"
+      ],
+      "commonMistakes": [
+        "Random star wipes",
+        "Fighting story tone"
+      ],
+      "troubleshooting": [
+        "Avoid: Random star wipes",
+        "Avoid: Fighting story tone"
+      ],
+      "recommendations": [
+        "Match brand geometry",
+        "Avoid dated default wipes",
+        "Use with graphic packages"
+      ],
+      "examples": [
+        "Brand-colored linear wipe into new chapter title"
+      ],
+      "professionalStandards": [
+        "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot."
+      ],
+      "relatedTopics": [
+        "shape-transition",
+        "creative-transitions",
+        "motion-style",
+        "cut"
+      ],
+      "keywords": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:wipe",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-match-cut",
+      "title": "Match Cut",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "A cut that links shots through matched action, shape, or concept.",
+      "coreConcepts": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "definitions": [
+        "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative.",
+        "Create elegant narrative or visual bridges."
+      ],
+      "rules": [
+        "Practice: Plan on set/in boards",
+        "Practice: Match speed and frame",
+        "Practice: Serve story not only cleverness"
+      ],
+      "bestPractices": [
+        "Plan on set/in boards",
+        "Match speed and frame",
+        "Serve story not only cleverness"
+      ],
+      "professionalTechniques": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "workflow": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "decisionRules": [
+        "Follow: Plan on set/in boards",
+        "Follow: Match speed and frame",
+        "Follow: Serve story not only cleverness"
+      ],
+      "commonMistakes": [
+        "Forced matches",
+        "Mismatched timing"
+      ],
+      "troubleshooting": [
+        "Avoid: Forced matches",
+        "Avoid: Mismatched timing"
+      ],
+      "recommendations": [
+        "Plan on set/in boards",
+        "Match speed and frame",
+        "Serve story not only cleverness"
+      ],
+      "examples": [
+        "Spinning tire to spinning logo; eye open to sunrise"
+      ],
+      "professionalStandards": [
+        "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative."
+      ],
+      "relatedTopics": [
+        "cut",
+        "camera-transition",
+        "staging",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:match-cut",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-luma-transition",
+      "title": "Luma Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Transitions driven by luminance maps or light-based reveals.",
+      "coreConcepts": [
+        "luma transition",
+        "luminance wipe",
+        "light reveal"
+      ],
+      "definitions": [
+        "A luma transition uses brightness information—often a gradient or animated matte—to blend or reveal shots.",
+        "Create light-motivated, premium graphic transitions."
+      ],
+      "rules": [
+        "Practice: Motivate with light sources",
+        "Practice: Keep mid-tones clean",
+        "Practice: Test on delivery gamma"
+      ],
+      "bestPractices": [
+        "Motivate with light sources",
+        "Keep mid-tones clean",
+        "Test on delivery gamma"
+      ],
+      "professionalTechniques": [
+        "Design luma matte",
+        "Animate",
+        "Composite",
+        "Color-manage"
+      ],
+      "workflow": [
+        "Design luma matte",
+        "Animate",
+        "Composite",
+        "Color-manage"
+      ],
+      "decisionRules": [
+        "Follow: Motivate with light sources",
+        "Follow: Keep mid-tones clean",
+        "Follow: Test on delivery gamma"
+      ],
+      "commonMistakes": [
+        "Noisy luma mattes",
+        "Clipping weirdness in HDR"
+      ],
+      "troubleshooting": [
+        "Avoid: Noisy luma mattes",
+        "Avoid: Clipping weirdness in HDR"
+      ],
+      "recommendations": [
+        "Motivate with light sources",
+        "Keep mid-tones clean",
+        "Test on delivery gamma"
+      ],
+      "examples": [
+        "Light sweep reveal of product from darkness"
+      ],
+      "professionalStandards": [
+        "A luma transition uses brightness information—often a gradient or animated matte—to blend or reveal shots."
+      ],
+      "relatedTopics": [
+        "dissolve",
+        "hdr",
+        "color-space",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "luma transition",
+        "luminance wipe",
+        "light reveal"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:luma-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-shape-transition",
+      "title": "Shape Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Reveals or morphs using branded shapes and masks.",
+      "coreConcepts": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "definitions": [
+        "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic.",
+        "Tie transitions to brand identity systems."
+      ],
+      "rules": [
+        "Practice: Use brand shapes",
+        "Practice: Ease edges",
+        "Practice: End clean for next scene"
+      ],
+      "bestPractices": [
+        "Use brand shapes",
+        "Ease edges",
+        "End clean for next scene"
+      ],
+      "professionalTechniques": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "workflow": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "decisionRules": [
+        "Follow: Use brand shapes",
+        "Follow: Ease edges",
+        "Follow: End clean for next scene"
+      ],
+      "commonMistakes": [
+        "Off-brand shapes",
+        "Jagged mask edges"
+      ],
+      "troubleshooting": [
+        "Avoid: Off-brand shapes",
+        "Avoid: Jagged mask edges"
+      ],
+      "recommendations": [
+        "Use brand shapes",
+        "Ease edges",
+        "End clean for next scene"
+      ],
+      "examples": [
+        "Rounded square expands to full frame like app icon"
+      ],
+      "professionalStandards": [
+        "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic."
+      ],
+      "relatedTopics": [
+        "wipe",
+        "logo-animation",
+        "motion-style",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:shape-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-zoom-transition",
+      "title": "Zoom Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Scale-based transition that rushes into or out of a subject.",
+      "coreConcepts": [
+        "zoom transition",
+        "snap zoom",
+        "scale transition"
+      ],
+      "definitions": [
+        "A zoom transition uses rapid scale (optical or digital) to bridge shots, often with motion blur for energy.",
+        "Energetic social pacing or dive into detail."
+      ],
+      "rules": [
+        "Practice: Add blur for speed",
+        "Practice: Match destination framing",
+        "Practice: Don’t overuse"
+      ],
+      "bestPractices": [
+        "Add blur for speed",
+        "Match destination framing",
+        "Don’t overuse"
+      ],
+      "professionalTechniques": [
+        "Align center of interest",
+        "Animate scale",
+        "Blur",
+        "Cut on peak"
+      ],
+      "workflow": [
+        "Align center of interest",
+        "Animate scale",
+        "Blur",
+        "Cut on peak"
+      ],
+      "decisionRules": [
+        "Follow: Add blur for speed",
+        "Follow: Match destination framing",
+        "Follow: Don’t overuse"
+      ],
+      "commonMistakes": [
+        "Soft/pixelated digital zooms",
+        "Seasickness from excess"
+      ],
+      "troubleshooting": [
+        "Avoid: Soft/pixelated digital zooms",
+        "Avoid: Seasickness from excess"
+      ],
+      "recommendations": [
+        "Add blur for speed",
+        "Match destination framing",
+        "Don’t overuse"
+      ],
+      "examples": [
+        "Snap zoom into product detail then cut wide"
+      ],
+      "professionalStandards": [
+        "A zoom transition uses rapid scale (optical or digital) to bridge shots, often with motion blur for energy."
+      ],
+      "relatedTopics": [
+        "camera-transition",
+        "cut",
+        "motion-rhythm",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "zoom transition",
+        "snap zoom",
+        "scale transition"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:zoom-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-camera-transition",
+      "title": "Camera Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Transitions motivated by simulated or real camera moves (whip, push, orbit).",
+      "coreConcepts": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "definitions": [
+        "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic.",
+        "Maintain cinematic continuity between scenes."
+      ],
+      "rules": [
+        "Practice: Match direction and speed",
+        "Practice: Plan on set when possible",
+        "Practice: Use motion blur"
+      ],
+      "bestPractices": [
+        "Match direction and speed",
+        "Plan on set when possible",
+        "Use motion blur"
+      ],
+      "professionalTechniques": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "workflow": [
+        "Choose move",
+        "Match vectors",
+        "Blend/cut at blur peak",
+        "Stabilize landing"
+      ],
+      "decisionRules": [
+        "Follow: Match direction and speed",
+        "Follow: Plan on set when possible",
+        "Follow: Use motion blur"
+      ],
+      "commonMistakes": [
+        "Unmotivated whip spam",
+        "Direction mismatches"
+      ],
+      "troubleshooting": [
+        "Avoid: Unmotivated whip spam",
+        "Avoid: Direction mismatches"
+      ],
+      "recommendations": [
+        "Match direction and speed",
+        "Plan on set when possible",
+        "Use motion blur"
+      ],
+      "examples": [
+        "Whip pan from lifestyle to studio hero"
+      ],
+      "professionalStandards": [
+        "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic."
+      ],
+      "relatedTopics": [
+        "match-cut",
+        "zoom-transition",
+        "cut",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "camera transition",
+        "whip pan",
+        "push transition",
+        "parallax bridge"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:camera-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "trans-creative-transitions",
+      "title": "Creative Transitions",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Custom, concept-driven transitions unique to a campaign’s visual idea.",
+      "coreConcepts": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "definitions": [
+        "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept.",
+        "Make signature moments memorable when budget and concept support them."
+      ],
+      "rules": [
+        "Practice: Concept first",
+        "Practice: Reuse as a motif",
+        "Practice: Don’t invent one per cut"
+      ],
+      "bestPractices": [
+        "Concept first",
+        "Reuse as a motif",
+        "Don’t invent one per cut"
+      ],
+      "professionalTechniques": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "workflow": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "decisionRules": [
+        "Follow: Concept first",
+        "Follow: Reuse as a motif",
+        "Follow: Don’t invent one per cut"
+      ],
+      "commonMistakes": [
+        "Creativity without clarity",
+        "Inconsistent rules"
+      ],
+      "troubleshooting": [
+        "Avoid: Creativity without clarity",
+        "Avoid: Inconsistent rules"
+      ],
+      "recommendations": [
+        "Concept first",
+        "Reuse as a motif",
+        "Don’t invent one per cut"
+      ],
+      "examples": [
+        "Product lid closes as wipe; ink bleed morph between scenes"
+      ],
+      "professionalStandards": [
+        "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept."
+      ],
+      "relatedTopics": [
+        "motion-style",
+        "shape-transition",
+        "match-cut",
+        "luma-transition"
+      ],
+      "keywords": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:creative-transitions",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Motion Graphics & Transitions Knowledge Pack",
+    "category": "professional-motion-graphics",
+    "domain": "motion-graphics-knowledge",
+    "description": "Curated professional animation/motion/rendering knowledge for AI Me (not render/generation).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Motion Design",
+          "Motion Graphics Fundamentals",
+          "Text Animation",
+          "Logo Animation",
+          "Icon Animation",
+          "UI Motion",
+          "Motion Rhythm",
+          "Motion Hierarchy",
+          "Motion Timing",
+          "Motion Style",
+          "Cut",
+          "Fade",
+          "Dissolve",
+          "Wipe",
+          "Match Cut",
+          "Luma Transition",
+          "Shape Transition",
+          "Zoom Transition",
+          "Camera Transition",
+          "Creative Transitions"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Design stills that animate well",
+          "Build a motion system",
+          "Prototype on device",
+          "Type legibility first",
+          "Limit simultaneous moves",
+          "Safe margins for platforms",
+          "Readable duration",
+          "Respect line length",
+          "Match brand type motion rules",
+          "Protect logo geometry",
+          "End on approved lockup",
+          "Keep under a few seconds for social",
+          "Keep loops subtle",
+          "Prefer morphs over spins",
+          "Match UI motion tokens",
+          "Shared durations/easings",
+          "Motion follows user action",
+          "Reduce motion accessibility options",
+          "Hit accents on audio",
+          "Alternate dense/sparse beats",
+          "Don’t sync every frame literally",
+          "One hero move",
+          "Stagger supports",
+          "Stillness as hierarchy tool",
+          "Document tokens (e.g., 150/250/400ms)",
+          "Longer for large spatial moves",
+          "Test on target devices",
+          "Write a motion style frame",
+          "Limit to 1–2 style drivers",
+          "Reuse across assets",
+          "Cut on action when possible",
+          "Match continuity",
+          "Prefer cuts unless a blend adds meaning",
+          "Use sparingly",
+          "Fade-out for endings",
+          "Match audio fades",
+          "Motivate the blend",
+          "Watch mid-dissolve mud",
+          "Keep durations intentional",
+          "Match brand geometry"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Brief",
+          "Boards",
+          "Style frames",
+          "Animate",
+          "Deliver specs",
+          "Layout still",
+          "Animate hierarchy",
+          "Time to VO/music",
+          "Export checks",
+          "Write short lines",
+          "Set reading time",
+          "Animate in hierarchy",
+          "Hold",
+          "Get brand rules",
+          "Storyboard",
+          "Animate to rest lockup",
+          "Deliver masters",
+          "Define state",
+          "Animate change",
+          "Ease",
+          "Export Lottie/video as needed",
+          "Define tokens",
+          "Prototype",
+          "Implement",
+          "Document in motion spec",
+          "Mark audio beats",
+          "Assign accents",
+          "Offset supporting layers",
+          "Review mute",
+          "Rank elements",
+          "Assign energy budgets",
+          "Animate",
+          "Mute rivals",
+          "Define tokens",
+          "Apply to comps",
+          "QA across templates",
+          "Mood refs",
+          "Style frames",
+          "Pilot shot",
+          "Systematize"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Brand open + lower-third system for a campaign",
+          "Kinetic list of three benefits with staggered fades",
+          "Word-by-word punch for hook; elegant fade for luxury copy",
+          "Stroke draw + settle; 3D light pass then flat lockup",
+          "Checkmark draw-on; cart icon bounce on add",
+          "Sheet slides up 280ms ease-out; success toast fades",
+          "Benefit cards snap on snare hits",
+          "Title scales in; supporting icons fade later at lower amplitude",
+          "Brand book: micro 120ms, standard 240ms, expressive 480ms",
+          "Soft editorial fades vs snappy social pops for same brand tiers",
+          "Action match from pour start to mid-pour angle",
+          "Fade from black into brand film; fade out under CTA",
+          "Morning to night city dissolve; idea A morphs conceptually to B",
+          "Brand-colored linear wipe into new chapter title",
+          "Spinning tire to spinning logo; eye open to sunrise",
+          "Light sweep reveal of product from darkness",
+          "Rounded square expands to full frame like app icon",
+          "Snap zoom into product detail then cut wide",
+          "Whip pan from lifestyle to studio hero",
+          "Product lid closes as wipe; ink bleed morph between scenes"
+        ]
+      }
+    ],
+    "concepts": [
+      "motion design",
+      "motion system",
+      "branded motion",
+      "motion graphics",
+      "fundamentals",
+      "kinetic graphics",
+      "MG",
+      "text animation",
+      "kinetic type",
+      "typography motion",
+      "titles",
+      "logo animation",
+      "logo sting",
+      "brand mark motion",
+      "ident",
+      "icon animation",
+      "microinteraction",
+      "icon motion",
+      "UI motion",
+      "interface animation",
+      "product UI",
+      "microinteractions",
+      "motion rhythm",
+      "beat sync",
+      "tempo",
+      "pulse",
+      "motion hierarchy",
+      "attention order",
+      "primary motion",
+      "motion timing",
+      "duration tokens",
+      "easing standards",
+      "motion style",
+      "aesthetic",
+      "brand motion personality",
+      "cut",
+      "hard cut",
+      "edit",
+      "splice",
+      "fade",
+      "fade in",
+      "fade out",
+      "fade to black",
+      "dissolve",
+      "crossfade",
+      "mix",
+      "blend transition",
+      "wipe",
+      "push wipe",
+      "clock wipe"
+    ],
+    "entities": [
+      "Motion Design",
+      "Motion Graphics Fundamentals",
+      "Text Animation",
+      "Logo Animation",
+      "Icon Animation",
+      "UI Motion",
+      "Motion Rhythm",
+      "Motion Hierarchy",
+      "Motion Timing",
+      "Motion Style",
+      "Cut",
+      "Fade",
+      "Dissolve",
+      "Wipe",
+      "Match Cut",
+      "Luma Transition",
+      "Shape Transition",
+      "Zoom Transition",
+      "Camera Transition",
+      "Creative Transitions"
+    ],
+    "terminology": [
+      "motion design",
+      "motion system",
+      "branded motion",
+      "motion graphics",
+      "fundamentals",
+      "kinetic graphics",
+      "MG",
+      "text animation",
+      "kinetic type",
+      "typography motion",
+      "titles",
+      "logo animation",
+      "logo sting",
+      "brand mark motion",
+      "ident",
+      "icon animation",
+      "microinteraction",
+      "icon motion",
+      "UI motion",
+      "interface animation",
+      "product UI",
+      "microinteractions",
+      "motion rhythm",
+      "beat sync",
+      "tempo",
+      "pulse",
+      "motion hierarchy",
+      "attention order",
+      "primary motion",
+      "motion timing",
+      "duration tokens",
+      "easing standards",
+      "motion style",
+      "aesthetic",
+      "brand motion personality",
+      "cut",
+      "hard cut",
+      "edit",
+      "splice",
+      "fade",
+      "fade in",
+      "fade out",
+      "fade to black",
+      "dissolve",
+      "crossfade",
+      "mix",
+      "blend transition",
+      "wipe",
+      "push wipe",
+      "clock wipe"
+    ],
+    "rules": [
+      "Practice: Design stills that animate well",
+      "Practice: Build a motion system",
+      "Practice: Prototype on device",
+      "Practice: Type legibility first",
+      "Practice: Limit simultaneous moves",
+      "Practice: Safe margins for platforms",
+      "Practice: Readable duration",
+      "Practice: Respect line length",
+      "Practice: Match brand type motion rules",
+      "Practice: Protect logo geometry",
+      "Practice: End on approved lockup",
+      "Practice: Keep under a few seconds for social",
+      "Practice: Keep loops subtle",
+      "Practice: Prefer morphs over spins",
+      "Practice: Match UI motion tokens",
+      "Practice: Shared durations/easings",
+      "Practice: Motion follows user action",
+      "Practice: Reduce motion accessibility options",
+      "Practice: Hit accents on audio",
+      "Practice: Alternate dense/sparse beats",
+      "Practice: Don’t sync every frame literally",
+      "Practice: One hero move",
+      "Practice: Stagger supports",
+      "Practice: Stillness as hierarchy tool",
+      "Practice: Document tokens (e.g., 150/250/400ms)",
+      "Practice: Longer for large spatial moves",
+      "Practice: Test on target devices",
+      "Practice: Write a motion style frame",
+      "Practice: Limit to 1–2 style drivers",
+      "Practice: Reuse across assets",
+      "Practice: Cut on action when possible",
+      "Practice: Match continuity",
+      "Practice: Prefer cuts unless a blend adds meaning",
+      "Practice: Use sparingly",
+      "Practice: Fade-out for endings",
+      "Practice: Match audio fades",
+      "Practice: Motivate the blend",
+      "Practice: Watch mid-dissolve mud",
+      "Practice: Keep durations intentional",
+      "Practice: Match brand geometry"
+    ],
+    "bestPractices": [
+      "Design stills that animate well",
+      "Build a motion system",
+      "Prototype on device",
+      "Type legibility first",
+      "Limit simultaneous moves",
+      "Safe margins for platforms",
+      "Readable duration",
+      "Respect line length",
+      "Match brand type motion rules",
+      "Protect logo geometry",
+      "End on approved lockup",
+      "Keep under a few seconds for social",
+      "Keep loops subtle",
+      "Prefer morphs over spins",
+      "Match UI motion tokens",
+      "Shared durations/easings",
+      "Motion follows user action",
+      "Reduce motion accessibility options",
+      "Hit accents on audio",
+      "Alternate dense/sparse beats",
+      "Don’t sync every frame literally",
+      "One hero move",
+      "Stagger supports",
+      "Stillness as hierarchy tool",
+      "Document tokens (e.g., 150/250/400ms)",
+      "Longer for large spatial moves",
+      "Test on target devices",
+      "Write a motion style frame",
+      "Limit to 1–2 style drivers",
+      "Reuse across assets",
+      "Cut on action when possible",
+      "Match continuity",
+      "Prefer cuts unless a blend adds meaning",
+      "Use sparingly",
+      "Fade-out for endings",
+      "Match audio fades",
+      "Motivate the blend",
+      "Watch mid-dissolve mud",
+      "Keep durations intentional",
+      "Match brand geometry"
+    ],
+    "professionalTechniques": [
+      "Brief",
+      "Boards",
+      "Style frames",
+      "Animate",
+      "Deliver specs",
+      "Layout still",
+      "Animate hierarchy",
+      "Time to VO/music",
+      "Export checks",
+      "Write short lines",
+      "Set reading time",
+      "Animate in hierarchy",
+      "Hold",
+      "Get brand rules",
+      "Storyboard",
+      "Animate to rest lockup",
+      "Deliver masters",
+      "Define state",
+      "Animate change",
+      "Ease",
+      "Export Lottie/video as needed",
+      "Define tokens",
+      "Prototype",
+      "Implement",
+      "Document in motion spec",
+      "Mark audio beats",
+      "Assign accents",
+      "Offset supporting layers",
+      "Review mute",
+      "Rank elements",
+      "Assign energy budgets",
+      "Animate",
+      "Mute rivals",
+      "Define tokens",
+      "Apply to comps",
+      "QA across templates",
+      "Mood refs",
+      "Style frames",
+      "Pilot shot",
+      "Systematize"
+    ],
+    "examples": [
+      "Brand open + lower-third system for a campaign",
+      "Kinetic list of three benefits with staggered fades",
+      "Word-by-word punch for hook; elegant fade for luxury copy",
+      "Stroke draw + settle; 3D light pass then flat lockup",
+      "Checkmark draw-on; cart icon bounce on add",
+      "Sheet slides up 280ms ease-out; success toast fades",
+      "Benefit cards snap on snare hits",
+      "Title scales in; supporting icons fade later at lower amplitude",
+      "Brand book: micro 120ms, standard 240ms, expressive 480ms",
+      "Soft editorial fades vs snappy social pops for same brand tiers",
+      "Action match from pour start to mid-pour angle",
+      "Fade from black into brand film; fade out under CTA",
+      "Morning to night city dissolve; idea A morphs conceptually to B",
+      "Brand-colored linear wipe into new chapter title",
+      "Spinning tire to spinning logo; eye open to sunrise",
+      "Light sweep reveal of product from darkness",
+      "Rounded square expands to full frame like app icon",
+      "Snap zoom into product detail then cut wide",
+      "Whip pan from lifestyle to studio hero",
+      "Product lid closes as wipe; ink bleed morph between scenes"
+    ],
+    "commonMistakes": [
+      "Decorating instead of communicating",
+      "Inconsistent easing across a brand",
+      "Tiny type in motion",
+      "Edge-clipped graphics",
+      "Word salad chaos",
+      "Animating faster than reading speed",
+      "Warping trademark shapes",
+      "Overlong intros",
+      "Hypnotic loops",
+      "Inconsistent stroke timing",
+      "Parallax overload",
+      "Blocking interactions with long animation",
+      "Arrhythmic chaos",
+      "Constant same interval",
+      "Everything moves equally",
+      "Background louder than title",
+      "Random durations per shot",
+      "Ignoring platform reading speed",
+      "Style mashups",
+      "Trend-chasing off-brand",
+      "Cutting mid-blink awkwardly",
+      "Using fancy transitions as default",
+      "Fading every scene",
+      "Long fades killing pace",
+      "Default dissolve everywhere",
+      "Unrelated shots blended",
+      "Random star wipes",
+      "Fighting story tone",
+      "Forced matches",
+      "Mismatched timing"
+    ],
+    "qualityRules": [
+      "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform.",
+      "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics.",
+      "Text animation is the timed reveal, emphasis, and exit of typographic content that supports voiceover and hierarchy.",
+      "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity.",
+      "Icon animation is short, purposeful motion of icons to signal state changes, feedback, or feature highlights.",
+      "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy.",
+      "Motion rhythm is the recurring pattern of accents, holds, and releases that gives a sequence musicality and brand tempo.",
+      "Motion hierarchy prioritizes animated elements by amplitude, timing, and contrast so the primary message leads.",
+      "Motion timing for graphics defines duration ranges and easing conventions that keep a brand’s motion language consistent.",
+      "Motion style is the characteristic combination of easing, shape language, texture, and camera behavior that expresses brand personality.",
+      "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity.",
+      "A fade gradually changes opacity to or from a solid color, typically black, to indicate passage of time or structural boundaries.",
+      "A dissolve (crossfade) overlaps the end of one shot with the start of another by blending opacity.",
+      "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot.",
+      "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative.",
+      "A luma transition uses brightness information—often a gradient or animated matte—to blend or reveal shots.",
+      "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic.",
+      "A zoom transition uses rapid scale (optical or digital) to bridge shots, often with motion blur for energy.",
+      "A camera transition bridges shots using camera-like motion—whip pans, push-ins, or parallax—so the edit feels photographic.",
+      "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept."
+    ],
+    "decisionRules": [
+      "Follow: Design stills that animate well",
+      "Follow: Build a motion system",
+      "Follow: Prototype on device",
+      "Follow: Type legibility first",
+      "Follow: Limit simultaneous moves",
+      "Follow: Safe margins for platforms",
+      "Follow: Readable duration",
+      "Follow: Respect line length",
+      "Follow: Match brand type motion rules",
+      "Follow: Protect logo geometry",
+      "Follow: End on approved lockup",
+      "Follow: Keep under a few seconds for social",
+      "Follow: Keep loops subtle",
+      "Follow: Prefer morphs over spins",
+      "Follow: Match UI motion tokens",
+      "Follow: Shared durations/easings",
+      "Follow: Motion follows user action",
+      "Follow: Reduce motion accessibility options",
+      "Follow: Hit accents on audio",
+      "Follow: Alternate dense/sparse beats",
+      "Follow: Don’t sync every frame literally",
+      "Follow: One hero move",
+      "Follow: Stagger supports",
+      "Follow: Stillness as hierarchy tool",
+      "Follow: Document tokens (e.g., 150/250/400ms)",
+      "Follow: Longer for large spatial moves",
+      "Follow: Test on target devices",
+      "Follow: Write a motion style frame",
+      "Follow: Limit to 1–2 style drivers",
+      "Follow: Reuse across assets",
+      "Follow: Cut on action when possible",
+      "Follow: Match continuity",
+      "Follow: Prefer cuts unless a blend adds meaning",
+      "Follow: Use sparingly",
+      "Follow: Fade-out for endings",
+      "Follow: Match audio fades",
+      "Follow: Motivate the blend",
+      "Follow: Watch mid-dissolve mud",
+      "Follow: Keep durations intentional",
+      "Follow: Match brand geometry"
+    ],
+    "workflowSteps": [
+      "Brief",
+      "Boards",
+      "Style frames",
+      "Animate",
+      "Deliver specs",
+      "Layout still",
+      "Animate hierarchy",
+      "Time to VO/music",
+      "Export checks",
+      "Write short lines",
+      "Set reading time",
+      "Animate in hierarchy",
+      "Hold",
+      "Get brand rules",
+      "Storyboard",
+      "Animate to rest lockup",
+      "Deliver masters",
+      "Define state",
+      "Animate change",
+      "Ease",
+      "Export Lottie/video as needed",
+      "Define tokens",
+      "Prototype",
+      "Implement",
+      "Document in motion spec",
+      "Mark audio beats",
+      "Assign accents",
+      "Offset supporting layers",
+      "Review mute",
+      "Rank elements",
+      "Assign energy budgets",
+      "Animate",
+      "Mute rivals",
+      "Define tokens",
+      "Apply to comps",
+      "QA across templates",
+      "Mood refs",
+      "Style frames",
+      "Pilot shot",
+      "Systematize"
+    ],
+    "prerequisites": [
+      "Define communication intent before animating or exporting."
+    ],
+    "dependencies": [
+      "video-production-knowledge",
+      "marketing-knowledge",
+      "video-editing-knowledge"
+    ],
+    "relatedKnowledge": [
+      "motion-motion-design",
+      "motion-motion-graphics-fundamentals",
+      "motion-text-animation",
+      "motion-logo-animation",
+      "motion-icon-animation",
+      "motion-ui-motion",
+      "motion-motion-rhythm",
+      "motion-motion-hierarchy",
+      "motion-motion-timing",
+      "motion-motion-style",
+      "trans-cut",
+      "trans-fade",
+      "trans-dissolve",
+      "trans-wipe",
+      "trans-match-cut",
+      "trans-luma-transition",
+      "trans-shape-transition",
+      "trans-zoom-transition",
+      "trans-camera-transition",
+      "trans-creative-transitions"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 91,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-animation-motion-rendering-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "9999b54ecbae4b17efeee72671ff86a5bc9a71aee8e9797314d8e3262c9a643e",
+  "createdAt": "2026-08-08T18:23:55.301Z",
+  "updatedAt": "2026-08-08T18:23:55.303Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

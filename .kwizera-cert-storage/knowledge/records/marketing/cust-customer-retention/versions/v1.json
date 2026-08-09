@@ -1,0 +1,312 @@
+{
+  "knowledgeId": "cust-customer-retention",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Customer Retention",
+  "description": "Keeping customers active and loyal after the first purchase.",
+  "summary": "Extend video marketing beyond acquisition into loyalty content.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "customer-retention",
+    "customer retention",
+    "loyalty",
+    "LTV",
+    "churn",
+    "repeat"
+  ],
+  "keywords": [
+    "customer retention",
+    "loyalty",
+    "LTV",
+    "churn",
+    "repeat"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-customer-satisfaction",
+    "mkt-marketing-customer-journey",
+    "brand-brand-trust",
+    "mkt-content-marketing",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:56.806Z",
+  "lastUpdated": "2026-08-08T18:25:56.806Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-customer-retention",
+  "integrityStatus": "verified",
+  "contentHash": "285567e96d77d4d2653d2095fc946eb223bdb61c1c1846ed374a0c77372c75c9",
+  "searchableText": "customer retention keeping customers active and loyal after the first purchase. extend video marketing beyond acquisition into loyalty content. professional-customer-psychology professional-customer-psychology professional customer-retention customer retention loyalty ltv churn repeat customer retention loyalty ltv churn repeat",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "customer-retention-keeping",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "customer-retention",
+    "kind": "professional-customer-psychology",
+    "purpose": "Extend video marketing beyond acquisition into loyalty content.",
+    "professionalDefinition": "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service.",
+    "workflow": [
+      "Identify churn reasons",
+      "Build retention content",
+      "Trigger journeys",
+      "Measure LTV"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-customer-retention",
+      "title": "Customer Retention",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Keeping customers active and loyal after the first purchase.",
+      "coreConcepts": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "definitions": [
+        "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service.",
+        "Extend video marketing beyond acquisition into loyalty content."
+      ],
+      "rules": [
+        "Practice: Reinforce value in use",
+        "Practice: Educate for habits",
+        "Practice: Win-back with relevant offers"
+      ],
+      "bestPractices": [
+        "Reinforce value in use",
+        "Educate for habits",
+        "Win-back with relevant offers"
+      ],
+      "professionalTechniques": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "workflow": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "decisionRules": [
+        "Follow: Reinforce value in use",
+        "Follow: Educate for habits",
+        "Follow: Win-back with relevant offers"
+      ],
+      "commonMistakes": [
+        "Only acquiring, never nurturing",
+        "Generic win-back spam"
+      ],
+      "troubleshooting": [
+        "Avoid: Only acquiring, never nurturing",
+        "Avoid: Generic win-back spam"
+      ],
+      "recommendations": [
+        "Reinforce value in use",
+        "Educate for habits",
+        "Win-back with relevant offers"
+      ],
+      "examples": [
+        "Tips series for power users; loyalty offer film"
+      ],
+      "professionalStandards": [
+        "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service."
+      ],
+      "relatedTopics": [
+        "customer-satisfaction",
+        "marketing-customer-journey",
+        "brand-trust",
+        "content-marketing"
+      ],
+      "keywords": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-retention",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Customer Retention",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "Keeping customers active and loyal after the first purchase.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Extend video marketing beyond acquisition into loyalty content."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Identify churn reasons",
+            "Build retention content",
+            "Trigger journeys",
+            "Measure LTV"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Reinforce value in use",
+            "Educate for habits",
+            "Win-back with relevant offers"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Tips series for power users; loyalty offer film"
+          ]
+        }
+      ],
+      "concepts": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "entities": [
+        "Customer Retention",
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "rules": [
+        "Avoid: Only acquiring, never nurturing",
+        "Avoid: Generic win-back spam"
+      ],
+      "bestPractices": [
+        "Reinforce value in use",
+        "Educate for habits",
+        "Win-back with relevant offers"
+      ],
+      "professionalTechniques": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "examples": [
+        "Tips series for power users; loyalty offer film"
+      ],
+      "commonMistakes": [
+        "Only acquiring, never nurturing",
+        "Generic win-back spam"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Reinforce value in use",
+        "Practice: Educate for habits",
+        "Practice: Win-back with relevant offers"
+      ],
+      "workflowSteps": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-customer-satisfaction",
+        "mkt-marketing-customer-journey",
+        "brand-brand-trust",
+        "mkt-content-marketing"
+      ],
+      "definitions": [
+        "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service.",
+        "Extend video marketing beyond acquisition into loyalty content."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Reinforce value in use",
+      "Educate for habits",
+      "Win-back with relevant offers"
+    ],
+    "bestPractices": [
+      "Reinforce value in use",
+      "Educate for habits",
+      "Win-back with relevant offers"
+    ],
+    "decisionRules": [
+      "Practice: Reinforce value in use",
+      "Practice: Educate for habits",
+      "Practice: Win-back with relevant offers"
+    ]
+  }
+}

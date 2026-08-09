@@ -1,0 +1,334 @@
+{
+  "knowledgeId": "comp-depth",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Depth",
+  "description": "Creating a sense of three-dimensional space via layers, overlap, scale, and atmosphere.",
+  "summary": "Pull viewers into the scene and separate subject planes clearly.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "depth",
+    "layers",
+    "planes",
+    "dimensionality",
+    "overlap"
+  ],
+  "keywords": [
+    "depth",
+    "layers",
+    "planes",
+    "dimensionality",
+    "overlap"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-foreground-elements",
+    "comp-background-selection",
+    "comp-leading-lines",
+    "comp-framing",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:30.821Z",
+  "lastUpdated": "2026-08-08T17:15:55.461Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-depth",
+  "integrityStatus": "verified",
+  "contentHash": "8c530f0eb01ac7c1294a77d92ed3f69304918bc1260d8fcd7159db63744c8bab",
+  "searchableText": "depth creating a sense of three-dimensional space via layers, overlap, scale, and atmosphere. pull viewers into the scene and separate subject planes clearly. professional-composition professional-composition professional depth layers planes dimensionality overlap depth layers planes dimensionality overlap",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "depth-creating-sense",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "depth",
+    "kind": "professional-composition",
+    "purpose": "Pull viewers into the scene and separate subject planes clearly.",
+    "whenToUse": [
+      "Cinematic commercials",
+      "Environmental portraits",
+      "Product in context"
+    ],
+    "whenNotToUse": [
+      "Flat graphic catalog requirements without layers"
+    ],
+    "advantages": [
+      "Immersion",
+      "Premium cinematic feel"
+    ],
+    "limitations": [
+      "Needs space and layered set dressing"
+    ],
+    "relatedCameraTechniques": [
+      "aperture/DOF",
+      "focal length compression",
+      "parallax moves"
+    ],
+    "relatedStorytellingTechniques": [
+      "world-building",
+      "presence"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-depth",
+      "title": "Depth",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Creating a sense of three-dimensional space via layers, overlap, scale, and atmosphere.",
+      "coreConcepts": [
+        "depth",
+        "layers",
+        "planes",
+        "dimensionality",
+        "overlap"
+      ],
+      "definitions": [
+        "Pull viewers into the scene and separate subject planes clearly."
+      ],
+      "rules": [
+        "Use when: Cinematic commercials",
+        "Use when: Environmental portraits",
+        "Use when: Product in context",
+        "Do not use when: Flat graphic catalog requirements without layers"
+      ],
+      "bestPractices": [
+        "Build FG/MG/BG",
+        "Use overlap",
+        "Control DOF to support planes"
+      ],
+      "professionalTechniques": [
+        "Immersion",
+        "Premium cinematic feel"
+      ],
+      "workflow": [
+        "Choose Depth",
+        "Build FG/MG/BG",
+        "Use overlap",
+        "Control DOF to support planes"
+      ],
+      "decisionRules": [
+        "Use when: Cinematic commercials",
+        "Use when: Environmental portraits",
+        "Use when: Product in context",
+        "Avoid when: Flat graphic catalog requirements without layers"
+      ],
+      "commonMistakes": [
+        "Everything on one plane",
+        "BG competing sharpness"
+      ],
+      "troubleshooting": [
+        "Limitation: Needs space and layered set dressing"
+      ],
+      "recommendations": [
+        "Build FG/MG/BG",
+        "Use overlap",
+        "Control DOF to support planes"
+      ],
+      "examples": [
+        "Foreground blur leaf, sharp talent, soft city BG"
+      ],
+      "professionalStandards": [
+        "world-building",
+        "presence"
+      ],
+      "relatedTopics": [
+        "foreground-elements",
+        "background-selection",
+        "leading-lines",
+        "framing"
+      ],
+      "keywords": [
+        "depth",
+        "layers",
+        "planes",
+        "dimensionality",
+        "overlap"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:depth",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Depth",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Creating a sense of three-dimensional space via layers, overlap, scale, and atmosphere.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Pull viewers into the scene and separate subject planes clearly."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Cinematic commercials",
+            "Environmental portraits",
+            "Product in context"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Flat graphic catalog requirements without layers"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Build FG/MG/BG",
+            "Use overlap",
+            "Control DOF to support planes"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Foreground blur leaf, sharp talent, soft city BG"
+          ]
+        }
+      ],
+      "concepts": [
+        "depth",
+        "layers",
+        "planes",
+        "dimensionality",
+        "overlap"
+      ],
+      "entities": [
+        "Depth",
+        "composition-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "depth",
+        "layers",
+        "planes",
+        "dimensionality",
+        "overlap"
+      ],
+      "rules": [
+        "Avoid when: Flat graphic catalog requirements without layers"
+      ],
+      "bestPractices": [
+        "Build FG/MG/BG",
+        "Use overlap",
+        "Control DOF to support planes"
+      ],
+      "professionalTechniques": [
+        "Immersion",
+        "Premium cinematic feel"
+      ],
+      "examples": [
+        "Foreground blur leaf, sharp talent, soft city BG"
+      ],
+      "commonMistakes": [
+        "Everything on one plane",
+        "BG competing sharpness"
+      ],
+      "qualityRules": [
+        "Needs space and layered set dressing"
+      ],
+      "decisionRules": [
+        "Use when: Cinematic commercials",
+        "Use when: Environmental portraits",
+        "Use when: Product in context",
+        "Do not use when: Flat graphic catalog requirements without layers"
+      ],
+      "workflowSteps": [
+        "Build FG/MG/BG",
+        "Use overlap",
+        "Control DOF to support planes"
+      ],
+      "prerequisites": [
+        "aperture/DOF",
+        "focal length compression",
+        "parallax moves"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-foreground-elements",
+        "comp-background-selection",
+        "comp-leading-lines",
+        "comp-framing"
+      ],
+      "definitions": [
+        "Pull viewers into the scene and separate subject planes clearly."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Build FG/MG/BG",
+      "Use overlap",
+      "Control DOF to support planes"
+    ],
+    "bestPractices": [
+      "Build FG/MG/BG",
+      "Use overlap",
+      "Control DOF to support planes"
+    ],
+    "decisionRules": [
+      "Use when: Cinematic commercials",
+      "Use when: Environmental portraits",
+      "Use when: Product in context",
+      "Do not use when: Flat graphic catalog requirements without layers"
+    ]
+  }
+}

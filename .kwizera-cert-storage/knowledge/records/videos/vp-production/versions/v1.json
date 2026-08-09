@@ -1,0 +1,325 @@
+{
+  "knowledgeId": "vp-production",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Production",
+  "description": "On-set professional production practice: executing the plan, protecting continuity, and capturing editable media efficiently.",
+  "summary": "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints.",
+  "tags": [
+    "video-production",
+    "professional",
+    "production",
+    "on-set",
+    "continuity",
+    "logging",
+    "capture"
+  ],
+  "keywords": [
+    "production",
+    "on-set",
+    "continuity",
+    "logging",
+    "capture"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-pre-production",
+    "vp-camera-coverage",
+    "vp-post-production",
+    "vp-production-workflow",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-lighting-knowledge",
+    "vp-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:30:59.069Z",
+  "lastUpdated": "2026-08-08T15:30:59.069Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-production",
+  "integrityStatus": "verified",
+  "contentHash": "59967d4302d94fef68fe1719cb31396ffe68c048344d7b86d850d3149a91dac1",
+  "searchableText": "production on-set professional production practice: executing the plan, protecting continuity, and capturing editable media efficiently. production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints. professional-video-production video-production professional production on-set continuity logging capture production on-set continuity logging capture",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "production-on-set-professional",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "production",
+    "professionalDefinition": "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-production",
+      "title": "Production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "On-set professional production practice: executing the plan, protecting continuity, and capturing editable media efficiently.",
+      "coreConcepts": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "definitions": [
+        "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints."
+      ],
+      "rules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "bestPractices": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "professionalTechniques": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "workflow": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "decisionRules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "commonMistakes": [
+        "Chasing unplanned ideas until coverage is incomplete.",
+        "Poor slate/logging that slows editorial.",
+        "Ignoring background audio problems during capture."
+      ],
+      "troubleshooting": [
+        "Avoid: Chasing unplanned ideas until coverage is incomplete.",
+        "Avoid: Poor slate/logging that slows editorial.",
+        "Avoid: Ignoring background audio problems during capture."
+      ],
+      "recommendations": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "examples": [
+        "Tabletop product day with hero lighting locked before detail inserts.",
+        "Interview day with dedicated quiet room and B-roll second unit."
+      ],
+      "professionalStandards": [
+        "Confidence 91/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "camera-coverage",
+        "post-production",
+        "production-workflow"
+      ],
+      "keywords": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Production",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "On-set professional production practice: executing the plan, protecting continuity, and capturing editable media efficiently.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Protect the must-have shot list before experiments.",
+            "Monitor picture and sound in real time.",
+            "Log takes and note selects for post speed.",
+            "Maintain continuity of light, wardrobe, product position, and eyelines."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Safety and tech check.",
+            "Block, light, rehearse, roll.",
+            "Review critical takes before moving on.",
+            "Wrap with media backup and notes."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If a take is unusable for sound or focus, reshoot before striking.",
+            "Always back up media before leaving the location.",
+            "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+            "Never rely on 'fix it in post' for avoidable capture failures."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Tabletop product day with hero lighting locked before detail inserts.",
+            "Interview day with dedicated quiet room and B-roll second unit."
+          ]
+        }
+      ],
+      "concepts": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "entities": [
+        "Production",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "rules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "bestPractices": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "professionalTechniques": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "examples": [
+        "Tabletop product day with hero lighting locked before detail inserts.",
+        "Interview day with dedicated quiet room and B-roll second unit."
+      ],
+      "commonMistakes": [
+        "Chasing unplanned ideas until coverage is incomplete.",
+        "Poor slate/logging that slows editorial.",
+        "Ignoring background audio problems during capture."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "workflowSteps": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "prerequisites": [
+        "Safety and tech check."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-pre-production",
+        "vp-camera-coverage",
+        "vp-post-production",
+        "vp-production-workflow"
+      ],
+      "definitions": [
+        "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints."
+      ],
+      "troubleshooting": [
+        "Avoid: Chasing unplanned ideas until coverage is incomplete.",
+        "Avoid: Poor slate/logging that slows editorial.",
+        "Avoid: Ignoring background audio problems during capture."
+      ],
+      "recommendations": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

@@ -1,0 +1,306 @@
+{
+  "knowledgeId": "brand-brand-voice",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Brand Voice",
+  "description": "The consistent personality of brand language across copy and scripts.",
+  "summary": "Keep video scripts and CTAs sounding like the same brand.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "brand-voice",
+    "brand voice",
+    "tone",
+    "verbal identity",
+    "script voice"
+  ],
+  "keywords": [
+    "brand voice",
+    "tone",
+    "verbal identity",
+    "script voice"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "brand-brand-story",
+    "brand-brand-guidelines",
+    "vmkt-ending-strategy",
+    "sales-cta-strategy",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:34.858Z",
+  "lastUpdated": "2026-08-08T18:25:34.858Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-brand-voice",
+  "integrityStatus": "verified",
+  "contentHash": "0471af26bc1f9562831f802effb3720a5085d240ee6d98073706c0c696fa82b9",
+  "searchableText": "brand voice the consistent personality of brand language across copy and scripts. keep video scripts and ctas sounding like the same brand. professional-branding professional-branding professional brand-voice brand voice tone verbal identity script voice brand voice tone verbal identity script voice",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "brand-voice-consistent",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-voice",
+    "kind": "professional-branding",
+    "purpose": "Keep video scripts and CTAs sounding like the same brand.",
+    "professionalDefinition": "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs.",
+    "workflow": [
+      "Voice chart",
+      "Script against chart",
+      "Review",
+      "Caption match"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-brand-voice",
+      "title": "Brand Voice",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The consistent personality of brand language across copy and scripts.",
+      "coreConcepts": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "definitions": [
+        "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs.",
+        "Keep video scripts and CTAs sounding like the same brand."
+      ],
+      "rules": [
+        "Practice: Define do/don’t examples",
+        "Practice: Adapt intensity not personality",
+        "Practice: Align VO casting to voice"
+      ],
+      "bestPractices": [
+        "Define do/don’t examples",
+        "Adapt intensity not personality",
+        "Align VO casting to voice"
+      ],
+      "professionalTechniques": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "workflow": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "decisionRules": [
+        "Follow: Define do/don’t examples",
+        "Follow: Adapt intensity not personality",
+        "Follow: Align VO casting to voice"
+      ],
+      "commonMistakes": [
+        "Tone whiplash across ads",
+        "Voice that insults the audience"
+      ],
+      "troubleshooting": [
+        "Avoid: Tone whiplash across ads",
+        "Avoid: Voice that insults the audience"
+      ],
+      "recommendations": [
+        "Define do/don’t examples",
+        "Adapt intensity not personality",
+        "Align VO casting to voice"
+      ],
+      "examples": [
+        "Expert-calm VO across demo and testimonial edits"
+      ],
+      "professionalStandards": [
+        "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs."
+      ],
+      "relatedTopics": [
+        "brand-story",
+        "brand-guidelines",
+        "ending-strategy",
+        "cta-strategy"
+      ],
+      "keywords": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-voice",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Voice",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "The consistent personality of brand language across copy and scripts.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Keep video scripts and CTAs sounding like the same brand."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Voice chart",
+            "Script against chart",
+            "Review",
+            "Caption match"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Define do/don’t examples",
+            "Adapt intensity not personality",
+            "Align VO casting to voice"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Expert-calm VO across demo and testimonial edits"
+          ]
+        }
+      ],
+      "concepts": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "entities": [
+        "Brand Voice",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "rules": [
+        "Avoid: Tone whiplash across ads",
+        "Avoid: Voice that insults the audience"
+      ],
+      "bestPractices": [
+        "Define do/don’t examples",
+        "Adapt intensity not personality",
+        "Align VO casting to voice"
+      ],
+      "professionalTechniques": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "examples": [
+        "Expert-calm VO across demo and testimonial edits"
+      ],
+      "commonMistakes": [
+        "Tone whiplash across ads",
+        "Voice that insults the audience"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Define do/don’t examples",
+        "Practice: Adapt intensity not personality",
+        "Practice: Align VO casting to voice"
+      ],
+      "workflowSteps": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "brand-brand-story",
+        "brand-brand-guidelines",
+        "vmkt-ending-strategy",
+        "sales-cta-strategy"
+      ],
+      "definitions": [
+        "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs.",
+        "Keep video scripts and CTAs sounding like the same brand."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Define do/don’t examples",
+      "Adapt intensity not personality",
+      "Align VO casting to voice"
+    ],
+    "bestPractices": [
+      "Define do/don’t examples",
+      "Adapt intensity not personality",
+      "Align VO casting to voice"
+    ],
+    "decisionRules": [
+      "Practice: Define do/don’t examples",
+      "Practice: Adapt intensity not personality",
+      "Practice: Align VO casting to voice"
+    ]
+  }
+}

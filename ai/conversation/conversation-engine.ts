@@ -26,9 +26,28 @@ const INTENT_RULES: Array<{ intent: ConversationIntent; terms: string[]; engines
   { intent: "animation-motion-rendering-knowledge", terms: ["animation knowledge", "motion graphics", "rendering knowledge", "principles of animation", "logo animation", "export settings", "video codecs", "recommend animation", "recommend motion", "recommend render", "squash and stretch", "match cut", "bitrate", "frame rate export", "HDR", "text animation"], engines: ["knowledge-foundation", "video-knowledge-engine"] },
   { intent: "marketing-branding-psychology-knowledge", terms: ["marketing knowledge", "branding knowledge", "customer psychology", "sales psychology", "marketing funnel", "value proposition", "social proof", "recommend marketing", "recommend branding", "hook creation", "first 3 seconds", "cta strategy", "persuasion", "brand identity", "conversion optimization", "product demonstration"], engines: ["knowledge-foundation", "video-knowledge-engine", "marketing-knowledge-engine"] },
   { intent: "social-media-knowledge", terms: ["social media knowledge", "tiktok best practices", "instagram reels", "facebook page", "youtube shorts", "recommend platform", "content calendar", "hashtag strategy", "thumbnail best practices", "platform selection", "community building", "posting best practices", "carousel strategy", "organic reach", "watch time", "stories strategy", "feed strategy"], engines: ["knowledge-foundation", "video-knowledge-engine", "marketing-knowledge-engine"] },
+  { intent: "industry-standards-quality-knowledge", terms: ["industry standards", "professional standards", "quality rules", "quality assurance", "quality evaluation", "quality checklist", "evaluate professional quality", "detect quality problems", "recommend quality improvements", "quality review", "approval process", "delivery standards", "production standards", "technical standards", "final approval checklist"], engines: ["knowledge-foundation", "video-knowledge-engine", "knowledge-validation-engine"] },
+  { intent: "professional-knowledge-certification", terms: ["professional knowledge certification", "professional knowledge expansion status", "knowledge expansion maturity", "certification status", "professional knowledge gaps", "is professional knowledge complete", "certify professional knowledge"], engines: ["knowledge-foundation", "knowledge-validation-engine", "video-knowledge-engine"] },
+  { intent: "professional-reasoning-certification", terms: ["professional reasoning certification", "certify professional reasoning", "reasoning decision certification", "is professional reasoning complete", "professional readiness score", "certify decision intelligence", "reasoning version 1.0"], engines: ["professional-reasoning-certification", "self-review-engine", "multi-domain-engine", "recommendation-engine", "knowledge-foundation"] },
+  { intent: "professional-self-review-intelligence", terms: ["self review", "self-review", "professional evaluation", "review my recommendation", "evaluate professional quality", "quality scoring", "detect weak reasoning", "improve recommendation", "overall readiness", "explain weaknesses", "explain strengths", "self improvement"], engines: ["self-review-engine", "multi-domain-engine", "recommendation-engine", "workflow-engine", "knowledge-foundation"] },
+  { intent: "professional-multi-domain-intelligence", terms: ["multi-domain reasoning", "multi domain reasoning", "cross-domain reasoning", "combine knowledge domains", "resolve domain conflict", "conflicting recommendations", "professional multi-domain", "multi-domain intelligence", "explain cross-domain", "domains participating"], engines: ["multi-domain-engine", "recommendation-engine", "workflow-engine", "decision-engine", "knowledge-foundation"] },
+  { intent: "professional-recommendation-intelligence", terms: ["professional recommendation", "recommendation intelligence", "recommend a professional", "recommend professional workflow", "recommend camera settings", "recommend lighting setup", "recommend storytelling strategy", "recommend editing technique", "recommend rendering settings", "recommend marketing strategy", "explain this recommendation", "recommendation alternatives", "recommendation memory", "second best option", "third alternative"], engines: ["recommendation-engine", "workflow-engine", "planning-engine", "decision-engine", "knowledge-foundation"] },
+  { intent: "professional-workflow-intelligence", terms: ["professional workflow", "workflow intelligence", "create a professional workflow", "optimize workflow", "reuse workflow", "explain this workflow", "workflow dependencies", "workflow memory", "modify workflow", "detect workflow improvements"], engines: ["workflow-engine", "planning-engine", "decision-engine", "knowledge-foundation"] },
+  { intent: "professional-planning-intelligence", terms: ["professional plan", "planning intelligence", "create a professional plan", "execution plan", "task breakdown", "plan workflow", "optimize plan", "modify plan", "reuse plan", "explain this plan", "planning confidence"], engines: ["planning-engine", "decision-engine", "knowledge-foundation", "knowledge-reasoning-engine"] },
+  { intent: "professional-decision-intelligence", terms: ["professional decision", "decision intelligence", "make a professional decision", "decide using knowledge foundation", "compare professional solutions", "recommend best workflow", "explain this decision", "decision confidence", "professional decision history"], engines: ["decision-engine", "knowledge-foundation", "knowledge-reasoning-engine"] },
+  { intent: "professional-knowledge-reasoning", terms: ["professional reasoning", "reason using knowledge foundation", "compare professional options", "explain professional decision", "knowledge-backed recommendation", "professional solution comparison", "why was this recommendation selected"], engines: ["knowledge-foundation", "knowledge-reasoning-engine", "video-knowledge-engine"] },
   { intent: "video-generation", terms: ["video", "movie", "film", "generate video", "amashusho"], engines: ["video-audio-generation", "creative-planning"] },
   { intent: "product-analysis", terms: ["analyze product", "product analysis", "analyse", "isesengura", "sesengura"], engines: ["product-intelligence", "image-intelligence"] },
-  { intent: "editing", terms: ["edit", "change", "remove background", "retouch", "hindura", "kosora"], engines: ["creative-workspace", "image-generation"] },
+  { intent: "product-asset-preparation", terms: ["prepare product assets", "product assets", "background removal", "remove background", "cutout", "asset library", "prepare assets", "product cutout"], engines: ["product-asset-preparation", "product-intelligence", "image-intelligence"] },
+  { intent: "product-scene-planning", terms: ["product scene plan", "plan product scenes", "product scene planning", "marketing scene plan", "scene sequence for product", "explain product scenes", "missing product scenes", "weak marketing flow"], engines: ["product-scene-planning", "product-asset-preparation", "product-intelligence"] },
+  { intent: "product-storyboard", terms: ["product storyboard", "marketing script", "generate storyboard", "storyboard and script", "voice script", "visual script", "explain storyboard", "explain script", "storyboard improvements"], engines: ["product-storyboard", "product-scene-planning", "product-asset-preparation", "product-intelligence"] },
+  { intent: "product-prompt-orchestration", terms: ["prompt orchestration", "orchestrate prompts", "prompt intelligence", "model orchestration", "execution plan", "explain prompts", "prompt conflicts", "select ai model", "optimize prompts"], engines: ["product-prompt-orchestration", "product-storyboard", "product-scene-planning", "product-asset-preparation", "product-intelligence"] },
+  { intent: "product-image-generation", terms: ["product image generation", "generate scene images", "marketing stills", "enhance product images", "background generation", "compose product scenes", "explain generated images", "scene marketing images"], engines: ["product-image-generation", "product-prompt-orchestration", "product-storyboard", "product-asset-preparation", "product-intelligence"] },
+  { intent: "product-video-generation", terms: ["product video generation", "generate product video", "animate product scenes", "camera motion", "cinematic product video", "explain video scenes", "video marketing flow"], engines: ["product-video-generation", "product-image-generation", "product-prompt-orchestration", "product-storyboard", "product-intelligence"] },
+  { intent: "product-audio-generation", terms: ["product audio generation", "generate voice over", "background music", "sound effects", "audio mix", "narration sync", "explain voice selection", "audio synchronization"], engines: ["product-audio-generation", "product-video-generation", "product-prompt-orchestration", "product-storyboard", "product-intelligence"] },
+  { intent: "product-rendering-export", terms: ["render video", "export video", "delivery package", "platform export", "render settings", "re-render", "export presets", "final marketing video"], engines: ["product-rendering-export", "product-audio-generation", "product-video-generation", "product-storyboard", "product-intelligence"] },
+  { intent: "creative-generation-certification", terms: ["creative generation certification", "certify creative pipeline", "product to video certification", "production readiness", "certify marketing video pipeline", "creative generation report"], engines: ["creative-generation-certification", "product-rendering-export", "product-audio-generation", "product-video-generation", "product-intelligence"] },
+  { intent: "editing", terms: ["edit", "change", "retouch", "hindura", "kosora"], engines: ["creative-workspace", "image-generation"] },
   { intent: "marketing", terms: ["marketing", "campaign", "audience", "cta", "ubukangurambaga", "abakiriya"], engines: ["marketing-intelligence", "creative-planning"] },
   { intent: "business-intelligence", terms: ["business", "sales", "revenue", "inventory", "stock", "forecast", "recommendation", "analytics", "ubucuruzi", "igurisha", "ububiko"], engines: ["business-intelligence", "decision-engine", "memory-foundation", "knowledge-foundation"] },
   { intent: "workspace-synchronization", terms: ["synchronization", "synchronize", "sync", "backup workspace", "restore workspace", "offline workspace", "cloud workspace"], engines: ["workspace-synchronization", "memory-backup-engine", "desktop-integration"] },
@@ -38,10 +57,26 @@ const INTENT_RULES: Array<{ intent: ConversationIntent; terms: string[]; engines
   { intent: "translation", terms: ["translate", "translation", "hindura mu", "ubuhinduzi"], engines: ["language-knowledge"] },
   { intent: "knowledge-persistence", terms: ["knowledge persistence", "restart verification", "knowledge seeding", "seeding certification", "permanently remember", "knowledge certificate", "knowledge health report"], engines: ["knowledge-foundation"] },
   { intent: "knowledge-import", terms: ["import knowledge", "knowledge import", "activate knowledge", "foundation activation", "imported knowledge", "sync knowledge", "knowledge foundation active"], engines: ["knowledge-foundation", "knowledge-validation-engine"] },
+  { intent: "knowledge-validation-integration", terms: ["validation integration", "integrate knowledge", "knowledge foundation update", "why was knowledge accepted", "why was knowledge rejected", "knowledge version history", "search imported knowledge", "validate staged knowledge"], engines: ["knowledge-validation-integration", "knowledge-foundation", "knowledge-research-engine"] },
+  { intent: "knowledge-evolution", terms: ["knowledge evolution", "evolve knowledge", "what changed in knowledge", "compare knowledge versions", "recommend latest knowledge", "deprecated knowledge", "continuous knowledge update"], engines: ["knowledge-evolution", "knowledge-validation-integration", "knowledge-foundation"] },
+  { intent: "feedback-intelligence", terms: ["feedback intelligence", "user feedback learning", "learn from feedback", "preference profile", "user preference learning", "what was learned from feedback", "feedback root cause", "project feedback history"], engines: ["feedback-intelligence", "knowledge-foundation"] },
+  { intent: "performance-analytics", terms: ["performance analytics", "production intelligence", "pipeline performance", "bottleneck detection", "resource usage analytics", "model performance", "production dashboard", "predict production time", "compare production sessions"], engines: ["performance-analytics", "knowledge-foundation"] },
+  { intent: "autonomous-learning", terms: ["autonomous learning", "knowledge expansion", "self learning", "learn new knowledge automatically", "expand knowledge packs", "what was newly learned", "intelligent knowledge expansion"], engines: ["autonomous-learning", "knowledge-foundation"] },
+  { intent: "workflow-model-optimization", terms: ["workflow optimization", "ai model optimization", "optimize workflow", "adaptive model selection", "recommend efficient workflow", "compare workflow versions", "predict production quality", "model combination"], engines: ["workflow-model-optimization", "knowledge-foundation"] },
+  { intent: "autonomous-improvement", terms: ["autonomous improvement", "self optimization", "self improvement", "apply safe improvements", "rollback improvement", "improvement memory", "why was improvement applied"], engines: ["autonomous-improvement", "knowledge-foundation"] },
+  { intent: "autonomous-intelligence-validation", terms: ["autonomous intelligence validation", "production readiness", "validate autonomous capabilities", "readiness score", "learning validation", "safety validation", "production simulation"], engines: ["autonomous-intelligence-validation", "knowledge-foundation"] },
+  { intent: "learning-certification", terms: ["learning certification", "continuous improvement certification", "certify learning system", "learning version 1.0", "is learning certified", "overall intelligence score"], engines: ["learning-certification", "knowledge-foundation"] },
+  { intent: "personal-project-workspace", terms: ["personal workspace", "project workspace", "create local project", "resume project", "workspace dashboard", "search my projects", "project history", "continue unfinished work", "auto save workspace"], engines: ["personal-project-workspace", "knowledge-foundation"] },
+  { intent: "local-asset-library", terms: ["asset library", "local assets", "find assets", "search assets", "import assets", "duplicate assets", "asset tags", "black shoe photos", "recommend assets", "asset versions"], engines: ["local-asset-library", "knowledge-foundation"] },
+  { intent: "local-production-queue", terms: ["production queue", "job queue", "pause job", "resume job", "cancel job", "retry job", "queue status", "job priority", "production jobs", "why is job waiting"], engines: ["local-production-queue", "knowledge-foundation"] },
+  { intent: "local-resource-manager", terms: ["resource manager", "cpu usage", "gpu usage", "production mode", "power saving", "system health", "resource forecast", "why was job delayed", "hardware upgrade", "balanced mode"], engines: ["local-resource-manager", "knowledge-foundation"] },
+  { intent: "automation-engine", terms: ["automation engine", "studio maintenance", "run maintenance", "incremental backup", "cache cleanup", "log rotation", "maintenance schedule", "restore point", "auto save workspace"], engines: ["automation-engine", "knowledge-foundation"] },
+  { intent: "workspace-manager", terms: ["workspace manager", "module status", "restart module", "resume session", "workspace status", "orchestrate modules", "session recovery", "active workspace"], engines: ["workspace-manager", "knowledge-foundation"] },
   { intent: "knowledge-validation", terms: ["knowledge validation", "validate knowledge", "certify knowledge", "knowledge certification", "certified packs", "pack quality", "professional readiness"], engines: ["knowledge-validation-engine", "knowledge-foundation"] },
   { intent: "knowledge-packs", terms: ["knowledge pack", "knowledge packs", "extract knowledge", "knowledge extraction", "professional knowledge", "decision rules", "best practices pack", "knowledge workflows"], engines: ["knowledge-processing-engine", "knowledge-foundation"] },
   { intent: "knowledge-documents", terms: ["document understanding", "understood documents", "search documents", "document summary", "summarize document", "explain document", "recommend documents", "missing topics", "document index"], engines: ["knowledge-processing-engine", "knowledge-foundation"] },
   { intent: "knowledge-collection", terms: ["collected resources", "knowledge collection", "local knowledge workspace", "workspace resources", "what resources collected", "missing knowledge resources", "collect knowledge", "resource metadata"], engines: ["knowledge-research-engine", "knowledge-foundation"] },
+  { intent: "online-research", terms: ["online research", "research online", "professional research mode", "detect internet", "trusted online sources", "knowledge acquisition engine", "stage research download", "why was source rejected", "why was source selected", "recommend research topics"], engines: ["knowledge-research-engine", "knowledge-source-manager", "knowledge-foundation"] },
   { intent: "knowledge-sources", terms: ["trusted source", "trusted sources", "source discovery", "best source", "recommend source", "missing sources", "knowledge sources", "source ranking"], engines: ["knowledge-source-manager", "knowledge-foundation"] },
   { intent: "knowledge-domains", terms: ["knowledge domain", "knowledge domains", "domain hierarchy", "learning priorities", "available knowledge", "missing knowledge", "what knowledge do we have", "domain planning"], engines: ["knowledge-domain-planning", "knowledge-foundation"] },
   { intent: "knowledge-acquisition", terms: ["learn ", "teach our ai", "teach ai", "research ", "improve our", "improve ", "knowledge foundation"], engines: ["knowledge-acquisition", "knowledge-foundation", "knowledge-validation"] },
@@ -77,6 +112,99 @@ export interface RuntimeStatusProvider {
   getSummary(): { providers: Array<{ name: string; available: boolean; models: number; error?: string }>; gpuName?: string; vramFreeMb?: number } | null;
 }
 
+export interface ProductIntelligenceConversationProvider {
+  isInitialized(): boolean;
+  analyzeProductIntelligence(projectId: string): Promise<import("../product-intelligence/types.js").ProductIntelligenceProfile>;
+  explainProduct(projectId: string): Promise<import("../product-intelligence/types.js").ProductIntelligenceExplainResult>;
+  getAiMeProductIntelligenceAwareness(): import("../product-intelligence/types.js").AiMeProductIntelligenceAwareness;
+}
+
+export interface ProductAssetPreparationConversationProvider {
+  isInitialized(): boolean;
+  prepareProductAssets(projectId: string): Promise<import("../product-asset-preparation/types.js").ProductAssetPreparationResult>;
+  explainAssetQuality(projectId: string): Promise<import("../product-asset-preparation/types.js").ProductAssetExplainResult>;
+  detectMissingAngles(projectId: string): Promise<import("../product-asset-preparation/types.js").ProductAssetViewType[]>;
+  recommendAdditionalPhotos(projectId: string): Promise<import("../product-asset-preparation/types.js").ProductAssetPreparationResult["photoRecommendations"]>;
+  getAiMeProductAssetAwareness(): import("../product-asset-preparation/types.js").AiMeProductAssetAwareness;
+}
+
+export interface ProductScenePlanningConversationProvider {
+  isInitialized(): boolean;
+  planProductScenes(projectId: string): Promise<import("../product-scene-planning/types.js").ProductScenePlanResult>;
+  explainScenes(projectId: string): Promise<import("../product-scene-planning/types.js").ProductSceneExplainResult>;
+  recommendSceneOrder(projectId: string): Promise<string[]>;
+  detectMissingScenes(projectId: string): Promise<import("../product-scene-planning/types.js").ProductSceneType[]>;
+  detectWeakMarketingFlow(projectId: string): Promise<string[]>;
+  getAiMeProductScenePlanningAwareness(): import("../product-scene-planning/types.js").AiMeProductScenePlanningAwareness;
+}
+
+export interface ProductStoryboardConversationProvider {
+  isInitialized(): boolean;
+  generateStoryboardAndScript(projectId: string): Promise<import("../product-storyboard/types.js").ProductStoryboardResult>;
+  explainStoryboard(projectId: string): Promise<import("../product-storyboard/types.js").ProductStoryboardExplainResult>;
+  recommendImprovements(projectId: string): Promise<string[]>;
+  detectMissingScenes(projectId: string): Promise<string[]>;
+  detectWeakMarketingFlow(projectId: string): Promise<string[]>;
+  getAiMeProductStoryboardAwareness(): import("../product-storyboard/types.js").AiMeProductStoryboardAwareness;
+}
+
+export interface ProductPromptOrchestrationConversationProvider {
+  isInitialized(): boolean;
+  orchestratePromptsAndModels(projectId: string): Promise<import("../product-prompt-orchestration/types.js").ProductPromptOrchestrationResult>;
+  explainOrchestration(projectId: string): Promise<import("../product-prompt-orchestration/types.js").ProductPromptOrchestrationExplainResult>;
+  recommendPromptImprovements(projectId: string): Promise<string[]>;
+  detectPromptConflicts(projectId: string): Promise<string[]>;
+  detectOrchestrationFailures(projectId: string): Promise<string[]>;
+  getAiMeProductPromptOrchestrationAwareness(): import("../product-prompt-orchestration/types.js").AiMeProductPromptOrchestrationAwareness;
+}
+
+export interface ProductImageGenerationConversationProvider {
+  isInitialized(): boolean;
+  generateProductSceneImages(projectId: string): Promise<import("../product-image-generation/types.js").ProductImageGenerationResult>;
+  explainGeneration(projectId: string): Promise<import("../product-image-generation/types.js").ProductImageGenerationExplainResult>;
+  recommendImageImprovements(projectId: string): Promise<string[]>;
+  getAiMeProductImageGenerationAwareness(): import("../product-image-generation/types.js").AiMeProductImageGenerationAwareness;
+}
+
+export interface ProductVideoGenerationConversationProvider {
+  isInitialized(): boolean;
+  generateProductSceneVideos(projectId: string): Promise<import("../product-video-generation/types.js").ProductVideoGenerationResult>;
+  explainGeneration(projectId: string): Promise<import("../product-video-generation/types.js").ProductVideoGenerationExplainResult>;
+  recommendImprovements(projectId: string): Promise<string[]>;
+  getAiMeProductVideoGenerationAwareness(): import("../product-video-generation/types.js").AiMeProductVideoGenerationAwareness;
+}
+
+export interface ProductAudioGenerationConversationProvider {
+  isInitialized(): boolean;
+  generateProductAudio(projectId: string): Promise<import("../product-audio-generation/types.js").ProductAudioGenerationResult>;
+  explainGeneration(projectId: string): Promise<import("../product-audio-generation/types.js").ProductAudioGenerationExplainResult>;
+  recommendBetterAudio(projectId: string): Promise<string[]>;
+  detectAudioQualityProblems(projectId: string): Promise<string[]>;
+  getAiMeProductAudioGenerationAwareness(): import("../product-audio-generation/types.js").AiMeProductAudioGenerationAwareness;
+}
+
+export interface ProductRenderingExportConversationProvider {
+  isInitialized(): boolean;
+  renderAndPackage(projectId: string): Promise<import("../product-rendering-export/types.js").ProductRenderingExportResult>;
+  explainRender(projectId: string): Promise<import("../product-rendering-export/types.js").ProductRenderingExportExplainResult>;
+  recommendExportSettings(projectId: string): Promise<string[]>;
+  detectRenderingProblems(projectId: string): Promise<string[]>;
+  comparePresets(projectId: string): Promise<Array<{ platform: string; why: string; width: number; height: number }>>;
+  rerender(projectId: string): Promise<import("../product-rendering-export/types.js").ProductRenderingExportResult>;
+  getAiMeProductRenderingExportAwareness(): import("../product-rendering-export/types.js").AiMeProductRenderingExportAwareness;
+}
+
+export interface CreativeGenerationCertificationConversationProvider {
+  isInitialized(): boolean;
+  certify(options?: {
+    autoRepair?: boolean;
+    kinds?: Array<"shoe" | "bag" | "phone" | "watch">;
+  }): Promise<import("../creative-generation-certification/types.js").CreativeGenerationCertificationResult>;
+  explainCertification(): Promise<import("../creative-generation-certification/types.js").CreativeGenerationCertificationExplainResult>;
+  getLatest(): Promise<import("../creative-generation-certification/types.js").CreativeGenerationCertificationResult | null>;
+  getAiMeCreativeGenerationCertificationAwareness(): import("../creative-generation-certification/types.js").AiMeCreativeGenerationCertificationAwareness;
+}
+
 /**
  * The single AI Me conversation owner. It preserves user turns locally,
  * retrieves existing foundation context, and prepares - but never silently
@@ -92,6 +220,16 @@ export class AiConversationEngine {
   private enterpriseCollaborationStatusProvider: EnterpriseCollaborationStatusProvider | null = null;
   private publishingDistributionStatusProvider: PublishingDistributionStatusProvider | null = null;
   private runtimeStatusProvider: RuntimeStatusProvider | null = null;
+  private productIntelligenceProvider: ProductIntelligenceConversationProvider | null = null;
+  private productAssetPreparationProvider: ProductAssetPreparationConversationProvider | null = null;
+  private productScenePlanningProvider: ProductScenePlanningConversationProvider | null = null;
+  private productStoryboardProvider: ProductStoryboardConversationProvider | null = null;
+  private productPromptOrchestrationProvider: ProductPromptOrchestrationConversationProvider | null = null;
+  private productImageGenerationProvider: ProductImageGenerationConversationProvider | null = null;
+  private productVideoGenerationProvider: ProductVideoGenerationConversationProvider | null = null;
+  private productAudioGenerationProvider: ProductAudioGenerationConversationProvider | null = null;
+  private productRenderingExportProvider: ProductRenderingExportConversationProvider | null = null;
+  private creativeGenerationCertificationProvider: CreativeGenerationCertificationConversationProvider | null = null;
 
   async initialize(core: AiCoreManager, storageRoot: string): Promise<void> {
     this.core = core;
@@ -130,6 +268,46 @@ export class AiConversationEngine {
 
   setRuntimeStatusProvider(provider: RuntimeStatusProvider | null): void {
     this.runtimeStatusProvider = provider;
+  }
+
+  setProductIntelligenceProvider(provider: ProductIntelligenceConversationProvider | null): void {
+    this.productIntelligenceProvider = provider;
+  }
+
+  setProductAssetPreparationProvider(provider: ProductAssetPreparationConversationProvider | null): void {
+    this.productAssetPreparationProvider = provider;
+  }
+
+  setProductScenePlanningProvider(provider: ProductScenePlanningConversationProvider | null): void {
+    this.productScenePlanningProvider = provider;
+  }
+
+  setProductStoryboardProvider(provider: ProductStoryboardConversationProvider | null): void {
+    this.productStoryboardProvider = provider;
+  }
+
+  setProductPromptOrchestrationProvider(provider: ProductPromptOrchestrationConversationProvider | null): void {
+    this.productPromptOrchestrationProvider = provider;
+  }
+
+  setProductImageGenerationProvider(provider: ProductImageGenerationConversationProvider | null): void {
+    this.productImageGenerationProvider = provider;
+  }
+
+  setProductVideoGenerationProvider(provider: ProductVideoGenerationConversationProvider | null): void {
+    this.productVideoGenerationProvider = provider;
+  }
+
+  setProductAudioGenerationProvider(provider: ProductAudioGenerationConversationProvider | null): void {
+    this.productAudioGenerationProvider = provider;
+  }
+
+  setProductRenderingExportProvider(provider: ProductRenderingExportConversationProvider | null): void {
+    this.productRenderingExportProvider = provider;
+  }
+
+  setCreativeGenerationCertificationProvider(provider: CreativeGenerationCertificationConversationProvider | null): void {
+    this.creativeGenerationCertificationProvider = provider;
   }
 
   async respond(input: ConversationInput): Promise<ConversationResponse> {
@@ -174,6 +352,869 @@ export class AiConversationEngine {
     }
 
     const context = await this.retrieveContext(message, conversation.projectId);
+    if (intent === "creative-generation-certification") {
+      const provider = this.creativeGenerationCertificationProvider;
+      const awareness = provider?.getAiMeCreativeGenerationCertificationAwareness();
+      const missingInformation = !provider?.isInitialized()
+        ? ["Creative Generation Certification runtime is not initialized."]
+        : [];
+      let certification: import("../creative-generation-certification/types.js").CreativeGenerationCertificationResult | undefined;
+      let explanation: import("../creative-generation-certification/types.js").CreativeGenerationCertificationExplainResult | undefined;
+      if (provider?.isInitialized() && missingInformation.length === 0) {
+        certification = await provider.certify({ autoRepair: true });
+        explanation = await provider.explainCertification();
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["creative-generation-certification", "product-rendering-export", "product-audio-generation", "product-video-generation", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(explanation?.blockers.slice(0, 3) ?? []),
+        ],
+      };
+      const response = explanation
+        ? buildCreativeGenerationCertificationResponse(explanation, awareness, certification)
+        : missingInformation.length
+          ? `Before Creative Generation Certification can run: ${missingInformation.join(" ")}`
+          : "Creative Generation Certification is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        creativeGenerationCertification: explanation,
+        creativeGenerationCertificationAwareness: awareness ?? undefined,
+        creativeGenerationCertificationResult: certification,
+      };
+    }
+    if (intent === "product-rendering-export") {
+      const provider = this.productRenderingExportProvider;
+      const productRenderingExportAwareness = provider?.getAiMeProductRenderingExportAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with audio and video ready for rendering."]
+        : !provider?.isInitialized()
+          ? ["Product Rendering & Export runtime is not initialized."]
+          : [];
+      let productRenderingExportResult: import("../product-rendering-export/types.js").ProductRenderingExportResult | undefined;
+      let productRenderingExport: import("../product-rendering-export/types.js").ProductRenderingExportExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productRenderingExportResult = await provider.renderAndPackage(projectId);
+        productRenderingExport = await provider.explainRender(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-rendering-export", "product-audio-generation", "product-video-generation", "product-storyboard", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productRenderingExport?.problems.slice(0, 3) ?? []),
+        ],
+      };
+      const response = productRenderingExport
+        ? buildProductRenderingExportResponse(productRenderingExport, productRenderingExportAwareness)
+        : missingInformation.length
+          ? `Before product rendering can run: ${missingInformation.join(" ")}`
+          : "Product Rendering & Export is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productRenderingExport,
+        productRenderingExportAwareness,
+        productRenderingExportResult,
+      };
+    }
+    if (intent === "product-audio-generation") {
+      const provider = this.productAudioGenerationProvider;
+      const productAudioGenerationAwareness = provider?.getAiMeProductAudioGenerationAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with generated video for audio generation."]
+        : !provider?.isInitialized()
+          ? ["Product Audio Generation runtime is not initialized."]
+          : [];
+      let productAudioGenerationResult: import("../product-audio-generation/types.js").ProductAudioGenerationResult | undefined;
+      let productAudioGeneration: import("../product-audio-generation/types.js").ProductAudioGenerationExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productAudioGenerationResult = await provider.generateProductAudio(projectId);
+        productAudioGeneration = await provider.explainGeneration(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-audio-generation", "product-video-generation", "product-prompt-orchestration", "product-storyboard", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productAudioGeneration?.syncProblems.slice(0, 3) ?? []),
+        ],
+      };
+      const response = productAudioGeneration
+        ? buildProductAudioGenerationResponse(productAudioGeneration, productAudioGenerationAwareness)
+        : missingInformation.length
+          ? `Before product audio generation can run: ${missingInformation.join(" ")}`
+          : "Product Audio Generation is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productAudioGeneration,
+        productAudioGenerationAwareness,
+        productAudioGenerationResult,
+      };
+    }
+    if (intent === "product-video-generation") {
+      const provider = this.productVideoGenerationProvider;
+      const productVideoGenerationAwareness = provider?.getAiMeProductVideoGenerationAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with scene images for video generation."]
+        : !provider?.isInitialized()
+          ? ["Product Video Generation runtime is not initialized."]
+          : [];
+      let productVideoGenerationResult: import("../product-video-generation/types.js").ProductVideoGenerationResult | undefined;
+      let productVideoGeneration: import("../product-video-generation/types.js").ProductVideoGenerationExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productVideoGenerationResult = await provider.generateProductSceneVideos(projectId);
+        productVideoGeneration = await provider.explainGeneration(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-video-generation", "product-image-generation", "product-prompt-orchestration", "product-storyboard", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = productVideoGeneration
+        ? buildProductVideoGenerationResponse(productVideoGeneration, productVideoGenerationAwareness)
+        : missingInformation.length
+          ? `Before product video generation can run: ${missingInformation.join(" ")}`
+          : "Product Video Generation is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productVideoGeneration,
+        productVideoGenerationAwareness,
+        productVideoGenerationResult,
+      };
+    }
+    if (intent === "product-image-generation") {
+      const provider = this.productImageGenerationProvider;
+      const productImageGenerationAwareness = provider?.getAiMeProductImageGenerationAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with orchestrated prompts for image generation."]
+        : !provider?.isInitialized()
+          ? ["Product Image Generation runtime is not initialized."]
+          : [];
+      let productImageGenerationResult: import("../product-image-generation/types.js").ProductImageGenerationResult | undefined;
+      let productImageGeneration: import("../product-image-generation/types.js").ProductImageGenerationExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productImageGenerationResult = await provider.generateProductSceneImages(projectId);
+        productImageGeneration = await provider.explainGeneration(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-image-generation", "product-prompt-orchestration", "product-storyboard", "product-asset-preparation", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = productImageGeneration
+        ? buildProductImageGenerationResponse(productImageGeneration, productImageGenerationAwareness)
+        : missingInformation.length
+          ? `Before product image generation can run: ${missingInformation.join(" ")}`
+          : "Product Image Generation is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productImageGeneration,
+        productImageGenerationAwareness,
+        productImageGenerationResult,
+      };
+    }
+    if (intent === "product-prompt-orchestration") {
+      const provider = this.productPromptOrchestrationProvider;
+      const productPromptOrchestrationAwareness = provider?.getAiMeProductPromptOrchestrationAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with a storyboard for prompt orchestration."]
+        : !provider?.isInitialized()
+          ? ["Product Prompt Orchestration runtime is not initialized."]
+          : [];
+      let productPromptOrchestrationResult: import("../product-prompt-orchestration/types.js").ProductPromptOrchestrationResult | undefined;
+      let productPromptOrchestration: import("../product-prompt-orchestration/types.js").ProductPromptOrchestrationExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productPromptOrchestrationResult = await provider.orchestratePromptsAndModels(projectId);
+        productPromptOrchestration = await provider.explainOrchestration(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-prompt-orchestration", "product-storyboard", "product-scene-planning", "product-asset-preparation", "product-intelligence"],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productPromptOrchestration?.promptConflicts.slice(0, 3) ?? []),
+          ...(productPromptOrchestration?.orchestrationFailures.slice(0, 3) ?? []),
+        ],
+      };
+      const response = productPromptOrchestration
+        ? buildProductPromptOrchestrationResponse(productPromptOrchestration, productPromptOrchestrationAwareness)
+        : missingInformation.length
+          ? `Before prompt orchestration can run: ${missingInformation.join(" ")}`
+          : "Product Prompt Orchestration is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productPromptOrchestration,
+        productPromptOrchestrationAwareness,
+        productPromptOrchestrationResult,
+      };
+    }
+    if (intent === "product-storyboard") {
+      const provider = this.productStoryboardProvider;
+      const productStoryboardAwareness = provider?.getAiMeProductStoryboardAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with scene plans for storyboard generation."]
+        : !provider?.isInitialized()
+          ? ["Product Storyboard runtime is not initialized."]
+          : [];
+      let productStoryboardResult: import("../product-storyboard/types.js").ProductStoryboardResult | undefined;
+      let productStoryboard: import("../product-storyboard/types.js").ProductStoryboardExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productStoryboardResult = await provider.generateStoryboardAndScript(projectId);
+        productStoryboard = await provider.explainStoryboard(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-storyboard", "product-scene-planning", "product-asset-preparation", "product-intelligence"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productStoryboard?.missingScenes.slice(0, 3) ?? []),
+          ...(productStoryboard?.weakFlowNotes.slice(0, 3) ?? []),
+        ],
+      };
+      const response = productStoryboard
+        ? buildProductStoryboardResponse(productStoryboard, productStoryboardAwareness)
+        : missingInformation.length
+          ? `Before product storyboard generation can run: ${missingInformation.join(" ")}`
+          : "Product Storyboard is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productStoryboard,
+        productStoryboardAwareness,
+        productStoryboardResult,
+      };
+    }
+    if (intent === "product-scene-planning") {
+      const provider = this.productScenePlanningProvider;
+      const productScenePlanningAwareness = provider?.getAiMeProductScenePlanningAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project with prepared product assets for scene planning."]
+        : !provider?.isInitialized()
+          ? ["Product Scene Planning runtime is not initialized."]
+          : [];
+      let productScenePlanResult: import("../product-scene-planning/types.js").ProductScenePlanResult | undefined;
+      let productScenePlanning: import("../product-scene-planning/types.js").ProductSceneExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productScenePlanResult = await provider.planProductScenes(projectId);
+        productScenePlanning = await provider.explainScenes(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-scene-planning", "product-asset-preparation", "product-intelligence"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productScenePlanning?.missingScenes.map((scene) => `Missing scene: ${scene}`) ?? []),
+          ...(productScenePlanning?.weakFlowNotes.slice(0, 3) ?? []),
+        ],
+      };
+      const response = productScenePlanning
+        ? buildProductScenePlanningResponse(productScenePlanning, productScenePlanningAwareness)
+        : missingInformation.length
+          ? `Before product scene planning can run: ${missingInformation.join(" ")}`
+          : "Product Scene Planning is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productScenePlanning,
+        productScenePlanningAwareness,
+        productScenePlanResult,
+      };
+    }
+    if (intent === "product-asset-preparation") {
+      const provider = this.productAssetPreparationProvider;
+      const productAssetPreparationAwareness = provider?.getAiMeProductAssetAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project that contains product images for asset preparation."]
+        : !provider?.isInitialized()
+          ? ["Product Asset Preparation runtime is not initialized."]
+          : [];
+      let productAssetPreparationResult: import("../product-asset-preparation/types.js").ProductAssetPreparationResult | undefined;
+      let productAssetPreparation: import("../product-asset-preparation/types.js").ProductAssetExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productAssetPreparationResult = await provider.prepareProductAssets(projectId);
+        productAssetPreparation = await provider.explainAssetQuality(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-asset-preparation", "product-intelligence", "image-intelligence"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productAssetPreparation?.missingViews.map((view) => `Missing ${view} view`) ?? []),
+        ],
+      };
+      const response = productAssetPreparation
+        ? buildProductAssetPreparationResponse(productAssetPreparation, productAssetPreparationAwareness)
+        : missingInformation.length
+          ? `Before product asset preparation can run: ${missingInformation.join(" ")}`
+          : "Product Asset Preparation is unavailable until the runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productAssetPreparation,
+        productAssetPreparationAwareness,
+        productAssetPreparationResult,
+      };
+    }
+    if (intent === "product-analysis") {
+      const provider = this.productIntelligenceProvider;
+      const productIntelligenceAwareness = provider?.getAiMeProductIntelligenceAwareness();
+      const projectId = conversation.projectId ?? input.projectId;
+      const missingInformation = !projectId
+        ? ["Select or provide the creative project that contains the product images and product information."]
+        : !provider?.isInitialized()
+          ? ["Product Intelligence runtime is not initialized."]
+          : [];
+      let productIntelligenceProfile: import("../product-intelligence/types.js").ProductIntelligenceProfile | undefined;
+      let productIntelligence: import("../product-intelligence/types.js").ProductIntelligenceExplainResult | undefined;
+      if (projectId && provider?.isInitialized() && missingInformation.length === 0) {
+        productIntelligenceProfile = await provider.analyzeProductIntelligence(projectId);
+        productIntelligence = await provider.explainProduct(projectId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["product-intelligence", "image-intelligence"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(productIntelligence?.missingInformation.map((item) => `${item.field}: ${item.recommendation}`) ?? []),
+        ],
+      };
+      const response = productIntelligence
+        ? buildProductIntelligenceResponse(productIntelligence, productIntelligenceAwareness)
+        : missingInformation.length
+          ? `Before product analysis can run: ${missingInformation.join(" ")}`
+          : "Product Intelligence is unavailable until the creative product intelligence runtime is attached.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        productIntelligence,
+        productIntelligenceAwareness,
+        productIntelligenceProfile,
+      };
+    }
+    if (intent === "professional-reasoning-certification") {
+      const certificationEngine = this.core!.professionalReasoningCertification;
+      const professionalReasoningCertificationAwareness =
+        certificationEngine?.getAiMeProfessionalReasoningCertificationAwareness();
+      const professionalReasoningCertification =
+        certificationEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await certificationEngine.certify({ autoRepair: true })
+          : undefined;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: [
+          "professional-reasoning-certification",
+          "self-review-engine",
+          "multi-domain-engine",
+          "recommendation-engine",
+          "knowledge-foundation",
+        ],
+        complexity: "high",
+        readyForWorkflow: false,
+        missingInformation: professionalReasoningCertification?.blockers ?? [],
+      };
+      const response = professionalReasoningCertification
+        ? `${professionalReasoningCertificationAwareness?.summary ?? "Professional Reasoning Certification ready."} ${buildProfessionalReasoningCertificationResponse(professionalReasoningCertification)}`
+        : "Professional Reasoning Certification is unavailable until the Certification Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalReasoningCertification,
+        professionalReasoningCertificationAwareness,
+      };
+    }
+    if (intent === "professional-self-review-intelligence") {
+      const selfReviewEngine = this.core!.selfReviewEngine;
+      const professionalSelfReviewAwareness = selfReviewEngine?.getAiMeProfessionalSelfReviewAwareness();
+      let professionalSelfReview =
+        selfReviewEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await selfReviewEngine.reviewProfessional({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              reuseSimilarReviews: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      if (professionalSelfReview && /explain weaknesses|explain strengths|explain this review|explain self-review/i.test(message)) {
+        const explained = selfReviewEngine!.explainProfessionalSelfReview(professionalSelfReview.reviewId);
+        professionalSelfReview = {
+          ...professionalSelfReview,
+          explanation: {
+            whyReviewed: explained.whyReviewed,
+            objectiveReviewed: explained.objectiveReviewed,
+            processesReviewed: explained.processesReviewed,
+            knowledgeReferenced: explained.knowledgeReferenced,
+            standardsApplied: explained.standardsApplied,
+            strengths: explained.strengths,
+            weaknesses: explained.weaknesses,
+            improvementsMade: explained.improvementsMade,
+            confidenceScore: explained.confidenceScore,
+          },
+        };
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["self-review-engine", "multi-domain-engine", "recommendation-engine", "workflow-engine", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalSelfReview?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalSelfReview
+        ? `${professionalSelfReviewAwareness?.summary ?? "Professional Self-Review ready."} ${buildProfessionalSelfReviewResponse(professionalSelfReview)}`
+        : "Professional Self-Review is unavailable until the Self-Review Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalSelfReview,
+        professionalSelfReviewAwareness,
+      };
+    }
+    if (intent === "professional-multi-domain-intelligence") {
+      const multiDomainEngine = this.core!.multiDomainEngine;
+      const professionalMultiDomainAwareness = multiDomainEngine?.getAiMeProfessionalMultiDomainAwareness();
+      let professionalMultiDomain =
+        multiDomainEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await multiDomainEngine.reasonMultiDomain({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              reuseSimilarReasoning: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      if (professionalMultiDomain && /explain cross-domain|explain this multi-domain|explain multi-domain/i.test(message)) {
+        const explained = multiDomainEngine!.explainMultiDomainReasoning(professionalMultiDomain.reasoningId);
+        professionalMultiDomain = {
+          ...professionalMultiDomain,
+          explanation: {
+            whySelected: explained.whySelected,
+            domainsParticipating: explained.domainsParticipating,
+            knowledgePacksUsed: explained.knowledgePacksUsed,
+            knowledgeIdsUsed: explained.knowledgeIdsUsed,
+            workflowsReferenced: explained.workflowsReferenced,
+            decisionRulesApplied: explained.decisionRulesApplied,
+            conflictsResolved: explained.conflictsResolved,
+            expectedBenefits: explained.expectedBenefits,
+            confidenceScore: explained.confidenceScore,
+          },
+        };
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["multi-domain-engine", "recommendation-engine", "workflow-engine", "decision-engine", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalMultiDomain?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalMultiDomain
+        ? `${professionalMultiDomainAwareness?.summary ?? "Professional Multi-Domain Reasoning ready."} ${buildProfessionalMultiDomainResponse(professionalMultiDomain)}`
+        : "Professional Multi-Domain Reasoning is unavailable until the Multi-Domain Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalMultiDomain,
+        professionalMultiDomainAwareness,
+      };
+    }
+    if (intent === "professional-recommendation-intelligence") {
+      const recommendationEngine = this.core!.recommendationEngine;
+      const professionalRecommendationAwareness = recommendationEngine?.getAiMeProfessionalRecommendationAwareness();
+      let professionalRecommendation =
+        recommendationEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await recommendationEngine.recommendProfessional({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              reuseSimilarRecommendations: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      if (professionalRecommendation && /explain this recommendation|explain recommendation/i.test(message)) {
+        const explained = recommendationEngine!.explainProfessionalRecommendation(professionalRecommendation.recommendationId);
+        professionalRecommendation = {
+          ...professionalRecommendation,
+          explanation: {
+            whySelected: explained.whySelected,
+            knowledgePacksUsed: explained.knowledgePacksUsed,
+            knowledgeIdsUsed: explained.knowledgeIdsUsed,
+            workflowsConsidered: explained.workflowsConsidered,
+            decisionsInfluenced: explained.decisionsInfluenced,
+            professionalStandardsApplied: explained.professionalStandardsApplied,
+            expectedBenefits: explained.expectedBenefits,
+            domainsUsed: explained.domainsUsed,
+            rankingReason: explained.rankingReason,
+            confidenceScore: explained.confidenceScore,
+          },
+        };
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["recommendation-engine", "workflow-engine", "planning-engine", "decision-engine", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalRecommendation?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalRecommendation
+        ? `${professionalRecommendationAwareness?.summary ?? "Professional Recommendation Intelligence ready."} ${buildProfessionalRecommendationResponse(professionalRecommendation)}`
+        : "Professional Recommendation Intelligence is unavailable until the Recommendation Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalRecommendation,
+        professionalRecommendationAwareness,
+      };
+    }
+    if (intent === "professional-workflow-intelligence") {
+      const workflowEngine = this.core!.workflowEngine;
+      const professionalWorkflowAwareness = workflowEngine?.getAiMeProfessionalWorkflowAwareness();
+      let professionalWorkflow =
+        workflowEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await workflowEngine.createProfessionalWorkflow({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              reuseSimilarWorkflows: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      if (professionalWorkflow && /optimize workflow|optimize this workflow/i.test(message)) {
+        professionalWorkflow = workflowEngine!.optimizeProfessionalWorkflow(professionalWorkflow.workflowId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["workflow-engine", "planning-engine", "decision-engine", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [],
+      };
+      const response = professionalWorkflow
+        ? `${professionalWorkflowAwareness?.summary ?? "Professional Workflow Intelligence ready."} ${buildProfessionalWorkflowResponse(professionalWorkflow)}`
+        : "Professional Workflow Intelligence is unavailable until the Workflow Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalWorkflow,
+        professionalWorkflowAwareness,
+      };
+    }
+    if (intent === "professional-planning-intelligence") {
+      const planningEngine = this.core!.planningEngine;
+      const professionalPlanningAwareness = planningEngine?.getAiMeProfessionalPlanningAwareness();
+      let professionalPlan =
+        planningEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await planningEngine.planProfessional({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              reuseSimilarPlans: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      if (professionalPlan && /optimize plan|optimize this plan/i.test(message)) {
+        professionalPlan = planningEngine!.optimizeProfessionalPlan(professionalPlan.planId);
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["planning-engine", "decision-engine", "knowledge-foundation", "knowledge-reasoning-engine"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalPlan?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalPlan
+        ? `${professionalPlanningAwareness?.summary ?? "Professional Planning Intelligence ready."} ${buildProfessionalPlanningResponse(professionalPlan)}`
+        : "Professional Planning Intelligence is unavailable until the Planning Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalPlan,
+        professionalPlanningAwareness,
+      };
+    }
+    if (intent === "professional-decision-intelligence") {
+      const decisionEngine = this.core!.decisionEngine;
+      const professionalDecisionAwareness = decisionEngine?.getAiMeProfessionalDecisionAwareness();
+      const professionalDecision =
+        decisionEngine && this.core!.knowledgeFoundation?.isStartupComplete()
+          ? await decisionEngine.decideProfessional({
+              request: message,
+              objective: message,
+              includeDomainModules: true,
+              context: {
+                product: context.projectKnown ? conversation.projectId : undefined,
+              },
+            })
+          : undefined;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["decision-engine", "knowledge-foundation", "knowledge-reasoning-engine"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalDecision?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalDecision
+        ? `${professionalDecisionAwareness?.summary ?? "Professional Decision Intelligence ready."} ${buildProfessionalDecisionResponse(professionalDecision)}`
+        : "Professional Decision Intelligence is unavailable until the Decision Engine and Knowledge Foundation complete startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalDecision,
+        professionalDecisionAwareness,
+      };
+    }
+    if (intent === "professional-knowledge-reasoning") {
+      const reasoningEngine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getKnowledgeReasoningEngine()
+        : null;
+      const professionalReasoningAwareness = reasoningEngine?.getAiMeAwareness();
+      const professionalKnowledge = reasoningEngine
+        ? await reasoningEngine.reasonProfessional({
+            request: message,
+            objective: message,
+            includeDomainModules: true,
+            context: {
+              product: context.projectKnown ? conversation.projectId : undefined,
+            },
+          })
+        : undefined;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-foundation", "knowledge-reasoning-engine", "video-knowledge-engine"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: professionalKnowledge?.missingInformation.map((item) => item.field) ?? [],
+      };
+      const response = professionalKnowledge
+        ? `${professionalReasoningAwareness?.summary ?? "Professional Reasoning Engine ready."} ${buildProfessionalKnowledgeResponse(professionalKnowledge)}`
+        : "Professional Reasoning is unavailable until the Knowledge Foundation completes startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalKnowledge,
+        professionalReasoningAwareness,
+      };
+    }
+    if (intent === "professional-knowledge-certification") {
+      const certification = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getProfessionalKnowledgeCertificationEngine()
+        : null;
+      const professionalKnowledgeCertificationAwareness = certification?.getAiMeAwareness();
+      const result = certification?.getLastResult();
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-foundation", "knowledge-validation-engine", "video-knowledge-engine"],
+        complexity: "low",
+        readyForWorkflow: false,
+        missingInformation: [],
+      };
+      const response = professionalKnowledgeCertificationAwareness
+        ? buildProfessionalCertificationResponse(professionalKnowledgeCertificationAwareness, result)
+        : "Professional Knowledge Certification is unavailable until the Knowledge Foundation completes startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        professionalKnowledgeCertificationAwareness,
+      };
+    }
+    if (intent === "industry-standards-quality-knowledge") {
+      const industry = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getProfessionalIndustryStandardsQualityKnowledge()
+        : null;
+      const industryStandardsQualityAwareness = industry?.getAiMeAwareness();
+      const quality = industry?.evaluateProfessionalQuality(message);
+      const improvement = industry?.recommendImprovement(message);
+      const problems = industry?.detectQualityProblems(message);
+      const standard = industry?.explainIndustryStandard(message);
+      const practices = industry?.recommendBestPractices(message);
+      const answered = industry?.answer(message);
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-foundation", "video-knowledge-engine", "knowledge-validation-engine"],
+        complexity: "low",
+        readyForWorkflow: false,
+        missingInformation: [],
+      };
+      const response = industryStandardsQualityAwareness
+        ? buildIsqResponse(
+            industryStandardsQualityAwareness,
+            quality,
+            improvement,
+            problems,
+            standard,
+            practices,
+            answered
+          )
+        : "Industry Standards & Professional Quality Knowledge is unavailable until the Knowledge Foundation completes startup.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        industryStandardsQualityAwareness,
+      };
+    }
     if (intent === "social-media-knowledge") {
       const sm = this.core!.knowledgeFoundation?.isStartupComplete()
         ? this.core!.knowledgeFoundation.getProfessionalSocialMediaKnowledge()
@@ -586,6 +1627,597 @@ export class AiConversationEngine {
         documentAwareness,
       };
     }
+    if (intent === "online-research") {
+      const research = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getKnowledgeResearchEngine()
+        : null;
+      const missingInformation = !research
+        ? ["Online Research Engine is unavailable until the local Knowledge Foundation has completed startup."]
+        : [];
+      let onlineResearchSession: import("../knowledge-research-engine/types.js").OnlineResearchSessionResult | undefined;
+      const onlineResearchAwareness = research?.getAiMeOnlineResearchAwareness();
+      if (research && missingInformation.length === 0) {
+        const topicMatch = message.match(/(?:research|learn about|study)\s+(.+)$/i);
+        onlineResearchSession = await research.runOnlineResearchSession({
+          topic: topicMatch?.[1]?.trim() || "Product Marketing Video Production",
+          probeLiveNetwork: false,
+        });
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-research-engine", "knowledge-source-manager", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation: [
+          ...missingInformation,
+          ...(onlineResearchSession?.issuesFound.slice(0, 2) ?? []),
+        ],
+      };
+      const response = onlineResearchSession
+        ? buildOnlineResearchResponse(onlineResearchSession, onlineResearchAwareness)
+        : missingInformation.length
+          ? `Before online research can run: ${missingInformation.join(" ")}`
+          : "Online Research Engine is unavailable.";
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        onlineResearchAwareness,
+        onlineResearchSession,
+      };
+    }
+    if (intent === "knowledge-evolution") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getKnowledgeEvolutionEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Knowledge Evolution is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const knowledgeEvolutionAwareness = engine?.getAiMeKnowledgeEvolutionAwareness();
+      const knowledgeEvolutionResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = knowledgeEvolutionResult?.newKnowledgeAdded[0]?.id
+        ?? knowledgeEvolutionResult?.updatedPacks[0]?.itemId;
+      const explanation = sampleId && engine ? engine.explainEvolution(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-evolution", "knowledge-validation-integration", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = knowledgeEvolutionAwareness
+        ? buildKnowledgeEvolutionResponse(knowledgeEvolutionAwareness, knowledgeEvolutionResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        knowledgeEvolutionAwareness,
+        knowledgeEvolutionResult,
+      };
+    }
+    if (intent === "feedback-intelligence") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getFeedbackIntelligenceEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Feedback Intelligence is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const feedbackIntelligenceAwareness = engine?.getAiMeAwareness();
+      const feedbackIntelligenceResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = feedbackIntelligenceResult?.analyzed[0]?.id
+        ?? engine?.getAllFeedback()[0]?.id;
+      const explanation = engine ? engine.explain(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["feedback-intelligence", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = feedbackIntelligenceAwareness
+        ? buildFeedbackIntelligenceResponse(feedbackIntelligenceAwareness, feedbackIntelligenceResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        feedbackIntelligenceAwareness,
+        feedbackIntelligenceResult,
+      };
+    }
+    if (intent === "performance-analytics") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getPerformanceAnalyticsEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Performance Analytics is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const performanceAnalyticsAwareness = engine?.getAiMeAwareness();
+      const performanceAnalyticsResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = performanceAnalyticsResult?.sessions[0]?.id
+        ?? engine?.getSessions()[0]?.id;
+      const explanation = engine ? engine.explain(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["performance-analytics", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = performanceAnalyticsAwareness
+        ? buildPerformanceAnalyticsResponse(performanceAnalyticsAwareness, performanceAnalyticsResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        performanceAnalyticsAwareness,
+        performanceAnalyticsResult,
+      };
+    }
+    if (intent === "autonomous-learning") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getAutonomousLearningEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Autonomous Learning is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const autonomousLearningAwareness = engine?.getAiMeAwareness();
+      const autonomousLearningResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = autonomousLearningResult?.discovered.find((d) => d.accepted)?.id
+        ?? engine?.getDiscoveries().find((d) => d.accepted)?.id;
+      const explanation = engine ? engine.explain(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["autonomous-learning", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = autonomousLearningAwareness
+        ? buildAutonomousLearningResponse(autonomousLearningAwareness, autonomousLearningResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        autonomousLearningAwareness,
+        autonomousLearningResult,
+      };
+    }
+    if (intent === "workflow-model-optimization") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getWorkflowModelOptimizationEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Workflow & Model Optimization is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const workflowModelOptimizationAwareness = engine?.getAiMeAwareness();
+      const workflowModelOptimizationResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = workflowModelOptimizationResult?.optimizedWorkflows[0]?.workflowId
+        ?? engine?.getOptimizedWorkflows()[0]?.workflowId;
+      const explanation = engine ? engine.explain(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["workflow-model-optimization", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = workflowModelOptimizationAwareness
+        ? buildWorkflowModelOptimizationResponse(workflowModelOptimizationAwareness, workflowModelOptimizationResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        workflowModelOptimizationAwareness,
+        workflowModelOptimizationResult,
+      };
+    }
+    if (intent === "autonomous-improvement") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getAutonomousImprovementEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Autonomous Improvement is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const autonomousImprovementAwareness = engine?.getAiMeAwareness();
+      const autonomousImprovementResult = engine?.getLatestRun() ?? undefined;
+      const sampleId = autonomousImprovementResult?.applied[0]?.id
+        ?? engine?.getMemory().find((m) => m.applied)?.id;
+      const explanation = engine ? engine.explain(sampleId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["autonomous-improvement", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = autonomousImprovementAwareness
+        ? buildAutonomousImprovementResponse(autonomousImprovementAwareness, autonomousImprovementResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        autonomousImprovementAwareness,
+        autonomousImprovementResult,
+      };
+    }
+    if (intent === "autonomous-intelligence-validation") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getAutonomousIntelligenceValidationEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Autonomous Intelligence Validation is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const autonomousIntelligenceValidationAwareness = engine?.getAiMeAwareness();
+      const autonomousIntelligenceValidationResult = engine?.getLatestRun() ?? undefined;
+      const explanation = engine
+        ? engine.explain(autonomousIntelligenceValidationResult?.runId)
+        : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["autonomous-intelligence-validation", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = autonomousIntelligenceValidationAwareness
+        ? buildAutonomousIntelligenceValidationResponse(
+          autonomousIntelligenceValidationAwareness,
+          autonomousIntelligenceValidationResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        autonomousIntelligenceValidationAwareness,
+        autonomousIntelligenceValidationResult,
+      };
+    }
+    if (intent === "learning-certification") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getLearningCertificationEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Learning Certification is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const learningCertificationResult = engine?.getLatestRun() ?? undefined;
+      const learningCertificationAwareness = engine?.getAiMeAwareness(learningCertificationResult);
+      const explanation = engine ? engine.explain(learningCertificationResult?.runId) : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["learning-certification", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = learningCertificationAwareness
+        ? buildLearningCertificationResponse(learningCertificationAwareness, learningCertificationResult, explanation)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        learningCertificationAwareness,
+        learningCertificationResult,
+      };
+    }
+    if (intent === "personal-project-workspace") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getPersonalProjectWorkspaceEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Personal Project Workspace is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const personalProjectWorkspaceAwareness = engine?.getAiMeAwareness();
+      const personalProjectWorkspaceResult = engine?.runWorkspaceCycle();
+      const unfinished = engine?.continueUnfinishedWork() ?? null;
+      const explanation = engine
+        ? engine.explain(unfinished?.projectId ?? personalProjectWorkspaceResult?.projects[0]?.projectId)
+        : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["personal-project-workspace", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = personalProjectWorkspaceAwareness
+        ? buildPersonalProjectWorkspaceResponse(
+          personalProjectWorkspaceAwareness,
+          personalProjectWorkspaceResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        personalProjectWorkspaceAwareness,
+        personalProjectWorkspaceResult,
+      };
+    }
+    if (intent === "local-asset-library") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getLocalAssetLibraryEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Local Asset Library is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const localAssetLibraryAwareness = engine?.getAiMeAwareness();
+      const localAssetLibraryResult = engine?.autoImportWatchFolders();
+      const nlHits = engine?.search({ naturalLanguage: message }) ?? [];
+      const explanation = engine
+        ? engine.explain(nlHits[0]?.assetId ?? localAssetLibraryResult?.indexed[0]?.assetId)
+        : null;
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["local-asset-library", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = localAssetLibraryAwareness
+        ? buildLocalAssetLibraryResponse(
+          localAssetLibraryAwareness,
+          localAssetLibraryResult,
+          explanation,
+          nlHits.length,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        localAssetLibraryAwareness,
+        localAssetLibraryResult,
+      };
+    }
+    if (intent === "local-production-queue") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getLocalProductionQueueEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Local Production Queue is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const localProductionQueueAwareness = engine?.getAiMeAwareness();
+      const localProductionQueueResult = engine?.runQueueCycle();
+      const explanation = engine?.explain();
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["local-production-queue", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = localProductionQueueAwareness
+        ? buildLocalProductionQueueResponse(
+          localProductionQueueAwareness,
+          localProductionQueueResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        localProductionQueueAwareness,
+        localProductionQueueResult,
+      };
+    }
+    if (intent === "local-resource-manager") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getLocalResourceManagerEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Local Resource Manager is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const localResourceManagerAwareness = engine?.getAiMeAwareness();
+      const localResourceManagerResult = engine?.runCycle();
+      const explanation = engine?.explain();
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["local-resource-manager", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = localResourceManagerAwareness
+        ? buildLocalResourceManagerResponse(
+          localResourceManagerAwareness,
+          localResourceManagerResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        localResourceManagerAwareness,
+        localResourceManagerResult,
+      };
+    }
+    if (intent === "automation-engine") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getAutomationEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Automation Engine is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const automationEngineAwareness = engine?.getAiMeAwareness();
+      const automationEngineResult = engine?.runManual();
+      const explanation = engine?.explain();
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["automation-engine", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = automationEngineAwareness
+        ? buildAutomationEngineResponse(
+          automationEngineAwareness,
+          automationEngineResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        automationEngineAwareness,
+        automationEngineResult,
+      };
+    }
+    if (intent === "workspace-manager") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getWorkspaceManagerEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Workspace Manager is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      const workspaceManagerAwareness = engine?.getAiMeAwareness();
+      const workspaceManagerResult = engine?.runCycle();
+      const explanation = engine?.explain();
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["workspace-manager", "knowledge-foundation"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = workspaceManagerAwareness
+        ? buildWorkspaceManagerResponse(
+          workspaceManagerAwareness,
+          workspaceManagerResult,
+          explanation,
+        )
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        workspaceManagerAwareness,
+        workspaceManagerResult,
+      };
+    }
+    if (intent === "knowledge-validation-integration") {
+      const engine = this.core!.knowledgeFoundation?.isStartupComplete()
+        ? this.core!.knowledgeFoundation.getKnowledgeValidationIntegrationEngine()
+        : null;
+      const missingInformation = !engine
+        ? ["Knowledge Validation & Integration is unavailable until the Knowledge Foundation has completed startup."]
+        : [];
+      let knowledgeValidationIntegrationResult: import("../knowledge-validation-integration/types.js").KnowledgeValidationIntegrationResult | undefined;
+      const knowledgeValidationIntegrationAwareness = engine?.getAiMeKnowledgeValidationIntegrationAwareness();
+      if (engine && missingInformation.length === 0) {
+        const latest = engine.getLatestRun();
+        knowledgeValidationIntegrationResult = latest ?? undefined;
+      }
+      const plan: ConversationPlan = {
+        intent,
+        requiredEngines: ["knowledge-validation-integration", "knowledge-foundation", "knowledge-research-engine"],
+        complexity: "medium",
+        readyForWorkflow: false,
+        missingInformation,
+      };
+      const response = knowledgeValidationIntegrationAwareness
+        ? buildKnowledgeValidationIntegrationResponse(knowledgeValidationIntegrationAwareness, knowledgeValidationIntegrationResult, engine)
+        : missingInformation.join(" ");
+      conversation.messages.push({ id: randomUUID(), role: "assistant", text: response, createdAt: new Date().toISOString(), intent });
+      conversation.updatedAt = new Date().toISOString();
+      await this.persist();
+      return {
+        conversation: structuredClone(conversation),
+        language,
+        plan,
+        response,
+        context,
+        knowledgeValidationIntegrationAwareness,
+        knowledgeValidationIntegrationResult,
+      };
+    }
     if (intent === "knowledge-collection") {
       const research = this.core!.knowledgeFoundation?.isStartupComplete()
         ? this.core!.knowledgeFoundation.getKnowledgeResearchEngine()
@@ -707,8 +2339,8 @@ export class AiConversationEngine {
     const videoKnowledge = intent === "video-generation" && this.core!.knowledgeFoundation?.isStartupComplete()
       ? await this.core!.knowledgeFoundation.getVideoProductionKnowledgeBuilder().advise(message)
       : undefined;
-    const professionalKnowledge = ["image-generation", "video-generation", "marketing", "business-intelligence"].includes(intent) && this.core!.knowledgeFoundation?.isStartupComplete()
-      ? await this.core!.knowledgeFoundation.getKnowledgeReasoningEngine().reason(message)
+    const professionalKnowledge = ["image-generation", "video-generation", "marketing", "business-intelligence", "professional-knowledge-reasoning"].includes(intent) && this.core!.knowledgeFoundation?.isStartupComplete()
+      ? await this.core!.knowledgeFoundation.getKnowledgeReasoningEngine().reasonProfessional({ request: message, objective: message, includeDomainModules: true })
       : undefined;
     const response = `${buildResponse(language, plan, context, synchronization, integration, enterprise, publishing, runtime)}${videoKnowledge ? buildVideoKnowledgeResponse(videoKnowledge) : ""}${professionalKnowledge ? buildProfessionalKnowledgeResponse(professionalKnowledge) : ""}`;
     conversation.pendingPlan = plan.readyForWorkflow ? structuredClone(plan) : undefined;
@@ -851,8 +2483,8 @@ function buildPlan(intent: ConversationIntent, message: string, projectId: strin
   const rule = INTENT_RULES.find((candidate) => candidate.intent === intent);
   const missingInformation: string[] = [];
   if (["image-generation", "video-generation", "editing", "marketing"].includes(intent) && message.split(" ").length < 4) missingInformation.push("Describe the product, goal, or desired outcome.");
-  if (["editing", "project-management"].includes(intent) && !projectId) missingInformation.push("Select or provide the project to work on.");
-  return { intent, requiredEngines: rule?.engines ?? ["conversation-engine"], complexity: intent === "video-generation" ? "high" : ["image-generation", "marketing", "editing", "business-intelligence"].includes(intent) ? "medium" : "low", readyForWorkflow: missingInformation.length === 0 && intent !== "general" && intent !== "system" && intent !== "workspace-synchronization" && intent !== "enterprise-integration" && intent !== "enterprise-collaboration" && intent !== "publishing-distribution" && intent !== "knowledge-domains" && intent !== "knowledge-acquisition" && intent !== "knowledge-sources" && intent !== "knowledge-collection" && intent !== "knowledge-documents" && intent !== "knowledge-packs" && intent !== "knowledge-validation" && intent !== "knowledge-import" && intent !== "knowledge-persistence" && intent !== "video-production-knowledge" && intent !== "camera-knowledge" && intent !== "lighting-composition-knowledge" && intent !== "storytelling-scene-knowledge" && intent !== "animation-motion-rendering-knowledge" && intent !== "marketing-branding-psychology-knowledge" && intent !== "social-media-knowledge", missingInformation };
+  if (["editing", "project-management", "product-analysis", "product-asset-preparation", "product-scene-planning", "product-storyboard", "product-prompt-orchestration", "product-image-generation", "product-video-generation", "product-audio-generation", "product-rendering-export"].includes(intent) && !projectId) missingInformation.push("Select or provide the project to work on.");
+  return { intent, requiredEngines: rule?.engines ?? ["conversation-engine"], complexity: intent === "video-generation" || intent === "product-prompt-orchestration" || intent === "product-image-generation" || intent === "product-video-generation" || intent === "product-audio-generation" || intent === "product-rendering-export" || intent === "creative-generation-certification" ? "high" : ["image-generation", "marketing", "editing", "business-intelligence", "product-analysis", "product-asset-preparation", "product-scene-planning", "product-storyboard"].includes(intent) ? "medium" : "low", readyForWorkflow: missingInformation.length === 0 && intent !== "general" && intent !== "system" && intent !== "product-analysis" && intent !== "product-asset-preparation" && intent !== "product-scene-planning" && intent !== "product-storyboard" && intent !== "product-prompt-orchestration" && intent !== "product-image-generation" && intent !== "product-video-generation" && intent !== "product-audio-generation" && intent !== "product-rendering-export" && intent !== "creative-generation-certification" && intent !== "workspace-synchronization" && intent !== "enterprise-integration" && intent !== "enterprise-collaboration" && intent !== "publishing-distribution" && intent !== "knowledge-domains" && intent !== "knowledge-acquisition" && intent !== "knowledge-sources" && intent !== "knowledge-collection" && intent !== "knowledge-documents" && intent !== "knowledge-packs" && intent !== "knowledge-validation" && intent !== "knowledge-validation-integration" && intent !== "knowledge-evolution" && intent !== "knowledge-import" && intent !== "knowledge-persistence" && intent !== "video-production-knowledge" && intent !== "camera-knowledge" && intent !== "lighting-composition-knowledge" && intent !== "storytelling-scene-knowledge" && intent !== "animation-motion-rendering-knowledge" && intent !== "marketing-branding-psychology-knowledge" && intent !== "social-media-knowledge" && intent !== "industry-standards-quality-knowledge" && intent !== "professional-knowledge-certification" && intent !== "professional-knowledge-reasoning" && intent !== "professional-decision-intelligence" && intent !== "professional-planning-intelligence" && intent !== "professional-workflow-intelligence" && intent !== "professional-recommendation-intelligence" && intent !== "professional-multi-domain-intelligence" && intent !== "professional-self-review-intelligence" && intent !== "professional-reasoning-certification", missingInformation };
 }
 
 function buildResponse(language: ConversationLanguage, plan: ConversationPlan, context: ConversationResponse["context"], synchronization: { cloudState: string; trackedFiles: number; queuedChanges: number; unresolvedConflicts: number; lastBackupAt: string | null } | null, integration: { total: number; enabled: number; unhealthy: number; routes: number; webhooks: number } | null, enterprise: { organizations: number; teams: number; users: number; activeLocks: number; activePresence: number; unreadNotifications: number } | null, publishing: { packages: number; scheduled: number; readyLocal: number; published: number; failed: number; connectedProfiles: number } | null, runtime: { providers: Array<{ name: string; available: boolean; models: number; error?: string }>; gpuName?: string; vramFreeMb?: number } | null): string {
@@ -895,6 +2527,181 @@ function isConfirmation(message: string): boolean {
 
 function extractKnowledgeTopic(message: string): string {
   return message.replace(/^(learn|research|improve(?: our)?|teach(?: our)? ai(?: about)?|teach)\s+/i, "").replace(/[.!?]+$/, "").trim() || message;
+}
+
+function buildProductPromptOrchestrationResponse(
+  explanation: import("../product-prompt-orchestration/types.js").ProductPromptOrchestrationExplainResult,
+  awareness?: import("../product-prompt-orchestration/types.js").AiMeProductPromptOrchestrationAwareness,
+): string {
+  const models = explanation.modelExplanations.slice(0, 4).map((item) => item.why).join(" ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Prompt Orchestration ready."} ` +
+    `${explanation.summary} ` +
+    `Model selection: ${models} ` +
+    `Improvements: ${improvements} ` +
+    `Ready for image generation: ${explanation.readyForImageGeneration ? "yes" : "not yet"}. ` +
+    `Image Generation Pipeline is available as Step 6.`
+  );
+}
+
+function buildProductImageGenerationResponse(
+  explanation: import("../product-image-generation/types.js").ProductImageGenerationExplainResult,
+  awareness?: import("../product-image-generation/types.js").AiMeProductImageGenerationAwareness,
+): string {
+  const images = explanation.imageExplanations.slice(0, 4).map((item) => item.why).join(" ");
+  const backgrounds = explanation.backgroundExplanations.slice(0, 3).map((item) => `Scene ${item.sceneNumber}: ${item.style}`).join("; ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Image Generation ready."} ` +
+    `${explanation.summary} ` +
+    `Images: ${images} ` +
+    `Backgrounds: ${backgrounds}. ` +
+    `Improvements: ${improvements} ` +
+    `Ready for video generation: ${explanation.readyForVideoGeneration ? "yes" : "not yet"}. ` +
+    `Product Video Generation is available as Step 7.`
+  );
+}
+
+function buildProductVideoGenerationResponse(
+  explanation: import("../product-video-generation/types.js").ProductVideoGenerationExplainResult,
+  awareness?: import("../product-video-generation/types.js").AiMeProductVideoGenerationAwareness,
+): string {
+  const scenes = explanation.sceneExplanations.slice(0, 4).map((item) => item.why).join(" ");
+  const cameras = explanation.cameraExplanations.slice(0, 3).map((item) => `Scene ${item.sceneNumber}: ${item.move}`).join("; ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Video Generation ready."} ` +
+    `${explanation.summary} ` +
+    `Scenes: ${scenes} ` +
+    `Cameras: ${cameras}. ` +
+    `Improvements: ${improvements} ` +
+    `Ready for audio/voice: ${explanation.readyForAudioVoice ? "yes" : "not yet"}. ` +
+    `Audio and Voice Generation are available as Step 8.`
+  );
+}
+
+function buildProductAudioGenerationResponse(
+  explanation: import("../product-audio-generation/types.js").ProductAudioGenerationExplainResult,
+  awareness?: import("../product-audio-generation/types.js").AiMeProductAudioGenerationAwareness,
+): string {
+  const effects = explanation.effectExplanations.slice(0, 3).map((item) => `Scene ${item.sceneNumber}: ${item.kind}`).join("; ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Audio Generation ready."} ` +
+    `${explanation.summary} ` +
+    `Voice: ${explanation.voiceExplanation} ` +
+    `Music: ${explanation.musicExplanation} ` +
+    `Effects: ${effects}. ` +
+    `Improvements: ${improvements} ` +
+    `Ready for rendering: ${explanation.readyForRendering ? "yes" : "not yet"}. ` +
+    `Rendering and Export Pipeline is available as Step 9.`
+  );
+}
+
+function buildProductRenderingExportResponse(
+  explanation: import("../product-rendering-export/types.js").ProductRenderingExportExplainResult,
+  awareness?: import("../product-rendering-export/types.js").AiMeProductRenderingExportAwareness,
+): string {
+  const presets = explanation.platformComparisons.slice(0, 4).map((item) => `${item.platform} ${item.width}x${item.height}`).join("; ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Rendering & Export ready."} ` +
+    `${explanation.summary} ` +
+    `Settings: ${explanation.settingsExplanation} ` +
+    `Presets: ${presets}. ` +
+    `Improvements: ${improvements} ` +
+    `Ready for certification: ${explanation.readyForCertification ? "yes" : "not yet"}. ` +
+    `Creative Generation Certification (Step 10) certifies the full Product-to-Video pipeline.`
+  );
+}
+
+function buildCreativeGenerationCertificationResponse(
+  explanation: import("../creative-generation-certification/types.js").CreativeGenerationCertificationExplainResult,
+  awareness?: import("../creative-generation-certification/types.js").AiMeCreativeGenerationCertificationAwareness,
+  result?: import("../creative-generation-certification/types.js").CreativeGenerationCertificationResult,
+): string {
+  const scenarios = explanation.scenarioSummaries
+    .map((item) => `${item.kind}:${item.passed ? "PASS" : "FAIL"}`)
+    .join(", ");
+  const blockers = explanation.blockers.slice(0, 3).join("; ") || "none";
+  return (
+    `${awareness?.summary ?? "Creative Generation Certification ready."} ` +
+    `${explanation.summary} ` +
+    `Scenarios: ${scenarios}. ` +
+    `Overall: ${result?.overallCreativeGenerationScore ?? "n/a"}/100. ` +
+    `Preservation: ${result?.productPreservationScore ?? "n/a"}/100. ` +
+    `Marketing: ${result?.marketingQualityScore ?? "n/a"}/100. ` +
+    `Production ready: ${explanation.productionReady ? "YES" : "NO"}. ` +
+    `Blockers: ${blockers}.`
+  );
+}
+
+function buildProductStoryboardResponse(
+  explanation: import("../product-storyboard/types.js").ProductStoryboardExplainResult,
+  awareness?: import("../product-storyboard/types.js").AiMeProductStoryboardAwareness,
+): string {
+  const decisions = explanation.storyboardDecisions.slice(0, 4).map((item) => `Scene ${item.sceneNumber}: ${item.decision}`).join(" ");
+  const improvements = explanation.improvementRecommendations.slice(0, 3).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Storyboard ready."} ` +
+    `${explanation.summary} ` +
+    `Key decisions: ${decisions} ` +
+    `Improvements: ${improvements} ` +
+    `Ready for prompt orchestration: ${explanation.readyForPromptOrchestration ? "yes" : "not yet"}. ` +
+    `Prompt orchestration and video generation are not started in this step.`
+  );
+}
+
+function buildProductScenePlanningResponse(
+  explanation: import("../product-scene-planning/types.js").ProductSceneExplainResult,
+  awareness?: import("../product-scene-planning/types.js").AiMeProductScenePlanningAwareness,
+): string {
+  const scenes = explanation.sceneExplanations.slice(0, 6).map((scene) => `${scene.sceneName} (${scene.flowStage})`).join("; ");
+  const missing = explanation.missingScenes.slice(0, 4).join(", ") || "none";
+  const weak = explanation.weakFlowNotes.slice(0, 2).join(" ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Scene Planning ready."} ` +
+    `${explanation.summary} ` +
+    `Scenes: ${scenes}. ` +
+    `Recommended order: ${explanation.recommendedOrder.slice(0, 6).join(" → ") || "n/a"}. ` +
+    `Missing scenes: ${missing}. Weak flow notes: ${weak}. ` +
+    `Ready for storyboard: ${explanation.readyForStoryboard ? "yes" : "not yet"}. ` +
+    `Storyboard generation is not started in this step.`
+  );
+}
+
+function buildProductAssetPreparationResponse(
+  explanation: import("../product-asset-preparation/types.js").ProductAssetExplainResult,
+  awareness?: import("../product-asset-preparation/types.js").AiMeProductAssetAwareness,
+): string {
+  const missing = explanation.missingViews.slice(0, 5).join(", ") || "none";
+  const photos = explanation.photoRecommendations.slice(0, 4).map((item) => item.view).join(", ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Asset Preparation ready."} ` +
+    `${explanation.summary} ` +
+    `Quality notes: ${explanation.qualityNotes.slice(0, 4).join("; ") || "n/a"}. ` +
+    `Missing views: ${missing}. Recommended photos: ${photos}. ` +
+    `Ready for scene planning context: ${explanation.readyForScenePlanning ? "yes" : "not yet"}. ` +
+    `Product Scene Planning and video generation are not started in this step.`
+  );
+}
+
+function buildProductIntelligenceResponse(
+  explanation: import("../product-intelligence/types.js").ProductIntelligenceExplainResult,
+  awareness?: import("../product-intelligence/types.js").AiMeProductIntelligenceAwareness,
+): string {
+  const missing = explanation.missingInformation.slice(0, 5).map((item) => item.field).join(", ") || "none critical";
+  const photos = explanation.photoRecommendations.slice(0, 4).map((item) => item.view).join(", ") || "none";
+  return (
+    `${awareness?.summary ?? "Product Intelligence ready."} ` +
+    `${explanation.summary} ` +
+    `Characteristics: ${explanation.characteristics.slice(0, 8).join("; ")}. ` +
+    `Missing information focus: ${missing}. ` +
+    `Recommended additional photos: ${photos}. ` +
+    `Ready for creative generation context: ${explanation.readyForCreativeGeneration ? "yes" : "not yet"}. ` +
+    `Background removal and video generation are not started in this step.`
+  );
 }
 
 function buildKnowledgeAcquisitionResponse(preview: import("../knowledge-acquisition-engine/types.js").KnowledgeAcquisitionPreview): string {
@@ -957,6 +2764,248 @@ function buildKnowledgeCollectionResponse(
         .join("; ")}.`
     : "";
   return `${awareness.summary} Workspace: ${awareness.workspaceRoot}.${missing}${recs} Resources are stored locally without extraction.`;
+}
+
+function buildOnlineResearchResponse(
+  session: import("../knowledge-research-engine/types.js").OnlineResearchSessionResult,
+  awareness?: import("../knowledge-research-engine/types.js").AiMeOnlineResearchAwareness,
+): string {
+  const selected = session.acceptedSources[0]
+    ? ` Selected example: ${session.acceptedSources[0].name} — trust ${session.acceptedSources[0].trustScore}, authority ${session.acceptedSources[0].authorityScore}.`
+    : " No approved sources passed quality gates yet.";
+  const rejected = session.rejectedSources[0]
+    ? ` Rejected example: ${session.rejectedSources[0].name} because ${session.rejectedSources[0].reason}`
+    : "";
+  const topics = session.recommendedTopics.slice(0, 4).join(", ") || "none";
+  return (
+    `${awareness?.summary ?? "Online Research ready."} ${session.summary} ` +
+    `Mode: ${session.connectivity.mode}; quality=${session.connectivity.networkQuality}.` +
+    selected +
+    rejected +
+    ` Recommended next topics: ${topics}. ` +
+    `Knowledge Foundation modified: no. Knowledge Validation & Integration (Step 2) can accept staged review items into the foundation ledger.`
+  );
+}
+
+function buildKnowledgeValidationIntegrationResponse(
+  awareness: import("../knowledge-validation-integration/types.js").AiMeKnowledgeValidationIntegrationAwareness,
+  result?: import("../knowledge-validation-integration/types.js").KnowledgeValidationIntegrationResult,
+  engine?: import("../knowledge-validation-integration/knowledge-validation-integration-engine.js").KnowledgeValidationIntegrationEngine | null,
+): string {
+  const accepted = result?.accepted[0];
+  const rejected = result?.rejected[0];
+  const acceptExplain = accepted ? engine?.explainDecision(accepted.id).explanation : "No accepted item in the latest run yet.";
+  const rejectExplain = rejected ? engine?.explainDecision(rejected.id).explanation : "No rejected item in the latest run yet.";
+  const history = engine?.getVersionHistory().slice(0, 3).map((entry) => `${entry.itemId}@v${entry.version}:${entry.action}`).join("; ") || "none";
+  const search = engine?.searchImportedKnowledge("lighting marketing camera", 3).map((hit) => hit.title).join("; ") || "none";
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Run integrateCandidates to validate staged or local knowledge."} ` +
+    `Accepted reason: ${acceptExplain} ` +
+    `Rejected reason: ${rejectExplain} ` +
+    `Version history: ${history}. ` +
+    `Search sample: ${search}. ` +
+    `Knowledge Evolution (Step 3) is available for continuous versioned updates. Feedback Intelligence (Step 4) is available.`
+  );
+}
+
+function buildKnowledgeEvolutionResponse(
+  awareness: import("../knowledge-evolution/types.js").AiMeKnowledgeEvolutionAwareness,
+  result?: import("../knowledge-evolution/types.js").KnowledgeEvolutionResult,
+  explanation?: import("../knowledge-evolution/types.js").KnowledgeEvolutionExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No evolution run yet. Provide verified candidates to evolve knowledge."} ` +
+    (explanation
+      ? `What changed: ${explanation.whatChanged} Why: ${explanation.whyUpdated} Recommend latest: ${explanation.recommendLatest ? "yes" : "no"}. `
+      : "") +
+    `Feedback Intelligence (Step 4) is available for user learning.`
+  );
+}
+
+function buildFeedbackIntelligenceResponse(
+  awareness: import("../feedback-intelligence/types.js").AiMeFeedbackIntelligenceAwareness,
+  result?: import("../feedback-intelligence/types.js").FeedbackIntelligenceResult,
+  explanation?: import("../feedback-intelligence/types.js").FeedbackIntelligenceExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No feedback run yet. Submit reviews, ratings, comments, or corrections to learn."} ` +
+    (explanation
+      ? `Learned: ${explanation.whatWasLearned} Recommendation changes: ${explanation.howRecommendationsChanged} Preference reason: ${explanation.whyPreferenceExists} Next: ${explanation.recommendedImprovements.slice(0, 2).join("; ")}. `
+      : "") +
+    `Professional Knowledge is never overwritten. Performance Analytics (Step 5) is available.`
+  );
+}
+
+function buildPerformanceAnalyticsResponse(
+  awareness: import("../performance-analytics/types.js").AiMePerformanceAnalyticsAwareness,
+  result?: import("../performance-analytics/types.js").PerformanceAnalyticsResult,
+  explanation?: import("../performance-analytics/types.js").PerformanceAnalyticsExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No analytics run yet. Ingest production sessions to measure pipeline, resources, quality, and models."} ` +
+    (explanation
+      ? `Issues: ${explanation.performanceIssues} Bottlenecks: ${explanation.bottlenecksExplanation} Optimizations: ${explanation.optimizations.slice(0, 2).join("; ")} Compare: ${explanation.sessionComparison} Predict: ${explanation.predictedProductionTimeMs}ms. `
+      : "") +
+    `Production history is preserved. Autonomous Learning (Step 6) is available.`
+  );
+}
+
+function buildAutonomousLearningResponse(
+  awareness: import("../autonomous-learning/types.js").AiMeAutonomousLearningAwareness,
+  result?: import("../autonomous-learning/types.js").AutonomousLearningResult,
+  explanation?: import("../autonomous-learning/types.js").AutonomousLearningExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No autonomous learning cycle yet. Run when online for discovery, or offline for self-learning expansion."} ` +
+    (explanation
+      ? `Learned: ${explanation.whatWasLearned} Source: ${explanation.whereItCameFrom} Value: ${explanation.whyValuable} Recommend: ${explanation.recommendUse ? "yes" : "no"} (${explanation.recommendUseReason}). `
+      : "") +
+    `Unverified knowledge is never imported. Workflow & Model Optimization (Step 7) is available.`
+  );
+}
+
+function buildWorkflowModelOptimizationResponse(
+  awareness: import("../workflow-model-optimization/types.js").AiMeWorkflowModelOptimizationAwareness,
+  result?: import("../workflow-model-optimization/types.js").WorkflowModelOptimizationResult,
+  explanation?: import("../workflow-model-optimization/types.js").WorkflowModelOptimizationExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No optimization run yet. Provide workflow and model history to optimize execution order and model selection."} ` +
+    (explanation
+      ? `Workflow: ${explanation.workflowOptimizationExplanation} Models: ${explanation.modelSelectionExplanation} Recommend: ${explanation.recommendedWorkflow}. Predicted quality: ${explanation.predictedProductionQuality}. `
+      : "") +
+    `Professional quality is never reduced automatically. Autonomous Improvement (Step 8) is available.`
+  );
+}
+
+function buildAutonomousImprovementResponse(
+  awareness: import("../autonomous-improvement/types.js").AiMeAutonomousImprovementAwareness,
+  result?: import("../autonomous-improvement/types.js").AutonomousImprovementResult,
+  explanation?: import("../autonomous-improvement/types.js").AutonomousImprovementExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No improvement cycle yet. Provide analytics and optimization signals to propose safe self-improvements."} ` +
+    (explanation
+      ? `Improved: ${explanation.whatImproved} Why: ${explanation.whyApplied} Expected: ${explanation.expectedBenefits} Actual: ${explanation.actualBenefits}. `
+      : "") +
+    `User projects are never modified. Autonomous Intelligence Validation (Step 9) is available.`
+  );
+}
+
+function buildAutonomousIntelligenceValidationResponse(
+  awareness: import("../autonomous-intelligence-validation/types.js").AiMeAutonomousIntelligenceValidationAwareness,
+  result?: import("../autonomous-intelligence-validation/types.js").AutonomousIntelligenceValidationResult,
+  explanation?: import("../autonomous-intelligence-validation/types.js").AutonomousIntelligenceValidationExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No validation run yet. Run production-readiness validation before trusting autonomous capabilities."} ` +
+    (explanation
+      ? `Overview: ${explanation.validationOverview} Failures: ${explanation.failedValidations.slice(0, 2).join("; ")} Actions: ${explanation.correctiveActions.slice(0, 2).join("; ")} Health: ${explanation.longTermHealthPrediction} `
+      : "") +
+    `Unsafe systems are never certified. Learning Certification (Step 10) is available.`
+  );
+}
+
+function buildLearningCertificationResponse(
+  awareness: import("../learning-certification/types.js").AiMeLearningCertificationAwareness,
+  result?: import("../learning-certification/types.js").LearningCertificationResult,
+  explanation?: import("../learning-certification/types.js").LearningCertificationExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "No certification run yet. Run Learning Certification to determine Version 1.0 completeness."} ` +
+    (explanation
+      ? `Overview: ${explanation.overview} Certified: ${explanation.certified ? "YES" : "NO"}. `
+      : "") +
+    (result?.certified
+      ? result.certificationStatement.replace(/\n/g, " ")
+      : `Blockers: ${(explanation?.blockers ?? result?.blockers.map((b) => b.evidence) ?? ["none"]).slice(0, 3).join("; ")}.`)
+  );
+}
+
+function buildPersonalProjectWorkspaceResponse(
+  awareness: import("../personal-project-workspace/types.js").AiMePersonalWorkspaceAwareness,
+  result?: import("../personal-project-workspace/types.js").PersonalProjectWorkspaceResult,
+  explanation?: import("../personal-project-workspace/types.js").PersonalWorkspaceExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Local personal workspace ready. Create or resume a project to continue."} ` +
+    (explanation
+      ? `Project: ${explanation.projectSummary} History: ${explanation.historyExplanation} Next: ${explanation.nextAction} `
+      : "") +
+    `Single-user local storage only. Local Asset Library is available (Platform Step 2).`
+  );
+}
+
+function buildLocalAssetLibraryResponse(
+  awareness: import("../local-asset-library/types.js").AiMeLocalAssetLibraryAwareness,
+  result?: import("../local-asset-library/types.js").LocalAssetLibraryResult,
+  explanation?: import("../local-asset-library/types.js").LocalAssetLibraryExplainResult | null,
+  searchHits = 0,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Local Asset Library ready. Drop files into watch folders to index."} ` +
+    `Search hits for this message: ${searchHits}. ` +
+    (explanation
+      ? `Why selected: ${explanation.whySelected} Recommendation: ${explanation.recommendation} `
+      : "") +
+    `Originals are never overwritten. Local Production Queue is available (Platform Step 3).`
+  );
+}
+
+function buildLocalProductionQueueResponse(
+  awareness: import("../local-production-queue/types.js").AiMeLocalProductionQueueAwareness,
+  result?: import("../local-production-queue/types.js").LocalProductionQueueResult,
+  explanation?: import("../local-production-queue/types.js").LocalProductionQueueExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Local production queue ready."} ` +
+    (explanation
+      ? `${explanation.queueSummary} Predicted completion ~${Math.round(explanation.predictedCompletionMs / 1000)}s. Optimization: ${explanation.optimizationRecommendation} `
+      : "") +
+    `Progress is never discarded. Local Resource Manager is available (Platform Step 4).`
+  );
+}
+
+function buildLocalResourceManagerResponse(
+  awareness: import("../local-resource-manager/types.js").AiMeLocalResourceManagerAwareness,
+  result?: import("../local-resource-manager/types.js").LocalResourceManagerResult,
+  explanation?: import("../local-resource-manager/types.js").LocalResourceManagerExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Local resource manager ready."} ` +
+    (explanation
+      ? `${explanation.usageExplanation} Recommended mode: ${explanation.recommendedMode}. Predicted completion ~${Math.round(explanation.predictedCompletionMs / 1000)}s. ${explanation.hardwareUpgradeRecommendation ?? "No hardware upgrade required right now."} `
+      : "") +
+    `Critical jobs are never interrupted without saving progress. Automation Engine is available (Platform Step 5).`
+  );
+}
+
+function buildAutomationEngineResponse(
+  awareness: import("../automation-engine/types.js").AiMeAutomationEngineAwareness,
+  result?: import("../automation-engine/types.js").AutomationEngineResult,
+  explanation?: import("../automation-engine/types.js").AutomationEngineExplainResult | null,
+): string {
+  return (
+    `${awareness.summary} ` +
+    `${result?.summary ?? "Automation Engine ready."} ` +
+    (explanation
+      ? `${explanation.completedTasksExplanation} ${explanation.storagePrediction} ${explanation.backupFrequencyRecommendation} `
+      : "") +
+    `User projects, assets, and validated knowledge are never deleted. Workspace Manager remains deferred to Platform Step 6.`
+  );
 }
 
 function extractDocumentQuery(message: string): string {
@@ -1253,6 +3302,53 @@ function buildSmResponse(
   return `${awareness.summary}${platformText}${formatText}${postingText}${engagementText}${explainText}${answerText}`;
 }
 
+function buildIsqResponse(
+  awareness: import("../video-knowledge-engine/professional-industry-standards-quality-types.js").AiMeIndustryStandardsAwareness,
+  quality:
+    | import("../video-knowledge-engine/professional-industry-standards-quality-types.js").IsqQualityEvaluation
+    | undefined,
+  improvement:
+    | import("../video-knowledge-engine/professional-industry-standards-quality-types.js").IsqRecommendation
+    | undefined,
+  problems:
+    | import("../video-knowledge-engine/professional-industry-standards-quality-types.js").IsqQualityEvaluation
+    | undefined,
+  standard:
+    | import("../video-knowledge-engine/professional-industry-standards-quality-types.js").IsqExplainResult
+    | undefined,
+  practices:
+    | import("../video-knowledge-engine/professional-industry-standards-quality-types.js").IsqRecommendation
+    | undefined,
+  answered: { available: boolean; answer: string; knowledgeIds: string[]; confidenceScore: number } | undefined
+): string {
+  const qualityText = quality?.available
+    ? ` Quality criteria (${quality.title}): ${quality.evaluationCriteria.slice(0, 2).join("; ")}.`
+    : "";
+  const improvementText = improvement?.available
+    ? ` Improvement: ${improvement.name}. ${improvement.bestPractices.slice(0, 2).join("; ")}.`
+    : "";
+  const problemsText = problems?.available && problems.detectedRisks.length
+    ? ` Likely risks: ${problems.detectedRisks.slice(0, 2).join("; ")}.`
+    : "";
+  const standardText = standard?.available ? ` Standard: ${standard.title}. ${standard.explanation}` : "";
+  const practicesText = practices?.available ? ` Best practice: ${practices.name}. ${practices.reason}` : "";
+  const answerText = answered?.available ? ` Answer: ${answered.answer}` : "";
+  return `${awareness.summary}${qualityText}${improvementText}${problemsText}${standardText}${practicesText}${answerText}`;
+}
+
+function buildProfessionalCertificationResponse(
+  awareness: import("../knowledge-foundation/professional-knowledge-certification-types.js").AiMeProfessionalKnowledgeCertificationAwareness,
+  result:
+    | import("../knowledge-foundation/professional-knowledge-certification-types.js").ProfessionalKnowledgeCertificationResult
+    | null
+    | undefined
+): string {
+  if (!result) return awareness.summary;
+  const status = result.certified ? "CERTIFIED" : "NOT CERTIFIED";
+  const gaps = result.remainingGaps.length ? ` Remaining gaps: ${result.remainingGaps.slice(0, 3).join("; ")}.` : "";
+  return `${awareness.summary} Status: ${status}. Maturity: ${result.maturityPercentage}%. Domains: ${result.totalKnowledgeDomains}; packs: ${result.totalKnowledgePacks}; relationships: ${result.totalKnowledgeRelationships}.${gaps}`;
+}
+
 function buildVideoKnowledgeResponse(advisory: import("../video-knowledge-engine/video-production-knowledge-builder.js").VideoProductionKnowledgeAdvisory): string {
   if (!advisory.available) return ` ${advisory.learningRecommendation}`;
   const guidance = advisory.recommendations.slice(0, 3).map((recommendation) => `${recommendation.area}: ${recommendation.guidance}`).join(" ");
@@ -1260,8 +3356,143 @@ function buildVideoKnowledgeResponse(advisory: import("../video-knowledge-engine
 }
 
 function buildProfessionalKnowledgeResponse(reasoning: import("../knowledge-reasoning-engine/types.js").ProfessionalKnowledgeReasoningResult): string {
-  if (!reasoning.available || !reasoning.selected) return "";
-  const alternatives = reasoning.alternatives.length ? ` Alternative: ${reasoning.alternatives[0].guidance}` : "";
+  if (!reasoning.available || !reasoning.selected) {
+    const missing = reasoning.missingInformation.length
+      ? ` Missing: ${reasoning.missingInformation
+          .slice(0, 2)
+          .map((item) => item.field)
+          .join(", ")}.`
+      : "";
+    return ` Professional reasoning unavailable from verified Knowledge Foundation evidence.${missing}`;
+  }
+  const domains = reasoning.domainsUsed.length ? ` Domains: ${reasoning.domainsUsed.slice(0, 5).join(", ")}.` : "";
+  const alternatives = reasoning.rejectedOptions.length
+    ? ` Rejected: ${reasoning.rejectedOptions[0].title} — ${reasoning.rejectedOptions[0].rejectionReason ?? reasoning.rejectedOptions[0].reason}`
+    : "";
+  const standards = reasoning.professionalStandards.length ? ` Standard: ${reasoning.professionalStandards[0]}` : "";
   const risks = reasoning.risks.length ? ` Risk: ${reasoning.risks[0]}` : "";
-  return ` Professional reasoning (${reasoning.confidenceScore}/100 confidence): ${reasoning.selected.guidance} Why: ${reasoning.explanation}${alternatives}${risks}`;
+  const improvements = reasoning.improvements.length ? ` Improve: ${reasoning.improvements[0]}` : "";
+  return ` Professional reasoning (${reasoning.confidenceScore}/100 confidence${reasoning.multiDomain ? ", multi-domain" : ""}): ${reasoning.selected.guidance} Why: ${reasoning.explanation}${domains}${standards}${alternatives}${risks}${improvements}`;
+}
+
+function buildProfessionalDecisionResponse(decision: import("../decision/professional-decision-types.js").ProfessionalDecisionResult): string {
+  if (!decision.grounded || decision.unsupported) {
+    const missing = decision.missingInformation.length
+      ? ` Missing: ${decision.missingInformation
+          .slice(0, 2)
+          .map((item) => item.field)
+          .join(", ")}.`
+      : "";
+    return ` Professional decision unsupported without verified Knowledge Foundation evidence.${missing}`;
+  }
+  const packs = decision.explanation.knowledgePacksUsed.length
+    ? ` Knowledge packs: ${decision.explanation.knowledgePacksUsed.slice(0, 4).join(", ")}.`
+    : "";
+  const rejected = decision.explanation.alternativesRejected.length
+    ? ` Rejected: ${decision.explanation.alternativesRejected[0].title} — ${decision.explanation.alternativesRejected[0].reason}`
+    : "";
+  const standards = decision.framework.professionalStandards.length
+    ? ` Standard: ${decision.framework.professionalStandards[0]}`
+    : "";
+  const risks = decision.framework.risks.length ? ` Risk: ${decision.framework.risks[0]}` : "";
+  const history = decision.learnedFromHistory ? " Learned from prior professional decisions." : "";
+  return ` Professional decision ${decision.decisionId} (${decision.confidenceScore}/100 confidence${decision.multiDomain ? ", multi-domain" : ""}): ${decision.framework.finalRecommendation} Why: ${decision.explanation.whySelected} Outcome: ${decision.explanation.expectedOutcome}${packs}${standards}${rejected}${risks}${history}`;
+}
+
+function buildProfessionalPlanningResponse(plan: import("../planning/professional-planning-types.js").ProfessionalPlanningResult): string {
+  if (!plan.grounded || plan.unsupported) {
+    const missing = plan.missingInformation.length
+      ? ` Missing: ${plan.missingInformation
+          .slice(0, 2)
+          .map((item) => item.field)
+          .join(", ")}.`
+      : "";
+    return ` Professional plan unsupported without verified Knowledge Foundation evidence.${missing}`;
+  }
+  const tasks = ` Tasks: ${plan.framework.taskBreakdown.length} (${plan.framework.complexity} complexity, ~${plan.framework.estimatedExecutionMinutes} min).`;
+  const deps = plan.framework.dependencies.length ? ` Dependencies: ${plan.framework.dependencies.length}.` : "";
+  const packs = plan.explanation.knowledgePacksUsed.length
+    ? ` Knowledge packs: ${plan.explanation.knowledgePacksUsed.slice(0, 4).join(", ")}.`
+    : "";
+  const parallel = plan.framework.parallelTasks.length ? ` Parallel groups: ${plan.framework.parallelTasks.length}.` : "";
+  return ` Professional plan ${plan.planId} (${plan.confidenceScore}/100 confidence${plan.multiDomain ? ", multi-domain" : ""}): ${plan.framework.goal} Why: ${plan.explanation.whySelected} Order: ${plan.explanation.taskOrderReason} Outcome: ${plan.explanation.expectedOutcome}${tasks}${deps}${parallel}${packs}`;
+}
+
+function buildProfessionalWorkflowResponse(workflow: import("../workflow/professional-workflow-types.js").ProfessionalWorkflowResult): string {
+  if (!workflow.grounded || workflow.unsupported) {
+    return " Professional workflow unsupported without verified Knowledge Foundation evidence.";
+  }
+  const tasks = ` Tasks: ${workflow.definition.allTasks.length} (main ${workflow.definition.mainTasks.length}, sub ${workflow.definition.subTasks.length}, validation ${workflow.definition.validationSteps.length}).`;
+  const deps = ` Dependencies: ${workflow.definition.dependencies.length}.`;
+  const parallel = workflow.definition.parallelGroups.length ? ` Parallel groups: ${workflow.definition.parallelGroups.length}.` : "";
+  const packs = workflow.explanation.knowledgePacksUsed.length
+    ? ` Knowledge packs: ${workflow.explanation.knowledgePacksUsed.slice(0, 4).join(", ")}.`
+    : "";
+  const reuse = workflow.reused ? " Reused existing workflow." : "";
+  return ` Professional workflow ${workflow.workflowId} (${workflow.confidenceScore}/100 confidence${workflow.multiDomain ? ", multi-domain" : ""}): ${workflow.definition.workflowName} — ${workflow.definition.goal} Why: ${workflow.explanation.whySelected} Order: ${workflow.explanation.taskOrderReason} Outcome: ${workflow.explanation.expectedOutcome}${tasks}${deps}${parallel}${packs}${reuse}`;
+}
+
+function buildProfessionalReasoningCertificationResponse(
+  result: import("../professional-reasoning-certification/professional-reasoning-certification-types.js").ProfessionalReasoningCertificationResult
+): string {
+  const answers = result.aiMeAnswers;
+  const health = result.systemHealth;
+  const scenarios = `${result.scenarios.filter((item) => item.passed).length}/${result.scenarios.length} scenarios passed`;
+  const cert = result.certified
+    ? " CERTIFIED: Professional Reasoning & Decision Intelligence Version 1.0."
+    : ` NOT CERTIFIED. Blockers: ${result.blockers.slice(0, 3).join("; ") || "see report"}.`;
+  return ` Certification ${result.version} (readiness ${health.professionalReadinessScore}/100, confidence ${health.confidenceScore}/100): ${scenarios}. Think professionally: ${answers.canThinkProfessionally ? "YES" : "NO"}. Explainable decisions: ${answers.canMakeExplainableDecisions ? "YES" : "NO"}. Version 1.0 complete: ${answers.isVersionOneComplete ? "YES" : "NO"}.${cert}`;
+}
+
+function buildProfessionalSelfReviewResponse(
+  review: import("../self-review/professional-self-review-types.js").ProfessionalSelfReviewResult
+): string {
+  if (!review.grounded || review.unsupported) {
+    return " Professional self-review unsupported without verified Knowledge Foundation evidence.";
+  }
+  const scores = review.framework.qualityScores;
+  const issues = ` Issues: ${review.framework.detectedIssues.length} (${review.framework.detectedIssues.filter((i) => i.repaired).length} repaired).`;
+  const readiness = ` Overall readiness: ${scores.overallReadiness}/100.`;
+  const delivery = review.readyForDelivery ? " Ready for delivery." : " Not ready for delivery.";
+  const reuse = review.reused ? " Reused prior self-review." : "";
+  return ` Professional self-review ${review.reviewId} (${review.confidenceScore}/100 confidence): ${review.framework.improvedRecommendation} Strengths: ${review.framework.strengths.slice(0, 2).join("; ") || "n/a"}.${issues}${readiness}${delivery}${reuse}`;
+}
+
+function buildProfessionalMultiDomainResponse(
+  reasoning: import("../multi-domain/professional-multi-domain-types.js").ProfessionalMultiDomainResult
+): string {
+  if (!reasoning.grounded || reasoning.unsupported) {
+    return " Multi-domain reasoning unsupported without verified Knowledge Foundation evidence across relevant domains.";
+  }
+  const domains = reasoning.framework.domainsParticipating.slice(0, 6).join(", ");
+  const conflicts = reasoning.framework.conflicts.length
+    ? ` Conflicts resolved: ${reasoning.framework.conflicts.length}.`
+    : " No hard conflicts.";
+  const packs = reasoning.explanation.knowledgePacksUsed.length
+    ? ` Knowledge packs: ${reasoning.explanation.knowledgePacksUsed.slice(0, 4).join(", ")}.`
+    : "";
+  const reuse = reasoning.reused ? " Reused prior multi-domain reasoning." : "";
+  return ` Multi-domain reasoning ${reasoning.reasoningId} (${reasoning.confidenceScore}/100 confidence): ${reasoning.framework.combinedRecommendation} Domains: ${domains}.${conflicts} Why: ${reasoning.explanation.whySelected}${packs}${reuse}`;
+}
+
+function buildProfessionalRecommendationResponse(
+  recommendation: import("../recommendation/professional-recommendation-types.js").ProfessionalRecommendationResult
+): string {
+  if (!recommendation.grounded || recommendation.unsupported) {
+    return " Professional recommendation unsupported without verified Knowledge Foundation evidence.";
+  }
+  const alts = recommendation.framework.alternativeSolutions
+    .map((alt) => `Rank ${alt.rank}: ${alt.title}`)
+    .join("; ");
+  const packs = recommendation.explanation.knowledgePacksUsed.length
+    ? ` Knowledge packs: ${recommendation.explanation.knowledgePacksUsed.slice(0, 4).join(", ")}.`
+    : "";
+  const workflows = recommendation.explanation.workflowsConsidered.length
+    ? ` Workflows considered: ${recommendation.explanation.workflowsConsidered.slice(0, 3).join(", ")}.`
+    : "";
+  const decisions = recommendation.explanation.decisionsInfluenced.length
+    ? ` Decisions: ${recommendation.explanation.decisionsInfluenced.slice(0, 2).join(", ")}.`
+    : "";
+  const reuse = recommendation.reused ? " Reused existing recommendation." : "";
+  return ` Professional recommendation ${recommendation.recommendationId} (${recommendation.confidenceScore}/100 confidence${recommendation.multiDomain ? ", multi-domain" : ""}): ${recommendation.framework.recommendedSolution} Why: ${recommendation.explanation.whySelected} Alternatives: ${alts}. Benefits: ${recommendation.explanation.expectedBenefits.slice(0, 2).join("; ")}.${packs}${workflows}${decisions}${reuse}`;
 }

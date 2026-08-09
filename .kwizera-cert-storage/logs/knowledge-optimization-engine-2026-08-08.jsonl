@@ -1,0 +1,8 @@
+{"timestamp":"2026-08-08T15:30:32.511Z","level":"info","event":"startup","message":"Knowledge Optimization Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:33.296Z","level":"info","event":"classification","message":"Knowledge tiers classified","data":{"total":0}}
+{"timestamp":"2026-08-08T15:30:34.009Z","level":"info","event":"startup","message":"Knowledge Optimization Engine startup complete","data":{"tiers":{"core":0,"frequently-used":0,"creative":0,"business":0,"industry":0,"archived":0,"historical":0,"experimental":0},"durationMs":1496}}
+{"timestamp":"2026-08-08T15:30:35.795Z","level":"info","event":"analysis","message":"Knowledge analysis complete","data":{"totalRecords":0,"duplicateGroups":0,"incompleteRecords":0,"durationMs":124}}
+{"timestamp":"2026-08-08T16:44:06.149Z","level":"info","event":"startup","message":"Knowledge Optimization Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T16:44:06.248Z","level":"info","event":"classification","message":"Knowledge tiers classified","data":{"total":213}}
+{"timestamp":"2026-08-08T16:44:06.268Z","level":"info","event":"startup","message":"Knowledge Optimization Engine startup complete","data":{"tiers":{"core":100,"frequently-used":0,"creative":113,"business":0,"industry":0,"archived":0,"historical":0,"experimental":0},"durationMs":104}}
+{"timestamp":"2026-08-08T16:44:30.528Z","level":"info","event":"analysis","message":"Knowledge analysis complete","data":{"totalRecords":213,"duplicateGroups":0,"incompleteRecords":0,"durationMs":5146}}

@@ -1,0 +1,335 @@
+{
+  "knowledgeId": "comp-golden-ratio",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Golden Ratio",
+  "description": "Composition using phi-based spirals or divisions for organic, classical balance.",
+  "summary": "Guide the eye along a natural flow toward the subject with refined proportion.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "golden-ratio",
+    "golden ratio",
+    "phi",
+    "golden spiral",
+    "proportion"
+  ],
+  "keywords": [
+    "golden ratio",
+    "phi",
+    "golden spiral",
+    "proportion"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 88,
+  "qualityScore": 87,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-rule-of-thirds",
+    "comp-leading-lines",
+    "comp-subject-placement",
+    "comp-visual-hierarchy",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:29.719Z",
+  "lastUpdated": "2026-08-08T15:32:29.719Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-golden-ratio",
+  "integrityStatus": "verified",
+  "contentHash": "d4850b6d541fa6f871e52c90ebc90bd0cd2315b3d44ce05cb6cfb4d6809d43d9",
+  "searchableText": "golden ratio composition using phi-based spirals or divisions for organic, classical balance. guide the eye along a natural flow toward the subject with refined proportion. professional-composition professional-composition professional golden-ratio golden ratio phi golden spiral proportion golden ratio phi golden spiral proportion",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "golden-ratio-composition",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 91,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "golden-ratio",
+    "kind": "professional-composition",
+    "purpose": "Guide the eye along a natural flow toward the subject with refined proportion.",
+    "whenToUse": [
+      "Premium brand stills",
+      "Hero product art direction",
+      "Architectural elegance"
+    ],
+    "whenNotToUse": [
+      "Fast run-and-gun where thirds suffice",
+      "When grids confuse the crew"
+    ],
+    "advantages": [
+      "Sophisticated flow",
+      "Strong focal journey"
+    ],
+    "limitations": [
+      "Harder to mark on set",
+      "Easy to overclaim"
+    ],
+    "relatedCameraTechniques": [
+      "prime lens framing",
+      "controlled distortion"
+    ],
+    "relatedStorytellingTechniques": [
+      "elevated taste",
+      "timelessness"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-golden-ratio",
+      "title": "Golden Ratio",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Composition using phi-based spirals or divisions for organic, classical balance.",
+      "coreConcepts": [
+        "golden ratio",
+        "phi",
+        "golden spiral",
+        "proportion"
+      ],
+      "definitions": [
+        "Guide the eye along a natural flow toward the subject with refined proportion."
+      ],
+      "rules": [
+        "Use when: Premium brand stills",
+        "Use when: Hero product art direction",
+        "Use when: Architectural elegance",
+        "Do not use when: Fast run-and-gun where thirds suffice",
+        "Do not use when: When grids confuse the crew"
+      ],
+      "bestPractices": [
+        "Use as guiding spiral not dogma",
+        "Align subject near spiral calm point",
+        "Simplify background"
+      ],
+      "professionalTechniques": [
+        "Sophisticated flow",
+        "Strong focal journey"
+      ],
+      "workflow": [
+        "Choose Golden Ratio",
+        "Use as guiding spiral not dogma",
+        "Align subject near spiral calm point",
+        "Simplify background"
+      ],
+      "decisionRules": [
+        "Use when: Premium brand stills",
+        "Use when: Hero product art direction",
+        "Use when: Architectural elegance",
+        "Avoid when: Fast run-and-gun where thirds suffice",
+        "Avoid when: When grids confuse the crew"
+      ],
+      "commonMistakes": [
+        "Forcing spiral overlays on unsuitable scenes"
+      ],
+      "troubleshooting": [
+        "Limitation: Harder to mark on set",
+        "Limitation: Easy to overclaim"
+      ],
+      "recommendations": [
+        "Use as guiding spiral not dogma",
+        "Align subject near spiral calm point",
+        "Simplify background"
+      ],
+      "examples": [
+        "Product placed at spiral focus with leading curve of set design"
+      ],
+      "professionalStandards": [
+        "elevated taste",
+        "timelessness"
+      ],
+      "relatedTopics": [
+        "rule-of-thirds",
+        "leading-lines",
+        "subject-placement",
+        "visual-hierarchy"
+      ],
+      "keywords": [
+        "golden ratio",
+        "phi",
+        "golden spiral",
+        "proportion"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:golden-ratio",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Golden Ratio",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Composition using phi-based spirals or divisions for organic, classical balance.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Guide the eye along a natural flow toward the subject with refined proportion."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Premium brand stills",
+            "Hero product art direction",
+            "Architectural elegance"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Fast run-and-gun where thirds suffice",
+            "When grids confuse the crew"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use as guiding spiral not dogma",
+            "Align subject near spiral calm point",
+            "Simplify background"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product placed at spiral focus with leading curve of set design"
+          ]
+        }
+      ],
+      "concepts": [
+        "golden ratio",
+        "phi",
+        "golden spiral",
+        "proportion"
+      ],
+      "entities": [
+        "Golden Ratio",
+        "composition-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "golden ratio",
+        "phi",
+        "golden spiral",
+        "proportion"
+      ],
+      "rules": [
+        "Avoid when: Fast run-and-gun where thirds suffice",
+        "Avoid when: When grids confuse the crew"
+      ],
+      "bestPractices": [
+        "Use as guiding spiral not dogma",
+        "Align subject near spiral calm point",
+        "Simplify background"
+      ],
+      "professionalTechniques": [
+        "Sophisticated flow",
+        "Strong focal journey"
+      ],
+      "examples": [
+        "Product placed at spiral focus with leading curve of set design"
+      ],
+      "commonMistakes": [
+        "Forcing spiral overlays on unsuitable scenes"
+      ],
+      "qualityRules": [
+        "Harder to mark on set",
+        "Easy to overclaim"
+      ],
+      "decisionRules": [
+        "Use when: Premium brand stills",
+        "Use when: Hero product art direction",
+        "Use when: Architectural elegance",
+        "Do not use when: Fast run-and-gun where thirds suffice",
+        "Do not use when: When grids confuse the crew"
+      ],
+      "workflowSteps": [
+        "Use as guiding spiral not dogma",
+        "Align subject near spiral calm point",
+        "Simplify background"
+      ],
+      "prerequisites": [
+        "prime lens framing",
+        "controlled distortion"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-rule-of-thirds",
+        "comp-leading-lines",
+        "comp-subject-placement",
+        "comp-visual-hierarchy"
+      ],
+      "definitions": [
+        "Guide the eye along a natural flow toward the subject with refined proportion."
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "intermediate",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Use as guiding spiral not dogma",
+      "Align subject near spiral calm point",
+      "Simplify background"
+    ],
+    "bestPractices": [
+      "Use as guiding spiral not dogma",
+      "Align subject near spiral calm point",
+      "Simplify background"
+    ],
+    "decisionRules": [
+      "Use when: Premium brand stills",
+      "Use when: Hero product art direction",
+      "Use when: Architectural elegance",
+      "Do not use when: Fast run-and-gun where thirds suffice",
+      "Do not use when: When grids confuse the crew"
+    ]
+  }
+}

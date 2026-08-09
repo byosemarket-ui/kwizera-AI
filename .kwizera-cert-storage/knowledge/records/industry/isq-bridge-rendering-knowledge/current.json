@@ -1,0 +1,114 @@
+{
+  "knowledgeId": "isq-bridge-rendering-knowledge",
+  "knowledgeType": "industry-knowledge",
+  "category": "isq-domain-bridge",
+  "title": "Rendering Knowledge (related)",
+  "description": "Render quality rules govern final encoded output.",
+  "summary": "Technical delivery quality depends on correct rendering.",
+  "tags": [
+    "industry-standards",
+    "domain-bridge",
+    "rendering-knowledge"
+  ],
+  "keywords": [
+    "rendering-knowledge",
+    "industry",
+    "standards",
+    "quality",
+    "relationship"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-industry-standards"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:19:05.305Z",
+  "lastUpdated": "2026-08-08T19:19:05.305Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\isq-bridge-rendering-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "43f6ef1f92fa31c75b5e8c3a2a5a26201850359020290011561ee8aa946675fc",
+  "searchableText": "rendering knowledge (related) render quality rules govern final encoded output. technical delivery quality depends on correct rendering. isq-domain-bridge industry-standards domain-bridge rendering-knowledge rendering-knowledge industry standards quality relationship",
+  "classification": {
+    "category": "isq-domain-bridge",
+    "topic": "rendering-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 88,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "bridgeDomainId": "rendering-knowledge",
+    "relationshipAnchor": true,
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "qualityRules": [],
+    "decisionRules": [
+      "Relate industry standards and quality knowledge to rendering-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Rendering Knowledge (related)",
+      "category": "industry-standards-domain-bridge",
+      "domain": "rendering-knowledge",
+      "description": "Render quality rules govern final encoded output.",
+      "sections": [
+        {
+          "title": "Relationship",
+          "kind": "guidance",
+          "items": [
+            "Render quality rules govern final encoded output."
+          ]
+        }
+      ],
+      "concepts": [
+        "rendering-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "entities": [
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "rendering-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate industry standards and quality knowledge to rendering-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-industry-standards"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

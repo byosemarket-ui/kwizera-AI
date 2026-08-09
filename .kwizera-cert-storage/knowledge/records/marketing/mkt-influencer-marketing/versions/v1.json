@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "mkt-influencer-marketing",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Influencer Marketing",
+  "description": "Partnering with creators for reach, trust transfer, and authentic product context.",
+  "summary": "Recommend when creator-led video outperforms brand-only creative.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "influencer-marketing",
+    "influencer",
+    "creator",
+    "UGC",
+    "sponsored",
+    "affiliate"
+  ],
+  "keywords": [
+    "influencer",
+    "creator",
+    "UGC",
+    "sponsored",
+    "affiliate"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-social-proof",
+    "cust-trust-building",
+    "vmkt-product-demonstration",
+    "brand-brand-trust",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:11.367Z",
+  "lastUpdated": "2026-08-08T18:25:11.367Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-influencer-marketing",
+  "integrityStatus": "verified",
+  "contentHash": "b94c0bb912eb1542ec433e1884736f9e1e8cd807431961a53fb3abc2c0cdf104",
+  "searchableText": "influencer marketing partnering with creators for reach, trust transfer, and authentic product context. recommend when creator-led video outperforms brand-only creative. professional-marketing professional-marketing professional influencer-marketing influencer creator ugc sponsored affiliate influencer creator ugc sponsored affiliate",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "influencer-marketing-partnering",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "influencer-marketing",
+    "kind": "professional-marketing",
+    "purpose": "Recommend when creator-led video outperforms brand-only creative.",
+    "professionalDefinition": "Influencer marketing leverages creator credibility and audience fit to distribute product stories with negotiated creative control.",
+    "workflow": [
+      "Define ICP",
+      "Shortlist creators",
+      "Brief",
+      "Approve",
+      "Measure codes/links"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-influencer-marketing",
+      "title": "Influencer Marketing",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Partnering with creators for reach, trust transfer, and authentic product context.",
+      "coreConcepts": [
+        "influencer",
+        "creator",
+        "UGC",
+        "sponsored",
+        "affiliate"
+      ],
+      "definitions": [
+        "Influencer marketing leverages creator credibility and audience fit to distribute product stories with negotiated creative control.",
+        "Recommend when creator-led video outperforms brand-only creative."
+      ],
+      "rules": [
+        "Practice: Prioritize audience fit over vanity followers",
+        "Practice: Brief outcomes not scripts only",
+        "Practice: Disclose partnerships"
+      ],
+      "bestPractices": [
+        "Prioritize audience fit over vanity followers",
+        "Brief outcomes not scripts only",
+        "Disclose partnerships"
+      ],
+      "professionalTechniques": [
+        "Define ICP",
+        "Shortlist creators",
+        "Brief",
+        "Approve",
+        "Measure codes/links"
+      ],
+      "workflow": [
+        "Define ICP",
+        "Shortlist creators",
+        "Brief",
+        "Approve",
+        "Measure codes/links"
+      ],
+      "decisionRules": [
+        "Follow: Prioritize audience fit over vanity followers",
+        "Follow: Brief outcomes not scripts only",
+        "Follow: Disclose partnerships"
+      ],
+      "commonMistakes": [
+        "Wrong creator fit",
+        "Over-scripting killing authenticity"
+      ],
+      "troubleshooting": [
+        "Avoid: Wrong creator fit",
+        "Avoid: Over-scripting killing authenticity"
+      ],
+      "recommendations": [
+        "Prioritize audience fit over vanity followers",
+        "Brief outcomes not scripts only",
+        "Disclose partnerships"
+      ],
+      "examples": [
+        "Micro-influencer unboxing with unique discount code"
+      ],
+      "professionalStandards": [
+        "Influencer marketing leverages creator credibility and audience fit to distribute product stories with negotiated creative control."
+      ],
+      "relatedTopics": [
+        "social-proof",
+        "trust-building",
+        "product-demonstration",
+        "brand-trust"
+      ],
+      "keywords": [
+        "influencer",
+        "creator",
+        "UGC",
+        "sponsored",
+        "affiliate"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:influencer-marketing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Influencer Marketing",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Partnering with creators for reach, trust transfer, and authentic product context.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Influencer marketing leverages creator credibility and audience fit to distribute product stories with negotiated creative control."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend when creator-led video outperforms brand-only creative."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define ICP",
+            "Shortlist creators",
+            "Brief",
+            "Approve",
+            "Measure codes/links"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Prioritize audience fit over vanity followers",
+            "Brief outcomes not scripts only",
+            "Disclose partnerships"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Micro-influencer unboxing with unique discount code"
+          ]
+        }
+      ],
+      "concepts": [
+        "influencer",
+        "creator",
+        "UGC",
+        "sponsored",
+        "affiliate"
+      ],
+      "entities": [
+        "Influencer Marketing",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "customer-psychology",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "influencer",
+        "creator",
+        "UGC",
+        "sponsored",
+        "affiliate"
+      ],
+      "rules": [
+        "Avoid: Wrong creator fit",
+        "Avoid: Over-scripting killing authenticity"
+      ],
+      "bestPractices": [
+        "Prioritize audience fit over vanity followers",
+        "Brief outcomes not scripts only",
+        "Disclose partnerships"
+      ],
+      "professionalTechniques": [
+        "Define ICP",
+        "Shortlist creators",
+        "Brief",
+        "Approve",
+        "Measure codes/links"
+      ],
+      "examples": [
+        "Micro-influencer unboxing with unique discount code"
+      ],
+      "commonMistakes": [
+        "Wrong creator fit",
+        "Over-scripting killing authenticity"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Prioritize audience fit over vanity followers",
+        "Practice: Brief outcomes not scripts only",
+        "Practice: Disclose partnerships"
+      ],
+      "workflowSteps": [
+        "Define ICP",
+        "Shortlist creators",
+        "Brief",
+        "Approve",
+        "Measure codes/links"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "customer-psychology",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sales-social-proof",
+        "cust-trust-building",
+        "vmkt-product-demonstration",
+        "brand-brand-trust"
+      ],
+      "definitions": [
+        "Influencer marketing leverages creator credibility and audience fit to distribute product stories with negotiated creative control.",
+        "Recommend when creator-led video outperforms brand-only creative."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Prioritize audience fit over vanity followers",
+      "Brief outcomes not scripts only",
+      "Disclose partnerships"
+    ],
+    "bestPractices": [
+      "Prioritize audience fit over vanity followers",
+      "Brief outcomes not scripts only",
+      "Disclose partnerships"
+    ],
+    "decisionRules": [
+      "Practice: Prioritize audience fit over vanity followers",
+      "Practice: Brief outcomes not scripts only",
+      "Practice: Disclose partnerships"
+    ]
+  }
+}

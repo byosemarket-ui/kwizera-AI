@@ -1,0 +1,114 @@
+{
+  "knowledgeId": "isq-bridge-camera-knowledge",
+  "knowledgeType": "industry-knowledge",
+  "category": "isq-domain-bridge",
+  "title": "Camera Knowledge (related)",
+  "description": "Camera quality rules govern capture readiness.",
+  "summary": "Focus, exposure, and framing are measurable quality controls.",
+  "tags": [
+    "industry-standards",
+    "domain-bridge",
+    "camera-knowledge"
+  ],
+  "keywords": [
+    "camera-knowledge",
+    "industry",
+    "standards",
+    "quality",
+    "relationship"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-industry-standards"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:19:01.925Z",
+  "lastUpdated": "2026-08-08T19:19:01.925Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\isq-bridge-camera-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "e5bd8abca1649b277764952ea91d3b25627990a09d926e8e6adbd3a806c24118",
+  "searchableText": "camera knowledge (related) camera quality rules govern capture readiness. focus, exposure, and framing are measurable quality controls. isq-domain-bridge industry-standards domain-bridge camera-knowledge camera-knowledge industry standards quality relationship",
+  "classification": {
+    "category": "isq-domain-bridge",
+    "topic": "camera-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 88,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "bridgeDomainId": "camera-knowledge",
+    "relationshipAnchor": true,
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "qualityRules": [],
+    "decisionRules": [
+      "Relate industry standards and quality knowledge to camera-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Camera Knowledge (related)",
+      "category": "industry-standards-domain-bridge",
+      "domain": "camera-knowledge",
+      "description": "Camera quality rules govern capture readiness.",
+      "sections": [
+        {
+          "title": "Relationship",
+          "kind": "guidance",
+          "items": [
+            "Camera quality rules govern capture readiness."
+          ]
+        }
+      ],
+      "concepts": [
+        "camera-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "entities": [
+        "camera-knowledge"
+      ],
+      "terminology": [
+        "camera-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate industry standards and quality knowledge to camera-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [
+        "camera-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-industry-standards"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

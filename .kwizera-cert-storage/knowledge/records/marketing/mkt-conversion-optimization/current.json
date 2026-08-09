@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "mkt-conversion-optimization",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Conversion Optimization",
+  "description": "Improving the rate of desired actions through creative, offer, and UX tests.",
+  "summary": "Guide iterative improvement of video CTAs and landing alignment.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "conversion-optimization",
+    "conversion optimization",
+    "CRO",
+    "A/B test",
+    "CVR"
+  ],
+  "keywords": [
+    "conversion optimization",
+    "CRO",
+    "A/B test",
+    "CVR"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-cta-strategy",
+    "mkt-performance-marketing",
+    "sales-offer-presentation",
+    "vmkt-video-cta-placement",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:22.021Z",
+  "lastUpdated": "2026-08-08T18:25:22.021Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-conversion-optimization",
+  "integrityStatus": "verified",
+  "contentHash": "393a7afbeac85efd92494ef0e33630013ad605047e953382214a603e1fd66999",
+  "searchableText": "conversion optimization improving the rate of desired actions through creative, offer, and ux tests. guide iterative improvement of video ctas and landing alignment. professional-marketing professional-marketing professional conversion-optimization conversion optimization cro a/b test cvr conversion optimization cro a/b test cvr",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "conversion-optimization-improving",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "conversion-optimization",
+    "kind": "professional-marketing",
+    "purpose": "Guide iterative improvement of video CTAs and landing alignment.",
+    "professionalDefinition": "Conversion optimization systematically tests messages, creative, offers, and paths to increase the percentage of visitors who take the target action.",
+    "workflow": [
+      "Baseline",
+      "Hypothesis",
+      "Variant",
+      "Test",
+      "Implement winner"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-conversion-optimization",
+      "title": "Conversion Optimization",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Improving the rate of desired actions through creative, offer, and UX tests.",
+      "coreConcepts": [
+        "conversion optimization",
+        "CRO",
+        "A/B test",
+        "CVR"
+      ],
+      "definitions": [
+        "Conversion optimization systematically tests messages, creative, offers, and paths to increase the percentage of visitors who take the target action.",
+        "Guide iterative improvement of video CTAs and landing alignment."
+      ],
+      "rules": [
+        "Practice: One hypothesis per test",
+        "Practice: Statistically sufficient samples",
+        "Practice: Align ad promise to landing"
+      ],
+      "bestPractices": [
+        "One hypothesis per test",
+        "Statistically sufficient samples",
+        "Align ad promise to landing"
+      ],
+      "professionalTechniques": [
+        "Baseline",
+        "Hypothesis",
+        "Variant",
+        "Test",
+        "Implement winner"
+      ],
+      "workflow": [
+        "Baseline",
+        "Hypothesis",
+        "Variant",
+        "Test",
+        "Implement winner"
+      ],
+      "decisionRules": [
+        "Follow: One hypothesis per test",
+        "Follow: Statistically sufficient samples",
+        "Follow: Align ad promise to landing"
+      ],
+      "commonMistakes": [
+        "Changing too many variables",
+        "Message mismatch ad→page"
+      ],
+      "troubleshooting": [
+        "Avoid: Changing too many variables",
+        "Avoid: Message mismatch ad→page"
+      ],
+      "recommendations": [
+        "One hypothesis per test",
+        "Statistically sufficient samples",
+        "Align ad promise to landing"
+      ],
+      "examples": [
+        "CTA copy test: Shop now vs See fit guide"
+      ],
+      "professionalStandards": [
+        "Conversion optimization systematically tests messages, creative, offers, and paths to increase the percentage of visitors who take the target action."
+      ],
+      "relatedTopics": [
+        "cta-strategy",
+        "performance-marketing",
+        "offer-presentation",
+        "video-cta-placement"
+      ],
+      "keywords": [
+        "conversion optimization",
+        "CRO",
+        "A/B test",
+        "CVR"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:conversion-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Conversion Optimization",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Improving the rate of desired actions through creative, offer, and UX tests.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Conversion optimization systematically tests messages, creative, offers, and paths to increase the percentage of visitors who take the target action."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Guide iterative improvement of video CTAs and landing alignment."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Baseline",
+            "Hypothesis",
+            "Variant",
+            "Test",
+            "Implement winner"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One hypothesis per test",
+            "Statistically sufficient samples",
+            "Align ad promise to landing"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "CTA copy test: Shop now vs See fit guide"
+          ]
+        }
+      ],
+      "concepts": [
+        "conversion optimization",
+        "CRO",
+        "A/B test",
+        "CVR"
+      ],
+      "entities": [
+        "Conversion Optimization",
+        "marketing-knowledge",
+        "sales-psychology",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "conversion optimization",
+        "CRO",
+        "A/B test",
+        "CVR"
+      ],
+      "rules": [
+        "Avoid: Changing too many variables",
+        "Avoid: Message mismatch ad→page"
+      ],
+      "bestPractices": [
+        "One hypothesis per test",
+        "Statistically sufficient samples",
+        "Align ad promise to landing"
+      ],
+      "professionalTechniques": [
+        "Baseline",
+        "Hypothesis",
+        "Variant",
+        "Test",
+        "Implement winner"
+      ],
+      "examples": [
+        "CTA copy test: Shop now vs See fit guide"
+      ],
+      "commonMistakes": [
+        "Changing too many variables",
+        "Message mismatch ad→page"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: One hypothesis per test",
+        "Practice: Statistically sufficient samples",
+        "Practice: Align ad promise to landing"
+      ],
+      "workflowSteps": [
+        "Baseline",
+        "Hypothesis",
+        "Variant",
+        "Test",
+        "Implement winner"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "sales-psychology",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sales-cta-strategy",
+        "mkt-performance-marketing",
+        "sales-offer-presentation",
+        "vmkt-video-cta-placement"
+      ],
+      "definitions": [
+        "Conversion optimization systematically tests messages, creative, offers, and paths to increase the percentage of visitors who take the target action.",
+        "Guide iterative improvement of video CTAs and landing alignment."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "One hypothesis per test",
+      "Statistically sufficient samples",
+      "Align ad promise to landing"
+    ],
+    "bestPractices": [
+      "One hypothesis per test",
+      "Statistically sufficient samples",
+      "Align ad promise to landing"
+    ],
+    "decisionRules": [
+      "Practice: One hypothesis per test",
+      "Practice: Statistically sufficient samples",
+      "Practice: Align ad promise to landing"
+    ]
+  }
+}

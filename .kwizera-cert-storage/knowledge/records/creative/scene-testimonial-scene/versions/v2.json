@@ -1,0 +1,336 @@
+{
+  "knowledgeId": "scene-testimonial-scene",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Testimonial Scene",
+  "description": "Scenes featuring real or portrayed customers validating the offer.",
+  "summary": "Transfer trust through social proof.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "testimonial-scene",
+    "testimonial",
+    "social proof",
+    "review scene",
+    "customer quote"
+  ],
+  "keywords": [
+    "testimonial",
+    "social proof",
+    "review scene",
+    "customer quote"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-character-development",
+    "story-emotional-journey",
+    "story-resolution",
+    "scene-closing-scene",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-branding-knowledge",
+    "ss-bridge-lighting-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:10.145Z",
+  "lastUpdated": "2026-08-08T17:33:08.425Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-testimonial-scene",
+  "integrityStatus": "verified",
+  "contentHash": "bc45b27c654bf817b4e1c1496747f27cab2fb83895b27b9a573effc785baf476",
+  "searchableText": "testimonial scene scenes featuring real or portrayed customers validating the offer. transfer trust through social proof. professional-scene-design professional-scene-design professional testimonial-scene testimonial social proof review scene customer quote testimonial social proof review scene customer quote",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "testimonial-scene-scenes",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "testimonial-scene",
+    "kind": "professional-scene-design",
+    "purpose": "Transfer trust through social proof.",
+    "professionalDefinition": "A testimonial scene presents a credible speaker’s experience—interview, VO, or UGC style—supporting a claim with human authenticity.",
+    "whenToUse": [
+      "Trust gaps",
+      "Retargeting",
+      "Service businesses"
+    ],
+    "whenNotToUse": [
+      "When testimonials can’t be substantiated"
+    ],
+    "workflow": [
+      "Select speaker",
+      "Capture interview",
+      "Cut soundbites to claims",
+      "Disclose if required"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-testimonial-scene",
+      "title": "Testimonial Scene",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "Scenes featuring real or portrayed customers validating the offer.",
+      "coreConcepts": [
+        "testimonial",
+        "social proof",
+        "review scene",
+        "customer quote"
+      ],
+      "definitions": [
+        "A testimonial scene presents a credible speaker’s experience—interview, VO, or UGC style—supporting a claim with human authenticity.",
+        "Transfer trust through social proof."
+      ],
+      "rules": [
+        "Use when: Trust gaps",
+        "Use when: Retargeting",
+        "Use when: Service businesses",
+        "Do not use when: When testimonials can’t be substantiated"
+      ],
+      "bestPractices": [
+        "Specific outcomes over vague praise",
+        "Natural delivery",
+        "Match brand tone"
+      ],
+      "professionalTechniques": [
+        "Select speaker",
+        "Capture interview",
+        "Cut soundbites to claims",
+        "Disclose if required"
+      ],
+      "workflow": [
+        "Select speaker",
+        "Capture interview",
+        "Cut soundbites to claims",
+        "Disclose if required"
+      ],
+      "decisionRules": [
+        "Use when: Trust gaps",
+        "Use when: Retargeting",
+        "Use when: Service businesses",
+        "Avoid when: When testimonials can’t be substantiated"
+      ],
+      "commonMistakes": [
+        "Over-scripted stiffness",
+        "Unverifiable claims"
+      ],
+      "troubleshooting": [
+        "Avoid: Over-scripted stiffness",
+        "Avoid: Unverifiable claims"
+      ],
+      "recommendations": [
+        "Specific outcomes over vague praise",
+        "Natural delivery",
+        "Match brand tone"
+      ],
+      "examples": [
+        "Founder-customer interview cut against product-in-use B-roll"
+      ],
+      "professionalStandards": [
+        "A testimonial scene presents a credible speaker’s experience—interview, VO, or UGC style—supporting a claim with human authenticity."
+      ],
+      "relatedTopics": [
+        "character-development",
+        "emotional-journey",
+        "resolution",
+        "closing-scene"
+      ],
+      "keywords": [
+        "testimonial",
+        "social proof",
+        "review scene",
+        "customer quote"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:testimonial-scene",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Testimonial Scene",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "Scenes featuring real or portrayed customers validating the offer.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A testimonial scene presents a credible speaker’s experience—interview, VO, or UGC style—supporting a claim with human authenticity."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Transfer trust through social proof."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Trust gaps",
+            "Retargeting",
+            "Service businesses"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When testimonials can’t be substantiated"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Select speaker",
+            "Capture interview",
+            "Cut soundbites to claims",
+            "Disclose if required"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Specific outcomes over vague praise",
+            "Natural delivery",
+            "Match brand tone"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Founder-customer interview cut against product-in-use B-roll"
+          ]
+        }
+      ],
+      "concepts": [
+        "testimonial",
+        "social proof",
+        "review scene",
+        "customer quote"
+      ],
+      "entities": [
+        "Testimonial Scene",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "lighting-knowledge"
+      ],
+      "terminology": [
+        "testimonial",
+        "social proof",
+        "review scene",
+        "customer quote"
+      ],
+      "rules": [
+        "Avoid when: When testimonials can’t be substantiated"
+      ],
+      "bestPractices": [
+        "Specific outcomes over vague praise",
+        "Natural delivery",
+        "Match brand tone"
+      ],
+      "professionalTechniques": [
+        "Select speaker",
+        "Capture interview",
+        "Cut soundbites to claims",
+        "Disclose if required"
+      ],
+      "examples": [
+        "Founder-customer interview cut against product-in-use B-roll"
+      ],
+      "commonMistakes": [
+        "Over-scripted stiffness",
+        "Unverifiable claims"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Trust gaps",
+        "Use when: Retargeting",
+        "Use when: Service businesses",
+        "Do not use when: When testimonials can’t be substantiated"
+      ],
+      "workflowSteps": [
+        "Select speaker",
+        "Capture interview",
+        "Cut soundbites to claims",
+        "Disclose if required"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "lighting-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-character-development",
+        "story-emotional-journey",
+        "story-resolution",
+        "scene-closing-scene"
+      ],
+      "definitions": [
+        "A testimonial scene presents a credible speaker’s experience—interview, VO, or UGC style—supporting a claim with human authenticity.",
+        "Transfer trust through social proof."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Specific outcomes over vague praise",
+      "Natural delivery",
+      "Match brand tone"
+    ],
+    "bestPractices": [
+      "Specific outcomes over vague praise",
+      "Natural delivery",
+      "Match brand tone"
+    ],
+    "decisionRules": [
+      "Use when: Trust gaps",
+      "Use when: Retargeting",
+      "Use when: Service businesses",
+      "Do not use when: When testimonials can’t be substantiated"
+    ]
+  }
+}

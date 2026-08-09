@@ -1,0 +1,344 @@
+{
+  "knowledgeId": "cmov-pull-out",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Pull Out",
+  "description": "Camera moves away from the subject, revealing context or ending a beat.",
+  "summary": "Reveal environment, reduce intimacy, or transition from detail to world.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "pull-out",
+    "pull out",
+    "dolly out",
+    "reveal context",
+    "widen"
+  ],
+  "keywords": [
+    "pull out",
+    "dolly out",
+    "reveal context",
+    "widen"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-dolly",
+    "cmov-push-in",
+    "cmov-reveal-shot",
+    "cmov-zoom",
+    "cam-focus",
+    "cam-exposure",
+    "cam-focal-length",
+    "cam-aspect-ratio",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:26.346Z",
+  "lastUpdated": "2026-08-08T16:55:36.955Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-pull-out",
+  "integrityStatus": "verified",
+  "contentHash": "f0641b99a0b92a0fc4d4a5392c0c3db851e37561ce565829c9c3cebeec211341",
+  "searchableText": "pull out camera moves away from the subject, revealing context or ending a beat. reveal environment, reduce intimacy, or transition from detail to world. professional-camera-movement camera-movement professional pull-out pull out dolly out reveal context widen pull out dolly out reveal context widen",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "pull-camera-moves",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "pull-out",
+    "kind": "camera-movement",
+    "purpose": "Reveal environment, reduce intimacy, or transition from detail to world.",
+    "whenToUse": [
+      "Ending scenes",
+      "Context reveals",
+      "Showing scale after a detail"
+    ],
+    "whenNotToUse": [
+      "When information in the wide is empty",
+      "Unmotivated retreat"
+    ],
+    "advantages": [
+      "Natural scene punctuation",
+      "Strong geography teaching"
+    ],
+    "limitations": [
+      "Can lose subject energy if too fast"
+    ],
+    "relatedCameraSettings": [
+      "focus",
+      "exposure",
+      "focal-length",
+      "aspect-ratio"
+    ],
+    "relatedStorytellingTechniques": [
+      "context reveal",
+      "scene button"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-pull-out",
+      "title": "Pull Out",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera moves away from the subject, revealing context or ending a beat.",
+      "coreConcepts": [
+        "pull out",
+        "dolly out",
+        "reveal context",
+        "widen"
+      ],
+      "definitions": [
+        "Reveal environment, reduce intimacy, or transition from detail to world."
+      ],
+      "rules": [
+        "Use when: Ending scenes",
+        "Use when: Context reveals",
+        "Use when: Showing scale after a detail",
+        "Do not use when: When information in the wide is empty",
+        "Do not use when: Unmotivated retreat"
+      ],
+      "bestPractices": [
+        "Reveal meaningful new information",
+        "Keep subject readable as you widen",
+        "Coordinate lighting falloff"
+      ],
+      "professionalTechniques": [
+        "Natural scene punctuation",
+        "Strong geography teaching"
+      ],
+      "workflow": [
+        "Choose Pull Out",
+        "Reveal meaningful new information",
+        "Keep subject readable as you widen",
+        "Coordinate lighting falloff"
+      ],
+      "decisionRules": [
+        "Use when: Ending scenes",
+        "Use when: Context reveals",
+        "Use when: Showing scale after a detail",
+        "Avoid when: When information in the wide is empty",
+        "Avoid when: Unmotivated retreat"
+      ],
+      "commonMistakes": [
+        "Pulling out to nothing",
+        "Exposing crew/gear"
+      ],
+      "troubleshooting": [
+        "Limitation: Can lose subject energy if too fast"
+      ],
+      "recommendations": [
+        "Reveal meaningful new information",
+        "Keep subject readable as you widen",
+        "Coordinate lighting falloff"
+      ],
+      "examples": [
+        "Pull out from product to full lifestyle set",
+        "End interview beat by revealing office"
+      ],
+      "professionalStandards": [
+        "context reveal",
+        "scene button"
+      ],
+      "relatedTopics": [
+        "dolly",
+        "push-in",
+        "reveal-shot",
+        "zoom",
+        "focus",
+        "exposure",
+        "focal-length",
+        "aspect-ratio"
+      ],
+      "keywords": [
+        "pull out",
+        "dolly out",
+        "reveal context",
+        "widen"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:pull-out",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Pull Out",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera moves away from the subject, revealing context or ending a beat.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Reveal environment, reduce intimacy, or transition from detail to world."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Ending scenes",
+            "Context reveals",
+            "Showing scale after a detail"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When information in the wide is empty",
+            "Unmotivated retreat"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Reveal meaningful new information",
+            "Keep subject readable as you widen",
+            "Coordinate lighting falloff"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Pull out from product to full lifestyle set",
+            "End interview beat by revealing office"
+          ]
+        }
+      ],
+      "concepts": [
+        "pull out",
+        "dolly out",
+        "reveal context",
+        "widen"
+      ],
+      "entities": [
+        "Pull Out",
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "pull out",
+        "dolly out",
+        "reveal context",
+        "widen"
+      ],
+      "rules": [
+        "Avoid when: When information in the wide is empty",
+        "Avoid when: Unmotivated retreat"
+      ],
+      "bestPractices": [
+        "Reveal meaningful new information",
+        "Keep subject readable as you widen",
+        "Coordinate lighting falloff"
+      ],
+      "professionalTechniques": [
+        "Natural scene punctuation",
+        "Strong geography teaching"
+      ],
+      "examples": [
+        "Pull out from product to full lifestyle set",
+        "End interview beat by revealing office"
+      ],
+      "commonMistakes": [
+        "Pulling out to nothing",
+        "Exposing crew/gear"
+      ],
+      "qualityRules": [
+        "Can lose subject energy if too fast"
+      ],
+      "decisionRules": [
+        "Use when: Ending scenes",
+        "Use when: Context reveals",
+        "Use when: Showing scale after a detail",
+        "Do not use when: When information in the wide is empty",
+        "Do not use when: Unmotivated retreat"
+      ],
+      "workflowSteps": [
+        "Reveal meaningful new information",
+        "Keep subject readable as you widen",
+        "Coordinate lighting falloff"
+      ],
+      "prerequisites": [
+        "focus",
+        "exposure",
+        "focal-length",
+        "aspect-ratio"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-dolly",
+        "cmov-push-in",
+        "cmov-reveal-shot",
+        "cmov-zoom"
+      ],
+      "definitions": [
+        "Reveal environment, reduce intimacy, or transition from detail to world."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Reveal meaningful new information",
+      "Keep subject readable as you widen",
+      "Coordinate lighting falloff"
+    ],
+    "bestPractices": [
+      "Reveal meaningful new information",
+      "Keep subject readable as you widen",
+      "Coordinate lighting falloff"
+    ],
+    "decisionRules": [
+      "Use when: Ending scenes",
+      "Use when: Context reveals",
+      "Use when: Showing scale after a detail",
+      "Do not use when: When information in the wide is empty",
+      "Do not use when: Unmotivated retreat"
+    ]
+  }
+}

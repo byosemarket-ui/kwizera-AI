@@ -1,0 +1,310 @@
+{
+  "backupId": "bk-1786203005747-c1fb2473",
+  "version": 1,
+  "backupType": "automatic",
+  "createdAt": "2026-08-08T15:30:05.748Z",
+  "storageRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage",
+  "files": [
+    {
+      "relativePath": "memory/relationships/relationship-graph.json",
+      "source": "relationship-memory",
+      "sizeBytes": 117,
+      "checksum": "e48d06e44d99da39193438fee614d06fe021849a447f8cc901c429c1d63de398",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/relationships/relationship-graph.json.sha256",
+      "source": "relationship-memory",
+      "sizeBytes": 64,
+      "checksum": "bb54b27d39d78505095e41007d0cf5028758f9fc8276c9b9a034974c2a6332bc",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/registry/memory-registry.json",
+      "source": "persistent-memory",
+      "sizeBytes": 686,
+      "checksum": "dc6a0d7c89c67239e18c9f23b4126ba83a080efc0b2f3a74013bd71f79b8a04e",
+      "compressed": true
+    },
+    {
+      "relativePath": "memory/indexes/ai-module.json",
+      "source": "persistent-memory",
+      "sizeBytes": 133,
+      "checksum": "24a5fe23bdb6750dac7dc1fa6700579b91641709990441ee1376c552359c6e48",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/ai-module.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "de5959675187e0147a8551b70e458e59561c901942892fd86384cc048bd02f62",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/brand.json",
+      "source": "persistent-memory",
+      "sizeBytes": 129,
+      "checksum": "2ffa59300acdb4e3a35c3fca310fc47812b1cf5dfefac342dc7927c78d8d5b39",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/brand.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "886ae4dd2fc54d33ed79416fd6509a7968a5d1eab0925beddb8dce5cd32daa4f",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/category.json",
+      "source": "persistent-memory",
+      "sizeBytes": 132,
+      "checksum": "2b74702b1d8c04bb9889cdd4a65df095db16e5b78cb3bb651921fa3c839a1296",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/category.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "104994e26b92acf33fafcba481c9582995e3b45b89a175741f3028c987d84331",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/date.json",
+      "source": "persistent-memory",
+      "sizeBytes": 128,
+      "checksum": "d29c3276d6ce7d60e79474e67cfcb3de7ea3c9fa801266ebd93bec2692d19d0f",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/date.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "ee16b206ca67de5c3bdb5993e699200d8384b884dfb74d104130b0910d9bcf85",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/decision.json",
+      "source": "persistent-memory",
+      "sizeBytes": 132,
+      "checksum": "e28aefdcf0806c9bc5eeedd0d298a3f52efb02739145e0b495135be384fe9648",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/decision.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "caec2b2649ed0b21fbf73b7c75480f7b9d72d151fbdc4f1161c508cfd15c0f30",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/file-type.json",
+      "source": "persistent-memory",
+      "sizeBytes": 133,
+      "checksum": "753061c1f0ecb87395bbe18fa3da83885f5b700428ae0500f27bff90d01d502d",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/file-type.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "cc5ef3f27541fe606569ebebd259ba8fc799c56fccf5f5e0f625b257aa1ffabe",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/keywords.json",
+      "source": "persistent-memory",
+      "sizeBytes": 132,
+      "checksum": "ee2b046dbc98889c0ad071b61e663bfde4db9ed7883f4f23c79461f85a50e1a6",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/keywords.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "55ee0b559208ce6cd44c3bbce682f34370bf45396317578a05aa94e78a61ab75",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/language.json",
+      "source": "persistent-memory",
+      "sizeBytes": 132,
+      "checksum": "987a638a96c879e1ed6526225c766411e4663074f8ce7f311431fd15e10ff953",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/language.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "0ff76d45e4b5531a94ee0e534afedc37a1a44cca5c0ebbda87093cef4a0c1b8e",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/marketing.json",
+      "source": "persistent-memory",
+      "sizeBytes": 133,
+      "checksum": "647e7087def417b8720306726e6d749b3ca577770a47cdc87a256b2a41d9c4be",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/marketing.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "5a8e1b7f8ea11fc3b374af37e8c174eee8b419cca28ceddd94809afb5e2c1755",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/master-manifest.json",
+      "source": "persistent-memory",
+      "sizeBytes": 456,
+      "checksum": "2d09cc9b687f36c2f1cb2c3a9ed9e3767ad710395359afbbba9d534ae6a11530",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/memory-id.json",
+      "source": "persistent-memory",
+      "sizeBytes": 133,
+      "checksum": "a58a0a783f6df41ca0dc43edffd767f24f826eec753d386e14ae1d389968a1d7",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/memory-id.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "a18ffcbf9a4f515ceadb4f4f9e58e67f02fa539757eec68b45012586368726a7",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/product.json",
+      "source": "persistent-memory",
+      "sizeBytes": 131,
+      "checksum": "66411dab3e6c510ccc885bf8c1db13bd64203390da9ef214acd702cce8a0bcb9",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/product.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "859901c67dd420a7dea45f11fe0c3632d14f267fcc8d360e10be32806f04b80d",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/project.json",
+      "source": "persistent-memory",
+      "sizeBytes": 131,
+      "checksum": "8812cb842e76109ef4e34d3c5f333700f5ae0548b3956888734642719ad7ccb6",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/project.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "a13906be95a9c967d2363996e77e0fba856d47eab302bd0b677a51d73d2e7d31",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/reasoning.json",
+      "source": "persistent-memory",
+      "sizeBytes": 133,
+      "checksum": "1c8b846a6819902563f335126aff77439aee043dfea3bac3ad953fd6281ecd72",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/reasoning.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "90f53cffb8e99e7e44bab4fdb0d3920f6846f96bf951faee0b65769b02c0e7e6",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/related.json",
+      "source": "persistent-memory",
+      "sizeBytes": 131,
+      "checksum": "94d576d7f4c374d9484e99af350266a1eacb6fcbf24d7379e6929aa18d9e60b0",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/related.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "5e44b4d42b415f69a97ddd9bc39f838fa86c1d9a5a98ee2315953608dd773df5",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/relationships.json",
+      "source": "persistent-memory",
+      "sizeBytes": 102,
+      "checksum": "9e14475903f3cce04a835d07b92af67f5d8f3f67512a6c7bc0537190dff774d7",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/relationships.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "3ba4cfc3ede8e5961e734f95f0c2b421da21cfc755dadae74134e9f9c2e3dab0",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/tags.json",
+      "source": "persistent-memory",
+      "sizeBytes": 128,
+      "checksum": "8c246f7311ab879b611cac968855bada428f82e3d748aade166c859ea1a6e70e",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/tags.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "9c0afab339795de7b2f23d937b63019c7fff06649034b3548463b22c8d946729",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/user-preferences.json",
+      "source": "persistent-memory",
+      "sizeBytes": 140,
+      "checksum": "81e2bea1155c435f991084d3cf48ec22975f3c5351ce33aeea963a57b25e4356",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/user-preferences.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "7c37486e47b6abb9235f27a50e621cabf5883d93b1a85955900d8eed725d438a",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/video.json",
+      "source": "persistent-memory",
+      "sizeBytes": 129,
+      "checksum": "01a55d4887b5a889e3e82ba872686002f5ee10c09ef81d9398f68e93c7d0315a",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/video.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "0a13bc5d3386916fd8bb90cdc346fa76f27d908a72a54518ca98c491452500f7",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/workflow.json",
+      "source": "persistent-memory",
+      "sizeBytes": 132,
+      "checksum": "a21951ddde6eb8de39cc4714669367b18a88480c53d968892a1c1a8cd1eb5b1c",
+      "compressed": false
+    },
+    {
+      "relativePath": "memory/indexes/workflow.json.sha256",
+      "source": "persistent-memory",
+      "sizeBytes": 64,
+      "checksum": "48118e9294a3b56bc753f195dfbdf93fd9c574b51d5e8bc1734808358fae240d",
+      "compressed": false
+    }
+  ],
+  "totalSizeBytes": 11021,
+  "compressedSizeBytes": 5013,
+  "recordCount": 0,
+  "edgeCount": 0,
+  "validated": true,
+  "retentionTier": "daily",
+  "checksum": "c6eae969341a89eb46e9bd11c34f8727cb61e31cd24a9dd28faf2b25af1cd68b"
+}

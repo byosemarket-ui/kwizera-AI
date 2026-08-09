@@ -1,0 +1,182 @@
+[
+  {
+    "id": "system.runtime-status",
+    "name": "Runtime Status",
+    "description": "Returns local AI Core readiness and lifecycle state.",
+    "category": "system",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "requiredPermissions": [
+      "system.read"
+    ],
+    "dependencies": [
+      "ai-core"
+    ],
+    "supportedModels": [],
+    "executionType": "synchronous",
+    "locality": "local",
+    "status": "enabled",
+    "configuration": {},
+    "health": {
+      "available": true,
+      "compatible": true,
+      "responseTimeMs": 0,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "lastCheckedAt": "2026-08-08T19:47:34.749Z"
+    },
+    "registeredAt": "2026-08-08T19:47:32.956Z",
+    "updatedAt": "2026-08-08T19:47:32.956Z"
+  },
+  {
+    "id": "workflow.status",
+    "name": "Workflow Status",
+    "description": "Returns workflow engine availability without running a workflow.",
+    "category": "utility",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "requiredPermissions": [
+      "workflow.read"
+    ],
+    "dependencies": [
+      "workflow-engine"
+    ],
+    "supportedModels": [],
+    "executionType": "synchronous",
+    "locality": "local",
+    "status": "enabled",
+    "configuration": {},
+    "health": {
+      "available": true,
+      "compatible": true,
+      "responseTimeMs": 0,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "lastCheckedAt": "2026-08-08T19:47:34.749Z"
+    },
+    "registeredAt": "2026-08-08T19:47:32.999Z",
+    "updatedAt": "2026-08-08T19:47:32.999Z"
+  },
+  {
+    "id": "tool.registry-summary",
+    "name": "Tool Registry Summary",
+    "description": "Returns the registered tool count by category.",
+    "category": "utility",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "requiredPermissions": [
+      "tools.read"
+    ],
+    "dependencies": [
+      "ai-core"
+    ],
+    "supportedModels": [],
+    "executionType": "synchronous",
+    "locality": "local",
+    "status": "enabled",
+    "configuration": {},
+    "health": {
+      "available": true,
+      "compatible": true,
+      "responseTimeMs": 0,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "lastCheckedAt": "2026-08-08T19:47:34.749Z"
+    },
+    "registeredAt": "2026-08-08T19:47:33.468Z",
+    "updatedAt": "2026-08-08T19:47:33.468Z"
+  },
+  {
+    "id": "connector.registry-summary",
+    "name": "Connector Registry Summary",
+    "description": "Returns connector count and integration availability without making a remote request.",
+    "category": "external",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "requiredPermissions": [
+      "connectors.read"
+    ],
+    "dependencies": [
+      "ai-core"
+    ],
+    "supportedModels": [],
+    "executionType": "synchronous",
+    "locality": "local",
+    "status": "enabled",
+    "configuration": {},
+    "health": {
+      "available": true,
+      "compatible": true,
+      "responseTimeMs": 0,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "lastCheckedAt": "2026-08-08T19:47:34.749Z"
+    },
+    "registeredAt": "2026-08-08T19:47:34.686Z",
+    "updatedAt": "2026-08-08T19:47:34.686Z"
+  },
+  {
+    "id": "desktop.integration-status",
+    "name": "Desktop Integration Status",
+    "description": "Returns local integration status without accessing project files or system resources.",
+    "category": "system",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "inputSchema": {
+      "type": "object"
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "requiredPermissions": [
+      "system.read"
+    ],
+    "dependencies": [
+      "ai-core"
+    ],
+    "supportedModels": [],
+    "executionType": "synchronous",
+    "locality": "local",
+    "status": "enabled",
+    "configuration": {},
+    "health": {
+      "available": true,
+      "compatible": true,
+      "responseTimeMs": 0,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "lastCheckedAt": "2026-08-08T19:47:34.749Z"
+    },
+    "registeredAt": "2026-08-08T19:47:34.717Z",
+    "updatedAt": "2026-08-08T19:47:34.717Z"
+  }
+]

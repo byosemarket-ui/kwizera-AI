@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:06.855Z","level":"info","event":"startup","message":"Voice Cloning Generation Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\audio-generation\\voice-cloning\\engine"}}
+{"timestamp":"2026-08-08T19:47:10.279Z","level":"info","event":"startup","message":"Voice Cloning Generation Engine startup complete","data":{"recordsLoaded":0}}

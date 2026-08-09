@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "vmkt-product-demonstration",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "Product Demonstration",
+  "description": "Showing the product working to create belief.",
+  "summary": "Recommend demo structures for MOF video.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "product-demonstration",
+    "product demonstration",
+    "demo",
+    "how it works",
+    "proof"
+  ],
+  "keywords": [
+    "product demonstration",
+    "demo",
+    "how it works",
+    "proof"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-feature-presentation",
+    "vmkt-benefit-presentation",
+    "sales-objection-handling",
+    "cust-product-perception",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-product-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:16.917Z",
+  "lastUpdated": "2026-08-08T18:26:16.917Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-product-demonstration",
+  "integrityStatus": "verified",
+  "contentHash": "b6682221c8e9b63f9bc5a1bacf3fdb5e052759d18854a6d926c6c67cbf47ce56",
+  "searchableText": "product demonstration showing the product working to create belief. recommend demo structures for mof video. professional-video-marketing professional-video-marketing professional product-demonstration product demonstration demo how it works proof product demonstration demo how it works proof",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "product-demonstration-showing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-demonstration",
+    "kind": "professional-video-marketing",
+    "purpose": "Recommend demo structures for MOF video.",
+    "professionalDefinition": "Product demonstration presents observable use or performance so viewers can verify claims visually.",
+    "workflow": [
+      "Pick claim",
+      "Design demo",
+      "Shoot clearly",
+      "Caption key result"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-product-demonstration",
+      "title": "Product Demonstration",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Showing the product working to create belief.",
+      "coreConcepts": [
+        "product demonstration",
+        "demo",
+        "how it works",
+        "proof"
+      ],
+      "definitions": [
+        "Product demonstration presents observable use or performance so viewers can verify claims visually.",
+        "Recommend demo structures for MOF video."
+      ],
+      "rules": [
+        "Practice: One claim per demo",
+        "Practice: Real-time readability",
+        "Practice: Before/after when honest"
+      ],
+      "bestPractices": [
+        "One claim per demo",
+        "Real-time readability",
+        "Before/after when honest"
+      ],
+      "professionalTechniques": [
+        "Pick claim",
+        "Design demo",
+        "Shoot clearly",
+        "Caption key result"
+      ],
+      "workflow": [
+        "Pick claim",
+        "Design demo",
+        "Shoot clearly",
+        "Caption key result"
+      ],
+      "decisionRules": [
+        "Follow: One claim per demo",
+        "Follow: Real-time readability",
+        "Follow: Before/after when honest"
+      ],
+      "commonMistakes": [
+        "Demo too fast",
+        "Demo of irrelevant features"
+      ],
+      "troubleshooting": [
+        "Avoid: Demo too fast",
+        "Avoid: Demo of irrelevant features"
+      ],
+      "recommendations": [
+        "One claim per demo",
+        "Real-time readability",
+        "Before/after when honest"
+      ],
+      "examples": [
+        "Stain removal in one wipe with timer"
+      ],
+      "professionalStandards": [
+        "Product demonstration presents observable use or performance so viewers can verify claims visually."
+      ],
+      "relatedTopics": [
+        "feature-presentation",
+        "benefit-presentation",
+        "objection-handling",
+        "product-perception"
+      ],
+      "keywords": [
+        "product demonstration",
+        "demo",
+        "how it works",
+        "proof"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:product-demonstration",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Demonstration",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Showing the product working to create belief.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Product demonstration presents observable use or performance so viewers can verify claims visually."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend demo structures for MOF video."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Pick claim",
+            "Design demo",
+            "Shoot clearly",
+            "Caption key result"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One claim per demo",
+            "Real-time readability",
+            "Before/after when honest"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Stain removal in one wipe with timer"
+          ]
+        }
+      ],
+      "concepts": [
+        "product demonstration",
+        "demo",
+        "how it works",
+        "proof"
+      ],
+      "entities": [
+        "Product Demonstration",
+        "marketing-knowledge",
+        "product-knowledge",
+        "sales-psychology",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "product demonstration",
+        "demo",
+        "how it works",
+        "proof"
+      ],
+      "rules": [
+        "Avoid: Demo too fast",
+        "Avoid: Demo of irrelevant features"
+      ],
+      "bestPractices": [
+        "One claim per demo",
+        "Real-time readability",
+        "Before/after when honest"
+      ],
+      "professionalTechniques": [
+        "Pick claim",
+        "Design demo",
+        "Shoot clearly",
+        "Caption key result"
+      ],
+      "examples": [
+        "Stain removal in one wipe with timer"
+      ],
+      "commonMistakes": [
+        "Demo too fast",
+        "Demo of irrelevant features"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: One claim per demo",
+        "Practice: Real-time readability",
+        "Practice: Before/after when honest"
+      ],
+      "workflowSteps": [
+        "Pick claim",
+        "Design demo",
+        "Shoot clearly",
+        "Caption key result"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "product-knowledge",
+        "sales-psychology",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-feature-presentation",
+        "vmkt-benefit-presentation",
+        "sales-objection-handling",
+        "cust-product-perception"
+      ],
+      "definitions": [
+        "Product demonstration presents observable use or performance so viewers can verify claims visually.",
+        "Recommend demo structures for MOF video."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "One claim per demo",
+      "Real-time readability",
+      "Before/after when honest"
+    ],
+    "bestPractices": [
+      "One claim per demo",
+      "Real-time readability",
+      "Before/after when honest"
+    ],
+    "decisionRules": [
+      "Practice: One claim per demo",
+      "Practice: Real-time readability",
+      "Practice: Before/after when honest"
+    ]
+  }
+}

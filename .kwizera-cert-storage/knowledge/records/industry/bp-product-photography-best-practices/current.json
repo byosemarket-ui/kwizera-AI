@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "bp-product-photography-best-practices",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-best-practices",
+  "title": "Product Photography Best Practices",
+  "description": "Practices for truthful, useful, visually coherent product images.",
+  "summary": "Recommend professional product-presentation practices.",
+  "tags": [
+    "professional-best-practices",
+    "professional",
+    "product-photography-best-practices",
+    "product photography best practices",
+    "packshot",
+    "product truth",
+    "retouching",
+    "scale"
+  ],
+  "keywords": [
+    "product photography best practices",
+    "packshot",
+    "product truth",
+    "retouching",
+    "scale"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qrule-image-quality-rules",
+    "qrule-lighting-quality-rules",
+    "qeval-visual-quality-evaluation",
+    "qeval-content-consistency-evaluation",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-product-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:40.944Z",
+  "lastUpdated": "2026-08-08T19:18:40.944Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\bp-product-photography-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "19c709437c4cd2114192fd220a47e3279c72f25f6dd6cc100de1e6d0a02e065d",
+  "searchableText": "product photography best practices practices for truthful, useful, visually coherent product images. recommend professional product-presentation practices. professional-best-practices professional-best-practices professional product-photography-best-practices product photography best practices packshot product truth retouching scale product photography best practices packshot product truth retouching scale",
+  "classification": {
+    "category": "professional-best-practices",
+    "topic": "product-photography-best",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-photography-best-practices",
+    "kind": "professional-best-practices",
+    "purpose": "Recommend professional product-presentation practices.",
+    "professionalDefinition": "Product photography best practices show products accurately and attractively through controlled lighting, clear hierarchy, appropriate angles, consistent retouching, and output-specific crops.",
+    "qualityRules": [
+      "Product representation is truthful",
+      "Key details remain visible",
+      "Image system is consistent across the collection"
+    ],
+    "workflow": [
+      "Set the objective",
+      "Select proven practice",
+      "Execute consistently",
+      "Measure result",
+      "Improve the next iteration"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "bp-product-photography-best-practices",
+      "title": "Product Photography Best Practices",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "description": "Practices for truthful, useful, visually coherent product images.",
+      "coreConcepts": [
+        "product photography best practices",
+        "packshot",
+        "product truth",
+        "retouching",
+        "scale"
+      ],
+      "definitions": [
+        "Product photography best practices show products accurately and attractively through controlled lighting, clear hierarchy, appropriate angles, consistent retouching, and output-specific crops.",
+        "Recommend professional product-presentation practices."
+      ],
+      "rules": [
+        "Quality rule: Product representation is truthful",
+        "Quality rule: Key details remain visible",
+        "Quality rule: Image system is consistent across the collection"
+      ],
+      "bestPractices": [
+        "Match lighting to material and use case",
+        "Show scale and key details",
+        "Maintain consistent crops across a range"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "workflow": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "decisionRules": [
+        "Apply: Product representation is truthful",
+        "Apply: Key details remain visible",
+        "Apply: Image system is consistent across the collection"
+      ],
+      "commonMistakes": [
+        "Retouching away functional product detail",
+        "Misrepresenting color or scale"
+      ],
+      "troubleshooting": [
+        "Avoid: Retouching away functional product detail",
+        "Avoid: Misrepresenting color or scale"
+      ],
+      "recommendations": [
+        "Match lighting to material and use case",
+        "Show scale and key details",
+        "Maintain consistent crops across a range"
+      ],
+      "examples": [
+        "Professional application of Product Photography Best Practices in a studio review."
+      ],
+      "professionalStandards": [
+        "Product representation is truthful",
+        "Key details remain visible",
+        "Image system is consistent across the collection"
+      ],
+      "relatedTopics": [
+        "image-quality-rules",
+        "lighting-quality-rules",
+        "visual-quality-evaluation",
+        "content-consistency-evaluation"
+      ],
+      "keywords": [
+        "product photography best practices",
+        "packshot",
+        "product truth",
+        "retouching",
+        "scale"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:product-photography-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Photography Best Practices",
+      "category": "professional-best-practices",
+      "domain": "industry-standards-knowledge",
+      "description": "Practices for truthful, useful, visually coherent product images.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Product photography best practices show products accurately and attractively through controlled lighting, clear hierarchy, appropriate angles, consistent retouching, and output-specific crops.",
+            "Recommend professional product-presentation practices."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Product representation is truthful",
+            "Key details remain visible",
+            "Image system is consistent across the collection"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match lighting to material and use case",
+            "Show scale and key details",
+            "Maintain consistent crops across a range"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set the objective",
+            "Select proven practice",
+            "Execute consistently",
+            "Measure result",
+            "Improve the next iteration"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Product Photography Best Practices in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "product photography best practices",
+        "packshot",
+        "product truth",
+        "retouching",
+        "scale"
+      ],
+      "entities": [
+        "Product Photography Best Practices",
+        "industry-standards-knowledge",
+        "product-knowledge",
+        "lighting-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "product photography best practices",
+        "packshot",
+        "product truth",
+        "retouching",
+        "scale"
+      ],
+      "rules": [
+        "Product representation is truthful",
+        "Key details remain visible",
+        "Image system is consistent across the collection"
+      ],
+      "bestPractices": [
+        "Match lighting to material and use case",
+        "Show scale and key details",
+        "Maintain consistent crops across a range"
+      ],
+      "professionalTechniques": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "examples": [
+        "Professional application of Product Photography Best Practices in a studio review."
+      ],
+      "commonMistakes": [
+        "Retouching away functional product detail",
+        "Misrepresenting color or scale"
+      ],
+      "qualityRules": [
+        "Product representation is truthful",
+        "Key details remain visible",
+        "Image system is consistent across the collection"
+      ],
+      "decisionRules": [
+        "Apply: Product representation is truthful",
+        "Apply: Key details remain visible",
+        "Apply: Image system is consistent across the collection"
+      ],
+      "workflowSteps": [
+        "Set the objective",
+        "Select proven practice",
+        "Execute consistently",
+        "Measure result",
+        "Improve the next iteration"
+      ],
+      "prerequisites": [
+        "Set the objective"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "product-knowledge",
+        "lighting-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qrule-image-quality-rules",
+        "qrule-lighting-quality-rules",
+        "qeval-visual-quality-evaluation",
+        "qeval-content-consistency-evaluation"
+      ],
+      "definitions": [
+        "Product photography best practices show products accurately and attractively through controlled lighting, clear hierarchy, appropriate angles, consistent retouching, and output-specific crops."
+      ],
+      "troubleshooting": [
+        "Avoid: Retouching away functional product detail",
+        "Avoid: Misrepresenting color or scale"
+      ],
+      "recommendations": [
+        "Match lighting to material and use case",
+        "Show scale and key details",
+        "Maintain consistent crops across a range"
+      ],
+      "professionalStandards": [
+        "Product representation is truthful",
+        "Key details remain visible",
+        "Image system is consistent across the collection"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:product-photography-best-practices",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-best-practices",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Match lighting to material and use case",
+      "Show scale and key details",
+      "Maintain consistent crops across a range"
+    ],
+    "bestPractices": [
+      "Match lighting to material and use case",
+      "Show scale and key details",
+      "Maintain consistent crops across a range"
+    ],
+    "decisionRules": [
+      "Quality rule: Product representation is truthful",
+      "Quality rule: Key details remain visible",
+      "Quality rule: Image system is consistent across the collection"
+    ]
+  }
+}

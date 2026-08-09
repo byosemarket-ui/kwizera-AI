@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "lc-bridge-video-production-knowledge",
+  "knowledgeType": "image-knowledge",
+  "category": "lighting-composition-domain-bridge",
+  "title": "Video Production Knowledge (related)",
+  "description": "Lighting and composition serve end-to-end production planning.",
+  "summary": "Production workflows depend on lighting and composition decisions.",
+  "tags": [
+    "lighting-composition",
+    "domain-bridge",
+    "video-production-knowledge"
+  ],
+  "keywords": [
+    "video-production-knowledge",
+    "lighting",
+    "composition",
+    "relationship"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-lighting-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:34.347Z",
+  "lastUpdated": "2026-08-08T17:16:03.297Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lc-bridge-video-production-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "36bcde3baa07f1ba9d268956c251c568efb601897c3b85e040abc65d650f7130",
+  "searchableText": "video production knowledge (related) lighting and composition serve end-to-end production planning. production workflows depend on lighting and composition decisions. lighting-composition-domain-bridge lighting-composition domain-bridge video-production-knowledge video-production-knowledge lighting composition relationship",
+  "classification": {
+    "category": "lighting-composition-domain-bridge",
+    "topic": "video-production-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "bridgeDomainId": "video-production-knowledge",
+    "relationshipAnchor": true,
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate lighting/composition knowledge to video-production-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Video Production Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "video-production-knowledge",
+      "description": "Lighting and composition serve end-to-end production planning.",
+      "sections": [],
+      "concepts": [
+        "video-production-knowledge"
+      ],
+      "entities": [
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "video-production-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate lighting/composition knowledge to video-production-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "lit-lighting-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "qeval-content-consistency-evaluation",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-evaluation",
+  "title": "Content Consistency Evaluation",
+  "description": "A review of message, quality, terminology, and craft consistency across assets.",
+  "summary": "Recommend cross-asset consistency checks.",
+  "tags": [
+    "professional-quality-evaluation",
+    "professional",
+    "content-consistency-evaluation",
+    "content consistency",
+    "asset audit",
+    "message consistency",
+    "templates",
+    "governance"
+  ],
+  "keywords": [
+    "content consistency",
+    "asset audit",
+    "message consistency",
+    "templates",
+    "governance"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qeval-brand-consistency-evaluation",
+    "qeval-visual-quality-evaluation",
+    "bp-social-media-best-practices",
+    "std-review-process",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:57.309Z",
+  "lastUpdated": "2026-08-08T19:18:57.309Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qeval-content-consistency-evaluation",
+  "integrityStatus": "verified",
+  "contentHash": "a16f3addb571cff7c006b7b055a43588513ef6bd777171d581fb17bd18e901af",
+  "searchableText": "content consistency evaluation a review of message, quality, terminology, and craft consistency across assets. recommend cross-asset consistency checks. professional-quality-evaluation professional-quality-evaluation professional content-consistency-evaluation content consistency asset audit message consistency templates governance content consistency asset audit message consistency templates governance",
+  "classification": {
+    "category": "professional-quality-evaluation",
+    "topic": "content-consistency-evaluation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 93,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "content-consistency-evaluation",
+    "kind": "professional-quality-evaluation",
+    "purpose": "Recommend cross-asset consistency checks.",
+    "professionalDefinition": "Content consistency evaluation verifies that a set of outputs tells the same truthful story with coherent terminology, visual quality, quality controls, and delivery standards.",
+    "qualityRules": [
+      "Core message is consistent across assets",
+      "Quality baseline remains stable",
+      "Exceptions are intentional and documented"
+    ],
+    "workflow": [
+      "Set evaluation context",
+      "Inspect objective evidence",
+      "Score criteria",
+      "List material gaps",
+      "Recommend improvements"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qeval-content-consistency-evaluation",
+      "title": "Content Consistency Evaluation",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "description": "A review of message, quality, terminology, and craft consistency across assets.",
+      "coreConcepts": [
+        "content consistency",
+        "asset audit",
+        "message consistency",
+        "templates",
+        "governance"
+      ],
+      "definitions": [
+        "Content consistency evaluation verifies that a set of outputs tells the same truthful story with coherent terminology, visual quality, quality controls, and delivery standards.",
+        "Recommend cross-asset consistency checks."
+      ],
+      "rules": [
+        "Quality rule: Core message is consistent across assets",
+        "Quality rule: Quality baseline remains stable",
+        "Quality rule: Exceptions are intentional and documented"
+      ],
+      "bestPractices": [
+        "Audit representative assets together",
+        "Use shared terminology and templates",
+        "Track exceptions intentionally"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "workflow": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "decisionRules": [
+        "Apply: Core message is consistent across assets",
+        "Apply: Quality baseline remains stable",
+        "Apply: Exceptions are intentional and documented"
+      ],
+      "commonMistakes": [
+        "Reviewing assets in isolation",
+        "Allowing outdated claims to survive in old derivatives"
+      ],
+      "troubleshooting": [
+        "Avoid: Reviewing assets in isolation",
+        "Avoid: Allowing outdated claims to survive in old derivatives"
+      ],
+      "recommendations": [
+        "Audit representative assets together",
+        "Use shared terminology and templates",
+        "Track exceptions intentionally"
+      ],
+      "examples": [
+        "Professional application of Content Consistency Evaluation in a studio review."
+      ],
+      "professionalStandards": [
+        "Core message is consistent across assets",
+        "Quality baseline remains stable",
+        "Exceptions are intentional and documented"
+      ],
+      "relatedTopics": [
+        "brand-consistency-evaluation",
+        "visual-quality-evaluation",
+        "social-media-best-practices",
+        "review-process"
+      ],
+      "keywords": [
+        "content consistency",
+        "asset audit",
+        "message consistency",
+        "templates",
+        "governance"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:content-consistency-evaluation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Content Consistency Evaluation",
+      "category": "professional-quality-evaluation",
+      "domain": "industry-standards-knowledge",
+      "description": "A review of message, quality, terminology, and craft consistency across assets.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Content consistency evaluation verifies that a set of outputs tells the same truthful story with coherent terminology, visual quality, quality controls, and delivery standards.",
+            "Recommend cross-asset consistency checks."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Core message is consistent across assets",
+            "Quality baseline remains stable",
+            "Exceptions are intentional and documented"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Audit representative assets together",
+            "Use shared terminology and templates",
+            "Track exceptions intentionally"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set evaluation context",
+            "Inspect objective evidence",
+            "Score criteria",
+            "List material gaps",
+            "Recommend improvements"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Content Consistency Evaluation in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "content consistency",
+        "asset audit",
+        "message consistency",
+        "templates",
+        "governance"
+      ],
+      "entities": [
+        "Content Consistency Evaluation",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "content consistency",
+        "asset audit",
+        "message consistency",
+        "templates",
+        "governance"
+      ],
+      "rules": [
+        "Core message is consistent across assets",
+        "Quality baseline remains stable",
+        "Exceptions are intentional and documented"
+      ],
+      "bestPractices": [
+        "Audit representative assets together",
+        "Use shared terminology and templates",
+        "Track exceptions intentionally"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "examples": [
+        "Professional application of Content Consistency Evaluation in a studio review."
+      ],
+      "commonMistakes": [
+        "Reviewing assets in isolation",
+        "Allowing outdated claims to survive in old derivatives"
+      ],
+      "qualityRules": [
+        "Core message is consistent across assets",
+        "Quality baseline remains stable",
+        "Exceptions are intentional and documented"
+      ],
+      "decisionRules": [
+        "Apply: Core message is consistent across assets",
+        "Apply: Quality baseline remains stable",
+        "Apply: Exceptions are intentional and documented"
+      ],
+      "workflowSteps": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "prerequisites": [
+        "Set evaluation context"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qeval-brand-consistency-evaluation",
+        "qeval-visual-quality-evaluation",
+        "bp-social-media-best-practices",
+        "std-review-process"
+      ],
+      "definitions": [
+        "Content consistency evaluation verifies that a set of outputs tells the same truthful story with coherent terminology, visual quality, quality controls, and delivery standards."
+      ],
+      "troubleshooting": [
+        "Avoid: Reviewing assets in isolation",
+        "Avoid: Allowing outdated claims to survive in old derivatives"
+      ],
+      "recommendations": [
+        "Audit representative assets together",
+        "Use shared terminology and templates",
+        "Track exceptions intentionally"
+      ],
+      "professionalStandards": [
+        "Core message is consistent across assets",
+        "Quality baseline remains stable",
+        "Exceptions are intentional and documented"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:content-consistency-evaluation",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Audit representative assets together",
+      "Use shared terminology and templates",
+      "Track exceptions intentionally"
+    ],
+    "bestPractices": [
+      "Audit representative assets together",
+      "Use shared terminology and templates",
+      "Track exceptions intentionally"
+    ],
+    "decisionRules": [
+      "Quality rule: Core message is consistent across assets",
+      "Quality rule: Quality baseline remains stable",
+      "Quality rule: Exceptions are intentional and documented"
+    ]
+  }
+}

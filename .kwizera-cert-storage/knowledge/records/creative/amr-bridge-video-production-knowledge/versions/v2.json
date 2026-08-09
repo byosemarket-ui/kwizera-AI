@@ -1,0 +1,99 @@
+{
+  "knowledgeId": "amr-bridge-video-production-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "amr-domain-bridge",
+  "title": "Video Production Knowledge (related)",
+  "description": "Animation and renders sit inside production workflows.",
+  "summary": "Production plans schedule animation and delivery encodes.",
+  "tags": [
+    "animation-motion-rendering",
+    "domain-bridge",
+    "video-production-knowledge"
+  ],
+  "keywords": [
+    "video-production-knowledge",
+    "animation",
+    "motion",
+    "rendering",
+    "relationship"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-animation-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:09.644Z",
+  "lastUpdated": "2026-08-08T17:56:11.319Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\amr-bridge-video-production-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "4e4fb89caa1805d014b4fd7b51f8a7cad715c6e831b384344bb1348fb0f8c91f",
+  "searchableText": "video production knowledge (related) animation and renders sit inside production workflows. production plans schedule animation and delivery encodes. amr-domain-bridge animation-motion-rendering domain-bridge video-production-knowledge video-production-knowledge animation motion rendering relationship",
+  "classification": {
+    "category": "amr-domain-bridge",
+    "topic": "video-production-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "bridgeDomainId": "video-production-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate animation/motion/rendering knowledge to video-production-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Video Production Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "video-production-knowledge",
+      "description": "Animation and renders sit inside production workflows.",
+      "sections": [],
+      "concepts": [
+        "video-production-knowledge"
+      ],
+      "entities": [
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "video-production-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate AMR knowledge to video-production-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "anim-animation-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

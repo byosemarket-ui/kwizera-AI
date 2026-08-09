@@ -1,0 +1,347 @@
+{
+  "knowledgeId": "cmov-overhead-shot",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Overhead Shot",
+  "description": "Camera looks straight down (or near top-down) onto the subject plane.",
+  "summary": "Clarify layout, process, and graphic compositions; create patterned beauty.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "overhead-shot",
+    "overhead",
+    "top down",
+    "bird's eye",
+    "flat lay"
+  ],
+  "keywords": [
+    "overhead",
+    "top down",
+    "bird's eye",
+    "flat lay"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-high-angle",
+    "cmov-static-shot",
+    "cmov-crane",
+    "cmov-jib",
+    "cam-aspect-ratio",
+    "cam-exposure",
+    "cam-focus",
+    "cam-lens-types",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-composition-knowledge",
+    "cam-bridge-lighting-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:26.496Z",
+  "lastUpdated": "2026-08-08T16:55:37.373Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-overhead-shot",
+  "integrityStatus": "verified",
+  "contentHash": "a05efcbcf535ebdbeeb15b13c1ebaf7c8377c7b18bc79a3a82f9336847bbc502",
+  "searchableText": "overhead shot camera looks straight down (or near top-down) onto the subject plane. clarify layout, process, and graphic compositions; create patterned beauty. professional-camera-movement camera-movement professional overhead-shot overhead top down bird's eye flat lay overhead top down bird's eye flat lay",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "overhead-shot-camera",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "overhead-shot",
+    "kind": "camera-movement",
+    "purpose": "Clarify layout, process, and graphic compositions; create patterned beauty.",
+    "whenToUse": [
+      "Food/tabletop layouts",
+      "Assembly process",
+      "Flat-lay product stories"
+    ],
+    "whenNotToUse": [
+      "When height cues and faces matter most",
+      "Unsafe rigging"
+    ],
+    "advantages": [
+      "Diagrammatic clarity",
+      "Strong graphic design feel"
+    ],
+    "limitations": [
+      "Can feel detached",
+      "Lighting shadows challenging"
+    ],
+    "relatedCameraSettings": [
+      "aspect-ratio",
+      "exposure",
+      "focus",
+      "lens-types"
+    ],
+    "relatedStorytellingTechniques": [
+      "diagrammatic clarity",
+      "pattern beauty"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-overhead-shot",
+      "title": "Overhead Shot",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera looks straight down (or near top-down) onto the subject plane.",
+      "coreConcepts": [
+        "overhead",
+        "top down",
+        "bird's eye",
+        "flat lay"
+      ],
+      "definitions": [
+        "Clarify layout, process, and graphic compositions; create patterned beauty."
+      ],
+      "rules": [
+        "Use when: Food/tabletop layouts",
+        "Use when: Assembly process",
+        "Use when: Flat-lay product stories",
+        "Do not use when: When height cues and faces matter most",
+        "Do not use when: Unsafe rigging"
+      ],
+      "bestPractices": [
+        "Keep camera parallel to plane",
+        "Light evenly; control shadows",
+        "Use for instructional clarity"
+      ],
+      "professionalTechniques": [
+        "Diagrammatic clarity",
+        "Strong graphic design feel"
+      ],
+      "workflow": [
+        "Choose Overhead Shot",
+        "Keep camera parallel to plane",
+        "Light evenly; control shadows",
+        "Use for instructional clarity"
+      ],
+      "decisionRules": [
+        "Use when: Food/tabletop layouts",
+        "Use when: Assembly process",
+        "Use when: Flat-lay product stories",
+        "Avoid when: When height cues and faces matter most",
+        "Avoid when: Unsafe rigging"
+      ],
+      "commonMistakes": [
+        "Keystoned 'almost overhead'",
+        "Hands exiting unpredictably"
+      ],
+      "troubleshooting": [
+        "Limitation: Can feel detached",
+        "Limitation: Lighting shadows challenging"
+      ],
+      "recommendations": [
+        "Keep camera parallel to plane",
+        "Light evenly; control shadows",
+        "Use for instructional clarity"
+      ],
+      "examples": [
+        "Overhead recipe steps",
+        "Flat-lay unboxing arrangement"
+      ],
+      "professionalStandards": [
+        "diagrammatic clarity",
+        "pattern beauty"
+      ],
+      "relatedTopics": [
+        "high-angle",
+        "static-shot",
+        "crane",
+        "jib",
+        "aspect-ratio",
+        "exposure",
+        "focus",
+        "lens-types"
+      ],
+      "keywords": [
+        "overhead",
+        "top down",
+        "bird's eye",
+        "flat lay"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:overhead-shot",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Overhead Shot",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera looks straight down (or near top-down) onto the subject plane.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Clarify layout, process, and graphic compositions; create patterned beauty."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Food/tabletop layouts",
+            "Assembly process",
+            "Flat-lay product stories"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When height cues and faces matter most",
+            "Unsafe rigging"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Keep camera parallel to plane",
+            "Light evenly; control shadows",
+            "Use for instructional clarity"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Overhead recipe steps",
+            "Flat-lay unboxing arrangement"
+          ]
+        }
+      ],
+      "concepts": [
+        "overhead",
+        "top down",
+        "bird's eye",
+        "flat lay"
+      ],
+      "entities": [
+        "Overhead Shot",
+        "camera-movement-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge"
+      ],
+      "terminology": [
+        "overhead",
+        "top down",
+        "bird's eye",
+        "flat lay"
+      ],
+      "rules": [
+        "Avoid when: When height cues and faces matter most",
+        "Avoid when: Unsafe rigging"
+      ],
+      "bestPractices": [
+        "Keep camera parallel to plane",
+        "Light evenly; control shadows",
+        "Use for instructional clarity"
+      ],
+      "professionalTechniques": [
+        "Diagrammatic clarity",
+        "Strong graphic design feel"
+      ],
+      "examples": [
+        "Overhead recipe steps",
+        "Flat-lay unboxing arrangement"
+      ],
+      "commonMistakes": [
+        "Keystoned 'almost overhead'",
+        "Hands exiting unpredictably"
+      ],
+      "qualityRules": [
+        "Can feel detached",
+        "Lighting shadows challenging"
+      ],
+      "decisionRules": [
+        "Use when: Food/tabletop layouts",
+        "Use when: Assembly process",
+        "Use when: Flat-lay product stories",
+        "Do not use when: When height cues and faces matter most",
+        "Do not use when: Unsafe rigging"
+      ],
+      "workflowSteps": [
+        "Keep camera parallel to plane",
+        "Light evenly; control shadows",
+        "Use for instructional clarity"
+      ],
+      "prerequisites": [
+        "aspect-ratio",
+        "exposure",
+        "focus",
+        "lens-types"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-high-angle",
+        "cmov-static-shot",
+        "cmov-crane",
+        "cmov-jib"
+      ],
+      "definitions": [
+        "Clarify layout, process, and graphic compositions; create patterned beauty."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Keep camera parallel to plane",
+      "Light evenly; control shadows",
+      "Use for instructional clarity"
+    ],
+    "bestPractices": [
+      "Keep camera parallel to plane",
+      "Light evenly; control shadows",
+      "Use for instructional clarity"
+    ],
+    "decisionRules": [
+      "Use when: Food/tabletop layouts",
+      "Use when: Assembly process",
+      "Use when: Flat-lay product stories",
+      "Do not use when: When height cues and faces matter most",
+      "Do not use when: Unsafe rigging"
+    ]
+  }
+}

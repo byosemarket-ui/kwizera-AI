@@ -25,6 +25,7 @@ export type KnowledgePackSlug =
   | "color-theory"
   | "typography"
   | "social-media"
+  | "industry-standards"
   | "general";
 
 export type KnowledgePackStatus =
@@ -201,5 +202,6 @@ export const PREPARED_PACK_SLUGS: KnowledgePackSlug[] = [
   "color-theory",
   "typography",
   "social-media",
+  "industry-standards",
   "general",
 ];

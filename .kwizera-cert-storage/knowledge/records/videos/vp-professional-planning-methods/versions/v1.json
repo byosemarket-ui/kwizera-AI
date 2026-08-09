@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-professional-planning-methods",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Professional Planning Methods",
+  "description": "Planning methods used by professional teams: brief frameworks, beat sheets, shot lists, risk registers, and reverse-planning from delivery.",
+  "summary": "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution.",
+  "tags": [
+    "video-production",
+    "professional",
+    "professional-planning-methods",
+    "planning methods",
+    "brief",
+    "risk register",
+    "reverse planning",
+    "decision owner"
+  ],
+  "keywords": [
+    "planning methods",
+    "brief",
+    "risk register",
+    "reverse planning",
+    "decision owner"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-pre-production",
+    "vp-production-workflow",
+    "vp-shot-planning",
+    "vp-video-production-fundamentals",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-marketing-knowledge",
+    "vp-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:01.294Z",
+  "lastUpdated": "2026-08-08T15:31:01.294Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-professional-planning-methods",
+  "integrityStatus": "verified",
+  "contentHash": "0a36ba7b6cf8ff50de5e738655ea4259ab33420a4ec105f0434d0edc73fe0e16",
+  "searchableText": "professional planning methods planning methods used by professional teams: brief frameworks, beat sheets, shot lists, risk registers, and reverse-planning from delivery. professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution. professional-video-production video-production professional professional-planning-methods planning methods brief risk register reverse planning decision owner planning methods brief risk register reverse planning decision owner",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "professional-planning-methods",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "professional-planning-methods",
+    "professionalDefinition": "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-professional-planning-methods",
+      "title": "Professional Planning Methods",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Planning methods used by professional teams: brief frameworks, beat sheets, shot lists, risk registers, and reverse-planning from delivery.",
+      "coreConcepts": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "definitions": [
+        "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution."
+      ],
+      "rules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "bestPractices": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "professionalTechniques": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "workflow": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "decisionRules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "commonMistakes": [
+        "Optimistic schedules without buffers.",
+        "Diffuse approval ownership.",
+        "Planning tools that are not shared with the full team."
+      ],
+      "troubleshooting": [
+        "Avoid: Optimistic schedules without buffers.",
+        "Avoid: Diffuse approval ownership.",
+        "Avoid: Planning tools that are not shared with the full team."
+      ],
+      "recommendations": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "examples": [
+        "Reverse schedule from campaign launch with lock dates for script and picture.",
+        "Priority-tier shot list used as the on-set decision tool."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "production-workflow",
+        "shot-planning",
+        "video-production-fundamentals"
+      ],
+      "keywords": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:professional-planning-methods",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Professional Planning Methods",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Planning methods used by professional teams: brief frameworks, beat sheets, shot lists, risk registers, and reverse-planning from delivery.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Plan backward from delivery specs and launch date.",
+            "Use a single decision owner for conflicting feedback.",
+            "Maintain a living risk register (weather, talent, rights, tech).",
+            "Separate creative options from production-critical path items."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define outcome metrics and constraints.",
+            "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+            "Assign owners and gates.",
+            "Review readiness and residual risks before production."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If no decision owner exists, appoint one before creative reviews continue.",
+            "Always include contingency for the single hardest setup.",
+            "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+            "Never treat planning documents as static once production realities change—update and communicate."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Reverse schedule from campaign launch with lock dates for script and picture.",
+            "Priority-tier shot list used as the on-set decision tool."
+          ]
+        }
+      ],
+      "concepts": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "entities": [
+        "Professional Planning Methods",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "rules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "bestPractices": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "professionalTechniques": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "examples": [
+        "Reverse schedule from campaign launch with lock dates for script and picture.",
+        "Priority-tier shot list used as the on-set decision tool."
+      ],
+      "commonMistakes": [
+        "Optimistic schedules without buffers.",
+        "Diffuse approval ownership.",
+        "Planning tools that are not shared with the full team."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "workflowSteps": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "prerequisites": [
+        "Define outcome metrics and constraints."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-pre-production",
+        "vp-production-workflow",
+        "vp-shot-planning",
+        "vp-video-production-fundamentals"
+      ],
+      "definitions": [
+        "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution."
+      ],
+      "troubleshooting": [
+        "Avoid: Optimistic schedules without buffers.",
+        "Avoid: Diffuse approval ownership.",
+        "Avoid: Planning tools that are not shared with the full team."
+      ],
+      "recommendations": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

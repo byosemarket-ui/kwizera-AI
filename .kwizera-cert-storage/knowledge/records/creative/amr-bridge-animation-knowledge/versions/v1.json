@@ -1,0 +1,99 @@
+{
+  "knowledgeId": "amr-bridge-animation-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "amr-domain-bridge",
+  "title": "Animation Knowledge Domain",
+  "description": "Hub for professional animation expansion Step 5.",
+  "summary": "Primary domain for animation principle topics.",
+  "tags": [
+    "animation-motion-rendering",
+    "domain-bridge",
+    "animation-knowledge"
+  ],
+  "keywords": [
+    "animation-knowledge",
+    "animation",
+    "motion",
+    "rendering",
+    "relationship"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-animation-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:09.428Z",
+  "lastUpdated": "2026-08-08T15:37:09.428Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\amr-bridge-animation-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "2a7aa3f85306355ecbc53352d942863f9019325ba7888c171f42a24d445f7995",
+  "searchableText": "animation knowledge domain hub for professional animation expansion step 5. primary domain for animation principle topics. amr-domain-bridge animation-motion-rendering domain-bridge animation-knowledge animation-knowledge animation motion rendering relationship",
+  "classification": {
+    "category": "amr-domain-bridge",
+    "topic": "animation-knowledge-domain",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "bridgeDomainId": "animation-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate animation/motion/rendering knowledge to animation-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Animation Knowledge Domain",
+      "category": "domain-bridge",
+      "domain": "animation-knowledge",
+      "description": "Hub for professional animation expansion Step 5.",
+      "sections": [],
+      "concepts": [
+        "animation-knowledge"
+      ],
+      "entities": [
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "animation-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate AMR knowledge to animation-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "anim-animation-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

@@ -851,6 +851,47 @@ export const CORE_KNOWLEDGE_DOMAINS: KnowledgeDomainDefinition[] = [
       "Industry and model-specific business domains attach as children.",
     ]),
   },
+  {
+    domainId: "industry-standards-knowledge",
+    name: "Industry Standards & Quality Knowledge",
+    description:
+      "Cross-discipline professional standards, quality rules, best practices, evaluation criteria, and review checklists for dependable creative work.",
+    parentDomainId: null,
+    childDomainIds: [],
+    tags: ["industry-standards", "quality", "best-practices", "checklists", "professional"],
+    priority: KnowledgeDomainPriority.Critical,
+    status: KnowledgeDomainStatus.Planned,
+    version: "1.0.0",
+    origin: KnowledgeDomainOrigin.New,
+    metadata: meta({
+      foundationCategoryId: KnowledgeCategory.Industry,
+      relatedEngineIds: [
+        "knowledge-validation-engine",
+        "video-quality-validation-engine",
+        "image-quality-validation-engine",
+        "audio-quality-validation-engine",
+        "video-knowledge-engine",
+      ],
+      relatedDomainIds: [
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "branding-knowledge",
+      ],
+      learningOrder: 320,
+      notes:
+        "Expansion Step 9 fills professional standards, quality rules, evaluation guidance, best practices, and checklists. It does not generate media or start Professional Knowledge Certification.",
+    }),
+    futureExpansion: expansion("industry-standards", KnowledgeCategory.Industry, [
+      "Future regulated-industry, accessibility, and specialty certification guidance can attach without changing core quality knowledge.",
+    ]),
+  },
 ];
 
 /** Required domain IDs for Step 1 completeness checks */

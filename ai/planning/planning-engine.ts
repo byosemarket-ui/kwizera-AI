@@ -11,6 +11,20 @@ import { PlanningLogger } from "./planning-logger.js";
 import { RecoveryPlanner } from "./recovery-planner.js";
 import { ResourceEstimator } from "./resource-estimator.js";
 import { TaskBreakdown } from "./task-breakdown.js";
+import { ProfessionalPlanMemoryStore } from "./professional-plan-memory.js";
+import {
+  buildProfessionalPlanFromDecision,
+  modifyProfessionalPlanResult,
+  optimizeProfessionalPlanResult,
+} from "./professional-planning.js";
+import type {
+  AiMeProfessionalPlanningAwareness,
+  ProfessionalPlanModification,
+  ProfessionalPlanningHealthReport,
+  ProfessionalPlanningRepairResult,
+  ProfessionalPlanningRequest,
+  ProfessionalPlanningResult,
+} from "./professional-planning-types.js";
 import {
   ApprovedDecisionInput,
   ExecutionPlan,
@@ -29,11 +43,13 @@ export interface AiPlanningEngineOptions {
 
 /**
  * KWIZERA AI Planning Engine — transforms approved decisions into execution plans.
- * Step 2D: Never executes work. No AI models. No business module implementations.
+ * planFromDecision remains Step 2D workflow planning. planProfessional() adds
+ * Knowledge-Foundation Planning Intelligence (Step 3) without duplicating decision logic.
  */
 export class AiPlanningEngine {
   readonly logger = new PlanningLogger();
   readonly history = new PlanningHistoryStore();
+  readonly professionalMemory = new ProfessionalPlanMemoryStore();
   readonly taskBreakdown = new TaskBreakdown();
   readonly dependencyAnalyzer = new DependencyAnalyzer();
   readonly resourceEstimator = new ResourceEstimator();
@@ -43,8 +59,12 @@ export class AiPlanningEngine {
 
   private readonly storageRoot: string;
   private readonly planningDurations: number[] = [];
+  private readonly professionalPlanningDurations: number[] = [];
   private initialized = false;
   private core: AiCoreManager | null = null;
+  private lastProfessionalResult: ProfessionalPlanningResult | null = null;
+  private lastProfessionalHealth: ProfessionalPlanningHealthReport | null = null;
+  private readonly professionalResults = new Map<string, ProfessionalPlanningResult>();
 
   constructor(options: AiPlanningEngineOptions) {
     this.storageRoot = options.storageRoot;
@@ -57,11 +77,13 @@ export class AiPlanningEngine {
 
     this.logger.initialize(logDir);
     this.history.initialize(plansDir);
+    this.professionalMemory.initialize(plansDir);
     this.initialized = true;
 
     this.logger.log("info", "planning", "Planning Engine initialized", {
       logDirectory: logDir,
       plansDirectory: plansDir,
+      professionalPlanMemory: this.professionalMemory.getMemoryPath(),
     });
   }
 
@@ -281,6 +303,294 @@ export class AiPlanningEngine {
     }
   }
 
+  /**
+   * Professional Planning Intelligence — builds execution plans from Knowledge Foundation
+   * decisions. Does not generate media and does not start Workflow Intelligence.
+   */
+  async planProfessional(input: ProfessionalPlanningRequest): Promise<ProfessionalPlanningResult> {
+    if (!this.initialized || !this.core) {
+      throw new PlanningEngineError("Planning Engine not initialized", "NOT_INITIALIZED");
+    }
+
+    const start = performance.now();
+    const request = input.request.trim();
+    const objective = input.objective?.trim() || request;
+
+    try {
+      const foundation = this.core.knowledgeFoundation;
+      const decisionEngine = this.core.decisionEngine;
+      if (!foundation?.isStartupComplete() || !decisionEngine?.isInitialized()) {
+        return this.buildUnsupportedProfessionalPlan({
+          request,
+          objective,
+          start,
+          reason: "Knowledge Foundation and Decision Engine must be ready before professional planning.",
+        });
+      }
+
+      let decision = null as Awaited<ReturnType<NonNullable<AiCoreManager["decisionEngine"]>["decideProfessional"]>> | null;
+      if (input.decisionId) {
+        const last = decisionEngine.getLastProfessionalDecision();
+        if (last?.decisionId === input.decisionId) decision = last;
+      }
+      if (!decision) {
+        decision = await decisionEngine.decideProfessional({
+          request,
+          objective,
+          context: input.context ?? {},
+          requiredDomains: input.requiredDomains,
+          constraints: input.constraints,
+          availableResources: input.availableResources,
+          includeDomainModules: input.includeDomainModules !== false,
+        });
+      }
+
+      if (!decision.grounded || decision.unsupported) {
+        return this.buildUnsupportedProfessionalPlan({
+          request,
+          objective,
+          start,
+          reason: "Professional planning refused because the upstream decision is unsupported by verified knowledge.",
+          decisionId: decision.decisionId,
+        });
+      }
+
+      const similar =
+        input.reuseSimilarPlans === false
+          ? []
+          : this.professionalMemory.findSimilar(objective, decision.explanation.domainsUsed, 5);
+      const reusedFromPlanId = similar[0]?.planId ?? null;
+
+      const built = buildProfessionalPlanFromDecision({
+        request: input,
+        decision,
+        similarPlans: similar,
+        reusedFromPlanId,
+      });
+
+      const durationMs = Math.round(performance.now() - start);
+      this.professionalPlanningDurations.push(durationMs);
+      const result: ProfessionalPlanningResult = { ...built, durationMs };
+      this.professionalMemory.append(result.memoryRecord);
+      this.professionalResults.set(result.planId, structuredClone(result));
+      this.lastProfessionalResult = structuredClone(result);
+      this.logger.log("info", "planning", "Professional plan recorded", {
+        planId: result.planId,
+        decisionId: result.relatedDecisionId,
+        tasks: result.framework.taskBreakdown.length,
+        confidence: result.confidenceScore,
+      });
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.log("error", "error", "Professional planning failed", { error: message });
+      throw new PlanningEngineError(message, "PROFESSIONAL_PLANNING_FAILED");
+    }
+  }
+
+  modifyProfessionalPlan(planId: string, modification: ProfessionalPlanModification): ProfessionalPlanningResult {
+    const current = this.requireProfessionalPlan(planId);
+    const modified = modifyProfessionalPlanResult(current, modification, this.professionalMemory);
+    this.professionalResults.set(modified.planId, structuredClone(modified));
+    this.lastProfessionalResult = structuredClone(modified);
+    return modified;
+  }
+
+  optimizeProfessionalPlan(planId: string): ProfessionalPlanningResult {
+    const current = this.requireProfessionalPlan(planId);
+    const optimized = optimizeProfessionalPlanResult(current, this.professionalMemory);
+    this.professionalResults.set(optimized.planId, structuredClone(optimized));
+    this.lastProfessionalResult = structuredClone(optimized);
+    return optimized;
+  }
+
+  explainProfessionalPlan(planId: string): ProfessionalPlanningResult["explanation"] & { planId: string; goal: string } {
+    const current = this.requireProfessionalPlan(planId);
+    return { planId: current.planId, goal: current.goal, ...current.explanation };
+  }
+
+  reuseProfessionalPlan(goal: string, domains: string[] = []): ProfessionalPlanningResult | null {
+    const similar = this.professionalMemory.findSimilar(goal, domains, 1)[0];
+    if (!similar) return null;
+    const existing = this.professionalResults.get(similar.planId);
+    if (existing) return structuredClone(existing);
+    return null;
+  }
+
+  getAiMeProfessionalPlanningAwareness(): AiMeProfessionalPlanningAwareness {
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    const decisionReady = Boolean(this.core?.decisionEngine?.isInitialized());
+    return {
+      available: this.initialized && foundationReady && decisionReady,
+      enabled: this.initialized && foundationReady && decisionReady,
+      summary:
+        "AI Me can create, modify, optimize, explain, and reuse professional execution plans grounded in the Knowledge Foundation and Professional Decision Intelligence. Workflow Intelligence is available through the Workflow Engine (createProfessionalWorkflow). Recommendation Intelligence is not enabled in this step.",
+      capabilities: [
+        "create professional plans",
+        "modify existing plans",
+        "optimize plans",
+        "explain planning decisions",
+        "reuse previous plans when appropriate",
+      ],
+      groundedInKnowledgeFoundation: true,
+      workflowIntelligenceEnabled: true,
+      planHistoryCount: this.professionalMemory.getCount(),
+      lastConfidenceScore: this.lastProfessionalResult?.confidenceScore ?? null,
+    };
+  }
+
+  getLastProfessionalPlan(): ProfessionalPlanningResult | null {
+    return this.lastProfessionalResult ? structuredClone(this.lastProfessionalResult) : null;
+  }
+
+  getProfessionalPlanHistory() {
+    return this.professionalMemory.getAll().map((record) => structuredClone(record));
+  }
+
+  async runProfessionalPlanningHealthCheck(): Promise<ProfessionalPlanningHealthReport> {
+    const issues: string[] = [];
+    if (!this.initialized) issues.push("Planning Engine is not initialized.");
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    const decisionReady = Boolean(this.core?.decisionEngine?.isInitialized());
+    if (!foundationReady) issues.push("Knowledge Foundation startup is incomplete.");
+    if (!decisionReady) issues.push("Decision Engine is not ready.");
+    const memoryWritable = this.professionalMemory.ensureWritable();
+    if (!memoryWritable) issues.push("Professional plan memory is not writable.");
+
+    let canPlan = false;
+    if (this.initialized && foundationReady && decisionReady) {
+      try {
+        const sample =
+          this.lastProfessionalResult?.grounded && this.lastProfessionalResult.framework.taskBreakdown.length > 0
+            ? this.lastProfessionalResult
+            : await this.planProfessional({
+                request: "create a professional plan for camera lighting product advertisement",
+                objective: "Plan a knowledge-backed product ad approach",
+                context: { product: "demo product", audience: "general buyers" },
+                requiredDomains: ["camera-knowledge", "lighting-knowledge", "industry-standards-knowledge"],
+                includeDomainModules: true,
+              });
+        canPlan =
+          sample.grounded &&
+          !sample.unsupported &&
+          sample.framework.taskBreakdown.length >= 3 &&
+          sample.framework.dependencies.length > 0;
+        if (!sample.grounded) issues.push("Sample professional plan was not grounded.");
+        if (!sample.framework.dependencies.length) issues.push("Sample professional plan missing dependencies.");
+      } catch (error) {
+        issues.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    const report: ProfessionalPlanningHealthReport = {
+      healthy: issues.length === 0 && canPlan && memoryWritable,
+      initialized: this.initialized,
+      foundationReady,
+      decisionReady,
+      canPlan,
+      memoryWritable,
+      issues,
+      checkedAt: new Date().toISOString(),
+    };
+    this.lastProfessionalHealth = report;
+    return structuredClone(report);
+  }
+
+  async repairProfessionalPlanningIntelligence(): Promise<ProfessionalPlanningRepairResult> {
+    const actions: string[] = [];
+    if (this.professionalMemory.ensureWritable()) actions.push("Ensured professional plan memory is writable.");
+    const health = await this.runProfessionalPlanningHealthCheck();
+    if (!health.healthy && this.core?.knowledgeFoundation?.isStartupComplete() && this.core.decisionEngine) {
+      await this.planProfessional({
+        request: "professional video production planning sample",
+        objective: "Validate professional planning path",
+        includeDomainModules: true,
+      });
+      actions.push("Re-ran grounded professional planning sample.");
+    }
+    const recheck = await this.runProfessionalPlanningHealthCheck();
+    return { repaired: recheck.healthy, actions, remainingIssues: recheck.issues };
+  }
+
+  private requireProfessionalPlan(planId: string): ProfessionalPlanningResult {
+    const current = this.professionalResults.get(planId);
+    if (!current) throw new PlanningEngineError(`Professional plan not found: ${planId}`, "PLAN_NOT_FOUND");
+    return current;
+  }
+
+  private buildUnsupportedProfessionalPlan(input: {
+    request: string;
+    objective: string;
+    start: number;
+    reason: string;
+    decisionId?: string;
+  }): ProfessionalPlanningResult {
+    const planId = randomUUID();
+    const memoryRecord = {
+      planId,
+      goal: input.objective,
+      reasoningSummary: input.reason,
+      knowledgeUsed: [],
+      tasks: [],
+      dependencies: [],
+      confidenceScore: 0,
+      timestamp: new Date().toISOString(),
+      relatedDecisionId: input.decisionId ?? null,
+      domainsUsed: [],
+      relatedKnowledgePacks: [],
+      priorPlanIds: [],
+      grounded: false,
+    };
+    this.professionalMemory.append(memoryRecord);
+    const durationMs = Math.round(performance.now() - input.start);
+    this.professionalPlanningDurations.push(durationMs);
+    const result: ProfessionalPlanningResult = {
+      planId,
+      available: false,
+      grounded: false,
+      unsupported: true,
+      goal: input.objective,
+      constraints: [],
+      missingInformation: [{ field: "verified-knowledge", severity: "critical", reason: input.reason }],
+      framework: {
+        goal: input.objective,
+        requirements: [],
+        assumptions: [],
+        requiredKnowledge: [],
+        requiredResources: [],
+        professionalWorkflow: [],
+        taskBreakdown: [],
+        stepOrder: [],
+        dependencies: [],
+        parallelTasks: [],
+        expectedResults: [],
+        risks: [input.reason],
+        recommendations: ["Provide verified Knowledge Foundation evidence before planning."],
+        complexity: "low",
+        estimatedExecutionMinutes: 0,
+      },
+      explanation: {
+        whySelected: input.reason,
+        knowledgePacksUsed: [],
+        knowledgeIdsUsed: [],
+        taskOrderReason: "No tasks were generated because planning is unsupported.",
+        expectedOutcome: "No professional plan can be issued without Knowledge Foundation evidence.",
+        confidenceScore: 0,
+        domainsUsed: [],
+      },
+      confidenceScore: 0,
+      confidenceExplanation: "Confidence is 0 because the plan is unsupported.",
+      memoryRecord,
+      relatedDecisionId: input.decisionId ?? null,
+      reusedFromPlanId: null,
+      multiDomain: false,
+      durationMs,
+    };
+    this.lastProfessionalResult = structuredClone(result);
+    this.professionalResults.set(planId, structuredClone(result));
+    return result;
+  }
+
   buildStatusReport(): PlanningEngineStatusReport {
     const total = this.planningDurations.length;
     const averagePlanningMs =
@@ -298,8 +608,11 @@ export class AiPlanningEngine {
     if (!this.initialized) {
       knownIssues.push("Planning Engine not initialized");
     }
+    if (!this.core?.knowledgeFoundation?.isStartupComplete()) {
+      knownIssues.push("Professional Planning Intelligence waiting on Knowledge Foundation");
+    }
 
-    const checks = [this.initialized, this.history.getHistoryPath() !== null];
+    const checks = [this.initialized, this.history.getHistoryPath() !== null, this.professionalMemory.isReady()];
     const readinessScore = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
     return {
@@ -307,7 +620,10 @@ export class AiPlanningEngine {
       planningQuality,
       resourceEstimationAccuracy: "estimated",
       validationStatus: this.initialized ? "ready" : "not-ready",
-      performance: { averagePlanningMs, totalPlans: this.history.getCount() },
+      performance: {
+        averagePlanningMs,
+        totalPlans: this.history.getCount() + this.professionalMemory.getCount(),
+      },
       knownIssues,
       readinessScore,
       timestamp: new Date().toISOString(),

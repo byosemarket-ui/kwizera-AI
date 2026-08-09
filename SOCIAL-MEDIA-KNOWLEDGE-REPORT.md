@@ -10,7 +10,7 @@
 
 ## Verdict
 
-Professional Social Media Knowledge Expansion Step 8 is operational. **36 curated topics** (8 fundamentals, 8 TikTok, 7 Instagram, 6 Facebook, 7 YouTube) are installed into the Knowledge Foundation, linked across marketing/creative domains, synced into the `social-media` pack, and exposed to AI Me for platform, format, posting, and engagement recommendations. **Industry Best Practices Knowledge (Step 9) has not been started.**
+Professional Social Media Knowledge Expansion Step 8 is operational. **36 curated topics** (8 fundamentals, 8 TikTok, 7 Instagram, 6 Facebook, 7 YouTube) are installed into the Knowledge Foundation, connected by **303 explicit graph relationships**, synced into the `social-media` pack, and exposed to AI Me for platform, format, posting, and engagement recommendations. **Industry Best Practices Knowledge (Step 9) has not been started.**
 
 ---
 
@@ -144,7 +144,7 @@ Domain bridges (`SM_DOMAIN_BRIDGES` = 9):
 
 Catalog relationship self-check: **36 topics, broken refs: none**.
 
-Graph relationships: created at install (topic↔topic + domain bridges); exact count reported by validation `install.rel`.
+Graph relationships: **303** created at install (topic↔topic + domain bridges).
 
 ---
 
@@ -152,11 +152,9 @@ Graph relationships: created at install (topic↔topic + domain bridges); exact 
 
 | Metric | Expected / measured |
 |--------|---------------------|
-| Catalog avg quality | ~91 |
-| Completeness target | 100 |
-| Topics | 36/36 |
-
-*(Final validation `scores` line is authoritative after full `core.start`.)*
+| Average quality | **91 / 100** |
+| Completeness | **100 / 100** |
+| Topics persisted | **36 / 36** |
 
 ---
 
@@ -164,8 +162,8 @@ Graph relationships: created at install (topic↔topic + domain bridges); exact 
 
 | Metric | Expected / measured |
 |--------|---------------------|
-| Catalog avg confidence | ~92 |
-| AI Me answer samples | ≥85 |
+| Average confidence | **92 / 100** |
+| AI Me answer sample | **94 / 100** |
 
 ---
 
@@ -220,6 +218,7 @@ Conversation intent: `social-media-knowledge` (knowledge Q&A only — **not** au
 | Check | Result |
 |-------|--------|
 | Fundamentals / TikTok / Instagram / Facebook / YouTube completeness | PASS (8/8/7/6/7) |
+| Install and graph relationships | PASS (36 topics; **303** relationships) |
 | Persistence | PASS (36/36) |
 | Domain bridges | PASS (9) |
 | Health | PASS (completeness=100; no missing/dup/broken catalog refs) |
@@ -231,7 +230,7 @@ Conversation intent: `social-media-knowledge` (knowledge Q&A only — **not** au
 | Version | PASS (1.0.0) |
 | Scores | PASS (avgConfidence=**92**; avgQuality=**91**) |
 
-**Relationship count:** Installer awaits graph `evolveGraph` before `createRelationship` (required so nodes exist). Validation requires `relationshipsCreated > 50`.
+**Full Foundation validation:** **PASS** (exit 0; ~52 min on this workspace due to Steps 1–8 startup). The installer explicitly creates its graph nodes before relationship wiring; validation requires more than 50 relationships and verified **303**.
 
 **Integration unit test:** timeout 60 min; fast catalog case covers completeness without full startup.
 

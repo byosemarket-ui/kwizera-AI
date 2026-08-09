@@ -1,0 +1,326 @@
+{
+  "knowledgeId": "comp-balance",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Balance",
+  "description": "Distributing visual weight—tone, size, color, detail—so the frame feels stable or intentionally tense.",
+  "summary": "Control comfort vs tension by how elements counterweight each other.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "balance",
+    "visual weight",
+    "counterweight",
+    "stability"
+  ],
+  "keywords": [
+    "balance",
+    "visual weight",
+    "counterweight",
+    "stability"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-symmetry",
+    "comp-negative-space",
+    "comp-visual-hierarchy",
+    "comp-subject-placement",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:30.547Z",
+  "lastUpdated": "2026-08-08T15:32:30.547Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-balance",
+  "integrityStatus": "verified",
+  "contentHash": "55fad70069a5806d2a01fb7c601802f8169ea0d63a69e150a0ed75114ede03d3",
+  "searchableText": "balance distributing visual weight—tone, size, color, detail—so the frame feels stable or intentionally tense. control comfort vs tension by how elements counterweight each other. professional-composition professional-composition professional balance visual weight counterweight stability balance visual weight counterweight stability",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "balance-distributing-visual",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "balance",
+    "kind": "professional-composition",
+    "purpose": "Control comfort vs tension by how elements counterweight each other.",
+    "whenToUse": [
+      "Multi-element scenes",
+      "Graphics+talent layouts",
+      "Interview with set dressing"
+    ],
+    "whenNotToUse": [
+      "Ignoring weight until the grade stage"
+    ],
+    "advantages": [
+      "Professional polish",
+      "Guides pacing of attention"
+    ],
+    "limitations": [
+      "Subjective without clear hierarchy"
+    ],
+    "relatedCameraTechniques": [
+      "exposure affecting tonal weight",
+      "color contrast"
+    ],
+    "relatedStorytellingTechniques": [
+      "stability",
+      "unease via imbalance"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-balance",
+      "title": "Balance",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Distributing visual weight—tone, size, color, detail—so the frame feels stable or intentionally tense.",
+      "coreConcepts": [
+        "balance",
+        "visual weight",
+        "counterweight",
+        "stability"
+      ],
+      "definitions": [
+        "Control comfort vs tension by how elements counterweight each other."
+      ],
+      "rules": [
+        "Use when: Multi-element scenes",
+        "Use when: Graphics+talent layouts",
+        "Use when: Interview with set dressing",
+        "Do not use when: Ignoring weight until the grade stage"
+      ],
+      "bestPractices": [
+        "Counter large empty areas with tonal anchors",
+        "Balance bright spots",
+        "Check still frames"
+      ],
+      "professionalTechniques": [
+        "Professional polish",
+        "Guides pacing of attention"
+      ],
+      "workflow": [
+        "Choose Balance",
+        "Counter large empty areas with tonal anchors",
+        "Balance bright spots",
+        "Check still frames"
+      ],
+      "decisionRules": [
+        "Use when: Multi-element scenes",
+        "Use when: Graphics+talent layouts",
+        "Use when: Interview with set dressing",
+        "Avoid when: Ignoring weight until the grade stage"
+      ],
+      "commonMistakes": [
+        "All weight piled on one side",
+        "Text fighting subject weight"
+      ],
+      "troubleshooting": [
+        "Limitation: Subjective without clear hierarchy"
+      ],
+      "recommendations": [
+        "Counter large empty areas with tonal anchors",
+        "Balance bright spots",
+        "Check still frames"
+      ],
+      "examples": [
+        "Talent on left balanced by product glow on right"
+      ],
+      "professionalStandards": [
+        "stability",
+        "unease via imbalance"
+      ],
+      "relatedTopics": [
+        "symmetry",
+        "negative-space",
+        "visual-hierarchy",
+        "subject-placement"
+      ],
+      "keywords": [
+        "balance",
+        "visual weight",
+        "counterweight",
+        "stability"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:balance",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Balance",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Distributing visual weight—tone, size, color, detail—so the frame feels stable or intentionally tense.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Control comfort vs tension by how elements counterweight each other."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Multi-element scenes",
+            "Graphics+talent layouts",
+            "Interview with set dressing"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Ignoring weight until the grade stage"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Counter large empty areas with tonal anchors",
+            "Balance bright spots",
+            "Check still frames"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Talent on left balanced by product glow on right"
+          ]
+        }
+      ],
+      "concepts": [
+        "balance",
+        "visual weight",
+        "counterweight",
+        "stability"
+      ],
+      "entities": [
+        "Balance",
+        "composition-knowledge",
+        "lighting-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "balance",
+        "visual weight",
+        "counterweight",
+        "stability"
+      ],
+      "rules": [
+        "Avoid when: Ignoring weight until the grade stage"
+      ],
+      "bestPractices": [
+        "Counter large empty areas with tonal anchors",
+        "Balance bright spots",
+        "Check still frames"
+      ],
+      "professionalTechniques": [
+        "Professional polish",
+        "Guides pacing of attention"
+      ],
+      "examples": [
+        "Talent on left balanced by product glow on right"
+      ],
+      "commonMistakes": [
+        "All weight piled on one side",
+        "Text fighting subject weight"
+      ],
+      "qualityRules": [
+        "Subjective without clear hierarchy"
+      ],
+      "decisionRules": [
+        "Use when: Multi-element scenes",
+        "Use when: Graphics+talent layouts",
+        "Use when: Interview with set dressing",
+        "Do not use when: Ignoring weight until the grade stage"
+      ],
+      "workflowSteps": [
+        "Counter large empty areas with tonal anchors",
+        "Balance bright spots",
+        "Check still frames"
+      ],
+      "prerequisites": [
+        "exposure affecting tonal weight",
+        "color contrast"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "lighting-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-symmetry",
+        "comp-negative-space",
+        "comp-visual-hierarchy",
+        "comp-subject-placement"
+      ],
+      "definitions": [
+        "Control comfort vs tension by how elements counterweight each other."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Counter large empty areas with tonal anchors",
+      "Balance bright spots",
+      "Check still frames"
+    ],
+    "bestPractices": [
+      "Counter large empty areas with tonal anchors",
+      "Balance bright spots",
+      "Check still frames"
+    ],
+    "decisionRules": [
+      "Use when: Multi-element scenes",
+      "Use when: Graphics+talent layouts",
+      "Use when: Interview with set dressing",
+      "Do not use when: Ignoring weight until the grade stage"
+    ]
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "check-final-approval-checklist",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-checklists",
+  "title": "Final Approval Checklist",
+  "description": "A checklist proving a specific final version has cleared required quality, rights, and delivery gates.",
+  "summary": "Guide controlled sign-off without performing certification.",
+  "tags": [
+    "professional-checklists",
+    "professional",
+    "final-approval-checklist",
+    "final approval checklist",
+    "sign-off",
+    "approval evidence",
+    "version",
+    "delivery"
+  ],
+  "keywords": [
+    "final approval checklist",
+    "sign-off",
+    "approval evidence",
+    "version",
+    "delivery"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-approval-process",
+    "check-quality-review-checklist",
+    "std-delivery-standards",
+    "check-publishing-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:58.751Z",
+  "lastUpdated": "2026-08-08T19:18:58.751Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\check-final-approval-checklist",
+  "integrityStatus": "verified",
+  "contentHash": "a57a39b1e94f0408e80e9130e90a13ad2e785ca4d6908efa1223a17a192bdf39",
+  "searchableText": "final approval checklist a checklist proving a specific final version has cleared required quality, rights, and delivery gates. guide controlled sign-off without performing certification. professional-checklists professional-checklists professional final-approval-checklist final approval checklist sign-off approval evidence version delivery final approval checklist sign-off approval evidence version delivery",
+  "classification": {
+    "category": "professional-checklists",
+    "topic": "final-approval-checklist",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "final-approval-checklist",
+    "kind": "professional-checklists",
+    "purpose": "Guide controlled sign-off without performing certification.",
+    "professionalDefinition": "A final approval checklist records that the accountable approver has reviewed the exact final version against agreed quality, legal, brand, and delivery requirements.",
+    "qualityRules": [
+      "Final version is uniquely identified",
+      "All blocking criteria pass or are formally accepted",
+      "Approval and delivery evidence are retained"
+    ],
+    "workflow": [
+      "Confirm final version",
+      "Confirm review results",
+      "Confirm technical/delivery verification",
+      "Record approver decision",
+      "Archive approval evidence"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "check-final-approval-checklist",
+      "title": "Final Approval Checklist",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "description": "A checklist proving a specific final version has cleared required quality, rights, and delivery gates.",
+      "coreConcepts": [
+        "final approval checklist",
+        "sign-off",
+        "approval evidence",
+        "version",
+        "delivery"
+      ],
+      "definitions": [
+        "A final approval checklist records that the accountable approver has reviewed the exact final version against agreed quality, legal, brand, and delivery requirements.",
+        "Guide controlled sign-off without performing certification."
+      ],
+      "rules": [
+        "Quality rule: Final version is uniquely identified",
+        "Quality rule: All blocking criteria pass or are formally accepted",
+        "Quality rule: Approval and delivery evidence are retained"
+      ],
+      "bestPractices": [
+        "Identify exact version and destination",
+        "Attach review evidence",
+        "List accepted exceptions explicitly"
+      ],
+      "professionalTechniques": [
+        "Confirm final version",
+        "Confirm review results",
+        "Confirm technical/delivery verification",
+        "Record approver decision",
+        "Archive approval evidence"
+      ],
+      "workflow": [
+        "Confirm final version",
+        "Confirm review results",
+        "Confirm technical/delivery verification",
+        "Record approver decision",
+        "Archive approval evidence"
+      ],
+      "decisionRules": [
+        "Apply: Final version is uniquely identified",
+        "Apply: All blocking criteria pass or are formally accepted",
+        "Apply: Approval and delivery evidence are retained"
+      ],
+      "commonMistakes": [
+        "Approving a file name rather than an exact version",
+        "Sign-off before final encode verification"
+      ],
+      "troubleshooting": [
+        "Avoid: Approving a file name rather than an exact version",
+        "Avoid: Sign-off before final encode verification"
+      ],
+      "recommendations": [
+        "Identify exact version and destination",
+        "Attach review evidence",
+        "List accepted exceptions explicitly"
+      ],
+      "examples": [
+        "Sign-off record with final checksum/version, approver, review date, exceptions, and destination."
+      ],
+      "professionalStandards": [
+        "Final version is uniquely identified",
+        "All blocking criteria pass or are formally accepted",
+        "Approval and delivery evidence are retained"
+      ],
+      "relatedTopics": [
+        "approval-process",
+        "quality-review-checklist",
+        "delivery-standards",
+        "publishing-checklist"
+      ],
+      "keywords": [
+        "final approval checklist",
+        "sign-off",
+        "approval evidence",
+        "version",
+        "delivery"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:final-approval-checklist",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Final Approval Checklist",
+      "category": "professional-checklists",
+      "domain": "industry-standards-knowledge",
+      "description": "A checklist proving a specific final version has cleared required quality, rights, and delivery gates.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A final approval checklist records that the accountable approver has reviewed the exact final version against agreed quality, legal, brand, and delivery requirements.",
+            "Guide controlled sign-off without performing certification."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Final version is uniquely identified",
+            "All blocking criteria pass or are formally accepted",
+            "Approval and delivery evidence are retained"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Identify exact version and destination",
+            "Attach review evidence",
+            "List accepted exceptions explicitly"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Confirm final version",
+            "Confirm review results",
+            "Confirm technical/delivery verification",
+            "Record approver decision",
+            "Archive approval evidence"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Sign-off record with final checksum/version, approver, review date, exceptions, and destination."
+          ]
+        }
+      ],
+      "concepts": [
+        "final approval checklist",
+        "sign-off",
+        "approval evidence",
+        "version",
+        "delivery"
+      ],
+      "entities": [
+        "Final Approval Checklist",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "final approval checklist",
+        "sign-off",
+        "approval evidence",
+        "version",
+        "delivery"
+      ],
+      "rules": [
+        "Final version is uniquely identified",
+        "All blocking criteria pass or are formally accepted",
+        "Approval and delivery evidence are retained"
+      ],
+      "bestPractices": [
+        "Identify exact version and destination",
+        "Attach review evidence",
+        "List accepted exceptions explicitly"
+      ],
+      "professionalTechniques": [
+        "Confirm final version",
+        "Confirm review results",
+        "Confirm technical/delivery verification",
+        "Record approver decision",
+        "Archive approval evidence"
+      ],
+      "examples": [
+        "Sign-off record with final checksum/version, approver, review date, exceptions, and destination."
+      ],
+      "commonMistakes": [
+        "Approving a file name rather than an exact version",
+        "Sign-off before final encode verification"
+      ],
+      "qualityRules": [
+        "Final version is uniquely identified",
+        "All blocking criteria pass or are formally accepted",
+        "Approval and delivery evidence are retained"
+      ],
+      "decisionRules": [
+        "Apply: Final version is uniquely identified",
+        "Apply: All blocking criteria pass or are formally accepted",
+        "Apply: Approval and delivery evidence are retained"
+      ],
+      "workflowSteps": [
+        "Confirm final version",
+        "Confirm review results",
+        "Confirm technical/delivery verification",
+        "Record approver decision",
+        "Archive approval evidence"
+      ],
+      "prerequisites": [
+        "Confirm final version"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-approval-process",
+        "check-quality-review-checklist",
+        "std-delivery-standards",
+        "check-publishing-checklist"
+      ],
+      "definitions": [
+        "A final approval checklist records that the accountable approver has reviewed the exact final version against agreed quality, legal, brand, and delivery requirements."
+      ],
+      "troubleshooting": [
+        "Avoid: Approving a file name rather than an exact version",
+        "Avoid: Sign-off before final encode verification"
+      ],
+      "recommendations": [
+        "Identify exact version and destination",
+        "Attach review evidence",
+        "List accepted exceptions explicitly"
+      ],
+      "professionalStandards": [
+        "Final version is uniquely identified",
+        "All blocking criteria pass or are formally accepted",
+        "Approval and delivery evidence are retained"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:final-approval-checklist",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Identify exact version and destination",
+      "Attach review evidence",
+      "List accepted exceptions explicitly"
+    ],
+    "bestPractices": [
+      "Identify exact version and destination",
+      "Attach review evidence",
+      "List accepted exceptions explicitly"
+    ],
+    "decisionRules": [
+      "Quality rule: Final version is uniquely identified",
+      "Quality rule: All blocking criteria pass or are formally accepted",
+      "Quality rule: Approval and delivery evidence are retained"
+    ]
+  }
+}

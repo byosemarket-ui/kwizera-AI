@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "sm-bridge-customer-psychology",
+  "knowledgeType": "marketing-knowledge",
+  "category": "sm-domain-bridge",
+  "title": "Customer Psychology (related)",
+  "description": "Attention and engagement follow psychology principles.",
+  "summary": "Scroll-stopping and community behavior are psychological.",
+  "tags": [
+    "social-media",
+    "domain-bridge",
+    "customer-psychology"
+  ],
+  "keywords": [
+    "customer-psychology",
+    "social",
+    "media",
+    "platform",
+    "relationship"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-media-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:45.401Z",
+  "lastUpdated": "2026-08-08T19:03:45.401Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-bridge-customer-psychology",
+  "integrityStatus": "verified",
+  "contentHash": "934031a2339cf92ac0768a8b117e2179d6d1e455a06c4a0834c0290624211a4a",
+  "searchableText": "customer psychology (related) attention and engagement follow psychology principles. scroll-stopping and community behavior are psychological. sm-domain-bridge social-media domain-bridge customer-psychology customer-psychology social media platform relationship",
+  "classification": {
+    "category": "sm-domain-bridge",
+    "topic": "customer-psychology-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "bridgeDomainId": "customer-psychology",
+    "relationshipAnchor": true,
+    "publishesContent": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate social media knowledge to customer-psychology."
+    ],
+    "structuredKnowledge": {
+      "title": "Customer Psychology (related)",
+      "category": "domain-bridge",
+      "domain": "customer-psychology",
+      "description": "Attention and engagement follow psychology principles.",
+      "sections": [],
+      "concepts": [
+        "customer-psychology"
+      ],
+      "entities": [
+        "customer-psychology"
+      ],
+      "terminology": [
+        "customer-psychology"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate social media knowledge to customer-psychology."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "sm-social-media-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,360 @@
+{
+  "knowledgeId": "std-production-standards",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-industry-standards",
+  "title": "Production Standards",
+  "description": "Professional controls for planning, capture, continuity, safety, and asset management.",
+  "summary": "Help AI Me recommend a dependable production baseline.",
+  "tags": [
+    "professional-industry-standards",
+    "professional",
+    "production-standards",
+    "production standards",
+    "shoot day",
+    "continuity",
+    "media backup",
+    "call sheet"
+  ],
+  "keywords": [
+    "production standards",
+    "shoot day",
+    "continuity",
+    "media backup",
+    "call sheet"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "check-pre-production-checklist",
+    "check-production-checklist",
+    "qrule-video-quality-rules",
+    "qrule-camera-quality-rules",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:19.081Z",
+  "lastUpdated": "2026-08-08T19:18:19.081Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\std-production-standards",
+  "integrityStatus": "verified",
+  "contentHash": "aa7523765fed616221e05048dc8e5ec1a657664f66b87bc938735b131a3ce4a4",
+  "searchableText": "production standards professional controls for planning, capture, continuity, safety, and asset management. help ai me recommend a dependable production baseline. professional-industry-standards professional-industry-standards professional production-standards production standards shoot day continuity media backup call sheet production standards shoot day continuity media backup call sheet",
+  "classification": {
+    "category": "professional-industry-standards",
+    "topic": "production-standards-professional",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "production-standards",
+    "kind": "professional-industry-standards",
+    "purpose": "Help AI Me recommend a dependable production baseline.",
+    "professionalDefinition": "Production standards define the minimum process and craft controls that make a shoot or creative production repeatable, safe, and fit for post-production.",
+    "qualityRules": [
+      "Capture must meet planned resolution, exposure, and audio requirements",
+      "Continuity notes must accompany complex scenes",
+      "Media must be verified before handoff"
+    ],
+    "workflow": [
+      "Define scope and acceptance criteria",
+      "Apply the standard during work",
+      "Review evidence",
+      "Record exceptions",
+      "Approve or improve"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "std-production-standards",
+      "title": "Production Standards",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "description": "Professional controls for planning, capture, continuity, safety, and asset management.",
+      "coreConcepts": [
+        "production standards",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "call sheet"
+      ],
+      "definitions": [
+        "Production standards define the minimum process and craft controls that make a shoot or creative production repeatable, safe, and fit for post-production.",
+        "Help AI Me recommend a dependable production baseline."
+      ],
+      "rules": [
+        "Quality rule: Capture must meet planned resolution, exposure, and audio requirements",
+        "Quality rule: Continuity notes must accompany complex scenes",
+        "Quality rule: Media must be verified before handoff"
+      ],
+      "bestPractices": [
+        "Use a signed brief and shot plan",
+        "Confirm rights, releases, and safety controls",
+        "Back up media before wrap"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "workflow": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "decisionRules": [
+        "Apply: Capture must meet planned resolution, exposure, and audio requirements",
+        "Apply: Continuity notes must accompany complex scenes",
+        "Apply: Media must be verified before handoff"
+      ],
+      "commonMistakes": [
+        "Starting without a technical plan",
+        "Relying on a single copy of production media"
+      ],
+      "troubleshooting": [
+        "Avoid: Starting without a technical plan",
+        "Avoid: Relying on a single copy of production media"
+      ],
+      "recommendations": [
+        "Use a signed brief and shot plan",
+        "Confirm rights, releases, and safety controls",
+        "Back up media before wrap"
+      ],
+      "examples": [
+        "Professional application of Production Standards in a studio review."
+      ],
+      "professionalStandards": [
+        "Capture must meet planned resolution, exposure, and audio requirements",
+        "Continuity notes must accompany complex scenes",
+        "Media must be verified before handoff"
+      ],
+      "relatedTopics": [
+        "pre-production-checklist",
+        "production-checklist",
+        "video-quality-rules",
+        "camera-quality-rules"
+      ],
+      "keywords": [
+        "production standards",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "call sheet"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-standards",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Production Standards",
+      "category": "professional-industry-standards",
+      "domain": "industry-standards-knowledge",
+      "description": "Professional controls for planning, capture, continuity, safety, and asset management.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Production standards define the minimum process and craft controls that make a shoot or creative production repeatable, safe, and fit for post-production.",
+            "Help AI Me recommend a dependable production baseline."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Capture must meet planned resolution, exposure, and audio requirements",
+            "Continuity notes must accompany complex scenes",
+            "Media must be verified before handoff"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use a signed brief and shot plan",
+            "Confirm rights, releases, and safety controls",
+            "Back up media before wrap"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define scope and acceptance criteria",
+            "Apply the standard during work",
+            "Review evidence",
+            "Record exceptions",
+            "Approve or improve"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Production Standards in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "production standards",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "call sheet"
+      ],
+      "entities": [
+        "Production Standards",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "production standards",
+        "shoot day",
+        "continuity",
+        "media backup",
+        "call sheet"
+      ],
+      "rules": [
+        "Capture must meet planned resolution, exposure, and audio requirements",
+        "Continuity notes must accompany complex scenes",
+        "Media must be verified before handoff"
+      ],
+      "bestPractices": [
+        "Use a signed brief and shot plan",
+        "Confirm rights, releases, and safety controls",
+        "Back up media before wrap"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "examples": [
+        "Professional application of Production Standards in a studio review."
+      ],
+      "commonMistakes": [
+        "Starting without a technical plan",
+        "Relying on a single copy of production media"
+      ],
+      "qualityRules": [
+        "Capture must meet planned resolution, exposure, and audio requirements",
+        "Continuity notes must accompany complex scenes",
+        "Media must be verified before handoff"
+      ],
+      "decisionRules": [
+        "Apply: Capture must meet planned resolution, exposure, and audio requirements",
+        "Apply: Continuity notes must accompany complex scenes",
+        "Apply: Media must be verified before handoff"
+      ],
+      "workflowSteps": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "prerequisites": [
+        "Define scope and acceptance criteria"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "check-pre-production-checklist",
+        "check-production-checklist",
+        "qrule-video-quality-rules",
+        "qrule-camera-quality-rules"
+      ],
+      "definitions": [
+        "Production standards define the minimum process and craft controls that make a shoot or creative production repeatable, safe, and fit for post-production."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting without a technical plan",
+        "Avoid: Relying on a single copy of production media"
+      ],
+      "recommendations": [
+        "Use a signed brief and shot plan",
+        "Confirm rights, releases, and safety controls",
+        "Back up media before wrap"
+      ],
+      "professionalStandards": [
+        "Capture must meet planned resolution, exposure, and audio requirements",
+        "Continuity notes must accompany complex scenes",
+        "Media must be verified before handoff"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:production-standards",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Use a signed brief and shot plan",
+      "Confirm rights, releases, and safety controls",
+      "Back up media before wrap"
+    ],
+    "bestPractices": [
+      "Use a signed brief and shot plan",
+      "Confirm rights, releases, and safety controls",
+      "Back up media before wrap"
+    ],
+    "decisionRules": [
+      "Quality rule: Capture must meet planned resolution, exposure, and audio requirements",
+      "Quality rule: Continuity notes must accompany complex scenes",
+      "Quality rule: Media must be verified before handoff"
+    ]
+  }
+}

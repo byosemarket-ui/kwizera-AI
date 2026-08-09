@@ -9,6 +9,15 @@ export interface ProductInformation {
   category: string;
   description: string;
   sku?: string;
+  brand?: string;
+  price?: number;
+  currency?: string;
+  features?: string[];
+  specifications?: Record<string, string>;
+  colors?: string[];
+  sizes?: string[];
+  materials?: string[];
+  tags?: string[];
 }
 
 export interface BrandInformation {
@@ -200,6 +209,15 @@ export class CreativeWorkspaceManager {
     } catch {
       return null;
     }
+  }
+
+  /** Resolve the absolute path of an original uploaded product image. Never used for writes by asset prep. */
+  async getOriginalImagePath(projectId: string, imageId: string): Promise<string | null> {
+    const project = await this.getProject(projectId);
+    const image = project?.productImages.find((item) => item.id === imageId);
+    if (!image) return null;
+    const extension = image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1];
+    return this.getImagePath(projectId, `${imageId}.${extension}`);
   }
 
   validate(project: CreativeProject | null): ValidationResult {

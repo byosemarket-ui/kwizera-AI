@@ -1,0 +1,97 @@
+{
+  "knowledgeId": "ss-bridge-scene-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "storytelling-scene-domain-bridge",
+  "title": "Scene Knowledge Domain",
+  "description": "Hub for professional scene design expansion Step 4.",
+  "summary": "Primary domain for scene design technique topics.",
+  "tags": [
+    "storytelling-scene",
+    "domain-bridge",
+    "scene-knowledge"
+  ],
+  "keywords": [
+    "scene-knowledge",
+    "storytelling",
+    "scene",
+    "relationship"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-storytelling-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:12.319Z",
+  "lastUpdated": "2026-08-08T15:34:12.319Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\ss-bridge-scene-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "70e93fee2fccefccec2709f6ac850e32e371eb0cd55d5644dfd56d17065d3088",
+  "searchableText": "scene knowledge domain hub for professional scene design expansion step 4. primary domain for scene design technique topics. storytelling-scene-domain-bridge storytelling-scene domain-bridge scene-knowledge scene-knowledge storytelling scene relationship",
+  "classification": {
+    "category": "storytelling-scene-domain-bridge",
+    "topic": "scene-knowledge-domain",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "bridgeDomainId": "scene-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate storytelling/scene knowledge to scene-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Scene Knowledge Domain",
+      "category": "domain-bridge",
+      "domain": "scene-knowledge",
+      "description": "Hub for professional scene design expansion Step 4.",
+      "sections": [],
+      "concepts": [
+        "scene-knowledge"
+      ],
+      "entities": [
+        "scene-knowledge"
+      ],
+      "terminology": [
+        "scene-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate storytelling/scene knowledge to scene-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "story-storytelling-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

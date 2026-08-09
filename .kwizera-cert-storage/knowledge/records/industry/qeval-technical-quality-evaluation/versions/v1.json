@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "qeval-technical-quality-evaluation",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-evaluation",
+  "title": "Technical Quality Evaluation",
+  "description": "A review of format compliance, accessibility, fidelity, integrity, and compatibility.",
+  "summary": "Give AI Me a technical quality framework rather than a claim of file-level validation.",
+  "tags": [
+    "professional-quality-evaluation",
+    "professional",
+    "technical-quality-evaluation",
+    "technical quality",
+    "specification",
+    "compatibility",
+    "accessibility",
+    "validation"
+  ],
+  "keywords": [
+    "technical quality",
+    "specification",
+    "compatibility",
+    "accessibility",
+    "validation"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-technical-standards",
+    "qrule-rendering-quality-rules",
+    "std-delivery-standards",
+    "check-publishing-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-animation-knowledge",
+    "isq-bridge-rendering-knowledge",
+    "isq-bridge-video-editing-knowledge",
+    "isq-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:47.217Z",
+  "lastUpdated": "2026-08-08T19:18:47.217Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qeval-technical-quality-evaluation",
+  "integrityStatus": "verified",
+  "contentHash": "68694bff40517d09eda0c5c03925258349885a5c32cbaf06c336eb4ae4e59904",
+  "searchableText": "technical quality evaluation a review of format compliance, accessibility, fidelity, integrity, and compatibility. give ai me a technical quality framework rather than a claim of file-level validation. professional-quality-evaluation professional-quality-evaluation professional technical-quality-evaluation technical quality specification compatibility accessibility validation technical quality specification compatibility accessibility validation",
+  "classification": {
+    "category": "professional-quality-evaluation",
+    "topic": "technical-quality-evaluation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "technical-quality-evaluation",
+    "kind": "professional-quality-evaluation",
+    "purpose": "Give AI Me a technical quality framework rather than a claim of file-level validation.",
+    "professionalDefinition": "Technical quality evaluation verifies whether a finished asset meets agreed specifications and remains usable across the intended platforms, devices, and delivery workflow.",
+    "qualityRules": [
+      "Format, resolution, frame rate, and codec match specification",
+      "Accessibility requirements are addressed",
+      "Final file opens and plays as intended"
+    ],
+    "workflow": [
+      "Set evaluation context",
+      "Inspect objective evidence",
+      "Score criteria",
+      "List material gaps",
+      "Recommend improvements"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qeval-technical-quality-evaluation",
+      "title": "Technical Quality Evaluation",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "description": "A review of format compliance, accessibility, fidelity, integrity, and compatibility.",
+      "coreConcepts": [
+        "technical quality",
+        "specification",
+        "compatibility",
+        "accessibility",
+        "validation"
+      ],
+      "definitions": [
+        "Technical quality evaluation verifies whether a finished asset meets agreed specifications and remains usable across the intended platforms, devices, and delivery workflow.",
+        "Give AI Me a technical quality framework rather than a claim of file-level validation."
+      ],
+      "rules": [
+        "Quality rule: Format, resolution, frame rate, and codec match specification",
+        "Quality rule: Accessibility requirements are addressed",
+        "Quality rule: Final file opens and plays as intended"
+      ],
+      "bestPractices": [
+        "Use a delivery specification checklist",
+        "Test representative target environments",
+        "Record exact version and export settings"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "workflow": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "decisionRules": [
+        "Apply: Format, resolution, frame rate, and codec match specification",
+        "Apply: Accessibility requirements are addressed",
+        "Apply: Final file opens and plays as intended"
+      ],
+      "commonMistakes": [
+        "Assuming source quality equals delivered quality",
+        "Skipping accessibility checks"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming source quality equals delivered quality",
+        "Avoid: Skipping accessibility checks"
+      ],
+      "recommendations": [
+        "Use a delivery specification checklist",
+        "Test representative target environments",
+        "Record exact version and export settings"
+      ],
+      "examples": [
+        "Professional application of Technical Quality Evaluation in a studio review."
+      ],
+      "professionalStandards": [
+        "Format, resolution, frame rate, and codec match specification",
+        "Accessibility requirements are addressed",
+        "Final file opens and plays as intended"
+      ],
+      "relatedTopics": [
+        "technical-standards",
+        "rendering-quality-rules",
+        "delivery-standards",
+        "publishing-checklist"
+      ],
+      "keywords": [
+        "technical quality",
+        "specification",
+        "compatibility",
+        "accessibility",
+        "validation"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:technical-quality-evaluation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Technical Quality Evaluation",
+      "category": "professional-quality-evaluation",
+      "domain": "industry-standards-knowledge",
+      "description": "A review of format compliance, accessibility, fidelity, integrity, and compatibility.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Technical quality evaluation verifies whether a finished asset meets agreed specifications and remains usable across the intended platforms, devices, and delivery workflow.",
+            "Give AI Me a technical quality framework rather than a claim of file-level validation."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Format, resolution, frame rate, and codec match specification",
+            "Accessibility requirements are addressed",
+            "Final file opens and plays as intended"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use a delivery specification checklist",
+            "Test representative target environments",
+            "Record exact version and export settings"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set evaluation context",
+            "Inspect objective evidence",
+            "Score criteria",
+            "List material gaps",
+            "Recommend improvements"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Technical Quality Evaluation in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "technical quality",
+        "specification",
+        "compatibility",
+        "accessibility",
+        "validation"
+      ],
+      "entities": [
+        "Technical Quality Evaluation",
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "technical quality",
+        "specification",
+        "compatibility",
+        "accessibility",
+        "validation"
+      ],
+      "rules": [
+        "Format, resolution, frame rate, and codec match specification",
+        "Accessibility requirements are addressed",
+        "Final file opens and plays as intended"
+      ],
+      "bestPractices": [
+        "Use a delivery specification checklist",
+        "Test representative target environments",
+        "Record exact version and export settings"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "examples": [
+        "Professional application of Technical Quality Evaluation in a studio review."
+      ],
+      "commonMistakes": [
+        "Assuming source quality equals delivered quality",
+        "Skipping accessibility checks"
+      ],
+      "qualityRules": [
+        "Format, resolution, frame rate, and codec match specification",
+        "Accessibility requirements are addressed",
+        "Final file opens and plays as intended"
+      ],
+      "decisionRules": [
+        "Apply: Format, resolution, frame rate, and codec match specification",
+        "Apply: Accessibility requirements are addressed",
+        "Apply: Final file opens and plays as intended"
+      ],
+      "workflowSteps": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "prerequisites": [
+        "Set evaluation context"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-technical-standards",
+        "qrule-rendering-quality-rules",
+        "std-delivery-standards",
+        "check-publishing-checklist"
+      ],
+      "definitions": [
+        "Technical quality evaluation verifies whether a finished asset meets agreed specifications and remains usable across the intended platforms, devices, and delivery workflow."
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming source quality equals delivered quality",
+        "Avoid: Skipping accessibility checks"
+      ],
+      "recommendations": [
+        "Use a delivery specification checklist",
+        "Test representative target environments",
+        "Record exact version and export settings"
+      ],
+      "professionalStandards": [
+        "Format, resolution, frame rate, and codec match specification",
+        "Accessibility requirements are addressed",
+        "Final file opens and plays as intended"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:technical-quality-evaluation",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Use a delivery specification checklist",
+      "Test representative target environments",
+      "Record exact version and export settings"
+    ],
+    "bestPractices": [
+      "Use a delivery specification checklist",
+      "Test representative target environments",
+      "Record exact version and export settings"
+    ],
+    "decisionRules": [
+      "Quality rule: Format, resolution, frame rate, and codec match specification",
+      "Quality rule: Accessibility requirements are addressed",
+      "Quality rule: Final file opens and plays as intended"
+    ]
+  }
+}

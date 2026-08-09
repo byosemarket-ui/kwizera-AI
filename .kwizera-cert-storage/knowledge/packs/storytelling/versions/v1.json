@@ -1,0 +1,2010 @@
+{
+  "packId": "56863ecf-ee1d-47a0-a568-9f1eba6c4e7d",
+  "packSlug": "storytelling",
+  "domain": "storytelling-knowledge",
+  "title": "Professional Storytelling Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "story-storytelling-fundamentals",
+      "title": "Storytelling Fundamentals",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Core principles of narrative for commercial and marketing video: audience, desire, obstacle, change, and proof.",
+      "coreConcepts": [
+        "storytelling fundamentals",
+        "narrative",
+        "desire",
+        "obstacle",
+        "commercial story"
+      ],
+      "definitions": [
+        "Storytelling fundamentals are the non-negotiable building blocks—who wants what, why it matters, what blocks them, and how the brand helps—applied to short-form marketing narrative.",
+        "Give every commercial a clear story spine so scenes serve persuasion, not decoration."
+      ],
+      "rules": [
+        "Use when: Any brand film brief",
+        "Use when: Campaign concepting",
+        "Use when: Teaching crews a shared narrative language",
+        "Do not use when: When skipping to shots without defining audience desire"
+      ],
+      "bestPractices": [
+        "Define audience and desire before structure",
+        "One promise per film",
+        "Prove change with evidence"
+      ],
+      "professionalTechniques": [
+        "Clarify audience",
+        "State desire and obstacle",
+        "Map change",
+        "Attach CTA"
+      ],
+      "workflow": [
+        "Clarify audience",
+        "State desire and obstacle",
+        "Map change",
+        "Attach CTA"
+      ],
+      "decisionRules": [
+        "Use when: Any brand film brief",
+        "Use when: Campaign concepting",
+        "Use when: Teaching crews a shared narrative language",
+        "Avoid when: When skipping to shots without defining audience desire"
+      ],
+      "commonMistakes": [
+        "Feature dumps without desire",
+        "Beautiful scenes with no stakes"
+      ],
+      "troubleshooting": [
+        "Avoid: Feature dumps without desire",
+        "Avoid: Beautiful scenes with no stakes"
+      ],
+      "recommendations": [
+        "Define audience and desire before structure",
+        "One promise per film",
+        "Prove change with evidence"
+      ],
+      "examples": [
+        "Skincare ad: desire for confidence → obstacle of dullness → product change → shop CTA"
+      ],
+      "professionalStandards": [
+        "Storytelling fundamentals are the non-negotiable building blocks—who wants what, why it matters, what blocks them, and how the brand helps—applied to short-form marketing narrative."
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "emotional-journey",
+        "product-storytelling",
+        "visual-storytelling"
+      ],
+      "keywords": [
+        "storytelling fundamentals",
+        "narrative",
+        "desire",
+        "obstacle",
+        "commercial story"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:storytelling-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-story-structure",
+      "title": "Story Structure",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The organized arrangement of beginning, development, climax, and close for marketing narratives.",
+      "coreConcepts": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "definitions": [
+        "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc.",
+        "Ensure pacing and information order support comprehension and conversion."
+      ],
+      "rules": [
+        "Use when: Scripts over ~15 seconds",
+        "Use when: Multi-scene commercials",
+        "Use when: Explainers with persuasion goals",
+        "Do not use when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "bestPractices": [
+        "Lock beats before shooting",
+        "Map each beat to a scene purpose",
+        "Protect climax clarity"
+      ],
+      "professionalTechniques": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "workflow": [
+        "Choose structure model",
+        "List beats",
+        "Assign scenes",
+        "Time-box each beat"
+      ],
+      "decisionRules": [
+        "Use when: Scripts over ~15 seconds",
+        "Use when: Multi-scene commercials",
+        "Use when: Explainers with persuasion goals",
+        "Avoid when: Single-shot pack reveals with no narrative ambition"
+      ],
+      "commonMistakes": [
+        "All middle, no hook",
+        "CTA before any value"
+      ],
+      "troubleshooting": [
+        "Avoid: All middle, no hook",
+        "Avoid: CTA before any value"
+      ],
+      "recommendations": [
+        "Lock beats before shooting",
+        "Map each beat to a scene purpose",
+        "Protect climax clarity"
+      ],
+      "examples": [
+        "15s social: hook → problem → product → proof → CTA"
+      ],
+      "professionalStandards": [
+        "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc."
+      ],
+      "relatedTopics": [
+        "three-act-structure",
+        "beginning",
+        "middle",
+        "ending",
+        "narrative-flow"
+      ],
+      "keywords": [
+        "story structure",
+        "beats",
+        "arc",
+        "narrative order",
+        "pacing"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:story-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-three-act-structure",
+      "title": "Three-Act Structure",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Classic setup, confrontation, and resolution adapted for commercial length.",
+      "coreConcepts": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "definitions": [
+        "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime.",
+        "Provide a reliable arc template for brand and product films of any length."
+      ],
+      "rules": [
+        "Use when: Brand films",
+        "Use when: Founder stories",
+        "Use when: Longer product narratives",
+        "Do not use when: Ultra-short bumper ads that only need one beat"
+      ],
+      "bestPractices": [
+        "Compress acts proportionally",
+        "Place turning points clearly",
+        "End Act III with action"
+      ],
+      "professionalTechniques": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "workflow": [
+        "Write Act I hook",
+        "Escalate Act II conflict",
+        "Resolve with brand role",
+        "Place CTA"
+      ],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Founder stories",
+        "Use when: Longer product narratives",
+        "Avoid when: Ultra-short bumper ads that only need one beat"
+      ],
+      "commonMistakes": [
+        "Act II wandering without escalation",
+        "Resolution without CTA"
+      ],
+      "troubleshooting": [
+        "Avoid: Act II wandering without escalation",
+        "Avoid: Resolution without CTA"
+      ],
+      "recommendations": [
+        "Compress acts proportionally",
+        "Place turning points clearly",
+        "End Act III with action"
+      ],
+      "examples": [
+        "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA"
+      ],
+      "professionalStandards": [
+        "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime."
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "beginning",
+        "middle",
+        "ending",
+        "conflict",
+        "resolution"
+      ],
+      "keywords": [
+        "three-act",
+        "setup",
+        "confrontation",
+        "resolution",
+        "acts"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:three-act-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-narrative-flow",
+      "title": "Narrative Flow",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The continuous progression of information and emotion so viewers never lose the thread.",
+      "coreConcepts": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "definitions": [
+        "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one.",
+        "Keep attention glued by making each beat feel inevitable and useful."
+      ],
+      "rules": [
+        "Use when: Multi-scene edits",
+        "Use when: Storyboards",
+        "Use when: Script revisions",
+        "Do not use when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "bestPractices": [
+        "Ask what question each cut answers",
+        "Remove orphan beats",
+        "Bridge emotion across scenes"
+      ],
+      "professionalTechniques": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "workflow": [
+        "List beat questions",
+        "Reorder for causality",
+        "Check emotion handoffs"
+      ],
+      "decisionRules": [
+        "Use when: Multi-scene edits",
+        "Use when: Storyboards",
+        "Use when: Script revisions",
+        "Avoid when: Montage-only mood pieces with intentional discontinuity"
+      ],
+      "commonMistakes": [
+        "Jumping to demo before problem is felt",
+        "Random B-roll breaks"
+      ],
+      "troubleshooting": [
+        "Avoid: Jumping to demo before problem is felt",
+        "Avoid: Random B-roll breaks"
+      ],
+      "recommendations": [
+        "Ask what question each cut answers",
+        "Remove orphan beats",
+        "Bridge emotion across scenes"
+      ],
+      "examples": [
+        "Problem felt → curiosity → reveal → proof → desire → CTA"
+      ],
+      "professionalStandards": [
+        "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one."
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "emotional-journey",
+        "scene-transition-planning",
+        "visual-storytelling"
+      ],
+      "keywords": [
+        "narrative flow",
+        "causality",
+        "continuity of story",
+        "beat progression"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:narrative-flow",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-beginning",
+      "title": "Beginning",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The opening beats that establish world, stakes, and reason to keep watching.",
+      "coreConcepts": [
+        "beginning",
+        "hook",
+        "cold open",
+        "setup",
+        "first beat"
+      ],
+      "definitions": [
+        "The beginning is the first narrative unit that orients the audience, plants desire or tension, and invites continued attention—typically within the first 1–3 seconds on social.",
+        "Hook attention fast and set the promise of the film."
+      ],
+      "rules": [
+        "Use when: Every commercial",
+        "Use when: Series episode opens",
+        "Use when: Landing-page videos",
+        "Do not use when: Mid-roll continuation where context already exists"
+      ],
+      "bestPractices": [
+        "Hook visually and verbally",
+        "Show who it's for",
+        "Avoid slow logos-first opens on social"
+      ],
+      "professionalTechniques": [
+        "Write hook line",
+        "Choose opening scene type",
+        "Plant brand world lightly"
+      ],
+      "workflow": [
+        "Write hook line",
+        "Choose opening scene type",
+        "Plant brand world lightly"
+      ],
+      "decisionRules": [
+        "Use when: Every commercial",
+        "Use when: Series episode opens",
+        "Use when: Landing-page videos",
+        "Avoid when: Mid-roll continuation where context already exists"
+      ],
+      "commonMistakes": [
+        "Generic establishing shots with no stakes",
+        "Delayed problem statement"
+      ],
+      "troubleshooting": [
+        "Avoid: Generic establishing shots with no stakes",
+        "Avoid: Delayed problem statement"
+      ],
+      "recommendations": [
+        "Hook visually and verbally",
+        "Show who it's for",
+        "Avoid slow logos-first opens on social"
+      ],
+      "examples": [
+        "Cold open of spilled coffee then cut to calm morning with product"
+      ],
+      "professionalStandards": [
+        "The beginning is the first narrative unit that orients the audience, plants desire or tension, and invites continued attention—typically within the first 1–3 seconds on social."
+      ],
+      "relatedTopics": [
+        "opening-scene",
+        "story-structure",
+        "three-act-structure",
+        "brand-storytelling"
+      ],
+      "keywords": [
+        "beginning",
+        "hook",
+        "cold open",
+        "setup",
+        "first beat"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:beginning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-middle",
+      "title": "Middle",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The developmental section where conflict escalates and the product/brand earns relevance.",
+      "coreConcepts": [
+        "middle",
+        "development",
+        "escalation",
+        "rising action"
+      ],
+      "definitions": [
+        "The middle is the narrative span between hook and resolution where obstacles intensify, benefits are shown, and emotional investment grows.",
+        "Deepen stakes and demonstrate value before asking for action."
+      ],
+      "rules": [
+        "Use when: Any structure longer than a single reveal",
+        "Use when: Demo-heavy product films",
+        "Do not use when: 3-second logo bumpers"
+      ],
+      "bestPractices": [
+        "Escalate one clear conflict",
+        "Interleave proof",
+        "Avoid feature laundry lists"
+      ],
+      "professionalTechniques": [
+        "List obstacles",
+        "Match to product capabilities",
+        "Order by rising intensity"
+      ],
+      "workflow": [
+        "List obstacles",
+        "Match to product capabilities",
+        "Order by rising intensity"
+      ],
+      "decisionRules": [
+        "Use when: Any structure longer than a single reveal",
+        "Use when: Demo-heavy product films",
+        "Avoid when: 3-second logo bumpers"
+      ],
+      "commonMistakes": [
+        "Flat middle with no rising tension",
+        "Too many competing claims"
+      ],
+      "troubleshooting": [
+        "Avoid: Flat middle with no rising tension",
+        "Avoid: Too many competing claims"
+      ],
+      "recommendations": [
+        "Escalate one clear conflict",
+        "Interleave proof",
+        "Avoid feature laundry lists"
+      ],
+      "examples": [
+        "Messy workflow → partial fixes fail → product consolidates steps"
+      ],
+      "professionalStandards": [
+        "The middle is the narrative span between hook and resolution where obstacles intensify, benefits are shown, and emotional investment grows."
+      ],
+      "relatedTopics": [
+        "conflict",
+        "product-storytelling",
+        "demonstration-scene",
+        "narrative-flow"
+      ],
+      "keywords": [
+        "middle",
+        "development",
+        "escalation",
+        "rising action"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:middle",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-ending",
+      "title": "Ending",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The closing beats that resolve tension, crystallize the promise, and drive action.",
+      "coreConcepts": [
+        "ending",
+        "close",
+        "payoff",
+        "final beat",
+        "resolution close"
+      ],
+      "definitions": [
+        "The ending is the final narrative unit that resolves the central conflict, states the transformed state, and places the call to action.",
+        "Leave a clear memory and a next step."
+      ],
+      "rules": [
+        "Use when: Every persuasion film",
+        "Use when: Series finales",
+        "Use when: Landing videos",
+        "Do not use when: Teaser trails that intentionally withhold resolution"
+      ],
+      "bestPractices": [
+        "Show the after-state",
+        "One CTA",
+        "Match tone of brand"
+      ],
+      "professionalTechniques": [
+        "Write after-state",
+        "Place CTA",
+        "Design closing scene"
+      ],
+      "workflow": [
+        "Write after-state",
+        "Place CTA",
+        "Design closing scene"
+      ],
+      "decisionRules": [
+        "Use when: Every persuasion film",
+        "Use when: Series finales",
+        "Use when: Landing videos",
+        "Avoid when: Teaser trails that intentionally withhold resolution"
+      ],
+      "commonMistakes": [
+        "Fizzling out",
+        "Multiple CTAs competing"
+      ],
+      "troubleshooting": [
+        "Avoid: Fizzling out",
+        "Avoid: Multiple CTAs competing"
+      ],
+      "recommendations": [
+        "Show the after-state",
+        "One CTA",
+        "Match tone of brand"
+      ],
+      "examples": [
+        "Calm desk, finished work, 'Start free trial' end card"
+      ],
+      "professionalStandards": [
+        "The ending is the final narrative unit that resolves the central conflict, states the transformed state, and places the call to action."
+      ],
+      "relatedTopics": [
+        "resolution",
+        "call-to-action-placement",
+        "closing-scene",
+        "three-act-structure"
+      ],
+      "keywords": [
+        "ending",
+        "close",
+        "payoff",
+        "final beat",
+        "resolution close"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:ending",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-character-development",
+      "title": "Character Development",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Shaping protagonists (customer, founder, brand persona) so viewers identify and care.",
+      "coreConcepts": [
+        "character",
+        "protagonist",
+        "persona",
+        "identification",
+        "arc"
+      ],
+      "definitions": [
+        "Character development in commercial storytelling is the selective revelation of goals, flaws, and change for the person (or brand persona) the audience follows.",
+        "Make the story human so product benefits feel personal."
+      ],
+      "rules": [
+        "Use when: Testimonials",
+        "Use when: Founder films",
+        "Use when: Lifestyle narratives",
+        "Do not use when: Pure pack-shot catalogs with no human lead"
+      ],
+      "bestPractices": [
+        "One primary character",
+        "Show desire through action",
+        "Keep arcs short and clear"
+      ],
+      "professionalTechniques": [
+        "Define character goal",
+        "Show obstacle",
+        "Show change via product"
+      ],
+      "workflow": [
+        "Define character goal",
+        "Show obstacle",
+        "Show change via product"
+      ],
+      "decisionRules": [
+        "Use when: Testimonials",
+        "Use when: Founder films",
+        "Use when: Lifestyle narratives",
+        "Avoid when: Pure pack-shot catalogs with no human lead"
+      ],
+      "commonMistakes": [
+        "Overwritten backstory",
+        "Relatable character without product link"
+      ],
+      "troubleshooting": [
+        "Avoid: Overwritten backstory",
+        "Avoid: Relatable character without product link"
+      ],
+      "recommendations": [
+        "One primary character",
+        "Show desire through action",
+        "Keep arcs short and clear"
+      ],
+      "examples": [
+        "Parent juggling morning chaos finds calm routine with product"
+      ],
+      "professionalStandards": [
+        "Character development in commercial storytelling is the selective revelation of goals, flaws, and change for the person (or brand persona) the audience follows."
+      ],
+      "relatedTopics": [
+        "emotional-journey",
+        "customer-journey",
+        "conflict",
+        "testimonial-scene"
+      ],
+      "keywords": [
+        "character",
+        "protagonist",
+        "persona",
+        "identification",
+        "arc"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:character-development",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-conflict",
+      "title": "Conflict",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The obstacle, tension, or unmet need that makes the story necessary.",
+      "coreConcepts": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "definitions": [
+        "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution.",
+        "Create urgency and meaning for the product or brand solution."
+      ],
+      "rules": [
+        "Use when: Problem-aware audiences",
+        "Use when: Competitive categories",
+        "Use when: Transformation stories",
+        "Do not use when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "bestPractices": [
+        "Make conflict specific and visual",
+        "Keep it solvable by the offer",
+        "Escalate once"
+      ],
+      "professionalTechniques": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "workflow": [
+        "Name conflict",
+        "Visualize it",
+        "Link to product capability"
+      ],
+      "decisionRules": [
+        "Use when: Problem-aware audiences",
+        "Use when: Competitive categories",
+        "Use when: Transformation stories",
+        "Avoid when: When conflict feels manipulative or brand-inappropriate"
+      ],
+      "commonMistakes": [
+        "Vague ‘life is hard’ conflict",
+        "Conflict the product can’t address"
+      ],
+      "troubleshooting": [
+        "Avoid: Vague ‘life is hard’ conflict",
+        "Avoid: Conflict the product can’t address"
+      ],
+      "recommendations": [
+        "Make conflict specific and visual",
+        "Keep it solvable by the offer",
+        "Escalate once"
+      ],
+      "examples": [
+        "Inventory chaos visualized as overflowing tabs before inventory app"
+      ],
+      "professionalStandards": [
+        "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution."
+      ],
+      "relatedTopics": [
+        "middle",
+        "resolution",
+        "emotional-journey",
+        "product-storytelling"
+      ],
+      "keywords": [
+        "conflict",
+        "obstacle",
+        "tension",
+        "problem",
+        "stakes"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:conflict",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-resolution",
+      "title": "Resolution",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The satisfying settling of conflict through the brand/product’s role.",
+      "coreConcepts": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "definitions": [
+        "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established.",
+        "Prove that change is real and attributable to the offer."
+      ],
+      "rules": [
+        "Use when: After conflict is established",
+        "Use when: Before or with CTA",
+        "Do not use when: Before the audience feels the problem"
+      ],
+      "bestPractices": [
+        "Show before/after clearly",
+        "Use proof (demo, metric, testimonial)",
+        "Keep resolution honest"
+      ],
+      "professionalTechniques": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "workflow": [
+        "State resolved state",
+        "Choose proof scene",
+        "Bridge to CTA"
+      ],
+      "decisionRules": [
+        "Use when: After conflict is established",
+        "Use when: Before or with CTA",
+        "Avoid when: Before the audience feels the problem"
+      ],
+      "commonMistakes": [
+        "Magical resolution without proof",
+        "Resolving a different problem than setup"
+      ],
+      "troubleshooting": [
+        "Avoid: Magical resolution without proof",
+        "Avoid: Resolving a different problem than setup"
+      ],
+      "recommendations": [
+        "Show before/after clearly",
+        "Use proof (demo, metric, testimonial)",
+        "Keep resolution honest"
+      ],
+      "examples": [
+        "Dashboard calm + 5-star quote + ‘Get started’"
+      ],
+      "professionalStandards": [
+        "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established."
+      ],
+      "relatedTopics": [
+        "ending",
+        "conflict",
+        "call-to-action-placement",
+        "demonstration-scene"
+      ],
+      "keywords": [
+        "resolution",
+        "payoff",
+        "solution",
+        "after state",
+        "closure"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:resolution",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-emotional-journey",
+      "title": "Emotional Journey",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The planned sequence of feelings the viewer should experience from hook to CTA.",
+      "coreConcepts": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "definitions": [
+        "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes.",
+        "Align emotion with persuasion so decisions feel motivated, not forced."
+      ],
+      "rules": [
+        "Use when: Brand films",
+        "Use when: Cause campaigns",
+        "Use when: Premium product stories",
+        "Do not use when: Purely informational how-tos with no persuasion goal"
+      ],
+      "bestPractices": [
+        "Name target emotion per beat",
+        "Avoid emotional whiplash",
+        "End on confident action"
+      ],
+      "professionalTechniques": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "workflow": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Cause campaigns",
+        "Use when: Premium product stories",
+        "Avoid when: Purely informational how-tos with no persuasion goal"
+      ],
+      "commonMistakes": [
+        "Tone mismatch with brand",
+        "All intensity, no relief"
+      ],
+      "troubleshooting": [
+        "Avoid: Tone mismatch with brand",
+        "Avoid: All intensity, no relief"
+      ],
+      "recommendations": [
+        "Name target emotion per beat",
+        "Avoid emotional whiplash",
+        "End on confident action"
+      ],
+      "examples": [
+        "Anxiety → recognition → relief → pride → share/CTA"
+      ],
+      "professionalStandards": [
+        "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes."
+      ],
+      "relatedTopics": [
+        "narrative-flow",
+        "conflict",
+        "resolution",
+        "visual-storytelling",
+        "lifestyle-scene"
+      ],
+      "keywords": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:emotional-journey",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-call-to-action-placement",
+      "title": "Call To Action Placement",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Where and how the ask appears so it feels earned and clear.",
+      "coreConcepts": [
+        "CTA",
+        "call to action",
+        "ask",
+        "conversion",
+        "end card"
+      ],
+      "definitions": [
+        "CTA placement is the strategic positioning of the requested action—timing, wording, visual weight—after sufficient value and trust have been delivered.",
+        "Convert attention into a measurable next step without breaking trust."
+      ],
+      "rules": [
+        "Use when: All conversion-oriented videos",
+        "Use when: Landing embeds",
+        "Use when: Social ads",
+        "Do not use when: Pure awareness films that intentionally defer the ask"
+      ],
+      "bestPractices": [
+        "One primary CTA",
+        "Place after proof",
+        "Match platform norms",
+        "Repeat softly if long"
+      ],
+      "professionalTechniques": [
+        "Define single action",
+        "Place after resolution beat",
+        "Design end card"
+      ],
+      "workflow": [
+        "Define single action",
+        "Place after resolution beat",
+        "Design end card"
+      ],
+      "decisionRules": [
+        "Use when: All conversion-oriented videos",
+        "Use when: Landing embeds",
+        "Use when: Social ads",
+        "Avoid when: Pure awareness films that intentionally defer the ask"
+      ],
+      "commonMistakes": [
+        "CTA in first second with no value",
+        "Competing CTAs"
+      ],
+      "troubleshooting": [
+        "Avoid: CTA in first second with no value",
+        "Avoid: Competing CTAs"
+      ],
+      "recommendations": [
+        "One primary CTA",
+        "Place after proof",
+        "Match platform norms",
+        "Repeat softly if long"
+      ],
+      "examples": [
+        "Soft mid-roll ‘Learn more’ + strong end-card ‘Shop now’"
+      ],
+      "professionalStandards": [
+        "CTA placement is the strategic positioning of the requested action—timing, wording, visual weight—after sufficient value and trust have been delivered."
+      ],
+      "relatedTopics": [
+        "ending",
+        "resolution",
+        "closing-scene",
+        "brand-storytelling"
+      ],
+      "keywords": [
+        "CTA",
+        "call to action",
+        "ask",
+        "conversion",
+        "end card"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:call-to-action-placement",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-brand-storytelling",
+      "title": "Brand Storytelling",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Narratives that express brand identity, values, and world beyond a single SKU.",
+      "coreConcepts": [
+        "brand storytelling",
+        "brand film",
+        "brand narrative",
+        "identity story"
+      ],
+      "definitions": [
+        "Brand storytelling is narrative craft that communicates who the brand is, what it believes, and how it shows up—consistent with identity systems and audience expectations.",
+        "Build long-term meaning and preference, not only immediate sales."
+      ],
+      "rules": [
+        "Use when: Brand films",
+        "Use when: Launch films",
+        "Use when: Culture/employer brand",
+        "Use when: Rebrands",
+        "Do not use when: Hard performance ads that must stay feature-price focused"
+      ],
+      "bestPractices": [
+        "Anchor in brand pillars",
+        "Show values through action",
+        "Keep product as proof not only logo"
+      ],
+      "professionalTechniques": [
+        "Extract brand pillars",
+        "Choose human story",
+        "Align visuals/voice",
+        "Close with brand mark + CTA"
+      ],
+      "workflow": [
+        "Extract brand pillars",
+        "Choose human story",
+        "Align visuals/voice",
+        "Close with brand mark + CTA"
+      ],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Launch films",
+        "Use when: Culture/employer brand",
+        "Use when: Rebrands",
+        "Avoid when: Hard performance ads that must stay feature-price focused"
+      ],
+      "commonMistakes": [
+        "Generic purpose-washing",
+        "Inconsistent tone vs brand guidelines"
+      ],
+      "troubleshooting": [
+        "Avoid: Generic purpose-washing",
+        "Avoid: Inconsistent tone vs brand guidelines"
+      ],
+      "recommendations": [
+        "Anchor in brand pillars",
+        "Show values through action",
+        "Keep product as proof not only logo"
+      ],
+      "examples": [
+        "Craft brewery film following farmers → brew → community toast"
+      ],
+      "professionalStandards": [
+        "Brand storytelling is narrative craft that communicates who the brand is, what it believes, and how it shows up—consistent with identity systems and audience expectations."
+      ],
+      "relatedTopics": [
+        "storytelling-fundamentals",
+        "emotional-journey",
+        "visual-storytelling",
+        "opening-scene"
+      ],
+      "keywords": [
+        "brand storytelling",
+        "brand film",
+        "brand narrative",
+        "identity story"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:brand-storytelling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-product-storytelling",
+      "title": "Product Storytelling",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Narratives that center product benefits, proof, and usage contexts.",
+      "coreConcepts": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "definitions": [
+        "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes.",
+        "Make features meaningful by tying them to desire and outcomes."
+      ],
+      "rules": [
+        "Use when: Product launches",
+        "Use when: Ecommerce videos",
+        "Use when: Feature explainers",
+        "Do not use when: Pure brand anthems with no product focus"
+      ],
+      "bestPractices": [
+        "Lead with outcome",
+        "Show use, not only beauty",
+        "One hero feature arc"
+      ],
+      "professionalTechniques": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "workflow": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "decisionRules": [
+        "Use when: Product launches",
+        "Use when: Ecommerce videos",
+        "Use when: Feature explainers",
+        "Avoid when: Pure brand anthems with no product focus"
+      ],
+      "commonMistakes": [
+        "Spec dump",
+        "Reveal without context"
+      ],
+      "troubleshooting": [
+        "Avoid: Spec dump",
+        "Avoid: Reveal without context"
+      ],
+      "recommendations": [
+        "Lead with outcome",
+        "Show use, not only beauty",
+        "One hero feature arc"
+      ],
+      "examples": [
+        "Noise-cancel headphones: chaotic commute → silence → focus"
+      ],
+      "professionalStandards": [
+        "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes."
+      ],
+      "relatedTopics": [
+        "product-reveal-scene",
+        "demonstration-scene",
+        "conflict",
+        "customer-journey"
+      ],
+      "keywords": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:product-storytelling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-customer-journey",
+      "title": "Customer Journey",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Aligning story beats with awareness, consideration, decision, and advocacy stages.",
+      "coreConcepts": [
+        "customer journey",
+        "funnel",
+        "awareness",
+        "consideration",
+        "decision"
+      ],
+      "definitions": [
+        "Customer-journey storytelling maps narrative intensity and proof type to the viewer’s stage—from problem awareness through purchase and advocacy.",
+        "Match narrative depth and CTA to where the viewer is in buying."
+      ],
+      "rules": [
+        "Use when: Funnel-specific ads",
+        "Use when: Retargeting variants",
+        "Use when: Lifecycle campaigns",
+        "Do not use when: One-size scripts forced across all funnel stages"
+      ],
+      "bestPractices": [
+        "Different hooks per stage",
+        "More proof later in funnel",
+        "CTA matches stage"
+      ],
+      "professionalTechniques": [
+        "Identify stage",
+        "Select story depth",
+        "Choose scene sequence",
+        "Tune CTA"
+      ],
+      "workflow": [
+        "Identify stage",
+        "Select story depth",
+        "Choose scene sequence",
+        "Tune CTA"
+      ],
+      "decisionRules": [
+        "Use when: Funnel-specific ads",
+        "Use when: Retargeting variants",
+        "Use when: Lifecycle campaigns",
+        "Avoid when: One-size scripts forced across all funnel stages"
+      ],
+      "commonMistakes": [
+        "Hard sell to cold audiences",
+        "No reminder of value for warm audiences"
+      ],
+      "troubleshooting": [
+        "Avoid: Hard sell to cold audiences",
+        "Avoid: No reminder of value for warm audiences"
+      ],
+      "recommendations": [
+        "Different hooks per stage",
+        "More proof later in funnel",
+        "CTA matches stage"
+      ],
+      "examples": [
+        "Cold: problem film; warm: demo; hot: offer + urgency CTA"
+      ],
+      "professionalStandards": [
+        "Customer-journey storytelling maps narrative intensity and proof type to the viewer’s stage—from problem awareness through purchase and advocacy."
+      ],
+      "relatedTopics": [
+        "call-to-action-placement",
+        "product-storytelling",
+        "emotional-journey",
+        "comparison-scene"
+      ],
+      "keywords": [
+        "customer journey",
+        "funnel",
+        "awareness",
+        "consideration",
+        "decision"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:customer-journey",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "story-visual-storytelling",
+      "title": "Visual Storytelling",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Communicating narrative through image, motion, lighting, and composition—not only dialogue.",
+      "coreConcepts": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "definitions": [
+        "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence.",
+        "Make stories work muted, international, and emotionally immediate."
+      ],
+      "rules": [
+        "Use when: Social (sound-off)",
+        "Use when: International markets",
+        "Use when: Premium cinematic brands",
+        "Do not use when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "bestPractices": [
+        "Show don’t only tell",
+        "Design readable silhouettes",
+        "Align light/mood to emotion"
+      ],
+      "professionalTechniques": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "workflow": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "decisionRules": [
+        "Use when: Social (sound-off)",
+        "Use when: International markets",
+        "Use when: Premium cinematic brands",
+        "Avoid when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "commonMistakes": [
+        "Pretty shots that don’t advance story",
+        "Unreadable action"
+      ],
+      "troubleshooting": [
+        "Avoid: Pretty shots that don’t advance story",
+        "Avoid: Unreadable action"
+      ],
+      "recommendations": [
+        "Show don’t only tell",
+        "Design readable silhouettes",
+        "Align light/mood to emotion"
+      ],
+      "examples": [
+        "Hands trembling → product grip → steady pour, no VO needed"
+      ],
+      "professionalStandards": [
+        "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence."
+      ],
+      "relatedTopics": [
+        "scene-composition",
+        "emotional-journey",
+        "hero-scene",
+        "narrative-flow"
+      ],
+      "keywords": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:visual-storytelling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Storytelling Knowledge Pack",
+    "category": "professional-storytelling",
+    "domain": "storytelling-knowledge",
+    "description": "Curated professional storytelling/scene design knowledge for AI Me (not video generation).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Storytelling Fundamentals",
+          "Story Structure",
+          "Three-Act Structure",
+          "Narrative Flow",
+          "Beginning",
+          "Middle",
+          "Ending",
+          "Character Development",
+          "Conflict",
+          "Resolution",
+          "Emotional Journey",
+          "Call To Action Placement",
+          "Brand Storytelling",
+          "Product Storytelling",
+          "Customer Journey",
+          "Visual Storytelling"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Define audience and desire before structure",
+          "One promise per film",
+          "Prove change with evidence",
+          "Lock beats before shooting",
+          "Map each beat to a scene purpose",
+          "Protect climax clarity",
+          "Compress acts proportionally",
+          "Place turning points clearly",
+          "End Act III with action",
+          "Ask what question each cut answers",
+          "Remove orphan beats",
+          "Bridge emotion across scenes",
+          "Hook visually and verbally",
+          "Show who it's for",
+          "Avoid slow logos-first opens on social",
+          "Escalate one clear conflict",
+          "Interleave proof",
+          "Avoid feature laundry lists",
+          "Show the after-state",
+          "One CTA",
+          "Match tone of brand",
+          "One primary character",
+          "Show desire through action",
+          "Keep arcs short and clear",
+          "Make conflict specific and visual",
+          "Keep it solvable by the offer",
+          "Escalate once",
+          "Show before/after clearly",
+          "Use proof (demo, metric, testimonial)",
+          "Keep resolution honest",
+          "Name target emotion per beat",
+          "Avoid emotional whiplash",
+          "End on confident action",
+          "One primary CTA",
+          "Place after proof",
+          "Match platform norms",
+          "Repeat softly if long",
+          "Anchor in brand pillars",
+          "Show values through action",
+          "Keep product as proof not only logo"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Clarify audience",
+          "State desire and obstacle",
+          "Map change",
+          "Attach CTA",
+          "Choose structure model",
+          "List beats",
+          "Assign scenes",
+          "Time-box each beat",
+          "Write Act I hook",
+          "Escalate Act II conflict",
+          "Resolve with brand role",
+          "Place CTA",
+          "List beat questions",
+          "Reorder for causality",
+          "Check emotion handoffs",
+          "Write hook line",
+          "Choose opening scene type",
+          "Plant brand world lightly",
+          "List obstacles",
+          "Match to product capabilities",
+          "Order by rising intensity",
+          "Write after-state",
+          "Place CTA",
+          "Design closing scene",
+          "Define character goal",
+          "Show obstacle",
+          "Show change via product",
+          "Name conflict",
+          "Visualize it",
+          "Link to product capability",
+          "State resolved state",
+          "Choose proof scene",
+          "Bridge to CTA",
+          "Map emotion per act",
+          "Assign scene moods",
+          "Validate with rough cut",
+          "Define single action",
+          "Place after resolution beat",
+          "Design end card",
+          "Extract brand pillars"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Skincare ad: desire for confidence → obstacle of dullness → product change → shop CTA",
+          "15s social: hook → problem → product → proof → CTA",
+          "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA",
+          "Problem felt → curiosity → reveal → proof → desire → CTA",
+          "Cold open of spilled coffee then cut to calm morning with product",
+          "Messy workflow → partial fixes fail → product consolidates steps",
+          "Calm desk, finished work, 'Start free trial' end card",
+          "Parent juggling morning chaos finds calm routine with product",
+          "Inventory chaos visualized as overflowing tabs before inventory app",
+          "Dashboard calm + 5-star quote + ‘Get started’",
+          "Anxiety → recognition → relief → pride → share/CTA",
+          "Soft mid-roll ‘Learn more’ + strong end-card ‘Shop now’",
+          "Craft brewery film following farmers → brew → community toast",
+          "Noise-cancel headphones: chaotic commute → silence → focus",
+          "Cold: problem film; warm: demo; hot: offer + urgency CTA",
+          "Hands trembling → product grip → steady pour, no VO needed"
+        ]
+      }
+    ],
+    "concepts": [
+      "storytelling fundamentals",
+      "narrative",
+      "desire",
+      "obstacle",
+      "commercial story",
+      "story structure",
+      "beats",
+      "arc",
+      "narrative order",
+      "pacing",
+      "three-act",
+      "setup",
+      "confrontation",
+      "resolution",
+      "acts",
+      "narrative flow",
+      "causality",
+      "continuity of story",
+      "beat progression",
+      "beginning",
+      "hook",
+      "cold open",
+      "first beat",
+      "middle",
+      "development",
+      "escalation",
+      "rising action",
+      "ending",
+      "close",
+      "payoff",
+      "final beat",
+      "resolution close",
+      "character",
+      "protagonist",
+      "persona",
+      "identification",
+      "conflict",
+      "tension",
+      "problem",
+      "stakes",
+      "solution",
+      "after state",
+      "closure",
+      "emotional journey",
+      "emotion map",
+      "feeling arc",
+      "mood progression",
+      "CTA",
+      "call to action",
+      "ask"
+    ],
+    "entities": [
+      "Storytelling Fundamentals",
+      "Story Structure",
+      "Three-Act Structure",
+      "Narrative Flow",
+      "Beginning",
+      "Middle",
+      "Ending",
+      "Character Development",
+      "Conflict",
+      "Resolution",
+      "Emotional Journey",
+      "Call To Action Placement",
+      "Brand Storytelling",
+      "Product Storytelling",
+      "Customer Journey",
+      "Visual Storytelling"
+    ],
+    "terminology": [
+      "storytelling fundamentals",
+      "narrative",
+      "desire",
+      "obstacle",
+      "commercial story",
+      "story structure",
+      "beats",
+      "arc",
+      "narrative order",
+      "pacing",
+      "three-act",
+      "setup",
+      "confrontation",
+      "resolution",
+      "acts",
+      "narrative flow",
+      "causality",
+      "continuity of story",
+      "beat progression",
+      "beginning",
+      "hook",
+      "cold open",
+      "first beat",
+      "middle",
+      "development",
+      "escalation",
+      "rising action",
+      "ending",
+      "close",
+      "payoff",
+      "final beat",
+      "resolution close",
+      "character",
+      "protagonist",
+      "persona",
+      "identification",
+      "conflict",
+      "tension",
+      "problem",
+      "stakes",
+      "solution",
+      "after state",
+      "closure",
+      "emotional journey",
+      "emotion map",
+      "feeling arc",
+      "mood progression",
+      "CTA",
+      "call to action",
+      "ask"
+    ],
+    "rules": [
+      "Use when: Any brand film brief",
+      "Use when: Campaign concepting",
+      "Use when: Teaching crews a shared narrative language",
+      "Do not use when: When skipping to shots without defining audience desire",
+      "Use when: Scripts over ~15 seconds",
+      "Use when: Multi-scene commercials",
+      "Use when: Explainers with persuasion goals",
+      "Do not use when: Single-shot pack reveals with no narrative ambition",
+      "Use when: Brand films",
+      "Use when: Founder stories",
+      "Use when: Longer product narratives",
+      "Do not use when: Ultra-short bumper ads that only need one beat",
+      "Use when: Multi-scene edits",
+      "Use when: Storyboards",
+      "Use when: Script revisions",
+      "Do not use when: Montage-only mood pieces with intentional discontinuity",
+      "Use when: Every commercial",
+      "Use when: Series episode opens",
+      "Use when: Landing-page videos",
+      "Do not use when: Mid-roll continuation where context already exists",
+      "Use when: Any structure longer than a single reveal",
+      "Use when: Demo-heavy product films",
+      "Do not use when: 3-second logo bumpers",
+      "Use when: Every persuasion film",
+      "Use when: Series finales",
+      "Use when: Landing videos",
+      "Do not use when: Teaser trails that intentionally withhold resolution",
+      "Use when: Testimonials",
+      "Use when: Founder films",
+      "Use when: Lifestyle narratives",
+      "Do not use when: Pure pack-shot catalogs with no human lead",
+      "Use when: Problem-aware audiences",
+      "Use when: Competitive categories",
+      "Use when: Transformation stories",
+      "Do not use when: When conflict feels manipulative or brand-inappropriate",
+      "Use when: After conflict is established",
+      "Use when: Before or with CTA",
+      "Do not use when: Before the audience feels the problem",
+      "Use when: Brand films",
+      "Use when: Cause campaigns"
+    ],
+    "bestPractices": [
+      "Define audience and desire before structure",
+      "One promise per film",
+      "Prove change with evidence",
+      "Lock beats before shooting",
+      "Map each beat to a scene purpose",
+      "Protect climax clarity",
+      "Compress acts proportionally",
+      "Place turning points clearly",
+      "End Act III with action",
+      "Ask what question each cut answers",
+      "Remove orphan beats",
+      "Bridge emotion across scenes",
+      "Hook visually and verbally",
+      "Show who it's for",
+      "Avoid slow logos-first opens on social",
+      "Escalate one clear conflict",
+      "Interleave proof",
+      "Avoid feature laundry lists",
+      "Show the after-state",
+      "One CTA",
+      "Match tone of brand",
+      "One primary character",
+      "Show desire through action",
+      "Keep arcs short and clear",
+      "Make conflict specific and visual",
+      "Keep it solvable by the offer",
+      "Escalate once",
+      "Show before/after clearly",
+      "Use proof (demo, metric, testimonial)",
+      "Keep resolution honest",
+      "Name target emotion per beat",
+      "Avoid emotional whiplash",
+      "End on confident action",
+      "One primary CTA",
+      "Place after proof",
+      "Match platform norms",
+      "Repeat softly if long",
+      "Anchor in brand pillars",
+      "Show values through action",
+      "Keep product as proof not only logo"
+    ],
+    "professionalTechniques": [
+      "Clarify audience",
+      "State desire and obstacle",
+      "Map change",
+      "Attach CTA",
+      "Choose structure model",
+      "List beats",
+      "Assign scenes",
+      "Time-box each beat",
+      "Write Act I hook",
+      "Escalate Act II conflict",
+      "Resolve with brand role",
+      "Place CTA",
+      "List beat questions",
+      "Reorder for causality",
+      "Check emotion handoffs",
+      "Write hook line",
+      "Choose opening scene type",
+      "Plant brand world lightly",
+      "List obstacles",
+      "Match to product capabilities",
+      "Order by rising intensity",
+      "Write after-state",
+      "Place CTA",
+      "Design closing scene",
+      "Define character goal",
+      "Show obstacle",
+      "Show change via product",
+      "Name conflict",
+      "Visualize it",
+      "Link to product capability",
+      "State resolved state",
+      "Choose proof scene",
+      "Bridge to CTA",
+      "Map emotion per act",
+      "Assign scene moods",
+      "Validate with rough cut",
+      "Define single action",
+      "Place after resolution beat",
+      "Design end card",
+      "Extract brand pillars"
+    ],
+    "examples": [
+      "Skincare ad: desire for confidence → obstacle of dullness → product change → shop CTA",
+      "15s social: hook → problem → product → proof → CTA",
+      "Act I: missed deadline; Act II: chaos; Act III: tool restores control + trial CTA",
+      "Problem felt → curiosity → reveal → proof → desire → CTA",
+      "Cold open of spilled coffee then cut to calm morning with product",
+      "Messy workflow → partial fixes fail → product consolidates steps",
+      "Calm desk, finished work, 'Start free trial' end card",
+      "Parent juggling morning chaos finds calm routine with product",
+      "Inventory chaos visualized as overflowing tabs before inventory app",
+      "Dashboard calm + 5-star quote + ‘Get started’",
+      "Anxiety → recognition → relief → pride → share/CTA",
+      "Soft mid-roll ‘Learn more’ + strong end-card ‘Shop now’",
+      "Craft brewery film following farmers → brew → community toast",
+      "Noise-cancel headphones: chaotic commute → silence → focus",
+      "Cold: problem film; warm: demo; hot: offer + urgency CTA",
+      "Hands trembling → product grip → steady pour, no VO needed"
+    ],
+    "commonMistakes": [
+      "Feature dumps without desire",
+      "Beautiful scenes with no stakes",
+      "All middle, no hook",
+      "CTA before any value",
+      "Act II wandering without escalation",
+      "Resolution without CTA",
+      "Jumping to demo before problem is felt",
+      "Random B-roll breaks",
+      "Generic establishing shots with no stakes",
+      "Delayed problem statement",
+      "Flat middle with no rising tension",
+      "Too many competing claims",
+      "Fizzling out",
+      "Multiple CTAs competing",
+      "Overwritten backstory",
+      "Relatable character without product link",
+      "Vague ‘life is hard’ conflict",
+      "Conflict the product can’t address",
+      "Magical resolution without proof",
+      "Resolving a different problem than setup",
+      "Tone mismatch with brand",
+      "All intensity, no relief",
+      "CTA in first second with no value",
+      "Competing CTAs",
+      "Generic purpose-washing",
+      "Inconsistent tone vs brand guidelines",
+      "Spec dump",
+      "Reveal without context",
+      "Hard sell to cold audiences",
+      "No reminder of value for warm audiences"
+    ],
+    "qualityRules": [
+      "Storytelling fundamentals are the non-negotiable building blocks—who wants what, why it matters, what blocks them, and how the brand helps—applied to short-form marketing narrative.",
+      "Story structure is the deliberate sequencing of narrative beats so attention, emotion, and decision progress in a controllable arc.",
+      "Three-act structure divides the story into Act I (setup/hook), Act II (conflict/development), and Act III (resolution/CTA), scaled to commercial runtime.",
+      "Narrative flow is the causal and emotional continuity between beats—each scene answers an implied question raised by the previous one.",
+      "The beginning is the first narrative unit that orients the audience, plants desire or tension, and invites continued attention—typically within the first 1–3 seconds on social.",
+      "The middle is the narrative span between hook and resolution where obstacles intensify, benefits are shown, and emotional investment grows.",
+      "The ending is the final narrative unit that resolves the central conflict, states the transformed state, and places the call to action.",
+      "Character development in commercial storytelling is the selective revelation of goals, flaws, and change for the person (or brand persona) the audience follows.",
+      "Conflict is the opposing force—external friction or internal doubt—that blocks the character’s desire and motivates seeking a solution.",
+      "Resolution is the narrative closure in which conflict is addressed, the new equilibrium is shown, and credibility for the solution is established.",
+      "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes.",
+      "CTA placement is the strategic positioning of the requested action—timing, wording, visual weight—after sufficient value and trust have been delivered.",
+      "Brand storytelling is narrative craft that communicates who the brand is, what it believes, and how it shows up—consistent with identity systems and audience expectations.",
+      "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes.",
+      "Customer-journey storytelling maps narrative intensity and proof type to the viewer’s stage—from problem awareness through purchase and advocacy.",
+      "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence."
+    ],
+    "decisionRules": [
+      "Use when: Any brand film brief",
+      "Use when: Campaign concepting",
+      "Use when: Teaching crews a shared narrative language",
+      "Avoid when: When skipping to shots without defining audience desire",
+      "Use when: Scripts over ~15 seconds",
+      "Use when: Multi-scene commercials",
+      "Use when: Explainers with persuasion goals",
+      "Avoid when: Single-shot pack reveals with no narrative ambition",
+      "Use when: Brand films",
+      "Use when: Founder stories",
+      "Use when: Longer product narratives",
+      "Avoid when: Ultra-short bumper ads that only need one beat",
+      "Use when: Multi-scene edits",
+      "Use when: Storyboards",
+      "Use when: Script revisions",
+      "Avoid when: Montage-only mood pieces with intentional discontinuity",
+      "Use when: Every commercial",
+      "Use when: Series episode opens",
+      "Use when: Landing-page videos",
+      "Avoid when: Mid-roll continuation where context already exists",
+      "Use when: Any structure longer than a single reveal",
+      "Use when: Demo-heavy product films",
+      "Avoid when: 3-second logo bumpers",
+      "Use when: Every persuasion film",
+      "Use when: Series finales",
+      "Use when: Landing videos",
+      "Avoid when: Teaser trails that intentionally withhold resolution",
+      "Use when: Testimonials",
+      "Use when: Founder films",
+      "Use when: Lifestyle narratives",
+      "Avoid when: Pure pack-shot catalogs with no human lead",
+      "Use when: Problem-aware audiences",
+      "Use when: Competitive categories",
+      "Use when: Transformation stories",
+      "Avoid when: When conflict feels manipulative or brand-inappropriate",
+      "Use when: After conflict is established",
+      "Use when: Before or with CTA",
+      "Avoid when: Before the audience feels the problem",
+      "Use when: Brand films",
+      "Use when: Cause campaigns"
+    ],
+    "workflowSteps": [
+      "Clarify audience",
+      "State desire and obstacle",
+      "Map change",
+      "Attach CTA",
+      "Choose structure model",
+      "List beats",
+      "Assign scenes",
+      "Time-box each beat",
+      "Write Act I hook",
+      "Escalate Act II conflict",
+      "Resolve with brand role",
+      "Place CTA",
+      "List beat questions",
+      "Reorder for causality",
+      "Check emotion handoffs",
+      "Write hook line",
+      "Choose opening scene type",
+      "Plant brand world lightly",
+      "List obstacles",
+      "Match to product capabilities",
+      "Order by rising intensity",
+      "Write after-state",
+      "Place CTA",
+      "Design closing scene",
+      "Define character goal",
+      "Show obstacle",
+      "Show change via product",
+      "Name conflict",
+      "Visualize it",
+      "Link to product capability",
+      "State resolved state",
+      "Choose proof scene",
+      "Bridge to CTA",
+      "Map emotion per act",
+      "Assign scene moods",
+      "Validate with rough cut",
+      "Define single action",
+      "Place after resolution beat",
+      "Design end card",
+      "Extract brand pillars"
+    ],
+    "prerequisites": [
+      "Define audience desire and conflict before designing scenes."
+    ],
+    "dependencies": [
+      "video-production-knowledge",
+      "marketing-knowledge",
+      "branding-knowledge"
+    ],
+    "relatedKnowledge": [
+      "story-storytelling-fundamentals",
+      "story-story-structure",
+      "story-three-act-structure",
+      "story-narrative-flow",
+      "story-beginning",
+      "story-middle",
+      "story-ending",
+      "story-character-development",
+      "story-conflict",
+      "story-resolution",
+      "story-emotional-journey",
+      "story-call-to-action-placement",
+      "story-brand-storytelling",
+      "story-product-storytelling",
+      "story-customer-journey",
+      "story-visual-storytelling"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 93,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-storytelling-scene-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "b70bf51af0ba7d87918dccd72d74a9d099d40775cbff00e5574d91eb01cc60e2",
+  "createdAt": "2026-08-08T15:36:48.593Z",
+  "updatedAt": "2026-08-08T15:36:48.594Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

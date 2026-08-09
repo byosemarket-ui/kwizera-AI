@@ -1,0 +1,302 @@
+{
+  "knowledgeId": "trans-shape-transition",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Shape Transition",
+  "description": "Reveals or morphs using branded shapes and masks.",
+  "summary": "Tie transitions to brand identity systems.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "shape-transition",
+    "shape transition",
+    "mask reveal",
+    "geometric transition"
+  ],
+  "keywords": [
+    "shape transition",
+    "mask reveal",
+    "geometric transition"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "trans-wipe",
+    "motion-logo-animation",
+    "motion-motion-style",
+    "trans-creative-transitions",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:04.679Z",
+  "lastUpdated": "2026-08-08T15:37:04.679Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-shape-transition",
+  "integrityStatus": "verified",
+  "contentHash": "08f7759fd6a2ed5da6eb74618f930dae371d400ff3a959d01b87f234c0e79398",
+  "searchableText": "shape transition reveals or morphs using branded shapes and masks. tie transitions to brand identity systems. professional-transitions professional-transitions professional shape-transition shape transition mask reveal geometric transition shape transition mask reveal geometric transition",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "shape-transition-reveals",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "shape-transition",
+    "kind": "professional-transitions",
+    "purpose": "Tie transitions to brand identity systems.",
+    "professionalDefinition": "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic.",
+    "workflow": [
+      "Pick shape",
+      "Animate matte",
+      "Feather if needed",
+      "QA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-shape-transition",
+      "title": "Shape Transition",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Reveals or morphs using branded shapes and masks.",
+      "coreConcepts": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "definitions": [
+        "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic.",
+        "Tie transitions to brand identity systems."
+      ],
+      "rules": [
+        "Practice: Use brand shapes",
+        "Practice: Ease edges",
+        "Practice: End clean for next scene"
+      ],
+      "bestPractices": [
+        "Use brand shapes",
+        "Ease edges",
+        "End clean for next scene"
+      ],
+      "professionalTechniques": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "workflow": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "decisionRules": [
+        "Follow: Use brand shapes",
+        "Follow: Ease edges",
+        "Follow: End clean for next scene"
+      ],
+      "commonMistakes": [
+        "Off-brand shapes",
+        "Jagged mask edges"
+      ],
+      "troubleshooting": [
+        "Avoid: Off-brand shapes",
+        "Avoid: Jagged mask edges"
+      ],
+      "recommendations": [
+        "Use brand shapes",
+        "Ease edges",
+        "End clean for next scene"
+      ],
+      "examples": [
+        "Rounded square expands to full frame like app icon"
+      ],
+      "professionalStandards": [
+        "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic."
+      ],
+      "relatedTopics": [
+        "wipe",
+        "logo-animation",
+        "motion-style",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:shape-transition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Shape Transition",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "Reveals or morphs using branded shapes and masks.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Tie transitions to brand identity systems."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Pick shape",
+            "Animate matte",
+            "Feather if needed",
+            "QA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use brand shapes",
+            "Ease edges",
+            "End clean for next scene"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Rounded square expands to full frame like app icon"
+          ]
+        }
+      ],
+      "concepts": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "entities": [
+        "Shape Transition",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "shape transition",
+        "mask reveal",
+        "geometric transition"
+      ],
+      "rules": [
+        "Avoid: Off-brand shapes",
+        "Avoid: Jagged mask edges"
+      ],
+      "bestPractices": [
+        "Use brand shapes",
+        "Ease edges",
+        "End clean for next scene"
+      ],
+      "professionalTechniques": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "examples": [
+        "Rounded square expands to full frame like app icon"
+      ],
+      "commonMistakes": [
+        "Off-brand shapes",
+        "Jagged mask edges"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Use brand shapes",
+        "Practice: Ease edges",
+        "Practice: End clean for next scene"
+      ],
+      "workflowSteps": [
+        "Pick shape",
+        "Animate matte",
+        "Feather if needed",
+        "QA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "trans-wipe",
+        "motion-logo-animation",
+        "motion-motion-style",
+        "trans-creative-transitions"
+      ],
+      "definitions": [
+        "A shape transition uses geometric or brand-shaped mattes to reveal the next shot or graphic.",
+        "Tie transitions to brand identity systems."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Use brand shapes",
+      "Ease edges",
+      "End clean for next scene"
+    ],
+    "bestPractices": [
+      "Use brand shapes",
+      "Ease edges",
+      "End clean for next scene"
+    ],
+    "decisionRules": [
+      "Practice: Use brand shapes",
+      "Practice: Ease edges",
+      "Practice: End clean for next scene"
+    ]
+  }
+}

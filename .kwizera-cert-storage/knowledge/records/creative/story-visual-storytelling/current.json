@@ -1,0 +1,333 @@
+{
+  "knowledgeId": "story-visual-storytelling",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Visual Storytelling",
+  "description": "Communicating narrative through image, motion, lighting, and composition—not only dialogue.",
+  "summary": "Make stories work muted, international, and emotionally immediate.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "visual-storytelling",
+    "visual storytelling",
+    "show don't tell",
+    "image narrative",
+    "cinematic story"
+  ],
+  "keywords": [
+    "visual storytelling",
+    "show don't tell",
+    "image narrative",
+    "cinematic story"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-scene-composition",
+    "story-emotional-journey",
+    "scene-hero-scene",
+    "story-narrative-flow",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-composition-knowledge",
+    "ss-bridge-lighting-knowledge",
+    "ss-bridge-camera-knowledge",
+    "ss-bridge-camera-movement-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:07.082Z",
+  "lastUpdated": "2026-08-08T17:32:59.548Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-visual-storytelling",
+  "integrityStatus": "verified",
+  "contentHash": "2dbb83523d47f0faa1f5f0dc004c7f4b1bb946b1d4a741942535cecd7814ae3c",
+  "searchableText": "visual storytelling communicating narrative through image, motion, lighting, and composition—not only dialogue. make stories work muted, international, and emotionally immediate. professional-storytelling professional-storytelling professional visual-storytelling visual storytelling show don't tell image narrative cinematic story visual storytelling show don't tell image narrative cinematic story",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "visual-storytelling-communicating",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "visual-storytelling",
+    "kind": "professional-storytelling",
+    "purpose": "Make stories work muted, international, and emotionally immediate.",
+    "professionalDefinition": "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence.",
+    "whenToUse": [
+      "Social (sound-off)",
+      "International markets",
+      "Premium cinematic brands"
+    ],
+    "whenNotToUse": [
+      "When legal claims require precise spoken/on-screen text only"
+    ],
+    "workflow": [
+      "Beat as image",
+      "Assign camera/light/comp",
+      "Cut for clarity"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-visual-storytelling",
+      "title": "Visual Storytelling",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Communicating narrative through image, motion, lighting, and composition—not only dialogue.",
+      "coreConcepts": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "definitions": [
+        "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence.",
+        "Make stories work muted, international, and emotionally immediate."
+      ],
+      "rules": [
+        "Use when: Social (sound-off)",
+        "Use when: International markets",
+        "Use when: Premium cinematic brands",
+        "Do not use when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "bestPractices": [
+        "Show don’t only tell",
+        "Design readable silhouettes",
+        "Align light/mood to emotion"
+      ],
+      "professionalTechniques": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "workflow": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "decisionRules": [
+        "Use when: Social (sound-off)",
+        "Use when: International markets",
+        "Use when: Premium cinematic brands",
+        "Avoid when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "commonMistakes": [
+        "Pretty shots that don’t advance story",
+        "Unreadable action"
+      ],
+      "troubleshooting": [
+        "Avoid: Pretty shots that don’t advance story",
+        "Avoid: Unreadable action"
+      ],
+      "recommendations": [
+        "Show don’t only tell",
+        "Design readable silhouettes",
+        "Align light/mood to emotion"
+      ],
+      "examples": [
+        "Hands trembling → product grip → steady pour, no VO needed"
+      ],
+      "professionalStandards": [
+        "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence."
+      ],
+      "relatedTopics": [
+        "scene-composition",
+        "emotional-journey",
+        "hero-scene",
+        "narrative-flow"
+      ],
+      "keywords": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:visual-storytelling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Visual Storytelling",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "Communicating narrative through image, motion, lighting, and composition—not only dialogue.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make stories work muted, international, and emotionally immediate."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Social (sound-off)",
+            "International markets",
+            "Premium cinematic brands"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When legal claims require precise spoken/on-screen text only"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Beat as image",
+            "Assign camera/light/comp",
+            "Cut for clarity"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Show don’t only tell",
+            "Design readable silhouettes",
+            "Align light/mood to emotion"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Hands trembling → product grip → steady pour, no VO needed"
+          ]
+        }
+      ],
+      "concepts": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "entities": [
+        "Visual Storytelling",
+        "storytelling-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "camera-movement-knowledge"
+      ],
+      "terminology": [
+        "visual storytelling",
+        "show don't tell",
+        "image narrative",
+        "cinematic story"
+      ],
+      "rules": [
+        "Avoid when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "bestPractices": [
+        "Show don’t only tell",
+        "Design readable silhouettes",
+        "Align light/mood to emotion"
+      ],
+      "professionalTechniques": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "examples": [
+        "Hands trembling → product grip → steady pour, no VO needed"
+      ],
+      "commonMistakes": [
+        "Pretty shots that don’t advance story",
+        "Unreadable action"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Social (sound-off)",
+        "Use when: International markets",
+        "Use when: Premium cinematic brands",
+        "Do not use when: When legal claims require precise spoken/on-screen text only"
+      ],
+      "workflowSteps": [
+        "Beat as image",
+        "Assign camera/light/comp",
+        "Cut for clarity"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "composition-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "camera-movement-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-scene-composition",
+        "story-emotional-journey",
+        "scene-hero-scene",
+        "story-narrative-flow"
+      ],
+      "definitions": [
+        "Visual storytelling is the use of shot design, lighting, composition, and scene staging to convey plot and emotion with minimal verbal dependence.",
+        "Make stories work muted, international, and emotionally immediate."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Show don’t only tell",
+      "Design readable silhouettes",
+      "Align light/mood to emotion"
+    ],
+    "bestPractices": [
+      "Show don’t only tell",
+      "Design readable silhouettes",
+      "Align light/mood to emotion"
+    ],
+    "decisionRules": [
+      "Use when: Social (sound-off)",
+      "Use when: International markets",
+      "Use when: Premium cinematic brands",
+      "Do not use when: When legal claims require precise spoken/on-screen text only"
+    ]
+  }
+}

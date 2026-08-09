@@ -1,0 +1,32 @@
+{
+  "snapshotId": "snap-db18a110-1786204049240",
+  "timestamp": "2026-08-08T15:47:29.240Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "operational",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:28.759Z"
+      },
+      "reasoning-engine": {
+        "id": "reasoning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.026Z"
+      },
+      "decision-engine": {
+        "id": "decision-engine",
+        "state": "loading",
+        "updatedAt": "2026-08-08T15:47:29.239Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

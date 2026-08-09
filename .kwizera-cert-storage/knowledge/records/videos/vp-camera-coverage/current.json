@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-camera-coverage",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Camera Coverage",
+  "description": "Professional coverage strategy: capturing enough complementary angles and sizes to cut a scene with continuity and emphasis.",
+  "summary": "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues.",
+  "tags": [
+    "video-production",
+    "professional",
+    "camera-coverage",
+    "coverage",
+    "master shot",
+    "angles",
+    "continuity",
+    "multi-cam"
+  ],
+  "keywords": [
+    "coverage",
+    "master shot",
+    "angles",
+    "continuity",
+    "multi-cam"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 88,
+  "qualityScore": 87,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-shot-types",
+    "vp-shot-planning",
+    "vp-scene-planning",
+    "vp-post-production",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-video-editing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:56.258Z",
+  "lastUpdated": "2026-08-08T16:45:11.026Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-camera-coverage",
+  "integrityStatus": "verified",
+  "contentHash": "fcabad3932113ffb016b07f69df480ddddf6da66b6a8b0187adf340049a75417",
+  "searchableText": "camera coverage professional coverage strategy: capturing enough complementary angles and sizes to cut a scene with continuity and emphasis. camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues. professional-video-production video-production professional camera-coverage coverage master shot angles continuity multi-cam coverage master shot angles continuity multi-cam",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "camera-coverage-professional",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 91,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "camera-coverage",
+    "professionalDefinition": "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-camera-coverage",
+      "title": "Camera Coverage",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional coverage strategy: capturing enough complementary angles and sizes to cut a scene with continuity and emphasis.",
+      "coreConcepts": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "definitions": [
+        "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues."
+      ],
+      "rules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "bestPractices": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "professionalTechniques": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "workflow": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "decisionRules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "commonMistakes": [
+        "Single-angle shooting that locks the edit.",
+        "Crossing the line without intentional style justification.",
+        "Coverage that mismatches performance energy across takes."
+      ],
+      "troubleshooting": [
+        "Avoid: Single-angle shooting that locks the edit.",
+        "Avoid: Crossing the line without intentional style justification.",
+        "Avoid: Coverage that mismatches performance energy across takes."
+      ],
+      "recommendations": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "examples": [
+        "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+        "Product hand demo covered from hero angle and detail angle."
+      ],
+      "professionalStandards": [
+        "Confidence 88/100",
+        "Quality 87/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-types",
+        "shot-planning",
+        "scene-planning",
+        "post-production"
+      ],
+      "keywords": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:camera-coverage",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Camera Coverage",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Professional coverage strategy: capturing enough complementary angles and sizes to cut a scene with continuity and emphasis.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Capture a master that preserves geography, then coverage for emphasis.",
+            "Protect screen direction and eyelines across angles.",
+            "Record safety coverage for complex action or dialogue.",
+            "Coordinate multi-cam only when it increases usable options, not noise."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+            "List required angles for dialogue/action.",
+            "Shoot master → supporting sizes → inserts.",
+            "Verify continuity before striking the setup."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If only one take is possible, prioritize the angle that carries story information.",
+            "Always maintain continuity of action across coverage.",
+            "When using stylized line crosses, do so consistently and intentionally.",
+            "Never strike lights before confirming insert needs."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+            "Product hand demo covered from hero angle and detail angle."
+          ]
+        }
+      ],
+      "concepts": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "entities": [
+        "Camera Coverage",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "rules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "bestPractices": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "professionalTechniques": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "examples": [
+        "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+        "Product hand demo covered from hero angle and detail angle."
+      ],
+      "commonMistakes": [
+        "Single-angle shooting that locks the edit.",
+        "Crossing the line without intentional style justification.",
+        "Coverage that mismatches performance energy across takes."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "workflowSteps": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "prerequisites": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage)."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-shot-types",
+        "vp-shot-planning",
+        "vp-scene-planning",
+        "vp-post-production"
+      ],
+      "definitions": [
+        "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues."
+      ],
+      "troubleshooting": [
+        "Avoid: Single-angle shooting that locks the edit.",
+        "Avoid: Crossing the line without intentional style justification.",
+        "Avoid: Coverage that mismatches performance energy across takes."
+      ],
+      "recommendations": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "intermediate",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

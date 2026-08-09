@@ -1,0 +1,99 @@
+{
+  "knowledgeId": "amr-bridge-marketing-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "amr-domain-bridge",
+  "title": "Marketing Knowledge (related)",
+  "description": "Motion style and platform exports serve marketing goals.",
+  "summary": "Delivery presets and brand motion support campaigns.",
+  "tags": [
+    "animation-motion-rendering",
+    "domain-bridge",
+    "marketing-knowledge"
+  ],
+  "keywords": [
+    "marketing-knowledge",
+    "animation",
+    "motion",
+    "rendering",
+    "relationship"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-animation-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:11.074Z",
+  "lastUpdated": "2026-08-08T17:56:14.296Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\amr-bridge-marketing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "c84725b5218631ff1b8f5017b5ab6fa5865ef1ca2a2c995df6bc380263479b62",
+  "searchableText": "marketing knowledge (related) motion style and platform exports serve marketing goals. delivery presets and brand motion support campaigns. amr-domain-bridge animation-motion-rendering domain-bridge marketing-knowledge marketing-knowledge animation motion rendering relationship",
+  "classification": {
+    "category": "amr-domain-bridge",
+    "topic": "marketing-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "bridgeDomainId": "marketing-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate animation/motion/rendering knowledge to marketing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Marketing Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "marketing-knowledge",
+      "description": "Motion style and platform exports serve marketing goals.",
+      "sections": [],
+      "concepts": [
+        "marketing-knowledge"
+      ],
+      "entities": [
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "marketing-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate AMR knowledge to marketing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "anim-animation-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

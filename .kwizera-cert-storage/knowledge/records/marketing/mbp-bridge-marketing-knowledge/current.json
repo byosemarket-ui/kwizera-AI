@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "mbp-bridge-marketing-knowledge",
+  "knowledgeType": "marketing-knowledge",
+  "category": "mbp-domain-bridge",
+  "title": "Marketing Knowledge Domain",
+  "description": "Hub for marketing and video marketing expansion Step 7.",
+  "summary": "Primary domain for marketing strategy topics.",
+  "tags": [
+    "marketing-branding-psychology",
+    "domain-bridge",
+    "marketing-knowledge"
+  ],
+  "keywords": [
+    "marketing-knowledge",
+    "marketing",
+    "branding",
+    "psychology",
+    "relationship"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-marketing-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:25.735Z",
+  "lastUpdated": "2026-08-08T18:26:25.735Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mbp-bridge-marketing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "a34580b46d1e1166018b8b835d53a69ed5b7ac85c57b5b48169d2c6f61344f18",
+  "searchableText": "marketing knowledge domain hub for marketing and video marketing expansion step 7. primary domain for marketing strategy topics. mbp-domain-bridge marketing-branding-psychology domain-bridge marketing-knowledge marketing-knowledge marketing branding psychology relationship",
+  "classification": {
+    "category": "mbp-domain-bridge",
+    "topic": "marketing-knowledge-domain",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "bridgeDomainId": "marketing-knowledge",
+    "relationshipAnchor": true,
+    "createsAdvertisements": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate marketing/branding/psychology knowledge to marketing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Marketing Knowledge Domain",
+      "category": "domain-bridge",
+      "domain": "marketing-knowledge",
+      "description": "Hub for marketing and video marketing expansion Step 7.",
+      "sections": [],
+      "concepts": [
+        "marketing-knowledge"
+      ],
+      "entities": [
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "marketing-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate marketing/branding/psychology knowledge to marketing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "mkt-marketing-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

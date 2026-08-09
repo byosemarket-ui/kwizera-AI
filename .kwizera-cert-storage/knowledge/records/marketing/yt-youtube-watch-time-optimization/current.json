@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "yt-youtube-watch-time-optimization",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-youtube",
+  "title": "Watch Time Optimization",
+  "description": "Increasing total watch time via packaging, series, and session design.",
+  "summary": "Recommend strategies that grow YouTube watch time sustainably.",
+  "tags": [
+    "professional-youtube",
+    "professional",
+    "youtube-watch-time-optimization",
+    "watch time",
+    "session",
+    "playlists",
+    "end screens",
+    "YouTube"
+  ],
+  "keywords": [
+    "watch time",
+    "session",
+    "playlists",
+    "end screens",
+    "YouTube"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "yt-youtube-audience-retention",
+    "yt-youtube-long-form-strategy",
+    "yt-youtube-thumbnail-best-practices",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-video-editing-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-sales-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:42.328Z",
+  "lastUpdated": "2026-08-08T19:03:42.328Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\yt-youtube-watch-time-optimization",
+  "integrityStatus": "verified",
+  "contentHash": "c59e82b08134d2b3a5dce4ead1a2bfb5affaa5cb04488e1c5878e2b76fc983cf",
+  "searchableText": "watch time optimization increasing total watch time via packaging, series, and session design. recommend strategies that grow youtube watch time sustainably. professional-youtube professional-youtube professional youtube-watch-time-optimization watch time session playlists end screens youtube watch time session playlists end screens youtube",
+  "classification": {
+    "category": "professional-youtube",
+    "topic": "watch-time-optimization",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "youtube-watch-time-optimization",
+    "kind": "professional-youtube",
+    "purpose": "Recommend strategies that grow YouTube watch time sustainably.",
+    "professionalDefinition": "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "yt-youtube-watch-time-optimization",
+      "title": "Watch Time Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Increasing total watch time via packaging, series, and session design.",
+      "coreConcepts": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "definitions": [
+        "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent.",
+        "Recommend strategies that grow YouTube watch time sustainably."
+      ],
+      "rules": [
+        "Practice: Build playlist sessions",
+        "Practice: End screens to related videos",
+        "Practice: Improve retention before chasing length alone"
+      ],
+      "bestPractices": [
+        "Build playlist sessions",
+        "End screens to related videos",
+        "Improve retention before chasing length alone"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Build playlist sessions",
+        "Follow: End screens to related videos",
+        "Follow: Improve retention before chasing length alone"
+      ],
+      "commonMistakes": [
+        "Artificial length padding",
+        "Mismatched suggested videos"
+      ],
+      "troubleshooting": [
+        "Avoid: Artificial length padding",
+        "Avoid: Mismatched suggested videos"
+      ],
+      "recommendations": [
+        "Build playlist sessions",
+        "End screens to related videos",
+        "Improve retention before chasing length alone"
+      ],
+      "examples": [
+        "Professional application of Watch Time Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent."
+      ],
+      "relatedTopics": [
+        "youtube-audience-retention",
+        "youtube-long-form-strategy",
+        "youtube-thumbnail-best-practices"
+      ],
+      "keywords": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-watch-time-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Watch Time Optimization",
+      "category": "professional-youtube",
+      "domain": "youtube-knowledge",
+      "description": "Increasing total watch time via packaging, series, and session design.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend strategies that grow YouTube watch time sustainably."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Build playlist sessions",
+            "End screens to related videos",
+            "Improve retention before chasing length alone"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Watch Time Optimization for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "entities": [
+        "Watch Time Optimization",
+        "social-media-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "sales-psychology"
+      ],
+      "terminology": [
+        "watch time",
+        "session",
+        "playlists",
+        "end screens",
+        "YouTube"
+      ],
+      "rules": [
+        "Avoid: Artificial length padding",
+        "Avoid: Mismatched suggested videos"
+      ],
+      "bestPractices": [
+        "Build playlist sessions",
+        "End screens to related videos",
+        "Improve retention before chasing length alone"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Watch Time Optimization for platform-native content"
+      ],
+      "commonMistakes": [
+        "Artificial length padding",
+        "Mismatched suggested videos"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Build playlist sessions",
+        "Practice: End screens to related videos",
+        "Practice: Improve retention before chasing length alone"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "sales-psychology"
+      ],
+      "relatedKnowledge": [
+        "yt-youtube-audience-retention",
+        "yt-youtube-long-form-strategy",
+        "yt-youtube-thumbnail-best-practices"
+      ],
+      "definitions": [
+        "Watch time optimization improves total minutes viewed through better retention, compelling next-up videos, playlists, and end-screen strategy—honestly matching viewer intent.",
+        "Recommend strategies that grow YouTube watch time sustainably."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "youtube-knowledge",
+      "category": "professional-youtube",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Build playlist sessions",
+      "End screens to related videos",
+      "Improve retention before chasing length alone"
+    ],
+    "bestPractices": [
+      "Build playlist sessions",
+      "End screens to related videos",
+      "Improve retention before chasing length alone"
+    ],
+    "decisionRules": [
+      "Practice: Build playlist sessions",
+      "Practice: End screens to related videos",
+      "Practice: Improve retention before chasing length alone"
+    ]
+  }
+}

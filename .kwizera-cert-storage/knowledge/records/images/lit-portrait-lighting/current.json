@@ -1,0 +1,353 @@
+{
+  "knowledgeId": "lit-portrait-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Portrait Lighting",
+  "description": "Lighting patterns and modifiers optimized for faces—Rembrandt, loop, butterfly, split, and wrap.",
+  "summary": "Flatter or characterize people while keeping eyes alive and skin tones believable.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "portrait-lighting",
+    "portrait lighting",
+    "Rembrandt",
+    "butterfly",
+    "catchlight",
+    "interview light"
+  ],
+  "keywords": [
+    "portrait lighting",
+    "Rembrandt",
+    "butterfly",
+    "catchlight",
+    "interview light"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-three-point-lighting",
+    "lit-soft-lighting",
+    "lit-key-light",
+    "lit-fill-light",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-storytelling-knowledge",
+    "lc-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:28.742Z",
+  "lastUpdated": "2026-08-08T17:15:48.233Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-portrait-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "f4f73724847a16b6fa54e6e272fac723ba4474852c7c3e688085462e6aee8653",
+  "searchableText": "portrait lighting lighting patterns and modifiers optimized for faces—rembrandt, loop, butterfly, split, and wrap. flatter or characterize people while keeping eyes alive and skin tones believable. professional-lighting professional-lighting professional portrait-lighting portrait lighting rembrandt butterfly catchlight interview light portrait lighting rembrandt butterfly catchlight interview light",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "portrait-lighting-lighting",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "portrait-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Flatter or characterize people while keeping eyes alive and skin tones believable.",
+    "whenToUse": [
+      "Interviews",
+      "Testimonials",
+      "Founder films",
+      "Beauty"
+    ],
+    "whenNotToUse": [
+      "When silhouettes are the intent",
+      "Group scenes needing even broad light only"
+    ],
+    "advantages": [
+      "Emotional connection",
+      "Professional polish"
+    ],
+    "limitations": [
+      "Face-shape dependent",
+      "Eyeglasses reflections"
+    ],
+    "relatedCameraTechniques": [
+      "85mm-class perspective",
+      "eye focus",
+      "skin-friendly exposure"
+    ],
+    "relatedStorytellingTechniques": [
+      "empathy",
+      "authority",
+      "intimacy"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-portrait-lighting",
+      "title": "Portrait Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Lighting patterns and modifiers optimized for faces—Rembrandt, loop, butterfly, split, and wrap.",
+      "coreConcepts": [
+        "portrait lighting",
+        "Rembrandt",
+        "butterfly",
+        "catchlight",
+        "interview light"
+      ],
+      "definitions": [
+        "Flatter or characterize people while keeping eyes alive and skin tones believable."
+      ],
+      "rules": [
+        "Use when: Interviews",
+        "Use when: Testimonials",
+        "Use when: Founder films",
+        "Use when: Beauty",
+        "Do not use when: When silhouettes are the intent",
+        "Do not use when: Group scenes needing even broad light only"
+      ],
+      "bestPractices": [
+        "Place catchlights intentionally",
+        "Watch nose/eye sockets",
+        "Match key height to face"
+      ],
+      "professionalTechniques": [
+        "Emotional connection",
+        "Professional polish"
+      ],
+      "workflow": [
+        "Choose Portrait Lighting",
+        "Place catchlights intentionally",
+        "Watch nose/eye sockets",
+        "Match key height to face"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Testimonials",
+        "Use when: Founder films",
+        "Use when: Beauty",
+        "Avoid when: When silhouettes are the intent",
+        "Avoid when: Group scenes needing even broad light only"
+      ],
+      "commonMistakes": [
+        "Dead eyes (no catchlight)",
+        "Double chin from low key"
+      ],
+      "troubleshooting": [
+        "Limitation: Face-shape dependent",
+        "Limitation: Eyeglasses reflections"
+      ],
+      "recommendations": [
+        "Place catchlights intentionally",
+        "Watch nose/eye sockets",
+        "Match key height to face"
+      ],
+      "examples": [
+        "Soft loop lighting for CEO interview"
+      ],
+      "professionalStandards": [
+        "empathy",
+        "authority",
+        "intimacy"
+      ],
+      "relatedTopics": [
+        "three-point-lighting",
+        "soft-lighting",
+        "key-light",
+        "fill-light"
+      ],
+      "keywords": [
+        "portrait lighting",
+        "Rembrandt",
+        "butterfly",
+        "catchlight",
+        "interview light"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:portrait-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Portrait Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Lighting patterns and modifiers optimized for faces—Rembrandt, loop, butterfly, split, and wrap.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Flatter or characterize people while keeping eyes alive and skin tones believable."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Interviews",
+            "Testimonials",
+            "Founder films",
+            "Beauty"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When silhouettes are the intent",
+            "Group scenes needing even broad light only"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Place catchlights intentionally",
+            "Watch nose/eye sockets",
+            "Match key height to face"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Soft loop lighting for CEO interview"
+          ]
+        }
+      ],
+      "concepts": [
+        "portrait lighting",
+        "Rembrandt",
+        "butterfly",
+        "catchlight",
+        "interview light"
+      ],
+      "entities": [
+        "Portrait Lighting",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "portrait lighting",
+        "Rembrandt",
+        "butterfly",
+        "catchlight",
+        "interview light"
+      ],
+      "rules": [
+        "Avoid when: When silhouettes are the intent",
+        "Avoid when: Group scenes needing even broad light only"
+      ],
+      "bestPractices": [
+        "Place catchlights intentionally",
+        "Watch nose/eye sockets",
+        "Match key height to face"
+      ],
+      "professionalTechniques": [
+        "Emotional connection",
+        "Professional polish"
+      ],
+      "examples": [
+        "Soft loop lighting for CEO interview"
+      ],
+      "commonMistakes": [
+        "Dead eyes (no catchlight)",
+        "Double chin from low key"
+      ],
+      "qualityRules": [
+        "Face-shape dependent",
+        "Eyeglasses reflections"
+      ],
+      "decisionRules": [
+        "Use when: Interviews",
+        "Use when: Testimonials",
+        "Use when: Founder films",
+        "Use when: Beauty",
+        "Do not use when: When silhouettes are the intent",
+        "Do not use when: Group scenes needing even broad light only"
+      ],
+      "workflowSteps": [
+        "Place catchlights intentionally",
+        "Watch nose/eye sockets",
+        "Match key height to face"
+      ],
+      "prerequisites": [
+        "85mm-class perspective",
+        "eye focus",
+        "skin-friendly exposure"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-three-point-lighting",
+        "lit-soft-lighting",
+        "lit-key-light",
+        "lit-fill-light"
+      ],
+      "definitions": [
+        "Flatter or characterize people while keeping eyes alive and skin tones believable."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Place catchlights intentionally",
+      "Watch nose/eye sockets",
+      "Match key height to face"
+    ],
+    "bestPractices": [
+      "Place catchlights intentionally",
+      "Watch nose/eye sockets",
+      "Match key height to face"
+    ],
+    "decisionRules": [
+      "Use when: Interviews",
+      "Use when: Testimonials",
+      "Use when: Founder films",
+      "Use when: Beauty",
+      "Do not use when: When silhouettes are the intent",
+      "Do not use when: Group scenes needing even broad light only"
+    ]
+  }
+}

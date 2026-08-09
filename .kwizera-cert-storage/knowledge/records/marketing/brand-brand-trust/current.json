@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "brand-brand-trust",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Brand Trust",
+  "description": "Credibility and reliability perceptions that reduce purchase risk.",
+  "summary": "Recommend trust cues in creative and claims.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "brand-trust",
+    "brand trust",
+    "credibility",
+    "reliability",
+    "proof"
+  ],
+  "keywords": [
+    "brand trust",
+    "credibility",
+    "reliability",
+    "proof"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-trust-building",
+    "sales-social-proof",
+    "sales-authority",
+    "brand-brand-consistency",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:32.211Z",
+  "lastUpdated": "2026-08-08T18:25:32.211Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-brand-trust",
+  "integrityStatus": "verified",
+  "contentHash": "6ea44b5b617c899e4129906a5e39fc310e56b9e997abc11e1a897dcc0322c91b",
+  "searchableText": "brand trust credibility and reliability perceptions that reduce purchase risk. recommend trust cues in creative and claims. professional-branding professional-branding professional brand-trust brand trust credibility reliability proof brand trust credibility reliability proof",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "brand-trust-credibility",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-trust",
+    "kind": "professional-branding",
+    "purpose": "Recommend trust cues in creative and claims.",
+    "professionalDefinition": "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence.",
+    "workflow": [
+      "List trust gaps",
+      "Choose proof types",
+      "Place in creative",
+      "Verify claims"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-brand-trust",
+      "title": "Brand Trust",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Credibility and reliability perceptions that reduce purchase risk.",
+      "coreConcepts": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "definitions": [
+        "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence.",
+        "Recommend trust cues in creative and claims."
+      ],
+      "rules": [
+        "Practice: Show real proof",
+        "Practice: Consistent delivery of promises",
+        "Practice: Avoid hype that breaks trust"
+      ],
+      "bestPractices": [
+        "Show real proof",
+        "Consistent delivery of promises",
+        "Avoid hype that breaks trust"
+      ],
+      "professionalTechniques": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "workflow": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "decisionRules": [
+        "Follow: Show real proof",
+        "Follow: Consistent delivery of promises",
+        "Follow: Avoid hype that breaks trust"
+      ],
+      "commonMistakes": [
+        "Fake urgency",
+        "Unsubstantiated claims"
+      ],
+      "troubleshooting": [
+        "Avoid: Fake urgency",
+        "Avoid: Unsubstantiated claims"
+      ],
+      "recommendations": [
+        "Show real proof",
+        "Consistent delivery of promises",
+        "Avoid hype that breaks trust"
+      ],
+      "examples": [
+        "Verified reviews + demo evidence in mid-funnel video"
+      ],
+      "professionalStandards": [
+        "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence."
+      ],
+      "relatedTopics": [
+        "trust-building",
+        "social-proof",
+        "authority",
+        "brand-consistency"
+      ],
+      "keywords": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-trust",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Trust",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "Credibility and reliability perceptions that reduce purchase risk.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend trust cues in creative and claims."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List trust gaps",
+            "Choose proof types",
+            "Place in creative",
+            "Verify claims"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Show real proof",
+            "Consistent delivery of promises",
+            "Avoid hype that breaks trust"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Verified reviews + demo evidence in mid-funnel video"
+          ]
+        }
+      ],
+      "concepts": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "entities": [
+        "Brand Trust",
+        "branding-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "rules": [
+        "Avoid: Fake urgency",
+        "Avoid: Unsubstantiated claims"
+      ],
+      "bestPractices": [
+        "Show real proof",
+        "Consistent delivery of promises",
+        "Avoid hype that breaks trust"
+      ],
+      "professionalTechniques": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "examples": [
+        "Verified reviews + demo evidence in mid-funnel video"
+      ],
+      "commonMistakes": [
+        "Fake urgency",
+        "Unsubstantiated claims"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Show real proof",
+        "Practice: Consistent delivery of promises",
+        "Practice: Avoid hype that breaks trust"
+      ],
+      "workflowSteps": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-trust-building",
+        "sales-social-proof",
+        "sales-authority",
+        "brand-brand-consistency"
+      ],
+      "definitions": [
+        "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence.",
+        "Recommend trust cues in creative and claims."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Show real proof",
+      "Consistent delivery of promises",
+      "Avoid hype that breaks trust"
+    ],
+    "bestPractices": [
+      "Show real proof",
+      "Consistent delivery of promises",
+      "Avoid hype that breaks trust"
+    ],
+    "decisionRules": [
+      "Practice: Show real proof",
+      "Practice: Consistent delivery of promises",
+      "Practice: Avoid hype that breaks trust"
+    ]
+  }
+}

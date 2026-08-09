@@ -1,0 +1,310 @@
+{
+  "knowledgeId": "trans-cut",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Cut",
+  "description": "An instantaneous change from one shot to another—the default editorial transition.",
+  "summary": "Maintain energy and clarity; the workhorse of professional editing.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "cut",
+    "hard cut",
+    "edit",
+    "splice"
+  ],
+  "keywords": [
+    "cut",
+    "hard cut",
+    "edit",
+    "splice"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "trans-match-cut",
+    "motion-motion-rhythm",
+    "trans-fade",
+    "trans-dissolve",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-video-editing-knowledge",
+    "amr-bridge-storytelling-knowledge",
+    "amr-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:02.391Z",
+  "lastUpdated": "2026-08-08T15:37:02.391Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-cut",
+  "integrityStatus": "verified",
+  "contentHash": "cc46fcec921a4e8cce53401cba7d0d189a0b1aace716482171b803e310a2ff8b",
+  "searchableText": "cut an instantaneous change from one shot to another—the default editorial transition. maintain energy and clarity; the workhorse of professional editing. professional-transitions professional-transitions professional cut hard cut edit splice cut hard cut edit splice",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "instantaneous-change-from",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "cut",
+    "kind": "professional-transitions",
+    "purpose": "Maintain energy and clarity; the workhorse of professional editing.",
+    "professionalDefinition": "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity.",
+    "workflow": [
+      "Select take",
+      "Mark in/out",
+      "Cut",
+      "Trim for rhythm"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-cut",
+      "title": "Cut",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "An instantaneous change from one shot to another—the default editorial transition.",
+      "coreConcepts": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "definitions": [
+        "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity.",
+        "Maintain energy and clarity; the workhorse of professional editing."
+      ],
+      "rules": [
+        "Practice: Cut on action when possible",
+        "Practice: Match continuity",
+        "Practice: Prefer cuts unless a blend adds meaning"
+      ],
+      "bestPractices": [
+        "Cut on action when possible",
+        "Match continuity",
+        "Prefer cuts unless a blend adds meaning"
+      ],
+      "professionalTechniques": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "workflow": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "decisionRules": [
+        "Follow: Cut on action when possible",
+        "Follow: Match continuity",
+        "Follow: Prefer cuts unless a blend adds meaning"
+      ],
+      "commonMistakes": [
+        "Cutting mid-blink awkwardly",
+        "Using fancy transitions as default"
+      ],
+      "troubleshooting": [
+        "Avoid: Cutting mid-blink awkwardly",
+        "Avoid: Using fancy transitions as default"
+      ],
+      "recommendations": [
+        "Cut on action when possible",
+        "Match continuity",
+        "Prefer cuts unless a blend adds meaning"
+      ],
+      "examples": [
+        "Action match from pour start to mid-pour angle"
+      ],
+      "professionalStandards": [
+        "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity."
+      ],
+      "relatedTopics": [
+        "match-cut",
+        "motion-rhythm",
+        "fade",
+        "dissolve"
+      ],
+      "keywords": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:cut",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Cut",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "An instantaneous change from one shot to another—the default editorial transition.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Maintain energy and clarity; the workhorse of professional editing."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Select take",
+            "Mark in/out",
+            "Cut",
+            "Trim for rhythm"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Cut on action when possible",
+            "Match continuity",
+            "Prefer cuts unless a blend adds meaning"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Action match from pour start to mid-pour angle"
+          ]
+        }
+      ],
+      "concepts": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "entities": [
+        "Cut",
+        "motion-graphics-knowledge",
+        "video-editing-knowledge",
+        "storytelling-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "cut",
+        "hard cut",
+        "edit",
+        "splice"
+      ],
+      "rules": [
+        "Avoid: Cutting mid-blink awkwardly",
+        "Avoid: Using fancy transitions as default"
+      ],
+      "bestPractices": [
+        "Cut on action when possible",
+        "Match continuity",
+        "Prefer cuts unless a blend adds meaning"
+      ],
+      "professionalTechniques": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "examples": [
+        "Action match from pour start to mid-pour angle"
+      ],
+      "commonMistakes": [
+        "Cutting mid-blink awkwardly",
+        "Using fancy transitions as default"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Cut on action when possible",
+        "Practice: Match continuity",
+        "Practice: Prefer cuts unless a blend adds meaning"
+      ],
+      "workflowSteps": [
+        "Select take",
+        "Mark in/out",
+        "Cut",
+        "Trim for rhythm"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "video-editing-knowledge",
+        "storytelling-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "trans-match-cut",
+        "motion-motion-rhythm",
+        "trans-fade",
+        "trans-dissolve"
+      ],
+      "definitions": [
+        "A cut is an immediate splice between shots with no optical blend, used for clarity, pace, and invisible continuity.",
+        "Maintain energy and clarity; the workhorse of professional editing."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Cut on action when possible",
+      "Match continuity",
+      "Prefer cuts unless a blend adds meaning"
+    ],
+    "bestPractices": [
+      "Cut on action when possible",
+      "Match continuity",
+      "Prefer cuts unless a blend adds meaning"
+    ],
+    "decisionRules": [
+      "Practice: Cut on action when possible",
+      "Practice: Match continuity",
+      "Practice: Prefer cuts unless a blend adds meaning"
+    ]
+  }
+}

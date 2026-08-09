@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T19:46:51.868Z","level":"info","event":"startup","message":"Video Generation Health Monitor initialized","data":{"healthDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-generation\\health\\engine"}}
+{"timestamp":"2026-08-08T19:46:55.336Z","level":"info","event":"health-check","message":"Video generation health check complete","data":{"checkId":"vg-hc-1786218415203-4cfc8a","overallScore":97,"overallLevel":"excellent","warnings":0}}
+{"timestamp":"2026-08-08T19:46:55.345Z","level":"info","event":"audit","message":"Video generation audit complete","data":{"auditId":"vg-audit-1786218415338","valid":true}}
+{"timestamp":"2026-08-08T19:46:55.623Z","level":"info","event":"startup","message":"Video Generation Health Monitor startup complete","data":{"overallScore":97,"overallLevel":"excellent","durationMs":1083}}

@@ -1,0 +1,318 @@
+{
+  "knowledgeId": "sm-platform-selection",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-social-fundamentals",
+  "title": "Platform Selection",
+  "description": "Choosing where to invest creative effort based on audience, format fit, and goals.",
+  "summary": "Enable AI Me to recommend the best platform for a goal or asset type.",
+  "tags": [
+    "professional-social-fundamentals",
+    "professional",
+    "platform-selection",
+    "platform selection",
+    "where to post",
+    "channel fit",
+    "priority platforms"
+  ],
+  "keywords": [
+    "platform selection",
+    "where to post",
+    "channel fit",
+    "priority platforms"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-media-fundamentals",
+    "sm-social-content-strategy",
+    "tt-tiktok-short-form-strategy",
+    "yt-youtube-long-form-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:32.071Z",
+  "lastUpdated": "2026-08-08T19:03:32.071Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-platform-selection",
+  "integrityStatus": "verified",
+  "contentHash": "5083222793ed75f7632ccf00de0393e1b13fe26b0d5022ee8d3664673be97bee",
+  "searchableText": "platform selection choosing where to invest creative effort based on audience, format fit, and goals. enable ai me to recommend the best platform for a goal or asset type. professional-social-fundamentals professional-social-fundamentals professional platform-selection platform selection where to post channel fit priority platforms platform selection where to post channel fit priority platforms",
+  "classification": {
+    "category": "professional-social-fundamentals",
+    "topic": "platform-selection-choosing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "platform-selection",
+    "kind": "professional-social-fundamentals",
+    "purpose": "Enable AI Me to recommend the best platform for a goal or asset type.",
+    "professionalDefinition": "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "sm-platform-selection",
+      "title": "Platform Selection",
+      "domain": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "description": "Choosing where to invest creative effort based on audience, format fit, and goals.",
+      "coreConcepts": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "definitions": [
+        "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently.",
+        "Enable AI Me to recommend the best platform for a goal or asset type."
+      ],
+      "rules": [
+        "Practice: Prioritize where the audience already spends time",
+        "Practice: Match message length to platform norms",
+        "Practice: Do not expand platforms before one is consistent"
+      ],
+      "bestPractices": [
+        "Prioritize where the audience already spends time",
+        "Match message length to platform norms",
+        "Do not expand platforms before one is consistent"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Prioritize where the audience already spends time",
+        "Follow: Match message length to platform norms",
+        "Follow: Do not expand platforms before one is consistent"
+      ],
+      "commonMistakes": [
+        "Being everywhere thinly",
+        "Choosing platforms for brand ego"
+      ],
+      "troubleshooting": [
+        "Avoid: Being everywhere thinly",
+        "Avoid: Choosing platforms for brand ego"
+      ],
+      "recommendations": [
+        "Prioritize where the audience already spends time",
+        "Match message length to platform norms",
+        "Do not expand platforms before one is consistent"
+      ],
+      "examples": [
+        "Professional application of Platform Selection for platform-native content"
+      ],
+      "professionalStandards": [
+        "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently."
+      ],
+      "relatedTopics": [
+        "social-media-fundamentals",
+        "social-content-strategy",
+        "tiktok-short-form-strategy",
+        "youtube-long-form-strategy"
+      ],
+      "keywords": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:platform-selection",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Platform Selection",
+      "category": "professional-social-fundamentals",
+      "domain": "social-media-knowledge",
+      "description": "Choosing where to invest creative effort based on audience, format fit, and goals.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Enable AI Me to recommend the best platform for a goal or asset type."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Prioritize where the audience already spends time",
+            "Match message length to platform norms",
+            "Do not expand platforms before one is consistent"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Platform Selection for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "entities": [
+        "Platform Selection",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "platform selection",
+        "where to post",
+        "channel fit",
+        "priority platforms"
+      ],
+      "rules": [
+        "Avoid: Being everywhere thinly",
+        "Avoid: Choosing platforms for brand ego"
+      ],
+      "bestPractices": [
+        "Prioritize where the audience already spends time",
+        "Match message length to platform norms",
+        "Do not expand platforms before one is consistent"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Platform Selection for platform-native content"
+      ],
+      "commonMistakes": [
+        "Being everywhere thinly",
+        "Choosing platforms for brand ego"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Prioritize where the audience already spends time",
+        "Practice: Match message length to platform norms",
+        "Practice: Do not expand platforms before one is consistent"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-social-media-fundamentals",
+        "sm-social-content-strategy",
+        "tt-tiktok-short-form-strategy",
+        "yt-youtube-long-form-strategy"
+      ],
+      "definitions": [
+        "Platform selection is the decision process that matches business goals and audience presence to platforms whose native formats can carry the message efficiently.",
+        "Enable AI Me to recommend the best platform for a goal or asset type."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "social-media-knowledge",
+      "category": "professional-social-fundamentals",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Prioritize where the audience already spends time",
+      "Match message length to platform norms",
+      "Do not expand platforms before one is consistent"
+    ],
+    "bestPractices": [
+      "Prioritize where the audience already spends time",
+      "Match message length to platform norms",
+      "Do not expand platforms before one is consistent"
+    ],
+    "decisionRules": [
+      "Practice: Prioritize where the audience already spends time",
+      "Practice: Match message length to platform norms",
+      "Practice: Do not expand platforms before one is consistent"
+    ]
+  }
+}

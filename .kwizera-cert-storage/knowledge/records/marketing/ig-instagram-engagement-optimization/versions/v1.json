@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "ig-instagram-engagement-optimization",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-instagram",
+  "title": "Engagement Optimization",
+  "description": "Improving Instagram interaction quality via creative and response design.",
+  "summary": "Recommend Instagram-specific engagement tactics.",
+  "tags": [
+    "professional-instagram",
+    "professional",
+    "instagram-engagement-optimization",
+    "instagram engagement",
+    "comments",
+    "saves",
+    "DMs",
+    "optimization"
+  ],
+  "keywords": [
+    "instagram engagement",
+    "comments",
+    "saves",
+    "DMs",
+    "optimization"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-engagement-strategy",
+    "ig-instagram-caption-strategy",
+    "ig-instagram-stories-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-sales-psychology",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:37.453Z",
+  "lastUpdated": "2026-08-08T19:03:37.453Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\ig-instagram-engagement-optimization",
+  "integrityStatus": "verified",
+  "contentHash": "216a06ebccdbc254d6436e4db0f9118b9613403de4e6a7344afebd5f9ca4f4a5",
+  "searchableText": "engagement optimization improving instagram interaction quality via creative and response design. recommend instagram-specific engagement tactics. professional-instagram professional-instagram professional instagram-engagement-optimization instagram engagement comments saves dms optimization instagram engagement comments saves dms optimization",
+  "classification": {
+    "category": "professional-instagram",
+    "topic": "engagement-optimization-improving",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "instagram-engagement-optimization",
+    "kind": "professional-instagram",
+    "purpose": "Recommend Instagram-specific engagement tactics.",
+    "professionalDefinition": "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "ig-instagram-engagement-optimization",
+      "title": "Engagement Optimization",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Improving Instagram interaction quality via creative and response design.",
+      "coreConcepts": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "definitions": [
+        "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone.",
+        "Recommend Instagram-specific engagement tactics."
+      ],
+      "rules": [
+        "Practice: Reply to early comments",
+        "Practice: Use carousels and Reels for save/share goals",
+        "Practice: Ask one clear question"
+      ],
+      "bestPractices": [
+        "Reply to early comments",
+        "Use carousels and Reels for save/share goals",
+        "Ask one clear question"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Reply to early comments",
+        "Follow: Use carousels and Reels for save/share goals",
+        "Follow: Ask one clear question"
+      ],
+      "commonMistakes": [
+        "Buying comments",
+        "Ignoring DMs that start from posts"
+      ],
+      "troubleshooting": [
+        "Avoid: Buying comments",
+        "Avoid: Ignoring DMs that start from posts"
+      ],
+      "recommendations": [
+        "Reply to early comments",
+        "Use carousels and Reels for save/share goals",
+        "Ask one clear question"
+      ],
+      "examples": [
+        "Professional application of Engagement Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone."
+      ],
+      "relatedTopics": [
+        "social-engagement-strategy",
+        "instagram-caption-strategy",
+        "instagram-stories-strategy"
+      ],
+      "keywords": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-engagement-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Engagement Optimization",
+      "category": "professional-instagram",
+      "domain": "instagram-knowledge",
+      "description": "Improving Instagram interaction quality via creative and response design.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend Instagram-specific engagement tactics."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Reply to early comments",
+            "Use carousels and Reels for save/share goals",
+            "Ask one clear question"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Engagement Optimization for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "entities": [
+        "Engagement Optimization",
+        "social-media-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "instagram engagement",
+        "comments",
+        "saves",
+        "DMs",
+        "optimization"
+      ],
+      "rules": [
+        "Avoid: Buying comments",
+        "Avoid: Ignoring DMs that start from posts"
+      ],
+      "bestPractices": [
+        "Reply to early comments",
+        "Use carousels and Reels for save/share goals",
+        "Ask one clear question"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Engagement Optimization for platform-native content"
+      ],
+      "commonMistakes": [
+        "Buying comments",
+        "Ignoring DMs that start from posts"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Reply to early comments",
+        "Practice: Use carousels and Reels for save/share goals",
+        "Practice: Ask one clear question"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sm-social-engagement-strategy",
+        "ig-instagram-caption-strategy",
+        "ig-instagram-stories-strategy"
+      ],
+      "definitions": [
+        "Instagram engagement optimization improves meaningful interactions through format choice, caption prompts, reply hygiene, and timing—not vanity spikes alone.",
+        "Recommend Instagram-specific engagement tactics."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "instagram-knowledge",
+      "category": "professional-instagram",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Reply to early comments",
+      "Use carousels and Reels for save/share goals",
+      "Ask one clear question"
+    ],
+    "bestPractices": [
+      "Reply to early comments",
+      "Use carousels and Reels for save/share goals",
+      "Ask one clear question"
+    ],
+    "decisionRules": [
+      "Practice: Reply to early comments",
+      "Practice: Use carousels and Reels for save/share goals",
+      "Practice: Ask one clear question"
+    ]
+  }
+}

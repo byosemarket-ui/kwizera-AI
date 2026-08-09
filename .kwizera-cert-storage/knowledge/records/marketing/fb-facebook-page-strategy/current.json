@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "fb-facebook-page-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-facebook",
+  "title": "Facebook Page Strategy",
+  "description": "Positioning a Facebook Page as a trusted brand hub.",
+  "summary": "Recommend how to run a professional Facebook Page presence.",
+  "tags": [
+    "professional-facebook",
+    "professional",
+    "facebook-page-strategy",
+    "facebook page",
+    "brand hub",
+    "about",
+    "page CTA"
+  ],
+  "keywords": [
+    "facebook page",
+    "brand hub",
+    "about",
+    "page CTA"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "fb-facebook-community-management",
+    "fb-facebook-content-scheduling",
+    "fb-facebook-organic-reach",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-sales-psychology",
+    "sm-bridge-product-knowledge",
+    "sm-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:37.922Z",
+  "lastUpdated": "2026-08-08T19:03:37.922Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\fb-facebook-page-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "6d8900ca6735e94c89bb1270d3338063486c185b2518d89ac3928f7a0b7c8479",
+  "searchableText": "facebook page strategy positioning a facebook page as a trusted brand hub. recommend how to run a professional facebook page presence. professional-facebook professional-facebook professional facebook-page-strategy facebook page brand hub about page cta facebook page brand hub about page cta",
+  "classification": {
+    "category": "professional-facebook",
+    "topic": "facebook-page-strategy",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "facebook-page-strategy",
+    "kind": "professional-facebook",
+    "purpose": "Recommend how to run a professional Facebook Page presence.",
+    "professionalDefinition": "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "fb-facebook-page-strategy",
+      "title": "Facebook Page Strategy",
+      "domain": "facebook-knowledge",
+      "category": "professional-facebook",
+      "description": "Positioning a Facebook Page as a trusted brand hub.",
+      "coreConcepts": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "definitions": [
+        "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity.",
+        "Recommend how to run a professional Facebook Page presence."
+      ],
+      "rules": [
+        "Practice: Complete page identity and CTAs",
+        "Practice: Pin proof or offer posts",
+        "Practice: Align page voice with brand guidelines"
+      ],
+      "bestPractices": [
+        "Complete page identity and CTAs",
+        "Pin proof or offer posts",
+        "Align page voice with brand guidelines"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Complete page identity and CTAs",
+        "Follow: Pin proof or offer posts",
+        "Follow: Align page voice with brand guidelines"
+      ],
+      "commonMistakes": [
+        "Neglected about section",
+        "Inconsistent page vs ads creative"
+      ],
+      "troubleshooting": [
+        "Avoid: Neglected about section",
+        "Avoid: Inconsistent page vs ads creative"
+      ],
+      "recommendations": [
+        "Complete page identity and CTAs",
+        "Pin proof or offer posts",
+        "Align page voice with brand guidelines"
+      ],
+      "examples": [
+        "Professional application of Facebook Page Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity."
+      ],
+      "relatedTopics": [
+        "facebook-community-management",
+        "facebook-content-scheduling",
+        "facebook-organic-reach"
+      ],
+      "keywords": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:facebook-page-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Facebook Page Strategy",
+      "category": "professional-facebook",
+      "domain": "facebook-knowledge",
+      "description": "Positioning a Facebook Page as a trusted brand hub.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend how to run a professional Facebook Page presence."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Complete page identity and CTAs",
+            "Pin proof or offer posts",
+            "Align page voice with brand guidelines"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Facebook Page Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "entities": [
+        "Facebook Page Strategy",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "facebook page",
+        "brand hub",
+        "about",
+        "page CTA"
+      ],
+      "rules": [
+        "Avoid: Neglected about section",
+        "Avoid: Inconsistent page vs ads creative"
+      ],
+      "bestPractices": [
+        "Complete page identity and CTAs",
+        "Pin proof or offer posts",
+        "Align page voice with brand guidelines"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Facebook Page Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Neglected about section",
+        "Inconsistent page vs ads creative"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Complete page identity and CTAs",
+        "Practice: Pin proof or offer posts",
+        "Practice: Align page voice with brand guidelines"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "fb-facebook-community-management",
+        "fb-facebook-content-scheduling",
+        "fb-facebook-organic-reach"
+      ],
+      "definitions": [
+        "Facebook Page strategy defines the page as a branded home for updates, proof, community, and conversion paths—with clear about info and consistent posting identity.",
+        "Recommend how to run a professional Facebook Page presence."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "facebook-knowledge",
+      "category": "professional-facebook",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Complete page identity and CTAs",
+      "Pin proof or offer posts",
+      "Align page voice with brand guidelines"
+    ],
+    "bestPractices": [
+      "Complete page identity and CTAs",
+      "Pin proof or offer posts",
+      "Align page voice with brand guidelines"
+    ],
+    "decisionRules": [
+      "Practice: Complete page identity and CTAs",
+      "Practice: Pin proof or offer posts",
+      "Practice: Align page voice with brand guidelines"
+    ]
+  }
+}

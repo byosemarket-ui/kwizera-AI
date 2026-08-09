@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "yt-youtube-thumbnail-best-practices",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-youtube",
+  "title": "Thumbnail Best Practices",
+  "description": "Click-worthy YouTube thumbnails that stay honest and brand-safe.",
+  "summary": "Recommend thumbnail decisions for YouTube packaging.",
+  "tags": [
+    "professional-youtube",
+    "professional",
+    "youtube-thumbnail-best-practices",
+    "youtube thumbnail",
+    "CTR",
+    "packaging",
+    "click"
+  ],
+  "keywords": [
+    "youtube thumbnail",
+    "CTR",
+    "packaging",
+    "click"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "yt-youtube-title-optimization",
+    "yt-youtube-long-form-strategy",
+    "yt-youtube-watch-time-optimization",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:41.546Z",
+  "lastUpdated": "2026-08-08T19:03:41.546Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\yt-youtube-thumbnail-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "07e014e6a595a28c87072fa802eda9fed8c3708010d451691628d81c61f306f4",
+  "searchableText": "thumbnail best practices click-worthy youtube thumbnails that stay honest and brand-safe. recommend thumbnail decisions for youtube packaging. professional-youtube professional-youtube professional youtube-thumbnail-best-practices youtube thumbnail ctr packaging click youtube thumbnail ctr packaging click",
+  "classification": {
+    "category": "professional-youtube",
+    "topic": "thumbnail-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "youtube-thumbnail-best-practices",
+    "kind": "professional-youtube",
+    "purpose": "Recommend thumbnail decisions for YouTube packaging.",
+    "professionalDefinition": "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "yt-youtube-thumbnail-best-practices",
+      "title": "Thumbnail Best Practices",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Click-worthy YouTube thumbnails that stay honest and brand-safe.",
+      "coreConcepts": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "definitions": [
+        "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust.",
+        "Recommend thumbnail decisions for YouTube packaging."
+      ],
+      "rules": [
+        "Practice: One focal subject + short text",
+        "Practice: High contrast faces/objects",
+        "Practice: A/B test variants"
+      ],
+      "bestPractices": [
+        "One focal subject + short text",
+        "High contrast faces/objects",
+        "A/B test variants"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: One focal subject + short text",
+        "Follow: High contrast faces/objects",
+        "Follow: A/B test variants"
+      ],
+      "commonMistakes": [
+        "Misleading shock thumbnails",
+        "Unreadable tiny text"
+      ],
+      "troubleshooting": [
+        "Avoid: Misleading shock thumbnails",
+        "Avoid: Unreadable tiny text"
+      ],
+      "recommendations": [
+        "One focal subject + short text",
+        "High contrast faces/objects",
+        "A/B test variants"
+      ],
+      "examples": [
+        "Professional application of Thumbnail Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust."
+      ],
+      "relatedTopics": [
+        "youtube-title-optimization",
+        "youtube-long-form-strategy",
+        "youtube-watch-time-optimization"
+      ],
+      "keywords": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-thumbnail-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Thumbnail Best Practices",
+      "category": "professional-youtube",
+      "domain": "youtube-knowledge",
+      "description": "Click-worthy YouTube thumbnails that stay honest and brand-safe.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend thumbnail decisions for YouTube packaging."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One focal subject + short text",
+            "High contrast faces/objects",
+            "A/B test variants"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Thumbnail Best Practices for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "entities": [
+        "Thumbnail Best Practices",
+        "social-media-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "youtube thumbnail",
+        "CTR",
+        "packaging",
+        "click"
+      ],
+      "rules": [
+        "Avoid: Misleading shock thumbnails",
+        "Avoid: Unreadable tiny text"
+      ],
+      "bestPractices": [
+        "One focal subject + short text",
+        "High contrast faces/objects",
+        "A/B test variants"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Thumbnail Best Practices for platform-native content"
+      ],
+      "commonMistakes": [
+        "Misleading shock thumbnails",
+        "Unreadable tiny text"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: One focal subject + short text",
+        "Practice: High contrast faces/objects",
+        "Practice: A/B test variants"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "branding-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "yt-youtube-title-optimization",
+        "yt-youtube-long-form-strategy",
+        "yt-youtube-watch-time-optimization"
+      ],
+      "definitions": [
+        "Thumbnail best practices design high-contrast, readable YouTube packaging that accurately previews the video's value without clickbait that destroys retention trust.",
+        "Recommend thumbnail decisions for YouTube packaging."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "youtube-knowledge",
+      "category": "professional-youtube",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "One focal subject + short text",
+      "High contrast faces/objects",
+      "A/B test variants"
+    ],
+    "bestPractices": [
+      "One focal subject + short text",
+      "High contrast faces/objects",
+      "A/B test variants"
+    ],
+    "decisionRules": [
+      "Practice: One focal subject + short text",
+      "Practice: High contrast faces/objects",
+      "Practice: A/B test variants"
+    ]
+  }
+}

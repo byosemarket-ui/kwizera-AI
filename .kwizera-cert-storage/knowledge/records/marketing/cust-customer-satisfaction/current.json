@@ -1,0 +1,306 @@
+{
+  "knowledgeId": "cust-customer-satisfaction",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Customer Satisfaction",
+  "description": "Post-experience evaluation that drives reviews, repeat, and referrals.",
+  "summary": "Connect marketing promises to post-purchase reality.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "customer-satisfaction",
+    "customer satisfaction",
+    "CSAT",
+    "expectations gap",
+    "reviews"
+  ],
+  "keywords": [
+    "customer satisfaction",
+    "CSAT",
+    "expectations gap",
+    "reviews"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-consumer-expectations",
+    "cust-customer-retention",
+    "cust-trust-building",
+    "mkt-content-marketing",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:55.841Z",
+  "lastUpdated": "2026-08-08T18:25:55.841Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-customer-satisfaction",
+  "integrityStatus": "verified",
+  "contentHash": "5bb029475187e254d2daa40b38b95bbf1f74012862244e24b3f034e4177d895d",
+  "searchableText": "customer satisfaction post-experience evaluation that drives reviews, repeat, and referrals. connect marketing promises to post-purchase reality. professional-customer-psychology professional-customer-psychology professional customer-satisfaction customer satisfaction csat expectations gap reviews customer satisfaction csat expectations gap reviews",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "customer-satisfaction-post-experience",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "customer-satisfaction",
+    "kind": "professional-customer-psychology",
+    "purpose": "Connect marketing promises to post-purchase reality.",
+    "professionalDefinition": "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success.",
+    "workflow": [
+      "Align claims",
+      "Support first use",
+      "Collect feedback",
+      "Close loop in creative"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-customer-satisfaction",
+      "title": "Customer Satisfaction",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Post-experience evaluation that drives reviews, repeat, and referrals.",
+      "coreConcepts": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "definitions": [
+        "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success.",
+        "Connect marketing promises to post-purchase reality."
+      ],
+      "rules": [
+        "Practice: Promise what product delivers",
+        "Practice: Onboard via content",
+        "Practice: Invite fair reviews"
+      ],
+      "bestPractices": [
+        "Promise what product delivers",
+        "Onboard via content",
+        "Invite fair reviews"
+      ],
+      "professionalTechniques": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "workflow": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "decisionRules": [
+        "Follow: Promise what product delivers",
+        "Follow: Onboard via content",
+        "Follow: Invite fair reviews"
+      ],
+      "commonMistakes": [
+        "Hype that causes disappointment",
+        "Ignoring onboarding content"
+      ],
+      "troubleshooting": [
+        "Avoid: Hype that causes disappointment",
+        "Avoid: Ignoring onboarding content"
+      ],
+      "recommendations": [
+        "Promise what product delivers",
+        "Onboard via content",
+        "Invite fair reviews"
+      ],
+      "examples": [
+        "Setup video reduces return rate and boosts 5-star reviews"
+      ],
+      "professionalStandards": [
+        "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success."
+      ],
+      "relatedTopics": [
+        "consumer-expectations",
+        "customer-retention",
+        "trust-building",
+        "content-marketing"
+      ],
+      "keywords": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-satisfaction",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Customer Satisfaction",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "Post-experience evaluation that drives reviews, repeat, and referrals.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Connect marketing promises to post-purchase reality."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Align claims",
+            "Support first use",
+            "Collect feedback",
+            "Close loop in creative"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Promise what product delivers",
+            "Onboard via content",
+            "Invite fair reviews"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Setup video reduces return rate and boosts 5-star reviews"
+          ]
+        }
+      ],
+      "concepts": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "entities": [
+        "Customer Satisfaction",
+        "customer-psychology",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "rules": [
+        "Avoid: Hype that causes disappointment",
+        "Avoid: Ignoring onboarding content"
+      ],
+      "bestPractices": [
+        "Promise what product delivers",
+        "Onboard via content",
+        "Invite fair reviews"
+      ],
+      "professionalTechniques": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "examples": [
+        "Setup video reduces return rate and boosts 5-star reviews"
+      ],
+      "commonMistakes": [
+        "Hype that causes disappointment",
+        "Ignoring onboarding content"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Promise what product delivers",
+        "Practice: Onboard via content",
+        "Practice: Invite fair reviews"
+      ],
+      "workflowSteps": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-consumer-expectations",
+        "cust-customer-retention",
+        "cust-trust-building",
+        "mkt-content-marketing"
+      ],
+      "definitions": [
+        "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success.",
+        "Connect marketing promises to post-purchase reality."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Promise what product delivers",
+      "Onboard via content",
+      "Invite fair reviews"
+    ],
+    "bestPractices": [
+      "Promise what product delivers",
+      "Onboard via content",
+      "Invite fair reviews"
+    ],
+    "decisionRules": [
+      "Practice: Promise what product delivers",
+      "Practice: Onboard via content",
+      "Practice: Invite fair reviews"
+    ]
+  }
+}

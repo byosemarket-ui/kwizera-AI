@@ -1,0 +1,311 @@
+{
+  "knowledgeId": "motion-motion-design",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Motion Design",
+  "description": "The discipline of designing animated visual communication for brands and interfaces.",
+  "summary": "Unify style, timing, and hierarchy into a coherent motion language.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "motion-design",
+    "motion design",
+    "motion system",
+    "branded motion"
+  ],
+  "keywords": [
+    "motion design",
+    "motion system",
+    "branded motion"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-motion-graphics-fundamentals",
+    "motion-motion-style",
+    "motion-motion-hierarchy",
+    "motion-text-animation",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:53.510Z",
+  "lastUpdated": "2026-08-08T17:55:34.022Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-motion-design",
+  "integrityStatus": "verified",
+  "contentHash": "50456fe3c8c84ade6336cec6dcc76400f68c023898fc55ce6f15aec14c12b726",
+  "searchableText": "motion design the discipline of designing animated visual communication for brands and interfaces. unify style, timing, and hierarchy into a coherent motion language. professional-motion-graphics professional-motion-graphics professional motion-design motion design motion system branded motion motion design motion system branded motion",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "motion-design-discipline",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "motion-design",
+    "kind": "professional-motion-graphics",
+    "purpose": "Unify style, timing, and hierarchy into a coherent motion language.",
+    "professionalDefinition": "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform.",
+    "workflow": [
+      "Brief",
+      "Boards",
+      "Style frames",
+      "Animate",
+      "Deliver specs"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-motion-design",
+      "title": "Motion Design",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "The discipline of designing animated visual communication for brands and interfaces.",
+      "coreConcepts": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "definitions": [
+        "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform.",
+        "Unify style, timing, and hierarchy into a coherent motion language."
+      ],
+      "rules": [
+        "Practice: Design stills that animate well",
+        "Practice: Build a motion system",
+        "Practice: Prototype on device"
+      ],
+      "bestPractices": [
+        "Design stills that animate well",
+        "Build a motion system",
+        "Prototype on device"
+      ],
+      "professionalTechniques": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "workflow": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "decisionRules": [
+        "Follow: Design stills that animate well",
+        "Follow: Build a motion system",
+        "Follow: Prototype on device"
+      ],
+      "commonMistakes": [
+        "Decorating instead of communicating",
+        "Inconsistent easing across a brand"
+      ],
+      "troubleshooting": [
+        "Avoid: Decorating instead of communicating",
+        "Avoid: Inconsistent easing across a brand"
+      ],
+      "recommendations": [
+        "Design stills that animate well",
+        "Build a motion system",
+        "Prototype on device"
+      ],
+      "examples": [
+        "Brand open + lower-third system for a campaign"
+      ],
+      "professionalStandards": [
+        "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform."
+      ],
+      "relatedTopics": [
+        "motion-graphics-fundamentals",
+        "motion-style",
+        "motion-hierarchy",
+        "text-animation"
+      ],
+      "keywords": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-design",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Motion Design",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "The discipline of designing animated visual communication for brands and interfaces.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Unify style, timing, and hierarchy into a coherent motion language."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Brief",
+            "Boards",
+            "Style frames",
+            "Animate",
+            "Deliver specs"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Design stills that animate well",
+            "Build a motion system",
+            "Prototype on device"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Brand open + lower-third system for a campaign"
+          ]
+        }
+      ],
+      "concepts": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "entities": [
+        "Motion Design",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "motion design",
+        "motion system",
+        "branded motion"
+      ],
+      "rules": [
+        "Avoid: Decorating instead of communicating",
+        "Avoid: Inconsistent easing across a brand"
+      ],
+      "bestPractices": [
+        "Design stills that animate well",
+        "Build a motion system",
+        "Prototype on device"
+      ],
+      "professionalTechniques": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "examples": [
+        "Brand open + lower-third system for a campaign"
+      ],
+      "commonMistakes": [
+        "Decorating instead of communicating",
+        "Inconsistent easing across a brand"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Design stills that animate well",
+        "Practice: Build a motion system",
+        "Practice: Prototype on device"
+      ],
+      "workflowSteps": [
+        "Brief",
+        "Boards",
+        "Style frames",
+        "Animate",
+        "Deliver specs"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-motion-graphics-fundamentals",
+        "motion-motion-style",
+        "motion-motion-hierarchy",
+        "motion-text-animation"
+      ],
+      "definitions": [
+        "Motion design is the practice of solving communication problems with animated graphics, type, and systems aligned to brand and platform.",
+        "Unify style, timing, and hierarchy into a coherent motion language."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Design stills that animate well",
+      "Build a motion system",
+      "Prototype on device"
+    ],
+    "bestPractices": [
+      "Design stills that animate well",
+      "Build a motion system",
+      "Prototype on device"
+    ],
+    "decisionRules": [
+      "Practice: Design stills that animate well",
+      "Practice: Build a motion system",
+      "Practice: Prototype on device"
+    ]
+  }
+}

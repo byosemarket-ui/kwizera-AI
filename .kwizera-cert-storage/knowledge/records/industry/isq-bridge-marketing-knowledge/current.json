@@ -1,0 +1,114 @@
+{
+  "knowledgeId": "isq-bridge-marketing-knowledge",
+  "knowledgeType": "industry-knowledge",
+  "category": "isq-domain-bridge",
+  "title": "Marketing Knowledge (related)",
+  "description": "Marketing quality rules ensure credible, audience-relevant communication.",
+  "summary": "Commercial effectiveness is a professional quality criterion.",
+  "tags": [
+    "industry-standards",
+    "domain-bridge",
+    "marketing-knowledge"
+  ],
+  "keywords": [
+    "marketing-knowledge",
+    "industry",
+    "standards",
+    "quality",
+    "relationship"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-industry-standards"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:19:07.603Z",
+  "lastUpdated": "2026-08-08T19:19:07.603Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\isq-bridge-marketing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "a67ae176fb22bc2cb25316da2e13eb7f87fd38277b2ac1894eb5dde77ef6d0e9",
+  "searchableText": "marketing knowledge (related) marketing quality rules ensure credible, audience-relevant communication. commercial effectiveness is a professional quality criterion. isq-domain-bridge industry-standards domain-bridge marketing-knowledge marketing-knowledge industry standards quality relationship",
+  "classification": {
+    "category": "isq-domain-bridge",
+    "topic": "marketing-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 88,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "bridgeDomainId": "marketing-knowledge",
+    "relationshipAnchor": true,
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "qualityRules": [],
+    "decisionRules": [
+      "Relate industry standards and quality knowledge to marketing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Marketing Knowledge (related)",
+      "category": "industry-standards-domain-bridge",
+      "domain": "marketing-knowledge",
+      "description": "Marketing quality rules ensure credible, audience-relevant communication.",
+      "sections": [
+        {
+          "title": "Relationship",
+          "kind": "guidance",
+          "items": [
+            "Marketing quality rules ensure credible, audience-relevant communication."
+          ]
+        }
+      ],
+      "concepts": [
+        "marketing-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "entities": [
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "marketing-knowledge",
+        "industry standards",
+        "quality"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate industry standards and quality knowledge to marketing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-industry-standards"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

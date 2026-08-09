@@ -1,0 +1,343 @@
+{
+  "knowledgeId": "lit-artificial-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Artificial Lighting",
+  "description": "Controlled electric sources—LED, tungsten, HMI, practicals—shaped for production.",
+  "summary": "Deliver repeatable, schedule-independent illumination with precise creative control.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "artificial-lighting",
+    "artificial light",
+    "LED",
+    "studio lights",
+    "practicals",
+    "controlled lighting"
+  ],
+  "keywords": [
+    "artificial light",
+    "LED",
+    "studio lights",
+    "practicals",
+    "controlled lighting"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-three-point-lighting",
+    "lit-indoor-lighting",
+    "lit-product-lighting",
+    "lit-color-temperature",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-video-production-knowledge",
+    "lc-bridge-rendering-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:24.853Z",
+  "lastUpdated": "2026-08-08T17:15:31.907Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-artificial-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "47bd32ce3c5764d86af0d557f8d562e97ca8b0421d09a149f0da0a6e07197c67",
+  "searchableText": "artificial lighting controlled electric sources—led, tungsten, hmi, practicals—shaped for production. deliver repeatable, schedule-independent illumination with precise creative control. professional-lighting professional-lighting professional artificial-lighting artificial light led studio lights practicals controlled lighting artificial light led studio lights practicals controlled lighting",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "artificial-lighting-controlled",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "artificial-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Deliver repeatable, schedule-independent illumination with precise creative control.",
+    "whenToUse": [
+      "Studio work",
+      "Night/interior control",
+      "Brand-consistent campaigns"
+    ],
+    "whenNotToUse": [
+      "When natural light alone meets look and schedule"
+    ],
+    "advantages": [
+      "Repeatability",
+      "Direction/intensity control",
+      "Color options"
+    ],
+    "limitations": [
+      "Power, heat, setup time",
+      "Can look unnatural if overlit"
+    ],
+    "relatedCameraTechniques": [
+      "shutter/flicker sync",
+      "ISO",
+      "white balance",
+      "ND"
+    ],
+    "relatedStorytellingTechniques": [
+      "stylized worlds",
+      "controlled glamour"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-artificial-lighting",
+      "title": "Artificial Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Controlled electric sources—LED, tungsten, HMI, practicals—shaped for production.",
+      "coreConcepts": [
+        "artificial light",
+        "LED",
+        "studio lights",
+        "practicals",
+        "controlled lighting"
+      ],
+      "definitions": [
+        "Deliver repeatable, schedule-independent illumination with precise creative control."
+      ],
+      "rules": [
+        "Use when: Studio work",
+        "Use when: Night/interior control",
+        "Use when: Brand-consistent campaigns",
+        "Do not use when: When natural light alone meets look and schedule"
+      ],
+      "bestPractices": [
+        "Match color families",
+        "Flag spill",
+        "Balance key-to-fill ratios intentionally"
+      ],
+      "professionalTechniques": [
+        "Repeatability",
+        "Direction/intensity control",
+        "Color options"
+      ],
+      "workflow": [
+        "Choose Artificial Lighting",
+        "Match color families",
+        "Flag spill",
+        "Balance key-to-fill ratios intentionally"
+      ],
+      "decisionRules": [
+        "Use when: Studio work",
+        "Use when: Night/interior control",
+        "Use when: Brand-consistent campaigns",
+        "Avoid when: When natural light alone meets look and schedule"
+      ],
+      "commonMistakes": [
+        "Too many competing keys",
+        "Ignoring fixture flicker at camera shutter"
+      ],
+      "troubleshooting": [
+        "Limitation: Power, heat, setup time",
+        "Limitation: Can look unnatural if overlit"
+      ],
+      "recommendations": [
+        "Match color families",
+        "Flag spill",
+        "Balance key-to-fill ratios intentionally"
+      ],
+      "examples": [
+        "LED softbox key + negative fill for clean ecommerce"
+      ],
+      "professionalStandards": [
+        "stylized worlds",
+        "controlled glamour"
+      ],
+      "relatedTopics": [
+        "three-point-lighting",
+        "indoor-lighting",
+        "product-lighting",
+        "color-temperature"
+      ],
+      "keywords": [
+        "artificial light",
+        "LED",
+        "studio lights",
+        "practicals",
+        "controlled lighting"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:artificial-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Artificial Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Controlled electric sources—LED, tungsten, HMI, practicals—shaped for production.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Deliver repeatable, schedule-independent illumination with precise creative control."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Studio work",
+            "Night/interior control",
+            "Brand-consistent campaigns"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When natural light alone meets look and schedule"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match color families",
+            "Flag spill",
+            "Balance key-to-fill ratios intentionally"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "LED softbox key + negative fill for clean ecommerce"
+          ]
+        }
+      ],
+      "concepts": [
+        "artificial light",
+        "LED",
+        "studio lights",
+        "practicals",
+        "controlled lighting"
+      ],
+      "entities": [
+        "Artificial Lighting",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "artificial light",
+        "LED",
+        "studio lights",
+        "practicals",
+        "controlled lighting"
+      ],
+      "rules": [
+        "Avoid when: When natural light alone meets look and schedule"
+      ],
+      "bestPractices": [
+        "Match color families",
+        "Flag spill",
+        "Balance key-to-fill ratios intentionally"
+      ],
+      "professionalTechniques": [
+        "Repeatability",
+        "Direction/intensity control",
+        "Color options"
+      ],
+      "examples": [
+        "LED softbox key + negative fill for clean ecommerce"
+      ],
+      "commonMistakes": [
+        "Too many competing keys",
+        "Ignoring fixture flicker at camera shutter"
+      ],
+      "qualityRules": [
+        "Power, heat, setup time",
+        "Can look unnatural if overlit"
+      ],
+      "decisionRules": [
+        "Use when: Studio work",
+        "Use when: Night/interior control",
+        "Use when: Brand-consistent campaigns",
+        "Do not use when: When natural light alone meets look and schedule"
+      ],
+      "workflowSteps": [
+        "Match color families",
+        "Flag spill",
+        "Balance key-to-fill ratios intentionally"
+      ],
+      "prerequisites": [
+        "shutter/flicker sync",
+        "ISO",
+        "white balance",
+        "ND"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-three-point-lighting",
+        "lit-indoor-lighting",
+        "lit-product-lighting",
+        "lit-color-temperature"
+      ],
+      "definitions": [
+        "Deliver repeatable, schedule-independent illumination with precise creative control."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Match color families",
+      "Flag spill",
+      "Balance key-to-fill ratios intentionally"
+    ],
+    "bestPractices": [
+      "Match color families",
+      "Flag spill",
+      "Balance key-to-fill ratios intentionally"
+    ],
+    "decisionRules": [
+      "Use when: Studio work",
+      "Use when: Night/interior control",
+      "Use when: Brand-consistent campaigns",
+      "Do not use when: When natural light alone meets look and schedule"
+    ]
+  }
+}

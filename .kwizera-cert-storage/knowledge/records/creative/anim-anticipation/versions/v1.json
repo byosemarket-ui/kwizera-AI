@@ -1,0 +1,307 @@
+{
+  "knowledgeId": "anim-anticipation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Anticipation",
+  "description": "A preparatory move that telegraphs the main action so viewers can follow it.",
+  "summary": "Improve readability and make reveals feel intentional.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "anticipation",
+    "wind-up",
+    "prepare",
+    "telegraph"
+  ],
+  "keywords": [
+    "anticipation",
+    "wind-up",
+    "prepare",
+    "telegraph"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-principles-of-animation",
+    "anim-staging",
+    "anim-product-animation",
+    "motion-logo-animation",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:36:50.699Z",
+  "lastUpdated": "2026-08-08T15:36:50.699Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-anticipation",
+  "integrityStatus": "verified",
+  "contentHash": "0bc657c4fb28f314137d8edf85d416e8b4ead0e41b782f5dc4daba5c86935dd8",
+  "searchableText": "anticipation a preparatory move that telegraphs the main action so viewers can follow it. improve readability and make reveals feel intentional. professional-animation professional-animation professional anticipation wind-up prepare telegraph anticipation wind-up prepare telegraph",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "anticipation-preparatory-move",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "anticipation",
+    "kind": "professional-animation",
+    "purpose": "Improve readability and make reveals feel intentional.",
+    "professionalDefinition": "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action.",
+    "workflow": [
+      "Define main action",
+      "Add reverse/prepare beat",
+      "Time tightly",
+      "Review clarity"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-anticipation",
+      "title": "Anticipation",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "A preparatory move that telegraphs the main action so viewers can follow it.",
+      "coreConcepts": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "definitions": [
+        "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action.",
+        "Improve readability and make reveals feel intentional."
+      ],
+      "rules": [
+        "Practice: Scale anticipation to action size",
+        "Practice: Keep it short on social",
+        "Practice: Use for logo snaps and character jumps"
+      ],
+      "bestPractices": [
+        "Scale anticipation to action size",
+        "Keep it short on social",
+        "Use for logo snaps and character jumps"
+      ],
+      "professionalTechniques": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "workflow": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "decisionRules": [
+        "Follow: Scale anticipation to action size",
+        "Follow: Keep it short on social",
+        "Follow: Use for logo snaps and character jumps"
+      ],
+      "commonMistakes": [
+        "No wind-up on big moves",
+        "Anticipation longer than the action"
+      ],
+      "troubleshooting": [
+        "Avoid: No wind-up on big moves",
+        "Avoid: Anticipation longer than the action"
+      ],
+      "recommendations": [
+        "Scale anticipation to action size",
+        "Keep it short on social",
+        "Use for logo snaps and character jumps"
+      ],
+      "examples": [
+        "Button depresses slightly before card expands"
+      ],
+      "professionalStandards": [
+        "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action."
+      ],
+      "relatedTopics": [
+        "principles-of-animation",
+        "staging",
+        "product-animation",
+        "logo-animation"
+      ],
+      "keywords": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:anticipation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Anticipation",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "A preparatory move that telegraphs the main action so viewers can follow it.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Improve readability and make reveals feel intentional."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define main action",
+            "Add reverse/prepare beat",
+            "Time tightly",
+            "Review clarity"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Scale anticipation to action size",
+            "Keep it short on social",
+            "Use for logo snaps and character jumps"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Button depresses slightly before card expands"
+          ]
+        }
+      ],
+      "concepts": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "entities": [
+        "Anticipation",
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "anticipation",
+        "wind-up",
+        "prepare",
+        "telegraph"
+      ],
+      "rules": [
+        "Avoid: No wind-up on big moves",
+        "Avoid: Anticipation longer than the action"
+      ],
+      "bestPractices": [
+        "Scale anticipation to action size",
+        "Keep it short on social",
+        "Use for logo snaps and character jumps"
+      ],
+      "professionalTechniques": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "examples": [
+        "Button depresses slightly before card expands"
+      ],
+      "commonMistakes": [
+        "No wind-up on big moves",
+        "Anticipation longer than the action"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Scale anticipation to action size",
+        "Practice: Keep it short on social",
+        "Practice: Use for logo snaps and character jumps"
+      ],
+      "workflowSteps": [
+        "Define main action",
+        "Add reverse/prepare beat",
+        "Time tightly",
+        "Review clarity"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "motion-graphics-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-principles-of-animation",
+        "anim-staging",
+        "anim-product-animation",
+        "motion-logo-animation"
+      ],
+      "definitions": [
+        "Anticipation is a brief opposite or preparatory motion that prepares the eye for a primary action.",
+        "Improve readability and make reveals feel intentional."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Scale anticipation to action size",
+      "Keep it short on social",
+      "Use for logo snaps and character jumps"
+    ],
+    "bestPractices": [
+      "Scale anticipation to action size",
+      "Keep it short on social",
+      "Use for logo snaps and character jumps"
+    ],
+    "decisionRules": [
+      "Practice: Scale anticipation to action size",
+      "Practice: Keep it short on social",
+      "Practice: Use for logo snaps and character jumps"
+    ]
+  }
+}

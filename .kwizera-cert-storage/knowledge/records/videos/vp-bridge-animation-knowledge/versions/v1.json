@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "vp-bridge-animation-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "video-production-domain-bridge",
+  "title": "Animation Knowledge (related domain)",
+  "description": "Relationship anchor to Animation Knowledge for motion graphics and animated accents.",
+  "summary": "Video style and post often integrate animation and motion graphics.",
+  "tags": [
+    "video-production",
+    "domain-bridge",
+    "animation-knowledge"
+  ],
+  "keywords": [
+    "animation-knowledge",
+    "video-production",
+    "relationship"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-video-production-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:12.314Z",
+  "lastUpdated": "2026-08-08T15:31:12.314Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-bridge-animation-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "105676c6282eae563d6ef15248e2209e068fa37cd1b954d69ad17d836cc37d36",
+  "searchableText": "animation knowledge (related domain) relationship anchor to animation knowledge for motion graphics and animated accents. video style and post often integrate animation and motion graphics. video-production-domain-bridge video-production domain-bridge animation-knowledge animation-knowledge video-production relationship",
+  "classification": {
+    "category": "video-production-domain-bridge",
+    "topic": "animation-knowledge-(related",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "bridgeDomainId": "animation-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate video production topics to animation-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Animation Knowledge (related domain)",
+      "category": "domain-bridge",
+      "domain": "animation-knowledge",
+      "description": "Relationship anchor to Animation Knowledge for motion graphics and animated accents.",
+      "sections": [],
+      "concepts": [
+        "animation-knowledge"
+      ],
+      "entities": [
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "animation-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate video production topics to animation-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "vp-video-production-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

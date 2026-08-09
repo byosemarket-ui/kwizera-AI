@@ -38,6 +38,24 @@ import {
 
   getImageIntelligenceManager,
 
+  getProductAssetPreparationManager,
+
+  getProductScenePlanningManager,
+
+  getProductStoryboardManager,
+
+  getProductPromptOrchestrationManager,
+
+  getProductImageGenerationManager,
+
+  getProductVideoGenerationManager,
+
+  getProductAudioGenerationManager,
+
+  getProductRenderingExportManager,
+
+  getCreativeGenerationCertificationManager,
+
   getProductPhotographyManager,
 
   getMarketingIntelligenceManager,
@@ -509,6 +527,150 @@ function requireImageIntelligence(res: ServerResponse) {
   }
 
   return intelligence;
+
+}
+
+function requireProductAssetPreparation(res: ServerResponse) {
+
+  const preparation = getProductAssetPreparationManager();
+
+  if (!preparation) {
+
+    sendJson(res, 503, { error: "Product asset preparation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return preparation;
+
+}
+
+function requireProductScenePlanning(res: ServerResponse) {
+
+  const planning = getProductScenePlanningManager();
+
+  if (!planning) {
+
+    sendJson(res, 503, { error: "Product scene planning is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return planning;
+
+}
+
+function requireProductStoryboard(res: ServerResponse) {
+
+  const storyboard = getProductStoryboardManager();
+
+  if (!storyboard) {
+
+    sendJson(res, 503, { error: "Product storyboard is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return storyboard;
+
+}
+
+function requireProductPromptOrchestration(res: ServerResponse) {
+
+  const orchestration = getProductPromptOrchestrationManager();
+
+  if (!orchestration) {
+
+    sendJson(res, 503, { error: "Product prompt orchestration is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return orchestration;
+
+}
+
+function requireProductImageGeneration(res: ServerResponse) {
+
+  const generation = getProductImageGenerationManager();
+
+  if (!generation) {
+
+    sendJson(res, 503, { error: "Product image generation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return generation;
+
+}
+
+function requireProductVideoGeneration(res: ServerResponse) {
+
+  const generation = getProductVideoGenerationManager();
+
+  if (!generation) {
+
+    sendJson(res, 503, { error: "Product video generation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return generation;
+
+}
+
+function requireProductAudioGeneration(res: ServerResponse) {
+
+  const generation = getProductAudioGenerationManager();
+
+  if (!generation) {
+
+    sendJson(res, 503, { error: "Product audio generation is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return generation;
+
+}
+
+function requireCreativeGenerationCertification(res: ServerResponse) {
+
+  const certification = getCreativeGenerationCertificationManager();
+
+  if (!certification) {
+
+    sendJson(res, 503, { error: "Creative Generation Certification runtime is not ready" });
+
+    return null;
+
+  }
+
+  return certification;
+
+}
+
+function requireProductRenderingExport(res: ServerResponse) {
+
+  const rendering = getProductRenderingExportManager();
+
+  if (!rendering) {
+
+    sendJson(res, 503, { error: "Product rendering and export is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return rendering;
 
 }
 
@@ -1448,6 +1610,114 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/product-asset-preparation") {
+
+    const preparation = requireProductAssetPreparation(res);
+
+    if (!preparation) return;
+
+    sendJson(res, 200, await preparation.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-scene-planning") {
+
+    const planning = requireProductScenePlanning(res);
+
+    if (!planning) return;
+
+    sendJson(res, 200, await planning.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-storyboard") {
+
+    const storyboard = requireProductStoryboard(res);
+
+    if (!storyboard) return;
+
+    sendJson(res, 200, await storyboard.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-prompt-orchestration") {
+
+    const orchestration = requireProductPromptOrchestration(res);
+
+    if (!orchestration) return;
+
+    sendJson(res, 200, await orchestration.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-image-generation") {
+
+    const generation = requireProductImageGeneration(res);
+
+    if (!generation) return;
+
+    sendJson(res, 200, await generation.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-video-generation") {
+
+    const generation = requireProductVideoGeneration(res);
+
+    if (!generation) return;
+
+    sendJson(res, 200, await generation.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-audio-generation") {
+
+    const generation = requireProductAudioGeneration(res);
+
+    if (!generation) return;
+
+    sendJson(res, 200, await generation.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/product-rendering-export") {
+
+    const rendering = requireProductRenderingExport(res);
+
+    if (!rendering) return;
+
+    sendJson(res, 200, await rendering.getDashboard(url.searchParams.get("projectId") ?? undefined));
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/creative-generation-certification") {
+
+    const certification = requireCreativeGenerationCertification(res);
+
+    if (!certification) return;
+
+    sendJson(res, 200, await certification.getDashboard());
+
+    return;
+
+  }
+
   if (url.pathname === "/api/marketing-intelligence") {
 
     const intelligence = requireMarketingIntelligence(res);
@@ -1535,6 +1805,225 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Image analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productAssetPrepareMatch = url.pathname.match(/^\/api\/product-asset-preparation\/projects\/([^/]+)\/prepare$/);
+
+  if (productAssetPrepareMatch && req.method === "POST") {
+
+    const preparation = requireProductAssetPreparation(res);
+
+    if (!preparation) return;
+
+    try {
+
+      const result = await preparation.prepareProductAssets(productAssetPrepareMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await preparation.getDashboard(productAssetPrepareMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product asset preparation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productScenePlanMatch = url.pathname.match(/^\/api\/product-scene-planning\/projects\/([^/]+)\/plan$/);
+
+  if (productScenePlanMatch && req.method === "POST") {
+
+    const planning = requireProductScenePlanning(res);
+
+    if (!planning) return;
+
+    try {
+
+      const result = await planning.planProductScenes(productScenePlanMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await planning.getDashboard(productScenePlanMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product scene planning failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productStoryboardMatch = url.pathname.match(/^\/api\/product-storyboard\/projects\/([^/]+)\/generate$/);
+
+  if (productStoryboardMatch && req.method === "POST") {
+
+    const storyboard = requireProductStoryboard(res);
+
+    if (!storyboard) return;
+
+    try {
+
+      const result = await storyboard.generateStoryboardAndScript(productStoryboardMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await storyboard.getDashboard(productStoryboardMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product storyboard generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productPromptOrchestrationMatch = url.pathname.match(/^\/api\/product-prompt-orchestration\/projects\/([^/]+)\/orchestrate$/);
+
+  if (productPromptOrchestrationMatch && req.method === "POST") {
+
+    const orchestration = requireProductPromptOrchestration(res);
+
+    if (!orchestration) return;
+
+    try {
+
+      const result = await orchestration.orchestratePromptsAndModels(productPromptOrchestrationMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await orchestration.getDashboard(productPromptOrchestrationMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product prompt orchestration failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productImageGenerationMatch = url.pathname.match(/^\/api\/product-image-generation\/projects\/([^/]+)\/generate$/);
+
+  if (productImageGenerationMatch && req.method === "POST") {
+
+    const generation = requireProductImageGeneration(res);
+
+    if (!generation) return;
+
+    try {
+
+      const result = await generation.generateProductSceneImages(productImageGenerationMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await generation.getDashboard(productImageGenerationMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product image generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productVideoGenerationMatch = url.pathname.match(/^\/api\/product-video-generation\/projects\/([^/]+)\/generate$/);
+
+  if (productVideoGenerationMatch && req.method === "POST") {
+
+    const generation = requireProductVideoGeneration(res);
+
+    if (!generation) return;
+
+    try {
+
+      const result = await generation.generateProductSceneVideos(productVideoGenerationMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await generation.getDashboard(productVideoGenerationMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product video generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productAudioGenerationMatch = url.pathname.match(/^\/api\/product-audio-generation\/projects\/([^/]+)\/generate$/);
+
+  if (productAudioGenerationMatch && req.method === "POST") {
+
+    const generation = requireProductAudioGeneration(res);
+
+    if (!generation) return;
+
+    try {
+
+      const result = await generation.generateProductAudio(productAudioGenerationMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await generation.getDashboard(productAudioGenerationMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product audio generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productRenderingExportMatch = url.pathname.match(/^\/api\/product-rendering-export\/projects\/([^/]+)\/render$/);
+
+  if (productRenderingExportMatch && req.method === "POST") {
+
+    const rendering = requireProductRenderingExport(res);
+
+    if (!rendering) return;
+
+    try {
+
+      const result = await rendering.renderAndPackage(productRenderingExportMatch[1]);
+
+      sendJson(res, 201, { result, dashboard: await rendering.getDashboard(productRenderingExportMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Product rendering and export failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/creative-generation-certification/certify" && req.method === "POST") {
+
+    const certification = requireCreativeGenerationCertification(res);
+
+    if (!certification) return;
+
+    try {
+
+      const body = JSON.parse((await readBody(req)) || "{}") as { autoRepair?: boolean; kinds?: Array<"shoe" | "bag" | "phone" | "watch"> };
+
+      const result = await certification.certify({
+        autoRepair: body?.autoRepair !== false,
+        kinds: body?.kinds,
+      });
+
+      sendJson(res, 201, { result, dashboard: await certification.getDashboard(), explanation: await certification.explainCertification() });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Creative Generation Certification failed" });
 
     }
 

@@ -1,0 +1,305 @@
+{
+  "knowledgeId": "trans-creative-transitions",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Creative Transitions",
+  "description": "Custom, concept-driven transitions unique to a campaign’s visual idea.",
+  "summary": "Make signature moments memorable when budget and concept support them.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "creative-transitions",
+    "creative transitions",
+    "custom transition",
+    "signature transition"
+  ],
+  "keywords": [
+    "creative transitions",
+    "custom transition",
+    "signature transition"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-motion-style",
+    "trans-shape-transition",
+    "trans-match-cut",
+    "trans-luma-transition",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-storytelling-knowledge",
+    "amr-bridge-animation-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:04.969Z",
+  "lastUpdated": "2026-08-08T15:37:04.969Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-creative-transitions",
+  "integrityStatus": "verified",
+  "contentHash": "28c6ecdd5069e619c22ffafcb92569d060f17c637c12636fbab16a8d23f7662b",
+  "searchableText": "creative transitions custom, concept-driven transitions unique to a campaign’s visual idea. make signature moments memorable when budget and concept support them. professional-transitions professional-transitions professional creative-transitions creative transitions custom transition signature transition creative transitions custom transition signature transition",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "creative-transitions-custom,",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "creative-transitions",
+    "kind": "professional-transitions",
+    "purpose": "Make signature moments memorable when budget and concept support them.",
+    "professionalDefinition": "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept.",
+    "workflow": [
+      "Ideate motif",
+      "Prototype one",
+      "Systematize",
+      "Apply sparingly"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-creative-transitions",
+      "title": "Creative Transitions",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "Custom, concept-driven transitions unique to a campaign’s visual idea.",
+      "coreConcepts": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "definitions": [
+        "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept.",
+        "Make signature moments memorable when budget and concept support them."
+      ],
+      "rules": [
+        "Practice: Concept first",
+        "Practice: Reuse as a motif",
+        "Practice: Don’t invent one per cut"
+      ],
+      "bestPractices": [
+        "Concept first",
+        "Reuse as a motif",
+        "Don’t invent one per cut"
+      ],
+      "professionalTechniques": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "workflow": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "decisionRules": [
+        "Follow: Concept first",
+        "Follow: Reuse as a motif",
+        "Follow: Don’t invent one per cut"
+      ],
+      "commonMistakes": [
+        "Creativity without clarity",
+        "Inconsistent rules"
+      ],
+      "troubleshooting": [
+        "Avoid: Creativity without clarity",
+        "Avoid: Inconsistent rules"
+      ],
+      "recommendations": [
+        "Concept first",
+        "Reuse as a motif",
+        "Don’t invent one per cut"
+      ],
+      "examples": [
+        "Product lid closes as wipe; ink bleed morph between scenes"
+      ],
+      "professionalStandards": [
+        "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept."
+      ],
+      "relatedTopics": [
+        "motion-style",
+        "shape-transition",
+        "match-cut",
+        "luma-transition"
+      ],
+      "keywords": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:creative-transitions",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Creative Transitions",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "Custom, concept-driven transitions unique to a campaign’s visual idea.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make signature moments memorable when budget and concept support them."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Ideate motif",
+            "Prototype one",
+            "Systematize",
+            "Apply sparingly"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Concept first",
+            "Reuse as a motif",
+            "Don’t invent one per cut"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product lid closes as wipe; ink bleed morph between scenes"
+          ]
+        }
+      ],
+      "concepts": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "entities": [
+        "Creative Transitions",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "creative transitions",
+        "custom transition",
+        "signature transition"
+      ],
+      "rules": [
+        "Avoid: Creativity without clarity",
+        "Avoid: Inconsistent rules"
+      ],
+      "bestPractices": [
+        "Concept first",
+        "Reuse as a motif",
+        "Don’t invent one per cut"
+      ],
+      "professionalTechniques": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "examples": [
+        "Product lid closes as wipe; ink bleed morph between scenes"
+      ],
+      "commonMistakes": [
+        "Creativity without clarity",
+        "Inconsistent rules"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Concept first",
+        "Practice: Reuse as a motif",
+        "Practice: Don’t invent one per cut"
+      ],
+      "workflowSteps": [
+        "Ideate motif",
+        "Prototype one",
+        "Systematize",
+        "Apply sparingly"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge",
+        "animation-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-motion-style",
+        "trans-shape-transition",
+        "trans-match-cut",
+        "trans-luma-transition"
+      ],
+      "definitions": [
+        "Creative transitions are bespoke transitional devices—morphs, object wipes, or graphic gags—designed for a specific narrative or brand concept.",
+        "Make signature moments memorable when budget and concept support them."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Concept first",
+      "Reuse as a motif",
+      "Don’t invent one per cut"
+    ],
+    "bestPractices": [
+      "Concept first",
+      "Reuse as a motif",
+      "Don’t invent one per cut"
+    ],
+    "decisionRules": [
+      "Practice: Concept first",
+      "Practice: Reuse as a motif",
+      "Practice: Don’t invent one per cut"
+    ]
+  }
+}

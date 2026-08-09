@@ -1,0 +1,346 @@
+{
+  "knowledgeId": "cmov-truck",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Truck",
+  "description": "Lateral camera move left or right, typically keeping orientation relative to the scene.",
+  "summary": "Travel beside action, reveal along a line, or create dynamic product profiling.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "truck",
+    "lateral",
+    "track left",
+    "track right"
+  ],
+  "keywords": [
+    "truck",
+    "lateral",
+    "track left",
+    "track right"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-tracking-shot",
+    "cmov-pan",
+    "cmov-dolly",
+    "cmov-gimbal",
+    "cam-shutter-speed",
+    "cam-focus",
+    "cam-focal-length",
+    "cam-frame-rate",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-composition-knowledge",
+    "cam-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:31:25.029Z",
+  "lastUpdated": "2026-08-08T15:31:25.029Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-truck",
+  "integrityStatus": "verified",
+  "contentHash": "9d107441972778ba145b6e8f1a8d3bc64e0163128ad474947648a880583124fc",
+  "searchableText": "truck lateral camera move left or right, typically keeping orientation relative to the scene. travel beside action, reveal along a line, or create dynamic product profiling. professional-camera-movement camera-movement professional truck lateral track left track right truck lateral track left track right",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "truck-lateral-camera",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "truck",
+    "kind": "camera-movement",
+    "purpose": "Travel beside action, reveal along a line, or create dynamic product profiling.",
+    "whenToUse": [
+      "Following walking talent",
+      "Profiling a product row",
+      "Parallax past foreground elements"
+    ],
+    "whenNotToUse": [
+      "When a pan from a fixed point is enough",
+      "Unsafe/uneven lateral path"
+    ],
+    "advantages": [
+      "Strong depth parallax",
+      "Energetic storytelling"
+    ],
+    "limitations": [
+      "Requires clear lateral path",
+      "Background pacing must be managed"
+    ],
+    "relatedCameraSettings": [
+      "shutter-speed",
+      "focus",
+      "focal-length",
+      "frame-rate"
+    ],
+    "relatedStorytellingTechniques": [
+      "journey beside character",
+      "layered depth"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-truck",
+      "title": "Truck",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Lateral camera move left or right, typically keeping orientation relative to the scene.",
+      "coreConcepts": [
+        "truck",
+        "lateral",
+        "track left",
+        "track right"
+      ],
+      "definitions": [
+        "Travel beside action, reveal along a line, or create dynamic product profiling."
+      ],
+      "rules": [
+        "Use when: Following walking talent",
+        "Use when: Profiling a product row",
+        "Use when: Parallax past foreground elements",
+        "Do not use when: When a pan from a fixed point is enough",
+        "Do not use when: Unsafe/uneven lateral path"
+      ],
+      "bestPractices": [
+        "Match speed to subject",
+        "Use foreground layers for depth",
+        "Keep horizon level"
+      ],
+      "professionalTechniques": [
+        "Strong depth parallax",
+        "Energetic storytelling"
+      ],
+      "workflow": [
+        "Choose Truck",
+        "Match speed to subject",
+        "Use foreground layers for depth",
+        "Keep horizon level"
+      ],
+      "decisionRules": [
+        "Use when: Following walking talent",
+        "Use when: Profiling a product row",
+        "Use when: Parallax past foreground elements",
+        "Avoid when: When a pan from a fixed point is enough",
+        "Avoid when: Unsafe/uneven lateral path"
+      ],
+      "commonMistakes": [
+        "Speed mismatches causing subject drift",
+        "Rolling shutter from overly fast trucks"
+      ],
+      "troubleshooting": [
+        "Limitation: Requires clear lateral path",
+        "Limitation: Background pacing must be managed"
+      ],
+      "recommendations": [
+        "Match speed to subject",
+        "Use foreground layers for depth",
+        "Keep horizon level"
+      ],
+      "examples": [
+        "Truck along a fashion look",
+        "Lateral move past product hero with foreground blur"
+      ],
+      "professionalStandards": [
+        "journey beside character",
+        "layered depth"
+      ],
+      "relatedTopics": [
+        "tracking-shot",
+        "pan",
+        "dolly",
+        "gimbal",
+        "shutter-speed",
+        "focus",
+        "focal-length",
+        "frame-rate"
+      ],
+      "keywords": [
+        "truck",
+        "lateral",
+        "track left",
+        "track right"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:truck",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Truck",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Lateral camera move left or right, typically keeping orientation relative to the scene.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Travel beside action, reveal along a line, or create dynamic product profiling."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Following walking talent",
+            "Profiling a product row",
+            "Parallax past foreground elements"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "When a pan from a fixed point is enough",
+            "Unsafe/uneven lateral path"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match speed to subject",
+            "Use foreground layers for depth",
+            "Keep horizon level"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Truck along a fashion look",
+            "Lateral move past product hero with foreground blur"
+          ]
+        }
+      ],
+      "concepts": [
+        "truck",
+        "lateral",
+        "track left",
+        "track right"
+      ],
+      "entities": [
+        "Truck",
+        "camera-movement-knowledge",
+        "composition-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "truck",
+        "lateral",
+        "track left",
+        "track right"
+      ],
+      "rules": [
+        "Avoid when: When a pan from a fixed point is enough",
+        "Avoid when: Unsafe/uneven lateral path"
+      ],
+      "bestPractices": [
+        "Match speed to subject",
+        "Use foreground layers for depth",
+        "Keep horizon level"
+      ],
+      "professionalTechniques": [
+        "Strong depth parallax",
+        "Energetic storytelling"
+      ],
+      "examples": [
+        "Truck along a fashion look",
+        "Lateral move past product hero with foreground blur"
+      ],
+      "commonMistakes": [
+        "Speed mismatches causing subject drift",
+        "Rolling shutter from overly fast trucks"
+      ],
+      "qualityRules": [
+        "Requires clear lateral path",
+        "Background pacing must be managed"
+      ],
+      "decisionRules": [
+        "Use when: Following walking talent",
+        "Use when: Profiling a product row",
+        "Use when: Parallax past foreground elements",
+        "Do not use when: When a pan from a fixed point is enough",
+        "Do not use when: Unsafe/uneven lateral path"
+      ],
+      "workflowSteps": [
+        "Match speed to subject",
+        "Use foreground layers for depth",
+        "Keep horizon level"
+      ],
+      "prerequisites": [
+        "shutter-speed",
+        "focus",
+        "focal-length",
+        "frame-rate"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "composition-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-tracking-shot",
+        "cmov-pan",
+        "cmov-dolly",
+        "cmov-gimbal"
+      ],
+      "definitions": [
+        "Travel beside action, reveal along a line, or create dynamic product profiling."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Match speed to subject",
+      "Use foreground layers for depth",
+      "Keep horizon level"
+    ],
+    "bestPractices": [
+      "Match speed to subject",
+      "Use foreground layers for depth",
+      "Keep horizon level"
+    ],
+    "decisionRules": [
+      "Use when: Following walking talent",
+      "Use when: Profiling a product row",
+      "Use when: Parallax past foreground elements",
+      "Do not use when: When a pan from a fixed point is enough",
+      "Do not use when: Unsafe/uneven lateral path"
+    ]
+  }
+}

@@ -1,0 +1,351 @@
+{
+  "knowledgeId": "qrule-rendering-quality-rules",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-rules",
+  "title": "Rendering Quality Rules",
+  "description": "Rules for final export fidelity, codec suitability, color, and artifact-free delivery.",
+  "summary": "Explain professional render and export readiness.",
+  "tags": [
+    "professional-quality-rules",
+    "professional",
+    "rendering-quality-rules",
+    "rendering quality",
+    "codec",
+    "bitrate",
+    "export",
+    "encoding artifacts"
+  ],
+  "keywords": [
+    "rendering quality",
+    "codec",
+    "bitrate",
+    "export",
+    "encoding artifacts"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "std-technical-standards",
+    "std-delivery-standards",
+    "qeval-technical-quality-evaluation",
+    "check-publishing-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-animation-knowledge",
+    "isq-bridge-rendering-knowledge",
+    "isq-bridge-video-editing-knowledge",
+    "isq-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:35.833Z",
+  "lastUpdated": "2026-08-08T19:18:35.833Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qrule-rendering-quality-rules",
+  "integrityStatus": "verified",
+  "contentHash": "8194f49a085c1cd58a7c1c67e94c42fea07cfb1a40abcc0071d1ba8cebc36e23",
+  "searchableText": "rendering quality rules rules for final export fidelity, codec suitability, color, and artifact-free delivery. explain professional render and export readiness. professional-quality-rules professional-quality-rules professional rendering-quality-rules rendering quality codec bitrate export encoding artifacts rendering quality codec bitrate export encoding artifacts",
+  "classification": {
+    "category": "professional-quality-rules",
+    "topic": "rendering-quality-rules",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "rendering-quality-rules",
+    "kind": "professional-quality-rules",
+    "purpose": "Explain professional render and export readiness.",
+    "professionalDefinition": "Rendering quality rules verify that the final encode preserves intended visual and audio quality within the correct format, frame rate, color handling, and bitrate constraints.",
+    "qualityRules": [
+      "Master and delivery settings match the target specification",
+      "No encoding artifacts compromise important detail",
+      "Audio, captions, and color survive the final encode"
+    ],
+    "workflow": [
+      "Inspect against the rule set",
+      "Identify material defects",
+      "Prioritize remediation",
+      "Re-review after correction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qrule-rendering-quality-rules",
+      "title": "Rendering Quality Rules",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "description": "Rules for final export fidelity, codec suitability, color, and artifact-free delivery.",
+      "coreConcepts": [
+        "rendering quality",
+        "codec",
+        "bitrate",
+        "export",
+        "encoding artifacts"
+      ],
+      "definitions": [
+        "Rendering quality rules verify that the final encode preserves intended visual and audio quality within the correct format, frame rate, color handling, and bitrate constraints.",
+        "Explain professional render and export readiness."
+      ],
+      "rules": [
+        "Quality rule: Master and delivery settings match the target specification",
+        "Quality rule: No encoding artifacts compromise important detail",
+        "Quality rule: Audio, captions, and color survive the final encode"
+      ],
+      "bestPractices": [
+        "Export platform-specific versions",
+        "Inspect a full encoded file",
+        "Retain a high-quality master"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "workflow": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "decisionRules": [
+        "Apply: Master and delivery settings match the target specification",
+        "Apply: No encoding artifacts compromise important detail",
+        "Apply: Audio, captions, and color survive the final encode"
+      ],
+      "commonMistakes": [
+        "Only checking the timeline preview",
+        "Using one codec and bitrate for every destination"
+      ],
+      "troubleshooting": [
+        "Avoid: Only checking the timeline preview",
+        "Avoid: Using one codec and bitrate for every destination"
+      ],
+      "recommendations": [
+        "Export platform-specific versions",
+        "Inspect a full encoded file",
+        "Retain a high-quality master"
+      ],
+      "examples": [
+        "Professional application of Rendering Quality Rules in a studio review."
+      ],
+      "professionalStandards": [
+        "Master and delivery settings match the target specification",
+        "No encoding artifacts compromise important detail",
+        "Audio, captions, and color survive the final encode"
+      ],
+      "relatedTopics": [
+        "technical-standards",
+        "delivery-standards",
+        "technical-quality-evaluation",
+        "publishing-checklist"
+      ],
+      "keywords": [
+        "rendering quality",
+        "codec",
+        "bitrate",
+        "export",
+        "encoding artifacts"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:rendering-quality-rules",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Rendering Quality Rules",
+      "category": "professional-quality-rules",
+      "domain": "industry-standards-knowledge",
+      "description": "Rules for final export fidelity, codec suitability, color, and artifact-free delivery.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Rendering quality rules verify that the final encode preserves intended visual and audio quality within the correct format, frame rate, color handling, and bitrate constraints.",
+            "Explain professional render and export readiness."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Master and delivery settings match the target specification",
+            "No encoding artifacts compromise important detail",
+            "Audio, captions, and color survive the final encode"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Export platform-specific versions",
+            "Inspect a full encoded file",
+            "Retain a high-quality master"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Inspect against the rule set",
+            "Identify material defects",
+            "Prioritize remediation",
+            "Re-review after correction"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Rendering Quality Rules in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "rendering quality",
+        "codec",
+        "bitrate",
+        "export",
+        "encoding artifacts"
+      ],
+      "entities": [
+        "Rendering Quality Rules",
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "rendering quality",
+        "codec",
+        "bitrate",
+        "export",
+        "encoding artifacts"
+      ],
+      "rules": [
+        "Master and delivery settings match the target specification",
+        "No encoding artifacts compromise important detail",
+        "Audio, captions, and color survive the final encode"
+      ],
+      "bestPractices": [
+        "Export platform-specific versions",
+        "Inspect a full encoded file",
+        "Retain a high-quality master"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "examples": [
+        "Professional application of Rendering Quality Rules in a studio review."
+      ],
+      "commonMistakes": [
+        "Only checking the timeline preview",
+        "Using one codec and bitrate for every destination"
+      ],
+      "qualityRules": [
+        "Master and delivery settings match the target specification",
+        "No encoding artifacts compromise important detail",
+        "Audio, captions, and color survive the final encode"
+      ],
+      "decisionRules": [
+        "Apply: Master and delivery settings match the target specification",
+        "Apply: No encoding artifacts compromise important detail",
+        "Apply: Audio, captions, and color survive the final encode"
+      ],
+      "workflowSteps": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "prerequisites": [
+        "Inspect against the rule set"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "animation-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "std-technical-standards",
+        "std-delivery-standards",
+        "qeval-technical-quality-evaluation",
+        "check-publishing-checklist"
+      ],
+      "definitions": [
+        "Rendering quality rules verify that the final encode preserves intended visual and audio quality within the correct format, frame rate, color handling, and bitrate constraints."
+      ],
+      "troubleshooting": [
+        "Avoid: Only checking the timeline preview",
+        "Avoid: Using one codec and bitrate for every destination"
+      ],
+      "recommendations": [
+        "Export platform-specific versions",
+        "Inspect a full encoded file",
+        "Retain a high-quality master"
+      ],
+      "professionalStandards": [
+        "Master and delivery settings match the target specification",
+        "No encoding artifacts compromise important detail",
+        "Audio, captions, and color survive the final encode"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:rendering-quality-rules",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Export platform-specific versions",
+      "Inspect a full encoded file",
+      "Retain a high-quality master"
+    ],
+    "bestPractices": [
+      "Export platform-specific versions",
+      "Inspect a full encoded file",
+      "Retain a high-quality master"
+    ],
+    "decisionRules": [
+      "Quality rule: Master and delivery settings match the target specification",
+      "Quality rule: No encoding artifacts compromise important detail",
+      "Quality rule: Audio, captions, and color survive the final encode"
+    ]
+  }
+}

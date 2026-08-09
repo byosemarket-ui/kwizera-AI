@@ -1,0 +1,360 @@
+{
+  "knowledgeId": "check-pre-production-checklist",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-checklists",
+  "title": "Pre-production Checklist",
+  "description": "A checklist for brief, audience, scope, rights, logistics, risk, and technical readiness before production.",
+  "summary": "Give AI Me an actionable pre-production quality-control sequence.",
+  "tags": [
+    "professional-checklists",
+    "professional",
+    "pre-production-checklist",
+    "pre-production checklist",
+    "brief",
+    "call sheet",
+    "release",
+    "risk"
+  ],
+  "keywords": [
+    "pre-production checklist",
+    "brief",
+    "call sheet",
+    "release",
+    "risk"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "bp-planning-best-practices",
+    "std-production-standards",
+    "check-production-checklist",
+    "std-quality-assurance",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:57.474Z",
+  "lastUpdated": "2026-08-08T19:18:57.474Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\check-pre-production-checklist",
+  "integrityStatus": "verified",
+  "contentHash": "9447fb4fbcd13db3500b39e10d3143e9ff6ce67cd8019a9fdb91b01a8fbfd7d7",
+  "searchableText": "pre-production checklist a checklist for brief, audience, scope, rights, logistics, risk, and technical readiness before production. give ai me an actionable pre-production quality-control sequence. professional-checklists professional-checklists professional pre-production-checklist pre-production checklist brief call sheet release risk pre-production checklist brief call sheet release risk",
+  "classification": {
+    "category": "professional-checklists",
+    "topic": "pre-production-checklist-checklist",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "pre-production-checklist",
+    "kind": "professional-checklists",
+    "purpose": "Give AI Me an actionable pre-production quality-control sequence.",
+    "professionalDefinition": "A pre-production checklist is a controlled readiness review ensuring creative intent, people, assets, permissions, schedule, risks, and technical plan are confirmed before execution.",
+    "qualityRules": [
+      "Brief and acceptance criteria are approved",
+      "Rights, permissions, and dependencies are verified",
+      "Technical and safety risks have an owner"
+    ],
+    "workflow": [
+      "Confirm brief and audience",
+      "Confirm assets, talent, permissions",
+      "Confirm schedule and contingency",
+      "Confirm technical plan",
+      "Approve production readiness"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "check-pre-production-checklist",
+      "title": "Pre-production Checklist",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "description": "A checklist for brief, audience, scope, rights, logistics, risk, and technical readiness before production.",
+      "coreConcepts": [
+        "pre-production checklist",
+        "brief",
+        "call sheet",
+        "release",
+        "risk"
+      ],
+      "definitions": [
+        "A pre-production checklist is a controlled readiness review ensuring creative intent, people, assets, permissions, schedule, risks, and technical plan are confirmed before execution.",
+        "Give AI Me an actionable pre-production quality-control sequence."
+      ],
+      "rules": [
+        "Quality rule: Brief and acceptance criteria are approved",
+        "Quality rule: Rights, permissions, and dependencies are verified",
+        "Quality rule: Technical and safety risks have an owner"
+      ],
+      "bestPractices": [
+        "Confirm objectives and audience",
+        "Lock essential logistics and releases",
+        "Review technical and safety plan"
+      ],
+      "professionalTechniques": [
+        "Confirm brief and audience",
+        "Confirm assets, talent, permissions",
+        "Confirm schedule and contingency",
+        "Confirm technical plan",
+        "Approve production readiness"
+      ],
+      "workflow": [
+        "Confirm brief and audience",
+        "Confirm assets, talent, permissions",
+        "Confirm schedule and contingency",
+        "Confirm technical plan",
+        "Approve production readiness"
+      ],
+      "decisionRules": [
+        "Apply: Brief and acceptance criteria are approved",
+        "Apply: Rights, permissions, and dependencies are verified",
+        "Apply: Technical and safety risks have an owner"
+      ],
+      "commonMistakes": [
+        "Assuming verbal agreement is enough",
+        "Skipping contingency planning"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming verbal agreement is enough",
+        "Avoid: Skipping contingency planning"
+      ],
+      "recommendations": [
+        "Confirm objectives and audience",
+        "Lock essential logistics and releases",
+        "Review technical and safety plan"
+      ],
+      "examples": [
+        "Shoot-ready package: approved brief, call sheet, release list, shot plan, backup plan."
+      ],
+      "professionalStandards": [
+        "Brief and acceptance criteria are approved",
+        "Rights, permissions, and dependencies are verified",
+        "Technical and safety risks have an owner"
+      ],
+      "relatedTopics": [
+        "planning-best-practices",
+        "production-standards",
+        "production-checklist",
+        "quality-assurance"
+      ],
+      "keywords": [
+        "pre-production checklist",
+        "brief",
+        "call sheet",
+        "release",
+        "risk"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:pre-production-checklist",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Pre-production Checklist",
+      "category": "professional-checklists",
+      "domain": "industry-standards-knowledge",
+      "description": "A checklist for brief, audience, scope, rights, logistics, risk, and technical readiness before production.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A pre-production checklist is a controlled readiness review ensuring creative intent, people, assets, permissions, schedule, risks, and technical plan are confirmed before execution.",
+            "Give AI Me an actionable pre-production quality-control sequence."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Brief and acceptance criteria are approved",
+            "Rights, permissions, and dependencies are verified",
+            "Technical and safety risks have an owner"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Confirm objectives and audience",
+            "Lock essential logistics and releases",
+            "Review technical and safety plan"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Confirm brief and audience",
+            "Confirm assets, talent, permissions",
+            "Confirm schedule and contingency",
+            "Confirm technical plan",
+            "Approve production readiness"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Shoot-ready package: approved brief, call sheet, release list, shot plan, backup plan."
+          ]
+        }
+      ],
+      "concepts": [
+        "pre-production checklist",
+        "brief",
+        "call sheet",
+        "release",
+        "risk"
+      ],
+      "entities": [
+        "Pre-production Checklist",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "pre-production checklist",
+        "brief",
+        "call sheet",
+        "release",
+        "risk"
+      ],
+      "rules": [
+        "Brief and acceptance criteria are approved",
+        "Rights, permissions, and dependencies are verified",
+        "Technical and safety risks have an owner"
+      ],
+      "bestPractices": [
+        "Confirm objectives and audience",
+        "Lock essential logistics and releases",
+        "Review technical and safety plan"
+      ],
+      "professionalTechniques": [
+        "Confirm brief and audience",
+        "Confirm assets, talent, permissions",
+        "Confirm schedule and contingency",
+        "Confirm technical plan",
+        "Approve production readiness"
+      ],
+      "examples": [
+        "Shoot-ready package: approved brief, call sheet, release list, shot plan, backup plan."
+      ],
+      "commonMistakes": [
+        "Assuming verbal agreement is enough",
+        "Skipping contingency planning"
+      ],
+      "qualityRules": [
+        "Brief and acceptance criteria are approved",
+        "Rights, permissions, and dependencies are verified",
+        "Technical and safety risks have an owner"
+      ],
+      "decisionRules": [
+        "Apply: Brief and acceptance criteria are approved",
+        "Apply: Rights, permissions, and dependencies are verified",
+        "Apply: Technical and safety risks have an owner"
+      ],
+      "workflowSteps": [
+        "Confirm brief and audience",
+        "Confirm assets, talent, permissions",
+        "Confirm schedule and contingency",
+        "Confirm technical plan",
+        "Approve production readiness"
+      ],
+      "prerequisites": [
+        "Confirm brief and audience"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "bp-planning-best-practices",
+        "std-production-standards",
+        "check-production-checklist",
+        "std-quality-assurance"
+      ],
+      "definitions": [
+        "A pre-production checklist is a controlled readiness review ensuring creative intent, people, assets, permissions, schedule, risks, and technical plan are confirmed before execution."
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming verbal agreement is enough",
+        "Avoid: Skipping contingency planning"
+      ],
+      "recommendations": [
+        "Confirm objectives and audience",
+        "Lock essential logistics and releases",
+        "Review technical and safety plan"
+      ],
+      "professionalStandards": [
+        "Brief and acceptance criteria are approved",
+        "Rights, permissions, and dependencies are verified",
+        "Technical and safety risks have an owner"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:pre-production-checklist",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-checklists",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Confirm objectives and audience",
+      "Lock essential logistics and releases",
+      "Review technical and safety plan"
+    ],
+    "bestPractices": [
+      "Confirm objectives and audience",
+      "Lock essential logistics and releases",
+      "Review technical and safety plan"
+    ],
+    "decisionRules": [
+      "Quality rule: Brief and acceptance criteria are approved",
+      "Quality rule: Rights, permissions, and dependencies are verified",
+      "Quality rule: Technical and safety risks have an owner"
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:47.829Z","level":"info","event":"startup","message":"Scene Generation Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-generation\\scenes\\engine"}}
+{"timestamp":"2026-08-08T19:46:52.499Z","level":"info","event":"startup","message":"Scene Generation Engine startup complete","data":{"recordsLoaded":0}}

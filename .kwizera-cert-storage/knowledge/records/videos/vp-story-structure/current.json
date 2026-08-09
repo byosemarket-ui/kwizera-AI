@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-story-structure",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Story Structure",
+  "description": "Narrative architecture for professional videos: setup, conflict or desire, proof, and resolution aligned to runtime.",
+  "summary": "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution.",
+  "tags": [
+    "video-production",
+    "professional",
+    "story-structure",
+    "story structure",
+    "beats",
+    "narrative",
+    "arc",
+    "CTA"
+  ],
+  "keywords": [
+    "story structure",
+    "beats",
+    "narrative",
+    "arc",
+    "CTA"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-scene-planning",
+    "vp-video-pacing",
+    "vp-commercial-video-production",
+    "vp-video-production-fundamentals",
+    "vp-bridge-storytelling-knowledge",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:55.339Z",
+  "lastUpdated": "2026-08-08T16:45:09.570Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-story-structure",
+  "integrityStatus": "verified",
+  "contentHash": "997c6789259f092ab7403a1d4c99083db139cd1d72dab74a4477173fe8e896c1",
+  "searchableText": "story structure narrative architecture for professional videos: setup, conflict or desire, proof, and resolution aligned to runtime. story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution. professional-video-production video-production professional story-structure story structure beats narrative arc cta story structure beats narrative arc cta",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "story-structure-narrative",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "story-structure",
+    "professionalDefinition": "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-story-structure",
+      "title": "Story Structure",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Narrative architecture for professional videos: setup, conflict or desire, proof, and resolution aligned to runtime.",
+      "coreConcepts": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "definitions": [
+        "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution."
+      ],
+      "rules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "bestPractices": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "professionalTechniques": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "workflow": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "decisionRules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "commonMistakes": [
+        "Starting in the middle without orientation for the viewer.",
+        "Resolving too early and diluting the ending CTA.",
+        "Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting in the middle without orientation for the viewer.",
+        "Avoid: Resolving too early and diluting the ending CTA.",
+        "Avoid: Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "recommendations": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "examples": [
+        "Problem → aspiration → demonstration → social proof → CTA.",
+        "Day-in-the-life structure for founder brand film."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "scene-planning",
+        "video-pacing",
+        "commercial-video-production",
+        "video-production-fundamentals"
+      ],
+      "keywords": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:story-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Story Structure",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Narrative architecture for professional videos: setup, conflict or desire, proof, and resolution aligned to runtime.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+            "Make each beat earn the next; remove ornamental scenes.",
+            "Align emotional peak with product or message reveal when selling.",
+            "Use recurring visual motifs to reinforce theme."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Write the one-sentence story promise.",
+            "List beats against target duration.",
+            "Assign shots/scenes to each beat.",
+            "Edit against the beat sheet, not against favorite takes alone."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If a scene does not advance story or proof, cut it.",
+            "Always place the strongest retention beat near the open for short ads.",
+            "When runtime shrinks, preserve hook and CTA first.",
+            "Never invent a climax that the footage cannot support."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Problem → aspiration → demonstration → social proof → CTA.",
+            "Day-in-the-life structure for founder brand film."
+          ]
+        }
+      ],
+      "concepts": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "entities": [
+        "Story Structure",
+        "storytelling-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "rules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "bestPractices": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "professionalTechniques": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "examples": [
+        "Problem → aspiration → demonstration → social proof → CTA.",
+        "Day-in-the-life structure for founder brand film."
+      ],
+      "commonMistakes": [
+        "Starting in the middle without orientation for the viewer.",
+        "Resolving too early and diluting the ending CTA.",
+        "Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "workflowSteps": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "prerequisites": [
+        "Write the one-sentence story promise."
+      ],
+      "dependencies": [
+        "storytelling-knowledge",
+        "video-production-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-scene-planning",
+        "vp-video-pacing",
+        "vp-commercial-video-production",
+        "vp-video-production-fundamentals"
+      ],
+      "definitions": [
+        "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting in the middle without orientation for the viewer.",
+        "Avoid: Resolving too early and diluting the ending CTA.",
+        "Avoid: Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "recommendations": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

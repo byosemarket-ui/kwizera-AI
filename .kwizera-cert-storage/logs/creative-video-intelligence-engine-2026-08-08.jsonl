@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:40.510Z","level":"info","event":"startup","message":"Creative Video Intelligence Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-intelligence\\creative\\engine"}}
+{"timestamp":"2026-08-08T19:46:43.707Z","level":"info","event":"startup","message":"Creative Video Intelligence Engine startup complete","data":{"recordsLoaded":0,"templates":10}}

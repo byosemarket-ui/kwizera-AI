@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "ig-instagram-stories-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-instagram",
+  "title": "Stories Strategy",
+  "description": "Using ephemeral Stories for intimacy, polls, and behind-the-scenes.",
+  "summary": "Recommend Stories formats and engagement tactics.",
+  "tags": [
+    "professional-instagram",
+    "professional",
+    "instagram-stories-strategy",
+    "instagram stories",
+    "ephemeral",
+    "stickers",
+    "highlights",
+    "polls"
+  ],
+  "keywords": [
+    "instagram stories",
+    "ephemeral",
+    "stickers",
+    "highlights",
+    "polls"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "ig-instagram-engagement-optimization",
+    "sm-community-building",
+    "ig-instagram-feed-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-customer-psychology",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:36.440Z",
+  "lastUpdated": "2026-08-08T19:03:36.440Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\ig-instagram-stories-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "ddc114af64a04aed37e70418abb2d1eb53f1cb1b073ee5724207381bb3c28d20",
+  "searchableText": "stories strategy using ephemeral stories for intimacy, polls, and behind-the-scenes. recommend stories formats and engagement tactics. professional-instagram professional-instagram professional instagram-stories-strategy instagram stories ephemeral stickers highlights polls instagram stories ephemeral stickers highlights polls",
+  "classification": {
+    "category": "professional-instagram",
+    "topic": "stories-strategy-using",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "instagram-stories-strategy",
+    "kind": "professional-instagram",
+    "purpose": "Recommend Stories formats and engagement tactics.",
+    "professionalDefinition": "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "ig-instagram-stories-strategy",
+      "title": "Stories Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Using ephemeral Stories for intimacy, polls, and behind-the-scenes.",
+      "coreConcepts": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "definitions": [
+        "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship.",
+        "Recommend Stories formats and engagement tactics."
+      ],
+      "rules": [
+        "Practice: Use polls and questions purposefully",
+        "Practice: Sequence stories like mini chapters",
+        "Practice: Drive to Highlights for evergreen"
+      ],
+      "bestPractices": [
+        "Use polls and questions purposefully",
+        "Sequence stories like mini chapters",
+        "Drive to Highlights for evergreen"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Use polls and questions purposefully",
+        "Follow: Sequence stories like mini chapters",
+        "Follow: Drive to Highlights for evergreen"
+      ],
+      "commonMistakes": [
+        "Story spam with no narrative",
+        "Never saving useful stories to Highlights"
+      ],
+      "troubleshooting": [
+        "Avoid: Story spam with no narrative",
+        "Avoid: Never saving useful stories to Highlights"
+      ],
+      "recommendations": [
+        "Use polls and questions purposefully",
+        "Sequence stories like mini chapters",
+        "Drive to Highlights for evergreen"
+      ],
+      "examples": [
+        "Professional application of Stories Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship."
+      ],
+      "relatedTopics": [
+        "instagram-engagement-optimization",
+        "community-building",
+        "instagram-feed-strategy"
+      ],
+      "keywords": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-stories-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Stories Strategy",
+      "category": "professional-instagram",
+      "domain": "instagram-knowledge",
+      "description": "Using ephemeral Stories for intimacy, polls, and behind-the-scenes.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend Stories formats and engagement tactics."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use polls and questions purposefully",
+            "Sequence stories like mini chapters",
+            "Drive to Highlights for evergreen"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Stories Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "entities": [
+        "Stories Strategy",
+        "social-media-knowledge",
+        "customer-psychology",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "instagram stories",
+        "ephemeral",
+        "stickers",
+        "highlights",
+        "polls"
+      ],
+      "rules": [
+        "Avoid: Story spam with no narrative",
+        "Avoid: Never saving useful stories to Highlights"
+      ],
+      "bestPractices": [
+        "Use polls and questions purposefully",
+        "Sequence stories like mini chapters",
+        "Drive to Highlights for evergreen"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Stories Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Story spam with no narrative",
+        "Never saving useful stories to Highlights"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Use polls and questions purposefully",
+        "Practice: Sequence stories like mini chapters",
+        "Practice: Drive to Highlights for evergreen"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "customer-psychology",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "ig-instagram-engagement-optimization",
+        "sm-community-building",
+        "ig-instagram-feed-strategy"
+      ],
+      "definitions": [
+        "Stories strategy uses 24-hour Instagram Stories for frequent, low-friction updates, interactive stickers, and sequential narratives that deepen relationship.",
+        "Recommend Stories formats and engagement tactics."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "instagram-knowledge",
+      "category": "professional-instagram",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Use polls and questions purposefully",
+      "Sequence stories like mini chapters",
+      "Drive to Highlights for evergreen"
+    ],
+    "bestPractices": [
+      "Use polls and questions purposefully",
+      "Sequence stories like mini chapters",
+      "Drive to Highlights for evergreen"
+    ],
+    "decisionRules": [
+      "Practice: Use polls and questions purposefully",
+      "Practice: Sequence stories like mini chapters",
+      "Practice: Drive to Highlights for evergreen"
+    ]
+  }
+}

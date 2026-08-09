@@ -1,0 +1,309 @@
+{
+  "knowledgeId": "cust-emotional-triggers",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Emotional Triggers",
+  "description": "Emotions that move attention and action—used ethically in commercial creative.",
+  "summary": "Recommend emotional tone for hooks and stories without manipulation that breaks trust.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "emotional-triggers",
+    "emotional triggers",
+    "emotion",
+    "affect",
+    "feeling cues"
+  ],
+  "keywords": [
+    "emotional triggers",
+    "emotion",
+    "affect",
+    "feeling cues"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cust-buying-motivation",
+    "cust-attention-psychology",
+    "vmkt-hook-creation",
+    "sales-urgency",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:45.938Z",
+  "lastUpdated": "2026-08-08T18:25:45.938Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-emotional-triggers",
+  "integrityStatus": "verified",
+  "contentHash": "cb7e81ff88eb4d7f02c5aa56f58acde90299b7f66ecf45203f46ad4d980f2abb",
+  "searchableText": "emotional triggers emotions that move attention and action—used ethically in commercial creative. recommend emotional tone for hooks and stories without manipulation that breaks trust. professional-customer-psychology professional-customer-psychology professional emotional-triggers emotional triggers emotion affect feeling cues emotional triggers emotion affect feeling cues",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "emotional-triggers-emotions",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "emotional-triggers",
+    "kind": "professional-customer-psychology",
+    "purpose": "Recommend emotional tone for hooks and stories without manipulation that breaks trust.",
+    "professionalDefinition": "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth.",
+    "workflow": [
+      "Choose emotion",
+      "Design trigger moment",
+      "Resolve with product role",
+      "CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-emotional-triggers",
+      "title": "Emotional Triggers",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Emotions that move attention and action—used ethically in commercial creative.",
+      "coreConcepts": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "definitions": [
+        "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth.",
+        "Recommend emotional tone for hooks and stories without manipulation that breaks trust."
+      ],
+      "rules": [
+        "Practice: Earn emotion with truth",
+        "Practice: Match brand ethics",
+        "Practice: Resolve tension responsibly"
+      ],
+      "bestPractices": [
+        "Earn emotion with truth",
+        "Match brand ethics",
+        "Resolve tension responsibly"
+      ],
+      "professionalTechniques": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "workflow": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "decisionRules": [
+        "Follow: Earn emotion with truth",
+        "Follow: Match brand ethics",
+        "Follow: Resolve tension responsibly"
+      ],
+      "commonMistakes": [
+        "Fearmongering",
+        "Emotion unrelated to offer"
+      ],
+      "troubleshooting": [
+        "Avoid: Fearmongering",
+        "Avoid: Emotion unrelated to offer"
+      ],
+      "recommendations": [
+        "Earn emotion with truth",
+        "Match brand ethics",
+        "Resolve tension responsibly"
+      ],
+      "examples": [
+        "Relief after chaos messy-kitchen → clean system demo"
+      ],
+      "professionalStandards": [
+        "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth."
+      ],
+      "relatedTopics": [
+        "buying-motivation",
+        "attention-psychology",
+        "hook-creation",
+        "urgency"
+      ],
+      "keywords": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:emotional-triggers",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Emotional Triggers",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "Emotions that move attention and action—used ethically in commercial creative.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend emotional tone for hooks and stories without manipulation that breaks trust."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose emotion",
+            "Design trigger moment",
+            "Resolve with product role",
+            "CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Earn emotion with truth",
+            "Match brand ethics",
+            "Resolve tension responsibly"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Relief after chaos messy-kitchen → clean system demo"
+          ]
+        }
+      ],
+      "concepts": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "entities": [
+        "Emotional Triggers",
+        "customer-psychology",
+        "storytelling-knowledge",
+        "sales-psychology",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "rules": [
+        "Avoid: Fearmongering",
+        "Avoid: Emotion unrelated to offer"
+      ],
+      "bestPractices": [
+        "Earn emotion with truth",
+        "Match brand ethics",
+        "Resolve tension responsibly"
+      ],
+      "professionalTechniques": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "examples": [
+        "Relief after chaos messy-kitchen → clean system demo"
+      ],
+      "commonMistakes": [
+        "Fearmongering",
+        "Emotion unrelated to offer"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Earn emotion with truth",
+        "Practice: Match brand ethics",
+        "Practice: Resolve tension responsibly"
+      ],
+      "workflowSteps": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "storytelling-knowledge",
+        "sales-psychology",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cust-buying-motivation",
+        "cust-attention-psychology",
+        "vmkt-hook-creation",
+        "sales-urgency"
+      ],
+      "definitions": [
+        "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth.",
+        "Recommend emotional tone for hooks and stories without manipulation that breaks trust."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Earn emotion with truth",
+      "Match brand ethics",
+      "Resolve tension responsibly"
+    ],
+    "bestPractices": [
+      "Earn emotion with truth",
+      "Match brand ethics",
+      "Resolve tension responsibly"
+    ],
+    "decisionRules": [
+      "Practice: Earn emotion with truth",
+      "Practice: Match brand ethics",
+      "Practice: Resolve tension responsibly"
+    ]
+  }
+}

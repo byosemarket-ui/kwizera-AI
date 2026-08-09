@@ -1,0 +1,303 @@
+{
+  "knowledgeId": "brand-brand-consistency",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Brand Consistency",
+  "description": "Keeping identity and message coherent across touchpoints and time.",
+  "summary": "Prevent fragmented campaigns that dilute memory.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "brand-consistency",
+    "brand consistency",
+    "coherence",
+    "guidelines adherence"
+  ],
+  "keywords": [
+    "brand consistency",
+    "coherence",
+    "guidelines adherence"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "brand-brand-guidelines",
+    "brand-visual-identity",
+    "brand-brand-voice",
+    "brand-logo-usage",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:32.441Z",
+  "lastUpdated": "2026-08-08T18:25:32.441Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-brand-consistency",
+  "integrityStatus": "verified",
+  "contentHash": "6cf045dec75027093af5539ded07d69fc5654941f01fe4ef30db1dd1fef0fd04",
+  "searchableText": "brand consistency keeping identity and message coherent across touchpoints and time. prevent fragmented campaigns that dilute memory. professional-branding professional-branding professional brand-consistency brand consistency coherence guidelines adherence brand consistency coherence guidelines adherence",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "brand-consistency-keeping",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-consistency",
+    "kind": "professional-branding",
+    "purpose": "Prevent fragmented campaigns that dilute memory.",
+    "professionalDefinition": "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound.",
+    "workflow": [
+      "Guidelines",
+      "Templates",
+      "Review gates",
+      "Audit"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-brand-consistency",
+      "title": "Brand Consistency",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Keeping identity and message coherent across touchpoints and time.",
+      "coreConcepts": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "definitions": [
+        "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound.",
+        "Prevent fragmented campaigns that dilute memory."
+      ],
+      "rules": [
+        "Practice: Follow guidelines",
+        "Practice: Allow controlled flexibility",
+        "Practice: QA across channels"
+      ],
+      "bestPractices": [
+        "Follow guidelines",
+        "Allow controlled flexibility",
+        "QA across channels"
+      ],
+      "professionalTechniques": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "workflow": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "decisionRules": [
+        "Follow: Follow guidelines",
+        "Follow: Allow controlled flexibility",
+        "Follow: QA across channels"
+      ],
+      "commonMistakes": [
+        "Every campaign reinvented",
+        "Rigid rules that break platforms"
+      ],
+      "troubleshooting": [
+        "Avoid: Every campaign reinvented",
+        "Avoid: Rigid rules that break platforms"
+      ],
+      "recommendations": [
+        "Follow guidelines",
+        "Allow controlled flexibility",
+        "QA across channels"
+      ],
+      "examples": [
+        "Same end-card layout across all video lengths"
+      ],
+      "professionalStandards": [
+        "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound."
+      ],
+      "relatedTopics": [
+        "brand-guidelines",
+        "visual-identity",
+        "brand-voice",
+        "logo-usage"
+      ],
+      "keywords": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-consistency",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Consistency",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "Keeping identity and message coherent across touchpoints and time.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Prevent fragmented campaigns that dilute memory."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Guidelines",
+            "Templates",
+            "Review gates",
+            "Audit"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Follow guidelines",
+            "Allow controlled flexibility",
+            "QA across channels"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Same end-card layout across all video lengths"
+          ]
+        }
+      ],
+      "concepts": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "entities": [
+        "Brand Consistency",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "rules": [
+        "Avoid: Every campaign reinvented",
+        "Avoid: Rigid rules that break platforms"
+      ],
+      "bestPractices": [
+        "Follow guidelines",
+        "Allow controlled flexibility",
+        "QA across channels"
+      ],
+      "professionalTechniques": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "examples": [
+        "Same end-card layout across all video lengths"
+      ],
+      "commonMistakes": [
+        "Every campaign reinvented",
+        "Rigid rules that break platforms"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Follow guidelines",
+        "Practice: Allow controlled flexibility",
+        "Practice: QA across channels"
+      ],
+      "workflowSteps": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "brand-brand-guidelines",
+        "brand-visual-identity",
+        "brand-brand-voice",
+        "brand-logo-usage"
+      ],
+      "definitions": [
+        "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound.",
+        "Prevent fragmented campaigns that dilute memory."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Follow guidelines",
+      "Allow controlled flexibility",
+      "QA across channels"
+    ],
+    "bestPractices": [
+      "Follow guidelines",
+      "Allow controlled flexibility",
+      "QA across channels"
+    ],
+    "decisionRules": [
+      "Practice: Follow guidelines",
+      "Practice: Allow controlled flexibility",
+      "Practice: QA across channels"
+    ]
+  }
+}

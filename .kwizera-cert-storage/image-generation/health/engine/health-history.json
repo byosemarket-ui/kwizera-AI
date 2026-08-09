@@ -1,0 +1,16 @@
+[
+  {
+    "checkId": "ig-hc-1786218424762-f88145",
+    "timestamp": "2026-08-08T19:47:04.944Z",
+    "module": "system",
+    "healthScore": 89,
+    "level": "good",
+    "warnings": [],
+    "errors": [
+      "image-generation-foundation unavailable"
+    ],
+    "repairs": [],
+    "recommendations": [],
+    "performanceMs": 182
+  }
+]

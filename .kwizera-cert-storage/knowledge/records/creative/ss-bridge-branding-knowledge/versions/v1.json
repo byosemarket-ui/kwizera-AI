@@ -1,0 +1,97 @@
+{
+  "knowledgeId": "ss-bridge-branding-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "storytelling-scene-domain-bridge",
+  "title": "Branding Knowledge (related)",
+  "description": "Brand storytelling and environments must match brand systems.",
+  "summary": "Brand pillars constrain tone, world, and end cards.",
+  "tags": [
+    "storytelling-scene",
+    "domain-bridge",
+    "branding-knowledge"
+  ],
+  "keywords": [
+    "branding-knowledge",
+    "storytelling",
+    "scene",
+    "relationship"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-storytelling-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:14.137Z",
+  "lastUpdated": "2026-08-08T15:34:14.137Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\ss-bridge-branding-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "09b8fd1150686d0e461039e1282cc66987dcc0f2fcf5ae4d85053010c5a96b2f",
+  "searchableText": "branding knowledge (related) brand storytelling and environments must match brand systems. brand pillars constrain tone, world, and end cards. storytelling-scene-domain-bridge storytelling-scene domain-bridge branding-knowledge branding-knowledge storytelling scene relationship",
+  "classification": {
+    "category": "storytelling-scene-domain-bridge",
+    "topic": "branding-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "bridgeDomainId": "branding-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate storytelling/scene knowledge to branding-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Branding Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "branding-knowledge",
+      "description": "Brand storytelling and environments must match brand systems.",
+      "sections": [],
+      "concepts": [
+        "branding-knowledge"
+      ],
+      "entities": [
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "branding-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate storytelling/scene knowledge to branding-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "story-storytelling-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

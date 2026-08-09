@@ -1,0 +1,67 @@
+{
+  "snapshotId": "snap-6c815b18-1786204051874",
+  "timestamp": "2026-08-08T15:47:31.874Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "operational",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:28.759Z"
+      },
+      "reasoning-engine": {
+        "id": "reasoning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.026Z"
+      },
+      "decision-engine": {
+        "id": "decision-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.257Z"
+      },
+      "planning-engine": {
+        "id": "planning-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:29.783Z"
+      },
+      "task-manager": {
+        "id": "task-manager",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.226Z"
+      },
+      "workflow-engine": {
+        "id": "workflow-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.479Z"
+      },
+      "recommendation-engine": {
+        "id": "recommendation-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:30.851Z"
+      },
+      "multi-domain-engine": {
+        "id": "multi-domain-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:31.058Z"
+      },
+      "self-review-engine": {
+        "id": "self-review-engine",
+        "state": "running",
+        "updatedAt": "2026-08-08T15:47:31.382Z"
+      },
+      "professional-reasoning-certification": {
+        "id": "professional-reasoning-certification",
+        "state": "ready",
+        "updatedAt": "2026-08-08T15:47:31.871Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

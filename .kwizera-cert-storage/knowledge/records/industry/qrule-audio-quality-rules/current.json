@@ -1,0 +1,351 @@
+{
+  "knowledgeId": "qrule-audio-quality-rules",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-rules",
+  "title": "Audio Quality Rules",
+  "description": "Rules for clear dialogue, controlled levels, intelligibility, and clean mixes.",
+  "summary": "Explain audio readiness standards for professional content.",
+  "tags": [
+    "professional-quality-rules",
+    "professional",
+    "audio-quality-rules",
+    "audio quality",
+    "dialogue",
+    "loudness",
+    "noise",
+    "mix"
+  ],
+  "keywords": [
+    "audio quality",
+    "dialogue",
+    "loudness",
+    "noise",
+    "mix"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qeval-audio-quality-evaluation",
+    "qeval-technical-quality-evaluation",
+    "check-post-production-checklist",
+    "std-delivery-standards",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-video-editing-knowledge",
+    "isq-bridge-rendering-knowledge",
+    "isq-bridge-social-media-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:33.977Z",
+  "lastUpdated": "2026-08-08T19:18:33.977Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qrule-audio-quality-rules",
+  "integrityStatus": "verified",
+  "contentHash": "6ba19d99e8a82e1921a5916925da7a07e2a44baba60c03c617c2e5e52be9fd7a",
+  "searchableText": "audio quality rules rules for clear dialogue, controlled levels, intelligibility, and clean mixes. explain audio readiness standards for professional content. professional-quality-rules professional-quality-rules professional audio-quality-rules audio quality dialogue loudness noise mix audio quality dialogue loudness noise mix",
+  "classification": {
+    "category": "professional-quality-rules",
+    "topic": "audio-quality-rules",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "audio-quality-rules",
+    "kind": "professional-quality-rules",
+    "purpose": "Explain audio readiness standards for professional content.",
+    "professionalDefinition": "Audio quality rules evaluate intelligibility, noise, distortion, loudness, balance, synchronization, and accessibility so sound supports rather than distracts from the message.",
+    "qualityRules": [
+      "Dialogue is intelligible in the target context",
+      "No unintended clipping, hum, or distracting noise",
+      "Levels are consistent and synchronized"
+    ],
+    "workflow": [
+      "Inspect against the rule set",
+      "Identify material defects",
+      "Prioritize remediation",
+      "Re-review after correction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qrule-audio-quality-rules",
+      "title": "Audio Quality Rules",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "description": "Rules for clear dialogue, controlled levels, intelligibility, and clean mixes.",
+      "coreConcepts": [
+        "audio quality",
+        "dialogue",
+        "loudness",
+        "noise",
+        "mix"
+      ],
+      "definitions": [
+        "Audio quality rules evaluate intelligibility, noise, distortion, loudness, balance, synchronization, and accessibility so sound supports rather than distracts from the message.",
+        "Explain audio readiness standards for professional content."
+      ],
+      "rules": [
+        "Quality rule: Dialogue is intelligible in the target context",
+        "Quality rule: No unintended clipping, hum, or distracting noise",
+        "Quality rule: Levels are consistent and synchronized"
+      ],
+      "bestPractices": [
+        "Monitor with headphones and speakers",
+        "Check dialogue against noise and music",
+        "Verify loudness against delivery needs"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "workflow": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "decisionRules": [
+        "Apply: Dialogue is intelligible in the target context",
+        "Apply: No unintended clipping, hum, or distracting noise",
+        "Apply: Levels are consistent and synchronized"
+      ],
+      "commonMistakes": [
+        "Relying on laptop speakers only",
+        "Masking speech with music"
+      ],
+      "troubleshooting": [
+        "Avoid: Relying on laptop speakers only",
+        "Avoid: Masking speech with music"
+      ],
+      "recommendations": [
+        "Monitor with headphones and speakers",
+        "Check dialogue against noise and music",
+        "Verify loudness against delivery needs"
+      ],
+      "examples": [
+        "Professional application of Audio Quality Rules in a studio review."
+      ],
+      "professionalStandards": [
+        "Dialogue is intelligible in the target context",
+        "No unintended clipping, hum, or distracting noise",
+        "Levels are consistent and synchronized"
+      ],
+      "relatedTopics": [
+        "audio-quality-evaluation",
+        "technical-quality-evaluation",
+        "post-production-checklist",
+        "delivery-standards"
+      ],
+      "keywords": [
+        "audio quality",
+        "dialogue",
+        "loudness",
+        "noise",
+        "mix"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:audio-quality-rules",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Audio Quality Rules",
+      "category": "professional-quality-rules",
+      "domain": "industry-standards-knowledge",
+      "description": "Rules for clear dialogue, controlled levels, intelligibility, and clean mixes.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Audio quality rules evaluate intelligibility, noise, distortion, loudness, balance, synchronization, and accessibility so sound supports rather than distracts from the message.",
+            "Explain audio readiness standards for professional content."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Dialogue is intelligible in the target context",
+            "No unintended clipping, hum, or distracting noise",
+            "Levels are consistent and synchronized"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Monitor with headphones and speakers",
+            "Check dialogue against noise and music",
+            "Verify loudness against delivery needs"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Inspect against the rule set",
+            "Identify material defects",
+            "Prioritize remediation",
+            "Re-review after correction"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Audio Quality Rules in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "audio quality",
+        "dialogue",
+        "loudness",
+        "noise",
+        "mix"
+      ],
+      "entities": [
+        "Audio Quality Rules",
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge",
+        "rendering-knowledge",
+        "social-media-knowledge"
+      ],
+      "terminology": [
+        "audio quality",
+        "dialogue",
+        "loudness",
+        "noise",
+        "mix"
+      ],
+      "rules": [
+        "Dialogue is intelligible in the target context",
+        "No unintended clipping, hum, or distracting noise",
+        "Levels are consistent and synchronized"
+      ],
+      "bestPractices": [
+        "Monitor with headphones and speakers",
+        "Check dialogue against noise and music",
+        "Verify loudness against delivery needs"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "examples": [
+        "Professional application of Audio Quality Rules in a studio review."
+      ],
+      "commonMistakes": [
+        "Relying on laptop speakers only",
+        "Masking speech with music"
+      ],
+      "qualityRules": [
+        "Dialogue is intelligible in the target context",
+        "No unintended clipping, hum, or distracting noise",
+        "Levels are consistent and synchronized"
+      ],
+      "decisionRules": [
+        "Apply: Dialogue is intelligible in the target context",
+        "Apply: No unintended clipping, hum, or distracting noise",
+        "Apply: Levels are consistent and synchronized"
+      ],
+      "workflowSteps": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "prerequisites": [
+        "Inspect against the rule set"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge",
+        "rendering-knowledge",
+        "social-media-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qeval-audio-quality-evaluation",
+        "qeval-technical-quality-evaluation",
+        "check-post-production-checklist",
+        "std-delivery-standards"
+      ],
+      "definitions": [
+        "Audio quality rules evaluate intelligibility, noise, distortion, loudness, balance, synchronization, and accessibility so sound supports rather than distracts from the message."
+      ],
+      "troubleshooting": [
+        "Avoid: Relying on laptop speakers only",
+        "Avoid: Masking speech with music"
+      ],
+      "recommendations": [
+        "Monitor with headphones and speakers",
+        "Check dialogue against noise and music",
+        "Verify loudness against delivery needs"
+      ],
+      "professionalStandards": [
+        "Dialogue is intelligible in the target context",
+        "No unintended clipping, hum, or distracting noise",
+        "Levels are consistent and synchronized"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:audio-quality-rules",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Monitor with headphones and speakers",
+      "Check dialogue against noise and music",
+      "Verify loudness against delivery needs"
+    ],
+    "bestPractices": [
+      "Monitor with headphones and speakers",
+      "Check dialogue against noise and music",
+      "Verify loudness against delivery needs"
+    ],
+    "decisionRules": [
+      "Quality rule: Dialogue is intelligible in the target context",
+      "Quality rule: No unintended clipping, hum, or distracting noise",
+      "Quality rule: Levels are consistent and synchronized"
+    ]
+  }
+}

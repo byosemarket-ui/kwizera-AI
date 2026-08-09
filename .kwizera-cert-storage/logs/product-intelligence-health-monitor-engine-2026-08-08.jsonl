@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T19:46:22.622Z","level":"info","event":"startup","message":"Product Intelligence Health Monitor initialized","data":{"healthDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\product-intelligence\\health\\engine"}}
+{"timestamp":"2026-08-08T19:46:30.424Z","level":"info","event":"health-check","message":"Product intelligence health check complete","data":{"checkId":"pi-hc-1786218388299-5e54e7","overallScore":94,"overallLevel":"good","warnings":1}}
+{"timestamp":"2026-08-08T19:46:30.428Z","level":"info","event":"audit","message":"Product intelligence audit complete","data":{"auditId":"pi-audit-1786218390426","valid":true,"durationMs":2}}
+{"timestamp":"2026-08-08T19:46:30.430Z","level":"info","event":"startup","message":"Product Intelligence Health Monitor startup complete","data":{"overallScore":94,"overallLevel":"good","durationMs":2138}}

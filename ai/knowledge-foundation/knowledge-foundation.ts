@@ -28,6 +28,7 @@ import { ProfessionalStorytellingSceneKnowledge } from "../video-knowledge-engin
 import { ProfessionalAnimationMotionRenderingKnowledge } from "../video-knowledge-engine/professional-animation-motion-rendering-knowledge.js";
 import { ProfessionalMarketingBrandingPsychologyKnowledge } from "../video-knowledge-engine/professional-marketing-branding-psychology-knowledge.js";
 import { ProfessionalSocialMediaKnowledge } from "../video-knowledge-engine/professional-social-media-knowledge.js";
+import { ProfessionalIndustryStandardsQualityKnowledge } from "../video-knowledge-engine/professional-industry-standards-quality-knowledge.js";
 import { AiMarketingKnowledgeEngine } from "../marketing-knowledge-engine/marketing-knowledge-engine.js";
 import { AiProductKnowledgeEngine } from "../product-knowledge-engine/product-knowledge-engine.js";
 import { AiBrandKnowledgeEngine } from "../brand-knowledge-engine/brand-knowledge-engine.js";
@@ -44,7 +45,23 @@ import { AiKnowledgeProcessingEngine } from "../knowledge-processing-engine/know
 import { DocumentUnderstandingEngine } from "../knowledge-processing-engine/document-understanding-engine.js";
 import { KnowledgeExtractionEngine } from "../knowledge-processing-engine/knowledge-extraction-engine.js";
 import { KnowledgePackImportEngine } from "./knowledge-pack-import-engine.js";
+import { KnowledgeValidationIntegrationEngine } from "../knowledge-validation-integration/knowledge-validation-integration-engine.js";
+import { AiKnowledgeEvolutionEngine } from "../knowledge-evolution/knowledge-evolution-engine.js";
+import { AiFeedbackIntelligenceEngine } from "../feedback-intelligence/feedback-intelligence-engine.js";
+import { AiPerformanceAnalyticsEngine } from "../performance-analytics/performance-analytics-engine.js";
+import { AiAutonomousLearningEngine } from "../autonomous-learning/autonomous-learning-engine.js";
+import { AiWorkflowModelOptimizationEngine } from "../workflow-model-optimization/workflow-model-optimization-engine.js";
+import { AiAutonomousImprovementEngine } from "../autonomous-improvement/autonomous-improvement-engine.js";
+import { AiAutonomousIntelligenceValidationEngine } from "../autonomous-intelligence-validation/autonomous-intelligence-validation-engine.js";
+import { AiLearningCertificationEngine } from "../learning-certification/learning-certification-engine.js";
+import { AiPersonalProjectWorkspaceEngine } from "../personal-project-workspace/personal-project-workspace-engine.js";
+import { AiLocalAssetLibraryEngine } from "../local-asset-library/local-asset-library-engine.js";
+import { AiLocalProductionQueueEngine } from "../local-production-queue/local-production-queue-engine.js";
+import { AiLocalResourceManagerEngine } from "../local-resource-manager/local-resource-manager-engine.js";
+import { AiAutomationEngine } from "../automation-engine/automation-engine.js";
+import { AiWorkspaceManagerEngine } from "../workspace-manager/workspace-manager-engine.js";
 import { KnowledgeSeedingCertifier } from "./knowledge-seeding-certifier.js";
+import { ProfessionalKnowledgeCertificationEngine } from "./professional-knowledge-certification-engine.js";
 import { AiKnowledgeReasoningEngine } from "../knowledge-reasoning-engine/knowledge-reasoning-engine.js";
 import { AiKnowledgeDomainPlanner } from "../knowledge-domain-planning/knowledge-domain-planner.js";
 import { PREPARED_KNOWLEDGE_CATEGORIES } from "./knowledge-categories.js";
@@ -104,6 +121,7 @@ export class AiKnowledgeFoundation {
   readonly professionalAnimationMotionRenderingKnowledge = new ProfessionalAnimationMotionRenderingKnowledge();
   readonly professionalMarketingBrandingPsychologyKnowledge = new ProfessionalMarketingBrandingPsychologyKnowledge();
   readonly professionalSocialMediaKnowledge = new ProfessionalSocialMediaKnowledge();
+  readonly professionalIndustryStandardsQualityKnowledge = new ProfessionalIndustryStandardsQualityKnowledge();
   readonly marketingKnowledgeEngine = new AiMarketingKnowledgeEngine();
   readonly productKnowledgeEngine = new AiProductKnowledgeEngine();
   readonly brandKnowledgeEngine = new AiBrandKnowledgeEngine();
@@ -113,7 +131,23 @@ export class AiKnowledgeFoundation {
   readonly knowledgeValidationEngine = new AiKnowledgeValidationEngine();
   readonly knowledgePackValidationEngine = new KnowledgePackValidationEngine();
   readonly knowledgePackImportEngine = new KnowledgePackImportEngine();
+  readonly knowledgeValidationIntegrationEngine = new KnowledgeValidationIntegrationEngine();
+  readonly knowledgeEvolutionEngine = new AiKnowledgeEvolutionEngine();
+  readonly feedbackIntelligenceEngine = new AiFeedbackIntelligenceEngine();
+  readonly performanceAnalyticsEngine = new AiPerformanceAnalyticsEngine();
+  readonly autonomousLearningEngine = new AiAutonomousLearningEngine();
+  readonly workflowModelOptimizationEngine = new AiWorkflowModelOptimizationEngine();
+  readonly autonomousImprovementEngine = new AiAutonomousImprovementEngine();
+  readonly autonomousIntelligenceValidationEngine = new AiAutonomousIntelligenceValidationEngine();
+  readonly learningCertificationEngine = new AiLearningCertificationEngine();
+  readonly personalProjectWorkspaceEngine = new AiPersonalProjectWorkspaceEngine();
+  readonly localAssetLibraryEngine = new AiLocalAssetLibraryEngine();
+  readonly localProductionQueueEngine = new AiLocalProductionQueueEngine();
+  readonly localResourceManagerEngine = new AiLocalResourceManagerEngine();
+  readonly automationEngine = new AiAutomationEngine();
+  readonly workspaceManagerEngine = new AiWorkspaceManagerEngine();
   readonly knowledgeSeedingCertifier = new KnowledgeSeedingCertifier();
+  readonly professionalKnowledgeCertificationEngine = new ProfessionalKnowledgeCertificationEngine();
   readonly knowledgeHealthMonitorEngine = new AiKnowledgeHealthMonitorEngine();
   readonly knowledgeAcquisitionEngine = new AiKnowledgeAcquisitionEngine();
   readonly knowledgeSourceManager = new AiKnowledgeSourceManager();
@@ -276,14 +310,96 @@ export class AiKnowledgeFoundation {
     this.professionalSocialMediaKnowledge.initialize(this, this.storageRoot);
     await this.professionalSocialMediaKnowledge.runStartup();
 
+    this.professionalIndustryStandardsQualityKnowledge.initialize(this, this.storageRoot);
+    await this.professionalIndustryStandardsQualityKnowledge.runStartup();
+
     this.knowledgePackValidationEngine.initialize(this, this.storageRoot);
     await this.knowledgePackValidationEngine.runStartup();
 
     this.knowledgePackImportEngine.initialize(this, this.storageRoot);
     await this.knowledgePackImportEngine.runStartup();
 
+    this.knowledgeValidationIntegrationEngine.initialize(this.storageRoot, { foundation: this });
+    await this.knowledgeValidationIntegrationEngine.runStartup();
+
+    this.knowledgeEvolutionEngine.initialize(this.storageRoot, {
+      foundation: this,
+      validationIntegration: this.knowledgeValidationIntegrationEngine,
+    });
+    await this.knowledgeEvolutionEngine.runStartup();
+
+    this.feedbackIntelligenceEngine.initialize(this.storageRoot);
+
+    this.performanceAnalyticsEngine.initialize(this.storageRoot);
+
+    this.autonomousLearningEngine.initialize(this.storageRoot, {
+      feedback: this.feedbackIntelligenceEngine,
+      performance: this.performanceAnalyticsEngine,
+      evolution: this.knowledgeEvolutionEngine,
+    });
+
+    this.workflowModelOptimizationEngine.initialize(this.storageRoot);
+
+    this.autonomousImprovementEngine.initialize(this.storageRoot);
+
+    this.autonomousIntelligenceValidationEngine.initialize(this.storageRoot);
+
+    this.learningCertificationEngine.initialize(this.storageRoot);
+
+    this.personalProjectWorkspaceEngine.initialize(this.storageRoot);
+
+    this.localAssetLibraryEngine.initialize(this.storageRoot);
+
+    this.localProductionQueueEngine.initialize(this.storageRoot);
+
+    this.localResourceManagerEngine.initialize(this.storageRoot);
+    this.localProductionQueueEngine.attachResourceProvider(() => {
+      const running = this.localProductionQueueEngine
+        .getJobs("running").length;
+      return this.localResourceManagerEngine.toQueueSnapshot(running);
+    });
+    this.localResourceManagerEngine.attachProductionQueue({
+      pause: (jobId) => this.localProductionQueueEngine.pause(jobId),
+      resume: (jobId) => this.localProductionQueueEngine.resume(jobId),
+      listJobs: () =>
+        this.localProductionQueueEngine.getJobs().map((j) => ({
+          jobId: j.jobId,
+          jobType: j.jobType,
+          priority: j.priority,
+          status: j.status,
+          estimatedDurationMs: j.estimatedDurationMs,
+          dependsOnSatisfied: j.dependsOn.every((dep) => {
+            const d = this.localProductionQueueEngine.getJob(dep);
+            return d?.status === "completed";
+          }),
+          isBackground: j.jobType === "ai-learning" || j.jobType === "knowledge-update" || j.priority === "low",
+          progress: j.progress,
+        })),
+    });
+
+    this.automationEngine.initialize(this.storageRoot);
+    this.automationEngine.attachAdapters({
+      projectAutoSave: () => {
+        this.personalProjectWorkspaceEngine.autoSave("automation");
+      },
+      workspaceAutoSave: () => {
+        this.personalProjectWorkspaceEngine.autoSave("automation-workspace");
+      },
+      refreshAssetIndex: () => {
+        this.localAssetLibraryEngine.getAssets();
+      },
+      refreshKnowledgeIndex: () => {
+        /* knowledge index refresh performed inside automation engine indexes/ */
+      },
+    });
+
+    this.workspaceManagerEngine.initialize(this.storageRoot);
+
     this.knowledgeSeedingCertifier.initialize(this, this.storageRoot);
     await this.knowledgeSeedingCertifier.runStartup();
+
+    this.professionalKnowledgeCertificationEngine.initialize(this, this.storageRoot);
+    await this.professionalKnowledgeCertificationEngine.runStartup();
 
     this.storageEngine.setRecordChangeHandler((knowledgeId, operation) => {
       this.retrievalEngine.invalidateCache(knowledgeId);
@@ -566,6 +682,10 @@ export class AiKnowledgeFoundation {
     return this.professionalSocialMediaKnowledge;
   }
 
+  getProfessionalIndustryStandardsQualityKnowledge(): ProfessionalIndustryStandardsQualityKnowledge {
+    return this.professionalIndustryStandardsQualityKnowledge;
+  }
+
   getMarketingKnowledgeEngine(): AiMarketingKnowledgeEngine {
     return this.marketingKnowledgeEngine;
   }
@@ -626,8 +746,72 @@ export class AiKnowledgeFoundation {
     return this.knowledgePackImportEngine;
   }
 
+  getKnowledgeValidationIntegrationEngine(): KnowledgeValidationIntegrationEngine {
+    return this.knowledgeValidationIntegrationEngine;
+  }
+
+  getKnowledgeEvolutionEngine(): AiKnowledgeEvolutionEngine {
+    return this.knowledgeEvolutionEngine;
+  }
+
+  getFeedbackIntelligenceEngine(): AiFeedbackIntelligenceEngine {
+    return this.feedbackIntelligenceEngine;
+  }
+
+  getPerformanceAnalyticsEngine(): AiPerformanceAnalyticsEngine {
+    return this.performanceAnalyticsEngine;
+  }
+
+  getAutonomousLearningEngine(): AiAutonomousLearningEngine {
+    return this.autonomousLearningEngine;
+  }
+
+  getWorkflowModelOptimizationEngine(): AiWorkflowModelOptimizationEngine {
+    return this.workflowModelOptimizationEngine;
+  }
+
+  getAutonomousImprovementEngine(): AiAutonomousImprovementEngine {
+    return this.autonomousImprovementEngine;
+  }
+
+  getAutonomousIntelligenceValidationEngine(): AiAutonomousIntelligenceValidationEngine {
+    return this.autonomousIntelligenceValidationEngine;
+  }
+
+  getLearningCertificationEngine(): AiLearningCertificationEngine {
+    return this.learningCertificationEngine;
+  }
+
+  getPersonalProjectWorkspaceEngine(): AiPersonalProjectWorkspaceEngine {
+    return this.personalProjectWorkspaceEngine;
+  }
+
+  getLocalAssetLibraryEngine(): AiLocalAssetLibraryEngine {
+    return this.localAssetLibraryEngine;
+  }
+
+  getLocalProductionQueueEngine(): AiLocalProductionQueueEngine {
+    return this.localProductionQueueEngine;
+  }
+
+  getLocalResourceManagerEngine(): AiLocalResourceManagerEngine {
+    return this.localResourceManagerEngine;
+  }
+
+  getAutomationEngine(): AiAutomationEngine {
+    return this.automationEngine;
+  }
+
+  getWorkspaceManagerEngine(): AiWorkspaceManagerEngine {
+    return this.workspaceManagerEngine;
+  }
+
   getKnowledgeSeedingCertifier(): KnowledgeSeedingCertifier {
     return this.knowledgeSeedingCertifier;
+  }
+
+  getProfessionalKnowledgeCertificationEngine(): ProfessionalKnowledgeCertificationEngine {
+    return this.professionalKnowledgeCertificationEngine;
   }
 
   getKnowledgeReasoningEngine(): AiKnowledgeReasoningEngine {

@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "tt-tiktok-best-practices",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-tiktok",
+  "title": "TikTok Best Practices",
+  "description": "Native TikTok norms for authenticity, pacing, and discoverability.",
+  "summary": "Baseline recommendations for any TikTok content decision.",
+  "tags": [
+    "professional-tiktok",
+    "professional",
+    "tiktok-best-practices",
+    "tiktok best practices",
+    "native",
+    "vertical",
+    "authenticity",
+    "discoverability"
+  ],
+  "keywords": [
+    "tiktok best practices",
+    "native",
+    "vertical",
+    "authenticity",
+    "discoverability"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "tt-tiktok-hook-creation",
+    "tt-tiktok-short-form-strategy",
+    "tt-tiktok-posting-best-practices",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-video-production-knowledge",
+    "sm-bridge-video-editing-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:33.785Z",
+  "lastUpdated": "2026-08-08T19:03:33.785Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\tt-tiktok-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "0d5d354dd8ab8f7c32e712a2b46f22f177c714e3a85dbbd676d64b9ff6e1ca98",
+  "searchableText": "tiktok best practices native tiktok norms for authenticity, pacing, and discoverability. baseline recommendations for any tiktok content decision. professional-tiktok professional-tiktok professional tiktok-best-practices tiktok best practices native vertical authenticity discoverability tiktok best practices native vertical authenticity discoverability",
+  "classification": {
+    "category": "professional-tiktok",
+    "topic": "tiktok-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "tiktok-best-practices",
+    "kind": "professional-tiktok",
+    "purpose": "Baseline recommendations for any TikTok content decision.",
+    "professionalDefinition": "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "tt-tiktok-best-practices",
+      "title": "TikTok Best Practices",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "Native TikTok norms for authenticity, pacing, and discoverability.",
+      "coreConcepts": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "definitions": [
+        "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel.",
+        "Baseline recommendations for any TikTok content decision."
+      ],
+      "rules": [
+        "Practice: Lead with the hook in the first second",
+        "Practice: Use native captions and on-screen text",
+        "Practice: Sound and text must work with muted autoplay assumptions"
+      ],
+      "bestPractices": [
+        "Lead with the hook in the first second",
+        "Use native captions and on-screen text",
+        "Sound and text must work with muted autoplay assumptions"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Lead with the hook in the first second",
+        "Follow: Use native captions and on-screen text",
+        "Follow: Sound and text must work with muted autoplay assumptions"
+      ],
+      "commonMistakes": [
+        "Cross-posting horizontal ads unchanged",
+        "Overly salesy first frames"
+      ],
+      "troubleshooting": [
+        "Avoid: Cross-posting horizontal ads unchanged",
+        "Avoid: Overly salesy first frames"
+      ],
+      "recommendations": [
+        "Lead with the hook in the first second",
+        "Use native captions and on-screen text",
+        "Sound and text must work with muted autoplay assumptions"
+      ],
+      "examples": [
+        "Professional application of TikTok Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel."
+      ],
+      "relatedTopics": [
+        "tiktok-hook-creation",
+        "tiktok-short-form-strategy",
+        "tiktok-posting-best-practices"
+      ],
+      "keywords": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "TikTok Best Practices",
+      "category": "professional-tiktok",
+      "domain": "tiktok-knowledge",
+      "description": "Native TikTok norms for authenticity, pacing, and discoverability.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Baseline recommendations for any TikTok content decision."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lead with the hook in the first second",
+            "Use native captions and on-screen text",
+            "Sound and text must work with muted autoplay assumptions"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of TikTok Best Practices for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "entities": [
+        "TikTok Best Practices",
+        "social-media-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "tiktok best practices",
+        "native",
+        "vertical",
+        "authenticity",
+        "discoverability"
+      ],
+      "rules": [
+        "Avoid: Cross-posting horizontal ads unchanged",
+        "Avoid: Overly salesy first frames"
+      ],
+      "bestPractices": [
+        "Lead with the hook in the first second",
+        "Use native captions and on-screen text",
+        "Sound and text must work with muted autoplay assumptions"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of TikTok Best Practices for platform-native content"
+      ],
+      "commonMistakes": [
+        "Cross-posting horizontal ads unchanged",
+        "Overly salesy first frames"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Lead with the hook in the first second",
+        "Practice: Use native captions and on-screen text",
+        "Practice: Sound and text must work with muted autoplay assumptions"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "video-production-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "tt-tiktok-hook-creation",
+        "tt-tiktok-short-form-strategy",
+        "tt-tiktok-posting-best-practices"
+      ],
+      "definitions": [
+        "TikTok best practices are platform-native guidelines for vertical short-form that prioritizes early hooks, native editing language, and authentic delivery over polished ad-feel.",
+        "Baseline recommendations for any TikTok content decision."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Lead with the hook in the first second",
+      "Use native captions and on-screen text",
+      "Sound and text must work with muted autoplay assumptions"
+    ],
+    "bestPractices": [
+      "Lead with the hook in the first second",
+      "Use native captions and on-screen text",
+      "Sound and text must work with muted autoplay assumptions"
+    ],
+    "decisionRules": [
+      "Practice: Lead with the hook in the first second",
+      "Practice: Use native captions and on-screen text",
+      "Practice: Sound and text must work with muted autoplay assumptions"
+    ]
+  }
+}

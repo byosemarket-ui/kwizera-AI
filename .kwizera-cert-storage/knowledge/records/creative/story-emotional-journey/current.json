@@ -1,0 +1,333 @@
+{
+  "knowledgeId": "story-emotional-journey",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Emotional Journey",
+  "description": "The planned sequence of feelings the viewer should experience from hook to CTA.",
+  "summary": "Align emotion with persuasion so decisions feel motivated, not forced.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "emotional-journey",
+    "emotional journey",
+    "emotion map",
+    "feeling arc",
+    "mood progression"
+  ],
+  "keywords": [
+    "emotional journey",
+    "emotion map",
+    "feeling arc",
+    "mood progression"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-narrative-flow",
+    "story-conflict",
+    "story-resolution",
+    "story-visual-storytelling",
+    "scene-lifestyle-scene",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-branding-knowledge",
+    "ss-bridge-lighting-knowledge",
+    "ss-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:34:06.728Z",
+  "lastUpdated": "2026-08-08T17:32:57.550Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-emotional-journey",
+  "integrityStatus": "verified",
+  "contentHash": "44c7283f8d34f51afbbe0c6e72407806b18399e69350e68a21710ee40f450ad3",
+  "searchableText": "emotional journey the planned sequence of feelings the viewer should experience from hook to cta. align emotion with persuasion so decisions feel motivated, not forced. professional-storytelling professional-storytelling professional emotional-journey emotional journey emotion map feeling arc mood progression emotional journey emotion map feeling arc mood progression",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "emotional-journey-planned",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "emotional-journey",
+    "kind": "professional-storytelling",
+    "purpose": "Align emotion with persuasion so decisions feel motivated, not forced.",
+    "professionalDefinition": "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes.",
+    "whenToUse": [
+      "Brand films",
+      "Cause campaigns",
+      "Premium product stories"
+    ],
+    "whenNotToUse": [
+      "Purely informational how-tos with no persuasion goal"
+    ],
+    "workflow": [
+      "Map emotion per act",
+      "Assign scene moods",
+      "Validate with rough cut"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-emotional-journey",
+      "title": "Emotional Journey",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "The planned sequence of feelings the viewer should experience from hook to CTA.",
+      "coreConcepts": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "definitions": [
+        "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes.",
+        "Align emotion with persuasion so decisions feel motivated, not forced."
+      ],
+      "rules": [
+        "Use when: Brand films",
+        "Use when: Cause campaigns",
+        "Use when: Premium product stories",
+        "Do not use when: Purely informational how-tos with no persuasion goal"
+      ],
+      "bestPractices": [
+        "Name target emotion per beat",
+        "Avoid emotional whiplash",
+        "End on confident action"
+      ],
+      "professionalTechniques": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "workflow": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Cause campaigns",
+        "Use when: Premium product stories",
+        "Avoid when: Purely informational how-tos with no persuasion goal"
+      ],
+      "commonMistakes": [
+        "Tone mismatch with brand",
+        "All intensity, no relief"
+      ],
+      "troubleshooting": [
+        "Avoid: Tone mismatch with brand",
+        "Avoid: All intensity, no relief"
+      ],
+      "recommendations": [
+        "Name target emotion per beat",
+        "Avoid emotional whiplash",
+        "End on confident action"
+      ],
+      "examples": [
+        "Anxiety → recognition → relief → pride → share/CTA"
+      ],
+      "professionalStandards": [
+        "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes."
+      ],
+      "relatedTopics": [
+        "narrative-flow",
+        "conflict",
+        "resolution",
+        "visual-storytelling",
+        "lifestyle-scene"
+      ],
+      "keywords": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:emotional-journey",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Emotional Journey",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "The planned sequence of feelings the viewer should experience from hook to CTA.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Align emotion with persuasion so decisions feel motivated, not forced."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Brand films",
+            "Cause campaigns",
+            "Premium product stories"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Purely informational how-tos with no persuasion goal"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Map emotion per act",
+            "Assign scene moods",
+            "Validate with rough cut"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Name target emotion per beat",
+            "Avoid emotional whiplash",
+            "End on confident action"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Anxiety → recognition → relief → pride → share/CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "entities": [
+        "Emotional Journey",
+        "storytelling-knowledge",
+        "branding-knowledge",
+        "lighting-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "emotional journey",
+        "emotion map",
+        "feeling arc",
+        "mood progression"
+      ],
+      "rules": [
+        "Avoid when: Purely informational how-tos with no persuasion goal"
+      ],
+      "bestPractices": [
+        "Name target emotion per beat",
+        "Avoid emotional whiplash",
+        "End on confident action"
+      ],
+      "professionalTechniques": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "examples": [
+        "Anxiety → recognition → relief → pride → share/CTA"
+      ],
+      "commonMistakes": [
+        "Tone mismatch with brand",
+        "All intensity, no relief"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Brand films",
+        "Use when: Cause campaigns",
+        "Use when: Premium product stories",
+        "Do not use when: Purely informational how-tos with no persuasion goal"
+      ],
+      "workflowSteps": [
+        "Map emotion per act",
+        "Assign scene moods",
+        "Validate with rough cut"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "branding-knowledge",
+        "lighting-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "story-narrative-flow",
+        "story-conflict",
+        "story-resolution",
+        "story-visual-storytelling",
+        "scene-lifestyle-scene"
+      ],
+      "definitions": [
+        "Emotional journey is the intentional path of affect—curiosity, tension, relief, desire, confidence—mapped across story beats and scenes.",
+        "Align emotion with persuasion so decisions feel motivated, not forced."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Name target emotion per beat",
+      "Avoid emotional whiplash",
+      "End on confident action"
+    ],
+    "bestPractices": [
+      "Name target emotion per beat",
+      "Avoid emotional whiplash",
+      "End on confident action"
+    ],
+    "decisionRules": [
+      "Use when: Brand films",
+      "Use when: Cause campaigns",
+      "Use when: Premium product stories",
+      "Do not use when: Purely informational how-tos with no persuasion goal"
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:51.045Z","level":"info","event":"startup","message":"Video Generation Optimization Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-generation\\optimization\\engine"}}
+{"timestamp":"2026-08-08T19:46:54.538Z","level":"info","event":"startup","message":"Video Generation Optimization Engine startup complete","data":{"recordsLoaded":0}}

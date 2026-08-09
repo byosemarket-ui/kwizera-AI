@@ -1,0 +1,22 @@
+[
+  {
+    "checkId": "pi-hc-1786218388299-5e54e7",
+    "timestamp": "2026-08-08T19:46:30.422Z",
+    "module": "system",
+    "healthScore": 94,
+    "level": "good",
+    "warnings": [
+      "Product intelligence cache not warmed"
+    ],
+    "errors": [
+      "product-intelligence-foundation unavailable",
+      "No quality predictions to validate relationships",
+      "Cache not warmed"
+    ],
+    "repairs": [],
+    "recommendations": [
+      "Run product intelligence optimization"
+    ],
+    "performanceMs": 2123
+  }
+]

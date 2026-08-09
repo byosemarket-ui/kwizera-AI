@@ -1,0 +1,99 @@
+{
+  "knowledgeId": "amr-bridge-motion-graphics-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "amr-domain-bridge",
+  "title": "Motion Graphics Knowledge Domain",
+  "description": "Hub for motion graphics and transitions expansion Step 5.",
+  "summary": "Primary domain for motion graphics and transition topics.",
+  "tags": [
+    "animation-motion-rendering",
+    "domain-bridge",
+    "motion-graphics-knowledge"
+  ],
+  "keywords": [
+    "motion-graphics-knowledge",
+    "animation",
+    "motion",
+    "rendering",
+    "relationship"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-animation-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:09.491Z",
+  "lastUpdated": "2026-08-08T15:37:09.491Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\amr-bridge-motion-graphics-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "d45fb0765dfc042a1b37ac468776620c0cdb13e653d0c6cfb8b5028222f0d87f",
+  "searchableText": "motion graphics knowledge domain hub for motion graphics and transitions expansion step 5. primary domain for motion graphics and transition topics. amr-domain-bridge animation-motion-rendering domain-bridge motion-graphics-knowledge motion-graphics-knowledge animation motion rendering relationship",
+  "classification": {
+    "category": "amr-domain-bridge",
+    "topic": "motion-graphics-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "bridgeDomainId": "motion-graphics-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate animation/motion/rendering knowledge to motion-graphics-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Motion Graphics Knowledge Domain",
+      "category": "domain-bridge",
+      "domain": "motion-graphics-knowledge",
+      "description": "Hub for motion graphics and transitions expansion Step 5.",
+      "sections": [],
+      "concepts": [
+        "motion-graphics-knowledge"
+      ],
+      "entities": [
+        "motion-graphics-knowledge"
+      ],
+      "terminology": [
+        "motion-graphics-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate AMR knowledge to motion-graphics-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "anim-animation-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

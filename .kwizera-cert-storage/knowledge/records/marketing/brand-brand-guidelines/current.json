@@ -1,0 +1,306 @@
+{
+  "knowledgeId": "brand-brand-guidelines",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-branding",
+  "title": "Brand Guidelines",
+  "description": "Documented rules for using identity assets correctly.",
+  "summary": "Enable quality control across video and design outputs.",
+  "tags": [
+    "professional-branding",
+    "professional",
+    "brand-guidelines",
+    "brand guidelines",
+    "brand book",
+    "usage rules",
+    "style guide"
+  ],
+  "keywords": [
+    "brand guidelines",
+    "brand book",
+    "usage rules",
+    "style guide"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "brand-logo-usage",
+    "brand-visual-identity",
+    "brand-brand-consistency",
+    "brand-brand-voice",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:38.922Z",
+  "lastUpdated": "2026-08-08T18:25:38.922Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\brand-brand-guidelines",
+  "integrityStatus": "verified",
+  "contentHash": "9ffd797c6162b864a35040b3a6d83d0c3d23fb2e8608ede27113ddfade6ee0cb",
+  "searchableText": "brand guidelines documented rules for using identity assets correctly. enable quality control across video and design outputs. professional-branding professional-branding professional brand-guidelines brand guidelines brand book usage rules style guide brand guidelines brand book usage rules style guide",
+  "classification": {
+    "category": "professional-branding",
+    "topic": "brand-guidelines-documented",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "brand-guidelines",
+    "kind": "professional-branding",
+    "purpose": "Enable quality control across video and design outputs.",
+    "professionalDefinition": "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently.",
+    "workflow": [
+      "Compile rules",
+      "Add examples",
+      "Train teams",
+      "Enforce in review"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "brand-brand-guidelines",
+      "title": "Brand Guidelines",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Documented rules for using identity assets correctly.",
+      "coreConcepts": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "definitions": [
+        "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently.",
+        "Enable quality control across video and design outputs."
+      ],
+      "rules": [
+        "Practice: Include video/motion sections",
+        "Practice: Show correct/incorrect examples",
+        "Practice: Keep accessible to vendors"
+      ],
+      "bestPractices": [
+        "Include video/motion sections",
+        "Show correct/incorrect examples",
+        "Keep accessible to vendors"
+      ],
+      "professionalTechniques": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "workflow": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "decisionRules": [
+        "Follow: Include video/motion sections",
+        "Follow: Show correct/incorrect examples",
+        "Follow: Keep accessible to vendors"
+      ],
+      "commonMistakes": [
+        "Guidelines never updated",
+        "No motion rules"
+      ],
+      "troubleshooting": [
+        "Avoid: Guidelines never updated",
+        "Avoid: No motion rules"
+      ],
+      "recommendations": [
+        "Include video/motion sections",
+        "Show correct/incorrect examples",
+        "Keep accessible to vendors"
+      ],
+      "examples": [
+        "Motion section: allowed easings, logo clear space in end cards"
+      ],
+      "professionalStandards": [
+        "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently."
+      ],
+      "relatedTopics": [
+        "logo-usage",
+        "visual-identity",
+        "brand-consistency",
+        "brand-voice"
+      ],
+      "keywords": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-guidelines",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Brand Guidelines",
+      "category": "professional-branding",
+      "domain": "branding-knowledge",
+      "description": "Documented rules for using identity assets correctly.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Enable quality control across video and design outputs."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Compile rules",
+            "Add examples",
+            "Train teams",
+            "Enforce in review"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Include video/motion sections",
+            "Show correct/incorrect examples",
+            "Keep accessible to vendors"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Motion section: allowed easings, logo clear space in end cards"
+          ]
+        }
+      ],
+      "concepts": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "entities": [
+        "Brand Guidelines",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "rules": [
+        "Avoid: Guidelines never updated",
+        "Avoid: No motion rules"
+      ],
+      "bestPractices": [
+        "Include video/motion sections",
+        "Show correct/incorrect examples",
+        "Keep accessible to vendors"
+      ],
+      "professionalTechniques": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "examples": [
+        "Motion section: allowed easings, logo clear space in end cards"
+      ],
+      "commonMistakes": [
+        "Guidelines never updated",
+        "No motion rules"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Include video/motion sections",
+        "Practice: Show correct/incorrect examples",
+        "Practice: Keep accessible to vendors"
+      ],
+      "workflowSteps": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "branding-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "brand-logo-usage",
+        "brand-visual-identity",
+        "brand-brand-consistency",
+        "brand-brand-voice"
+      ],
+      "definitions": [
+        "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently.",
+        "Enable quality control across video and design outputs."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "branding-knowledge",
+      "category": "professional-branding",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Include video/motion sections",
+      "Show correct/incorrect examples",
+      "Keep accessible to vendors"
+    ],
+    "bestPractices": [
+      "Include video/motion sections",
+      "Show correct/incorrect examples",
+      "Keep accessible to vendors"
+    ],
+    "decisionRules": [
+      "Practice: Include video/motion sections",
+      "Practice: Show correct/incorrect examples",
+      "Practice: Keep accessible to vendors"
+    ]
+  }
+}

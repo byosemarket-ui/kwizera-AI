@@ -1,0 +1,99 @@
+{
+  "knowledgeId": "amr-bridge-video-editing-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "amr-domain-bridge",
+  "title": "Editing Knowledge (related)",
+  "description": "Transitions and exports are executed in editing/finishing.",
+  "summary": "Editors apply transitions and export settings.",
+  "tags": [
+    "animation-motion-rendering",
+    "domain-bridge",
+    "video-editing-knowledge"
+  ],
+  "keywords": [
+    "video-editing-knowledge",
+    "animation",
+    "motion",
+    "rendering",
+    "relationship"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-animation-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:10.074Z",
+  "lastUpdated": "2026-08-08T17:56:14.022Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\amr-bridge-video-editing-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "10fb82377288e31ef88a92facb31fafc81cc476a1dd37435df00e5ab88da44fc",
+  "searchableText": "editing knowledge (related) transitions and exports are executed in editing/finishing. editors apply transitions and export settings. amr-domain-bridge animation-motion-rendering domain-bridge video-editing-knowledge video-editing-knowledge animation motion rendering relationship",
+  "classification": {
+    "category": "amr-domain-bridge",
+    "topic": "editing-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "bridgeDomainId": "video-editing-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate animation/motion/rendering knowledge to video-editing-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Editing Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "video-editing-knowledge",
+      "description": "Transitions and exports are executed in editing/finishing.",
+      "sections": [],
+      "concepts": [
+        "video-editing-knowledge"
+      ],
+      "entities": [
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "video-editing-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate AMR knowledge to video-editing-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "anim-animation-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

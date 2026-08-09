@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "lc-bridge-rendering-knowledge",
+  "knowledgeType": "image-knowledge",
+  "category": "lighting-composition-domain-bridge",
+  "title": "Rendering Knowledge (related)",
+  "description": "Capture lighting/color and composition affect finishing and delivery.",
+  "summary": "Grade and delivery preserve lighting intent and framed hierarchy.",
+  "tags": [
+    "lighting-composition",
+    "domain-bridge",
+    "rendering-knowledge"
+  ],
+  "keywords": [
+    "rendering-knowledge",
+    "lighting",
+    "composition",
+    "relationship"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-lighting-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:35.445Z",
+  "lastUpdated": "2026-08-08T17:16:04.782Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lc-bridge-rendering-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "880baad01cb4bd0663da6bf3296654df3cdaa5d21e457272de0e01d3bd8deda0",
+  "searchableText": "rendering knowledge (related) capture lighting/color and composition affect finishing and delivery. grade and delivery preserve lighting intent and framed hierarchy. lighting-composition-domain-bridge lighting-composition domain-bridge rendering-knowledge rendering-knowledge lighting composition relationship",
+  "classification": {
+    "category": "lighting-composition-domain-bridge",
+    "topic": "rendering-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "bridgeDomainId": "rendering-knowledge",
+    "relationshipAnchor": true,
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate lighting/composition knowledge to rendering-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Rendering Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "rendering-knowledge",
+      "description": "Capture lighting/color and composition affect finishing and delivery.",
+      "sections": [],
+      "concepts": [
+        "rendering-knowledge"
+      ],
+      "entities": [
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "rendering-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate lighting/composition knowledge to rendering-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "lit-lighting-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

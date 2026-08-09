@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "ig-instagram-carousel-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-instagram",
+  "title": "Carousel Strategy",
+  "description": "Multi-slide Instagram posts for education, storytelling, and saves.",
+  "summary": "Recommend carousel as a high-save Instagram format.",
+  "tags": [
+    "professional-instagram",
+    "professional",
+    "instagram-carousel-strategy",
+    "instagram carousel",
+    "swipe",
+    "slides",
+    "saves",
+    "education"
+  ],
+  "keywords": [
+    "instagram carousel",
+    "swipe",
+    "slides",
+    "saves",
+    "education"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "ig-instagram-feed-strategy",
+    "ig-instagram-caption-strategy",
+    "ig-instagram-engagement-optimization",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-storytelling-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-product-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:36.512Z",
+  "lastUpdated": "2026-08-08T19:03:36.512Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\ig-instagram-carousel-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "258442a3192886b38a48094e7d6d90292892ec6c1e972291060a4af55db65a60",
+  "searchableText": "carousel strategy multi-slide instagram posts for education, storytelling, and saves. recommend carousel as a high-save instagram format. professional-instagram professional-instagram professional instagram-carousel-strategy instagram carousel swipe slides saves education instagram carousel swipe slides saves education",
+  "classification": {
+    "category": "professional-instagram",
+    "topic": "carousel-strategy-multi-slide",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "instagram-carousel-strategy",
+    "kind": "professional-instagram",
+    "purpose": "Recommend carousel as a high-save Instagram format.",
+    "professionalDefinition": "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "ig-instagram-carousel-strategy",
+      "title": "Carousel Strategy",
+      "domain": "instagram-knowledge",
+      "category": "professional-instagram",
+      "description": "Multi-slide Instagram posts for education, storytelling, and saves.",
+      "coreConcepts": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "definitions": [
+        "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide.",
+        "Recommend carousel as a high-save Instagram format."
+      ],
+      "rules": [
+        "Practice: Cover slide must earn the swipe",
+        "Practice: One idea per slide",
+        "Practice: End with save/share CTA"
+      ],
+      "bestPractices": [
+        "Cover slide must earn the swipe",
+        "One idea per slide",
+        "End with save/share CTA"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Cover slide must earn the swipe",
+        "Follow: One idea per slide",
+        "Follow: End with save/share CTA"
+      ],
+      "commonMistakes": [
+        "Walls of text",
+        "Weak first slide"
+      ],
+      "troubleshooting": [
+        "Avoid: Walls of text",
+        "Avoid: Weak first slide"
+      ],
+      "recommendations": [
+        "Cover slide must earn the swipe",
+        "One idea per slide",
+        "End with save/share CTA"
+      ],
+      "examples": [
+        "Professional application of Carousel Strategy for platform-native content"
+      ],
+      "professionalStandards": [
+        "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide."
+      ],
+      "relatedTopics": [
+        "instagram-feed-strategy",
+        "instagram-caption-strategy",
+        "instagram-engagement-optimization"
+      ],
+      "keywords": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:instagram-carousel-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Carousel Strategy",
+      "category": "professional-instagram",
+      "domain": "instagram-knowledge",
+      "description": "Multi-slide Instagram posts for education, storytelling, and saves.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend carousel as a high-save Instagram format."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Cover slide must earn the swipe",
+            "One idea per slide",
+            "End with save/share CTA"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Carousel Strategy for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "entities": [
+        "Carousel Strategy",
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "terminology": [
+        "instagram carousel",
+        "swipe",
+        "slides",
+        "saves",
+        "education"
+      ],
+      "rules": [
+        "Avoid: Walls of text",
+        "Avoid: Weak first slide"
+      ],
+      "bestPractices": [
+        "Cover slide must earn the swipe",
+        "One idea per slide",
+        "End with save/share CTA"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Carousel Strategy for platform-native content"
+      ],
+      "commonMistakes": [
+        "Walls of text",
+        "Weak first slide"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Cover slide must earn the swipe",
+        "Practice: One idea per slide",
+        "Practice: End with save/share CTA"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "branding-knowledge",
+        "marketing-knowledge",
+        "product-knowledge"
+      ],
+      "relatedKnowledge": [
+        "ig-instagram-feed-strategy",
+        "ig-instagram-caption-strategy",
+        "ig-instagram-engagement-optimization"
+      ],
+      "definitions": [
+        "Carousel strategy structures swipeable slides to teach, compare, or narrate with a strong first cover and a clear final CTA slide.",
+        "Recommend carousel as a high-save Instagram format."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "instagram-knowledge",
+      "category": "professional-instagram",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Cover slide must earn the swipe",
+      "One idea per slide",
+      "End with save/share CTA"
+    ],
+    "bestPractices": [
+      "Cover slide must earn the swipe",
+      "One idea per slide",
+      "End with save/share CTA"
+    ],
+    "decisionRules": [
+      "Practice: Cover slide must earn the swipe",
+      "Practice: One idea per slide",
+      "Practice: End with save/share CTA"
+    ]
+  }
+}

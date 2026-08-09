@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "tt-tiktok-posting-best-practices",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-tiktok",
+  "title": "Posting Best Practices",
+  "description": "When and how to publish TikTok content for consistent learning loops.",
+  "summary": "Recommend posting strategies for TikTok.",
+  "tags": [
+    "professional-tiktok",
+    "professional",
+    "tiktok-posting-best-practices",
+    "tiktok posting",
+    "cadence",
+    "captions",
+    "publish time",
+    "analytics"
+  ],
+  "keywords": [
+    "tiktok posting",
+    "cadence",
+    "captions",
+    "publish time",
+    "analytics"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-content-calendar",
+    "tt-tiktok-best-practices",
+    "tt-tiktok-hashtag-strategy",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-video-production-knowledge",
+    "sm-bridge-branding-knowledge",
+    "sm-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:35.830Z",
+  "lastUpdated": "2026-08-08T19:03:35.830Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\tt-tiktok-posting-best-practices",
+  "integrityStatus": "verified",
+  "contentHash": "8bec91132c4deac2f40c83ab275b6183ab0140bd11084ab2088f187e7857b92b",
+  "searchableText": "posting best practices when and how to publish tiktok content for consistent learning loops. recommend posting strategies for tiktok. professional-tiktok professional-tiktok professional tiktok-posting-best-practices tiktok posting cadence captions publish time analytics tiktok posting cadence captions publish time analytics",
+  "classification": {
+    "category": "professional-tiktok",
+    "topic": "posting-best-practices",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "tiktok-posting-best-practices",
+    "kind": "professional-tiktok",
+    "purpose": "Recommend posting strategies for TikTok.",
+    "professionalDefinition": "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "tt-tiktok-posting-best-practices",
+      "title": "Posting Best Practices",
+      "domain": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "description": "When and how to publish TikTok content for consistent learning loops.",
+      "coreConcepts": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "definitions": [
+        "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision.",
+        "Recommend posting strategies for TikTok."
+      ],
+      "rules": [
+        "Practice: Consistent cadence over burst spam",
+        "Practice: Write captions that clarify the hook",
+        "Practice: Review analytics within 24–48 hours"
+      ],
+      "bestPractices": [
+        "Consistent cadence over burst spam",
+        "Write captions that clarify the hook",
+        "Review analytics within 24–48 hours"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Consistent cadence over burst spam",
+        "Follow: Write captions that clarify the hook",
+        "Follow: Review analytics within 24–48 hours"
+      ],
+      "commonMistakes": [
+        "Dumping 10 videos then going silent",
+        "Ignoring cover/thumbnail frame"
+      ],
+      "troubleshooting": [
+        "Avoid: Dumping 10 videos then going silent",
+        "Avoid: Ignoring cover/thumbnail frame"
+      ],
+      "recommendations": [
+        "Consistent cadence over burst spam",
+        "Write captions that clarify the hook",
+        "Review analytics within 24–48 hours"
+      ],
+      "examples": [
+        "Professional application of Posting Best Practices for platform-native content"
+      ],
+      "professionalStandards": [
+        "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision."
+      ],
+      "relatedTopics": [
+        "content-calendar",
+        "tiktok-best-practices",
+        "tiktok-hashtag-strategy"
+      ],
+      "keywords": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:tiktok-posting-best-practices",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Posting Best Practices",
+      "category": "professional-tiktok",
+      "domain": "tiktok-knowledge",
+      "description": "When and how to publish TikTok content for consistent learning loops.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend posting strategies for TikTok."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Consistent cadence over burst spam",
+            "Write captions that clarify the hook",
+            "Review analytics within 24–48 hours"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Posting Best Practices for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "entities": [
+        "Posting Best Practices",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "branding-knowledge",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "tiktok posting",
+        "cadence",
+        "captions",
+        "publish time",
+        "analytics"
+      ],
+      "rules": [
+        "Avoid: Dumping 10 videos then going silent",
+        "Avoid: Ignoring cover/thumbnail frame"
+      ],
+      "bestPractices": [
+        "Consistent cadence over burst spam",
+        "Write captions that clarify the hook",
+        "Review analytics within 24–48 hours"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Posting Best Practices for platform-native content"
+      ],
+      "commonMistakes": [
+        "Dumping 10 videos then going silent",
+        "Ignoring cover/thumbnail frame"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Consistent cadence over burst spam",
+        "Practice: Write captions that clarify the hook",
+        "Practice: Review analytics within 24–48 hours"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "branding-knowledge",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "sm-content-calendar",
+        "tt-tiktok-best-practices",
+        "tt-tiktok-hashtag-strategy"
+      ],
+      "definitions": [
+        "TikTok posting best practices cover cadence, caption hygiene, cover frames, and review loops so each publish improves the next creative decision.",
+        "Recommend posting strategies for TikTok."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "tiktok-knowledge",
+      "category": "professional-tiktok",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Consistent cadence over burst spam",
+      "Write captions that clarify the hook",
+      "Review analytics within 24–48 hours"
+    ],
+    "bestPractices": [
+      "Consistent cadence over burst spam",
+      "Write captions that clarify the hook",
+      "Review analytics within 24–48 hours"
+    ],
+    "decisionRules": [
+      "Practice: Consistent cadence over burst spam",
+      "Practice: Write captions that clarify the hook",
+      "Practice: Review analytics within 24–48 hours"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{"at":"2026-08-08T19:47:35.201Z","event":"installation","pluginId":"internal.system-tools","detail":"Installed System Tools Extension v0.1.0"}
+{"at":"2026-08-08T19:47:35.544Z","event":"installation","pluginId":"internal.workflow-tools","detail":"Installed Workflow Tools Extension v0.1.0"}
+{"at":"2026-08-08T19:47:35.954Z","event":"initialization","pluginId":"internal.system-tools","detail":"Plugin initialized"}
+{"at":"2026-08-08T19:47:36.090Z","event":"loading","pluginId":"internal.system-tools","detail":"Plugin loaded"}
+{"at":"2026-08-08T19:47:36.117Z","event":"initialization","pluginId":"internal.workflow-tools","detail":"Plugin initialized"}
+{"at":"2026-08-08T19:47:36.538Z","event":"loading","pluginId":"internal.workflow-tools","detail":"Plugin loaded"}
+{"at":"2026-08-08T19:49:47.596Z","event":"unloading","pluginId":"internal.system-tools","detail":"Plugin unloaded"}
+{"at":"2026-08-08T19:49:47.816Z","event":"unloading","pluginId":"internal.workflow-tools","detail":"Plugin unloaded"}

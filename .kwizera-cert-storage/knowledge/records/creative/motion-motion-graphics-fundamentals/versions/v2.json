@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "motion-motion-graphics-fundamentals",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Motion Graphics Fundamentals",
+  "description": "Building blocks of kinetic graphics: layout, type, shape, and timed reveals.",
+  "summary": "Teach readable animated graphics for ads, explainers, and social.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "motion-graphics-fundamentals",
+    "motion graphics",
+    "fundamentals",
+    "kinetic graphics",
+    "MG"
+  ],
+  "keywords": [
+    "motion graphics",
+    "fundamentals",
+    "kinetic graphics",
+    "MG"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-text-animation",
+    "motion-motion-timing",
+    "motion-motion-hierarchy",
+    "anim-staging",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-storytelling-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:55.756Z",
+  "lastUpdated": "2026-08-08T17:55:34.837Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-motion-graphics-fundamentals",
+  "integrityStatus": "verified",
+  "contentHash": "be475c520cf79378447aa546d595e6a9cadc0430f62fdfb3d68a700dd03b78c9",
+  "searchableText": "motion graphics fundamentals building blocks of kinetic graphics: layout, type, shape, and timed reveals. teach readable animated graphics for ads, explainers, and social. professional-motion-graphics professional-motion-graphics professional motion-graphics-fundamentals motion graphics fundamentals kinetic graphics mg motion graphics fundamentals kinetic graphics mg",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "motion-graphics-fundamentals",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "motion-graphics-fundamentals",
+    "kind": "professional-motion-graphics",
+    "purpose": "Teach readable animated graphics for ads, explainers, and social.",
+    "professionalDefinition": "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics.",
+    "workflow": [
+      "Layout still",
+      "Animate hierarchy",
+      "Time to VO/music",
+      "Export checks"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-motion-graphics-fundamentals",
+      "title": "Motion Graphics Fundamentals",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Building blocks of kinetic graphics: layout, type, shape, and timed reveals.",
+      "coreConcepts": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "definitions": [
+        "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics.",
+        "Teach readable animated graphics for ads, explainers, and social."
+      ],
+      "rules": [
+        "Practice: Type legibility first",
+        "Practice: Limit simultaneous moves",
+        "Practice: Safe margins for platforms"
+      ],
+      "bestPractices": [
+        "Type legibility first",
+        "Limit simultaneous moves",
+        "Safe margins for platforms"
+      ],
+      "professionalTechniques": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "workflow": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "decisionRules": [
+        "Follow: Type legibility first",
+        "Follow: Limit simultaneous moves",
+        "Follow: Safe margins for platforms"
+      ],
+      "commonMistakes": [
+        "Tiny type in motion",
+        "Edge-clipped graphics"
+      ],
+      "troubleshooting": [
+        "Avoid: Tiny type in motion",
+        "Avoid: Edge-clipped graphics"
+      ],
+      "recommendations": [
+        "Type legibility first",
+        "Limit simultaneous moves",
+        "Safe margins for platforms"
+      ],
+      "examples": [
+        "Kinetic list of three benefits with staggered fades"
+      ],
+      "professionalStandards": [
+        "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics."
+      ],
+      "relatedTopics": [
+        "text-animation",
+        "motion-timing",
+        "motion-hierarchy",
+        "staging"
+      ],
+      "keywords": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:motion-graphics-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Motion Graphics Fundamentals",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Building blocks of kinetic graphics: layout, type, shape, and timed reveals.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Teach readable animated graphics for ads, explainers, and social."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Layout still",
+            "Animate hierarchy",
+            "Time to VO/music",
+            "Export checks"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Type legibility first",
+            "Limit simultaneous moves",
+            "Safe margins for platforms"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Kinetic list of three benefits with staggered fades"
+          ]
+        }
+      ],
+      "concepts": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "entities": [
+        "Motion Graphics Fundamentals",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "motion graphics",
+        "fundamentals",
+        "kinetic graphics",
+        "MG"
+      ],
+      "rules": [
+        "Avoid: Tiny type in motion",
+        "Avoid: Edge-clipped graphics"
+      ],
+      "bestPractices": [
+        "Type legibility first",
+        "Limit simultaneous moves",
+        "Safe margins for platforms"
+      ],
+      "professionalTechniques": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "examples": [
+        "Kinetic list of three benefits with staggered fades"
+      ],
+      "commonMistakes": [
+        "Tiny type in motion",
+        "Edge-clipped graphics"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Type legibility first",
+        "Practice: Limit simultaneous moves",
+        "Practice: Safe margins for platforms"
+      ],
+      "workflowSteps": [
+        "Layout still",
+        "Animate hierarchy",
+        "Time to VO/music",
+        "Export checks"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-text-animation",
+        "motion-motion-timing",
+        "motion-motion-hierarchy",
+        "anim-staging"
+      ],
+      "definitions": [
+        "Motion graphics fundamentals cover composition, typography in motion, shape language, and basic timing for informational and branded graphics.",
+        "Teach readable animated graphics for ads, explainers, and social."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Type legibility first",
+      "Limit simultaneous moves",
+      "Safe margins for platforms"
+    ],
+    "bestPractices": [
+      "Type legibility first",
+      "Limit simultaneous moves",
+      "Safe margins for platforms"
+    ],
+    "decisionRules": [
+      "Practice: Type legibility first",
+      "Practice: Limit simultaneous moves",
+      "Practice: Safe margins for platforms"
+    ]
+  }
+}

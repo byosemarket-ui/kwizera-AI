@@ -1,0 +1,1352 @@
+{
+  "packId": "bcab4447-a95f-44a8-9874-19ad5729a959",
+  "packSlug": "customer-psychology",
+  "domain": "customer-psychology",
+  "title": "Professional Customer Psychology Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "cust-customer-behavior",
+      "title": "Customer Behavior",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Observable patterns in how customers notice, evaluate, buy, and return.",
+      "coreConcepts": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "definitions": [
+        "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty.",
+        "Ground creative recommendations in how people actually act."
+      ],
+      "rules": [
+        "Practice: Observe real journeys",
+        "Practice: Separate stated vs revealed preference",
+        "Practice: Design for defaults and friction"
+      ],
+      "bestPractices": [
+        "Observe real journeys",
+        "Separate stated vs revealed preference",
+        "Design for defaults and friction"
+      ],
+      "professionalTechniques": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "workflow": [
+        "Research behavior",
+        "Map frictions",
+        "Brief creative",
+        "Measure behavior change"
+      ],
+      "decisionRules": [
+        "Follow: Observe real journeys",
+        "Follow: Separate stated vs revealed preference",
+        "Follow: Design for defaults and friction"
+      ],
+      "commonMistakes": [
+        "Assuming rational shoppers only",
+        "Ignoring context of use"
+      ],
+      "troubleshooting": [
+        "Avoid: Assuming rational shoppers only",
+        "Avoid: Ignoring context of use"
+      ],
+      "recommendations": [
+        "Observe real journeys",
+        "Separate stated vs revealed preference",
+        "Design for defaults and friction"
+      ],
+      "examples": [
+        "Mobile users skip intros → mandate hook-first edits"
+      ],
+      "professionalStandards": [
+        "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty."
+      ],
+      "relatedTopics": [
+        "attention-psychology",
+        "decision-making",
+        "marketing-customer-journey",
+        "buying-motivation"
+      ],
+      "keywords": [
+        "customer behavior",
+        "buyer behavior",
+        "usage context"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-behavior",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-buying-motivation",
+      "title": "Buying Motivation",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Why people buy—functional, emotional, social, and identity motives.",
+      "coreConcepts": [
+        "buying motivation",
+        "motives",
+        "jobs to be done",
+        "desire"
+      ],
+      "definitions": [
+        "Buying motivation covers the drivers—jobs-to-be-done, status, fear reduction, belonging—that make offers relevant.",
+        "Choose which motive a video should activate."
+      ],
+      "rules": [
+        "Practice: Pick one primary motive",
+        "Practice: Show motive visually",
+        "Practice: Align CTA to motive"
+      ],
+      "bestPractices": [
+        "Pick one primary motive",
+        "Show motive visually",
+        "Align CTA to motive"
+      ],
+      "professionalTechniques": [
+        "Interview motives",
+        "Prioritize",
+        "Script to motive",
+        "Test"
+      ],
+      "workflow": [
+        "Interview motives",
+        "Prioritize",
+        "Script to motive",
+        "Test"
+      ],
+      "decisionRules": [
+        "Follow: Pick one primary motive",
+        "Follow: Show motive visually",
+        "Follow: Align CTA to motive"
+      ],
+      "commonMistakes": [
+        "Mixed motives muddying message",
+        "Feature focus with no motive"
+      ],
+      "troubleshooting": [
+        "Avoid: Mixed motives muddying message",
+        "Avoid: Feature focus with no motive"
+      ],
+      "recommendations": [
+        "Pick one primary motive",
+        "Show motive visually",
+        "Align CTA to motive"
+      ],
+      "examples": [
+        "Status motive: premium unboxing; safety motive: warranty proof"
+      ],
+      "professionalStandards": [
+        "Buying motivation covers the drivers—jobs-to-be-done, status, fear reduction, belonging—that make offers relevant."
+      ],
+      "relatedTopics": [
+        "emotional-triggers",
+        "value-proposition",
+        "benefit-presentation",
+        "product-perception"
+      ],
+      "keywords": [
+        "buying motivation",
+        "motives",
+        "jobs to be done",
+        "desire"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:buying-motivation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-emotional-triggers",
+      "title": "Emotional Triggers",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Emotions that move attention and action—used ethically in commercial creative.",
+      "coreConcepts": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "definitions": [
+        "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth.",
+        "Recommend emotional tone for hooks and stories without manipulation that breaks trust."
+      ],
+      "rules": [
+        "Practice: Earn emotion with truth",
+        "Practice: Match brand ethics",
+        "Practice: Resolve tension responsibly"
+      ],
+      "bestPractices": [
+        "Earn emotion with truth",
+        "Match brand ethics",
+        "Resolve tension responsibly"
+      ],
+      "professionalTechniques": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "workflow": [
+        "Choose emotion",
+        "Design trigger moment",
+        "Resolve with product role",
+        "CTA"
+      ],
+      "decisionRules": [
+        "Follow: Earn emotion with truth",
+        "Follow: Match brand ethics",
+        "Follow: Resolve tension responsibly"
+      ],
+      "commonMistakes": [
+        "Fearmongering",
+        "Emotion unrelated to offer"
+      ],
+      "troubleshooting": [
+        "Avoid: Fearmongering",
+        "Avoid: Emotion unrelated to offer"
+      ],
+      "recommendations": [
+        "Earn emotion with truth",
+        "Match brand ethics",
+        "Resolve tension responsibly"
+      ],
+      "examples": [
+        "Relief after chaos messy-kitchen → clean system demo"
+      ],
+      "professionalStandards": [
+        "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth."
+      ],
+      "relatedTopics": [
+        "buying-motivation",
+        "attention-psychology",
+        "hook-creation",
+        "urgency"
+      ],
+      "keywords": [
+        "emotional triggers",
+        "emotion",
+        "affect",
+        "feeling cues"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:emotional-triggers",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-trust-building",
+      "title": "Trust Building",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Psychological and creative tactics that increase perceived trustworthiness.",
+      "coreConcepts": [
+        "trust building",
+        "credibility",
+        "risk reduction",
+        "proof"
+      ],
+      "definitions": [
+        "Trust building reduces perceived risk via proof, transparency, consistency, and credible messengers.",
+        "Strengthen mid/bottom-funnel creative."
+      ],
+      "rules": [
+        "Practice: Specific proof > vague claims",
+        "Practice: Show real use",
+        "Practice: Consistent brand cues"
+      ],
+      "bestPractices": [
+        "Specific proof > vague claims",
+        "Show real use",
+        "Consistent brand cues"
+      ],
+      "professionalTechniques": [
+        "Identify risks",
+        "Select proof",
+        "Place in journey",
+        "Substantiate"
+      ],
+      "workflow": [
+        "Identify risks",
+        "Select proof",
+        "Place in journey",
+        "Substantiate"
+      ],
+      "decisionRules": [
+        "Follow: Specific proof > vague claims",
+        "Follow: Show real use",
+        "Follow: Consistent brand cues"
+      ],
+      "commonMistakes": [
+        "Stocky fake testimonials",
+        "Overclaiming"
+      ],
+      "troubleshooting": [
+        "Avoid: Stocky fake testimonials",
+        "Avoid: Overclaiming"
+      ],
+      "recommendations": [
+        "Specific proof > vague claims",
+        "Show real use",
+        "Consistent brand cues"
+      ],
+      "examples": [
+        "Demo + verified review + clear return policy line"
+      ],
+      "professionalStandards": [
+        "Trust building reduces perceived risk via proof, transparency, consistency, and credible messengers."
+      ],
+      "relatedTopics": [
+        "brand-trust",
+        "social-proof",
+        "authority",
+        "customer-satisfaction"
+      ],
+      "keywords": [
+        "trust building",
+        "credibility",
+        "risk reduction",
+        "proof"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:trust-building",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-decision-making",
+      "title": "Decision Making",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "How buyers choose under limited attention, bias, and uncertainty.",
+      "coreConcepts": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "definitions": [
+        "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes.",
+        "Design offers and CTAs that support clear decisions."
+      ],
+      "rules": [
+        "Practice: Reduce cognitive load",
+        "Practice: Make next step obvious",
+        "Practice: Address top objections"
+      ],
+      "bestPractices": [
+        "Reduce cognitive load",
+        "Make next step obvious",
+        "Address top objections"
+      ],
+      "professionalTechniques": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "workflow": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "decisionRules": [
+        "Follow: Reduce cognitive load",
+        "Follow: Make next step obvious",
+        "Follow: Address top objections"
+      ],
+      "commonMistakes": [
+        "Too many choices",
+        "Hidden price/terms"
+      ],
+      "troubleshooting": [
+        "Avoid: Too many choices",
+        "Avoid: Hidden price/terms"
+      ],
+      "recommendations": [
+        "Reduce cognitive load",
+        "Make next step obvious",
+        "Address top objections"
+      ],
+      "examples": [
+        "Single plan highlighted as recommended in offer scene"
+      ],
+      "professionalStandards": [
+        "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes."
+      ],
+      "relatedTopics": [
+        "objection-handling",
+        "offer-presentation",
+        "cta-strategy",
+        "buying-motivation"
+      ],
+      "keywords": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:decision-making",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-attention-psychology",
+      "title": "Attention Psychology",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "How attention is captured, held, and lost in media environments.",
+      "coreConcepts": [
+        "attention",
+        "salience",
+        "pattern interrupt",
+        "focus"
+      ],
+      "definitions": [
+        "Attention psychology explains salience, novelty, pattern interrupt, and cognitive limits that govern whether creative is noticed and retained.",
+        "Inform hooks, pacing, and visual hierarchy for video marketing."
+      ],
+      "rules": [
+        "Practice: Pattern interrupt early",
+        "Practice: One focal point",
+        "Practice: Reward attention with clarity"
+      ],
+      "bestPractices": [
+        "Pattern interrupt early",
+        "One focal point",
+        "Reward attention with clarity"
+      ],
+      "professionalTechniques": [
+        "Design hook",
+        "Remove rivals",
+        "Pace reveals",
+        "Measure drop-off"
+      ],
+      "workflow": [
+        "Design hook",
+        "Remove rivals",
+        "Pace reveals",
+        "Measure drop-off"
+      ],
+      "decisionRules": [
+        "Follow: Pattern interrupt early",
+        "Follow: One focal point",
+        "Follow: Reward attention with clarity"
+      ],
+      "commonMistakes": [
+        "Slow opens on social",
+        "Competing stimuli"
+      ],
+      "troubleshooting": [
+        "Avoid: Slow opens on social",
+        "Avoid: Competing stimuli"
+      ],
+      "recommendations": [
+        "Pattern interrupt early",
+        "One focal point",
+        "Reward attention with clarity"
+      ],
+      "examples": [
+        "First-frame motion + question overlay before logo"
+      ],
+      "professionalStandards": [
+        "Attention psychology explains salience, novelty, pattern interrupt, and cognitive limits that govern whether creative is noticed and retained."
+      ],
+      "relatedTopics": [
+        "hook-creation",
+        "first-3-seconds-strategy",
+        "audience-retention",
+        "emotional-triggers"
+      ],
+      "keywords": [
+        "attention",
+        "salience",
+        "pattern interrupt",
+        "focus"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:attention-psychology",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-product-perception",
+      "title": "Product Perception",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "How sensory and presentation cues shape perceived quality and fit.",
+      "coreConcepts": [
+        "product perception",
+        "perceived quality",
+        "desirability",
+        "presentation"
+      ],
+      "definitions": [
+        "Product perception is the constructed sense of quality, efficacy, and desirability formed from visuals, demos, context, and claims.",
+        "Recommend presentation strategies for products in video and photography contexts."
+      ],
+      "rules": [
+        "Practice: Show material truth",
+        "Practice: Context of use",
+        "Practice: Consistent quality cues"
+      ],
+      "bestPractices": [
+        "Show material truth",
+        "Context of use",
+        "Consistent quality cues"
+      ],
+      "professionalTechniques": [
+        "Define desired perception",
+        "Choose cues",
+        "Shoot/animate",
+        "Validate with audience"
+      ],
+      "workflow": [
+        "Define desired perception",
+        "Choose cues",
+        "Shoot/animate",
+        "Validate with audience"
+      ],
+      "decisionRules": [
+        "Follow: Show material truth",
+        "Follow: Context of use",
+        "Follow: Consistent quality cues"
+      ],
+      "commonMistakes": [
+        "Misleading scale",
+        "Beauty without function"
+      ],
+      "troubleshooting": [
+        "Avoid: Misleading scale",
+        "Avoid: Beauty without function"
+      ],
+      "recommendations": [
+        "Show material truth",
+        "Context of use",
+        "Consistent quality cues"
+      ],
+      "examples": [
+        "Macro texture + real-use demo to raise quality perception"
+      ],
+      "professionalStandards": [
+        "Product perception is the constructed sense of quality, efficacy, and desirability formed from visuals, demos, context, and claims."
+      ],
+      "relatedTopics": [
+        "benefit-presentation",
+        "feature-presentation",
+        "visual-identity",
+        "product-demonstration"
+      ],
+      "keywords": [
+        "product perception",
+        "perceived quality",
+        "desirability",
+        "presentation"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:product-perception",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-consumer-expectations",
+      "title": "Consumer Expectations",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "What audiences expect from category, brand, and platform experiences.",
+      "coreConcepts": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "definitions": [
+        "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust.",
+        "Avoid creative that violates category or platform expectations unintentionally."
+      ],
+      "rules": [
+        "Practice: Know category codes",
+        "Practice: Exceed on the brand difference",
+        "Practice: Set expectations ads can keep"
+      ],
+      "bestPractices": [
+        "Know category codes",
+        "Exceed on the brand difference",
+        "Set expectations ads can keep"
+      ],
+      "professionalTechniques": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "workflow": [
+        "Audit expectations",
+        "Align promise",
+        "Deliver proof",
+        "Measure satisfaction"
+      ],
+      "decisionRules": [
+        "Follow: Know category codes",
+        "Follow: Exceed on the brand difference",
+        "Follow: Set expectations ads can keep"
+      ],
+      "commonMistakes": [
+        "Overpromising in hooks",
+        "Breaking platform norms without intent"
+      ],
+      "troubleshooting": [
+        "Avoid: Overpromising in hooks",
+        "Avoid: Breaking platform norms without intent"
+      ],
+      "recommendations": [
+        "Know category codes",
+        "Exceed on the brand difference",
+        "Set expectations ads can keep"
+      ],
+      "examples": [
+        "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation"
+      ],
+      "professionalStandards": [
+        "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust."
+      ],
+      "relatedTopics": [
+        "customer-satisfaction",
+        "brand-trust",
+        "product-perception",
+        "first-3-seconds-strategy"
+      ],
+      "keywords": [
+        "consumer expectations",
+        "category norms",
+        "promise",
+        "standards"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:consumer-expectations",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-customer-satisfaction",
+      "title": "Customer Satisfaction",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Post-experience evaluation that drives reviews, repeat, and referrals.",
+      "coreConcepts": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "definitions": [
+        "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success.",
+        "Connect marketing promises to post-purchase reality."
+      ],
+      "rules": [
+        "Practice: Promise what product delivers",
+        "Practice: Onboard via content",
+        "Practice: Invite fair reviews"
+      ],
+      "bestPractices": [
+        "Promise what product delivers",
+        "Onboard via content",
+        "Invite fair reviews"
+      ],
+      "professionalTechniques": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "workflow": [
+        "Align claims",
+        "Support first use",
+        "Collect feedback",
+        "Close loop in creative"
+      ],
+      "decisionRules": [
+        "Follow: Promise what product delivers",
+        "Follow: Onboard via content",
+        "Follow: Invite fair reviews"
+      ],
+      "commonMistakes": [
+        "Hype that causes disappointment",
+        "Ignoring onboarding content"
+      ],
+      "troubleshooting": [
+        "Avoid: Hype that causes disappointment",
+        "Avoid: Ignoring onboarding content"
+      ],
+      "recommendations": [
+        "Promise what product delivers",
+        "Onboard via content",
+        "Invite fair reviews"
+      ],
+      "examples": [
+        "Setup video reduces return rate and boosts 5-star reviews"
+      ],
+      "professionalStandards": [
+        "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success."
+      ],
+      "relatedTopics": [
+        "consumer-expectations",
+        "customer-retention",
+        "trust-building",
+        "content-marketing"
+      ],
+      "keywords": [
+        "customer satisfaction",
+        "CSAT",
+        "expectations gap",
+        "reviews"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-satisfaction",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "cust-customer-retention",
+      "title": "Customer Retention",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "Keeping customers active and loyal after the first purchase.",
+      "coreConcepts": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "definitions": [
+        "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service.",
+        "Extend video marketing beyond acquisition into loyalty content."
+      ],
+      "rules": [
+        "Practice: Reinforce value in use",
+        "Practice: Educate for habits",
+        "Practice: Win-back with relevant offers"
+      ],
+      "bestPractices": [
+        "Reinforce value in use",
+        "Educate for habits",
+        "Win-back with relevant offers"
+      ],
+      "professionalTechniques": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "workflow": [
+        "Identify churn reasons",
+        "Build retention content",
+        "Trigger journeys",
+        "Measure LTV"
+      ],
+      "decisionRules": [
+        "Follow: Reinforce value in use",
+        "Follow: Educate for habits",
+        "Follow: Win-back with relevant offers"
+      ],
+      "commonMistakes": [
+        "Only acquiring, never nurturing",
+        "Generic win-back spam"
+      ],
+      "troubleshooting": [
+        "Avoid: Only acquiring, never nurturing",
+        "Avoid: Generic win-back spam"
+      ],
+      "recommendations": [
+        "Reinforce value in use",
+        "Educate for habits",
+        "Win-back with relevant offers"
+      ],
+      "examples": [
+        "Tips series for power users; loyalty offer film"
+      ],
+      "professionalStandards": [
+        "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service."
+      ],
+      "relatedTopics": [
+        "customer-satisfaction",
+        "marketing-customer-journey",
+        "brand-trust",
+        "content-marketing"
+      ],
+      "keywords": [
+        "customer retention",
+        "loyalty",
+        "LTV",
+        "churn",
+        "repeat"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:customer-retention",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Customer Psychology Knowledge Pack",
+    "category": "professional-marketing",
+    "domain": "customer-psychology",
+    "description": "Curated professional marketing/branding/psychology knowledge for AI Me (does not create ads automatically).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Customer Behavior",
+          "Buying Motivation",
+          "Emotional Triggers",
+          "Trust Building",
+          "Decision Making",
+          "Attention Psychology",
+          "Product Perception",
+          "Consumer Expectations",
+          "Customer Satisfaction",
+          "Customer Retention"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Observe real journeys",
+          "Separate stated vs revealed preference",
+          "Design for defaults and friction",
+          "Pick one primary motive",
+          "Show motive visually",
+          "Align CTA to motive",
+          "Earn emotion with truth",
+          "Match brand ethics",
+          "Resolve tension responsibly",
+          "Specific proof > vague claims",
+          "Show real use",
+          "Consistent brand cues",
+          "Reduce cognitive load",
+          "Make next step obvious",
+          "Address top objections",
+          "Pattern interrupt early",
+          "One focal point",
+          "Reward attention with clarity",
+          "Show material truth",
+          "Context of use",
+          "Consistent quality cues",
+          "Know category codes",
+          "Exceed on the brand difference",
+          "Set expectations ads can keep",
+          "Promise what product delivers",
+          "Onboard via content",
+          "Invite fair reviews",
+          "Reinforce value in use",
+          "Educate for habits",
+          "Win-back with relevant offers"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Research behavior",
+          "Map frictions",
+          "Brief creative",
+          "Measure behavior change",
+          "Interview motives",
+          "Prioritize",
+          "Script to motive",
+          "Test",
+          "Choose emotion",
+          "Design trigger moment",
+          "Resolve with product role",
+          "CTA",
+          "Identify risks",
+          "Select proof",
+          "Place in journey",
+          "Substantiate",
+          "List decision criteria",
+          "Simplify options",
+          "Script clarity",
+          "Test CTA",
+          "Design hook",
+          "Remove rivals",
+          "Pace reveals",
+          "Measure drop-off",
+          "Define desired perception",
+          "Choose cues",
+          "Shoot/animate",
+          "Validate with audience",
+          "Audit expectations",
+          "Align promise",
+          "Deliver proof",
+          "Measure satisfaction",
+          "Align claims",
+          "Support first use",
+          "Collect feedback",
+          "Close loop in creative",
+          "Identify churn reasons",
+          "Build retention content",
+          "Trigger journeys",
+          "Measure LTV"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Mobile users skip intros → mandate hook-first edits",
+          "Status motive: premium unboxing; safety motive: warranty proof",
+          "Relief after chaos messy-kitchen → clean system demo",
+          "Demo + verified review + clear return policy line",
+          "Single plan highlighted as recommended in offer scene",
+          "First-frame motion + question overlay before logo",
+          "Macro texture + real-use demo to raise quality perception",
+          "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation",
+          "Setup video reduces return rate and boosts 5-star reviews",
+          "Tips series for power users; loyalty offer film"
+        ]
+      }
+    ],
+    "concepts": [
+      "customer behavior",
+      "buyer behavior",
+      "usage context",
+      "buying motivation",
+      "motives",
+      "jobs to be done",
+      "desire",
+      "emotional triggers",
+      "emotion",
+      "affect",
+      "feeling cues",
+      "trust building",
+      "credibility",
+      "risk reduction",
+      "proof",
+      "decision making",
+      "heuristics",
+      "choice",
+      "friction",
+      "attention",
+      "salience",
+      "pattern interrupt",
+      "focus",
+      "product perception",
+      "perceived quality",
+      "desirability",
+      "presentation",
+      "consumer expectations",
+      "category norms",
+      "promise",
+      "standards",
+      "customer satisfaction",
+      "CSAT",
+      "expectations gap",
+      "reviews",
+      "customer retention",
+      "loyalty",
+      "LTV",
+      "churn",
+      "repeat"
+    ],
+    "entities": [
+      "Customer Behavior",
+      "Buying Motivation",
+      "Emotional Triggers",
+      "Trust Building",
+      "Decision Making",
+      "Attention Psychology",
+      "Product Perception",
+      "Consumer Expectations",
+      "Customer Satisfaction",
+      "Customer Retention"
+    ],
+    "terminology": [
+      "customer behavior",
+      "buyer behavior",
+      "usage context",
+      "buying motivation",
+      "motives",
+      "jobs to be done",
+      "desire",
+      "emotional triggers",
+      "emotion",
+      "affect",
+      "feeling cues",
+      "trust building",
+      "credibility",
+      "risk reduction",
+      "proof",
+      "decision making",
+      "heuristics",
+      "choice",
+      "friction",
+      "attention",
+      "salience",
+      "pattern interrupt",
+      "focus",
+      "product perception",
+      "perceived quality",
+      "desirability",
+      "presentation",
+      "consumer expectations",
+      "category norms",
+      "promise",
+      "standards",
+      "customer satisfaction",
+      "CSAT",
+      "expectations gap",
+      "reviews",
+      "customer retention",
+      "loyalty",
+      "LTV",
+      "churn",
+      "repeat"
+    ],
+    "rules": [
+      "Practice: Observe real journeys",
+      "Practice: Separate stated vs revealed preference",
+      "Practice: Design for defaults and friction",
+      "Practice: Pick one primary motive",
+      "Practice: Show motive visually",
+      "Practice: Align CTA to motive",
+      "Practice: Earn emotion with truth",
+      "Practice: Match brand ethics",
+      "Practice: Resolve tension responsibly",
+      "Practice: Specific proof > vague claims",
+      "Practice: Show real use",
+      "Practice: Consistent brand cues",
+      "Practice: Reduce cognitive load",
+      "Practice: Make next step obvious",
+      "Practice: Address top objections",
+      "Practice: Pattern interrupt early",
+      "Practice: One focal point",
+      "Practice: Reward attention with clarity",
+      "Practice: Show material truth",
+      "Practice: Context of use",
+      "Practice: Consistent quality cues",
+      "Practice: Know category codes",
+      "Practice: Exceed on the brand difference",
+      "Practice: Set expectations ads can keep",
+      "Practice: Promise what product delivers",
+      "Practice: Onboard via content",
+      "Practice: Invite fair reviews",
+      "Practice: Reinforce value in use",
+      "Practice: Educate for habits",
+      "Practice: Win-back with relevant offers"
+    ],
+    "bestPractices": [
+      "Observe real journeys",
+      "Separate stated vs revealed preference",
+      "Design for defaults and friction",
+      "Pick one primary motive",
+      "Show motive visually",
+      "Align CTA to motive",
+      "Earn emotion with truth",
+      "Match brand ethics",
+      "Resolve tension responsibly",
+      "Specific proof > vague claims",
+      "Show real use",
+      "Consistent brand cues",
+      "Reduce cognitive load",
+      "Make next step obvious",
+      "Address top objections",
+      "Pattern interrupt early",
+      "One focal point",
+      "Reward attention with clarity",
+      "Show material truth",
+      "Context of use",
+      "Consistent quality cues",
+      "Know category codes",
+      "Exceed on the brand difference",
+      "Set expectations ads can keep",
+      "Promise what product delivers",
+      "Onboard via content",
+      "Invite fair reviews",
+      "Reinforce value in use",
+      "Educate for habits",
+      "Win-back with relevant offers"
+    ],
+    "professionalTechniques": [
+      "Research behavior",
+      "Map frictions",
+      "Brief creative",
+      "Measure behavior change",
+      "Interview motives",
+      "Prioritize",
+      "Script to motive",
+      "Test",
+      "Choose emotion",
+      "Design trigger moment",
+      "Resolve with product role",
+      "CTA",
+      "Identify risks",
+      "Select proof",
+      "Place in journey",
+      "Substantiate",
+      "List decision criteria",
+      "Simplify options",
+      "Script clarity",
+      "Test CTA",
+      "Design hook",
+      "Remove rivals",
+      "Pace reveals",
+      "Measure drop-off",
+      "Define desired perception",
+      "Choose cues",
+      "Shoot/animate",
+      "Validate with audience",
+      "Audit expectations",
+      "Align promise",
+      "Deliver proof",
+      "Measure satisfaction",
+      "Align claims",
+      "Support first use",
+      "Collect feedback",
+      "Close loop in creative",
+      "Identify churn reasons",
+      "Build retention content",
+      "Trigger journeys",
+      "Measure LTV"
+    ],
+    "examples": [
+      "Mobile users skip intros → mandate hook-first edits",
+      "Status motive: premium unboxing; safety motive: warranty proof",
+      "Relief after chaos messy-kitchen → clean system demo",
+      "Demo + verified review + clear return policy line",
+      "Single plan highlighted as recommended in offer scene",
+      "First-frame motion + question overlay before logo",
+      "Macro texture + real-use demo to raise quality perception",
+      "Beauty ad shows texture truth to meet ‘what it really looks like’ expectation",
+      "Setup video reduces return rate and boosts 5-star reviews",
+      "Tips series for power users; loyalty offer film"
+    ],
+    "commonMistakes": [
+      "Assuming rational shoppers only",
+      "Ignoring context of use",
+      "Mixed motives muddying message",
+      "Feature focus with no motive",
+      "Fearmongering",
+      "Emotion unrelated to offer",
+      "Stocky fake testimonials",
+      "Overclaiming",
+      "Too many choices",
+      "Hidden price/terms",
+      "Slow opens on social",
+      "Competing stimuli",
+      "Misleading scale",
+      "Beauty without function",
+      "Overpromising in hooks",
+      "Breaking platform norms without intent",
+      "Hype that causes disappointment",
+      "Ignoring onboarding content",
+      "Only acquiring, never nurturing",
+      "Generic win-back spam"
+    ],
+    "qualityRules": [
+      "Customer behavior knowledge explains patterned actions and contexts that shape attention, evaluation, purchase, and loyalty.",
+      "Buying motivation covers the drivers—jobs-to-be-done, status, fear reduction, belonging—that make offers relevant.",
+      "Emotional triggers are affective cues (relief, pride, fear of loss, joy) that intensify engagement when matched to brand and truth.",
+      "Trust building reduces perceived risk via proof, transparency, consistency, and credible messengers.",
+      "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes.",
+      "Attention psychology explains salience, novelty, pattern interrupt, and cognitive limits that govern whether creative is noticed and retained.",
+      "Product perception is the constructed sense of quality, efficacy, and desirability formed from visuals, demos, context, and claims.",
+      "Consumer expectations are anticipated standards for quality, speed, claims, and creative norms that shape satisfaction and trust.",
+      "Customer satisfaction is the gap between expected and experienced outcomes; creative should set honest expectations and reinforce success.",
+      "Customer retention strategies increase repeat purchase and advocacy through value reinforcement, habit, community, and service."
+    ],
+    "decisionRules": [
+      "Follow: Observe real journeys",
+      "Follow: Separate stated vs revealed preference",
+      "Follow: Design for defaults and friction",
+      "Follow: Pick one primary motive",
+      "Follow: Show motive visually",
+      "Follow: Align CTA to motive",
+      "Follow: Earn emotion with truth",
+      "Follow: Match brand ethics",
+      "Follow: Resolve tension responsibly",
+      "Follow: Specific proof > vague claims",
+      "Follow: Show real use",
+      "Follow: Consistent brand cues",
+      "Follow: Reduce cognitive load",
+      "Follow: Make next step obvious",
+      "Follow: Address top objections",
+      "Follow: Pattern interrupt early",
+      "Follow: One focal point",
+      "Follow: Reward attention with clarity",
+      "Follow: Show material truth",
+      "Follow: Context of use",
+      "Follow: Consistent quality cues",
+      "Follow: Know category codes",
+      "Follow: Exceed on the brand difference",
+      "Follow: Set expectations ads can keep",
+      "Follow: Promise what product delivers",
+      "Follow: Onboard via content",
+      "Follow: Invite fair reviews",
+      "Follow: Reinforce value in use",
+      "Follow: Educate for habits",
+      "Follow: Win-back with relevant offers"
+    ],
+    "workflowSteps": [
+      "Research behavior",
+      "Map frictions",
+      "Brief creative",
+      "Measure behavior change",
+      "Interview motives",
+      "Prioritize",
+      "Script to motive",
+      "Test",
+      "Choose emotion",
+      "Design trigger moment",
+      "Resolve with product role",
+      "CTA",
+      "Identify risks",
+      "Select proof",
+      "Place in journey",
+      "Substantiate",
+      "List decision criteria",
+      "Simplify options",
+      "Script clarity",
+      "Test CTA",
+      "Design hook",
+      "Remove rivals",
+      "Pace reveals",
+      "Measure drop-off",
+      "Define desired perception",
+      "Choose cues",
+      "Shoot/animate",
+      "Validate with audience",
+      "Audit expectations",
+      "Align promise",
+      "Deliver proof",
+      "Measure satisfaction",
+      "Align claims",
+      "Support first use",
+      "Collect feedback",
+      "Close loop in creative",
+      "Identify churn reasons",
+      "Build retention content",
+      "Trigger journeys",
+      "Measure LTV"
+    ],
+    "prerequisites": [
+      "Define audience and offer before selecting marketing tactics."
+    ],
+    "dependencies": [
+      "storytelling-knowledge",
+      "product-knowledge",
+      "social-media-knowledge"
+    ],
+    "relatedKnowledge": [
+      "cust-customer-behavior",
+      "cust-buying-motivation",
+      "cust-emotional-triggers",
+      "cust-trust-building",
+      "cust-decision-making",
+      "cust-attention-psychology",
+      "cust-product-perception",
+      "cust-consumer-expectations",
+      "cust-customer-satisfaction",
+      "cust-customer-retention"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 92,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-marketing-branding-psychology-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "b364fec67b9412310cb11d88838e7bbf4906cc61886eb92cad771d1af93e5c48",
+  "createdAt": "2026-08-08T19:03:23.112Z",
+  "updatedAt": "2026-08-08T19:03:23.113Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

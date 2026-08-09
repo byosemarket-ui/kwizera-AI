@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "mkt-performance-marketing",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Performance Marketing",
+  "description": "Paid acquisition optimized to measurable actions (lead, purchase, install).",
+  "summary": "Guide conversion-oriented video and offer creative.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "performance-marketing",
+    "performance marketing",
+    "ROAS",
+    "CPA",
+    "paid ads",
+    "creative testing"
+  ],
+  "keywords": [
+    "performance marketing",
+    "ROAS",
+    "CPA",
+    "paid ads",
+    "creative testing"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-conversion-optimization",
+    "vmkt-hook-creation",
+    "sales-cta-strategy",
+    "mkt-marketing-funnel",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:15.325Z",
+  "lastUpdated": "2026-08-08T18:25:15.325Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-performance-marketing",
+  "integrityStatus": "verified",
+  "contentHash": "821715f49892a1956c39a859abe4571b35c24a3feb93779519726b152b9294ed",
+  "searchableText": "performance marketing paid acquisition optimized to measurable actions (lead, purchase, install). guide conversion-oriented video and offer creative. professional-marketing professional-marketing professional performance-marketing performance marketing roas cpa paid ads creative testing performance marketing roas cpa paid ads creative testing",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "performance-marketing-paid",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "performance-marketing",
+    "kind": "professional-marketing",
+    "purpose": "Guide conversion-oriented video and offer creative.",
+    "professionalDefinition": "Performance marketing is accountable paid media focused on CPA/ROAS with rapid creative testing and funnel instrumentation.",
+    "workflow": [
+      "Define KPI",
+      "Build test matrix",
+      "Launch",
+      "Kill/scale",
+      "Refresh creative"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-performance-marketing",
+      "title": "Performance Marketing",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Paid acquisition optimized to measurable actions (lead, purchase, install).",
+      "coreConcepts": [
+        "performance marketing",
+        "ROAS",
+        "CPA",
+        "paid ads",
+        "creative testing"
+      ],
+      "definitions": [
+        "Performance marketing is accountable paid media focused on CPA/ROAS with rapid creative testing and funnel instrumentation.",
+        "Guide conversion-oriented video and offer creative."
+      ],
+      "rules": [
+        "Practice: One primary conversion event",
+        "Practice: Iterate hooks weekly",
+        "Practice: Separate testing from scaling"
+      ],
+      "bestPractices": [
+        "One primary conversion event",
+        "Iterate hooks weekly",
+        "Separate testing from scaling"
+      ],
+      "professionalTechniques": [
+        "Define KPI",
+        "Build test matrix",
+        "Launch",
+        "Kill/scale",
+        "Refresh creative"
+      ],
+      "workflow": [
+        "Define KPI",
+        "Build test matrix",
+        "Launch",
+        "Kill/scale",
+        "Refresh creative"
+      ],
+      "decisionRules": [
+        "Follow: One primary conversion event",
+        "Follow: Iterate hooks weekly",
+        "Follow: Separate testing from scaling"
+      ],
+      "commonMistakes": [
+        "Scaling unproven creatives",
+        "Optimizing for clicks only"
+      ],
+      "troubleshooting": [
+        "Avoid: Scaling unproven creatives",
+        "Avoid: Optimizing for clicks only"
+      ],
+      "recommendations": [
+        "One primary conversion event",
+        "Iterate hooks weekly",
+        "Separate testing from scaling"
+      ],
+      "examples": [
+        "3 hooks × 2 bodies × 2 CTAs multivariate test"
+      ],
+      "professionalStandards": [
+        "Performance marketing is accountable paid media focused on CPA/ROAS with rapid creative testing and funnel instrumentation."
+      ],
+      "relatedTopics": [
+        "conversion-optimization",
+        "hook-creation",
+        "cta-strategy",
+        "marketing-funnel"
+      ],
+      "keywords": [
+        "performance marketing",
+        "ROAS",
+        "CPA",
+        "paid ads",
+        "creative testing"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:performance-marketing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Performance Marketing",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Paid acquisition optimized to measurable actions (lead, purchase, install).",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Performance marketing is accountable paid media focused on CPA/ROAS with rapid creative testing and funnel instrumentation."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Guide conversion-oriented video and offer creative."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define KPI",
+            "Build test matrix",
+            "Launch",
+            "Kill/scale",
+            "Refresh creative"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "One primary conversion event",
+            "Iterate hooks weekly",
+            "Separate testing from scaling"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "3 hooks × 2 bodies × 2 CTAs multivariate test"
+          ]
+        }
+      ],
+      "concepts": [
+        "performance marketing",
+        "ROAS",
+        "CPA",
+        "paid ads",
+        "creative testing"
+      ],
+      "entities": [
+        "Performance Marketing",
+        "marketing-knowledge",
+        "sales-psychology",
+        "social-media-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "performance marketing",
+        "ROAS",
+        "CPA",
+        "paid ads",
+        "creative testing"
+      ],
+      "rules": [
+        "Avoid: Scaling unproven creatives",
+        "Avoid: Optimizing for clicks only"
+      ],
+      "bestPractices": [
+        "One primary conversion event",
+        "Iterate hooks weekly",
+        "Separate testing from scaling"
+      ],
+      "professionalTechniques": [
+        "Define KPI",
+        "Build test matrix",
+        "Launch",
+        "Kill/scale",
+        "Refresh creative"
+      ],
+      "examples": [
+        "3 hooks × 2 bodies × 2 CTAs multivariate test"
+      ],
+      "commonMistakes": [
+        "Scaling unproven creatives",
+        "Optimizing for clicks only"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: One primary conversion event",
+        "Practice: Iterate hooks weekly",
+        "Practice: Separate testing from scaling"
+      ],
+      "workflowSteps": [
+        "Define KPI",
+        "Build test matrix",
+        "Launch",
+        "Kill/scale",
+        "Refresh creative"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "sales-psychology",
+        "social-media-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "mkt-conversion-optimization",
+        "vmkt-hook-creation",
+        "sales-cta-strategy",
+        "mkt-marketing-funnel"
+      ],
+      "definitions": [
+        "Performance marketing is accountable paid media focused on CPA/ROAS with rapid creative testing and funnel instrumentation.",
+        "Guide conversion-oriented video and offer creative."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "One primary conversion event",
+      "Iterate hooks weekly",
+      "Separate testing from scaling"
+    ],
+    "bestPractices": [
+      "One primary conversion event",
+      "Iterate hooks weekly",
+      "Separate testing from scaling"
+    ],
+    "decisionRules": [
+      "Practice: One primary conversion event",
+      "Practice: Iterate hooks weekly",
+      "Practice: Separate testing from scaling"
+    ]
+  }
+}

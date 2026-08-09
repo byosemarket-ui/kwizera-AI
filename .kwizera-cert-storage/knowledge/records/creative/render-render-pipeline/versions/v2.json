@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "render-render-pipeline",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-rendering",
+  "title": "Render Pipeline",
+  "description": "The staged path from working files to masters and distribution encodes.",
+  "summary": "Prevent quality loss and rework through structured stages.",
+  "tags": [
+    "professional-rendering",
+    "professional",
+    "render-pipeline",
+    "render pipeline",
+    "mezzanine",
+    "mastering",
+    "encode chain"
+  ],
+  "keywords": [
+    "render pipeline",
+    "mezzanine",
+    "mastering",
+    "encode chain"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "render-video-codecs",
+    "render-compression",
+    "render-export-settings",
+    "render-performance-optimization",
+    "amr-bridge-rendering-knowledge",
+    "amr-bridge-video-editing-knowledge",
+    "amr-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:37:05.675Z",
+  "lastUpdated": "2026-08-08T17:56:03.588Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\render-render-pipeline",
+  "integrityStatus": "verified",
+  "contentHash": "62b36f5a8b446cac1e147438375d607f0ccbef3733b2c68b7350fb9c11e63c53",
+  "searchableText": "render pipeline the staged path from working files to masters and distribution encodes. prevent quality loss and rework through structured stages. professional-rendering professional-rendering professional render-pipeline render pipeline mezzanine mastering encode chain render pipeline mezzanine mastering encode chain",
+  "classification": {
+    "category": "professional-rendering",
+    "topic": "render-pipeline-staged",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "render-pipeline",
+    "kind": "professional-rendering",
+    "purpose": "Prevent quality loss and rework through structured stages.",
+    "professionalDefinition": "A render pipeline is the ordered sequence of processes—cache, beauty pass, composite, grade, encode—that produces consistent outputs.",
+    "workflow": [
+      "Online",
+      "Master",
+      "Derive platform encodes",
+      "Archive"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "render-render-pipeline",
+      "title": "Render Pipeline",
+      "domain": "rendering-knowledge",
+      "category": "professional-rendering",
+      "description": "The staged path from working files to masters and distribution encodes.",
+      "coreConcepts": [
+        "render pipeline",
+        "mezzanine",
+        "mastering",
+        "encode chain"
+      ],
+      "definitions": [
+        "A render pipeline is the ordered sequence of processes—cache, beauty pass, composite, grade, encode—that produces consistent outputs.",
+        "Prevent quality loss and rework through structured stages."
+      ],
+      "rules": [
+        "Practice: Mezzanine masters",
+        "Practice: Immutable finals",
+        "Practice: Version naming"
+      ],
+      "bestPractices": [
+        "Mezzanine masters",
+        "Immutable finals",
+        "Version naming"
+      ],
+      "professionalTechniques": [
+        "Online",
+        "Master",
+        "Derive platform encodes",
+        "Archive"
+      ],
+      "workflow": [
+        "Online",
+        "Master",
+        "Derive platform encodes",
+        "Archive"
+      ],
+      "decisionRules": [
+        "Follow: Mezzanine masters",
+        "Follow: Immutable finals",
+        "Follow: Version naming"
+      ],
+      "commonMistakes": [
+        "Re-encoding finals repeatedly",
+        "No checksum/QC gate"
+      ],
+      "troubleshooting": [
+        "Avoid: Re-encoding finals repeatedly",
+        "Avoid: No checksum/QC gate"
+      ],
+      "recommendations": [
+        "Mezzanine masters",
+        "Immutable finals",
+        "Version naming"
+      ],
+      "examples": [
+        "ProRes master → H.264/H.265 social variants"
+      ],
+      "professionalStandards": [
+        "A render pipeline is the ordered sequence of processes—cache, beauty pass, composite, grade, encode—that produces consistent outputs."
+      ],
+      "relatedTopics": [
+        "video-codecs",
+        "compression",
+        "export-settings",
+        "performance-optimization"
+      ],
+      "keywords": [
+        "render pipeline",
+        "mezzanine",
+        "mastering",
+        "encode chain"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:render-pipeline",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Render Pipeline",
+      "category": "professional-rendering",
+      "domain": "rendering-knowledge",
+      "description": "The staged path from working files to masters and distribution encodes.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A render pipeline is the ordered sequence of processes—cache, beauty pass, composite, grade, encode—that produces consistent outputs."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Prevent quality loss and rework through structured stages."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Online",
+            "Master",
+            "Derive platform encodes",
+            "Archive"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Mezzanine masters",
+            "Immutable finals",
+            "Version naming"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "ProRes master → H.264/H.265 social variants"
+          ]
+        }
+      ],
+      "concepts": [
+        "render pipeline",
+        "mezzanine",
+        "mastering",
+        "encode chain"
+      ],
+      "entities": [
+        "Render Pipeline",
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "render pipeline",
+        "mezzanine",
+        "mastering",
+        "encode chain"
+      ],
+      "rules": [
+        "Avoid: Re-encoding finals repeatedly",
+        "Avoid: No checksum/QC gate"
+      ],
+      "bestPractices": [
+        "Mezzanine masters",
+        "Immutable finals",
+        "Version naming"
+      ],
+      "professionalTechniques": [
+        "Online",
+        "Master",
+        "Derive platform encodes",
+        "Archive"
+      ],
+      "examples": [
+        "ProRes master → H.264/H.265 social variants"
+      ],
+      "commonMistakes": [
+        "Re-encoding finals repeatedly",
+        "No checksum/QC gate"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Mezzanine masters",
+        "Practice: Immutable finals",
+        "Practice: Version naming"
+      ],
+      "workflowSteps": [
+        "Online",
+        "Master",
+        "Derive platform encodes",
+        "Archive"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "rendering-knowledge",
+        "video-editing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "render-video-codecs",
+        "render-compression",
+        "render-export-settings",
+        "render-performance-optimization"
+      ],
+      "definitions": [
+        "A render pipeline is the ordered sequence of processes—cache, beauty pass, composite, grade, encode—that produces consistent outputs.",
+        "Prevent quality loss and rework through structured stages."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "rendering-knowledge",
+      "category": "professional-rendering",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Mezzanine masters",
+      "Immutable finals",
+      "Version naming"
+    ],
+    "bestPractices": [
+      "Mezzanine masters",
+      "Immutable finals",
+      "Version naming"
+    ],
+    "decisionRules": [
+      "Practice: Mezzanine masters",
+      "Practice: Immutable finals",
+      "Practice: Version naming"
+    ]
+  }
+}

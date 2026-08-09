@@ -1,0 +1,323 @@
+{
+  "knowledgeId": "vp-production-workflow",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Production Workflow",
+  "description": "End-to-end professional workflow connecting brief, pre-production, production, post, and delivery as a managed system.",
+  "summary": "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline.",
+  "tags": [
+    "video-production",
+    "professional",
+    "production-workflow",
+    "workflow",
+    "pipeline",
+    "approvals",
+    "delivery",
+    "versioning"
+  ],
+  "keywords": [
+    "workflow",
+    "pipeline",
+    "approvals",
+    "delivery",
+    "versioning"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-pre-production",
+    "vp-production",
+    "vp-post-production",
+    "vp-professional-planning-methods",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-rendering-knowledge",
+    "vp-bridge-video-editing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:58.514Z",
+  "lastUpdated": "2026-08-08T16:45:11.736Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-production-workflow",
+  "integrityStatus": "verified",
+  "contentHash": "2c4985e41882f2a9d1d0587f86b1fe7446bfc42bd6c549303dc01d94061525e9",
+  "searchableText": "production workflow end-to-end professional workflow connecting brief, pre-production, production, post, and delivery as a managed system. a production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline. professional-video-production video-production professional production-workflow workflow pipeline approvals delivery versioning workflow pipeline approvals delivery versioning",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "production-workflow-end-to-end",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "production-workflow",
+    "professionalDefinition": "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-production-workflow",
+      "title": "Production Workflow",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "End-to-end professional workflow connecting brief, pre-production, production, post, and delivery as a managed system.",
+      "coreConcepts": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "definitions": [
+        "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline."
+      ],
+      "rules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "bestPractices": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "professionalTechniques": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "workflow": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "decisionRules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "commonMistakes": [
+        "Skipping paperwork and rights clearances.",
+        "Parallel uncontrolled versions of the edit.",
+        "Discovering delivery specs after creative lock."
+      ],
+      "troubleshooting": [
+        "Avoid: Skipping paperwork and rights clearances.",
+        "Avoid: Parallel uncontrolled versions of the edit.",
+        "Avoid: Discovering delivery specs after creative lock."
+      ],
+      "recommendations": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "examples": [
+        "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+        "In-house studio workflow with shared shot list and edit bin standards."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "production",
+        "post-production",
+        "professional-planning-methods"
+      ],
+      "keywords": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:production-workflow",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Production Workflow",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "End-to-end professional workflow connecting brief, pre-production, production, post, and delivery as a managed system.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Use explicit approval gates between phases.",
+            "Centralize asset naming, versions, and review notes.",
+            "Plan delivery specs at kickoff, not at export day.",
+            "Hold a wrap checklist before declaring production complete."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Kickoff and brief lock.",
+            "Pre-production planning and resource confirmation.",
+            "Production capture with logging.",
+            "Post editorial → finishing → review → delivery."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If a gate is skipped, reopen it before advancing spend.",
+            "Always freeze delivery specs before finishing grade/audio.",
+            "When feedback conflicts, escalate to the single decision owner.",
+            "Never deliver without a final QA pass for picture, audio, captions, and brand."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+            "In-house studio workflow with shared shot list and edit bin standards."
+          ]
+        }
+      ],
+      "concepts": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "entities": [
+        "Production Workflow",
+        "video-production-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "rules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "bestPractices": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "professionalTechniques": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "examples": [
+        "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+        "In-house studio workflow with shared shot list and edit bin standards."
+      ],
+      "commonMistakes": [
+        "Skipping paperwork and rights clearances.",
+        "Parallel uncontrolled versions of the edit.",
+        "Discovering delivery specs after creative lock."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "workflowSteps": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "prerequisites": [
+        "Kickoff and brief lock."
+      ],
+      "dependencies": [
+        "video-production-knowledge",
+        "rendering-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-pre-production",
+        "vp-production",
+        "vp-post-production",
+        "vp-professional-planning-methods"
+      ],
+      "definitions": [
+        "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline."
+      ],
+      "troubleshooting": [
+        "Avoid: Skipping paperwork and rights clearances.",
+        "Avoid: Parallel uncontrolled versions of the edit.",
+        "Avoid: Discovering delivery specs after creative lock."
+      ],
+      "recommendations": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

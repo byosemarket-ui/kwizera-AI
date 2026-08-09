@@ -1,0 +1,2507 @@
+{
+  "packId": "247e5be2-a503-427a-9552-5063599c8de3",
+  "packSlug": "video-production",
+  "domain": "video-production-knowledge",
+  "title": "Professional Video Production Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "vp-video-production-fundamentals",
+      "title": "Video Production Fundamentals",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Core principles of professional video production: purpose, audience, craft languages, and how planning, capture, and finishing form one continuous system.",
+      "coreConcepts": [
+        "video production",
+        "fundamentals",
+        "pipeline",
+        "audience",
+        "deliverable"
+      ],
+      "definitions": [
+        "Video production is the disciplined process of planning, capturing, and finishing moving images so that story, brand intent, and technical quality align for a defined audience and delivery platform."
+      ],
+      "rules": [
+        "If the audience or CTA is undefined, do not begin production.",
+        "Always prioritize message clarity over decorative camera moves.",
+        "When platform and story conflict, redesign the cut for the platform first.",
+        "Never treat unfinished audio as a post-only problem if capture was avoidable."
+      ],
+      "bestPractices": [
+        "Define audience, message, and success metric before choosing style or format.",
+        "Treat pre-production decisions as production constraints, not optional notes.",
+        "Preserve continuity of brand, light direction, and editorial rhythm across scenes.",
+        "Build every shoot around coverage that supports editing choices, not the reverse."
+      ],
+      "professionalTechniques": [
+        "Clarify brief, audience, and deliverable specs.",
+        "Draft story structure and shot/scene plan.",
+        "Produce with intentional coverage and continuity.",
+        "Edit for pacing and message, then finish for platform delivery."
+      ],
+      "workflow": [
+        "Clarify brief, audience, and deliverable specs.",
+        "Draft story structure and shot/scene plan.",
+        "Produce with intentional coverage and continuity.",
+        "Edit for pacing and message, then finish for platform delivery."
+      ],
+      "decisionRules": [
+        "If the audience or CTA is undefined, do not begin production.",
+        "Always prioritize message clarity over decorative camera moves.",
+        "When platform and story conflict, redesign the cut for the platform first.",
+        "Never treat unfinished audio as a post-only problem if capture was avoidable."
+      ],
+      "commonMistakes": [
+        "Starting to shoot without a clear objective or audience.",
+        "Collecting beautiful shots that cannot be cut into a coherent story.",
+        "Ignoring delivery platform constraints until post-production.",
+        "Confusing equipment complexity with production quality."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting to shoot without a clear objective or audience.",
+        "Avoid: Collecting beautiful shots that cannot be cut into a coherent story.",
+        "Avoid: Ignoring delivery platform constraints until post-production.",
+        "Avoid: Confusing equipment complexity with production quality."
+      ],
+      "recommendations": [
+        "Define audience, message, and success metric before choosing style or format.",
+        "Treat pre-production decisions as production constraints, not optional notes.",
+        "Preserve continuity of brand, light direction, and editorial rhythm across scenes.",
+        "Build every shoot around coverage that supports editing choices, not the reverse."
+      ],
+      "examples": [
+        "A 30-second product launch film planned from CTA backward to opening hook.",
+        "A corporate culture film built from interview beats plus B-roll coverage plan."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "production-workflow",
+        "story-structure",
+        "professional-planning-methods"
+      ],
+      "keywords": [
+        "video production",
+        "fundamentals",
+        "pipeline",
+        "audience",
+        "deliverable"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:video-production-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-types-of-marketing-videos",
+      "title": "Types of Marketing Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional taxonomy of marketing video formats and when each format supports awareness, consideration, conversion, or retention.",
+      "coreConcepts": [
+        "marketing videos",
+        "formats",
+        "funnel",
+        "brand film",
+        "demo",
+        "testimonial"
+      ],
+      "definitions": [
+        "Marketing video types are purpose-driven formats—such as brand films, product demos, testimonials, tutorials, and social shorts—selected according to funnel stage, platform, and buying behavior."
+      ],
+      "rules": [
+        "If the goal is awareness, prefer brand or story-led formats over hard sell.",
+        "If the goal is conversion, prefer demo, offer, or testimonial formats.",
+        "Always choose social-native formats for feed placements.",
+        "Never force a long corporate narrative into a 15-second vertical slot without redesign."
+      ],
+      "bestPractices": [
+        "Match format to funnel stage before matching format to trend.",
+        "Keep one primary CTA per video type.",
+        "Reuse master footage into platform-specific cuts instead of reinventing each asset.",
+        "Document which video type owns which message so campaigns stay coherent."
+      ],
+      "professionalTechniques": [
+        "Map campaign goal to funnel stage.",
+        "Select primary video type and secondary cutdowns.",
+        "Define length, aspect ratio, and CTA placement rules.",
+        "Brief creative and production against that type checklist."
+      ],
+      "workflow": [
+        "Map campaign goal to funnel stage.",
+        "Select primary video type and secondary cutdowns.",
+        "Define length, aspect ratio, and CTA placement rules.",
+        "Brief creative and production against that type checklist."
+      ],
+      "decisionRules": [
+        "If the goal is awareness, prefer brand or story-led formats over hard sell.",
+        "If the goal is conversion, prefer demo, offer, or testimonial formats.",
+        "Always choose social-native formats for feed placements.",
+        "Never force a long corporate narrative into a 15-second vertical slot without redesign."
+      ],
+      "commonMistakes": [
+        "Using a brand film structure for a hard conversion ad.",
+        "Mixing too many CTAs across a single short-form asset.",
+        "Copying a competitor format without audience fit."
+      ],
+      "troubleshooting": [
+        "Avoid: Using a brand film structure for a hard conversion ad.",
+        "Avoid: Mixing too many CTAs across a single short-form asset.",
+        "Avoid: Copying a competitor format without audience fit."
+      ],
+      "recommendations": [
+        "Match format to funnel stage before matching format to trend.",
+        "Keep one primary CTA per video type.",
+        "Reuse master footage into platform-specific cuts instead of reinventing each asset.",
+        "Document which video type owns which message so campaigns stay coherent."
+      ],
+      "examples": [
+        "Awareness: cinematic brand film; Conversion: product demo with offer CTA.",
+        "Retention: customer success story for email nurture and LinkedIn."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "commercial-video-production",
+        "product-advertisement-videos",
+        "social-media-videos",
+        "corporate-videos"
+      ],
+      "keywords": [
+        "marketing videos",
+        "formats",
+        "funnel",
+        "brand film",
+        "demo",
+        "testimonial"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:types-of-marketing-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-commercial-video-production",
+      "title": "Commercial Video Production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional methods for producing commercials that sell products or services with controlled messaging, pacing, and brand compliance.",
+      "coreConcepts": [
+        "commercial",
+        "advertisement",
+        "hook",
+        "CTA",
+        "brand compliance"
+      ],
+      "definitions": [
+        "Commercial video production is the craft of packing a persuasive brand message into a timed audiovisual unit optimized for attention, recall, and action."
+      ],
+      "rules": [
+        "If muted viewing is likely, always plan visual storytelling plus captions.",
+        "Always protect one primary offer; secondary offers belong in companion cuts.",
+        "When brand guidelines conflict with trend effects, preserve brand first.",
+        "Never lock picture before legal review of claims and logos."
+      ],
+      "bestPractices": [
+        "Open with a hook in the first 1–3 seconds for most paid placements.",
+        "Make the product benefit visible, not only narrated.",
+        "Lock legal/brand claims before picture lock.",
+        "Design cutdowns (15s/6s) from the master commercial structure."
+      ],
+      "professionalTechniques": [
+        "Approve single-minded proposition and claims.",
+        "Storyboard beats: hook, problem/desire, proof, CTA.",
+        "Produce controlled lighting and product hero coverage.",
+        "Edit for retention curve; finish with brand and legal end card."
+      ],
+      "workflow": [
+        "Approve single-minded proposition and claims.",
+        "Storyboard beats: hook, problem/desire, proof, CTA.",
+        "Produce controlled lighting and product hero coverage.",
+        "Edit for retention curve; finish with brand and legal end card."
+      ],
+      "decisionRules": [
+        "If muted viewing is likely, always plan visual storytelling plus captions.",
+        "Always protect one primary offer; secondary offers belong in companion cuts.",
+        "When brand guidelines conflict with trend effects, preserve brand first.",
+        "Never lock picture before legal review of claims and logos."
+      ],
+      "commonMistakes": [
+        "Delaying product reveal until after audience drop-off.",
+        "Overpacking claims that dilute the single selling idea.",
+        "Ignoring safe-area and subtitle needs for muted autoplay."
+      ],
+      "troubleshooting": [
+        "Avoid: Delaying product reveal until after audience drop-off.",
+        "Avoid: Overpacking claims that dilute the single selling idea.",
+        "Avoid: Ignoring safe-area and subtitle needs for muted autoplay."
+      ],
+      "recommendations": [
+        "Open with a hook in the first 1–3 seconds for most paid placements.",
+        "Make the product benefit visible, not only narrated.",
+        "Lock legal/brand claims before picture lock.",
+        "Design cutdowns (15s/6s) from the master commercial structure."
+      ],
+      "examples": [
+        "Retail offer commercial with price lock and store CTA in final three seconds.",
+        "Service commercial using customer problem → solution → proof → booking CTA."
+      ],
+      "professionalStandards": [
+        "Confidence 91/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "product-advertisement-videos",
+        "video-pacing",
+        "video-style",
+        "types-of-marketing-videos"
+      ],
+      "keywords": [
+        "commercial",
+        "advertisement",
+        "hook",
+        "CTA",
+        "brand compliance"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:commercial-video-production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-product-advertisement-videos",
+      "title": "Product Advertisement Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "How to present products on camera so features, benefits, and desire are clear through framing, motion, and editorial emphasis.",
+      "coreConcepts": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "definitions": [
+        "Product advertisement video craft focuses on revealing product value through controlled hero shots, demonstration beats, and benefit-led editing."
+      ],
+      "rules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "bestPractices": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "professionalTechniques": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "workflow": [
+        "List must-show features and must-prove benefits.",
+        "Plan hero, detail, context, and usage coverage.",
+        "Capture controlled lighting for texture and brand color accuracy.",
+        "Edit feature → benefit → proof → CTA."
+      ],
+      "decisionRules": [
+        "If a feature cannot be shown, do not claim it as a visual proof beat.",
+        "Always keep packaging readable for at least one clear hero moment.",
+        "When in doubt between style and clarity, choose clarity for product ads.",
+        "Never hide the product for more than a few seconds in short ads."
+      ],
+      "commonMistakes": [
+        "Beauty footage without proof of use or outcome.",
+        "Inconsistent product orientation across shots.",
+        "Busy backgrounds competing with packaging detail."
+      ],
+      "troubleshooting": [
+        "Avoid: Beauty footage without proof of use or outcome.",
+        "Avoid: Inconsistent product orientation across shots.",
+        "Avoid: Busy backgrounds competing with packaging detail."
+      ],
+      "recommendations": [
+        "Establish the product hero early and return to it as a visual anchor.",
+        "Demonstrate benefit in use, not only beauty close-ups.",
+        "Control reflections, labels, and packaging readability.",
+        "Sync motion and cut points to the product's most persuasive moment."
+      ],
+      "examples": [
+        "Skincare ad: texture macro → application → result claim → purchase CTA.",
+        "Hardware demo: problem setup → product in action → specs overlay → buy now."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "commercial-video-production",
+        "shot-types",
+        "shot-planning",
+        "scene-planning"
+      ],
+      "keywords": [
+        "product ad",
+        "hero shot",
+        "demo",
+        "packaging",
+        "benefit"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:product-advertisement-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-social-media-videos",
+      "title": "Social Media Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Platform-native production and editing principles for short-form and feed video across social channels.",
+      "coreConcepts": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "definitions": [
+        "Social media video production adapts story, framing, pacing, and captions to platform behavior—especially vertical formats, muted autoplay, and rapid scroll interruption."
+      ],
+      "rules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "bestPractices": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "professionalTechniques": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "workflow": [
+        "Select platform and length target.",
+        "Write scroll-stopping first frame and first three seconds.",
+        "Shoot with vertical-safe framing and caption space.",
+        "Edit tight loops or clear end-screen CTAs."
+      ],
+      "decisionRules": [
+        "If the platform is feed-based, always plan a visual hook without sound.",
+        "Always reserve lower-third and edge safe areas for UI overlays.",
+        "When adapting a long film, redesign structure rather than speed-ramping only.",
+        "Never publish social cuts without caption QA."
+      ],
+      "commonMistakes": [
+        "Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Relying on audio-only hooks.",
+        "Overlong intros before the first value beat."
+      ],
+      "troubleshooting": [
+        "Avoid: Letterboxing a horizontal commercial into a vertical feed without redesign.",
+        "Avoid: Relying on audio-only hooks.",
+        "Avoid: Overlong intros before the first value beat."
+      ],
+      "recommendations": [
+        "Design for vertical or platform-native aspect ratios from pre-production.",
+        "Front-load the hook and on-screen text for muted viewers.",
+        "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+        "Produce reusable shot kits that can become multiple platform cutdowns."
+      ],
+      "examples": [
+        "15-second vertical product tip with burned-in captions and sticker CTA.",
+        "Carousel-style multi-clip series from one shoot day."
+      ],
+      "professionalStandards": [
+        "Confidence 91/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "types-of-marketing-videos",
+        "video-pacing",
+        "visual-rhythm",
+        "video-style"
+      ],
+      "keywords": [
+        "social media",
+        "short-form",
+        "vertical",
+        "captions",
+        "hook"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:social-media-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-corporate-videos",
+      "title": "Corporate Videos",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional standards for corporate storytelling: culture, explainers, leadership messages, and institutional credibility.",
+      "coreConcepts": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "definitions": [
+        "Corporate video production communicates organizational identity, process, or leadership messages with clarity, credibility, and brand-consistent tone."
+      ],
+      "rules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "bestPractices": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "professionalTechniques": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "workflow": [
+        "Confirm audience and approval stakeholders.",
+        "Outline message pillars and interview questions.",
+        "Capture interviews plus supporting operational B-roll.",
+        "Edit for clarity chapters; finish with brand packaging."
+      ],
+      "decisionRules": [
+        "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+        "Always secure stakeholder approval gates before public release.",
+        "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+        "Never invent metrics or customer claims without source approval."
+      ],
+      "commonMistakes": [
+        "Wall-to-wall talking heads without visual proof.",
+        "Generic stock pacing that erases brand personality.",
+        "Unclear audience (internal vs customer vs investor)."
+      ],
+      "troubleshooting": [
+        "Avoid: Wall-to-wall talking heads without visual proof.",
+        "Avoid: Generic stock pacing that erases brand personality.",
+        "Avoid: Unclear audience (internal vs customer vs investor)."
+      ],
+      "recommendations": [
+        "Lead with human stakes or business outcome, not org-chart narration.",
+        "Balance interview A-roll with purposeful B-roll coverage.",
+        "Keep claims accurate and approval-tracked.",
+        "Design modular chapters for website and sales enablement reuse."
+      ],
+      "examples": [
+        "Employee culture film with three message pillars and workplace B-roll.",
+        "Explainer video mapping a service workflow for prospects."
+      ],
+      "professionalStandards": [
+        "Confidence 88/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "scene-planning",
+        "production-workflow",
+        "types-of-marketing-videos"
+      ],
+      "keywords": [
+        "corporate",
+        "explainer",
+        "culture film",
+        "interview",
+        "B-roll"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:corporate-videos",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-story-structure",
+      "title": "Story Structure",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Narrative architecture for professional videos: setup, conflict or desire, proof, and resolution aligned to runtime.",
+      "coreConcepts": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "definitions": [
+        "Story structure in video production is the ordered arrangement of beats that guide attention from opening interest to emotional or commercial resolution."
+      ],
+      "rules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "bestPractices": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "professionalTechniques": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "workflow": [
+        "Write the one-sentence story promise.",
+        "List beats against target duration.",
+        "Assign shots/scenes to each beat.",
+        "Edit against the beat sheet, not against favorite takes alone."
+      ],
+      "decisionRules": [
+        "If a scene does not advance story or proof, cut it.",
+        "Always place the strongest retention beat near the open for short ads.",
+        "When runtime shrinks, preserve hook and CTA first.",
+        "Never invent a climax that the footage cannot support."
+      ],
+      "commonMistakes": [
+        "Starting in the middle without orientation for the viewer.",
+        "Resolving too early and diluting the ending CTA.",
+        "Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "troubleshooting": [
+        "Avoid: Starting in the middle without orientation for the viewer.",
+        "Avoid: Resolving too early and diluting the ending CTA.",
+        "Avoid: Adding scenes that do not advance desire, proof, or emotion."
+      ],
+      "recommendations": [
+        "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+        "Make each beat earn the next; remove ornamental scenes.",
+        "Align emotional peak with product or message reveal when selling.",
+        "Use recurring visual motifs to reinforce theme."
+      ],
+      "examples": [
+        "Problem → aspiration → demonstration → social proof → CTA.",
+        "Day-in-the-life structure for founder brand film."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "scene-planning",
+        "video-pacing",
+        "commercial-video-production",
+        "video-production-fundamentals"
+      ],
+      "keywords": [
+        "story structure",
+        "beats",
+        "narrative",
+        "arc",
+        "CTA"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:story-structure",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-shot-types",
+      "title": "Shot Types",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional shot vocabulary used in production planning and editing: wide, medium, close-up, insert, POV, and supporting coverage.",
+      "coreConcepts": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "definitions": [
+        "Shot types are standardized framing categories that control information density, emotional proximity, and editorial flexibility within a scene."
+      ],
+      "rules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "bestPractices": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "professionalTechniques": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "workflow": [
+        "Translate scene beats into required shot types.",
+        "Prioritize must-have sizes before stylistic extras.",
+        "Capture consistency of eye-line and screen direction.",
+        "Label takes by shot type for faster post."
+      ],
+      "decisionRules": [
+        "If the edit needs options, always capture at least two shot sizes per key beat.",
+        "Always establish space before relying on close coverage.",
+        "When emotion is the goal, prefer closer framing after context is clear.",
+        "Never leave a product claim without a supporting insert when possible."
+      ],
+      "commonMistakes": [
+        "Shooting only medium shots and trapping the edit.",
+        "Jumping shot sizes without motivation.",
+        "Close-ups without establishing geography."
+      ],
+      "troubleshooting": [
+        "Avoid: Shooting only medium shots and trapping the edit.",
+        "Avoid: Jumping shot sizes without motivation.",
+        "Avoid: Close-ups without establishing geography."
+      ],
+      "recommendations": [
+        "Plan a mix of master, medium, and close coverage for editable scenes.",
+        "Use inserts to prove product detail or process clarity.",
+        "Match shot size progression to story intensity.",
+        "Document intended shot type on the shot list to avoid missing coverage."
+      ],
+      "examples": [
+        "Product scene: wide environment, medium usage, macro insert of detail.",
+        "Interview: medium talking head plus cutaway inserts of hands/work."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-planning",
+        "camera-coverage",
+        "scene-planning",
+        "product-advertisement-videos"
+      ],
+      "keywords": [
+        "shot types",
+        "wide",
+        "close-up",
+        "insert",
+        "coverage"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:shot-types",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-shot-planning",
+      "title": "Shot Planning",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "How professionals plan shots before production so each frame has purpose, order, and technical readiness.",
+      "coreConcepts": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "definitions": [
+        "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected."
+      ],
+      "rules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "bestPractices": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "professionalTechniques": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "workflow": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "decisionRules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "commonMistakes": [
+        "Improvising the entire day without a prioritized list.",
+        "Planning cinematic moves that consume time needed for coverage.",
+        "Omitting contingency shots for risky setups."
+      ],
+      "troubleshooting": [
+        "Avoid: Improvising the entire day without a prioritized list.",
+        "Avoid: Planning cinematic moves that consume time needed for coverage.",
+        "Avoid: Omitting contingency shots for risky setups."
+      ],
+      "recommendations": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "examples": [
+        "Location day scheduled by setup, not by story order.",
+        "Product tabletop shot list ordered from wide hero to macro inserts."
+      ],
+      "professionalStandards": [
+        "Confidence 89/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-types",
+        "scene-planning",
+        "camera-coverage",
+        "pre-production"
+      ],
+      "keywords": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:shot-planning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-scene-planning",
+      "title": "Scene Planning",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Organizing scenes as production units with objectives, blocking, coverage, and transitions into the larger story.",
+      "coreConcepts": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "definitions": [
+        "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes."
+      ],
+      "rules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "bestPractices": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "professionalTechniques": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "workflow": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "decisionRules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "commonMistakes": [
+        "Treating scenes as disconnected pretty setups.",
+        "Missing transition logic between scenes.",
+        "Overblocking action that cannot be covered in time."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating scenes as disconnected pretty setups.",
+        "Avoid: Missing transition logic between scenes.",
+        "Avoid: Overblocking action that cannot be covered in time."
+      ],
+      "recommendations": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "examples": [
+        "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+        "Corporate film: workplace scene clusters mapped to message pillars."
+      ],
+      "professionalStandards": [
+        "Confidence 89/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "shot-planning",
+        "camera-coverage",
+        "production"
+      ],
+      "keywords": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:scene-planning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-camera-coverage",
+      "title": "Camera Coverage",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional coverage strategy: capturing enough complementary angles and sizes to cut a scene with continuity and emphasis.",
+      "coreConcepts": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "definitions": [
+        "Camera coverage is the deliberate set of angles and shot sizes recorded for a scene so editors can maintain continuity, control emphasis, and solve performance or timing issues."
+      ],
+      "rules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "bestPractices": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "professionalTechniques": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "workflow": [
+        "Decide editorial pattern (master-driven, coverage-driven, or montage).",
+        "List required angles for dialogue/action.",
+        "Shoot master → supporting sizes → inserts.",
+        "Verify continuity before striking the setup."
+      ],
+      "decisionRules": [
+        "If only one take is possible, prioritize the angle that carries story information.",
+        "Always maintain continuity of action across coverage.",
+        "When using stylized line crosses, do so consistently and intentionally.",
+        "Never strike lights before confirming insert needs."
+      ],
+      "commonMistakes": [
+        "Single-angle shooting that locks the edit.",
+        "Crossing the line without intentional style justification.",
+        "Coverage that mismatches performance energy across takes."
+      ],
+      "troubleshooting": [
+        "Avoid: Single-angle shooting that locks the edit.",
+        "Avoid: Crossing the line without intentional style justification.",
+        "Avoid: Coverage that mismatches performance energy across takes."
+      ],
+      "recommendations": [
+        "Capture a master that preserves geography, then coverage for emphasis.",
+        "Protect screen direction and eyelines across angles.",
+        "Record safety coverage for complex action or dialogue.",
+        "Coordinate multi-cam only when it increases usable options, not noise."
+      ],
+      "examples": [
+        "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+        "Product hand demo covered from hero angle and detail angle."
+      ],
+      "professionalStandards": [
+        "Confidence 88/100",
+        "Quality 87/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-types",
+        "shot-planning",
+        "scene-planning",
+        "post-production"
+      ],
+      "keywords": [
+        "coverage",
+        "master shot",
+        "angles",
+        "continuity",
+        "multi-cam"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:camera-coverage",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-video-pacing",
+      "title": "Video Pacing",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Controlling information rate and cut frequency so attention, comprehension, and emotion stay aligned with runtime.",
+      "coreConcepts": [
+        "pacing",
+        "cut rate",
+        "retention",
+        "timing",
+        "duration"
+      ],
+      "definitions": [
+        "Video pacing is the temporal design of shot length, scene duration, and information density that shapes how quickly a viewer processes story and persuasion."
+      ],
+      "rules": [
+        "If viewers must read text, hold long enough for comfortable reading.",
+        "Always slow down on the product's key proof beat.",
+        "When retention falls, cut earlier—do not add more decoration.",
+        "Never pace a corporate explainer like a hyperactive social trend cut unless intentional."
+      ],
+      "bestPractices": [
+        "Vary pace: accelerate through low-information moments, breathe on proof moments.",
+        "Let on-screen text and voiceover dictate minimum readable duration.",
+        "Front-load retention for ads; allow measured pacing for explainers.",
+        "Use cut frequency as emphasis, not as default decoration."
+      ],
+      "professionalTechniques": [
+        "Define target pace profile for format (ad vs corporate vs social).",
+        "Assemble rough cut against beat sheet timing.",
+        "Measure drop-off risk points and tighten.",
+        "Lock pace before heavy finishing effects."
+      ],
+      "workflow": [
+        "Define target pace profile for format (ad vs corporate vs social).",
+        "Assemble rough cut against beat sheet timing.",
+        "Measure drop-off risk points and tighten.",
+        "Lock pace before heavy finishing effects."
+      ],
+      "decisionRules": [
+        "If viewers must read text, hold long enough for comfortable reading.",
+        "Always slow down on the product's key proof beat.",
+        "When retention falls, cut earlier—do not add more decoration.",
+        "Never pace a corporate explainer like a hyperactive social trend cut unless intentional."
+      ],
+      "commonMistakes": [
+        "Constant rapid cutting that prevents comprehension.",
+        "Holding static wide shots far beyond their informational value.",
+        "Mismatched voiceover speed and picture change rate."
+      ],
+      "troubleshooting": [
+        "Avoid: Constant rapid cutting that prevents comprehension.",
+        "Avoid: Holding static wide shots far beyond their informational value.",
+        "Avoid: Mismatched voiceover speed and picture change rate."
+      ],
+      "recommendations": [
+        "Vary pace: accelerate through low-information moments, breathe on proof moments.",
+        "Let on-screen text and voiceover dictate minimum readable duration.",
+        "Front-load retention for ads; allow measured pacing for explainers.",
+        "Use cut frequency as emphasis, not as default decoration."
+      ],
+      "examples": [
+        "6-second bumper with two shots and one text lockup.",
+        "Two-minute explainer with slower proof sections and faster transitions between chapters."
+      ],
+      "professionalStandards": [
+        "Confidence 90/100",
+        "Quality 89/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "visual-rhythm",
+        "story-structure",
+        "social-media-videos",
+        "post-production"
+      ],
+      "keywords": [
+        "pacing",
+        "cut rate",
+        "retention",
+        "timing",
+        "duration"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:video-pacing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-visual-rhythm",
+      "title": "Visual Rhythm",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Patterning motion, composition changes, and editorial accents so the picture feels intentional and musically coherent.",
+      "coreConcepts": [
+        "visual rhythm",
+        "motif",
+        "motion accents",
+        "editorial flow"
+      ],
+      "definitions": [
+        "Visual rhythm is the patterned recurrence of movement, framing changes, color accents, and cut points that create expectancy and flow for the viewer."
+      ],
+      "rules": [
+        "If music drives the piece, picture accents should support—not contradict—it.",
+        "Always give emotional lines visual breathing room.",
+        "When motifs conflict with clarity, clarity wins in commercial work.",
+        "Never add motion solely to hide weak storytelling."
+      ],
+      "bestPractices": [
+        "Align cut points and motion accents with music or narration stresses when appropriate.",
+        "Alternate visual density (busy vs calm frames) to avoid fatigue.",
+        "Repeat motifs (color, shape, camera move) to unify the piece.",
+        "Use stillness strategically after motion peaks."
+      ],
+      "professionalTechniques": [
+        "Choose a rhythmic reference (music bed or VO cadence).",
+        "Map accents to picture changes.",
+        "Pass for motif consistency.",
+        "Final trim for breath and emphasis."
+      ],
+      "workflow": [
+        "Choose a rhythmic reference (music bed or VO cadence).",
+        "Map accents to picture changes.",
+        "Pass for motif consistency.",
+        "Final trim for breath and emphasis."
+      ],
+      "decisionRules": [
+        "If music drives the piece, picture accents should support—not contradict—it.",
+        "Always give emotional lines visual breathing room.",
+        "When motifs conflict with clarity, clarity wins in commercial work.",
+        "Never add motion solely to hide weak storytelling."
+      ],
+      "commonMistakes": [
+        "Random motion that fights the soundtrack.",
+        "Identical shot lengths creating mechanical monotony.",
+        "Motifs introduced once and abandoned."
+      ],
+      "troubleshooting": [
+        "Avoid: Random motion that fights the soundtrack.",
+        "Avoid: Identical shot lengths creating mechanical monotony.",
+        "Avoid: Motifs introduced once and abandoned."
+      ],
+      "recommendations": [
+        "Align cut points and motion accents with music or narration stresses when appropriate.",
+        "Alternate visual density (busy vs calm frames) to avoid fatigue.",
+        "Repeat motifs (color, shape, camera move) to unify the piece.",
+        "Use stillness strategically after motion peaks."
+      ],
+      "examples": [
+        "Product montage cut on percussion hits with recurring color accent.",
+        "Interview film using B-roll pulses between quiet dialogue holds."
+      ],
+      "professionalStandards": [
+        "Confidence 87/100",
+        "Quality 86/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "video-pacing",
+        "video-style",
+        "post-production",
+        "social-media-videos"
+      ],
+      "keywords": [
+        "visual rhythm",
+        "motif",
+        "motion accents",
+        "editorial flow"
+      ],
+      "confidenceScore": 87,
+      "qualityScore": 86,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:visual-rhythm",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-video-style",
+      "title": "Video Style",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Defining and maintaining a coherent audiovisual style: look, tone, motion language, typography, and brand fit.",
+      "coreConcepts": [
+        "video style",
+        "look",
+        "tone",
+        "brand look",
+        "motion language"
+      ],
+      "definitions": [
+        "Video style is the consistent system of visual and sonic choices—lighting mood, color, lens language, motion, type, and edit feel—that expresses brand personality and story tone."
+      ],
+      "rules": [
+        "If style reduces product or message clarity, restyle.",
+        "Always reconcile creative style with brand guidelines before shoot.",
+        "When multiple deliverables share a campaign, share one style system.",
+        "Never introduce a new grade language in the final three seconds unless planned."
+      ],
+      "bestPractices": [
+        "Write a short style frame before production (references + do/don't).",
+        "Lock primary look early; avoid late style thrash.",
+        "Ensure style supports message readability.",
+        "Carry style into captions, lower-thirds, and end cards."
+      ],
+      "professionalTechniques": [
+        "Gather approved brand and reference boards.",
+        "Define lighting, grade intent, motion, and type rules.",
+        "Apply style consistently in production and post.",
+        "QA style continuity across all deliverables."
+      ],
+      "workflow": [
+        "Gather approved brand and reference boards.",
+        "Define lighting, grade intent, motion, and type rules.",
+        "Apply style consistently in production and post.",
+        "QA style continuity across all deliverables."
+      ],
+      "decisionRules": [
+        "If style reduces product or message clarity, restyle.",
+        "Always reconcile creative style with brand guidelines before shoot.",
+        "When multiple deliverables share a campaign, share one style system.",
+        "Never introduce a new grade language in the final three seconds unless planned."
+      ],
+      "commonMistakes": [
+        "Mixing incompatible looks across scenes without transition logic.",
+        "Trend effects that erase brand recognition.",
+        "Typography fighting background contrast."
+      ],
+      "troubleshooting": [
+        "Avoid: Mixing incompatible looks across scenes without transition logic.",
+        "Avoid: Trend effects that erase brand recognition.",
+        "Avoid: Typography fighting background contrast."
+      ],
+      "recommendations": [
+        "Write a short style frame before production (references + do/don't).",
+        "Lock primary look early; avoid late style thrash.",
+        "Ensure style supports message readability.",
+        "Carry style into captions, lower-thirds, and end cards."
+      ],
+      "examples": [
+        "Clean commercial style: soft product light, restrained grade, modern sans captions.",
+        "Documentary corporate style: natural light bias, handheld accents, minimal graphics."
+      ],
+      "professionalStandards": [
+        "Confidence 88/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "commercial-video-production",
+        "visual-rhythm",
+        "post-production",
+        "social-media-videos"
+      ],
+      "keywords": [
+        "video style",
+        "look",
+        "tone",
+        "brand look",
+        "motion language"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:video-style",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-production-workflow",
+      "title": "Production Workflow",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "End-to-end professional workflow connecting brief, pre-production, production, post, and delivery as a managed system.",
+      "coreConcepts": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "definitions": [
+        "A production workflow is the sequenced set of roles, gates, and assets that move a video from brief to approved deliverables with quality control and version discipline."
+      ],
+      "rules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "bestPractices": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "professionalTechniques": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "workflow": [
+        "Kickoff and brief lock.",
+        "Pre-production planning and resource confirmation.",
+        "Production capture with logging.",
+        "Post editorial → finishing → review → delivery."
+      ],
+      "decisionRules": [
+        "If a gate is skipped, reopen it before advancing spend.",
+        "Always freeze delivery specs before finishing grade/audio.",
+        "When feedback conflicts, escalate to the single decision owner.",
+        "Never deliver without a final QA pass for picture, audio, captions, and brand."
+      ],
+      "commonMistakes": [
+        "Skipping paperwork and rights clearances.",
+        "Parallel uncontrolled versions of the edit.",
+        "Discovering delivery specs after creative lock."
+      ],
+      "troubleshooting": [
+        "Avoid: Skipping paperwork and rights clearances.",
+        "Avoid: Parallel uncontrolled versions of the edit.",
+        "Avoid: Discovering delivery specs after creative lock."
+      ],
+      "recommendations": [
+        "Use explicit approval gates between phases.",
+        "Centralize asset naming, versions, and review notes.",
+        "Plan delivery specs at kickoff, not at export day.",
+        "Hold a wrap checklist before declaring production complete."
+      ],
+      "examples": [
+        "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+        "In-house studio workflow with shared shot list and edit bin standards."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "production",
+        "post-production",
+        "professional-planning-methods"
+      ],
+      "keywords": [
+        "workflow",
+        "pipeline",
+        "approvals",
+        "delivery",
+        "versioning"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:production-workflow",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-pre-production",
+      "title": "Pre-production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Professional pre-production: research, scripting, planning, casting, locations, schedules, and risk control before cameras roll.",
+      "coreConcepts": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "definitions": [
+        "Pre-production is the planning phase that converts a creative brief into executable schedules, shot/scene plans, budgets, and risk controls before capture begins."
+      ],
+      "rules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "bestPractices": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "professionalTechniques": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "workflow": [
+        "Brief → concept → script/storyboard.",
+        "Budget, schedule, and resource plan.",
+        "Location/talent/tech prep.",
+        "Final production packet and readiness check."
+      ],
+      "decisionRules": [
+        "If rights or claims are uncleared, do not shoot those moments.",
+        "Always include contingency time for critical setups.",
+        "When budget shrinks, cut scope in pre-production—not quality on set.",
+        "Never arrive on set without a shared shot priority list."
+      ],
+      "commonMistakes": [
+        "Treating pre-production as optional paperwork.",
+        "Underestimating setup and transition time.",
+        "Leaving legal clearances to post."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating pre-production as optional paperwork.",
+        "Avoid: Underestimating setup and transition time.",
+        "Avoid: Leaving legal clearances to post."
+      ],
+      "recommendations": [
+        "Lock creative intent and deliverables before booking heavy spend.",
+        "Build shot lists, call sheets, and contingency plans.",
+        "Scout locations for sound, power, light, and brand fit.",
+        "Clear talent, music, and location rights early."
+      ],
+      "examples": [
+        "One-day product shoot packet with prioritized shot list and lighting plot notes.",
+        "Multi-location corporate schedule with travel and interview buffers."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "professional-planning-methods",
+        "shot-planning",
+        "scene-planning",
+        "production-workflow"
+      ],
+      "keywords": [
+        "pre-production",
+        "call sheet",
+        "storyboard",
+        "schedule",
+        "clearances"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:pre-production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-production",
+      "title": "Production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "On-set professional production practice: executing the plan, protecting continuity, and capturing editable media efficiently.",
+      "coreConcepts": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "definitions": [
+        "Production is the capture phase where planned shots, performances, sound, and continuity are executed under time and quality constraints."
+      ],
+      "rules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "bestPractices": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "professionalTechniques": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "workflow": [
+        "Safety and tech check.",
+        "Block, light, rehearse, roll.",
+        "Review critical takes before moving on.",
+        "Wrap with media backup and notes."
+      ],
+      "decisionRules": [
+        "If a take is unusable for sound or focus, reshoot before striking.",
+        "Always back up media before leaving the location.",
+        "When behind schedule, renegotiate scope with priorities, not silent cuts.",
+        "Never rely on 'fix it in post' for avoidable capture failures."
+      ],
+      "commonMistakes": [
+        "Chasing unplanned ideas until coverage is incomplete.",
+        "Poor slate/logging that slows editorial.",
+        "Ignoring background audio problems during capture."
+      ],
+      "troubleshooting": [
+        "Avoid: Chasing unplanned ideas until coverage is incomplete.",
+        "Avoid: Poor slate/logging that slows editorial.",
+        "Avoid: Ignoring background audio problems during capture."
+      ],
+      "recommendations": [
+        "Protect the must-have shot list before experiments.",
+        "Monitor picture and sound in real time.",
+        "Log takes and note selects for post speed.",
+        "Maintain continuity of light, wardrobe, product position, and eyelines."
+      ],
+      "examples": [
+        "Tabletop product day with hero lighting locked before detail inserts.",
+        "Interview day with dedicated quiet room and B-roll second unit."
+      ],
+      "professionalStandards": [
+        "Confidence 91/100",
+        "Quality 90/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "camera-coverage",
+        "post-production",
+        "production-workflow"
+      ],
+      "keywords": [
+        "production",
+        "on-set",
+        "continuity",
+        "logging",
+        "capture"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-post-production",
+      "title": "Post-production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Editorial finishing: assembly, pacing, sound, graphics, color, captions, review, and delivery packaging.",
+      "coreConcepts": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "definitions": [
+        "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms."
+      ],
+      "rules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "bestPractices": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "professionalTechniques": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "workflow": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "decisionRules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "commonMistakes": [
+        "Grading before narrative is stable.",
+        "Unlabeled versions causing wrong delivery.",
+        "Skipping caption and safe-area checks."
+      ],
+      "troubleshooting": [
+        "Avoid: Grading before narrative is stable.",
+        "Avoid: Unlabeled versions causing wrong delivery.",
+        "Avoid: Skipping caption and safe-area checks."
+      ],
+      "recommendations": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "examples": [
+        "Social cutdown package derived from a master commercial edit.",
+        "Corporate film with chapter markers and burned-in subtitle version."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "video-pacing",
+        "visual-rhythm",
+        "video-style",
+        "production-workflow"
+      ],
+      "keywords": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:post-production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "vp-professional-planning-methods",
+      "title": "Professional Planning Methods",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Planning methods used by professional teams: brief frameworks, beat sheets, shot lists, risk registers, and reverse-planning from delivery.",
+      "coreConcepts": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "definitions": [
+        "Professional planning methods are structured techniques that reduce production risk by defining outcomes, constraints, priorities, and decision ownership before creative execution."
+      ],
+      "rules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "bestPractices": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "professionalTechniques": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "workflow": [
+        "Define outcome metrics and constraints.",
+        "Choose planning artifacts (brief, beat sheet, shot list, schedule).",
+        "Assign owners and gates.",
+        "Review readiness and residual risks before production."
+      ],
+      "decisionRules": [
+        "If no decision owner exists, appoint one before creative reviews continue.",
+        "Always include contingency for the single hardest setup.",
+        "When scope and deadline conflict, cut scope with explicit stakeholder sign-off.",
+        "Never treat planning documents as static once production realities change—update and communicate."
+      ],
+      "commonMistakes": [
+        "Optimistic schedules without buffers.",
+        "Diffuse approval ownership.",
+        "Planning tools that are not shared with the full team."
+      ],
+      "troubleshooting": [
+        "Avoid: Optimistic schedules without buffers.",
+        "Avoid: Diffuse approval ownership.",
+        "Avoid: Planning tools that are not shared with the full team."
+      ],
+      "recommendations": [
+        "Plan backward from delivery specs and launch date.",
+        "Use a single decision owner for conflicting feedback.",
+        "Maintain a living risk register (weather, talent, rights, tech).",
+        "Separate creative options from production-critical path items."
+      ],
+      "examples": [
+        "Reverse schedule from campaign launch with lock dates for script and picture.",
+        "Priority-tier shot list used as the on-set decision tool."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "pre-production",
+        "production-workflow",
+        "shot-planning",
+        "video-production-fundamentals"
+      ],
+      "keywords": [
+        "planning methods",
+        "brief",
+        "risk register",
+        "reverse planning",
+        "decision owner"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:professional-planning-methods",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Video Production Knowledge",
+    "category": "professional-video-production",
+    "domain": "video-production-knowledge",
+    "description": "Curated professional video production knowledge for AI Me planning and advice (not video generation).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Video Production Fundamentals",
+          "Types of Marketing Videos",
+          "Commercial Video Production",
+          "Product Advertisement Videos",
+          "Social Media Videos",
+          "Corporate Videos",
+          "Story Structure",
+          "Shot Types",
+          "Shot Planning",
+          "Scene Planning",
+          "Camera Coverage",
+          "Video Pacing",
+          "Visual Rhythm",
+          "Video Style",
+          "Production Workflow",
+          "Pre-production",
+          "Production",
+          "Post-production",
+          "Professional Planning Methods"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Define audience, message, and success metric before choosing style or format.",
+          "Treat pre-production decisions as production constraints, not optional notes.",
+          "Preserve continuity of brand, light direction, and editorial rhythm across scenes.",
+          "Build every shoot around coverage that supports editing choices, not the reverse.",
+          "Match format to funnel stage before matching format to trend.",
+          "Keep one primary CTA per video type.",
+          "Reuse master footage into platform-specific cuts instead of reinventing each asset.",
+          "Document which video type owns which message so campaigns stay coherent.",
+          "Open with a hook in the first 1–3 seconds for most paid placements.",
+          "Make the product benefit visible, not only narrated.",
+          "Lock legal/brand claims before picture lock.",
+          "Design cutdowns (15s/6s) from the master commercial structure.",
+          "Establish the product hero early and return to it as a visual anchor.",
+          "Demonstrate benefit in use, not only beauty close-ups.",
+          "Control reflections, labels, and packaging readability.",
+          "Sync motion and cut points to the product's most persuasive moment.",
+          "Design for vertical or platform-native aspect ratios from pre-production.",
+          "Front-load the hook and on-screen text for muted viewers.",
+          "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+          "Produce reusable shot kits that can become multiple platform cutdowns.",
+          "Lead with human stakes or business outcome, not org-chart narration.",
+          "Balance interview A-roll with purposeful B-roll coverage.",
+          "Keep claims accurate and approval-tracked.",
+          "Design modular chapters for website and sales enablement reuse.",
+          "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+          "Make each beat earn the next; remove ornamental scenes.",
+          "Align emotional peak with product or message reveal when selling.",
+          "Use recurring visual motifs to reinforce theme.",
+          "Plan a mix of master, medium, and close coverage for editable scenes.",
+          "Use inserts to prove product detail or process clarity.",
+          "Match shot size progression to story intensity.",
+          "Document intended shot type on the shot list to avoid missing coverage.",
+          "Attach each shot to a story beat or proof need.",
+          "Order the shot list for lighting and location efficiency.",
+          "Note lens intent, movement, and audio needs per shot.",
+          "Mark priority tiers: must-have, should-have, nice-to-have.",
+          "Write a one-line scene objective before blocking.",
+          "Plan entrances, exits, and continuity anchors.",
+          "Design coverage that supports the intended cut pattern.",
+          "Coordinate wardrobe, props, and brand assets per scene."
+        ]
+      },
+      {
+        "title": "Workflows",
+        "kind": "workflow",
+        "items": [
+          "Clarify brief, audience, and deliverable specs.",
+          "Draft story structure and shot/scene plan.",
+          "Produce with intentional coverage and continuity.",
+          "Edit for pacing and message, then finish for platform delivery.",
+          "Map campaign goal to funnel stage.",
+          "Select primary video type and secondary cutdowns.",
+          "Define length, aspect ratio, and CTA placement rules.",
+          "Brief creative and production against that type checklist.",
+          "Approve single-minded proposition and claims.",
+          "Storyboard beats: hook, problem/desire, proof, CTA.",
+          "Produce controlled lighting and product hero coverage.",
+          "Edit for retention curve; finish with brand and legal end card.",
+          "List must-show features and must-prove benefits.",
+          "Plan hero, detail, context, and usage coverage.",
+          "Capture controlled lighting for texture and brand color accuracy.",
+          "Edit feature → benefit → proof → CTA.",
+          "Select platform and length target.",
+          "Write scroll-stopping first frame and first three seconds.",
+          "Shoot with vertical-safe framing and caption space.",
+          "Edit tight loops or clear end-screen CTAs.",
+          "Confirm audience and approval stakeholders.",
+          "Outline message pillars and interview questions.",
+          "Capture interviews plus supporting operational B-roll.",
+          "Edit for clarity chapters; finish with brand packaging.",
+          "Write the one-sentence story promise.",
+          "List beats against target duration.",
+          "Assign shots/scenes to each beat.",
+          "Edit against the beat sheet, not against favorite takes alone.",
+          "Translate scene beats into required shot types.",
+          "Prioritize must-have sizes before stylistic extras.",
+          "Capture consistency of eye-line and screen direction.",
+          "Label takes by shot type for faster post.",
+          "Derive shot list from scene plan and story beats.",
+          "Group by location and lighting setup.",
+          "Assign priorities and estimated times.",
+          "Revise on set only with explicit trade-off decisions.",
+          "Break script/brief into scenes with objectives.",
+          "Assign locations, talent, and key props.",
+          "Draft coverage and estimated duration.",
+          "Confirm scene order vs shoot order."
+        ]
+      },
+      {
+        "title": "Decision Rules",
+        "kind": "rules",
+        "items": [
+          "If the audience or CTA is undefined, do not begin production.",
+          "Always prioritize message clarity over decorative camera moves.",
+          "When platform and story conflict, redesign the cut for the platform first.",
+          "Never treat unfinished audio as a post-only problem if capture was avoidable.",
+          "If the goal is awareness, prefer brand or story-led formats over hard sell.",
+          "If the goal is conversion, prefer demo, offer, or testimonial formats.",
+          "Always choose social-native formats for feed placements.",
+          "Never force a long corporate narrative into a 15-second vertical slot without redesign.",
+          "If muted viewing is likely, always plan visual storytelling plus captions.",
+          "Always protect one primary offer; secondary offers belong in companion cuts.",
+          "When brand guidelines conflict with trend effects, preserve brand first.",
+          "Never lock picture before legal review of claims and logos.",
+          "If a feature cannot be shown, do not claim it as a visual proof beat.",
+          "Always keep packaging readable for at least one clear hero moment.",
+          "When in doubt between style and clarity, choose clarity for product ads.",
+          "Never hide the product for more than a few seconds in short ads.",
+          "If the platform is feed-based, always plan a visual hook without sound.",
+          "Always reserve lower-third and edge safe areas for UI overlays.",
+          "When adapting a long film, redesign structure rather than speed-ramping only.",
+          "Never publish social cuts without caption QA.",
+          "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+          "Always secure stakeholder approval gates before public release.",
+          "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+          "Never invent metrics or customer claims without source approval.",
+          "If a scene does not advance story or proof, cut it.",
+          "Always place the strongest retention beat near the open for short ads.",
+          "When runtime shrinks, preserve hook and CTA first.",
+          "Never invent a climax that the footage cannot support.",
+          "If the edit needs options, always capture at least two shot sizes per key beat.",
+          "Always establish space before relying on close coverage.",
+          "When emotion is the goal, prefer closer framing after context is clear.",
+          "Never leave a product claim without a supporting insert when possible.",
+          "If time runs short, protect must-have coverage first.",
+          "Always know which shot unlocks the edit before which shot is decorative.",
+          "When a move is complex, plan a static safety take.",
+          "Never start a setup without confirming its story purpose.",
+          "If a scene lacks an objective, rewrite or remove it.",
+          "Always plan how the viewer orients geographically and emotionally.",
+          "When shoot order differs from story order, protect continuity notes.",
+          "Never leave scene transitions to chance in branded work."
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "A 30-second product launch film planned from CTA backward to opening hook.",
+          "A corporate culture film built from interview beats plus B-roll coverage plan.",
+          "Awareness: cinematic brand film; Conversion: product demo with offer CTA.",
+          "Retention: customer success story for email nurture and LinkedIn.",
+          "Retail offer commercial with price lock and store CTA in final three seconds.",
+          "Service commercial using customer problem → solution → proof → booking CTA.",
+          "Skincare ad: texture macro → application → result claim → purchase CTA.",
+          "Hardware demo: problem setup → product in action → specs overlay → buy now.",
+          "15-second vertical product tip with burned-in captions and sticker CTA.",
+          "Carousel-style multi-clip series from one shoot day.",
+          "Employee culture film with three message pillars and workplace B-roll.",
+          "Explainer video mapping a service workflow for prospects.",
+          "Problem → aspiration → demonstration → social proof → CTA.",
+          "Day-in-the-life structure for founder brand film.",
+          "Product scene: wide environment, medium usage, macro insert of detail.",
+          "Interview: medium talking head plus cutaway inserts of hands/work.",
+          "Location day scheduled by setup, not by story order.",
+          "Product tabletop shot list ordered from wide hero to macro inserts.",
+          "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+          "Corporate film: workplace scene clusters mapped to message pillars.",
+          "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+          "Product hand demo covered from hero angle and detail angle.",
+          "6-second bumper with two shots and one text lockup.",
+          "Two-minute explainer with slower proof sections and faster transitions between chapters.",
+          "Product montage cut on percussion hits with recurring color accent.",
+          "Interview film using B-roll pulses between quiet dialogue holds.",
+          "Clean commercial style: soft product light, restrained grade, modern sans captions.",
+          "Documentary corporate style: natural light bias, handheld accents, minimal graphics.",
+          "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+          "In-house studio workflow with shared shot list and edit bin standards."
+        ]
+      }
+    ],
+    "concepts": [
+      "video production",
+      "fundamentals",
+      "pipeline",
+      "audience",
+      "deliverable",
+      "marketing videos",
+      "formats",
+      "funnel",
+      "brand film",
+      "demo",
+      "testimonial",
+      "commercial",
+      "advertisement",
+      "hook",
+      "CTA",
+      "brand compliance",
+      "product ad",
+      "hero shot",
+      "packaging",
+      "benefit",
+      "social media",
+      "short-form",
+      "vertical",
+      "captions",
+      "corporate",
+      "explainer",
+      "culture film",
+      "interview",
+      "B-roll",
+      "story structure",
+      "beats",
+      "narrative",
+      "arc",
+      "shot types",
+      "wide",
+      "close-up",
+      "insert",
+      "coverage",
+      "shot list",
+      "shot planning",
+      "priority",
+      "coverage plan",
+      "scene planning",
+      "blocking",
+      "continuity",
+      "scene objective",
+      "master shot",
+      "angles",
+      "multi-cam",
+      "pacing"
+    ],
+    "entities": [
+      "Video Production Fundamentals",
+      "Types of Marketing Videos",
+      "Commercial Video Production",
+      "Product Advertisement Videos",
+      "Social Media Videos",
+      "Corporate Videos",
+      "Story Structure",
+      "Shot Types",
+      "Shot Planning",
+      "Scene Planning",
+      "Camera Coverage",
+      "Video Pacing",
+      "Visual Rhythm",
+      "Video Style",
+      "Production Workflow",
+      "Pre-production",
+      "Production",
+      "Post-production",
+      "Professional Planning Methods"
+    ],
+    "terminology": [
+      "video production",
+      "fundamentals",
+      "pipeline",
+      "audience",
+      "deliverable",
+      "marketing videos",
+      "formats",
+      "funnel",
+      "brand film",
+      "demo",
+      "testimonial",
+      "commercial",
+      "advertisement",
+      "hook",
+      "CTA",
+      "brand compliance",
+      "product ad",
+      "hero shot",
+      "packaging",
+      "benefit",
+      "social media",
+      "short-form",
+      "vertical",
+      "captions",
+      "corporate",
+      "explainer",
+      "culture film",
+      "interview",
+      "B-roll",
+      "story structure",
+      "beats",
+      "narrative",
+      "arc",
+      "shot types",
+      "wide",
+      "close-up",
+      "insert",
+      "coverage",
+      "shot list",
+      "shot planning",
+      "priority",
+      "coverage plan",
+      "scene planning",
+      "blocking",
+      "continuity",
+      "scene objective",
+      "master shot",
+      "angles",
+      "multi-cam",
+      "pacing"
+    ],
+    "rules": [
+      "If the audience or CTA is undefined, do not begin production.",
+      "Always prioritize message clarity over decorative camera moves.",
+      "When platform and story conflict, redesign the cut for the platform first.",
+      "Never treat unfinished audio as a post-only problem if capture was avoidable.",
+      "If the goal is awareness, prefer brand or story-led formats over hard sell.",
+      "If the goal is conversion, prefer demo, offer, or testimonial formats.",
+      "Always choose social-native formats for feed placements.",
+      "Never force a long corporate narrative into a 15-second vertical slot without redesign.",
+      "If muted viewing is likely, always plan visual storytelling plus captions.",
+      "Always protect one primary offer; secondary offers belong in companion cuts.",
+      "When brand guidelines conflict with trend effects, preserve brand first.",
+      "Never lock picture before legal review of claims and logos.",
+      "If a feature cannot be shown, do not claim it as a visual proof beat.",
+      "Always keep packaging readable for at least one clear hero moment.",
+      "When in doubt between style and clarity, choose clarity for product ads.",
+      "Never hide the product for more than a few seconds in short ads.",
+      "If the platform is feed-based, always plan a visual hook without sound.",
+      "Always reserve lower-third and edge safe areas for UI overlays.",
+      "When adapting a long film, redesign structure rather than speed-ramping only.",
+      "Never publish social cuts without caption QA.",
+      "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+      "Always secure stakeholder approval gates before public release.",
+      "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+      "Never invent metrics or customer claims without source approval.",
+      "If a scene does not advance story or proof, cut it.",
+      "Always place the strongest retention beat near the open for short ads.",
+      "When runtime shrinks, preserve hook and CTA first.",
+      "Never invent a climax that the footage cannot support.",
+      "If the edit needs options, always capture at least two shot sizes per key beat.",
+      "Always establish space before relying on close coverage.",
+      "When emotion is the goal, prefer closer framing after context is clear.",
+      "Never leave a product claim without a supporting insert when possible.",
+      "If time runs short, protect must-have coverage first.",
+      "Always know which shot unlocks the edit before which shot is decorative.",
+      "When a move is complex, plan a static safety take.",
+      "Never start a setup without confirming its story purpose.",
+      "If a scene lacks an objective, rewrite or remove it.",
+      "Always plan how the viewer orients geographically and emotionally.",
+      "When shoot order differs from story order, protect continuity notes.",
+      "Never leave scene transitions to chance in branded work."
+    ],
+    "bestPractices": [
+      "Define audience, message, and success metric before choosing style or format.",
+      "Treat pre-production decisions as production constraints, not optional notes.",
+      "Preserve continuity of brand, light direction, and editorial rhythm across scenes.",
+      "Build every shoot around coverage that supports editing choices, not the reverse.",
+      "Match format to funnel stage before matching format to trend.",
+      "Keep one primary CTA per video type.",
+      "Reuse master footage into platform-specific cuts instead of reinventing each asset.",
+      "Document which video type owns which message so campaigns stay coherent.",
+      "Open with a hook in the first 1–3 seconds for most paid placements.",
+      "Make the product benefit visible, not only narrated.",
+      "Lock legal/brand claims before picture lock.",
+      "Design cutdowns (15s/6s) from the master commercial structure.",
+      "Establish the product hero early and return to it as a visual anchor.",
+      "Demonstrate benefit in use, not only beauty close-ups.",
+      "Control reflections, labels, and packaging readability.",
+      "Sync motion and cut points to the product's most persuasive moment.",
+      "Design for vertical or platform-native aspect ratios from pre-production.",
+      "Front-load the hook and on-screen text for muted viewers.",
+      "Keep subjects large in frame; avoid wide empty compositions in vertical.",
+      "Produce reusable shot kits that can become multiple platform cutdowns.",
+      "Lead with human stakes or business outcome, not org-chart narration.",
+      "Balance interview A-roll with purposeful B-roll coverage.",
+      "Keep claims accurate and approval-tracked.",
+      "Design modular chapters for website and sales enablement reuse.",
+      "Scale structure to runtime: micro-arc for shorts, fuller arc for longer films.",
+      "Make each beat earn the next; remove ornamental scenes.",
+      "Align emotional peak with product or message reveal when selling.",
+      "Use recurring visual motifs to reinforce theme.",
+      "Plan a mix of master, medium, and close coverage for editable scenes.",
+      "Use inserts to prove product detail or process clarity.",
+      "Match shot size progression to story intensity.",
+      "Document intended shot type on the shot list to avoid missing coverage.",
+      "Attach each shot to a story beat or proof need.",
+      "Order the shot list for lighting and location efficiency.",
+      "Note lens intent, movement, and audio needs per shot.",
+      "Mark priority tiers: must-have, should-have, nice-to-have.",
+      "Write a one-line scene objective before blocking.",
+      "Plan entrances, exits, and continuity anchors.",
+      "Design coverage that supports the intended cut pattern.",
+      "Coordinate wardrobe, props, and brand assets per scene."
+    ],
+    "professionalTechniques": [
+      "Clarify brief, audience, and deliverable specs.",
+      "Draft story structure and shot/scene plan.",
+      "Produce with intentional coverage and continuity.",
+      "Edit for pacing and message, then finish for platform delivery.",
+      "Map campaign goal to funnel stage.",
+      "Select primary video type and secondary cutdowns.",
+      "Define length, aspect ratio, and CTA placement rules.",
+      "Brief creative and production against that type checklist.",
+      "Approve single-minded proposition and claims.",
+      "Storyboard beats: hook, problem/desire, proof, CTA.",
+      "Produce controlled lighting and product hero coverage.",
+      "Edit for retention curve; finish with brand and legal end card.",
+      "List must-show features and must-prove benefits.",
+      "Plan hero, detail, context, and usage coverage.",
+      "Capture controlled lighting for texture and brand color accuracy.",
+      "Edit feature → benefit → proof → CTA.",
+      "Select platform and length target.",
+      "Write scroll-stopping first frame and first three seconds.",
+      "Shoot with vertical-safe framing and caption space.",
+      "Edit tight loops or clear end-screen CTAs.",
+      "Confirm audience and approval stakeholders.",
+      "Outline message pillars and interview questions.",
+      "Capture interviews plus supporting operational B-roll.",
+      "Edit for clarity chapters; finish with brand packaging.",
+      "Write the one-sentence story promise.",
+      "List beats against target duration.",
+      "Assign shots/scenes to each beat.",
+      "Edit against the beat sheet, not against favorite takes alone.",
+      "Translate scene beats into required shot types.",
+      "Prioritize must-have sizes before stylistic extras.",
+      "Capture consistency of eye-line and screen direction.",
+      "Label takes by shot type for faster post.",
+      "Derive shot list from scene plan and story beats.",
+      "Group by location and lighting setup.",
+      "Assign priorities and estimated times.",
+      "Revise on set only with explicit trade-off decisions.",
+      "Break script/brief into scenes with objectives.",
+      "Assign locations, talent, and key props.",
+      "Draft coverage and estimated duration.",
+      "Confirm scene order vs shoot order."
+    ],
+    "examples": [
+      "A 30-second product launch film planned from CTA backward to opening hook.",
+      "A corporate culture film built from interview beats plus B-roll coverage plan.",
+      "Awareness: cinematic brand film; Conversion: product demo with offer CTA.",
+      "Retention: customer success story for email nurture and LinkedIn.",
+      "Retail offer commercial with price lock and store CTA in final three seconds.",
+      "Service commercial using customer problem → solution → proof → booking CTA.",
+      "Skincare ad: texture macro → application → result claim → purchase CTA.",
+      "Hardware demo: problem setup → product in action → specs overlay → buy now.",
+      "15-second vertical product tip with burned-in captions and sticker CTA.",
+      "Carousel-style multi-clip series from one shoot day.",
+      "Employee culture film with three message pillars and workplace B-roll.",
+      "Explainer video mapping a service workflow for prospects.",
+      "Problem → aspiration → demonstration → social proof → CTA.",
+      "Day-in-the-life structure for founder brand film.",
+      "Product scene: wide environment, medium usage, macro insert of detail.",
+      "Interview: medium talking head plus cutaway inserts of hands/work.",
+      "Location day scheduled by setup, not by story order.",
+      "Product tabletop shot list ordered from wide hero to macro inserts.",
+      "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+      "Corporate film: workplace scene clusters mapped to message pillars.",
+      "Interview coverage: camera A medium, camera B tight, plus B-roll inserts.",
+      "Product hand demo covered from hero angle and detail angle.",
+      "6-second bumper with two shots and one text lockup.",
+      "Two-minute explainer with slower proof sections and faster transitions between chapters.",
+      "Product montage cut on percussion hits with recurring color accent.",
+      "Interview film using B-roll pulses between quiet dialogue holds.",
+      "Clean commercial style: soft product light, restrained grade, modern sans captions.",
+      "Documentary corporate style: natural light bias, handheld accents, minimal graphics.",
+      "Agency workflow with client review rounds at script, rough cut, and picture lock.",
+      "In-house studio workflow with shared shot list and edit bin standards."
+    ],
+    "commonMistakes": [
+      "Starting to shoot without a clear objective or audience.",
+      "Collecting beautiful shots that cannot be cut into a coherent story.",
+      "Ignoring delivery platform constraints until post-production.",
+      "Confusing equipment complexity with production quality.",
+      "Using a brand film structure for a hard conversion ad.",
+      "Mixing too many CTAs across a single short-form asset.",
+      "Copying a competitor format without audience fit.",
+      "Delaying product reveal until after audience drop-off.",
+      "Overpacking claims that dilute the single selling idea.",
+      "Ignoring safe-area and subtitle needs for muted autoplay.",
+      "Beauty footage without proof of use or outcome.",
+      "Inconsistent product orientation across shots.",
+      "Busy backgrounds competing with packaging detail.",
+      "Letterboxing a horizontal commercial into a vertical feed without redesign.",
+      "Relying on audio-only hooks.",
+      "Overlong intros before the first value beat.",
+      "Wall-to-wall talking heads without visual proof.",
+      "Generic stock pacing that erases brand personality.",
+      "Unclear audience (internal vs customer vs investor).",
+      "Starting in the middle without orientation for the viewer.",
+      "Resolving too early and diluting the ending CTA.",
+      "Adding scenes that do not advance desire, proof, or emotion.",
+      "Shooting only medium shots and trapping the edit.",
+      "Jumping shot sizes without motivation.",
+      "Close-ups without establishing geography.",
+      "Improvising the entire day without a prioritized list.",
+      "Planning cinematic moves that consume time needed for coverage.",
+      "Omitting contingency shots for risky setups.",
+      "Treating scenes as disconnected pretty setups.",
+      "Missing transition logic between scenes."
+    ],
+    "qualityRules": [
+      "Confidence 92/100",
+      "Quality 91/100",
+      "Offline-first curated professional standard",
+      "Confidence 90/100",
+      "Quality 89/100",
+      "Offline-first curated professional standard",
+      "Confidence 91/100",
+      "Quality 90/100",
+      "Offline-first curated professional standard",
+      "Confidence 90/100",
+      "Quality 90/100",
+      "Offline-first curated professional standard",
+      "Confidence 91/100",
+      "Quality 90/100",
+      "Offline-first curated professional standard",
+      "Confidence 88/100",
+      "Quality 88/100",
+      "Offline-first curated professional standard",
+      "Confidence 92/100",
+      "Quality 91/100"
+    ],
+    "decisionRules": [
+      "If the audience or CTA is undefined, do not begin production.",
+      "Always prioritize message clarity over decorative camera moves.",
+      "When platform and story conflict, redesign the cut for the platform first.",
+      "Never treat unfinished audio as a post-only problem if capture was avoidable.",
+      "If the goal is awareness, prefer brand or story-led formats over hard sell.",
+      "If the goal is conversion, prefer demo, offer, or testimonial formats.",
+      "Always choose social-native formats for feed placements.",
+      "Never force a long corporate narrative into a 15-second vertical slot without redesign.",
+      "If muted viewing is likely, always plan visual storytelling plus captions.",
+      "Always protect one primary offer; secondary offers belong in companion cuts.",
+      "When brand guidelines conflict with trend effects, preserve brand first.",
+      "Never lock picture before legal review of claims and logos.",
+      "If a feature cannot be shown, do not claim it as a visual proof beat.",
+      "Always keep packaging readable for at least one clear hero moment.",
+      "When in doubt between style and clarity, choose clarity for product ads.",
+      "Never hide the product for more than a few seconds in short ads.",
+      "If the platform is feed-based, always plan a visual hook without sound.",
+      "Always reserve lower-third and edge safe areas for UI overlays.",
+      "When adapting a long film, redesign structure rather than speed-ramping only.",
+      "Never publish social cuts without caption QA.",
+      "If audience is mixed, split into targeted cuts rather than one overloaded film.",
+      "Always secure stakeholder approval gates before public release.",
+      "When interviews dominate, schedule B-roll intentionally, not as leftover time.",
+      "Never invent metrics or customer claims without source approval.",
+      "If a scene does not advance story or proof, cut it.",
+      "Always place the strongest retention beat near the open for short ads.",
+      "When runtime shrinks, preserve hook and CTA first.",
+      "Never invent a climax that the footage cannot support.",
+      "If the edit needs options, always capture at least two shot sizes per key beat.",
+      "Always establish space before relying on close coverage.",
+      "When emotion is the goal, prefer closer framing after context is clear.",
+      "Never leave a product claim without a supporting insert when possible.",
+      "If time runs short, protect must-have coverage first.",
+      "Always know which shot unlocks the edit before which shot is decorative.",
+      "When a move is complex, plan a static safety take.",
+      "Never start a setup without confirming its story purpose.",
+      "If a scene lacks an objective, rewrite or remove it.",
+      "Always plan how the viewer orients geographically and emotionally.",
+      "When shoot order differs from story order, protect continuity notes.",
+      "Never leave scene transitions to chance in branded work."
+    ],
+    "workflowSteps": [
+      "Clarify brief, audience, and deliverable specs.",
+      "Draft story structure and shot/scene plan.",
+      "Produce with intentional coverage and continuity.",
+      "Edit for pacing and message, then finish for platform delivery.",
+      "Map campaign goal to funnel stage.",
+      "Select primary video type and secondary cutdowns.",
+      "Define length, aspect ratio, and CTA placement rules.",
+      "Brief creative and production against that type checklist.",
+      "Approve single-minded proposition and claims.",
+      "Storyboard beats: hook, problem/desire, proof, CTA.",
+      "Produce controlled lighting and product hero coverage.",
+      "Edit for retention curve; finish with brand and legal end card.",
+      "List must-show features and must-prove benefits.",
+      "Plan hero, detail, context, and usage coverage.",
+      "Capture controlled lighting for texture and brand color accuracy.",
+      "Edit feature → benefit → proof → CTA.",
+      "Select platform and length target.",
+      "Write scroll-stopping first frame and first three seconds.",
+      "Shoot with vertical-safe framing and caption space.",
+      "Edit tight loops or clear end-screen CTAs.",
+      "Confirm audience and approval stakeholders.",
+      "Outline message pillars and interview questions.",
+      "Capture interviews plus supporting operational B-roll.",
+      "Edit for clarity chapters; finish with brand packaging.",
+      "Write the one-sentence story promise.",
+      "List beats against target duration.",
+      "Assign shots/scenes to each beat.",
+      "Edit against the beat sheet, not against favorite takes alone.",
+      "Translate scene beats into required shot types.",
+      "Prioritize must-have sizes before stylistic extras.",
+      "Capture consistency of eye-line and screen direction.",
+      "Label takes by shot type for faster post.",
+      "Derive shot list from scene plan and story beats.",
+      "Group by location and lighting setup.",
+      "Assign priorities and estimated times.",
+      "Revise on set only with explicit trade-off decisions.",
+      "Break script/brief into scenes with objectives.",
+      "Assign locations, talent, and key props.",
+      "Draft coverage and estimated duration.",
+      "Confirm scene order vs shoot order."
+    ],
+    "prerequisites": [
+      "Define audience and deliverable before production."
+    ],
+    "dependencies": [
+      "camera-knowledge",
+      "lighting-knowledge",
+      "storytelling-knowledge",
+      "marketing-knowledge"
+    ],
+    "relatedKnowledge": [
+      "vp-video-production-fundamentals",
+      "vp-types-of-marketing-videos",
+      "vp-commercial-video-production",
+      "vp-product-advertisement-videos",
+      "vp-social-media-videos",
+      "vp-corporate-videos",
+      "vp-story-structure",
+      "vp-shot-types",
+      "vp-shot-planning",
+      "vp-scene-planning",
+      "vp-camera-coverage",
+      "vp-video-pacing",
+      "vp-visual-rhythm",
+      "vp-video-style",
+      "vp-production-workflow",
+      "vp-pre-production",
+      "vp-production",
+      "vp-post-production",
+      "vp-professional-planning-methods"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 90,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Video Production Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-video-production-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "8ef5547e6d15f9d6898995110164c42a9ead6829bea6878bf4179e9181697d90",
+  "createdAt": "2026-08-08T15:31:21.107Z",
+  "updatedAt": "2026-08-08T15:31:21.122Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

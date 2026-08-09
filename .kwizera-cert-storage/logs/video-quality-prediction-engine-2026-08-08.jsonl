@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:40.966Z","level":"info","event":"startup","message":"Video Quality Prediction Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-intelligence\\quality-prediction\\engine"}}
+{"timestamp":"2026-08-08T19:46:44.019Z","level":"info","event":"startup","message":"Video Quality Prediction Engine startup complete","data":{"recordsLoaded":0}}

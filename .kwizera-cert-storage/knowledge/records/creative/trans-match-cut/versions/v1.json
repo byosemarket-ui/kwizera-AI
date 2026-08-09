@@ -1,0 +1,305 @@
+{
+  "knowledgeId": "trans-match-cut",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Match Cut",
+  "description": "A cut that links shots through matched action, shape, or concept.",
+  "summary": "Create elegant narrative or visual bridges.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "match-cut",
+    "match cut",
+    "graphic match",
+    "action match"
+  ],
+  "keywords": [
+    "match cut",
+    "graphic match",
+    "action match"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "trans-cut",
+    "trans-camera-transition",
+    "anim-staging",
+    "trans-creative-transitions",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-storytelling-knowledge",
+    "amr-bridge-camera-knowledge",
+    "amr-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:04.359Z",
+  "lastUpdated": "2026-08-08T15:37:04.359Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-match-cut",
+  "integrityStatus": "verified",
+  "contentHash": "fd76f3a1e0759f6c298d7eae6079f2012a1e6b08ce91114bfdae6a826caf81ee",
+  "searchableText": "match cut a cut that links shots through matched action, shape, or concept. create elegant narrative or visual bridges. professional-transitions professional-transitions professional match-cut match cut graphic match action match match cut graphic match action match",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "match-that-links",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "match-cut",
+    "kind": "professional-transitions",
+    "purpose": "Create elegant narrative or visual bridges.",
+    "professionalDefinition": "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative.",
+    "workflow": [
+      "Design match",
+      "Shoot/animate both sides",
+      "Align cut point",
+      "Polish"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-match-cut",
+      "title": "Match Cut",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "A cut that links shots through matched action, shape, or concept.",
+      "coreConcepts": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "definitions": [
+        "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative.",
+        "Create elegant narrative or visual bridges."
+      ],
+      "rules": [
+        "Practice: Plan on set/in boards",
+        "Practice: Match speed and frame",
+        "Practice: Serve story not only cleverness"
+      ],
+      "bestPractices": [
+        "Plan on set/in boards",
+        "Match speed and frame",
+        "Serve story not only cleverness"
+      ],
+      "professionalTechniques": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "workflow": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "decisionRules": [
+        "Follow: Plan on set/in boards",
+        "Follow: Match speed and frame",
+        "Follow: Serve story not only cleverness"
+      ],
+      "commonMistakes": [
+        "Forced matches",
+        "Mismatched timing"
+      ],
+      "troubleshooting": [
+        "Avoid: Forced matches",
+        "Avoid: Mismatched timing"
+      ],
+      "recommendations": [
+        "Plan on set/in boards",
+        "Match speed and frame",
+        "Serve story not only cleverness"
+      ],
+      "examples": [
+        "Spinning tire to spinning logo; eye open to sunrise"
+      ],
+      "professionalStandards": [
+        "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative."
+      ],
+      "relatedTopics": [
+        "cut",
+        "camera-transition",
+        "staging",
+        "creative-transitions"
+      ],
+      "keywords": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:match-cut",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Match Cut",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "A cut that links shots through matched action, shape, or concept.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create elegant narrative or visual bridges."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Design match",
+            "Shoot/animate both sides",
+            "Align cut point",
+            "Polish"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Plan on set/in boards",
+            "Match speed and frame",
+            "Serve story not only cleverness"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Spinning tire to spinning logo; eye open to sunrise"
+          ]
+        }
+      ],
+      "concepts": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "entities": [
+        "Match Cut",
+        "motion-graphics-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "match cut",
+        "graphic match",
+        "action match"
+      ],
+      "rules": [
+        "Avoid: Forced matches",
+        "Avoid: Mismatched timing"
+      ],
+      "bestPractices": [
+        "Plan on set/in boards",
+        "Match speed and frame",
+        "Serve story not only cleverness"
+      ],
+      "professionalTechniques": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "examples": [
+        "Spinning tire to spinning logo; eye open to sunrise"
+      ],
+      "commonMistakes": [
+        "Forced matches",
+        "Mismatched timing"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Plan on set/in boards",
+        "Practice: Match speed and frame",
+        "Practice: Serve story not only cleverness"
+      ],
+      "workflowSteps": [
+        "Design match",
+        "Shoot/animate both sides",
+        "Align cut point",
+        "Polish"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "storytelling-knowledge",
+        "camera-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "trans-cut",
+        "trans-camera-transition",
+        "anim-staging",
+        "trans-creative-transitions"
+      ],
+      "definitions": [
+        "A match cut joins two shots by aligning motion, composition, or metaphor so the cut feels continuous or cleverly associative.",
+        "Create elegant narrative or visual bridges."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Plan on set/in boards",
+      "Match speed and frame",
+      "Serve story not only cleverness"
+    ],
+    "bestPractices": [
+      "Plan on set/in boards",
+      "Match speed and frame",
+      "Serve story not only cleverness"
+    ],
+    "decisionRules": [
+      "Practice: Plan on set/in boards",
+      "Practice: Match speed and frame",
+      "Practice: Serve story not only cleverness"
+    ]
+  }
+}

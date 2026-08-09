@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "motion-logo-animation",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "Logo Animation",
+  "description": "Bringing brand marks to life with controlled, on-brand motion.",
+  "summary": "Create recognizable brand punctuation at open/close.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "logo-animation",
+    "logo animation",
+    "logo sting",
+    "brand mark motion",
+    "ident"
+  ],
+  "keywords": [
+    "logo animation",
+    "logo sting",
+    "brand mark motion",
+    "ident"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-anticipation",
+    "anim-appeal",
+    "motion-motion-style",
+    "render-export-settings",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-rendering-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:57.883Z",
+  "lastUpdated": "2026-08-08T17:55:38.540Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-logo-animation",
+  "integrityStatus": "verified",
+  "contentHash": "ecbecaa0b4f086a4755c3c8a4a20e1e40abc4f8ce17f8918e96e6131ab1cac46",
+  "searchableText": "logo animation bringing brand marks to life with controlled, on-brand motion. create recognizable brand punctuation at open/close. professional-motion-graphics professional-motion-graphics professional logo-animation logo animation logo sting brand mark motion ident logo animation logo sting brand mark motion ident",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "logo-animation-bringing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "logo-animation",
+    "kind": "professional-motion-graphics",
+    "purpose": "Create recognizable brand punctuation at open/close.",
+    "professionalDefinition": "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity.",
+    "workflow": [
+      "Get brand rules",
+      "Storyboard",
+      "Animate to rest lockup",
+      "Deliver masters"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-logo-animation",
+      "title": "Logo Animation",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Bringing brand marks to life with controlled, on-brand motion.",
+      "coreConcepts": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "definitions": [
+        "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity.",
+        "Create recognizable brand punctuation at open/close."
+      ],
+      "rules": [
+        "Practice: Protect logo geometry",
+        "Practice: End on approved lockup",
+        "Practice: Keep under a few seconds for social"
+      ],
+      "bestPractices": [
+        "Protect logo geometry",
+        "End on approved lockup",
+        "Keep under a few seconds for social"
+      ],
+      "professionalTechniques": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "workflow": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "decisionRules": [
+        "Follow: Protect logo geometry",
+        "Follow: End on approved lockup",
+        "Follow: Keep under a few seconds for social"
+      ],
+      "commonMistakes": [
+        "Warping trademark shapes",
+        "Overlong intros"
+      ],
+      "troubleshooting": [
+        "Avoid: Warping trademark shapes",
+        "Avoid: Overlong intros"
+      ],
+      "recommendations": [
+        "Protect logo geometry",
+        "End on approved lockup",
+        "Keep under a few seconds for social"
+      ],
+      "examples": [
+        "Stroke draw + settle; 3D light pass then flat lockup"
+      ],
+      "professionalStandards": [
+        "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity."
+      ],
+      "relatedTopics": [
+        "anticipation",
+        "appeal",
+        "motion-style",
+        "export-settings"
+      ],
+      "keywords": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:logo-animation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Logo Animation",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Bringing brand marks to life with controlled, on-brand motion.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create recognizable brand punctuation at open/close."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Get brand rules",
+            "Storyboard",
+            "Animate to rest lockup",
+            "Deliver masters"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Protect logo geometry",
+            "End on approved lockup",
+            "Keep under a few seconds for social"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Stroke draw + settle; 3D light pass then flat lockup"
+          ]
+        }
+      ],
+      "concepts": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "entities": [
+        "Logo Animation",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "logo animation",
+        "logo sting",
+        "brand mark motion",
+        "ident"
+      ],
+      "rules": [
+        "Avoid: Warping trademark shapes",
+        "Avoid: Overlong intros"
+      ],
+      "bestPractices": [
+        "Protect logo geometry",
+        "End on approved lockup",
+        "Keep under a few seconds for social"
+      ],
+      "professionalTechniques": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "examples": [
+        "Stroke draw + settle; 3D light pass then flat lockup"
+      ],
+      "commonMistakes": [
+        "Warping trademark shapes",
+        "Overlong intros"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Protect logo geometry",
+        "Practice: End on approved lockup",
+        "Practice: Keep under a few seconds for social"
+      ],
+      "workflowSteps": [
+        "Get brand rules",
+        "Storyboard",
+        "Animate to rest lockup",
+        "Deliver masters"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-anticipation",
+        "anim-appeal",
+        "motion-motion-style",
+        "render-export-settings"
+      ],
+      "definitions": [
+        "Logo animation is choreographed motion of a brand mark—intros, outros, and stingers—that reinforces identity without distorting the logo’s integrity.",
+        "Create recognizable brand punctuation at open/close."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Protect logo geometry",
+      "End on approved lockup",
+      "Keep under a few seconds for social"
+    ],
+    "bestPractices": [
+      "Protect logo geometry",
+      "End on approved lockup",
+      "Keep under a few seconds for social"
+    ],
+    "decisionRules": [
+      "Practice: Protect logo geometry",
+      "Practice: End on approved lockup",
+      "Practice: Keep under a few seconds for social"
+    ]
+  }
+}

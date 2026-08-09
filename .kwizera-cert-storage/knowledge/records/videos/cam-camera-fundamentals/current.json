@@ -1,0 +1,330 @@
+{
+  "knowledgeId": "cam-camera-fundamentals",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-settings",
+  "title": "Camera Fundamentals",
+  "description": "Core principles of how a camera captures light, forms an image, and supports storytelling intent.",
+  "summary": "Camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery.",
+  "tags": [
+    "camera",
+    "professional",
+    "camera-fundamentals",
+    "fundamentals",
+    "exposure triangle",
+    "framing",
+    "capture"
+  ],
+  "keywords": [
+    "camera",
+    "fundamentals",
+    "exposure triangle",
+    "framing",
+    "capture"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-exposure",
+    "cam-lens-types",
+    "cam-focus",
+    "cam-camera-types",
+    "cam-bridge-camera-knowledge",
+    "cam-bridge-video-production-knowledge",
+    "cam-bridge-lighting-knowledge",
+    "cam-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:21.955Z",
+  "lastUpdated": "2026-08-08T16:55:29.028Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-camera-fundamentals",
+  "integrityStatus": "verified",
+  "contentHash": "9033a1ae047a0b3fc306039c2ca2af2c4b17ce019f7db0bafad8ff21d9912b71",
+  "searchableText": "camera fundamentals core principles of how a camera captures light, forms an image, and supports storytelling intent. camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery. professional-camera-settings camera professional camera-fundamentals fundamentals exposure triangle framing capture camera fundamentals exposure triangle framing capture",
+  "classification": {
+    "category": "professional-camera-settings",
+    "topic": "camera-fundamentals-core",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "camera-fundamentals",
+    "kind": "camera-setting",
+    "professionalDefinition": "Camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery.",
+    "knowledgeItem": {
+      "knowledgeId": "cam-camera-fundamentals",
+      "title": "Camera Fundamentals",
+      "domain": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "description": "Core principles of how a camera captures light, forms an image, and supports storytelling intent.",
+      "coreConcepts": [
+        "camera",
+        "fundamentals",
+        "exposure triangle",
+        "framing",
+        "capture"
+      ],
+      "definitions": [
+        "Camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery."
+      ],
+      "rules": [
+        "If story intent is unclear, do not finalize camera package.",
+        "Always lock delivery specs before creative camera experiments.",
+        "When lighting changes, re-check exposure and white balance together.",
+        "Never leave critical focus to chance on hero product or talent eyes."
+      ],
+      "bestPractices": [
+        "Decide look and deliverable specs before locking camera body and lens kit.",
+        "Treat exposure, focus, and white balance as a linked system, not isolated dials.",
+        "Match camera setup to movement plan and lighting plan.",
+        "Document camera notes for continuity across setups."
+      ],
+      "professionalTechniques": [
+        "Confirm deliverable resolution, frame rate, and aspect ratio.",
+        "Select body, lens, and support for the planned moves.",
+        "Set baseline exposure and white balance under production lighting.",
+        "Verify focus and framing with a rehearsal take."
+      ],
+      "workflow": [
+        "Confirm deliverable resolution, frame rate, and aspect ratio.",
+        "Select body, lens, and support for the planned moves.",
+        "Set baseline exposure and white balance under production lighting.",
+        "Verify focus and framing with a rehearsal take."
+      ],
+      "decisionRules": [
+        "If story intent is unclear, do not finalize camera package.",
+        "Always lock delivery specs before creative camera experiments.",
+        "When lighting changes, re-check exposure and white balance together.",
+        "Never leave critical focus to chance on hero product or talent eyes."
+      ],
+      "commonMistakes": [
+        "Choosing gear before defining story and delivery.",
+        "Changing too many settings between takes without a reason.",
+        "Ignoring how settings constrain later movement and edit options."
+      ],
+      "troubleshooting": [
+        "Avoid: Choosing gear before defining story and delivery.",
+        "Avoid: Changing too many settings between takes without a reason.",
+        "Avoid: Ignoring how settings constrain later movement and edit options."
+      ],
+      "recommendations": [
+        "Decide look and deliverable specs before locking camera body and lens kit.",
+        "Treat exposure, focus, and white balance as a linked system, not isolated dials.",
+        "Match camera setup to movement plan and lighting plan.",
+        "Document camera notes for continuity across setups."
+      ],
+      "examples": [
+        "Product tabletop: locked camera, controlled light, manual exposure.",
+        "Interview: medium framing, shallow DOF, stable support, consistent WB."
+      ],
+      "professionalStandards": [
+        "Confidence 93/100",
+        "Quality 92/100",
+        "Offline-first curated camera standard"
+      ],
+      "relatedTopics": [
+        "exposure",
+        "lens-types",
+        "focus",
+        "camera-types"
+      ],
+      "keywords": [
+        "camera",
+        "fundamentals",
+        "exposure triangle",
+        "framing",
+        "capture"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:camera-fundamentals",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Camera Fundamentals",
+      "category": "professional-camera-settings",
+      "domain": "camera-knowledge",
+      "description": "Core principles of how a camera captures light, forms an image, and supports storytelling intent.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Decide look and deliverable specs before locking camera body and lens kit.",
+            "Treat exposure, focus, and white balance as a linked system, not isolated dials.",
+            "Match camera setup to movement plan and lighting plan.",
+            "Document camera notes for continuity across setups."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Confirm deliverable resolution, frame rate, and aspect ratio.",
+            "Select body, lens, and support for the planned moves.",
+            "Set baseline exposure and white balance under production lighting.",
+            "Verify focus and framing with a rehearsal take."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If story intent is unclear, do not finalize camera package.",
+            "Always lock delivery specs before creative camera experiments.",
+            "When lighting changes, re-check exposure and white balance together.",
+            "Never leave critical focus to chance on hero product or talent eyes."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product tabletop: locked camera, controlled light, manual exposure.",
+            "Interview: medium framing, shallow DOF, stable support, consistent WB."
+          ]
+        }
+      ],
+      "concepts": [
+        "camera",
+        "fundamentals",
+        "exposure triangle",
+        "framing",
+        "capture"
+      ],
+      "entities": [
+        "Camera Fundamentals",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "camera",
+        "fundamentals",
+        "exposure triangle",
+        "framing",
+        "capture"
+      ],
+      "rules": [
+        "If story intent is unclear, do not finalize camera package.",
+        "Always lock delivery specs before creative camera experiments.",
+        "When lighting changes, re-check exposure and white balance together.",
+        "Never leave critical focus to chance on hero product or talent eyes."
+      ],
+      "bestPractices": [
+        "Decide look and deliverable specs before locking camera body and lens kit.",
+        "Treat exposure, focus, and white balance as a linked system, not isolated dials.",
+        "Match camera setup to movement plan and lighting plan.",
+        "Document camera notes for continuity across setups."
+      ],
+      "professionalTechniques": [
+        "Confirm deliverable resolution, frame rate, and aspect ratio.",
+        "Select body, lens, and support for the planned moves.",
+        "Set baseline exposure and white balance under production lighting.",
+        "Verify focus and framing with a rehearsal take."
+      ],
+      "examples": [
+        "Product tabletop: locked camera, controlled light, manual exposure.",
+        "Interview: medium framing, shallow DOF, stable support, consistent WB."
+      ],
+      "commonMistakes": [
+        "Choosing gear before defining story and delivery.",
+        "Changing too many settings between takes without a reason.",
+        "Ignoring how settings constrain later movement and edit options."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If story intent is unclear, do not finalize camera package.",
+        "Always lock delivery specs before creative camera experiments.",
+        "When lighting changes, re-check exposure and white balance together.",
+        "Never leave critical focus to chance on hero product or talent eyes."
+      ],
+      "workflowSteps": [
+        "Confirm deliverable resolution, frame rate, and aspect ratio.",
+        "Select body, lens, and support for the planned moves.",
+        "Set baseline exposure and white balance under production lighting.",
+        "Verify focus and framing with a rehearsal take."
+      ],
+      "prerequisites": [
+        "Confirm deliverable resolution, frame rate, and aspect ratio."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "video-production-knowledge",
+        "lighting-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cam-exposure",
+        "cam-lens-types",
+        "cam-focus",
+        "cam-camera-types"
+      ],
+      "definitions": [
+        "Camera fundamentals cover the imaging chain—optics, sensor, exposure triangle, framing, and capture settings—so every technical choice serves story, brand, and delivery."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-knowledge",
+      "category": "professional-camera-settings",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Confirm deliverable resolution, frame rate, and aspect ratio.",
+      "Select body, lens, and support for the planned moves.",
+      "Set baseline exposure and white balance under production lighting.",
+      "Verify focus and framing with a rehearsal take."
+    ],
+    "bestPractices": [
+      "Decide look and deliverable specs before locking camera body and lens kit.",
+      "Treat exposure, focus, and white balance as a linked system, not isolated dials.",
+      "Match camera setup to movement plan and lighting plan.",
+      "Document camera notes for continuity across setups."
+    ],
+    "decisionRules": [
+      "If story intent is unclear, do not finalize camera package.",
+      "Always lock delivery specs before creative camera experiments.",
+      "When lighting changes, re-check exposure and white balance together.",
+      "Never leave critical focus to chance on hero product or talent eyes."
+    ]
+  }
+}

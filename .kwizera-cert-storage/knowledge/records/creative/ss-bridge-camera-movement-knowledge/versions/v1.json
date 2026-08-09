@@ -1,0 +1,97 @@
+{
+  "knowledgeId": "ss-bridge-camera-movement-knowledge",
+  "knowledgeType": "creative-knowledge",
+  "category": "storytelling-scene-domain-bridge",
+  "title": "Camera Movement Knowledge (related)",
+  "description": "Scene energy and reveals depend on motivated camera movement.",
+  "summary": "Moves support scene purpose and emotional journey.",
+  "tags": [
+    "storytelling-scene",
+    "domain-bridge",
+    "camera-movement-knowledge"
+  ],
+  "keywords": [
+    "camera-movement-knowledge",
+    "storytelling",
+    "scene",
+    "relationship"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "story-storytelling-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:12.684Z",
+  "lastUpdated": "2026-08-08T15:34:12.684Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\ss-bridge-camera-movement-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "9cd8d1598473f6e2a0c0fe6a55070b33c1eed1bbe7d608ab8e4763e5c730d63d",
+  "searchableText": "camera movement knowledge (related) scene energy and reveals depend on motivated camera movement. moves support scene purpose and emotional journey. storytelling-scene-domain-bridge storytelling-scene domain-bridge camera-movement-knowledge camera-movement-knowledge storytelling scene relationship",
+  "classification": {
+    "category": "storytelling-scene-domain-bridge",
+    "topic": "camera-movement-knowledge",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "bridgeDomainId": "camera-movement-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate storytelling/scene knowledge to camera-movement-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Camera Movement Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "camera-movement-knowledge",
+      "description": "Scene energy and reveals depend on motivated camera movement.",
+      "sections": [],
+      "concepts": [
+        "camera-movement-knowledge"
+      ],
+      "entities": [
+        "camera-movement-knowledge"
+      ],
+      "terminology": [
+        "camera-movement-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate storytelling/scene knowledge to camera-movement-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "story-storytelling-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,337 @@
+{
+  "knowledgeId": "lit-color-temperature",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Color Temperature",
+  "description": "The Kelvin character of light sources—from warm tungsten to cool daylight—and how mixes read on camera.",
+  "summary": "Design color mood and keep multi-source color coherent for grade and brand.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "color-temperature",
+    "color temperature",
+    "Kelvin",
+    "CCT",
+    "warm",
+    "cool"
+  ],
+  "keywords": [
+    "color temperature",
+    "Kelvin",
+    "CCT",
+    "warm",
+    "cool"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-white-balance",
+    "lit-artificial-lighting",
+    "lit-natural-lighting",
+    "lit-indoor-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-rendering-knowledge",
+    "lc-bridge-storytelling-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:32:26.809Z",
+  "lastUpdated": "2026-08-08T17:15:42.498Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-color-temperature",
+  "integrityStatus": "verified",
+  "contentHash": "e3db83c6b46eac99aa6689d2a3087b169ac49e63d4b7fa219c49155d17bcdc91",
+  "searchableText": "color temperature the kelvin character of light sources—from warm tungsten to cool daylight—and how mixes read on camera. design color mood and keep multi-source color coherent for grade and brand. professional-lighting professional-lighting professional color-temperature color temperature kelvin cct warm cool color temperature kelvin cct warm cool",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "color-temperature-kelvin",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "color-temperature",
+    "kind": "professional-lighting",
+    "purpose": "Design color mood and keep multi-source color coherent for grade and brand.",
+    "whenToUse": [
+      "Planning motivated practicals",
+      "Matching daylight/LED",
+      "Emotional warmth/coolness"
+    ],
+    "whenNotToUse": [
+      "Ignoring Kelvin then fighting in grade only"
+    ],
+    "advantages": [
+      "Powerful mood lever",
+      "Cross-fixture consistency when matched"
+    ],
+    "limitations": [
+      "Mixed temps need intentional motivation"
+    ],
+    "relatedCameraTechniques": [
+      "manual white balance",
+      "custom WB",
+      "log/grade pipeline"
+    ],
+    "relatedStorytellingTechniques": [
+      "warm intimacy",
+      "cool distance",
+      "time-of-day cues"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-color-temperature",
+      "title": "Color Temperature",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "The Kelvin character of light sources—from warm tungsten to cool daylight—and how mixes read on camera.",
+      "coreConcepts": [
+        "color temperature",
+        "Kelvin",
+        "CCT",
+        "warm",
+        "cool"
+      ],
+      "definitions": [
+        "Design color mood and keep multi-source color coherent for grade and brand."
+      ],
+      "rules": [
+        "Use when: Planning motivated practicals",
+        "Use when: Matching daylight/LED",
+        "Use when: Emotional warmth/coolness",
+        "Do not use when: Ignoring Kelvin then fighting in grade only"
+      ],
+      "bestPractices": [
+        "Pick a hero temperature",
+        "Gel/LED CCT to match",
+        "Document Kelvin for continuity"
+      ],
+      "professionalTechniques": [
+        "Powerful mood lever",
+        "Cross-fixture consistency when matched"
+      ],
+      "workflow": [
+        "Choose Color Temperature",
+        "Pick a hero temperature",
+        "Gel/LED CCT to match",
+        "Document Kelvin for continuity"
+      ],
+      "decisionRules": [
+        "Use when: Planning motivated practicals",
+        "Use when: Matching daylight/LED",
+        "Use when: Emotional warmth/coolness",
+        "Avoid when: Ignoring Kelvin then fighting in grade only"
+      ],
+      "commonMistakes": [
+        "Unmotivated mixed orange/blue",
+        "Auto systems drifting CCT"
+      ],
+      "troubleshooting": [
+        "Limitation: Mixed temps need intentional motivation"
+      ],
+      "recommendations": [
+        "Pick a hero temperature",
+        "Gel/LED CCT to match",
+        "Document Kelvin for continuity"
+      ],
+      "examples": [
+        "3200K interior practicals with matched LED key"
+      ],
+      "professionalStandards": [
+        "warm intimacy",
+        "cool distance",
+        "time-of-day cues"
+      ],
+      "relatedTopics": [
+        "white-balance",
+        "artificial-lighting",
+        "natural-lighting",
+        "indoor-lighting"
+      ],
+      "keywords": [
+        "color temperature",
+        "Kelvin",
+        "CCT",
+        "warm",
+        "cool"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:color-temperature",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Color Temperature",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "The Kelvin character of light sources—from warm tungsten to cool daylight—and how mixes read on camera.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Design color mood and keep multi-source color coherent for grade and brand."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Planning motivated practicals",
+            "Matching daylight/LED",
+            "Emotional warmth/coolness"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Ignoring Kelvin then fighting in grade only"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Pick a hero temperature",
+            "Gel/LED CCT to match",
+            "Document Kelvin for continuity"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "3200K interior practicals with matched LED key"
+          ]
+        }
+      ],
+      "concepts": [
+        "color temperature",
+        "Kelvin",
+        "CCT",
+        "warm",
+        "cool"
+      ],
+      "entities": [
+        "Color Temperature",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "rendering-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "color temperature",
+        "Kelvin",
+        "CCT",
+        "warm",
+        "cool"
+      ],
+      "rules": [
+        "Avoid when: Ignoring Kelvin then fighting in grade only"
+      ],
+      "bestPractices": [
+        "Pick a hero temperature",
+        "Gel/LED CCT to match",
+        "Document Kelvin for continuity"
+      ],
+      "professionalTechniques": [
+        "Powerful mood lever",
+        "Cross-fixture consistency when matched"
+      ],
+      "examples": [
+        "3200K interior practicals with matched LED key"
+      ],
+      "commonMistakes": [
+        "Unmotivated mixed orange/blue",
+        "Auto systems drifting CCT"
+      ],
+      "qualityRules": [
+        "Mixed temps need intentional motivation"
+      ],
+      "decisionRules": [
+        "Use when: Planning motivated practicals",
+        "Use when: Matching daylight/LED",
+        "Use when: Emotional warmth/coolness",
+        "Do not use when: Ignoring Kelvin then fighting in grade only"
+      ],
+      "workflowSteps": [
+        "Pick a hero temperature",
+        "Gel/LED CCT to match",
+        "Document Kelvin for continuity"
+      ],
+      "prerequisites": [
+        "manual white balance",
+        "custom WB",
+        "log/grade pipeline"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "rendering-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-white-balance",
+        "lit-artificial-lighting",
+        "lit-natural-lighting",
+        "lit-indoor-lighting"
+      ],
+      "definitions": [
+        "Design color mood and keep multi-source color coherent for grade and brand."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Pick a hero temperature",
+      "Gel/LED CCT to match",
+      "Document Kelvin for continuity"
+    ],
+    "bestPractices": [
+      "Pick a hero temperature",
+      "Gel/LED CCT to match",
+      "Document Kelvin for continuity"
+    ],
+    "decisionRules": [
+      "Use when: Planning motivated practicals",
+      "Use when: Matching daylight/LED",
+      "Use when: Emotional warmth/coolness",
+      "Do not use when: Ignoring Kelvin then fighting in grade only"
+    ]
+  }
+}

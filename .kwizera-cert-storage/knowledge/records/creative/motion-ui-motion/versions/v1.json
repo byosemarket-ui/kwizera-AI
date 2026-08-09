@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "motion-ui-motion",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-motion-graphics",
+  "title": "UI Motion",
+  "description": "Interface transitions and feedback motion for products and product videos.",
+  "summary": "Make digital products feel coherent and trustworthy.",
+  "tags": [
+    "professional-motion-graphics",
+    "professional",
+    "ui-motion",
+    "UI motion",
+    "interface animation",
+    "product UI",
+    "microinteractions"
+  ],
+  "keywords": [
+    "UI motion",
+    "interface animation",
+    "product UI",
+    "microinteractions"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "motion-motion-timing",
+    "anim-spacing",
+    "motion-icon-animation",
+    "motion-motion-hierarchy",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-marketing-knowledge",
+    "amr-bridge-animation-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:36:59.336Z",
+  "lastUpdated": "2026-08-08T15:36:59.336Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\motion-ui-motion",
+  "integrityStatus": "verified",
+  "contentHash": "33ad223e19985f97acb76b3245881dffe4c81e5dfaee6cce34426dbd2eb84ebb",
+  "searchableText": "ui motion interface transitions and feedback motion for products and product videos. make digital products feel coherent and trustworthy. professional-motion-graphics professional-motion-graphics professional ui-motion ui motion interface animation product ui microinteractions ui motion interface animation product ui microinteractions",
+  "classification": {
+    "category": "professional-motion-graphics",
+    "topic": "motion-interface-transitions",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "ui-motion",
+    "kind": "professional-motion-graphics",
+    "purpose": "Make digital products feel coherent and trustworthy.",
+    "professionalDefinition": "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy.",
+    "workflow": [
+      "Define tokens",
+      "Prototype",
+      "Implement",
+      "Document in motion spec"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "motion-ui-motion",
+      "title": "UI Motion",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "description": "Interface transitions and feedback motion for products and product videos.",
+      "coreConcepts": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "definitions": [
+        "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy.",
+        "Make digital products feel coherent and trustworthy."
+      ],
+      "rules": [
+        "Practice: Shared durations/easings",
+        "Practice: Motion follows user action",
+        "Practice: Reduce motion accessibility options"
+      ],
+      "bestPractices": [
+        "Shared durations/easings",
+        "Motion follows user action",
+        "Reduce motion accessibility options"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "workflow": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "decisionRules": [
+        "Follow: Shared durations/easings",
+        "Follow: Motion follows user action",
+        "Follow: Reduce motion accessibility options"
+      ],
+      "commonMistakes": [
+        "Parallax overload",
+        "Blocking interactions with long animation"
+      ],
+      "troubleshooting": [
+        "Avoid: Parallax overload",
+        "Avoid: Blocking interactions with long animation"
+      ],
+      "recommendations": [
+        "Shared durations/easings",
+        "Motion follows user action",
+        "Reduce motion accessibility options"
+      ],
+      "examples": [
+        "Sheet slides up 280ms ease-out; success toast fades"
+      ],
+      "professionalStandards": [
+        "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy."
+      ],
+      "relatedTopics": [
+        "motion-timing",
+        "spacing",
+        "icon-animation",
+        "motion-hierarchy"
+      ],
+      "keywords": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:ui-motion",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "UI Motion",
+      "category": "professional-motion-graphics",
+      "domain": "motion-graphics-knowledge",
+      "description": "Interface transitions and feedback motion for products and product videos.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make digital products feel coherent and trustworthy."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define tokens",
+            "Prototype",
+            "Implement",
+            "Document in motion spec"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Shared durations/easings",
+            "Motion follows user action",
+            "Reduce motion accessibility options"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Sheet slides up 280ms ease-out; success toast fades"
+          ]
+        }
+      ],
+      "concepts": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "entities": [
+        "UI Motion",
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge"
+      ],
+      "terminology": [
+        "UI motion",
+        "interface animation",
+        "product UI",
+        "microinteractions"
+      ],
+      "rules": [
+        "Avoid: Parallax overload",
+        "Avoid: Blocking interactions with long animation"
+      ],
+      "bestPractices": [
+        "Shared durations/easings",
+        "Motion follows user action",
+        "Reduce motion accessibility options"
+      ],
+      "professionalTechniques": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "examples": [
+        "Sheet slides up 280ms ease-out; success toast fades"
+      ],
+      "commonMistakes": [
+        "Parallax overload",
+        "Blocking interactions with long animation"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Shared durations/easings",
+        "Practice: Motion follows user action",
+        "Practice: Reduce motion accessibility options"
+      ],
+      "workflowSteps": [
+        "Define tokens",
+        "Prototype",
+        "Implement",
+        "Document in motion spec"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "marketing-knowledge",
+        "animation-knowledge"
+      ],
+      "relatedKnowledge": [
+        "motion-motion-timing",
+        "anim-spacing",
+        "motion-icon-animation",
+        "motion-motion-hierarchy"
+      ],
+      "definitions": [
+        "UI motion is the choreography of interface elements—navigation, feedback, and state—that communicates responsiveness and hierarchy.",
+        "Make digital products feel coherent and trustworthy."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-motion-graphics",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Shared durations/easings",
+      "Motion follows user action",
+      "Reduce motion accessibility options"
+    ],
+    "bestPractices": [
+      "Shared durations/easings",
+      "Motion follows user action",
+      "Reduce motion accessibility options"
+    ],
+    "decisionRules": [
+      "Practice: Shared durations/easings",
+      "Practice: Motion follows user action",
+      "Practice: Reduce motion accessibility options"
+    ]
+  }
+}

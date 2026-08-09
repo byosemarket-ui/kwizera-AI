@@ -1,0 +1,293 @@
+{"type":"event","moduleId":"ai-core","eventType":"framework-registration","detail":"Framework slot prepared: AI Core","timestamp":"2026-08-08T15:30:03.383Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"framework-registration","detail":"Framework slot prepared: Decision Engine","timestamp":"2026-08-08T15:30:03.385Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Reasoning Engine","timestamp":"2026-08-08T15:30:03.388Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Planning Engine","timestamp":"2026-08-08T15:30:03.390Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"framework-registration","detail":"Framework slot prepared: Workflow Engine","timestamp":"2026-08-08T15:30:03.391Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"framework-registration","detail":"Framework slot prepared: Recommendation Engine","timestamp":"2026-08-08T15:30:03.393Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"framework-registration","detail":"Framework slot prepared: Multi-Domain Reasoning Engine","timestamp":"2026-08-08T15:30:03.394Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"framework-registration","detail":"Framework slot prepared: Self-Review & Professional Evaluation Engine","timestamp":"2026-08-08T15:30:03.396Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"framework-registration","detail":"Framework slot prepared: Professional Reasoning & Decision Certification","timestamp":"2026-08-08T15:30:03.398Z"}
+{"type":"event","moduleId":"task-manager","eventType":"framework-registration","detail":"Framework slot prepared: Task Manager","timestamp":"2026-08-08T15:30:03.401Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"framework-registration","detail":"Framework slot prepared: Memory Engine","timestamp":"2026-08-08T15:30:03.402Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"framework-registration","detail":"Framework slot prepared: Knowledge Engine","timestamp":"2026-08-08T15:30:03.403Z"}
+{"type":"event","moduleId":"learning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Learning Engine","timestamp":"2026-08-08T15:30:03.405Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"framework-registration","detail":"Framework slot prepared: AI Me Conversation & Understanding Engine","timestamp":"2026-08-08T15:30:03.406Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Product Intelligence","timestamp":"2026-08-08T15:30:03.407Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Image Intelligence","timestamp":"2026-08-08T15:30:03.409Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Video Intelligence","timestamp":"2026-08-08T15:30:03.410Z"}
+{"type":"event","moduleId":"video-generation","eventType":"framework-registration","detail":"Framework slot prepared: Video Generation","timestamp":"2026-08-08T15:30:03.411Z"}
+{"type":"event","moduleId":"image-generation","eventType":"framework-registration","detail":"Framework slot prepared: Image Generation","timestamp":"2026-08-08T15:30:03.413Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"framework-registration","detail":"Framework slot prepared: Audio Generation","timestamp":"2026-08-08T15:30:03.414Z"}
+{"type":"event","moduleId":"marketing-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Marketing Intelligence","timestamp":"2026-08-08T15:30:03.415Z"}
+{"type":"event","moduleId":"translation-engine","eventType":"framework-registration","detail":"Framework slot prepared: Translation Engine","timestamp":"2026-08-08T15:30:03.417Z"}
+{"type":"event","moduleId":"search-engine","eventType":"framework-registration","detail":"Framework slot prepared: Search Engine","timestamp":"2026-08-08T15:30:03.418Z"}
+{"type":"event","moduleId":"export-engine","eventType":"framework-registration","detail":"Framework slot prepared: Export Engine","timestamp":"2026-08-08T15:30:03.419Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"framework-registration","detail":"Framework slot prepared: Recovery Engine","timestamp":"2026-08-08T15:30:03.420Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"framework-registration","detail":"Framework slot prepared: Health Monitor","timestamp":"2026-08-08T15:30:03.421Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"framework-registration","detail":"Framework slot prepared: KWIZERA AI Model Management","timestamp":"2026-08-08T15:30:03.422Z"}
+{"type":"event","moduleId":"ai-core","eventType":"lifecycle","detail":"ready: AI Core ready","timestamp":"2026-08-08T15:30:03.423Z"}
+{"type":"event","moduleId":"ai-core","eventType":"lifecycle","detail":"running: AI Core operational","timestamp":"2026-08-08T15:30:03.426Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Persistent Memory Foundation","timestamp":"2026-08-08T15:30:10.030Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:10.047Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:10.075Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:10.151Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:10.163Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:10.233Z"}
+{"type":"performance","moduleId":"memory-engine","startupMs":170,"responseTimeMs":170,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Reasoning Engine","timestamp":"2026-08-08T15:30:10.252Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:10.260Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:10.263Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:10.286Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:10.295Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:10.582Z"}
+{"type":"performance","moduleId":"reasoning-engine","startupMs":692,"responseTimeMs":692,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Decision Engine","timestamp":"2026-08-08T15:30:10.961Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:11.305Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:11.347Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:11.598Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:11.604Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:11.611Z"}
+{"type":"performance","moduleId":"decision-engine","startupMs":388,"responseTimeMs":388,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Planning Engine","timestamp":"2026-08-08T15:30:11.739Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:11.911Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:11.914Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:11.929Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:12.110Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:12.119Z"}
+{"type":"performance","moduleId":"planning-engine","startupMs":212,"responseTimeMs":212,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Task Manager","timestamp":"2026-08-08T15:30:12.132Z"}
+{"type":"event","moduleId":"task-manager","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:12.140Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:12.142Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:12.359Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:12.628Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:13.128Z"}
+{"type":"performance","moduleId":"task-manager","startupMs":1208,"responseTimeMs":1208,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Workflow Engine","timestamp":"2026-08-08T15:30:13.362Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:13.368Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:13.377Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:14.077Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:14.085Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:14.322Z"}
+{"type":"performance","moduleId":"workflow-engine","startupMs":1178,"responseTimeMs":1178,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Recommendation Engine","timestamp":"2026-08-08T15:30:14.824Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:15.407Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:15.422Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:16.375Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:17.015Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:17.021Z"}
+{"type":"performance","moduleId":"recommendation-engine","startupMs":1605,"responseTimeMs":1605,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Multi-Domain Reasoning Engine","timestamp":"2026-08-08T15:30:17.031Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:17.239Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:17.240Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:19.042Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:19.051Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:19.067Z"}
+{"type":"performance","moduleId":"multi-domain-engine","startupMs":2141,"responseTimeMs":2141,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Self-Review & Professional Evaluation Engine","timestamp":"2026-08-08T15:30:19.384Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:30:19.396Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:19.398Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:19.415Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:19.645Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:19.658Z"}
+{"type":"performance","moduleId":"self-review-engine","startupMs":268,"responseTimeMs":268,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Professional Reasoning & Decision Certification","timestamp":"2026-08-08T15:30:19.680Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"registration","detail":"Module registered v1.0.0","timestamp":"2026-08-08T15:30:19.691Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:30:19.692Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:30:20.057Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:30:20.067Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:30:20.082Z"}
+{"type":"performance","moduleId":"professional-reasoning-certification","startupMs":516,"responseTimeMs":516,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"ai-core","eventType":"framework-registration","detail":"Framework slot prepared: AI Core","timestamp":"2026-08-08T15:47:12.953Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"framework-registration","detail":"Framework slot prepared: Decision Engine","timestamp":"2026-08-08T15:47:12.977Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Reasoning Engine","timestamp":"2026-08-08T15:47:12.978Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Planning Engine","timestamp":"2026-08-08T15:47:12.979Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"framework-registration","detail":"Framework slot prepared: Workflow Engine","timestamp":"2026-08-08T15:47:12.984Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"framework-registration","detail":"Framework slot prepared: Recommendation Engine","timestamp":"2026-08-08T15:47:12.986Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"framework-registration","detail":"Framework slot prepared: Multi-Domain Reasoning Engine","timestamp":"2026-08-08T15:47:12.988Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"framework-registration","detail":"Framework slot prepared: Self-Review & Professional Evaluation Engine","timestamp":"2026-08-08T15:47:12.989Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"framework-registration","detail":"Framework slot prepared: Professional Reasoning & Decision Certification","timestamp":"2026-08-08T15:47:12.990Z"}
+{"type":"event","moduleId":"task-manager","eventType":"framework-registration","detail":"Framework slot prepared: Task Manager","timestamp":"2026-08-08T15:47:12.991Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"framework-registration","detail":"Framework slot prepared: Memory Engine","timestamp":"2026-08-08T15:47:12.992Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"framework-registration","detail":"Framework slot prepared: Knowledge Engine","timestamp":"2026-08-08T15:47:12.994Z"}
+{"type":"event","moduleId":"learning-engine","eventType":"framework-registration","detail":"Framework slot prepared: Learning Engine","timestamp":"2026-08-08T15:47:12.995Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"framework-registration","detail":"Framework slot prepared: AI Me Conversation & Understanding Engine","timestamp":"2026-08-08T15:47:12.995Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Product Intelligence","timestamp":"2026-08-08T15:47:12.996Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Image Intelligence","timestamp":"2026-08-08T15:47:13.002Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Video Intelligence","timestamp":"2026-08-08T15:47:13.003Z"}
+{"type":"event","moduleId":"video-generation","eventType":"framework-registration","detail":"Framework slot prepared: Video Generation","timestamp":"2026-08-08T15:47:13.004Z"}
+{"type":"event","moduleId":"image-generation","eventType":"framework-registration","detail":"Framework slot prepared: Image Generation","timestamp":"2026-08-08T15:47:13.005Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"framework-registration","detail":"Framework slot prepared: Audio Generation","timestamp":"2026-08-08T15:47:13.006Z"}
+{"type":"event","moduleId":"marketing-intelligence","eventType":"framework-registration","detail":"Framework slot prepared: Marketing Intelligence","timestamp":"2026-08-08T15:47:13.008Z"}
+{"type":"event","moduleId":"translation-engine","eventType":"framework-registration","detail":"Framework slot prepared: Translation Engine","timestamp":"2026-08-08T15:47:13.009Z"}
+{"type":"event","moduleId":"search-engine","eventType":"framework-registration","detail":"Framework slot prepared: Search Engine","timestamp":"2026-08-08T15:47:13.010Z"}
+{"type":"event","moduleId":"export-engine","eventType":"framework-registration","detail":"Framework slot prepared: Export Engine","timestamp":"2026-08-08T15:47:13.011Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"framework-registration","detail":"Framework slot prepared: Recovery Engine","timestamp":"2026-08-08T15:47:13.012Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"framework-registration","detail":"Framework slot prepared: Health Monitor","timestamp":"2026-08-08T15:47:13.017Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"framework-registration","detail":"Framework slot prepared: KWIZERA AI Model Management","timestamp":"2026-08-08T15:47:13.018Z"}
+{"type":"event","moduleId":"ai-core","eventType":"lifecycle","detail":"ready: AI Core ready","timestamp":"2026-08-08T15:47:13.020Z"}
+{"type":"event","moduleId":"ai-core","eventType":"lifecycle","detail":"running: AI Core operational","timestamp":"2026-08-08T15:47:13.222Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Persistent Memory Foundation","timestamp":"2026-08-08T15:47:28.136Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:28.615Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:28.618Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:28.667Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:28.676Z"}
+{"type":"event","moduleId":"memory-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:28.759Z"}
+{"type":"performance","moduleId":"memory-engine","startupMs":304,"responseTimeMs":304,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Reasoning Engine","timestamp":"2026-08-08T15:47:28.927Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:28.940Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:28.942Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:28.958Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:29.019Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:29.026Z"}
+{"type":"performance","moduleId":"reasoning-engine","startupMs":97,"responseTimeMs":97,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Decision Engine","timestamp":"2026-08-08T15:47:29.055Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:29.075Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:29.087Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:29.239Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:29.245Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:29.257Z"}
+{"type":"performance","moduleId":"decision-engine","startupMs":183,"responseTimeMs":183,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Planning Engine","timestamp":"2026-08-08T15:47:29.274Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:29.749Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:29.752Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:29.768Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:29.776Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:29.783Z"}
+{"type":"performance","moduleId":"planning-engine","startupMs":77,"responseTimeMs":77,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Task Manager","timestamp":"2026-08-08T15:47:29.904Z"}
+{"type":"event","moduleId":"task-manager","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:29.935Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:29.937Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:29.964Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:29.973Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:30.226Z"}
+{"type":"performance","moduleId":"task-manager","startupMs":295,"responseTimeMs":295,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Workflow Engine","timestamp":"2026-08-08T15:47:30.236Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:30.244Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:30.246Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:30.397Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:30.471Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:30.479Z"}
+{"type":"performance","moduleId":"workflow-engine","startupMs":239,"responseTimeMs":239,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Recommendation Engine","timestamp":"2026-08-08T15:47:30.491Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:30.497Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:30.499Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:30.517Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:30.840Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:30.851Z"}
+{"type":"performance","moduleId":"recommendation-engine","startupMs":360,"responseTimeMs":360,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Multi-Domain Reasoning Engine","timestamp":"2026-08-08T15:47:30.863Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:31.029Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:31.031Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:31.043Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:31.052Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:31.058Z"}
+{"type":"performance","moduleId":"multi-domain-engine","startupMs":51,"responseTimeMs":51,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Self-Review & Professional Evaluation Engine","timestamp":"2026-08-08T15:47:31.085Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T15:47:31.093Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:31.095Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:31.249Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:31.266Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:31.382Z"}
+{"type":"performance","moduleId":"self-review-engine","startupMs":304,"responseTimeMs":304,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Professional Reasoning & Decision Certification","timestamp":"2026-08-08T15:47:31.403Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"registration","detail":"Module registered v1.0.0","timestamp":"2026-08-08T15:47:31.733Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T15:47:31.736Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T15:47:31.744Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T15:47:31.871Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T15:47:31.879Z"}
+{"type":"performance","moduleId":"professional-reasoning-certification","startupMs":189,"responseTimeMs":189,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"knowledge-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Knowledge Foundation","timestamp":"2026-08-08T19:46:18.256Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:46:19.549Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:19.678Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:19.699Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:19.720Z"}
+{"type":"event","moduleId":"knowledge-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:19.880Z"}
+{"type":"performance","moduleId":"knowledge-engine","startupMs":209,"responseTimeMs":209,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"conversation-engine","eventType":"lifecycle","detail":"registered: Registered AI Me Conversation & Understanding Engine","timestamp":"2026-08-08T19:46:20.023Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"registration","detail":"Module registered v1.0.0","timestamp":"2026-08-08T19:46:20.037Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:20.038Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:20.725Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:20.732Z"}
+{"type":"event","moduleId":"conversation-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:21.171Z"}
+{"type":"performance","moduleId":"conversation-engine","startupMs":1199,"responseTimeMs":1199,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"product-intelligence","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Product Intelligence Foundation","timestamp":"2026-08-08T19:46:30.453Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:46:30.473Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:30.475Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:30.486Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:30.593Z"}
+{"type":"event","moduleId":"product-intelligence","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:30.599Z"}
+{"type":"performance","moduleId":"product-intelligence","startupMs":134,"responseTimeMs":134,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"image-intelligence","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Image Intelligence Foundation","timestamp":"2026-08-08T19:46:37.560Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:46:37.733Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:37.736Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:37.748Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:37.909Z"}
+{"type":"event","moduleId":"image-intelligence","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:38.014Z"}
+{"type":"performance","moduleId":"image-intelligence","startupMs":284,"responseTimeMs":284,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"video-intelligence","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Video Intelligence Foundation","timestamp":"2026-08-08T19:46:44.536Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:46:44.607Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:44.612Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:44.776Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:44.794Z"}
+{"type":"event","moduleId":"video-intelligence","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:44.801Z"}
+{"type":"performance","moduleId":"video-intelligence","startupMs":194,"responseTimeMs":194,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"video-generation","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Video Generation Foundation","timestamp":"2026-08-08T19:46:55.636Z"}
+{"type":"event","moduleId":"video-generation","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:46:56.110Z"}
+{"type":"event","moduleId":"video-generation","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:46:56.119Z"}
+{"type":"event","moduleId":"video-generation","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:46:56.129Z"}
+{"type":"event","moduleId":"video-generation","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:46:56.141Z"}
+{"type":"event","moduleId":"video-generation","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:46:56.147Z"}
+{"type":"performance","moduleId":"video-generation","startupMs":101,"responseTimeMs":101,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"image-generation","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Image Generation Foundation","timestamp":"2026-08-08T19:47:04.962Z"}
+{"type":"event","moduleId":"image-generation","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:47:04.969Z"}
+{"type":"event","moduleId":"image-generation","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:47:04.971Z"}
+{"type":"event","moduleId":"image-generation","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:47:05.209Z"}
+{"type":"event","moduleId":"image-generation","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:47:05.254Z"}
+{"type":"event","moduleId":"image-generation","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:47:05.269Z"}
+{"type":"performance","moduleId":"image-generation","startupMs":461,"responseTimeMs":461,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"audio-generation","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Audio Generation Foundation","timestamp":"2026-08-08T19:47:16.076Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:47:16.400Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:47:16.403Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:47:17.397Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:47:17.439Z"}
+{"type":"event","moduleId":"audio-generation","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:47:18.975Z"}
+{"type":"performance","moduleId":"audio-generation","startupMs":2862,"responseTimeMs":2862,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"recovery-engine","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Recovery Engine","timestamp":"2026-08-08T19:47:23.792Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:47:24.035Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:47:24.040Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:47:24.051Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:47:24.058Z"}
+{"type":"event","moduleId":"recovery-engine","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:47:24.070Z"}
+{"type":"performance","moduleId":"recovery-engine","startupMs":204,"responseTimeMs":204,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"health-monitor","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Health Monitor","timestamp":"2026-08-08T19:47:28.056Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:47:28.269Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:47:28.270Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:47:28.284Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:47:28.295Z"}
+{"type":"event","moduleId":"health-monitor","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:47:28.301Z"}
+{"type":"performance","moduleId":"health-monitor","startupMs":105,"responseTimeMs":105,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"ai-model-management","eventType":"lifecycle","detail":"registered: Registered KWIZERA AI Model Management","timestamp":"2026-08-08T19:47:30.074Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"registration","detail":"Module registered v0.1.0","timestamp":"2026-08-08T19:47:30.365Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"lifecycle","detail":"initializing: Initializing module","timestamp":"2026-08-08T19:47:30.367Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"lifecycle","detail":"loading: Loading module","timestamp":"2026-08-08T19:47:30.374Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"lifecycle","detail":"ready: Module ready","timestamp":"2026-08-08T19:47:30.380Z"}
+{"type":"event","moduleId":"ai-model-management","eventType":"lifecycle","detail":"running: Module running","timestamp":"2026-08-08T19:47:30.385Z"}
+{"type":"performance","moduleId":"ai-model-management","startupMs":349,"responseTimeMs":349,"restartCount":0,"failureCount":0}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:53.009Z"}
+{"type":"event","moduleId":"professional-reasoning-certification","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:53.302Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:53.309Z"}
+{"type":"event","moduleId":"self-review-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:53.839Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:53.847Z"}
+{"type":"event","moduleId":"multi-domain-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:53.854Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:53.863Z"}
+{"type":"event","moduleId":"recommendation-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:53.869Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:54.051Z"}
+{"type":"event","moduleId":"workflow-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:54.058Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:54.070Z"}
+{"type":"event","moduleId":"decision-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:54.082Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:54.256Z"}
+{"type":"event","moduleId":"task-manager","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:54.263Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:54.269Z"}
+{"type":"event","moduleId":"planning-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:54.277Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"stopping: Stopping module","timestamp":"2026-08-08T19:49:54.570Z"}
+{"type":"event","moduleId":"reasoning-engine","eventType":"lifecycle","detail":"stopped: Module stopped","timestamp":"2026-08-08T19:49:54.577Z"}

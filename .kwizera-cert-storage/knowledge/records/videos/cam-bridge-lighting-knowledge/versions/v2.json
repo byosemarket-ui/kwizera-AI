@@ -1,0 +1,96 @@
+{
+  "knowledgeId": "cam-bridge-lighting-knowledge",
+  "knowledgeType": "video-knowledge",
+  "category": "camera-domain-bridge",
+  "title": "Lighting Knowledge (related)",
+  "description": "Exposure and look depend on lighting; camera settings respond to light.",
+  "summary": "Exposure triangle and white balance require lighting coordination.",
+  "tags": [
+    "camera",
+    "domain-bridge",
+    "lighting-knowledge"
+  ],
+  "keywords": [
+    "lighting-knowledge",
+    "camera",
+    "relationship"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cam-camera-fundamentals"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:27.217Z",
+  "lastUpdated": "2026-08-08T16:55:38.535Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cam-bridge-lighting-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "7ec75a6fddb5d1f2ae83e679b75f1d33d150774bbb8f604ebb85c4c275f341a7",
+  "searchableText": "lighting knowledge (related) exposure and look depend on lighting; camera settings respond to light. exposure triangle and white balance require lighting coordination. camera-domain-bridge camera domain-bridge lighting-knowledge lighting-knowledge camera relationship",
+  "classification": {
+    "category": "camera-domain-bridge",
+    "topic": "lighting-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "bridgeDomainId": "lighting-knowledge",
+    "relationshipAnchor": true,
+    "generatesVideo": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate camera knowledge to lighting-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Lighting Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "lighting-knowledge",
+      "description": "Exposure and look depend on lighting; camera settings respond to light.",
+      "sections": [],
+      "concepts": [
+        "lighting-knowledge"
+      ],
+      "entities": [
+        "lighting-knowledge"
+      ],
+      "terminology": [
+        "lighting-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate camera knowledge to lighting-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "cam-camera-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

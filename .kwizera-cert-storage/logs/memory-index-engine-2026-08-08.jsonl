@@ -1,0 +1,8 @@
+{"timestamp":"2026-08-08T15:30:04.705Z","level":"info","event":"startup","message":"Memory Index Engine initialized","data":{"indexesDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\indexes"}}
+{"timestamp":"2026-08-08T15:30:04.858Z","level":"info","event":"health","message":"Index health check complete","data":{"healthy":true,"issues":0,"missing":0}}
+{"timestamp":"2026-08-08T15:30:04.859Z","level":"info","event":"optimize","message":"Index optimization complete","data":{"optimizedTypes":0,"removedEmpty":0,"durationMs":0}}
+{"timestamp":"2026-08-08T15:30:04.974Z","level":"info","event":"startup","message":"Memory Index Engine startup complete","data":{"indexed":0,"relationships":0}}
+{"timestamp":"2026-08-08T15:47:15.103Z","level":"info","event":"startup","message":"Memory Index Engine initialized","data":{"indexesDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\memory\\indexes"}}
+{"timestamp":"2026-08-08T15:47:15.771Z","level":"info","event":"health","message":"Index health check complete","data":{"healthy":true,"issues":0,"missing":0}}
+{"timestamp":"2026-08-08T15:47:15.773Z","level":"info","event":"optimize","message":"Index optimization complete","data":{"optimizedTypes":0,"removedEmpty":0,"durationMs":0}}
+{"timestamp":"2026-08-08T15:47:15.776Z","level":"info","event":"startup","message":"Memory Index Engine startup complete","data":{"indexed":0,"relationships":0}}

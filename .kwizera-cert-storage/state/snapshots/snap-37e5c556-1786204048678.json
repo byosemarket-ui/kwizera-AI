@@ -1,0 +1,22 @@
+{
+  "snapshotId": "snap-37e5c556-1786204048678",
+  "timestamp": "2026-08-08T15:47:28.678Z",
+  "reason": "module-state-change",
+  "cleanShutdown": false,
+  "state": {
+    "application": "loading",
+    "aiCore": "stopped",
+    "system": "operational",
+    "modules": {
+      "memory-engine": {
+        "id": "memory-engine",
+        "state": "ready",
+        "updatedAt": "2026-08-08T15:47:28.676Z"
+      }
+    },
+    "workflows": {},
+    "tasks": {},
+    "projects": {},
+    "sessions": {}
+  }
+}

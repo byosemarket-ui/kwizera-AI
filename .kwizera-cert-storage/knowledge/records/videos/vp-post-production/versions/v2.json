@@ -1,0 +1,328 @@
+{
+  "knowledgeId": "vp-post-production",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Post-production",
+  "description": "Editorial finishing: assembly, pacing, sound, graphics, color, captions, review, and delivery packaging.",
+  "summary": "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms.",
+  "tags": [
+    "video-production",
+    "professional",
+    "post-production",
+    "editing",
+    "color",
+    "sound mix",
+    "export"
+  ],
+  "keywords": [
+    "post-production",
+    "editing",
+    "color",
+    "sound mix",
+    "export"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-video-pacing",
+    "vp-visual-rhythm",
+    "vp-video-style",
+    "vp-production-workflow",
+    "vp-bridge-video-editing-knowledge",
+    "vp-bridge-rendering-knowledge",
+    "vp-bridge-animation-knowledge",
+    "vp-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:59.892Z",
+  "lastUpdated": "2026-08-08T16:45:12.318Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-post-production",
+  "integrityStatus": "verified",
+  "contentHash": "830d5d8ac3cfa961716bc52867a1c789af1ccaaa04e4eb09ecbcfe6cc5db8f1f",
+  "searchableText": "post-production editorial finishing: assembly, pacing, sound, graphics, color, captions, review, and delivery packaging. post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms. professional-video-production video-production professional post-production editing color sound mix export post-production editing color sound mix export",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "post-production-editorial-finishing:",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "post-production",
+    "professionalDefinition": "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-post-production",
+      "title": "Post-production",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Editorial finishing: assembly, pacing, sound, graphics, color, captions, review, and delivery packaging.",
+      "coreConcepts": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "definitions": [
+        "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms."
+      ],
+      "rules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "bestPractices": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "professionalTechniques": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "workflow": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "decisionRules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "commonMistakes": [
+        "Grading before narrative is stable.",
+        "Unlabeled versions causing wrong delivery.",
+        "Skipping caption and safe-area checks."
+      ],
+      "troubleshooting": [
+        "Avoid: Grading before narrative is stable.",
+        "Avoid: Unlabeled versions causing wrong delivery.",
+        "Avoid: Skipping caption and safe-area checks."
+      ],
+      "recommendations": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "examples": [
+        "Social cutdown package derived from a master commercial edit.",
+        "Corporate film with chapter markers and burned-in subtitle version."
+      ],
+      "professionalStandards": [
+        "Confidence 92/100",
+        "Quality 91/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "video-pacing",
+        "visual-rhythm",
+        "video-style",
+        "production-workflow"
+      ],
+      "keywords": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:post-production",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Post-production",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Editorial finishing: assembly, pacing, sound, graphics, color, captions, review, and delivery packaging.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Organize bins and name versions clearly.",
+            "Lock story and pace before heavy grade and VFX.",
+            "Mix for the loudest common playback environment of the target platform.",
+            "Run picture, audio, caption, and brand QA before delivery."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Ingest and sync.",
+            "Rough cut → fine cut → picture lock.",
+            "Sound, graphics, color, captions.",
+            "Review rounds → final exports → archive."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If feedback changes story, reopen picture lock before finishing spend.",
+            "Always export a reviewable proxy and a delivery master according to specs.",
+            "When platforms differ, create dedicated exports—not one stretched file.",
+            "Never deliver without checking last-frame brand lockup and CTA."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Social cutdown package derived from a master commercial edit.",
+            "Corporate film with chapter markers and burned-in subtitle version."
+          ]
+        }
+      ],
+      "concepts": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "entities": [
+        "Post-production",
+        "video-editing-knowledge",
+        "rendering-knowledge",
+        "animation-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "post-production",
+        "editing",
+        "color",
+        "sound mix",
+        "export"
+      ],
+      "rules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "bestPractices": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "professionalTechniques": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "examples": [
+        "Social cutdown package derived from a master commercial edit.",
+        "Corporate film with chapter markers and burned-in subtitle version."
+      ],
+      "commonMistakes": [
+        "Grading before narrative is stable.",
+        "Unlabeled versions causing wrong delivery.",
+        "Skipping caption and safe-area checks."
+      ],
+      "qualityRules": [
+        "Organize bins and name versions clearly.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "decisionRules": [
+        "If feedback changes story, reopen picture lock before finishing spend.",
+        "Always export a reviewable proxy and a delivery master according to specs.",
+        "When platforms differ, create dedicated exports—not one stretched file.",
+        "Never deliver without checking last-frame brand lockup and CTA."
+      ],
+      "workflowSteps": [
+        "Ingest and sync.",
+        "Rough cut → fine cut → picture lock.",
+        "Sound, graphics, color, captions.",
+        "Review rounds → final exports → archive."
+      ],
+      "prerequisites": [
+        "Ingest and sync."
+      ],
+      "dependencies": [
+        "video-editing-knowledge",
+        "rendering-knowledge",
+        "animation-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-video-pacing",
+        "vp-visual-rhythm",
+        "vp-video-style",
+        "vp-production-workflow"
+      ],
+      "definitions": [
+        "Post-production transforms captured media into the finished video through editing, sound design, graphics, color, quality control, and export for specified platforms."
+      ],
+      "troubleshooting": [
+        "Avoid: Grading before narrative is stable.",
+        "Avoid: Unlabeled versions causing wrong delivery.",
+        "Avoid: Skipping caption and safe-area checks."
+      ],
+      "recommendations": [
+        "Organize bins and name versions clearly.",
+        "Lock story and pace before heavy grade and VFX.",
+        "Mix for the loudest common playback environment of the target platform.",
+        "Run picture, audio, caption, and brand QA before delivery."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "advanced",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

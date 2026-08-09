@@ -1,0 +1,336 @@
+{
+  "knowledgeId": "story-product-storytelling",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-storytelling",
+  "title": "Product Storytelling",
+  "description": "Narratives that center product benefits, proof, and usage contexts.",
+  "summary": "Make features meaningful by tying them to desire and outcomes.",
+  "tags": [
+    "professional-storytelling",
+    "professional",
+    "product-storytelling",
+    "product storytelling",
+    "product narrative",
+    "benefit story",
+    "feature story"
+  ],
+  "keywords": [
+    "product storytelling",
+    "product narrative",
+    "benefit story",
+    "feature story"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-product-reveal-scene",
+    "scene-demonstration-scene",
+    "story-conflict",
+    "story-customer-journey",
+    "ss-bridge-storytelling-knowledge",
+    "ss-bridge-product-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-scene-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:06.928Z",
+  "lastUpdated": "2026-08-08T15:34:06.928Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\story-product-storytelling",
+  "integrityStatus": "verified",
+  "contentHash": "300f71ade8c3ffd9b29d3641f706824ce61b4f1f440db558776ff2be82b0f740",
+  "searchableText": "product storytelling narratives that center product benefits, proof, and usage contexts. make features meaningful by tying them to desire and outcomes. professional-storytelling professional-storytelling professional product-storytelling product storytelling product narrative benefit story feature story product storytelling product narrative benefit story feature story",
+  "classification": {
+    "category": "professional-storytelling",
+    "topic": "product-storytelling-narratives",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-storytelling",
+    "kind": "professional-storytelling",
+    "purpose": "Make features meaningful by tying them to desire and outcomes.",
+    "professionalDefinition": "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes.",
+    "whenToUse": [
+      "Product launches",
+      "Ecommerce videos",
+      "Feature explainers"
+    ],
+    "whenNotToUse": [
+      "Pure brand anthems with no product focus"
+    ],
+    "workflow": [
+      "Pick hero benefit",
+      "Show conflict",
+      "Demo capability",
+      "Prove + CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "story-product-storytelling",
+      "title": "Product Storytelling",
+      "domain": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "description": "Narratives that center product benefits, proof, and usage contexts.",
+      "coreConcepts": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "definitions": [
+        "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes.",
+        "Make features meaningful by tying them to desire and outcomes."
+      ],
+      "rules": [
+        "Use when: Product launches",
+        "Use when: Ecommerce videos",
+        "Use when: Feature explainers",
+        "Do not use when: Pure brand anthems with no product focus"
+      ],
+      "bestPractices": [
+        "Lead with outcome",
+        "Show use, not only beauty",
+        "One hero feature arc"
+      ],
+      "professionalTechniques": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "workflow": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "decisionRules": [
+        "Use when: Product launches",
+        "Use when: Ecommerce videos",
+        "Use when: Feature explainers",
+        "Avoid when: Pure brand anthems with no product focus"
+      ],
+      "commonMistakes": [
+        "Spec dump",
+        "Reveal without context"
+      ],
+      "troubleshooting": [
+        "Avoid: Spec dump",
+        "Avoid: Reveal without context"
+      ],
+      "recommendations": [
+        "Lead with outcome",
+        "Show use, not only beauty",
+        "One hero feature arc"
+      ],
+      "examples": [
+        "Noise-cancel headphones: chaotic commute → silence → focus"
+      ],
+      "professionalStandards": [
+        "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes."
+      ],
+      "relatedTopics": [
+        "product-reveal-scene",
+        "demonstration-scene",
+        "conflict",
+        "customer-journey"
+      ],
+      "keywords": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:product-storytelling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Storytelling",
+      "category": "professional-storytelling",
+      "domain": "storytelling-knowledge",
+      "description": "Narratives that center product benefits, proof, and usage contexts.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make features meaningful by tying them to desire and outcomes."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Product launches",
+            "Ecommerce videos",
+            "Feature explainers"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Pure brand anthems with no product focus"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Pick hero benefit",
+            "Show conflict",
+            "Demo capability",
+            "Prove + CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lead with outcome",
+            "Show use, not only beauty",
+            "One hero feature arc"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Noise-cancel headphones: chaotic commute → silence → focus"
+          ]
+        }
+      ],
+      "concepts": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "entities": [
+        "Product Storytelling",
+        "storytelling-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "scene-knowledge"
+      ],
+      "terminology": [
+        "product storytelling",
+        "product narrative",
+        "benefit story",
+        "feature story"
+      ],
+      "rules": [
+        "Avoid when: Pure brand anthems with no product focus"
+      ],
+      "bestPractices": [
+        "Lead with outcome",
+        "Show use, not only beauty",
+        "One hero feature arc"
+      ],
+      "professionalTechniques": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "examples": [
+        "Noise-cancel headphones: chaotic commute → silence → focus"
+      ],
+      "commonMistakes": [
+        "Spec dump",
+        "Reveal without context"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Product launches",
+        "Use when: Ecommerce videos",
+        "Use when: Feature explainers",
+        "Do not use when: Pure brand anthems with no product focus"
+      ],
+      "workflowSteps": [
+        "Pick hero benefit",
+        "Show conflict",
+        "Demo capability",
+        "Prove + CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "storytelling-knowledge",
+        "product-knowledge",
+        "marketing-knowledge",
+        "scene-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-product-reveal-scene",
+        "scene-demonstration-scene",
+        "story-conflict",
+        "story-customer-journey"
+      ],
+      "definitions": [
+        "Product storytelling is the craft of framing a product’s capabilities as a journey from problem to proven outcome, using demo, lifestyle, and reveal scenes.",
+        "Make features meaningful by tying them to desire and outcomes."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "storytelling-knowledge",
+      "category": "professional-storytelling",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Lead with outcome",
+      "Show use, not only beauty",
+      "One hero feature arc"
+    ],
+    "bestPractices": [
+      "Lead with outcome",
+      "Show use, not only beauty",
+      "One hero feature arc"
+    ],
+    "decisionRules": [
+      "Use when: Product launches",
+      "Use when: Ecommerce videos",
+      "Use when: Feature explainers",
+      "Do not use when: Pure brand anthems with no product focus"
+    ]
+  }
+}

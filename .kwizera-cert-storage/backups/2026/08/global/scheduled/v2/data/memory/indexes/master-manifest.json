@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "lastUpdated": "2026-08-08T15:30:04.969Z",
+  "totalRecords": 0,
+  "indexTypes": [
+    "memory-id",
+    "project",
+    "product",
+    "video",
+    "marketing",
+    "category",
+    "brand",
+    "tags",
+    "keywords",
+    "language",
+    "workflow",
+    "decision",
+    "reasoning",
+    "date",
+    "file-type",
+    "ai-module",
+    "user-preferences",
+    "related"
+  ],
+  "relationshipCount": 0,
+  "checksum": "5feceb66ffc86f38"
+}

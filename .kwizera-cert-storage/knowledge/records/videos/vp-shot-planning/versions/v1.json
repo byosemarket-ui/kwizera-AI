@@ -1,0 +1,317 @@
+{
+  "knowledgeId": "vp-shot-planning",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Shot Planning",
+  "description": "How professionals plan shots before production so each frame has purpose, order, and technical readiness.",
+  "summary": "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected.",
+  "tags": [
+    "video-production",
+    "professional",
+    "shot-planning",
+    "shot list",
+    "shot planning",
+    "priority",
+    "coverage plan"
+  ],
+  "keywords": [
+    "shot list",
+    "shot planning",
+    "priority",
+    "coverage plan"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 89,
+  "qualityScore": 88,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-shot-types",
+    "vp-scene-planning",
+    "vp-camera-coverage",
+    "vp-pre-production",
+    "vp-bridge-camera-knowledge",
+    "vp-bridge-video-production-knowledge",
+    "vp-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:30:56.068Z",
+  "lastUpdated": "2026-08-08T15:30:56.068Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-shot-planning",
+  "integrityStatus": "verified",
+  "contentHash": "20e2d6e635bbf445aac349fc1d928dec8f0fdf08a5c43c3061c9b16a0e852022",
+  "searchableText": "shot planning how professionals plan shots before production so each frame has purpose, order, and technical readiness. shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected. professional-video-production video-production professional shot-planning shot list shot planning priority coverage plan shot list shot planning priority coverage plan",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "shot-planning-professionals",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "shot-planning",
+    "professionalDefinition": "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-shot-planning",
+      "title": "Shot Planning",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "How professionals plan shots before production so each frame has purpose, order, and technical readiness.",
+      "coreConcepts": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "definitions": [
+        "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected."
+      ],
+      "rules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "bestPractices": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "professionalTechniques": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "workflow": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "decisionRules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "commonMistakes": [
+        "Improvising the entire day without a prioritized list.",
+        "Planning cinematic moves that consume time needed for coverage.",
+        "Omitting contingency shots for risky setups."
+      ],
+      "troubleshooting": [
+        "Avoid: Improvising the entire day without a prioritized list.",
+        "Avoid: Planning cinematic moves that consume time needed for coverage.",
+        "Avoid: Omitting contingency shots for risky setups."
+      ],
+      "recommendations": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "examples": [
+        "Location day scheduled by setup, not by story order.",
+        "Product tabletop shot list ordered from wide hero to macro inserts."
+      ],
+      "professionalStandards": [
+        "Confidence 89/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "shot-types",
+        "scene-planning",
+        "camera-coverage",
+        "pre-production"
+      ],
+      "keywords": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:shot-planning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Shot Planning",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "How professionals plan shots before production so each frame has purpose, order, and technical readiness.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Attach each shot to a story beat or proof need.",
+            "Order the shot list for lighting and location efficiency.",
+            "Note lens intent, movement, and audio needs per shot.",
+            "Mark priority tiers: must-have, should-have, nice-to-have."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Derive shot list from scene plan and story beats.",
+            "Group by location and lighting setup.",
+            "Assign priorities and estimated times.",
+            "Revise on set only with explicit trade-off decisions."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If time runs short, protect must-have coverage first.",
+            "Always know which shot unlocks the edit before which shot is decorative.",
+            "When a move is complex, plan a static safety take.",
+            "Never start a setup without confirming its story purpose."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Location day scheduled by setup, not by story order.",
+            "Product tabletop shot list ordered from wide hero to macro inserts."
+          ]
+        }
+      ],
+      "concepts": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "entities": [
+        "Shot Planning",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "shot list",
+        "shot planning",
+        "priority",
+        "coverage plan"
+      ],
+      "rules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "bestPractices": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "professionalTechniques": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "examples": [
+        "Location day scheduled by setup, not by story order.",
+        "Product tabletop shot list ordered from wide hero to macro inserts."
+      ],
+      "commonMistakes": [
+        "Improvising the entire day without a prioritized list.",
+        "Planning cinematic moves that consume time needed for coverage.",
+        "Omitting contingency shots for risky setups."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If time runs short, protect must-have coverage first.",
+        "Always know which shot unlocks the edit before which shot is decorative.",
+        "When a move is complex, plan a static safety take.",
+        "Never start a setup without confirming its story purpose."
+      ],
+      "workflowSteps": [
+        "Derive shot list from scene plan and story beats.",
+        "Group by location and lighting setup.",
+        "Assign priorities and estimated times.",
+        "Revise on set only with explicit trade-off decisions."
+      ],
+      "prerequisites": [
+        "Derive shot list from scene plan and story beats."
+      ],
+      "dependencies": [
+        "camera-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-shot-types",
+        "vp-scene-planning",
+        "vp-camera-coverage",
+        "vp-pre-production"
+      ],
+      "definitions": [
+        "Shot planning is the pre-visualization and listing of intended shots—including size, angle, motion, and purpose—so production time and editorial needs are protected."
+      ],
+      "troubleshooting": [
+        "Avoid: Improvising the entire day without a prioritized list.",
+        "Avoid: Planning cinematic moves that consume time needed for coverage.",
+        "Avoid: Omitting contingency shots for risky setups."
+      ],
+      "recommendations": [
+        "Attach each shot to a story beat or proof need.",
+        "Order the shot list for lighting and location efficiency.",
+        "Note lens intent, movement, and audio needs per shot.",
+        "Mark priority tiers: must-have, should-have, nice-to-have."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "intermediate",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

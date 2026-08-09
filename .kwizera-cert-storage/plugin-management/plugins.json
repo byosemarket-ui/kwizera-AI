@@ -1,0 +1,68 @@
+[
+  {
+    "id": "internal.system-tools",
+    "name": "System Tools Extension",
+    "description": "Trusted adapter for local system status tooling.",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "category": "utility",
+    "requiredPermissions": [
+      "system.read"
+    ],
+    "dependencies": [
+      "ai-core"
+    ],
+    "compatiblePlatformVersion": ">=0.1.0",
+    "entryPoint": "trusted:internal.system-tools",
+    "configuration": {},
+    "external": false,
+    "status": "installed",
+    "health": {
+      "available": true,
+      "compatible": true,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "responseTimeMs": 0,
+      "cpuUsageMs": 0,
+      "ramUsageBytes": 0,
+      "stability": "healthy",
+      "lastCheckedAt": "2026-08-08T19:47:36.601Z"
+    },
+    "installedAt": "2026-08-08T19:47:35.200Z",
+    "updatedAt": "2026-08-08T19:49:47.596Z"
+  },
+  {
+    "id": "internal.workflow-tools",
+    "name": "Workflow Tools Extension",
+    "description": "Trusted adapter for workflow status tooling.",
+    "version": "0.1.0",
+    "author": "KWIZERA AI",
+    "category": "workflow",
+    "requiredPermissions": [
+      "workflow.read"
+    ],
+    "dependencies": [
+      "workflow-engine"
+    ],
+    "compatiblePlatformVersion": ">=0.1.0",
+    "entryPoint": "trusted:internal.workflow-tools",
+    "configuration": {},
+    "external": false,
+    "status": "installed",
+    "health": {
+      "available": true,
+      "compatible": true,
+      "executionCount": 0,
+      "failureCount": 0,
+      "errorRate": 0,
+      "responseTimeMs": 0,
+      "cpuUsageMs": 0,
+      "ramUsageBytes": 0,
+      "stability": "healthy",
+      "lastCheckedAt": "2026-08-08T19:47:36.601Z"
+    },
+    "installedAt": "2026-08-08T19:47:35.543Z",
+    "updatedAt": "2026-08-08T19:49:47.816Z"
+  }
+]

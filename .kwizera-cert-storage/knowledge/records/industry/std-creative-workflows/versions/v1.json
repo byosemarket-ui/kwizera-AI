@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "std-creative-workflows",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-industry-standards",
+  "title": "Creative Workflows",
+  "description": "A structured path from brief through concepts, production, review, and refinement.",
+  "summary": "Help AI Me explain how professionals improve creative work systematically.",
+  "tags": [
+    "professional-industry-standards",
+    "professional",
+    "creative-workflows",
+    "creative workflow",
+    "brief",
+    "ideation",
+    "critique",
+    "iteration"
+  ],
+  "keywords": [
+    "creative workflow",
+    "brief",
+    "ideation",
+    "critique",
+    "iteration"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "bp-planning-best-practices",
+    "std-review-process",
+    "qeval-story-quality-evaluation",
+    "qeval-brand-consistency-evaluation",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-storytelling-knowledge",
+    "isq-bridge-marketing-knowledge",
+    "isq-bridge-branding-knowledge",
+    "isq-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:22.472Z",
+  "lastUpdated": "2026-08-08T19:18:22.472Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\std-creative-workflows",
+  "integrityStatus": "verified",
+  "contentHash": "3a5a37ea501e9bc89478a54fcdd8082504200ae324d071e24731e8ab96393292",
+  "searchableText": "creative workflows a structured path from brief through concepts, production, review, and refinement. help ai me explain how professionals improve creative work systematically. professional-industry-standards professional-industry-standards professional creative-workflows creative workflow brief ideation critique iteration creative workflow brief ideation critique iteration",
+  "classification": {
+    "category": "professional-industry-standards",
+    "topic": "creative-workflows-structured",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "creative-workflows",
+    "kind": "professional-industry-standards",
+    "purpose": "Help AI Me explain how professionals improve creative work systematically.",
+    "professionalDefinition": "Creative workflows preserve strategic intent while allowing exploration through constrained ideation, critique, iteration, and approved production execution.",
+    "qualityRules": [
+      "Concepts must trace to the brief",
+      "Feedback must be actionable",
+      "Approved direction is recorded before production"
+    ],
+    "workflow": [
+      "Define scope and acceptance criteria",
+      "Apply the standard during work",
+      "Review evidence",
+      "Record exceptions",
+      "Approve or improve"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "std-creative-workflows",
+      "title": "Creative Workflows",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "description": "A structured path from brief through concepts, production, review, and refinement.",
+      "coreConcepts": [
+        "creative workflow",
+        "brief",
+        "ideation",
+        "critique",
+        "iteration"
+      ],
+      "definitions": [
+        "Creative workflows preserve strategic intent while allowing exploration through constrained ideation, critique, iteration, and approved production execution.",
+        "Help AI Me explain how professionals improve creative work systematically."
+      ],
+      "rules": [
+        "Quality rule: Concepts must trace to the brief",
+        "Quality rule: Feedback must be actionable",
+        "Quality rule: Approved direction is recorded before production"
+      ],
+      "bestPractices": [
+        "Start from audience and objective",
+        "Separate exploration from approval",
+        "Critique against the brief, not personal preference"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "workflow": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "decisionRules": [
+        "Apply: Concepts must trace to the brief",
+        "Apply: Feedback must be actionable",
+        "Apply: Approved direction is recorded before production"
+      ],
+      "commonMistakes": [
+        "Skipping the brief",
+        "Changing direction after production without change control"
+      ],
+      "troubleshooting": [
+        "Avoid: Skipping the brief",
+        "Avoid: Changing direction after production without change control"
+      ],
+      "recommendations": [
+        "Start from audience and objective",
+        "Separate exploration from approval",
+        "Critique against the brief, not personal preference"
+      ],
+      "examples": [
+        "Professional application of Creative Workflows in a studio review."
+      ],
+      "professionalStandards": [
+        "Concepts must trace to the brief",
+        "Feedback must be actionable",
+        "Approved direction is recorded before production"
+      ],
+      "relatedTopics": [
+        "planning-best-practices",
+        "review-process",
+        "story-quality-evaluation",
+        "brand-consistency-evaluation"
+      ],
+      "keywords": [
+        "creative workflow",
+        "brief",
+        "ideation",
+        "critique",
+        "iteration"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:creative-workflows",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Creative Workflows",
+      "category": "professional-industry-standards",
+      "domain": "industry-standards-knowledge",
+      "description": "A structured path from brief through concepts, production, review, and refinement.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Creative workflows preserve strategic intent while allowing exploration through constrained ideation, critique, iteration, and approved production execution.",
+            "Help AI Me explain how professionals improve creative work systematically."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Concepts must trace to the brief",
+            "Feedback must be actionable",
+            "Approved direction is recorded before production"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Start from audience and objective",
+            "Separate exploration from approval",
+            "Critique against the brief, not personal preference"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define scope and acceptance criteria",
+            "Apply the standard during work",
+            "Review evidence",
+            "Record exceptions",
+            "Approve or improve"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Creative Workflows in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "creative workflow",
+        "brief",
+        "ideation",
+        "critique",
+        "iteration"
+      ],
+      "entities": [
+        "Creative Workflows",
+        "industry-standards-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "creative workflow",
+        "brief",
+        "ideation",
+        "critique",
+        "iteration"
+      ],
+      "rules": [
+        "Concepts must trace to the brief",
+        "Feedback must be actionable",
+        "Approved direction is recorded before production"
+      ],
+      "bestPractices": [
+        "Start from audience and objective",
+        "Separate exploration from approval",
+        "Critique against the brief, not personal preference"
+      ],
+      "professionalTechniques": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "examples": [
+        "Professional application of Creative Workflows in a studio review."
+      ],
+      "commonMistakes": [
+        "Skipping the brief",
+        "Changing direction after production without change control"
+      ],
+      "qualityRules": [
+        "Concepts must trace to the brief",
+        "Feedback must be actionable",
+        "Approved direction is recorded before production"
+      ],
+      "decisionRules": [
+        "Apply: Concepts must trace to the brief",
+        "Apply: Feedback must be actionable",
+        "Apply: Approved direction is recorded before production"
+      ],
+      "workflowSteps": [
+        "Define scope and acceptance criteria",
+        "Apply the standard during work",
+        "Review evidence",
+        "Record exceptions",
+        "Approve or improve"
+      ],
+      "prerequisites": [
+        "Define scope and acceptance criteria"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "branding-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "bp-planning-best-practices",
+        "std-review-process",
+        "qeval-story-quality-evaluation",
+        "qeval-brand-consistency-evaluation"
+      ],
+      "definitions": [
+        "Creative workflows preserve strategic intent while allowing exploration through constrained ideation, critique, iteration, and approved production execution."
+      ],
+      "troubleshooting": [
+        "Avoid: Skipping the brief",
+        "Avoid: Changing direction after production without change control"
+      ],
+      "recommendations": [
+        "Start from audience and objective",
+        "Separate exploration from approval",
+        "Critique against the brief, not personal preference"
+      ],
+      "professionalStandards": [
+        "Concepts must trace to the brief",
+        "Feedback must be actionable",
+        "Approved direction is recorded before production"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:creative-workflows",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-industry-standards",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Start from audience and objective",
+      "Separate exploration from approval",
+      "Critique against the brief, not personal preference"
+    ],
+    "bestPractices": [
+      "Start from audience and objective",
+      "Separate exploration from approval",
+      "Critique against the brief, not personal preference"
+    ],
+    "decisionRules": [
+      "Quality rule: Concepts must trace to the brief",
+      "Quality rule: Feedback must be actionable",
+      "Quality rule: Approved direction is recorded before production"
+    ]
+  }
+}

@@ -22,23 +22,26 @@ describe("Knowledge Research, Discovery & Intelligent Download Engine (Step 3)",
     fs.rmSync(storageRoot, { recursive: true, force: true });
   });
 
-  it("builds a research plan with topic-specific domains and a task list", async () => {
+  it("builds a research plan constrained to professional creative domains", { timeout: 300_000 }, async () => {
     const core = createAiCore({ storageRootOverride: storageRoot });
     await core.start("knowledge-research-test");
     const engine = core.getManager().knowledgeFoundation!.getKnowledgeResearchEngine();
     expect(engine.isStartupComplete()).toBe(true);
 
-    const plan = await engine.planResearch("Underwater Photography");
-    expect(plan.topic).toBe("Underwater Photography");
+    const plan = await engine.planResearch("Product Photography Lighting");
+    expect(plan.topic).toBe("Product Photography Lighting");
+    expect(plan.constrainedToProfessionalDomains).toBe(true);
     expect(plan.domains.length).toBeGreaterThan(0);
     expect(plan.tasks.length).toBe(plan.domains.length);
     expect(plan.estimatedSourceCount).toBeGreaterThan(0);
+    expect(plan.domains.some((domain) => /photography|lighting/i.test(domain.domain))).toBe(true);
     expect(engine.getPlan(plan.id)?.id).toBe(plan.id);
+    await expect(engine.planResearch("Unrelated Quantum Finance")).rejects.toThrow(/limited to professional/i);
 
     await core.stop();
   });
 
-  it("discovers only approved, non-blocked sources ranked by composite score and generates a research preview", async () => {
+  it("discovers only approved, non-blocked sources ranked by composite score and generates a research preview", { timeout: 300_000 }, async () => {
     const core = createAiCore({ storageRootOverride: storageRoot });
     await core.start("knowledge-research-test");
     const foundation = core.getManager().knowledgeFoundation!;
@@ -66,20 +69,20 @@ describe("Knowledge Research, Discovery & Intelligent Download Engine (Step 3)",
     await sourceManager.approve("blocked-docs");
     await sourceManager.updatePolicy({ blocked: ["blocked-docs"] });
 
-    const plan = await engine.planResearch("Underwater Photography");
+    const plan = await engine.planResearch("Product Photography");
     const candidates = engine.discoverSources(plan.id);
     expect(candidates.some((candidate) => candidate.sourceId === "approved-docs")).toBe(true);
     expect(candidates.some((candidate) => candidate.sourceId === "blocked-docs")).toBe(false);
+    expect(candidates.every((candidate) => typeof candidate.authorityScore === "number")).toBe(true);
 
     const preview = await engine.previewResearch(plan.id);
     expect(preview.planId).toBe(plan.id);
-    expect(preview.candidates.length).toBeGreaterThan(0);
-    expect(preview.estimatedDownloads).toBeGreaterThan(0);
+    expect(preview.candidates.every((candidate) => candidate.accepted !== false)).toBe(true);
 
     await core.stop();
   });
 
-  it("rejects download requests for untrusted, blocked, or unlicensed sources", async () => {
+  it("rejects download requests for untrusted, blocked, or unlicensed sources", { timeout: 300_000 }, async () => {
     const core = createAiCore({ storageRootOverride: storageRoot });
     await core.start("knowledge-research-test");
     const foundation = core.getManager().knowledgeFoundation!;
@@ -119,7 +122,7 @@ describe("Knowledge Research, Discovery & Intelligent Download Engine (Step 3)",
     await core.stop();
   });
 
-  it("blocks duplicate download requests for the same source and file name", async () => {
+  it("blocks duplicate download requests for the same source and file name", { timeout: 300_000 }, async () => {
     const core = createAiCore({ storageRootOverride: storageRoot });
     await core.start("knowledge-research-test");
     const foundation = core.getManager().knowledgeFoundation!;

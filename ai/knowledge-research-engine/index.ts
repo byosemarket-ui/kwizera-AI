@@ -1,9 +1,27 @@
 export { AiKnowledgeResearchEngine } from "./knowledge-research-engine.js";
 export { ResearchPlanner } from "./research-planner.js";
-export { ResearchSourceDiscovery } from "./research-source-discovery.js";
+export { ResearchSourceDiscovery, SOURCE_SCORE_FLOORS } from "./research-source-discovery.js";
 export { ResearchExplainer } from "./research-explainer.js";
 export { KnowledgeDownloadEngine, offlineDownloadTransport } from "./download-engine.js";
 export { KnowledgeCollectionService } from "./knowledge-collection-service.js";
+export {
+  ConnectivityDetector,
+  dnsConnectivityProbe,
+  offlineConnectivityProbe,
+} from "./connectivity-detector.js";
+export type { ConnectivityProbe } from "./connectivity-detector.js";
+export {
+  PROFESSIONAL_ONLINE_RESEARCH_DOMAINS,
+  isTopicWithinProfessionalResearchScope,
+  listProfessionalResearchDomains,
+  matchProfessionalResearchDomains,
+} from "./professional-research-domains.js";
+export type {
+  ProfessionalResearchDomainDefinition,
+  ResearchDiscoveryKind,
+} from "./professional-research-domains.js";
+export { KnowledgeReviewStagingArea } from "./knowledge-review-staging.js";
+export { KnowledgeExtractionPreviewEngine } from "./knowledge-extraction-preview.js";
 export {
   KnowledgeCollectionWorkspace,
   PREPARED_WORKSPACE_DOMAIN_SLUGS,
@@ -22,7 +40,10 @@ export {
 } from "./download-safety.js";
 export type {
   AiMeKnowledgeCollectionAwareness,
+  AiMeOnlineResearchAwareness,
   CollectedKnowledgeResource,
+  ConnectionStability,
+  ConnectivitySnapshot,
   DownloadableResourceType,
   DownloadProcessingStatus,
   DownloadRecord,
@@ -36,7 +57,13 @@ export type {
   KnowledgeCollectionRecommendation,
   KnowledgeCollectionRepairResult,
   KnowledgeCollectionReportData,
+  KnowledgeExtractionKind,
+  KnowledgeExtractionPreview,
+  KnowledgeExtractionPreviewItem,
   KnowledgeResearchStatusReport,
+  NetworkQuality,
+  OnlineResearchReportData,
+  OnlineResearchSessionResult,
   RankedSourceCandidate,
   ResearchDomain,
   ResearchDomainPriority,
@@ -45,4 +72,6 @@ export type {
   ResearchPreview,
   ResearchTask,
   ResearchTaskStatus,
+  ReviewStagingRecord,
+  ReviewStagingStatus,
 } from "./types.js";

@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "mbp-bridge-sales-psychology",
+  "knowledgeType": "marketing-knowledge",
+  "category": "mbp-domain-bridge",
+  "title": "Sales Psychology Domain",
+  "description": "Hub for sales psychology expansion Step 7.",
+  "summary": "Primary domain for persuasion and offer topics.",
+  "tags": [
+    "marketing-branding-psychology",
+    "domain-bridge",
+    "sales-psychology"
+  ],
+  "keywords": [
+    "sales-psychology",
+    "marketing",
+    "branding",
+    "psychology",
+    "relationship"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-marketing-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:31.868Z",
+  "lastUpdated": "2026-08-08T18:26:31.868Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mbp-bridge-sales-psychology",
+  "integrityStatus": "verified",
+  "contentHash": "020ae04a56979c1f52aa85c8df980f2da576fe89046646f9a45df9685affc57e",
+  "searchableText": "sales psychology domain hub for sales psychology expansion step 7. primary domain for persuasion and offer topics. mbp-domain-bridge marketing-branding-psychology domain-bridge sales-psychology sales-psychology marketing branding psychology relationship",
+  "classification": {
+    "category": "mbp-domain-bridge",
+    "topic": "sales-psychology-domain",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "bridgeDomainId": "sales-psychology",
+    "relationshipAnchor": true,
+    "createsAdvertisements": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate marketing/branding/psychology knowledge to sales-psychology."
+    ],
+    "structuredKnowledge": {
+      "title": "Sales Psychology Domain",
+      "category": "domain-bridge",
+      "domain": "sales-psychology",
+      "description": "Hub for sales psychology expansion Step 7.",
+      "sections": [],
+      "concepts": [
+        "sales-psychology"
+      ],
+      "entities": [
+        "sales-psychology"
+      ],
+      "terminology": [
+        "sales-psychology"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate marketing/branding/psychology knowledge to sales-psychology."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "mkt-marketing-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:22.057Z","level":"info","event":"startup","message":"Audio Planning Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\product-intelligence\\audio\\engine"}}
+{"timestamp":"2026-08-08T19:46:27.933Z","level":"info","event":"startup","message":"Audio Planning Engine startup complete","data":{"recordsLoaded":0}}

@@ -1,0 +1,335 @@
+{
+  "knowledgeId": "lit-white-balance",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "White Balance",
+  "description": "Aligning camera color interpretation to lighting so neutrals and brand colors stay accurate (lighting-side practice).",
+  "summary": "Ensure lighting and camera agree on white so skin and product color remain trustworthy.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "white-balance",
+    "white balance",
+    "neutral",
+    "color accuracy",
+    "custom WB",
+    "lighting white balance"
+  ],
+  "keywords": [
+    "white balance",
+    "neutral",
+    "color accuracy",
+    "custom WB",
+    "lighting white balance"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-color-temperature",
+    "lit-product-lighting",
+    "lit-portrait-lighting",
+    "lit-artificial-lighting",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-product-knowledge",
+    "lc-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:26.863Z",
+  "lastUpdated": "2026-08-08T15:32:26.863Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-white-balance",
+  "integrityStatus": "verified",
+  "contentHash": "a800f8a1e88bdaa673a1513d7048391d7f4f379e60f490bf91267e5f79698209",
+  "searchableText": "white balance aligning camera color interpretation to lighting so neutrals and brand colors stay accurate (lighting-side practice). ensure lighting and camera agree on white so skin and product color remain trustworthy. professional-lighting professional-lighting professional white-balance white balance neutral color accuracy custom wb lighting white balance white balance neutral color accuracy custom wb lighting white balance",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "white-balance-aligning",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "white-balance",
+    "kind": "professional-lighting",
+    "purpose": "Ensure lighting and camera agree on white so skin and product color remain trustworthy.",
+    "whenToUse": [
+      "Every controlled setup",
+      "Multi-cam matching",
+      "Brand color critical work"
+    ],
+    "whenNotToUse": [
+      "Intentional creative WB shifts without documentation"
+    ],
+    "advantages": [
+      "Accurate color",
+      "Faster grade"
+    ],
+    "limitations": [
+      "Cannot fix badly mixed lighting alone"
+    ],
+    "relatedCameraTechniques": [
+      "custom white balance",
+      "Kelvin lock",
+      "multi-cam match"
+    ],
+    "relatedStorytellingTechniques": [
+      "realism",
+      "brand trust"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-white-balance",
+      "title": "White Balance",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Aligning camera color interpretation to lighting so neutrals and brand colors stay accurate (lighting-side practice).",
+      "coreConcepts": [
+        "white balance",
+        "neutral",
+        "color accuracy",
+        "custom WB",
+        "lighting white balance"
+      ],
+      "definitions": [
+        "Ensure lighting and camera agree on white so skin and product color remain trustworthy."
+      ],
+      "rules": [
+        "Use when: Every controlled setup",
+        "Use when: Multi-cam matching",
+        "Use when: Brand color critical work",
+        "Do not use when: Intentional creative WB shifts without documentation"
+      ],
+      "bestPractices": [
+        "Set after lights are locked",
+        "Use custom card under key",
+        "Match cameras before rolling"
+      ],
+      "professionalTechniques": [
+        "Accurate color",
+        "Faster grade"
+      ],
+      "workflow": [
+        "Choose White Balance",
+        "Set after lights are locked",
+        "Use custom card under key",
+        "Match cameras before rolling"
+      ],
+      "decisionRules": [
+        "Use when: Every controlled setup",
+        "Use when: Multi-cam matching",
+        "Use when: Brand color critical work",
+        "Avoid when: Intentional creative WB shifts without documentation"
+      ],
+      "commonMistakes": [
+        "AWB drift",
+        "Balancing before final light changes"
+      ],
+      "troubleshooting": [
+        "Limitation: Cannot fix badly mixed lighting alone"
+      ],
+      "recommendations": [
+        "Set after lights are locked",
+        "Use custom card under key",
+        "Match cameras before rolling"
+      ],
+      "examples": [
+        "Custom WB under 5600K soft key for true packaging white"
+      ],
+      "professionalStandards": [
+        "realism",
+        "brand trust"
+      ],
+      "relatedTopics": [
+        "color-temperature",
+        "product-lighting",
+        "portrait-lighting",
+        "artificial-lighting"
+      ],
+      "keywords": [
+        "white balance",
+        "neutral",
+        "color accuracy",
+        "custom WB",
+        "lighting white balance"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:white-balance",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "White Balance",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Aligning camera color interpretation to lighting so neutrals and brand colors stay accurate (lighting-side practice).",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Ensure lighting and camera agree on white so skin and product color remain trustworthy."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Every controlled setup",
+            "Multi-cam matching",
+            "Brand color critical work"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Intentional creative WB shifts without documentation"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Set after lights are locked",
+            "Use custom card under key",
+            "Match cameras before rolling"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Custom WB under 5600K soft key for true packaging white"
+          ]
+        }
+      ],
+      "concepts": [
+        "white balance",
+        "neutral",
+        "color accuracy",
+        "custom WB",
+        "lighting white balance"
+      ],
+      "entities": [
+        "White Balance",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "product-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "white balance",
+        "neutral",
+        "color accuracy",
+        "custom WB",
+        "lighting white balance"
+      ],
+      "rules": [
+        "Avoid when: Intentional creative WB shifts without documentation"
+      ],
+      "bestPractices": [
+        "Set after lights are locked",
+        "Use custom card under key",
+        "Match cameras before rolling"
+      ],
+      "professionalTechniques": [
+        "Accurate color",
+        "Faster grade"
+      ],
+      "examples": [
+        "Custom WB under 5600K soft key for true packaging white"
+      ],
+      "commonMistakes": [
+        "AWB drift",
+        "Balancing before final light changes"
+      ],
+      "qualityRules": [
+        "Cannot fix badly mixed lighting alone"
+      ],
+      "decisionRules": [
+        "Use when: Every controlled setup",
+        "Use when: Multi-cam matching",
+        "Use when: Brand color critical work",
+        "Do not use when: Intentional creative WB shifts without documentation"
+      ],
+      "workflowSteps": [
+        "Set after lights are locked",
+        "Use custom card under key",
+        "Match cameras before rolling"
+      ],
+      "prerequisites": [
+        "custom white balance",
+        "Kelvin lock",
+        "multi-cam match"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "camera-knowledge",
+        "product-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-color-temperature",
+        "lit-product-lighting",
+        "lit-portrait-lighting",
+        "lit-artificial-lighting"
+      ],
+      "definitions": [
+        "Ensure lighting and camera agree on white so skin and product color remain trustworthy."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Set after lights are locked",
+      "Use custom card under key",
+      "Match cameras before rolling"
+    ],
+    "bestPractices": [
+      "Set after lights are locked",
+      "Use custom card under key",
+      "Match cameras before rolling"
+    ],
+    "decisionRules": [
+      "Use when: Every controlled setup",
+      "Use when: Multi-cam matching",
+      "Use when: Brand color critical work",
+      "Do not use when: Intentional creative WB shifts without documentation"
+    ]
+  }
+}

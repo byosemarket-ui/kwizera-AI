@@ -1,0 +1,307 @@
+{
+  "knowledgeId": "trans-wipe",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-transitions",
+  "title": "Wipe",
+  "description": "A geometric leading edge that replaces one shot with another.",
+  "summary": "Stylized scene changes or chapter markers.",
+  "tags": [
+    "professional-transitions",
+    "professional",
+    "wipe",
+    "push wipe",
+    "clock wipe",
+    "edge transition"
+  ],
+  "keywords": [
+    "wipe",
+    "push wipe",
+    "clock wipe",
+    "edge transition"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 88,
+  "qualityScore": 87,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "trans-shape-transition",
+    "trans-creative-transitions",
+    "motion-motion-style",
+    "trans-cut",
+    "amr-bridge-motion-graphics-knowledge",
+    "amr-bridge-video-editing-knowledge",
+    "amr-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:04.323Z",
+  "lastUpdated": "2026-08-08T15:37:04.323Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\trans-wipe",
+  "integrityStatus": "verified",
+  "contentHash": "5d072f4e05664d6f26e1359ed620a4e7aa4df17e845d94934684edbfbdd7732d",
+  "searchableText": "wipe a geometric leading edge that replaces one shot with another. stylized scene changes or chapter markers. professional-transitions professional-transitions professional wipe push wipe clock wipe edge transition wipe push wipe clock wipe edge transition",
+  "classification": {
+    "category": "professional-transitions",
+    "topic": "wipe-geometric-leading",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 91,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "wipe",
+    "kind": "professional-transitions",
+    "purpose": "Stylized scene changes or chapter markers.",
+    "professionalDefinition": "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot.",
+    "workflow": [
+      "Choose shape",
+      "Direction motivated",
+      "Time with graphics",
+      "Deliver"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "trans-wipe",
+      "title": "Wipe",
+      "domain": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "description": "A geometric leading edge that replaces one shot with another.",
+      "coreConcepts": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "definitions": [
+        "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot.",
+        "Stylized scene changes or chapter markers."
+      ],
+      "rules": [
+        "Practice: Match brand geometry",
+        "Practice: Avoid dated default wipes",
+        "Practice: Use with graphic packages"
+      ],
+      "bestPractices": [
+        "Match brand geometry",
+        "Avoid dated default wipes",
+        "Use with graphic packages"
+      ],
+      "professionalTechniques": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "workflow": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "decisionRules": [
+        "Follow: Match brand geometry",
+        "Follow: Avoid dated default wipes",
+        "Follow: Use with graphic packages"
+      ],
+      "commonMistakes": [
+        "Random star wipes",
+        "Fighting story tone"
+      ],
+      "troubleshooting": [
+        "Avoid: Random star wipes",
+        "Avoid: Fighting story tone"
+      ],
+      "recommendations": [
+        "Match brand geometry",
+        "Avoid dated default wipes",
+        "Use with graphic packages"
+      ],
+      "examples": [
+        "Brand-colored linear wipe into new chapter title"
+      ],
+      "professionalStandards": [
+        "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot."
+      ],
+      "relatedTopics": [
+        "shape-transition",
+        "creative-transitions",
+        "motion-style",
+        "cut"
+      ],
+      "keywords": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "confidenceScore": 88,
+      "qualityScore": 87,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:wipe",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Wipe",
+      "category": "professional-transitions",
+      "domain": "motion-graphics-knowledge",
+      "description": "A geometric leading edge that replaces one shot with another.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Stylized scene changes or chapter markers."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Choose shape",
+            "Direction motivated",
+            "Time with graphics",
+            "Deliver"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Match brand geometry",
+            "Avoid dated default wipes",
+            "Use with graphic packages"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Brand-colored linear wipe into new chapter title"
+          ]
+        }
+      ],
+      "concepts": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "entities": [
+        "Wipe",
+        "motion-graphics-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "wipe",
+        "push wipe",
+        "clock wipe",
+        "edge transition"
+      ],
+      "rules": [
+        "Avoid: Random star wipes",
+        "Avoid: Fighting story tone"
+      ],
+      "bestPractices": [
+        "Match brand geometry",
+        "Avoid dated default wipes",
+        "Use with graphic packages"
+      ],
+      "professionalTechniques": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "examples": [
+        "Brand-colored linear wipe into new chapter title"
+      ],
+      "commonMistakes": [
+        "Random star wipes",
+        "Fighting story tone"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Match brand geometry",
+        "Practice: Avoid dated default wipes",
+        "Practice: Use with graphic packages"
+      ],
+      "workflowSteps": [
+        "Choose shape",
+        "Direction motivated",
+        "Time with graphics",
+        "Deliver"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "motion-graphics-knowledge",
+        "video-editing-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "trans-shape-transition",
+        "trans-creative-transitions",
+        "motion-motion-style",
+        "trans-cut"
+      ],
+      "definitions": [
+        "A wipe transitions by a moving boundary (line, clock, iris edge) that reveals the next shot.",
+        "Stylized scene changes or chapter markers."
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "motion-graphics-knowledge",
+      "category": "professional-transitions",
+      "difficulty": "intermediate",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Match brand geometry",
+      "Avoid dated default wipes",
+      "Use with graphic packages"
+    ],
+    "bestPractices": [
+      "Match brand geometry",
+      "Avoid dated default wipes",
+      "Use with graphic packages"
+    ],
+    "decisionRules": [
+      "Practice: Match brand geometry",
+      "Practice: Avoid dated default wipes",
+      "Practice: Use with graphic packages"
+    ]
+  }
+}

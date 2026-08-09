@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T15:30:04.998Z","level":"info","event":"startup","message":"Project Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:05.177Z","level":"info","event":"startup","message":"Project Memory Engine startup complete","data":{"projectsLoaded":0,"durationMs":24}}
+{"timestamp":"2026-08-08T15:47:16.341Z","level":"info","event":"startup","message":"Project Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:17.191Z","level":"info","event":"startup","message":"Project Memory Engine startup complete","data":{"projectsLoaded":0,"durationMs":848}}

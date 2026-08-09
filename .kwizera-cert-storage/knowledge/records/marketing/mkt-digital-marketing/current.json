@@ -1,0 +1,312 @@
+{
+  "knowledgeId": "mkt-digital-marketing",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Digital Marketing",
+  "description": "Online channel mix: search, social, email, web, and paid media working together.",
+  "summary": "Recommend coherent digital channel strategies for commercial video and content.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "digital-marketing",
+    "digital marketing",
+    "channels",
+    "paid media",
+    "attribution",
+    "online"
+  ],
+  "keywords": [
+    "digital marketing",
+    "channels",
+    "paid media",
+    "attribution",
+    "online"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-social-media-marketing",
+    "mkt-performance-marketing",
+    "mkt-content-marketing",
+    "mkt-video-marketing",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-rendering-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:03.017Z",
+  "lastUpdated": "2026-08-08T18:25:03.017Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-digital-marketing",
+  "integrityStatus": "verified",
+  "contentHash": "5fd01582b82edf45df5ed1989d0b67bc859282d2d9c52d7b09fab4896cf201ef",
+  "searchableText": "digital marketing online channel mix: search, social, email, web, and paid media working together. recommend coherent digital channel strategies for commercial video and content. professional-marketing professional-marketing professional digital-marketing digital marketing channels paid media attribution online digital marketing channels paid media attribution online",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "digital-marketing-online",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "digital-marketing",
+    "kind": "professional-marketing",
+    "purpose": "Recommend coherent digital channel strategies for commercial video and content.",
+    "professionalDefinition": "Digital marketing coordinates owned, earned, and paid digital channels to drive awareness, leads, and sales with trackable attribution.",
+    "workflow": [
+      "Map funnel stages to channels",
+      "Brief creative per channel",
+      "Set tracking",
+      "Optimize weekly"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-digital-marketing",
+      "title": "Digital Marketing",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Online channel mix: search, social, email, web, and paid media working together.",
+      "coreConcepts": [
+        "digital marketing",
+        "channels",
+        "paid media",
+        "attribution",
+        "online"
+      ],
+      "definitions": [
+        "Digital marketing coordinates owned, earned, and paid digital channels to drive awareness, leads, and sales with trackable attribution.",
+        "Recommend coherent digital channel strategies for commercial video and content."
+      ],
+      "rules": [
+        "Practice: Align creative to channel norms",
+        "Practice: Track UTMs and conversions",
+        "Practice: Retarget with stage-appropriate messages"
+      ],
+      "bestPractices": [
+        "Align creative to channel norms",
+        "Track UTMs and conversions",
+        "Retarget with stage-appropriate messages"
+      ],
+      "professionalTechniques": [
+        "Map funnel stages to channels",
+        "Brief creative per channel",
+        "Set tracking",
+        "Optimize weekly"
+      ],
+      "workflow": [
+        "Map funnel stages to channels",
+        "Brief creative per channel",
+        "Set tracking",
+        "Optimize weekly"
+      ],
+      "decisionRules": [
+        "Follow: Align creative to channel norms",
+        "Follow: Track UTMs and conversions",
+        "Follow: Retarget with stage-appropriate messages"
+      ],
+      "commonMistakes": [
+        "Same creative on every channel",
+        "No attribution plan"
+      ],
+      "troubleshooting": [
+        "Avoid: Same creative on every channel",
+        "Avoid: No attribution plan"
+      ],
+      "recommendations": [
+        "Align creative to channel norms",
+        "Track UTMs and conversions",
+        "Retarget with stage-appropriate messages"
+      ],
+      "examples": [
+        "YouTube awareness + Meta retargeting + email nurture"
+      ],
+      "professionalStandards": [
+        "Digital marketing coordinates owned, earned, and paid digital channels to drive awareness, leads, and sales with trackable attribution."
+      ],
+      "relatedTopics": [
+        "social-media-marketing",
+        "performance-marketing",
+        "content-marketing",
+        "video-marketing"
+      ],
+      "keywords": [
+        "digital marketing",
+        "channels",
+        "paid media",
+        "attribution",
+        "online"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:digital-marketing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Digital Marketing",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Online channel mix: search, social, email, web, and paid media working together.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Digital marketing coordinates owned, earned, and paid digital channels to drive awareness, leads, and sales with trackable attribution."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend coherent digital channel strategies for commercial video and content."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Map funnel stages to channels",
+            "Brief creative per channel",
+            "Set tracking",
+            "Optimize weekly"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Align creative to channel norms",
+            "Track UTMs and conversions",
+            "Retarget with stage-appropriate messages"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "YouTube awareness + Meta retargeting + email nurture"
+          ]
+        }
+      ],
+      "concepts": [
+        "digital marketing",
+        "channels",
+        "paid media",
+        "attribution",
+        "online"
+      ],
+      "entities": [
+        "Digital Marketing",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "terminology": [
+        "digital marketing",
+        "channels",
+        "paid media",
+        "attribution",
+        "online"
+      ],
+      "rules": [
+        "Avoid: Same creative on every channel",
+        "Avoid: No attribution plan"
+      ],
+      "bestPractices": [
+        "Align creative to channel norms",
+        "Track UTMs and conversions",
+        "Retarget with stage-appropriate messages"
+      ],
+      "professionalTechniques": [
+        "Map funnel stages to channels",
+        "Brief creative per channel",
+        "Set tracking",
+        "Optimize weekly"
+      ],
+      "examples": [
+        "YouTube awareness + Meta retargeting + email nurture"
+      ],
+      "commonMistakes": [
+        "Same creative on every channel",
+        "No attribution plan"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Align creative to channel norms",
+        "Practice: Track UTMs and conversions",
+        "Practice: Retarget with stage-appropriate messages"
+      ],
+      "workflowSteps": [
+        "Map funnel stages to channels",
+        "Brief creative per channel",
+        "Set tracking",
+        "Optimize weekly"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "rendering-knowledge"
+      ],
+      "relatedKnowledge": [
+        "mkt-social-media-marketing",
+        "mkt-performance-marketing",
+        "mkt-content-marketing",
+        "mkt-video-marketing"
+      ],
+      "definitions": [
+        "Digital marketing coordinates owned, earned, and paid digital channels to drive awareness, leads, and sales with trackable attribution.",
+        "Recommend coherent digital channel strategies for commercial video and content."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Align creative to channel norms",
+      "Track UTMs and conversions",
+      "Retarget with stage-appropriate messages"
+    ],
+    "bestPractices": [
+      "Align creative to channel norms",
+      "Track UTMs and conversions",
+      "Retarget with stage-appropriate messages"
+    ],
+    "decisionRules": [
+      "Practice: Align creative to channel norms",
+      "Practice: Track UTMs and conversions",
+      "Practice: Retarget with stage-appropriate messages"
+    ]
+  }
+}

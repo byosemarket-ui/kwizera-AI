@@ -1,0 +1,17 @@
+[
+  {
+    "checkId": "vg-hc-1786218415203-4cfc8a",
+    "timestamp": "2026-08-08T19:46:55.329Z",
+    "module": "system",
+    "healthScore": 97,
+    "level": "excellent",
+    "warnings": [],
+    "errors": [
+      "video-generation-foundation unavailable",
+      "timeline-registry unavailable"
+    ],
+    "repairs": [],
+    "recommendations": [],
+    "performanceMs": 126
+  }
+]

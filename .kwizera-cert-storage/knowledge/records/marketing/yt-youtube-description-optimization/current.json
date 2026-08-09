@@ -1,0 +1,315 @@
+{
+  "knowledgeId": "yt-youtube-description-optimization",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-youtube",
+  "title": "Description Optimization",
+  "description": "Using YouTube descriptions for context, links, and discovery signals.",
+  "summary": "Recommend description and metadata practices.",
+  "tags": [
+    "professional-youtube",
+    "professional",
+    "youtube-description-optimization",
+    "youtube description",
+    "chapters",
+    "links",
+    "metadata"
+  ],
+  "keywords": [
+    "youtube description",
+    "chapters",
+    "links",
+    "metadata"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "yt-youtube-title-optimization",
+    "yt-youtube-long-form-strategy",
+    "yt-youtube-watch-time-optimization",
+    "sm-bridge-social-media-knowledge",
+    "sm-bridge-marketing-knowledge",
+    "sm-bridge-sales-psychology",
+    "sm-bridge-product-knowledge",
+    "sm-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:42.018Z",
+  "lastUpdated": "2026-08-08T19:03:42.018Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\yt-youtube-description-optimization",
+  "integrityStatus": "verified",
+  "contentHash": "e59b27de8c8c2062ebe87fa8eba9584d17e795df0a6ff8cecff161b82d38c14c",
+  "searchableText": "description optimization using youtube descriptions for context, links, and discovery signals. recommend description and metadata practices. professional-youtube professional-youtube professional youtube-description-optimization youtube description chapters links metadata youtube description chapters links metadata",
+  "classification": {
+    "category": "professional-youtube",
+    "topic": "description-optimization-using",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "expansionVersion": "1.0.0",
+    "topicId": "youtube-description-optimization",
+    "kind": "professional-youtube",
+    "purpose": "Recommend description and metadata practices.",
+    "professionalDefinition": "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam.",
+    "workflow": [
+      "Diagnose goal",
+      "Apply platform norms",
+      "Draft creative brief",
+      "Review against best practices",
+      "Plan measurement"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "yt-youtube-description-optimization",
+      "title": "Description Optimization",
+      "domain": "youtube-knowledge",
+      "category": "professional-youtube",
+      "description": "Using YouTube descriptions for context, links, and discovery signals.",
+      "coreConcepts": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "definitions": [
+        "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam.",
+        "Recommend description and metadata practices."
+      ],
+      "rules": [
+        "Practice: Summarize value in the first lines",
+        "Practice: Add chapters and resources",
+        "Practice: Place CTAs without burying the summary"
+      ],
+      "bestPractices": [
+        "Summarize value in the first lines",
+        "Add chapters and resources",
+        "Place CTAs without burying the summary"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "workflow": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "decisionRules": [
+        "Follow: Summarize value in the first lines",
+        "Follow: Add chapters and resources",
+        "Follow: Place CTAs without burying the summary"
+      ],
+      "commonMistakes": [
+        "Empty descriptions",
+        "Keyword dumping"
+      ],
+      "troubleshooting": [
+        "Avoid: Empty descriptions",
+        "Avoid: Keyword dumping"
+      ],
+      "recommendations": [
+        "Summarize value in the first lines",
+        "Add chapters and resources",
+        "Place CTAs without burying the summary"
+      ],
+      "examples": [
+        "Professional application of Description Optimization for platform-native content"
+      ],
+      "professionalStandards": [
+        "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam."
+      ],
+      "relatedTopics": [
+        "youtube-title-optimization",
+        "youtube-long-form-strategy",
+        "youtube-watch-time-optimization"
+      ],
+      "keywords": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-8:youtube-description-optimization",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Description Optimization",
+      "category": "professional-youtube",
+      "domain": "youtube-knowledge",
+      "description": "Using YouTube descriptions for context, links, and discovery signals.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Recommend description and metadata practices."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Diagnose goal",
+            "Apply platform norms",
+            "Draft creative brief",
+            "Review against best practices",
+            "Plan measurement"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Summarize value in the first lines",
+            "Add chapters and resources",
+            "Place CTAs without burying the summary"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Description Optimization for platform-native content"
+          ]
+        }
+      ],
+      "concepts": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "entities": [
+        "Description Optimization",
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "youtube description",
+        "chapters",
+        "links",
+        "metadata"
+      ],
+      "rules": [
+        "Avoid: Empty descriptions",
+        "Avoid: Keyword dumping"
+      ],
+      "bestPractices": [
+        "Summarize value in the first lines",
+        "Add chapters and resources",
+        "Place CTAs without burying the summary"
+      ],
+      "professionalTechniques": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "examples": [
+        "Professional application of Description Optimization for platform-native content"
+      ],
+      "commonMistakes": [
+        "Empty descriptions",
+        "Keyword dumping"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Summarize value in the first lines",
+        "Practice: Add chapters and resources",
+        "Practice: Place CTAs without burying the summary"
+      ],
+      "workflowSteps": [
+        "Diagnose goal",
+        "Apply platform norms",
+        "Draft creative brief",
+        "Review against best practices",
+        "Plan measurement"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "social-media-knowledge",
+        "marketing-knowledge",
+        "sales-psychology",
+        "product-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "yt-youtube-title-optimization",
+        "yt-youtube-long-form-strategy",
+        "yt-youtube-watch-time-optimization"
+      ],
+      "definitions": [
+        "Description optimization structures the YouTube description with a strong first linesummary, chapters, links, and keywords that support search without spam.",
+        "Recommend description and metadata practices."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "youtube-knowledge",
+      "category": "professional-youtube",
+      "difficulty": "advanced",
+      "expansionStep": 8,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "publishesContent": false
+    },
+    "publishesContent": false,
+    "professionalTechniques": [
+      "Summarize value in the first lines",
+      "Add chapters and resources",
+      "Place CTAs without burying the summary"
+    ],
+    "bestPractices": [
+      "Summarize value in the first lines",
+      "Add chapters and resources",
+      "Place CTAs without burying the summary"
+    ],
+    "decisionRules": [
+      "Practice: Summarize value in the first lines",
+      "Practice: Add chapters and resources",
+      "Practice: Place CTAs without burying the summary"
+    ]
+  }
+}

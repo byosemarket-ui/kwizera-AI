@@ -1,0 +1,1348 @@
+{
+  "packId": "5f842274-ea68-448d-b978-850778374204",
+  "packSlug": "sales-psychology",
+  "domain": "sales-psychology",
+  "title": "Professional Sales Psychology Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "sales-persuasion-principles",
+      "title": "Persuasion Principles",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Ethical frameworks for influencing decisions (e.g., Cialdini-style levers) in creative form.",
+      "coreConcepts": [
+        "persuasion",
+        "influence",
+        "Cialdini",
+        "levers"
+      ],
+      "definitions": [
+        "Persuasion principles are structured influence levers—proof, authority, reciprocity, consistency, liking, scarcity—applied transparently in offers and creative.",
+        "Recommend which persuasion lever fits the funnel stage and brand."
+      ],
+      "rules": [
+        "Practice: One primary lever per asset",
+        "Practice: Never fabricate",
+        "Practice: Pair with real value"
+      ],
+      "bestPractices": [
+        "One primary lever per asset",
+        "Never fabricate",
+        "Pair with real value"
+      ],
+      "professionalTechniques": [
+        "Choose lever",
+        "Design proof",
+        "Place in script",
+        "Compliance check"
+      ],
+      "workflow": [
+        "Choose lever",
+        "Design proof",
+        "Place in script",
+        "Compliance check"
+      ],
+      "decisionRules": [
+        "Follow: One primary lever per asset",
+        "Follow: Never fabricate",
+        "Follow: Pair with real value"
+      ],
+      "commonMistakes": [
+        "Stacking all levers",
+        "Dark patterns"
+      ],
+      "troubleshooting": [
+        "Avoid: Stacking all levers",
+        "Avoid: Dark patterns"
+      ],
+      "recommendations": [
+        "One primary lever per asset",
+        "Never fabricate",
+        "Pair with real value"
+      ],
+      "examples": [
+        "Authority: expert demo; Social proof: review montage"
+      ],
+      "professionalStandards": [
+        "Persuasion principles are structured influence levers—proof, authority, reciprocity, consistency, liking, scarcity—applied transparently in offers and creative."
+      ],
+      "relatedTopics": [
+        "social-proof",
+        "authority",
+        "scarcity",
+        "reciprocity",
+        "urgency"
+      ],
+      "keywords": [
+        "persuasion",
+        "influence",
+        "Cialdini",
+        "levers"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:persuasion-principles",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-value-proposition",
+      "title": "Value Proposition",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Clear statement of value for a specific customer and alternative.",
+      "coreConcepts": [
+        "value proposition",
+        "UVP",
+        "benefits",
+        "differentiation"
+      ],
+      "definitions": [
+        "A value proposition articulates the meaningful benefit a customer gets, for whom, and why the brand wins versus alternatives.",
+        "Anchor scripts, headlines, and offers."
+      ],
+      "rules": [
+        "Practice: Specific outcomes",
+        "Practice: Audience qualifier",
+        "Practice: Differentiator + proof"
+      ],
+      "bestPractices": [
+        "Specific outcomes",
+        "Audience qualifier",
+        "Differentiator + proof"
+      ],
+      "professionalTechniques": [
+        "Draft",
+        "Test clarity",
+        "Map to creative pillars",
+        "Repeat"
+      ],
+      "workflow": [
+        "Draft",
+        "Test clarity",
+        "Map to creative pillars",
+        "Repeat"
+      ],
+      "decisionRules": [
+        "Follow: Specific outcomes",
+        "Follow: Audience qualifier",
+        "Follow: Differentiator + proof"
+      ],
+      "commonMistakes": [
+        "Vague value",
+        "Feature labeled as value"
+      ],
+      "troubleshooting": [
+        "Avoid: Vague value",
+        "Avoid: Feature labeled as value"
+      ],
+      "recommendations": [
+        "Specific outcomes",
+        "Audience qualifier",
+        "Differentiator + proof"
+      ],
+      "examples": [
+        "‘Close books 5 days faster for small finance teams’"
+      ],
+      "professionalStandards": [
+        "A value proposition articulates the meaningful benefit a customer gets, for whom, and why the brand wins versus alternatives."
+      ],
+      "relatedTopics": [
+        "product-marketing",
+        "benefit-presentation",
+        "offer-presentation",
+        "brand-positioning"
+      ],
+      "keywords": [
+        "value proposition",
+        "UVP",
+        "benefits",
+        "differentiation"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:value-proposition",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-urgency",
+      "title": "Urgency",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Time pressure that accelerates decisions when truthful.",
+      "coreConcepts": [
+        "urgency",
+        "deadline",
+        "act now",
+        "time pressure"
+      ],
+      "definitions": [
+        "Urgency is a time-based reason to act now—deadlines, limited windows—used honestly to overcome delay.",
+        "Support BOF creative without eroding trust."
+      ],
+      "rules": [
+        "Practice: Real deadlines only",
+        "Practice: Pair with value",
+        "Practice: Don’t cry wolf"
+      ],
+      "bestPractices": [
+        "Real deadlines only",
+        "Pair with value",
+        "Don’t cry wolf"
+      ],
+      "professionalTechniques": [
+        "Validate time constraint",
+        "Script urgency line",
+        "Design end card timer if real",
+        "Comply"
+      ],
+      "workflow": [
+        "Validate time constraint",
+        "Script urgency line",
+        "Design end card timer if real",
+        "Comply"
+      ],
+      "decisionRules": [
+        "Follow: Real deadlines only",
+        "Follow: Pair with value",
+        "Follow: Don’t cry wolf"
+      ],
+      "commonMistakes": [
+        "Fake countdowns",
+        "Urgency without offer clarity"
+      ],
+      "troubleshooting": [
+        "Avoid: Fake countdowns",
+        "Avoid: Urgency without offer clarity"
+      ],
+      "recommendations": [
+        "Real deadlines only",
+        "Pair with value",
+        "Don’t cry wolf"
+      ],
+      "examples": [
+        "Sale ends Sunday—shown with real end date"
+      ],
+      "professionalStandards": [
+        "Urgency is a time-based reason to act now—deadlines, limited windows—used honestly to overcome delay."
+      ],
+      "relatedTopics": [
+        "scarcity",
+        "cta-strategy",
+        "ending-strategy",
+        "offer-presentation"
+      ],
+      "keywords": [
+        "urgency",
+        "deadline",
+        "act now",
+        "time pressure"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:urgency",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-scarcity",
+      "title": "Scarcity",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Limited availability cues that increase perceived value when true.",
+      "coreConcepts": [
+        "scarcity",
+        "limited",
+        "availability",
+        "exclusivity"
+      ],
+      "definitions": [
+        "Scarcity communicates limited quantity or access, raising perceived value and motivating action when accurate.",
+        "Recommend scarce offers carefully in video CTAs."
+      ],
+      "rules": [
+        "Practice: Truthful inventory/access limits",
+        "Practice: Explain why scarce",
+        "Practice: Avoid manipulative fakes"
+      ],
+      "bestPractices": [
+        "Truthful inventory/access limits",
+        "Explain why scarce",
+        "Avoid manipulative fakes"
+      ],
+      "professionalTechniques": [
+        "Confirm constraint",
+        "Message scarcity",
+        "Show proof if possible",
+        "CTA"
+      ],
+      "workflow": [
+        "Confirm constraint",
+        "Message scarcity",
+        "Show proof if possible",
+        "CTA"
+      ],
+      "decisionRules": [
+        "Follow: Truthful inventory/access limits",
+        "Follow: Explain why scarce",
+        "Follow: Avoid manipulative fakes"
+      ],
+      "commonMistakes": [
+        "Fake ‘only 2 left’",
+        "Scarcity on unlimited digital goods without basis"
+      ],
+      "troubleshooting": [
+        "Avoid: Fake ‘only 2 left’",
+        "Avoid: Scarcity on unlimited digital goods without basis"
+      ],
+      "recommendations": [
+        "Truthful inventory/access limits",
+        "Explain why scarce",
+        "Avoid manipulative fakes"
+      ],
+      "examples": [
+        "Limited drop—batch number shown in film"
+      ],
+      "professionalStandards": [
+        "Scarcity communicates limited quantity or access, raising perceived value and motivating action when accurate."
+      ],
+      "relatedTopics": [
+        "urgency",
+        "offer-presentation",
+        "persuasion-principles",
+        "video-cta-placement"
+      ],
+      "keywords": [
+        "scarcity",
+        "limited",
+        "availability",
+        "exclusivity"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:scarcity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-social-proof",
+      "title": "Social Proof",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Evidence that others like us chose and benefited.",
+      "coreConcepts": [
+        "social proof",
+        "reviews",
+        "testimonials",
+        "UGC",
+        "popularity"
+      ],
+      "definitions": [
+        "Social proof uses others’ behavior and testimonials—reviews, counts, UGC—to reduce uncertainty and guide decisions.",
+        "Recommend proof devices in video and landing alignment."
+      ],
+      "rules": [
+        "Practice: Specific outcomes",
+        "Practice: Relevant peers",
+        "Practice: Verifiable sources"
+      ],
+      "bestPractices": [
+        "Specific outcomes",
+        "Relevant peers",
+        "Verifiable sources"
+      ],
+      "professionalTechniques": [
+        "Collect proof",
+        "Match to objection",
+        "Film/edit proof",
+        "Disclose"
+      ],
+      "workflow": [
+        "Collect proof",
+        "Match to objection",
+        "Film/edit proof",
+        "Disclose"
+      ],
+      "decisionRules": [
+        "Follow: Specific outcomes",
+        "Follow: Relevant peers",
+        "Follow: Verifiable sources"
+      ],
+      "commonMistakes": [
+        "Generic praise",
+        "Irrelevant celebrity with no fit"
+      ],
+      "troubleshooting": [
+        "Avoid: Generic praise",
+        "Avoid: Irrelevant celebrity with no fit"
+      ],
+      "recommendations": [
+        "Specific outcomes",
+        "Relevant peers",
+        "Verifiable sources"
+      ],
+      "examples": [
+        "‘12,000 teams’ + customer face + metric"
+      ],
+      "professionalStandards": [
+        "Social proof uses others’ behavior and testimonials—reviews, counts, UGC—to reduce uncertainty and guide decisions."
+      ],
+      "relatedTopics": [
+        "trust-building",
+        "authority",
+        "influencer-marketing",
+        "persuasion-principles"
+      ],
+      "keywords": [
+        "social proof",
+        "reviews",
+        "testimonials",
+        "UGC",
+        "popularity"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:social-proof",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-authority",
+      "title": "Authority",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Credibility from expertise, credentials, or institutional signals.",
+      "coreConcepts": [
+        "authority",
+        "expertise",
+        "credentials",
+        "expert"
+      ],
+      "definitions": [
+        "Authority persuasion uses expert status, certifications, or credible demonstrators to increase acceptance of claims.",
+        "Support complex or high-risk offers with expert cues."
+      ],
+      "rules": [
+        "Practice: Real credentials",
+        "Practice: Show expertise in action",
+        "Practice: Don’t fake white coats"
+      ],
+      "bestPractices": [
+        "Real credentials",
+        "Show expertise in action",
+        "Don’t fake white coats"
+      ],
+      "professionalTechniques": [
+        "Identify authority source",
+        "Capture demo/interview",
+        "Place near hard claims"
+      ],
+      "workflow": [
+        "Identify authority source",
+        "Capture demo/interview",
+        "Place near hard claims"
+      ],
+      "decisionRules": [
+        "Follow: Real credentials",
+        "Follow: Show expertise in action",
+        "Follow: Don’t fake white coats"
+      ],
+      "commonMistakes": [
+        "False authority",
+        "Credentials unrelated to claim"
+      ],
+      "troubleshooting": [
+        "Avoid: False authority",
+        "Avoid: Credentials unrelated to claim"
+      ],
+      "recommendations": [
+        "Real credentials",
+        "Show expertise in action",
+        "Don’t fake white coats"
+      ],
+      "examples": [
+        "Chef demonstrates cookware technique; engineer explains durability test"
+      ],
+      "professionalStandards": [
+        "Authority persuasion uses expert status, certifications, or credible demonstrators to increase acceptance of claims."
+      ],
+      "relatedTopics": [
+        "social-proof",
+        "trust-building",
+        "product-demonstration",
+        "brand-trust"
+      ],
+      "keywords": [
+        "authority",
+        "expertise",
+        "credentials",
+        "expert"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:authority",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-reciprocity",
+      "title": "Reciprocity",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Giving value first to encourage a fair return action.",
+      "coreConcepts": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "definitions": [
+        "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask.",
+        "Design lead magnets and educational video that earn the CTA."
+      ],
+      "rules": [
+        "Practice: Give real value first",
+        "Practice: Ask proportionate to gift",
+        "Practice: Avoid manipulative ‘free’"
+      ],
+      "bestPractices": [
+        "Give real value first",
+        "Ask proportionate to gift",
+        "Avoid manipulative ‘free’"
+      ],
+      "professionalTechniques": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "workflow": [
+        "Define gift",
+        "Deliver in content",
+        "Bridge to ask",
+        "Measure"
+      ],
+      "decisionRules": [
+        "Follow: Give real value first",
+        "Follow: Ask proportionate to gift",
+        "Follow: Avoid manipulative ‘free’"
+      ],
+      "commonMistakes": [
+        "Empty freebies",
+        "Huge ask after tiny gift"
+      ],
+      "troubleshooting": [
+        "Avoid: Empty freebies",
+        "Avoid: Huge ask after tiny gift"
+      ],
+      "recommendations": [
+        "Give real value first",
+        "Ask proportionate to gift",
+        "Avoid manipulative ‘free’"
+      ],
+      "examples": [
+        "Free template download CTA after tutorial video"
+      ],
+      "professionalStandards": [
+        "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask."
+      ],
+      "relatedTopics": [
+        "lead-generation",
+        "content-marketing",
+        "cta-strategy",
+        "value-proposition"
+      ],
+      "keywords": [
+        "reciprocity",
+        "give first",
+        "lead magnet psychology"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:reciprocity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-cta-strategy",
+      "title": "Call-To-Action Strategy",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Strategic choice of ask, wording, and intensity by funnel stage.",
+      "coreConcepts": [
+        "CTA strategy",
+        "call to action",
+        "ask",
+        "conversion copy"
+      ],
+      "definitions": [
+        "CTA strategy selects the action, copy, and visual prominence appropriate to awareness level and offer, distinct from pure placement craft in storytelling/video-marketing topics.",
+        "Recommend what to ask—not only where—in professional campaigns."
+      ],
+      "rules": [
+        "Practice: One primary CTA",
+        "Practice: Verb + outcome",
+        "Practice: Match stage (learn vs buy)"
+      ],
+      "bestPractices": [
+        "One primary CTA",
+        "Verb + outcome",
+        "Match stage (learn vs buy)"
+      ],
+      "professionalTechniques": [
+        "Pick action",
+        "Write variants",
+        "Design emphasis",
+        "Test"
+      ],
+      "workflow": [
+        "Pick action",
+        "Write variants",
+        "Design emphasis",
+        "Test"
+      ],
+      "decisionRules": [
+        "Follow: One primary CTA",
+        "Follow: Verb + outcome",
+        "Follow: Match stage (learn vs buy)"
+      ],
+      "commonMistakes": [
+        "Competing CTAs",
+        "Buy now on cold traffic always"
+      ],
+      "troubleshooting": [
+        "Avoid: Competing CTAs",
+        "Avoid: Buy now on cold traffic always"
+      ],
+      "recommendations": [
+        "One primary CTA",
+        "Verb + outcome",
+        "Match stage (learn vs buy)"
+      ],
+      "examples": [
+        "TOF: Learn how it works; BOF: Start free trial"
+      ],
+      "professionalStandards": [
+        "CTA strategy selects the action, copy, and visual prominence appropriate to awareness level and offer, distinct from pure placement craft in storytelling/video-marketing topics."
+      ],
+      "relatedTopics": [
+        "video-cta-placement",
+        "conversion-optimization",
+        "urgency",
+        "offer-presentation"
+      ],
+      "keywords": [
+        "CTA strategy",
+        "call to action",
+        "ask",
+        "conversion copy"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:cta-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-offer-presentation",
+      "title": "Offer Presentation",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "How price, package, bonuses, and terms are shown for clarity and attractiveness.",
+      "coreConcepts": [
+        "offer presentation",
+        "pricing display",
+        "bundle",
+        "guarantee"
+      ],
+      "definitions": [
+        "Offer presentation structures the commercial offer—price anchoring, bundles, bonuses, guarantees—so value is obvious and objections drop.",
+        "Improve BOF videos and end cards that sell."
+      ],
+      "rules": [
+        "Practice: Clear price and terms",
+        "Practice: Anchor honestly",
+        "Practice: Highlight guarantee"
+      ],
+      "bestPractices": [
+        "Clear price and terms",
+        "Anchor honestly",
+        "Highlight guarantee"
+      ],
+      "professionalTechniques": [
+        "Define offer",
+        "Visual hierarchy",
+        "Script clarity",
+        "Compliance"
+      ],
+      "workflow": [
+        "Define offer",
+        "Visual hierarchy",
+        "Script clarity",
+        "Compliance"
+      ],
+      "decisionRules": [
+        "Follow: Clear price and terms",
+        "Follow: Anchor honestly",
+        "Follow: Highlight guarantee"
+      ],
+      "commonMistakes": [
+        "Hidden fees",
+        "Confusing package math"
+      ],
+      "troubleshooting": [
+        "Avoid: Hidden fees",
+        "Avoid: Confusing package math"
+      ],
+      "recommendations": [
+        "Clear price and terms",
+        "Anchor honestly",
+        "Highlight guarantee"
+      ],
+      "examples": [
+        "Was/now price with bonus checklist and 30-day guarantee"
+      ],
+      "professionalStandards": [
+        "Offer presentation structures the commercial offer—price anchoring, bundles, bonuses, guarantees—so value is obvious and objections drop."
+      ],
+      "relatedTopics": [
+        "value-proposition",
+        "cta-strategy",
+        "scarcity",
+        "objection-handling"
+      ],
+      "keywords": [
+        "offer presentation",
+        "pricing display",
+        "bundle",
+        "guarantee"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:offer-presentation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "sales-objection-handling",
+      "title": "Objection Handling",
+      "domain": "sales-psychology",
+      "category": "professional-sales-psychology",
+      "description": "Addressing doubts that block purchase inside creative and scripts.",
+      "coreConcepts": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "definitions": [
+        "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative.",
+        "Strengthen mid/bottom funnel video content."
+      ],
+      "rules": [
+        "Practice: List top 3 objections",
+        "Practice: Answer with demo/proof",
+        "Practice: Keep tone respectful"
+      ],
+      "bestPractices": [
+        "List top 3 objections",
+        "Answer with demo/proof",
+        "Keep tone respectful"
+      ],
+      "professionalTechniques": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "workflow": [
+        "Mine objections",
+        "Map proof",
+        "Script answers",
+        "Place in MOF/BOF"
+      ],
+      "decisionRules": [
+        "Follow: List top 3 objections",
+        "Follow: Answer with demo/proof",
+        "Follow: Keep tone respectful"
+      ],
+      "commonMistakes": [
+        "Ignoring obvious doubts",
+        "Defensive tone"
+      ],
+      "troubleshooting": [
+        "Avoid: Ignoring obvious doubts",
+        "Avoid: Defensive tone"
+      ],
+      "recommendations": [
+        "List top 3 objections",
+        "Answer with demo/proof",
+        "Keep tone respectful"
+      ],
+      "examples": [
+        "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+      ],
+      "professionalStandards": [
+        "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative."
+      ],
+      "relatedTopics": [
+        "decision-making",
+        "social-proof",
+        "product-demonstration",
+        "trust-building"
+      ],
+      "keywords": [
+        "objection handling",
+        "objections",
+        "doubts",
+        "risk reversal"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:objection-handling",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Sales Psychology Knowledge Pack",
+    "category": "professional-marketing",
+    "domain": "sales-psychology",
+    "description": "Curated professional marketing/branding/psychology knowledge for AI Me (does not create ads automatically).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Persuasion Principles",
+          "Value Proposition",
+          "Urgency",
+          "Scarcity",
+          "Social Proof",
+          "Authority",
+          "Reciprocity",
+          "Call-To-Action Strategy",
+          "Offer Presentation",
+          "Objection Handling"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "One primary lever per asset",
+          "Never fabricate",
+          "Pair with real value",
+          "Specific outcomes",
+          "Audience qualifier",
+          "Differentiator + proof",
+          "Real deadlines only",
+          "Pair with value",
+          "Don’t cry wolf",
+          "Truthful inventory/access limits",
+          "Explain why scarce",
+          "Avoid manipulative fakes",
+          "Specific outcomes",
+          "Relevant peers",
+          "Verifiable sources",
+          "Real credentials",
+          "Show expertise in action",
+          "Don’t fake white coats",
+          "Give real value first",
+          "Ask proportionate to gift",
+          "Avoid manipulative ‘free’",
+          "One primary CTA",
+          "Verb + outcome",
+          "Match stage (learn vs buy)",
+          "Clear price and terms",
+          "Anchor honestly",
+          "Highlight guarantee",
+          "List top 3 objections",
+          "Answer with demo/proof",
+          "Keep tone respectful"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Choose lever",
+          "Design proof",
+          "Place in script",
+          "Compliance check",
+          "Draft",
+          "Test clarity",
+          "Map to creative pillars",
+          "Repeat",
+          "Validate time constraint",
+          "Script urgency line",
+          "Design end card timer if real",
+          "Comply",
+          "Confirm constraint",
+          "Message scarcity",
+          "Show proof if possible",
+          "CTA",
+          "Collect proof",
+          "Match to objection",
+          "Film/edit proof",
+          "Disclose",
+          "Identify authority source",
+          "Capture demo/interview",
+          "Place near hard claims",
+          "Define gift",
+          "Deliver in content",
+          "Bridge to ask",
+          "Measure",
+          "Pick action",
+          "Write variants",
+          "Design emphasis",
+          "Test",
+          "Define offer",
+          "Visual hierarchy",
+          "Script clarity",
+          "Compliance",
+          "Mine objections",
+          "Map proof",
+          "Script answers",
+          "Place in MOF/BOF"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Authority: expert demo; Social proof: review montage",
+          "‘Close books 5 days faster for small finance teams’",
+          "Sale ends Sunday—shown with real end date",
+          "Limited drop—batch number shown in film",
+          "‘12,000 teams’ + customer face + metric",
+          "Chef demonstrates cookware technique; engineer explains durability test",
+          "Free template download CTA after tutorial video",
+          "TOF: Learn how it works; BOF: Start free trial",
+          "Was/now price with bonus checklist and 30-day guarantee",
+          "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+        ]
+      }
+    ],
+    "concepts": [
+      "persuasion",
+      "influence",
+      "Cialdini",
+      "levers",
+      "value proposition",
+      "UVP",
+      "benefits",
+      "differentiation",
+      "urgency",
+      "deadline",
+      "act now",
+      "time pressure",
+      "scarcity",
+      "limited",
+      "availability",
+      "exclusivity",
+      "social proof",
+      "reviews",
+      "testimonials",
+      "UGC",
+      "popularity",
+      "authority",
+      "expertise",
+      "credentials",
+      "expert",
+      "reciprocity",
+      "give first",
+      "lead magnet psychology",
+      "CTA strategy",
+      "call to action",
+      "ask",
+      "conversion copy",
+      "offer presentation",
+      "pricing display",
+      "bundle",
+      "guarantee",
+      "objection handling",
+      "objections",
+      "doubts",
+      "risk reversal"
+    ],
+    "entities": [
+      "Persuasion Principles",
+      "Value Proposition",
+      "Urgency",
+      "Scarcity",
+      "Social Proof",
+      "Authority",
+      "Reciprocity",
+      "Call-To-Action Strategy",
+      "Offer Presentation",
+      "Objection Handling"
+    ],
+    "terminology": [
+      "persuasion",
+      "influence",
+      "Cialdini",
+      "levers",
+      "value proposition",
+      "UVP",
+      "benefits",
+      "differentiation",
+      "urgency",
+      "deadline",
+      "act now",
+      "time pressure",
+      "scarcity",
+      "limited",
+      "availability",
+      "exclusivity",
+      "social proof",
+      "reviews",
+      "testimonials",
+      "UGC",
+      "popularity",
+      "authority",
+      "expertise",
+      "credentials",
+      "expert",
+      "reciprocity",
+      "give first",
+      "lead magnet psychology",
+      "CTA strategy",
+      "call to action",
+      "ask",
+      "conversion copy",
+      "offer presentation",
+      "pricing display",
+      "bundle",
+      "guarantee",
+      "objection handling",
+      "objections",
+      "doubts",
+      "risk reversal"
+    ],
+    "rules": [
+      "Practice: One primary lever per asset",
+      "Practice: Never fabricate",
+      "Practice: Pair with real value",
+      "Practice: Specific outcomes",
+      "Practice: Audience qualifier",
+      "Practice: Differentiator + proof",
+      "Practice: Real deadlines only",
+      "Practice: Pair with value",
+      "Practice: Don’t cry wolf",
+      "Practice: Truthful inventory/access limits",
+      "Practice: Explain why scarce",
+      "Practice: Avoid manipulative fakes",
+      "Practice: Specific outcomes",
+      "Practice: Relevant peers",
+      "Practice: Verifiable sources",
+      "Practice: Real credentials",
+      "Practice: Show expertise in action",
+      "Practice: Don’t fake white coats",
+      "Practice: Give real value first",
+      "Practice: Ask proportionate to gift",
+      "Practice: Avoid manipulative ‘free’",
+      "Practice: One primary CTA",
+      "Practice: Verb + outcome",
+      "Practice: Match stage (learn vs buy)",
+      "Practice: Clear price and terms",
+      "Practice: Anchor honestly",
+      "Practice: Highlight guarantee",
+      "Practice: List top 3 objections",
+      "Practice: Answer with demo/proof",
+      "Practice: Keep tone respectful"
+    ],
+    "bestPractices": [
+      "One primary lever per asset",
+      "Never fabricate",
+      "Pair with real value",
+      "Specific outcomes",
+      "Audience qualifier",
+      "Differentiator + proof",
+      "Real deadlines only",
+      "Pair with value",
+      "Don’t cry wolf",
+      "Truthful inventory/access limits",
+      "Explain why scarce",
+      "Avoid manipulative fakes",
+      "Specific outcomes",
+      "Relevant peers",
+      "Verifiable sources",
+      "Real credentials",
+      "Show expertise in action",
+      "Don’t fake white coats",
+      "Give real value first",
+      "Ask proportionate to gift",
+      "Avoid manipulative ‘free’",
+      "One primary CTA",
+      "Verb + outcome",
+      "Match stage (learn vs buy)",
+      "Clear price and terms",
+      "Anchor honestly",
+      "Highlight guarantee",
+      "List top 3 objections",
+      "Answer with demo/proof",
+      "Keep tone respectful"
+    ],
+    "professionalTechniques": [
+      "Choose lever",
+      "Design proof",
+      "Place in script",
+      "Compliance check",
+      "Draft",
+      "Test clarity",
+      "Map to creative pillars",
+      "Repeat",
+      "Validate time constraint",
+      "Script urgency line",
+      "Design end card timer if real",
+      "Comply",
+      "Confirm constraint",
+      "Message scarcity",
+      "Show proof if possible",
+      "CTA",
+      "Collect proof",
+      "Match to objection",
+      "Film/edit proof",
+      "Disclose",
+      "Identify authority source",
+      "Capture demo/interview",
+      "Place near hard claims",
+      "Define gift",
+      "Deliver in content",
+      "Bridge to ask",
+      "Measure",
+      "Pick action",
+      "Write variants",
+      "Design emphasis",
+      "Test",
+      "Define offer",
+      "Visual hierarchy",
+      "Script clarity",
+      "Compliance",
+      "Mine objections",
+      "Map proof",
+      "Script answers",
+      "Place in MOF/BOF"
+    ],
+    "examples": [
+      "Authority: expert demo; Social proof: review montage",
+      "‘Close books 5 days faster for small finance teams’",
+      "Sale ends Sunday—shown with real end date",
+      "Limited drop—batch number shown in film",
+      "‘12,000 teams’ + customer face + metric",
+      "Chef demonstrates cookware technique; engineer explains durability test",
+      "Free template download CTA after tutorial video",
+      "TOF: Learn how it works; BOF: Start free trial",
+      "Was/now price with bonus checklist and 30-day guarantee",
+      "‘Too expensive?’ → cost-per-use graphic; ‘Does it work?’ → demo"
+    ],
+    "commonMistakes": [
+      "Stacking all levers",
+      "Dark patterns",
+      "Vague value",
+      "Feature labeled as value",
+      "Fake countdowns",
+      "Urgency without offer clarity",
+      "Fake ‘only 2 left’",
+      "Scarcity on unlimited digital goods without basis",
+      "Generic praise",
+      "Irrelevant celebrity with no fit",
+      "False authority",
+      "Credentials unrelated to claim",
+      "Empty freebies",
+      "Huge ask after tiny gift",
+      "Competing CTAs",
+      "Buy now on cold traffic always",
+      "Hidden fees",
+      "Confusing package math",
+      "Ignoring obvious doubts",
+      "Defensive tone"
+    ],
+    "qualityRules": [
+      "Persuasion principles are structured influence levers—proof, authority, reciprocity, consistency, liking, scarcity—applied transparently in offers and creative.",
+      "A value proposition articulates the meaningful benefit a customer gets, for whom, and why the brand wins versus alternatives.",
+      "Urgency is a time-based reason to act now—deadlines, limited windows—used honestly to overcome delay.",
+      "Scarcity communicates limited quantity or access, raising perceived value and motivating action when accurate.",
+      "Social proof uses others’ behavior and testimonials—reviews, counts, UGC—to reduce uncertainty and guide decisions.",
+      "Authority persuasion uses expert status, certifications, or credible demonstrators to increase acceptance of claims.",
+      "Reciprocity is the tendency to respond to value received with a return favor—used via free education, samples, or tools before the ask.",
+      "CTA strategy selects the action, copy, and visual prominence appropriate to awareness level and offer, distinct from pure placement craft in storytelling/video-marketing topics.",
+      "Offer presentation structures the commercial offer—price anchoring, bundles, bonuses, guarantees—so value is obvious and objections drop.",
+      "Objection handling anticipates buyer doubts—price, efficacy, fit, risk—and answers them with proof and reframing in the creative."
+    ],
+    "decisionRules": [
+      "Follow: One primary lever per asset",
+      "Follow: Never fabricate",
+      "Follow: Pair with real value",
+      "Follow: Specific outcomes",
+      "Follow: Audience qualifier",
+      "Follow: Differentiator + proof",
+      "Follow: Real deadlines only",
+      "Follow: Pair with value",
+      "Follow: Don’t cry wolf",
+      "Follow: Truthful inventory/access limits",
+      "Follow: Explain why scarce",
+      "Follow: Avoid manipulative fakes",
+      "Follow: Specific outcomes",
+      "Follow: Relevant peers",
+      "Follow: Verifiable sources",
+      "Follow: Real credentials",
+      "Follow: Show expertise in action",
+      "Follow: Don’t fake white coats",
+      "Follow: Give real value first",
+      "Follow: Ask proportionate to gift",
+      "Follow: Avoid manipulative ‘free’",
+      "Follow: One primary CTA",
+      "Follow: Verb + outcome",
+      "Follow: Match stage (learn vs buy)",
+      "Follow: Clear price and terms",
+      "Follow: Anchor honestly",
+      "Follow: Highlight guarantee",
+      "Follow: List top 3 objections",
+      "Follow: Answer with demo/proof",
+      "Follow: Keep tone respectful"
+    ],
+    "workflowSteps": [
+      "Choose lever",
+      "Design proof",
+      "Place in script",
+      "Compliance check",
+      "Draft",
+      "Test clarity",
+      "Map to creative pillars",
+      "Repeat",
+      "Validate time constraint",
+      "Script urgency line",
+      "Design end card timer if real",
+      "Comply",
+      "Confirm constraint",
+      "Message scarcity",
+      "Show proof if possible",
+      "CTA",
+      "Collect proof",
+      "Match to objection",
+      "Film/edit proof",
+      "Disclose",
+      "Identify authority source",
+      "Capture demo/interview",
+      "Place near hard claims",
+      "Define gift",
+      "Deliver in content",
+      "Bridge to ask",
+      "Measure",
+      "Pick action",
+      "Write variants",
+      "Design emphasis",
+      "Test",
+      "Define offer",
+      "Visual hierarchy",
+      "Script clarity",
+      "Compliance",
+      "Mine objections",
+      "Map proof",
+      "Script answers",
+      "Place in MOF/BOF"
+    ],
+    "prerequisites": [
+      "Define audience and offer before selecting marketing tactics."
+    ],
+    "dependencies": [
+      "storytelling-knowledge",
+      "product-knowledge",
+      "social-media-knowledge"
+    ],
+    "relatedKnowledge": [
+      "sales-persuasion-principles",
+      "sales-value-proposition",
+      "sales-urgency",
+      "sales-scarcity",
+      "sales-social-proof",
+      "sales-authority",
+      "sales-reciprocity",
+      "sales-cta-strategy",
+      "sales-offer-presentation",
+      "sales-objection-handling"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 93,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-marketing-branding-psychology-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "45c8101c8b5febbfc267c5e1c9535cea05862f43ac2aff9452b5780f709ee378",
+  "createdAt": "2026-08-08T19:03:24.013Z",
+  "updatedAt": "2026-08-08T19:03:24.014Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:46:48.106Z","level":"info","event":"startup","message":"Camera Director Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-generation\\camera-plans\\engine"}}
+{"timestamp":"2026-08-08T19:46:52.682Z","level":"info","event":"startup","message":"Camera Director Engine startup complete","data":{"recordsLoaded":0}}

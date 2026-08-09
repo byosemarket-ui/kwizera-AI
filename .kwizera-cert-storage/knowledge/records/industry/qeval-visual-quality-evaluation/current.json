@@ -1,0 +1,357 @@
+{
+  "knowledgeId": "qeval-visual-quality-evaluation",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-evaluation",
+  "title": "Visual Quality Evaluation",
+  "description": "A structured evaluation of visual clarity, craft, consistency, and audience fitness.",
+  "summary": "Let AI Me explain visual review criteria without claiming automated pixel inspection.",
+  "tags": [
+    "professional-quality-evaluation",
+    "professional",
+    "visual-quality-evaluation",
+    "visual quality evaluation",
+    "composition",
+    "color",
+    "contrast",
+    "artifacts"
+  ],
+  "keywords": [
+    "visual quality evaluation",
+    "composition",
+    "color",
+    "contrast",
+    "artifacts"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qrule-video-quality-rules",
+    "qrule-image-quality-rules",
+    "qrule-lighting-quality-rules",
+    "qeval-content-consistency-evaluation",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-branding-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:42.161Z",
+  "lastUpdated": "2026-08-08T19:18:42.161Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qeval-visual-quality-evaluation",
+  "integrityStatus": "verified",
+  "contentHash": "ad9841abbba370b7a1734ef5afe5280632c12a58131724ee528e4c81f0ac407a",
+  "searchableText": "visual quality evaluation a structured evaluation of visual clarity, craft, consistency, and audience fitness. let ai me explain visual review criteria without claiming automated pixel inspection. professional-quality-evaluation professional-quality-evaluation professional visual-quality-evaluation visual quality evaluation composition color contrast artifacts visual quality evaluation composition color contrast artifacts",
+  "classification": {
+    "category": "professional-quality-evaluation",
+    "topic": "visual-quality-evaluation",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "visual-quality-evaluation",
+    "kind": "professional-quality-evaluation",
+    "purpose": "Let AI Me explain visual review criteria without claiming automated pixel inspection.",
+    "professionalDefinition": "Visual quality evaluation reviews composition, focus, exposure, color, lighting, detail, hierarchy, and artifacts against the intended output and brand context.",
+    "qualityRules": [
+      "Critical subject is clear",
+      "Color and contrast support comprehension",
+      "No material artifacts distract from the message"
+    ],
+    "workflow": [
+      "Set evaluation context",
+      "Inspect objective evidence",
+      "Score criteria",
+      "List material gaps",
+      "Recommend improvements"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qeval-visual-quality-evaluation",
+      "title": "Visual Quality Evaluation",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "description": "A structured evaluation of visual clarity, craft, consistency, and audience fitness.",
+      "coreConcepts": [
+        "visual quality evaluation",
+        "composition",
+        "color",
+        "contrast",
+        "artifacts"
+      ],
+      "definitions": [
+        "Visual quality evaluation reviews composition, focus, exposure, color, lighting, detail, hierarchy, and artifacts against the intended output and brand context.",
+        "Let AI Me explain visual review criteria without claiming automated pixel inspection."
+      ],
+      "rules": [
+        "Quality rule: Critical subject is clear",
+        "Quality rule: Color and contrast support comprehension",
+        "Quality rule: No material artifacts distract from the message"
+      ],
+      "bestPractices": [
+        "Review at target size and device",
+        "Use side-by-side references",
+        "Separate material defects from stylistic preference"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "workflow": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "decisionRules": [
+        "Apply: Critical subject is clear",
+        "Apply: Color and contrast support comprehension",
+        "Apply: No material artifacts distract from the message"
+      ],
+      "commonMistakes": [
+        "Reviewing only on one display",
+        "Ignoring visual hierarchy"
+      ],
+      "troubleshooting": [
+        "Avoid: Reviewing only on one display",
+        "Avoid: Ignoring visual hierarchy"
+      ],
+      "recommendations": [
+        "Review at target size and device",
+        "Use side-by-side references",
+        "Separate material defects from stylistic preference"
+      ],
+      "examples": [
+        "Professional application of Visual Quality Evaluation in a studio review."
+      ],
+      "professionalStandards": [
+        "Critical subject is clear",
+        "Color and contrast support comprehension",
+        "No material artifacts distract from the message"
+      ],
+      "relatedTopics": [
+        "video-quality-rules",
+        "image-quality-rules",
+        "lighting-quality-rules",
+        "content-consistency-evaluation"
+      ],
+      "keywords": [
+        "visual quality evaluation",
+        "composition",
+        "color",
+        "contrast",
+        "artifacts"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:visual-quality-evaluation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Visual Quality Evaluation",
+      "category": "professional-quality-evaluation",
+      "domain": "industry-standards-knowledge",
+      "description": "A structured evaluation of visual clarity, craft, consistency, and audience fitness.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Visual quality evaluation reviews composition, focus, exposure, color, lighting, detail, hierarchy, and artifacts against the intended output and brand context.",
+            "Let AI Me explain visual review criteria without claiming automated pixel inspection."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Critical subject is clear",
+            "Color and contrast support comprehension",
+            "No material artifacts distract from the message"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Review at target size and device",
+            "Use side-by-side references",
+            "Separate material defects from stylistic preference"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set evaluation context",
+            "Inspect objective evidence",
+            "Score criteria",
+            "List material gaps",
+            "Recommend improvements"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Visual Quality Evaluation in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "visual quality evaluation",
+        "composition",
+        "color",
+        "contrast",
+        "artifacts"
+      ],
+      "entities": [
+        "Visual Quality Evaluation",
+        "industry-standards-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "visual quality evaluation",
+        "composition",
+        "color",
+        "contrast",
+        "artifacts"
+      ],
+      "rules": [
+        "Critical subject is clear",
+        "Color and contrast support comprehension",
+        "No material artifacts distract from the message"
+      ],
+      "bestPractices": [
+        "Review at target size and device",
+        "Use side-by-side references",
+        "Separate material defects from stylistic preference"
+      ],
+      "professionalTechniques": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "examples": [
+        "Professional application of Visual Quality Evaluation in a studio review."
+      ],
+      "commonMistakes": [
+        "Reviewing only on one display",
+        "Ignoring visual hierarchy"
+      ],
+      "qualityRules": [
+        "Critical subject is clear",
+        "Color and contrast support comprehension",
+        "No material artifacts distract from the message"
+      ],
+      "decisionRules": [
+        "Apply: Critical subject is clear",
+        "Apply: Color and contrast support comprehension",
+        "Apply: No material artifacts distract from the message"
+      ],
+      "workflowSteps": [
+        "Set evaluation context",
+        "Inspect objective evidence",
+        "Score criteria",
+        "List material gaps",
+        "Recommend improvements"
+      ],
+      "prerequisites": [
+        "Set evaluation context"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "lighting-knowledge",
+        "camera-knowledge",
+        "video-production-knowledge",
+        "branding-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qrule-video-quality-rules",
+        "qrule-image-quality-rules",
+        "qrule-lighting-quality-rules",
+        "qeval-content-consistency-evaluation"
+      ],
+      "definitions": [
+        "Visual quality evaluation reviews composition, focus, exposure, color, lighting, detail, hierarchy, and artifacts against the intended output and brand context."
+      ],
+      "troubleshooting": [
+        "Avoid: Reviewing only on one display",
+        "Avoid: Ignoring visual hierarchy"
+      ],
+      "recommendations": [
+        "Review at target size and device",
+        "Use side-by-side references",
+        "Separate material defects from stylistic preference"
+      ],
+      "professionalStandards": [
+        "Critical subject is clear",
+        "Color and contrast support comprehension",
+        "No material artifacts distract from the message"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:visual-quality-evaluation",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-evaluation",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Review at target size and device",
+      "Use side-by-side references",
+      "Separate material defects from stylistic preference"
+    ],
+    "bestPractices": [
+      "Review at target size and device",
+      "Use side-by-side references",
+      "Separate material defects from stylistic preference"
+    ],
+    "decisionRules": [
+      "Quality rule: Critical subject is clear",
+      "Quality rule: Color and contrast support comprehension",
+      "Quality rule: No material artifacts distract from the message"
+    ]
+  }
+}

@@ -1,0 +1,351 @@
+{
+  "knowledgeId": "qrule-camera-quality-rules",
+  "knowledgeType": "industry-knowledge",
+  "category": "professional-quality-rules",
+  "title": "Camera Quality Rules",
+  "description": "Rules for exposure, focus, framing, lens choice, and controlled motion.",
+  "summary": "Give AI Me professional capture-quality checks.",
+  "tags": [
+    "professional-quality-rules",
+    "professional",
+    "camera-quality-rules",
+    "camera quality",
+    "focus",
+    "white balance",
+    "exposure",
+    "stability"
+  ],
+  "keywords": [
+    "camera quality",
+    "focus",
+    "white balance",
+    "exposure",
+    "stability"
+  ],
+  "source": "professional-industry-standards-quality-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 94,
+  "qualityScore": 93,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "qrule-video-quality-rules",
+    "qrule-lighting-quality-rules",
+    "std-production-standards",
+    "check-production-checklist",
+    "isq-bridge-industry-standards-knowledge",
+    "isq-bridge-camera-knowledge",
+    "isq-bridge-lighting-knowledge",
+    "isq-bridge-video-production-knowledge",
+    "isq-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:18:34.966Z",
+  "lastUpdated": "2026-08-08T19:18:34.966Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\industry\\qrule-camera-quality-rules",
+  "integrityStatus": "verified",
+  "contentHash": "10e700191d53d78da156190b38705840167d45e2684c9222d2ff973a185e3be4",
+  "searchableText": "camera quality rules rules for exposure, focus, framing, lens choice, and controlled motion. give ai me professional capture-quality checks. professional-quality-rules professional-quality-rules professional camera-quality-rules camera quality focus white balance exposure stability camera quality focus white balance exposure stability",
+  "classification": {
+    "category": "professional-quality-rules",
+    "topic": "camera-quality-rules",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "business",
+    "creativeDomain": "none",
+    "learningValue": 94,
+    "futureUsage": "product-intelligence"
+  },
+  "payload": {
+    "step": "knowledge-expansion-industry-standards-quality",
+    "expansionVersion": "1.0.0",
+    "topicId": "camera-quality-rules",
+    "kind": "professional-quality-rules",
+    "purpose": "Give AI Me professional capture-quality checks.",
+    "professionalDefinition": "Camera quality rules assess whether capture choices preserve technical integrity while using framing, lens, focus, and movement intentionally for the story.",
+    "qualityRules": [
+      "Focus, exposure, and color are deliberate",
+      "Framing serves the story or product",
+      "Motion is stable or intentionally expressive"
+    ],
+    "workflow": [
+      "Inspect against the rule set",
+      "Identify material defects",
+      "Prioritize remediation",
+      "Re-review after correction"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "qrule-camera-quality-rules",
+      "title": "Camera Quality Rules",
+      "domain": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "description": "Rules for exposure, focus, framing, lens choice, and controlled motion.",
+      "coreConcepts": [
+        "camera quality",
+        "focus",
+        "white balance",
+        "exposure",
+        "stability"
+      ],
+      "definitions": [
+        "Camera quality rules assess whether capture choices preserve technical integrity while using framing, lens, focus, and movement intentionally for the story.",
+        "Give AI Me professional capture-quality checks."
+      ],
+      "rules": [
+        "Quality rule: Focus, exposure, and color are deliberate",
+        "Quality rule: Framing serves the story or product",
+        "Quality rule: Motion is stable or intentionally expressive"
+      ],
+      "bestPractices": [
+        "Set exposure and white balance deliberately",
+        "Confirm critical focus before each take",
+        "Use support appropriate to intended motion"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "workflow": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "decisionRules": [
+        "Apply: Focus, exposure, and color are deliberate",
+        "Apply: Framing serves the story or product",
+        "Apply: Motion is stable or intentionally expressive"
+      ],
+      "commonMistakes": [
+        "Auto settings changing mid-shot",
+        "Unmotivated camera movement"
+      ],
+      "troubleshooting": [
+        "Avoid: Auto settings changing mid-shot",
+        "Avoid: Unmotivated camera movement"
+      ],
+      "recommendations": [
+        "Set exposure and white balance deliberately",
+        "Confirm critical focus before each take",
+        "Use support appropriate to intended motion"
+      ],
+      "examples": [
+        "Professional application of Camera Quality Rules in a studio review."
+      ],
+      "professionalStandards": [
+        "Focus, exposure, and color are deliberate",
+        "Framing serves the story or product",
+        "Motion is stable or intentionally expressive"
+      ],
+      "relatedTopics": [
+        "video-quality-rules",
+        "lighting-quality-rules",
+        "production-standards",
+        "production-checklist"
+      ],
+      "keywords": [
+        "camera quality",
+        "focus",
+        "white balance",
+        "exposure",
+        "stability"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:camera-quality-rules",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Camera Quality Rules",
+      "category": "professional-quality-rules",
+      "domain": "industry-standards-knowledge",
+      "description": "Rules for exposure, focus, framing, lens choice, and controlled motion.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Camera quality rules assess whether capture choices preserve technical integrity while using framing, lens, focus, and movement intentionally for the story.",
+            "Give AI Me professional capture-quality checks."
+          ]
+        },
+        {
+          "title": "Quality Rules",
+          "kind": "rules",
+          "items": [
+            "Focus, exposure, and color are deliberate",
+            "Framing serves the story or product",
+            "Motion is stable or intentionally expressive"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Set exposure and white balance deliberately",
+            "Confirm critical focus before each take",
+            "Use support appropriate to intended motion"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Inspect against the rule set",
+            "Identify material defects",
+            "Prioritize remediation",
+            "Re-review after correction"
+          ]
+        },
+        {
+          "title": "Professional Examples",
+          "kind": "examples",
+          "items": [
+            "Professional application of Camera Quality Rules in a studio review."
+          ]
+        }
+      ],
+      "concepts": [
+        "camera quality",
+        "focus",
+        "white balance",
+        "exposure",
+        "stability"
+      ],
+      "entities": [
+        "Camera Quality Rules",
+        "industry-standards-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "camera quality",
+        "focus",
+        "white balance",
+        "exposure",
+        "stability"
+      ],
+      "rules": [
+        "Focus, exposure, and color are deliberate",
+        "Framing serves the story or product",
+        "Motion is stable or intentionally expressive"
+      ],
+      "bestPractices": [
+        "Set exposure and white balance deliberately",
+        "Confirm critical focus before each take",
+        "Use support appropriate to intended motion"
+      ],
+      "professionalTechniques": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "examples": [
+        "Professional application of Camera Quality Rules in a studio review."
+      ],
+      "commonMistakes": [
+        "Auto settings changing mid-shot",
+        "Unmotivated camera movement"
+      ],
+      "qualityRules": [
+        "Focus, exposure, and color are deliberate",
+        "Framing serves the story or product",
+        "Motion is stable or intentionally expressive"
+      ],
+      "decisionRules": [
+        "Apply: Focus, exposure, and color are deliberate",
+        "Apply: Framing serves the story or product",
+        "Apply: Motion is stable or intentionally expressive"
+      ],
+      "workflowSteps": [
+        "Inspect against the rule set",
+        "Identify material defects",
+        "Prioritize remediation",
+        "Re-review after correction"
+      ],
+      "prerequisites": [
+        "Inspect against the rule set"
+      ],
+      "dependencies": [
+        "industry-standards-knowledge",
+        "camera-knowledge",
+        "lighting-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "qrule-video-quality-rules",
+        "qrule-lighting-quality-rules",
+        "std-production-standards",
+        "check-production-checklist"
+      ],
+      "definitions": [
+        "Camera quality rules assess whether capture choices preserve technical integrity while using framing, lens, focus, and movement intentionally for the story."
+      ],
+      "troubleshooting": [
+        "Avoid: Auto settings changing mid-shot",
+        "Avoid: Unmotivated camera movement"
+      ],
+      "recommendations": [
+        "Set exposure and white balance deliberately",
+        "Confirm critical focus before each take",
+        "Use support appropriate to intended motion"
+      ],
+      "professionalStandards": [
+        "Focus, exposure, and color are deliberate",
+        "Framing serves the story or product",
+        "Motion is stable or intentionally expressive"
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Industry Standards & Quality Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-9:camera-quality-rules",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "industry-standards-knowledge",
+      "category": "professional-quality-rules",
+      "difficulty": "advanced",
+      "expansionStep": 9,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesMedia": false,
+      "certifiesKnowledge": false
+    },
+    "generatesMedia": false,
+    "certifiesKnowledge": false,
+    "professionalTechniques": [
+      "Set exposure and white balance deliberately",
+      "Confirm critical focus before each take",
+      "Use support appropriate to intended motion"
+    ],
+    "bestPractices": [
+      "Set exposure and white balance deliberately",
+      "Confirm critical focus before each take",
+      "Use support appropriate to intended motion"
+    ],
+    "decisionRules": [
+      "Quality rule: Focus, exposure, and color are deliberate",
+      "Quality rule: Framing serves the story or product",
+      "Quality rule: Motion is stable or intentionally expressive"
+    ]
+  }
+}

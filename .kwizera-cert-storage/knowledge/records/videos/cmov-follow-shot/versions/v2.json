@@ -1,0 +1,347 @@
+{
+  "knowledgeId": "cmov-follow-shot",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-camera-movement",
+  "title": "Follow Shot",
+  "description": "Camera follows behind, beside, or ahead of a subject to maintain pursuit framing.",
+  "summary": "Put the audience in pursuit or companionship with the subject.",
+  "tags": [
+    "camera-movement",
+    "professional",
+    "follow-shot",
+    "follow shot",
+    "pursuit",
+    "trailing",
+    "lead camera"
+  ],
+  "keywords": [
+    "follow shot",
+    "pursuit",
+    "trailing",
+    "lead camera"
+  ],
+  "source": "professional-camera-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 90,
+  "qualityScore": 89,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "cmov-tracking-shot",
+    "cmov-handheld",
+    "cmov-gimbal",
+    "cmov-pov-shot",
+    "cam-focus",
+    "cam-focal-length",
+    "cam-shutter-speed",
+    "cam-frame-rate",
+    "cam-bridge-camera-movement-knowledge",
+    "cam-bridge-storytelling-knowledge",
+    "cam-bridge-composition-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:31:25.719Z",
+  "lastUpdated": "2026-08-08T16:55:35.654Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\cmov-follow-shot",
+  "integrityStatus": "verified",
+  "contentHash": "8829081d1f0c11b4ad222b0cc22d6ba828b88447f241903207157c52f907b2d2",
+  "searchableText": "follow shot camera follows behind, beside, or ahead of a subject to maintain pursuit framing. put the audience in pursuit or companionship with the subject. professional-camera-movement camera-movement professional follow-shot follow shot pursuit trailing lead camera follow shot pursuit trailing lead camera",
+  "classification": {
+    "category": "professional-camera-movement",
+    "topic": "follow-shot-camera",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-camera",
+    "expansionVersion": "1.0.0",
+    "topicId": "follow-shot",
+    "kind": "camera-movement",
+    "purpose": "Put the audience in pursuit or companionship with the subject.",
+    "whenToUse": [
+      "Character walks",
+      "Athlete motion",
+      "Unboxing hands leading into frame"
+    ],
+    "whenNotToUse": [
+      "Subject static",
+      "Safety risks trailing talent"
+    ],
+    "advantages": [
+      "Empathy and momentum",
+      "Dynamic backgrounds"
+    ],
+    "limitations": [
+      "Back-of-head fatigue if overused",
+      "Focus challenging"
+    ],
+    "relatedCameraSettings": [
+      "focus",
+      "focal-length",
+      "shutter-speed",
+      "frame-rate"
+    ],
+    "relatedStorytellingTechniques": [
+      "companionship",
+      "pursuit"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cmov-follow-shot",
+      "title": "Follow Shot",
+      "domain": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "description": "Camera follows behind, beside, or ahead of a subject to maintain pursuit framing.",
+      "coreConcepts": [
+        "follow shot",
+        "pursuit",
+        "trailing",
+        "lead camera"
+      ],
+      "definitions": [
+        "Put the audience in pursuit or companionship with the subject."
+      ],
+      "rules": [
+        "Use when: Character walks",
+        "Use when: Athlete motion",
+        "Use when: Unboxing hands leading into frame",
+        "Do not use when: Subject static",
+        "Do not use when: Safety risks trailing talent"
+      ],
+      "bestPractices": [
+        "Vary angles (behind/side/lead)",
+        "Keep horizon intentional",
+        "Protect talent safety"
+      ],
+      "professionalTechniques": [
+        "Empathy and momentum",
+        "Dynamic backgrounds"
+      ],
+      "workflow": [
+        "Choose Follow Shot",
+        "Vary angles (behind/side/lead)",
+        "Keep horizon intentional",
+        "Protect talent safety"
+      ],
+      "decisionRules": [
+        "Use when: Character walks",
+        "Use when: Athlete motion",
+        "Use when: Unboxing hands leading into frame",
+        "Avoid when: Subject static",
+        "Avoid when: Safety risks trailing talent"
+      ],
+      "commonMistakes": [
+        "Only shooting backs of heads",
+        "Erratic distance changes"
+      ],
+      "troubleshooting": [
+        "Limitation: Back-of-head fatigue if overused",
+        "Limitation: Focus challenging"
+      ],
+      "recommendations": [
+        "Vary angles (behind/side/lead)",
+        "Keep horizon intentional",
+        "Protect talent safety"
+      ],
+      "examples": [
+        "Follow founder into office open",
+        "Side-follow of runner for apparel"
+      ],
+      "professionalStandards": [
+        "companionship",
+        "pursuit"
+      ],
+      "relatedTopics": [
+        "tracking-shot",
+        "handheld",
+        "gimbal",
+        "pov-shot",
+        "focus",
+        "focal-length",
+        "shutter-speed",
+        "frame-rate"
+      ],
+      "keywords": [
+        "follow shot",
+        "pursuit",
+        "trailing",
+        "lead camera"
+      ],
+      "confidenceScore": 90,
+      "qualityScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-2:follow-shot",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Follow Shot",
+      "category": "professional-camera-movement",
+      "domain": "camera-movement-knowledge",
+      "description": "Camera follows behind, beside, or ahead of a subject to maintain pursuit framing.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Put the audience in pursuit or companionship with the subject."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Character walks",
+            "Athlete motion",
+            "Unboxing hands leading into frame"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Subject static",
+            "Safety risks trailing talent"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Vary angles (behind/side/lead)",
+            "Keep horizon intentional",
+            "Protect talent safety"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Follow founder into office open",
+            "Side-follow of runner for apparel"
+          ]
+        }
+      ],
+      "concepts": [
+        "follow shot",
+        "pursuit",
+        "trailing",
+        "lead camera"
+      ],
+      "entities": [
+        "Follow Shot",
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "follow shot",
+        "pursuit",
+        "trailing",
+        "lead camera"
+      ],
+      "rules": [
+        "Avoid when: Subject static",
+        "Avoid when: Safety risks trailing talent"
+      ],
+      "bestPractices": [
+        "Vary angles (behind/side/lead)",
+        "Keep horizon intentional",
+        "Protect talent safety"
+      ],
+      "professionalTechniques": [
+        "Empathy and momentum",
+        "Dynamic backgrounds"
+      ],
+      "examples": [
+        "Follow founder into office open",
+        "Side-follow of runner for apparel"
+      ],
+      "commonMistakes": [
+        "Only shooting backs of heads",
+        "Erratic distance changes"
+      ],
+      "qualityRules": [
+        "Back-of-head fatigue if overused",
+        "Focus challenging"
+      ],
+      "decisionRules": [
+        "Use when: Character walks",
+        "Use when: Athlete motion",
+        "Use when: Unboxing hands leading into frame",
+        "Do not use when: Subject static",
+        "Do not use when: Safety risks trailing talent"
+      ],
+      "workflowSteps": [
+        "Vary angles (behind/side/lead)",
+        "Keep horizon intentional",
+        "Protect talent safety"
+      ],
+      "prerequisites": [
+        "focus",
+        "focal-length",
+        "shutter-speed",
+        "frame-rate"
+      ],
+      "dependencies": [
+        "camera-movement-knowledge",
+        "storytelling-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "cmov-tracking-shot",
+        "cmov-handheld",
+        "cmov-gimbal",
+        "cmov-pov-shot"
+      ],
+      "definitions": [
+        "Put the audience in pursuit or companionship with the subject."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Camera Knowledge Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "camera-movement-knowledge",
+      "category": "professional-camera-movement",
+      "difficulty": "advanced",
+      "expansionStep": 2,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Vary angles (behind/side/lead)",
+      "Keep horizon intentional",
+      "Protect talent safety"
+    ],
+    "bestPractices": [
+      "Vary angles (behind/side/lead)",
+      "Keep horizon intentional",
+      "Protect talent safety"
+    ],
+    "decisionRules": [
+      "Use when: Character walks",
+      "Use when: Athlete motion",
+      "Use when: Unboxing hands leading into frame",
+      "Do not use when: Subject static",
+      "Do not use when: Safety risks trailing talent"
+    ]
+  }
+}

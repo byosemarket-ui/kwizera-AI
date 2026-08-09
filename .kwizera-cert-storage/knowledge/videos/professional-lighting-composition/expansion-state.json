@@ -1,0 +1,61 @@
+{
+  "version": "1.0.0",
+  "domainIds": [
+    "lighting-knowledge",
+    "composition-knowledge"
+  ],
+  "installedAt": "2026-08-08T17:32:52.250Z",
+  "install": {
+    "installed": true,
+    "lightingInstalled": 0,
+    "lightingUpdated": 20,
+    "compositionInstalled": 0,
+    "compositionUpdated": 16,
+    "bridgesInstalled": 0,
+    "relationshipsCreated": 0,
+    "lightingPackSynced": true,
+    "compositionPackSynced": true,
+    "domainsMarkedReady": true,
+    "issues": []
+  },
+  "lightingTopicIds": [
+    "lighting-fundamentals",
+    "natural-lighting",
+    "artificial-lighting",
+    "three-point-lighting",
+    "key-light",
+    "fill-light",
+    "back-light",
+    "rim-light",
+    "soft-lighting",
+    "hard-lighting",
+    "high-key-lighting",
+    "low-key-lighting",
+    "color-temperature",
+    "white-balance",
+    "shadows",
+    "reflections",
+    "product-lighting",
+    "portrait-lighting",
+    "indoor-lighting",
+    "outdoor-lighting"
+  ],
+  "compositionTopicIds": [
+    "rule-of-thirds",
+    "golden-ratio",
+    "leading-lines",
+    "framing",
+    "symmetry",
+    "balance",
+    "depth",
+    "negative-space",
+    "positive-space",
+    "headroom",
+    "look-room",
+    "eye-line",
+    "background-selection",
+    "foreground-elements",
+    "subject-placement",
+    "visual-hierarchy"
+  ]
+}

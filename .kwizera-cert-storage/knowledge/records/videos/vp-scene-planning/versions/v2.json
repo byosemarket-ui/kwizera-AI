@@ -1,0 +1,314 @@
+{
+  "knowledgeId": "vp-scene-planning",
+  "knowledgeType": "video-knowledge",
+  "category": "professional-video-production",
+  "title": "Scene Planning",
+  "description": "Organizing scenes as production units with objectives, blocking, coverage, and transitions into the larger story.",
+  "summary": "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes.",
+  "tags": [
+    "video-production",
+    "professional",
+    "scene-planning",
+    "scene planning",
+    "blocking",
+    "continuity",
+    "scene objective"
+  ],
+  "keywords": [
+    "scene planning",
+    "blocking",
+    "continuity",
+    "scene objective"
+  ],
+  "source": "professional-video-production-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 89,
+  "qualityScore": 88,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vp-story-structure",
+    "vp-shot-planning",
+    "vp-camera-coverage",
+    "vp-production",
+    "vp-bridge-storytelling-knowledge",
+    "vp-bridge-video-production-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:30:56.143Z",
+  "lastUpdated": "2026-08-08T16:45:10.561Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\videos\\vp-scene-planning",
+  "integrityStatus": "verified",
+  "contentHash": "c110f5766362e1bc9b4078370c898f2c12cf3a5050de876d0a67c2d4486e92ed",
+  "searchableText": "scene planning organizing scenes as production units with objectives, blocking, coverage, and transitions into the larger story. scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes. professional-video-production video-production professional scene-planning scene planning blocking continuity scene objective scene planning blocking continuity scene objective",
+  "classification": {
+    "category": "professional-video-production",
+    "topic": "scene-planning-organizing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 92,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-video-production",
+    "expansionVersion": "1.0.0",
+    "topicId": "scene-planning",
+    "professionalDefinition": "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes.",
+    "knowledgeItem": {
+      "knowledgeId": "vp-scene-planning",
+      "title": "Scene Planning",
+      "domain": "video-production-knowledge",
+      "category": "professional-video-production",
+      "description": "Organizing scenes as production units with objectives, blocking, coverage, and transitions into the larger story.",
+      "coreConcepts": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "definitions": [
+        "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes."
+      ],
+      "rules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "bestPractices": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "professionalTechniques": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "workflow": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "decisionRules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "commonMistakes": [
+        "Treating scenes as disconnected pretty setups.",
+        "Missing transition logic between scenes.",
+        "Overblocking action that cannot be covered in time."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating scenes as disconnected pretty setups.",
+        "Avoid: Missing transition logic between scenes.",
+        "Avoid: Overblocking action that cannot be covered in time."
+      ],
+      "recommendations": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "examples": [
+        "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+        "Corporate film: workplace scene clusters mapped to message pillars."
+      ],
+      "professionalStandards": [
+        "Confidence 89/100",
+        "Quality 88/100",
+        "Offline-first curated professional standard"
+      ],
+      "relatedTopics": [
+        "story-structure",
+        "shot-planning",
+        "camera-coverage",
+        "production"
+      ],
+      "keywords": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "confidenceScore": 89,
+      "qualityScore": 88,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-1:scene-planning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Scene Planning",
+      "category": "professional-video-production",
+      "domain": "video-production-knowledge",
+      "description": "Organizing scenes as production units with objectives, blocking, coverage, and transitions into the larger story.",
+      "sections": [
+        {
+          "title": "Definition",
+          "kind": "guidance",
+          "items": [
+            "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes."
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Write a one-line scene objective before blocking.",
+            "Plan entrances, exits, and continuity anchors.",
+            "Design coverage that supports the intended cut pattern.",
+            "Coordinate wardrobe, props, and brand assets per scene."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Break script/brief into scenes with objectives.",
+            "Assign locations, talent, and key props.",
+            "Draft coverage and estimated duration.",
+            "Confirm scene order vs shoot order."
+          ]
+        },
+        {
+          "title": "Decision Rules",
+          "kind": "rules",
+          "items": [
+            "If a scene lacks an objective, rewrite or remove it.",
+            "Always plan how the viewer orients geographically and emotionally.",
+            "When shoot order differs from story order, protect continuity notes.",
+            "Never leave scene transitions to chance in branded work."
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+            "Corporate film: workplace scene clusters mapped to message pillars."
+          ]
+        }
+      ],
+      "concepts": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "entities": [
+        "Scene Planning",
+        "storytelling-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "scene planning",
+        "blocking",
+        "continuity",
+        "scene objective"
+      ],
+      "rules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "bestPractices": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "professionalTechniques": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "examples": [
+        "Retail spot: store entrance scene → product interaction scene → checkout CTA scene.",
+        "Corporate film: workplace scene clusters mapped to message pillars."
+      ],
+      "commonMistakes": [
+        "Treating scenes as disconnected pretty setups.",
+        "Missing transition logic between scenes.",
+        "Overblocking action that cannot be covered in time."
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "If a scene lacks an objective, rewrite or remove it.",
+        "Always plan how the viewer orients geographically and emotionally.",
+        "When shoot order differs from story order, protect continuity notes.",
+        "Never leave scene transitions to chance in branded work."
+      ],
+      "workflowSteps": [
+        "Break script/brief into scenes with objectives.",
+        "Assign locations, talent, and key props.",
+        "Draft coverage and estimated duration.",
+        "Confirm scene order vs shoot order."
+      ],
+      "prerequisites": [
+        "Break script/brief into scenes with objectives."
+      ],
+      "dependencies": [
+        "storytelling-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vp-story-structure",
+        "vp-shot-planning",
+        "vp-camera-coverage",
+        "vp-production"
+      ],
+      "definitions": [
+        "Scene planning defines what a scene must accomplish narratively and practically—location, talent, action, coverage, and how it connects to adjacent scenes."
+      ],
+      "troubleshooting": [
+        "Avoid: Treating scenes as disconnected pretty setups.",
+        "Avoid: Missing transition logic between scenes.",
+        "Avoid: Overblocking action that cannot be covered in time."
+      ],
+      "recommendations": [
+        "Write a one-line scene objective before blocking.",
+        "Plan entrances, exits, and continuity anchors.",
+        "Design coverage that supports the intended cut pattern.",
+        "Coordinate wardrobe, props, and brand assets per scene."
+      ],
+      "professionalStandards": [
+        "Expansion 1.0.0"
+      ],
+      "difficultyLevel": "intermediate",
+      "confidenceScore": 89,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Video Production Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "video-production-knowledge",
+      "category": "professional-video-production",
+      "difficulty": "intermediate",
+      "expansionStep": 1,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false
+  }
+}

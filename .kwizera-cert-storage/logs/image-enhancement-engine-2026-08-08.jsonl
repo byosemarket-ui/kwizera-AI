@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:00.458Z","level":"info","event":"startup","message":"Image Enhancement & Restoration Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-generation\\enhancement\\engine"}}
+{"timestamp":"2026-08-08T19:47:04.569Z","level":"info","event":"startup","message":"Image Enhancement Engine startup complete","data":{"recordsLoaded":0}}

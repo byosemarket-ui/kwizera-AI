@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-08T15:30:05.204Z","level":"info","event":"startup","message":"Marketing Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:05.324Z","level":"info","event":"startup","message":"Marketing Memory Engine startup complete","data":{"campaignsLoaded":0,"patternsLoaded":0,"durationMs":117}}
+{"timestamp":"2026-08-08T15:47:17.812Z","level":"info","event":"startup","message":"Marketing Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:18.001Z","level":"info","event":"startup","message":"Marketing Memory Engine startup complete","data":{"campaignsLoaded":0,"patternsLoaded":0,"durationMs":6}}

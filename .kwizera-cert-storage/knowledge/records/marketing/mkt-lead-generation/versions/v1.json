@@ -1,0 +1,318 @@
+{
+  "knowledgeId": "mkt-lead-generation",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Lead Generation",
+  "description": "Capturing qualified interest for sales or nurture.",
+  "summary": "Connect video/content hooks to lead capture mechanisms.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "lead-generation",
+    "lead generation",
+    "leads",
+    "MQL",
+    "lead magnet",
+    "capture"
+  ],
+  "keywords": [
+    "lead generation",
+    "leads",
+    "MQL",
+    "lead magnet",
+    "capture"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "mkt-content-marketing",
+    "sales-cta-strategy",
+    "sales-value-proposition",
+    "mkt-conversion-optimization",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-customer-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:20.244Z",
+  "lastUpdated": "2026-08-08T18:25:20.244Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-lead-generation",
+  "integrityStatus": "verified",
+  "contentHash": "95c64d8b0173faef11e861bce323d606314d765cd66c986ce7dce156540f1489",
+  "searchableText": "lead generation capturing qualified interest for sales or nurture. connect video/content hooks to lead capture mechanisms. professional-marketing professional-marketing professional lead-generation lead generation leads mql lead magnet capture lead generation leads mql lead magnet capture",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "lead-generation-capturing",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "lead-generation",
+    "kind": "professional-marketing",
+    "purpose": "Connect video/content hooks to lead capture mechanisms.",
+    "professionalDefinition": "Lead generation attracts and captures prospect information or intent signals through offers, content, and CTAs designed for qualification.",
+    "workflow": [
+      "Define MQL",
+      "Create lead magnet",
+      "Drive traffic",
+      "Capture",
+      "Nurture"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-lead-generation",
+      "title": "Lead Generation",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Capturing qualified interest for sales or nurture.",
+      "coreConcepts": [
+        "lead generation",
+        "leads",
+        "MQL",
+        "lead magnet",
+        "capture"
+      ],
+      "definitions": [
+        "Lead generation attracts and captures prospect information or intent signals through offers, content, and CTAs designed for qualification.",
+        "Connect video/content hooks to lead capture mechanisms."
+      ],
+      "rules": [
+        "Practice: Offer matches awareness level",
+        "Practice: Minimize form friction",
+        "Practice: Qualify with intent signals"
+      ],
+      "bestPractices": [
+        "Offer matches awareness level",
+        "Minimize form friction",
+        "Qualify with intent signals"
+      ],
+      "professionalTechniques": [
+        "Define MQL",
+        "Create lead magnet",
+        "Drive traffic",
+        "Capture",
+        "Nurture"
+      ],
+      "workflow": [
+        "Define MQL",
+        "Create lead magnet",
+        "Drive traffic",
+        "Capture",
+        "Nurture"
+      ],
+      "decisionRules": [
+        "Follow: Offer matches awareness level",
+        "Follow: Minimize form friction",
+        "Follow: Qualify with intent signals"
+      ],
+      "commonMistakes": [
+        "Asking too much too soon",
+        "Leads with no nurture"
+      ],
+      "troubleshooting": [
+        "Avoid: Asking too much too soon",
+        "Avoid: Leads with no nurture"
+      ],
+      "recommendations": [
+        "Offer matches awareness level",
+        "Minimize form friction",
+        "Qualify with intent signals"
+      ],
+      "examples": [
+        "Webinar signup CTA after educational video"
+      ],
+      "professionalStandards": [
+        "Lead generation attracts and captures prospect information or intent signals through offers, content, and CTAs designed for qualification."
+      ],
+      "relatedTopics": [
+        "content-marketing",
+        "cta-strategy",
+        "value-proposition",
+        "conversion-optimization"
+      ],
+      "keywords": [
+        "lead generation",
+        "leads",
+        "MQL",
+        "lead magnet",
+        "capture"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:lead-generation",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Lead Generation",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Capturing qualified interest for sales or nurture.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Lead generation attracts and captures prospect information or intent signals through offers, content, and CTAs designed for qualification."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Connect video/content hooks to lead capture mechanisms."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Define MQL",
+            "Create lead magnet",
+            "Drive traffic",
+            "Capture",
+            "Nurture"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Offer matches awareness level",
+            "Minimize form friction",
+            "Qualify with intent signals"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Webinar signup CTA after educational video"
+          ]
+        }
+      ],
+      "concepts": [
+        "lead generation",
+        "leads",
+        "MQL",
+        "lead magnet",
+        "capture"
+      ],
+      "entities": [
+        "Lead Generation",
+        "marketing-knowledge",
+        "sales-psychology",
+        "customer-psychology"
+      ],
+      "terminology": [
+        "lead generation",
+        "leads",
+        "MQL",
+        "lead magnet",
+        "capture"
+      ],
+      "rules": [
+        "Avoid: Asking too much too soon",
+        "Avoid: Leads with no nurture"
+      ],
+      "bestPractices": [
+        "Offer matches awareness level",
+        "Minimize form friction",
+        "Qualify with intent signals"
+      ],
+      "professionalTechniques": [
+        "Define MQL",
+        "Create lead magnet",
+        "Drive traffic",
+        "Capture",
+        "Nurture"
+      ],
+      "examples": [
+        "Webinar signup CTA after educational video"
+      ],
+      "commonMistakes": [
+        "Asking too much too soon",
+        "Leads with no nurture"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Offer matches awareness level",
+        "Practice: Minimize form friction",
+        "Practice: Qualify with intent signals"
+      ],
+      "workflowSteps": [
+        "Define MQL",
+        "Create lead magnet",
+        "Drive traffic",
+        "Capture",
+        "Nurture"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "sales-psychology",
+        "customer-psychology"
+      ],
+      "relatedKnowledge": [
+        "mkt-content-marketing",
+        "sales-cta-strategy",
+        "sales-value-proposition",
+        "mkt-conversion-optimization"
+      ],
+      "definitions": [
+        "Lead generation attracts and captures prospect information or intent signals through offers, content, and CTAs designed for qualification.",
+        "Connect video/content hooks to lead capture mechanisms."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Offer matches awareness level",
+      "Minimize form friction",
+      "Qualify with intent signals"
+    ],
+    "bestPractices": [
+      "Offer matches awareness level",
+      "Minimize form friction",
+      "Qualify with intent signals"
+    ],
+    "decisionRules": [
+      "Practice: Offer matches awareness level",
+      "Practice: Minimize form friction",
+      "Practice: Qualify with intent signals"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{"timestamp":"2026-08-08T15:30:05.649Z","level":"info","event":"startup","message":"Relationship Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:30:05.712Z","level":"info","event":"discovery","message":"Relationship discovery complete","data":{"discovered":0,"durationMs":0}}
+{"timestamp":"2026-08-08T15:30:05.715Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:30:05.723Z","level":"info","event":"startup","message":"Relationship Memory Engine startup complete","data":{"nodes":0,"edges":0,"durationMs":66}}
+{"timestamp":"2026-08-08T15:30:07.550Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:30:08.911Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:30:09.312Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:30:09.985Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:30:10.019Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:47:18.066Z","level":"info","event":"startup","message":"Relationship Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
+{"timestamp":"2026-08-08T15:47:18.482Z","level":"info","event":"discovery","message":"Relationship discovery complete","data":{"discovered":0,"durationMs":0}}
+{"timestamp":"2026-08-08T15:47:18.484Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:47:18.490Z","level":"info","event":"startup","message":"Relationship Memory Engine startup complete","data":{"nodes":0,"edges":0,"durationMs":292}}
+{"timestamp":"2026-08-08T15:47:27.180Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:47:27.390Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:47:28.088Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}
+{"timestamp":"2026-08-08T15:47:28.114Z","level":"info","event":"integrity","message":"Integrity check complete","data":{"issues":0,"repaired":0,"valid":true}}

@@ -1,0 +1,1340 @@
+{
+  "packId": "c40be6cf-0508-4912-a57c-e28aee2ceb9e",
+  "packSlug": "branding",
+  "domain": "branding-knowledge",
+  "title": "Professional Branding Knowledge Pack",
+  "version": 1,
+  "status": "generated",
+  "items": [
+    {
+      "knowledgeId": "brand-brand-identity",
+      "title": "Brand Identity",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The distinctive system of meaning, marks, and expressions that make a brand recognizable.",
+      "coreConcepts": [
+        "brand identity",
+        "identity system",
+        "brand marks"
+      ],
+      "definitions": [
+        "Brand identity is the intentional set of verbal and visual assets—name, logo, colors, type, voice—that encode what the brand stands for.",
+        "Anchor all creative decisions in a coherent identity."
+      ],
+      "rules": [
+        "Practice: Document core identity elements",
+        "Practice: Prioritize recognition over novelty",
+        "Practice: Keep identity flexible for platforms"
+      ],
+      "bestPractices": [
+        "Document core identity elements",
+        "Prioritize recognition over novelty",
+        "Keep identity flexible for platforms"
+      ],
+      "professionalTechniques": [
+        "Audit",
+        "Define pillars",
+        "Design system",
+        "Roll out"
+      ],
+      "workflow": [
+        "Audit",
+        "Define pillars",
+        "Design system",
+        "Roll out"
+      ],
+      "decisionRules": [
+        "Follow: Document core identity elements",
+        "Follow: Prioritize recognition over novelty",
+        "Follow: Keep identity flexible for platforms"
+      ],
+      "commonMistakes": [
+        "Inconsistent marks",
+        "Identity that doesn’t match audience"
+      ],
+      "troubleshooting": [
+        "Avoid: Inconsistent marks",
+        "Avoid: Identity that doesn’t match audience"
+      ],
+      "recommendations": [
+        "Document core identity elements",
+        "Prioritize recognition over novelty",
+        "Keep identity flexible for platforms"
+      ],
+      "examples": [
+        "Identity kit driving all video end cards and lower thirds"
+      ],
+      "professionalStandards": [
+        "Brand identity is the intentional set of verbal and visual assets—name, logo, colors, type, voice—that encode what the brand stands for."
+      ],
+      "relatedTopics": [
+        "visual-identity",
+        "brand-guidelines",
+        "logo-usage",
+        "brand-voice"
+      ],
+      "keywords": [
+        "brand identity",
+        "identity system",
+        "brand marks"
+      ],
+      "confidenceScore": 94,
+      "qualityScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-identity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-positioning",
+      "title": "Brand Positioning",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "How the brand is meant to be perceived versus alternatives in the customer’s mind.",
+      "coreConcepts": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "definitions": [
+        "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place.",
+        "Keep messaging and creative differentiated."
+      ],
+      "rules": [
+        "Practice: One sharp difference",
+        "Practice: Proof that supports the claim",
+        "Practice: Repeat consistently"
+      ],
+      "bestPractices": [
+        "One sharp difference",
+        "Proof that supports the claim",
+        "Repeat consistently"
+      ],
+      "professionalTechniques": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "workflow": [
+        "Research",
+        "Draft positioning",
+        "Test",
+        "Lock into briefs"
+      ],
+      "decisionRules": [
+        "Follow: One sharp difference",
+        "Follow: Proof that supports the claim",
+        "Follow: Repeat consistently"
+      ],
+      "commonMistakes": [
+        "Generic ‘quality’ positioning",
+        "Positioning nobody believes"
+      ],
+      "troubleshooting": [
+        "Avoid: Generic ‘quality’ positioning",
+        "Avoid: Positioning nobody believes"
+      ],
+      "recommendations": [
+        "One sharp difference",
+        "Proof that supports the claim",
+        "Repeat consistently"
+      ],
+      "examples": [
+        "Position: fastest setup for non-technical teams — shown in 20s demo"
+      ],
+      "professionalStandards": [
+        "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place."
+      ],
+      "relatedTopics": [
+        "value-proposition",
+        "brand-story",
+        "product-marketing",
+        "authority"
+      ],
+      "keywords": [
+        "brand positioning",
+        "differentiation",
+        "competitive frame"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-positioning",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-awareness",
+      "title": "Brand Awareness",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Making the brand known and easily recalled in buying situations.",
+      "coreConcepts": [
+        "brand awareness",
+        "recognition",
+        "recall",
+        "distinctive assets"
+      ],
+      "definitions": [
+        "Brand awareness is the extent to which audiences recognize and recall a brand, built through distinctive assets and repeated distinctive exposures.",
+        "Guide top-funnel video and distinctive brand coding."
+      ],
+      "rules": [
+        "Practice: Use distinctive brand assets early",
+        "Practice: Frequency with variation",
+        "Practice: Measure aided/unaided recall proxies"
+      ],
+      "bestPractices": [
+        "Use distinctive brand assets early",
+        "Frequency with variation",
+        "Measure aided/unaided recall proxies"
+      ],
+      "professionalTechniques": [
+        "Define assets",
+        "TOF creative",
+        "Distribute",
+        "Measure reach/recall proxies"
+      ],
+      "workflow": [
+        "Define assets",
+        "TOF creative",
+        "Distribute",
+        "Measure reach/recall proxies"
+      ],
+      "decisionRules": [
+        "Follow: Use distinctive brand assets early",
+        "Follow: Frequency with variation",
+        "Follow: Measure aided/unaided recall proxies"
+      ],
+      "commonMistakes": [
+        "Logo-only with no memory structures",
+        "Inconsistent cues"
+      ],
+      "troubleshooting": [
+        "Avoid: Logo-only with no memory structures",
+        "Avoid: Inconsistent cues"
+      ],
+      "recommendations": [
+        "Use distinctive brand assets early",
+        "Frequency with variation",
+        "Measure aided/unaided recall proxies"
+      ],
+      "examples": [
+        "Sonic logo + color flash in first 1s of every ad"
+      ],
+      "professionalStandards": [
+        "Brand awareness is the extent to which audiences recognize and recall a brand, built through distinctive assets and repeated distinctive exposures."
+      ],
+      "relatedTopics": [
+        "first-3-seconds-strategy",
+        "logo-usage",
+        "visual-identity",
+        "hook-creation"
+      ],
+      "keywords": [
+        "brand awareness",
+        "recognition",
+        "recall",
+        "distinctive assets"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-awareness",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-trust",
+      "title": "Brand Trust",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Credibility and reliability perceptions that reduce purchase risk.",
+      "coreConcepts": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "definitions": [
+        "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence.",
+        "Recommend trust cues in creative and claims."
+      ],
+      "rules": [
+        "Practice: Show real proof",
+        "Practice: Consistent delivery of promises",
+        "Practice: Avoid hype that breaks trust"
+      ],
+      "bestPractices": [
+        "Show real proof",
+        "Consistent delivery of promises",
+        "Avoid hype that breaks trust"
+      ],
+      "professionalTechniques": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "workflow": [
+        "List trust gaps",
+        "Choose proof types",
+        "Place in creative",
+        "Verify claims"
+      ],
+      "decisionRules": [
+        "Follow: Show real proof",
+        "Follow: Consistent delivery of promises",
+        "Follow: Avoid hype that breaks trust"
+      ],
+      "commonMistakes": [
+        "Fake urgency",
+        "Unsubstantiated claims"
+      ],
+      "troubleshooting": [
+        "Avoid: Fake urgency",
+        "Avoid: Unsubstantiated claims"
+      ],
+      "recommendations": [
+        "Show real proof",
+        "Consistent delivery of promises",
+        "Avoid hype that breaks trust"
+      ],
+      "examples": [
+        "Verified reviews + demo evidence in mid-funnel video"
+      ],
+      "professionalStandards": [
+        "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence."
+      ],
+      "relatedTopics": [
+        "trust-building",
+        "social-proof",
+        "authority",
+        "brand-consistency"
+      ],
+      "keywords": [
+        "brand trust",
+        "credibility",
+        "reliability",
+        "proof"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-trust",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-consistency",
+      "title": "Brand Consistency",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Keeping identity and message coherent across touchpoints and time.",
+      "coreConcepts": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "definitions": [
+        "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound.",
+        "Prevent fragmented campaigns that dilute memory."
+      ],
+      "rules": [
+        "Practice: Follow guidelines",
+        "Practice: Allow controlled flexibility",
+        "Practice: QA across channels"
+      ],
+      "bestPractices": [
+        "Follow guidelines",
+        "Allow controlled flexibility",
+        "QA across channels"
+      ],
+      "professionalTechniques": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "workflow": [
+        "Guidelines",
+        "Templates",
+        "Review gates",
+        "Audit"
+      ],
+      "decisionRules": [
+        "Follow: Follow guidelines",
+        "Follow: Allow controlled flexibility",
+        "Follow: QA across channels"
+      ],
+      "commonMistakes": [
+        "Every campaign reinvented",
+        "Rigid rules that break platforms"
+      ],
+      "troubleshooting": [
+        "Avoid: Every campaign reinvented",
+        "Avoid: Rigid rules that break platforms"
+      ],
+      "recommendations": [
+        "Follow guidelines",
+        "Allow controlled flexibility",
+        "QA across channels"
+      ],
+      "examples": [
+        "Same end-card layout across all video lengths"
+      ],
+      "professionalStandards": [
+        "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound."
+      ],
+      "relatedTopics": [
+        "brand-guidelines",
+        "visual-identity",
+        "brand-voice",
+        "logo-usage"
+      ],
+      "keywords": [
+        "brand consistency",
+        "coherence",
+        "guidelines adherence"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-consistency",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-voice",
+      "title": "Brand Voice",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The consistent personality of brand language across copy and scripts.",
+      "coreConcepts": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "definitions": [
+        "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs.",
+        "Keep video scripts and CTAs sounding like the same brand."
+      ],
+      "rules": [
+        "Practice: Define do/don’t examples",
+        "Practice: Adapt intensity not personality",
+        "Practice: Align VO casting to voice"
+      ],
+      "bestPractices": [
+        "Define do/don’t examples",
+        "Adapt intensity not personality",
+        "Align VO casting to voice"
+      ],
+      "professionalTechniques": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "workflow": [
+        "Voice chart",
+        "Script against chart",
+        "Review",
+        "Caption match"
+      ],
+      "decisionRules": [
+        "Follow: Define do/don’t examples",
+        "Follow: Adapt intensity not personality",
+        "Follow: Align VO casting to voice"
+      ],
+      "commonMistakes": [
+        "Tone whiplash across ads",
+        "Voice that insults the audience"
+      ],
+      "troubleshooting": [
+        "Avoid: Tone whiplash across ads",
+        "Avoid: Voice that insults the audience"
+      ],
+      "recommendations": [
+        "Define do/don’t examples",
+        "Adapt intensity not personality",
+        "Align VO casting to voice"
+      ],
+      "examples": [
+        "Expert-calm VO across demo and testimonial edits"
+      ],
+      "professionalStandards": [
+        "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs."
+      ],
+      "relatedTopics": [
+        "brand-story",
+        "brand-guidelines",
+        "ending-strategy",
+        "cta-strategy"
+      ],
+      "keywords": [
+        "brand voice",
+        "tone",
+        "verbal identity",
+        "script voice"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-voice",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-story",
+      "title": "Brand Story",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The overarching narrative of origin, belief, and promise (identity-level, not film craft).",
+      "coreConcepts": [
+        "brand story",
+        "origin story",
+        "brand narrative",
+        "promise"
+      ],
+      "definitions": [
+        "Brand story is the strategic narrative of why the brand exists, whom it serves, and what change it stands for—guiding campaigns without replacing tactical storytelling craft.",
+        "Inform film concepts while remaining distinct from storytelling-domain brand-storytelling technique."
+      ],
+      "rules": [
+        "Practice: Truth over mythology",
+        "Practice: Human stakes",
+        "Practice: Connect to product proof"
+      ],
+      "bestPractices": [
+        "Truth over mythology",
+        "Human stakes",
+        "Connect to product proof"
+      ],
+      "professionalTechniques": [
+        "Origin/belief",
+        "Audience role",
+        "Promise",
+        "Proof pillars"
+      ],
+      "workflow": [
+        "Origin/belief",
+        "Audience role",
+        "Promise",
+        "Proof pillars"
+      ],
+      "decisionRules": [
+        "Follow: Truth over mythology",
+        "Follow: Human stakes",
+        "Follow: Connect to product proof"
+      ],
+      "commonMistakes": [
+        "Purpose-washing",
+        "Story disconnected from offer"
+      ],
+      "troubleshooting": [
+        "Avoid: Purpose-washing",
+        "Avoid: Story disconnected from offer"
+      ],
+      "recommendations": [
+        "Truth over mythology",
+        "Human stakes",
+        "Connect to product proof"
+      ],
+      "examples": [
+        "Founder problem story feeding annual brand film pillars"
+      ],
+      "professionalStandards": [
+        "Brand story is the strategic narrative of why the brand exists, whom it serves, and what change it stands for—guiding campaigns without replacing tactical storytelling craft."
+      ],
+      "relatedTopics": [
+        "brand-positioning",
+        "brand-identity",
+        "emotional-triggers",
+        "brand-trust"
+      ],
+      "keywords": [
+        "brand story",
+        "origin story",
+        "brand narrative",
+        "promise"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-story",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-brand-guidelines",
+      "title": "Brand Guidelines",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Documented rules for using identity assets correctly.",
+      "coreConcepts": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "definitions": [
+        "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently.",
+        "Enable quality control across video and design outputs."
+      ],
+      "rules": [
+        "Practice: Include video/motion sections",
+        "Practice: Show correct/incorrect examples",
+        "Practice: Keep accessible to vendors"
+      ],
+      "bestPractices": [
+        "Include video/motion sections",
+        "Show correct/incorrect examples",
+        "Keep accessible to vendors"
+      ],
+      "professionalTechniques": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "workflow": [
+        "Compile rules",
+        "Add examples",
+        "Train teams",
+        "Enforce in review"
+      ],
+      "decisionRules": [
+        "Follow: Include video/motion sections",
+        "Follow: Show correct/incorrect examples",
+        "Follow: Keep accessible to vendors"
+      ],
+      "commonMistakes": [
+        "Guidelines never updated",
+        "No motion rules"
+      ],
+      "troubleshooting": [
+        "Avoid: Guidelines never updated",
+        "Avoid: No motion rules"
+      ],
+      "recommendations": [
+        "Include video/motion sections",
+        "Show correct/incorrect examples",
+        "Keep accessible to vendors"
+      ],
+      "examples": [
+        "Motion section: allowed easings, logo clear space in end cards"
+      ],
+      "professionalStandards": [
+        "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently."
+      ],
+      "relatedTopics": [
+        "logo-usage",
+        "visual-identity",
+        "brand-consistency",
+        "brand-voice"
+      ],
+      "keywords": [
+        "brand guidelines",
+        "brand book",
+        "usage rules",
+        "style guide"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:brand-guidelines",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-logo-usage",
+      "title": "Logo Usage",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "Correct placement, clear space, colorways, and misuse prevention for logos.",
+      "coreConcepts": [
+        "logo usage",
+        "clear space",
+        "lockup",
+        "trademark"
+      ],
+      "definitions": [
+        "Logo usage rules define how the mark may appear—sizing, clear space, backgrounds, and forbidden treatments—across video frames and end cards.",
+        "Protect recognition and legal trademark presentation."
+      ],
+      "rules": [
+        "Practice: Respect clear space",
+        "Practice: Prefer approved colorways",
+        "Practice: Avoid stretch/rotate/effects that break marks"
+      ],
+      "bestPractices": [
+        "Respect clear space",
+        "Prefer approved colorways",
+        "Avoid stretch/rotate/effects that break marks"
+      ],
+      "professionalTechniques": [
+        "Check guidelines",
+        "Place in safe area",
+        "Verify contrast",
+        "Approve"
+      ],
+      "workflow": [
+        "Check guidelines",
+        "Place in safe area",
+        "Verify contrast",
+        "Approve"
+      ],
+      "decisionRules": [
+        "Follow: Respect clear space",
+        "Follow: Prefer approved colorways",
+        "Follow: Avoid stretch/rotate/effects that break marks"
+      ],
+      "commonMistakes": [
+        "Low-contrast logo on busy BG",
+        "Animated distortion"
+      ],
+      "troubleshooting": [
+        "Avoid: Low-contrast logo on busy BG",
+        "Avoid: Animated distortion"
+      ],
+      "recommendations": [
+        "Respect clear space",
+        "Prefer approved colorways",
+        "Avoid stretch/rotate/effects that break marks"
+      ],
+      "examples": [
+        "End card logo centered with required padding and brand field"
+      ],
+      "professionalStandards": [
+        "Logo usage rules define how the mark may appear—sizing, clear space, backgrounds, and forbidden treatments—across video frames and end cards."
+      ],
+      "relatedTopics": [
+        "brand-awareness",
+        "visual-identity",
+        "brand-guidelines",
+        "ending-strategy"
+      ],
+      "keywords": [
+        "logo usage",
+        "clear space",
+        "lockup",
+        "trademark"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:logo-usage",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    {
+      "knowledgeId": "brand-visual-identity",
+      "title": "Visual Identity",
+      "domain": "branding-knowledge",
+      "category": "professional-branding",
+      "description": "The visual system—color, type, imagery, layout—that expresses the brand.",
+      "coreConcepts": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "definitions": [
+        "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone.",
+        "Guide art direction for video frames, motion, and product presentation."
+      ],
+      "rules": [
+        "Practice: Limit palette",
+        "Practice: Define photography style",
+        "Practice: Design for motion-safe layouts"
+      ],
+      "bestPractices": [
+        "Limit palette",
+        "Define photography style",
+        "Design for motion-safe layouts"
+      ],
+      "professionalTechniques": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "workflow": [
+        "System components",
+        "Templates",
+        "Art direction brief",
+        "QA frames"
+      ],
+      "decisionRules": [
+        "Follow: Limit palette",
+        "Follow: Define photography style",
+        "Follow: Design for motion-safe layouts"
+      ],
+      "commonMistakes": [
+        "Clashing campaign art direction",
+        "Illegible type on video"
+      ],
+      "troubleshooting": [
+        "Avoid: Clashing campaign art direction",
+        "Avoid: Illegible type on video"
+      ],
+      "recommendations": [
+        "Limit palette",
+        "Define photography style",
+        "Design for motion-safe layouts"
+      ],
+      "examples": [
+        "Consistent color grade and type system across all SKUs’ videos"
+      ],
+      "professionalStandards": [
+        "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone."
+      ],
+      "relatedTopics": [
+        "brand-identity",
+        "brand-consistency",
+        "logo-usage",
+        "product-perception"
+      ],
+      "keywords": [
+        "visual identity",
+        "brand visuals",
+        "art direction",
+        "design system"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:visual-identity",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "structuredKnowledge": {
+    "title": "Professional Branding Knowledge Pack",
+    "category": "professional-marketing",
+    "domain": "branding-knowledge",
+    "description": "Curated professional marketing/branding/psychology knowledge for AI Me (does not create ads automatically).",
+    "sections": [
+      {
+        "title": "Topics",
+        "kind": "guidance",
+        "items": [
+          "Brand Identity",
+          "Brand Positioning",
+          "Brand Awareness",
+          "Brand Trust",
+          "Brand Consistency",
+          "Brand Voice",
+          "Brand Story",
+          "Brand Guidelines",
+          "Logo Usage",
+          "Visual Identity"
+        ]
+      },
+      {
+        "title": "Best Practices",
+        "kind": "guidance",
+        "items": [
+          "Document core identity elements",
+          "Prioritize recognition over novelty",
+          "Keep identity flexible for platforms",
+          "One sharp difference",
+          "Proof that supports the claim",
+          "Repeat consistently",
+          "Use distinctive brand assets early",
+          "Frequency with variation",
+          "Measure aided/unaided recall proxies",
+          "Show real proof",
+          "Consistent delivery of promises",
+          "Avoid hype that breaks trust",
+          "Follow guidelines",
+          "Allow controlled flexibility",
+          "QA across channels",
+          "Define do/don’t examples",
+          "Adapt intensity not personality",
+          "Align VO casting to voice",
+          "Truth over mythology",
+          "Human stakes",
+          "Connect to product proof",
+          "Include video/motion sections",
+          "Show correct/incorrect examples",
+          "Keep accessible to vendors",
+          "Respect clear space",
+          "Prefer approved colorways",
+          "Avoid stretch/rotate/effects that break marks",
+          "Limit palette",
+          "Define photography style",
+          "Design for motion-safe layouts"
+        ]
+      },
+      {
+        "title": "Workflow",
+        "kind": "workflow",
+        "items": [
+          "Audit",
+          "Define pillars",
+          "Design system",
+          "Roll out",
+          "Research",
+          "Draft positioning",
+          "Test",
+          "Lock into briefs",
+          "Define assets",
+          "TOF creative",
+          "Distribute",
+          "Measure reach/recall proxies",
+          "List trust gaps",
+          "Choose proof types",
+          "Place in creative",
+          "Verify claims",
+          "Guidelines",
+          "Templates",
+          "Review gates",
+          "Audit",
+          "Voice chart",
+          "Script against chart",
+          "Review",
+          "Caption match",
+          "Origin/belief",
+          "Audience role",
+          "Promise",
+          "Proof pillars",
+          "Compile rules",
+          "Add examples",
+          "Train teams",
+          "Enforce in review",
+          "Check guidelines",
+          "Place in safe area",
+          "Verify contrast",
+          "Approve",
+          "System components",
+          "Templates",
+          "Art direction brief",
+          "QA frames"
+        ]
+      },
+      {
+        "title": "Examples",
+        "kind": "examples",
+        "items": [
+          "Identity kit driving all video end cards and lower thirds",
+          "Position: fastest setup for non-technical teams — shown in 20s demo",
+          "Sonic logo + color flash in first 1s of every ad",
+          "Verified reviews + demo evidence in mid-funnel video",
+          "Same end-card layout across all video lengths",
+          "Expert-calm VO across demo and testimonial edits",
+          "Founder problem story feeding annual brand film pillars",
+          "Motion section: allowed easings, logo clear space in end cards",
+          "End card logo centered with required padding and brand field",
+          "Consistent color grade and type system across all SKUs’ videos"
+        ]
+      }
+    ],
+    "concepts": [
+      "brand identity",
+      "identity system",
+      "brand marks",
+      "brand positioning",
+      "differentiation",
+      "competitive frame",
+      "brand awareness",
+      "recognition",
+      "recall",
+      "distinctive assets",
+      "brand trust",
+      "credibility",
+      "reliability",
+      "proof",
+      "brand consistency",
+      "coherence",
+      "guidelines adherence",
+      "brand voice",
+      "tone",
+      "verbal identity",
+      "script voice",
+      "brand story",
+      "origin story",
+      "brand narrative",
+      "promise",
+      "brand guidelines",
+      "brand book",
+      "usage rules",
+      "style guide",
+      "logo usage",
+      "clear space",
+      "lockup",
+      "trademark",
+      "visual identity",
+      "brand visuals",
+      "art direction",
+      "design system"
+    ],
+    "entities": [
+      "Brand Identity",
+      "Brand Positioning",
+      "Brand Awareness",
+      "Brand Trust",
+      "Brand Consistency",
+      "Brand Voice",
+      "Brand Story",
+      "Brand Guidelines",
+      "Logo Usage",
+      "Visual Identity"
+    ],
+    "terminology": [
+      "brand identity",
+      "identity system",
+      "brand marks",
+      "brand positioning",
+      "differentiation",
+      "competitive frame",
+      "brand awareness",
+      "recognition",
+      "recall",
+      "distinctive assets",
+      "brand trust",
+      "credibility",
+      "reliability",
+      "proof",
+      "brand consistency",
+      "coherence",
+      "guidelines adherence",
+      "brand voice",
+      "tone",
+      "verbal identity",
+      "script voice",
+      "brand story",
+      "origin story",
+      "brand narrative",
+      "promise",
+      "brand guidelines",
+      "brand book",
+      "usage rules",
+      "style guide",
+      "logo usage",
+      "clear space",
+      "lockup",
+      "trademark",
+      "visual identity",
+      "brand visuals",
+      "art direction",
+      "design system"
+    ],
+    "rules": [
+      "Practice: Document core identity elements",
+      "Practice: Prioritize recognition over novelty",
+      "Practice: Keep identity flexible for platforms",
+      "Practice: One sharp difference",
+      "Practice: Proof that supports the claim",
+      "Practice: Repeat consistently",
+      "Practice: Use distinctive brand assets early",
+      "Practice: Frequency with variation",
+      "Practice: Measure aided/unaided recall proxies",
+      "Practice: Show real proof",
+      "Practice: Consistent delivery of promises",
+      "Practice: Avoid hype that breaks trust",
+      "Practice: Follow guidelines",
+      "Practice: Allow controlled flexibility",
+      "Practice: QA across channels",
+      "Practice: Define do/don’t examples",
+      "Practice: Adapt intensity not personality",
+      "Practice: Align VO casting to voice",
+      "Practice: Truth over mythology",
+      "Practice: Human stakes",
+      "Practice: Connect to product proof",
+      "Practice: Include video/motion sections",
+      "Practice: Show correct/incorrect examples",
+      "Practice: Keep accessible to vendors",
+      "Practice: Respect clear space",
+      "Practice: Prefer approved colorways",
+      "Practice: Avoid stretch/rotate/effects that break marks",
+      "Practice: Limit palette",
+      "Practice: Define photography style",
+      "Practice: Design for motion-safe layouts"
+    ],
+    "bestPractices": [
+      "Document core identity elements",
+      "Prioritize recognition over novelty",
+      "Keep identity flexible for platforms",
+      "One sharp difference",
+      "Proof that supports the claim",
+      "Repeat consistently",
+      "Use distinctive brand assets early",
+      "Frequency with variation",
+      "Measure aided/unaided recall proxies",
+      "Show real proof",
+      "Consistent delivery of promises",
+      "Avoid hype that breaks trust",
+      "Follow guidelines",
+      "Allow controlled flexibility",
+      "QA across channels",
+      "Define do/don’t examples",
+      "Adapt intensity not personality",
+      "Align VO casting to voice",
+      "Truth over mythology",
+      "Human stakes",
+      "Connect to product proof",
+      "Include video/motion sections",
+      "Show correct/incorrect examples",
+      "Keep accessible to vendors",
+      "Respect clear space",
+      "Prefer approved colorways",
+      "Avoid stretch/rotate/effects that break marks",
+      "Limit palette",
+      "Define photography style",
+      "Design for motion-safe layouts"
+    ],
+    "professionalTechniques": [
+      "Audit",
+      "Define pillars",
+      "Design system",
+      "Roll out",
+      "Research",
+      "Draft positioning",
+      "Test",
+      "Lock into briefs",
+      "Define assets",
+      "TOF creative",
+      "Distribute",
+      "Measure reach/recall proxies",
+      "List trust gaps",
+      "Choose proof types",
+      "Place in creative",
+      "Verify claims",
+      "Guidelines",
+      "Templates",
+      "Review gates",
+      "Audit",
+      "Voice chart",
+      "Script against chart",
+      "Review",
+      "Caption match",
+      "Origin/belief",
+      "Audience role",
+      "Promise",
+      "Proof pillars",
+      "Compile rules",
+      "Add examples",
+      "Train teams",
+      "Enforce in review",
+      "Check guidelines",
+      "Place in safe area",
+      "Verify contrast",
+      "Approve",
+      "System components",
+      "Templates",
+      "Art direction brief",
+      "QA frames"
+    ],
+    "examples": [
+      "Identity kit driving all video end cards and lower thirds",
+      "Position: fastest setup for non-technical teams — shown in 20s demo",
+      "Sonic logo + color flash in first 1s of every ad",
+      "Verified reviews + demo evidence in mid-funnel video",
+      "Same end-card layout across all video lengths",
+      "Expert-calm VO across demo and testimonial edits",
+      "Founder problem story feeding annual brand film pillars",
+      "Motion section: allowed easings, logo clear space in end cards",
+      "End card logo centered with required padding and brand field",
+      "Consistent color grade and type system across all SKUs’ videos"
+    ],
+    "commonMistakes": [
+      "Inconsistent marks",
+      "Identity that doesn’t match audience",
+      "Generic ‘quality’ positioning",
+      "Positioning nobody believes",
+      "Logo-only with no memory structures",
+      "Inconsistent cues",
+      "Fake urgency",
+      "Unsubstantiated claims",
+      "Every campaign reinvented",
+      "Rigid rules that break platforms",
+      "Tone whiplash across ads",
+      "Voice that insults the audience",
+      "Purpose-washing",
+      "Story disconnected from offer",
+      "Guidelines never updated",
+      "No motion rules",
+      "Low-contrast logo on busy BG",
+      "Animated distortion",
+      "Clashing campaign art direction",
+      "Illegible type on video"
+    ],
+    "qualityRules": [
+      "Brand identity is the intentional set of verbal and visual assets—name, logo, colors, type, voice—that encode what the brand stands for.",
+      "Brand positioning articulates the target, frame of reference, point of difference, and reason to believe that define competitive place.",
+      "Brand awareness is the extent to which audiences recognize and recall a brand, built through distinctive assets and repeated distinctive exposures.",
+      "Brand trust is the audience belief that the brand will deliver as promised—built via proof, consistency, transparency, and social evidence.",
+      "Brand consistency is disciplined reuse of verbal, visual, and experiential cues so recognition and meaning compound.",
+      "Brand voice is the stable tonal and linguistic personality—formal, witty, expert, caring—applied across scripts, captions, and CTAs.",
+      "Brand story is the strategic narrative of why the brand exists, whom it serves, and what change it stands for—guiding campaigns without replacing tactical storytelling craft.",
+      "Brand guidelines specify approved usage of logo, color, type, imagery, voice, and motion so teams execute consistently.",
+      "Logo usage rules define how the mark may appear—sizing, clear space, backgrounds, and forbidden treatments—across video frames and end cards.",
+      "Visual identity is the coordinated graphic system that makes brand materials instantly recognizable and emotionally on-tone."
+    ],
+    "decisionRules": [
+      "Follow: Document core identity elements",
+      "Follow: Prioritize recognition over novelty",
+      "Follow: Keep identity flexible for platforms",
+      "Follow: One sharp difference",
+      "Follow: Proof that supports the claim",
+      "Follow: Repeat consistently",
+      "Follow: Use distinctive brand assets early",
+      "Follow: Frequency with variation",
+      "Follow: Measure aided/unaided recall proxies",
+      "Follow: Show real proof",
+      "Follow: Consistent delivery of promises",
+      "Follow: Avoid hype that breaks trust",
+      "Follow: Follow guidelines",
+      "Follow: Allow controlled flexibility",
+      "Follow: QA across channels",
+      "Follow: Define do/don’t examples",
+      "Follow: Adapt intensity not personality",
+      "Follow: Align VO casting to voice",
+      "Follow: Truth over mythology",
+      "Follow: Human stakes",
+      "Follow: Connect to product proof",
+      "Follow: Include video/motion sections",
+      "Follow: Show correct/incorrect examples",
+      "Follow: Keep accessible to vendors",
+      "Follow: Respect clear space",
+      "Follow: Prefer approved colorways",
+      "Follow: Avoid stretch/rotate/effects that break marks",
+      "Follow: Limit palette",
+      "Follow: Define photography style",
+      "Follow: Design for motion-safe layouts"
+    ],
+    "workflowSteps": [
+      "Audit",
+      "Define pillars",
+      "Design system",
+      "Roll out",
+      "Research",
+      "Draft positioning",
+      "Test",
+      "Lock into briefs",
+      "Define assets",
+      "TOF creative",
+      "Distribute",
+      "Measure reach/recall proxies",
+      "List trust gaps",
+      "Choose proof types",
+      "Place in creative",
+      "Verify claims",
+      "Guidelines",
+      "Templates",
+      "Review gates",
+      "Audit",
+      "Voice chart",
+      "Script against chart",
+      "Review",
+      "Caption match",
+      "Origin/belief",
+      "Audience role",
+      "Promise",
+      "Proof pillars",
+      "Compile rules",
+      "Add examples",
+      "Train teams",
+      "Enforce in review",
+      "Check guidelines",
+      "Place in safe area",
+      "Verify contrast",
+      "Approve",
+      "System components",
+      "Templates",
+      "Art direction brief",
+      "QA frames"
+    ],
+    "prerequisites": [
+      "Define audience and offer before selecting marketing tactics."
+    ],
+    "dependencies": [
+      "storytelling-knowledge",
+      "product-knowledge",
+      "social-media-knowledge"
+    ],
+    "relatedKnowledge": [
+      "brand-brand-identity",
+      "brand-brand-positioning",
+      "brand-brand-awareness",
+      "brand-brand-trust",
+      "brand-brand-consistency",
+      "brand-brand-voice",
+      "brand-brand-story",
+      "brand-brand-guidelines",
+      "brand-logo-usage",
+      "brand-visual-identity"
+    ],
+    "difficultyLevel": "advanced",
+    "confidenceScore": 92,
+    "sourceMetadata": [
+      {
+        "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+        "type": "curated-professional",
+        "reliability": 95
+      }
+    ]
+  },
+  "resourceIds": [
+    "professional-marketing-branding-psychology-expansion"
+  ],
+  "understandingIds": [],
+  "contentFingerprint": "273cb35f3bb184edea564f00baa199becf532fd398dffdc6fda30b87c3c09ca8",
+  "createdAt": "2026-08-08T19:03:21.880Z",
+  "updatedAt": "2026-08-08T19:03:21.882Z",
+  "originalDocumentsPreserved": true,
+  "issues": []
+}

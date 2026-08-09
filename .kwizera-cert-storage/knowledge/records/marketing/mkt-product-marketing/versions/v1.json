@@ -1,0 +1,321 @@
+{
+  "knowledgeId": "mkt-product-marketing",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-marketing",
+  "title": "Product Marketing",
+  "description": "Positioning, packaging messages, and go-to-market for a specific product.",
+  "summary": "Ensure creative and video present the right product story to the right buyer.",
+  "tags": [
+    "professional-marketing",
+    "professional",
+    "product-marketing",
+    "product marketing",
+    "positioning",
+    "GTM",
+    "messaging",
+    "ICP"
+  ],
+  "keywords": [
+    "product marketing",
+    "positioning",
+    "GTM",
+    "messaging",
+    "ICP"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-value-proposition",
+    "vmkt-feature-presentation",
+    "vmkt-benefit-presentation",
+    "vmkt-product-demonstration",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-product-knowledge",
+    "mbp-bridge-branding-knowledge",
+    "mbp-bridge-sales-psychology"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:04.607Z",
+  "lastUpdated": "2026-08-08T18:25:04.607Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\mkt-product-marketing",
+  "integrityStatus": "verified",
+  "contentHash": "f990cc568c5c2acd66bb8de55e715af330e7dcd6bb73fc9b8482a3f0f6afe0ed",
+  "searchableText": "product marketing positioning, packaging messages, and go-to-market for a specific product. ensure creative and video present the right product story to the right buyer. professional-marketing professional-marketing professional product-marketing product marketing positioning gtm messaging icp product marketing positioning gtm messaging icp",
+  "classification": {
+    "category": "professional-marketing",
+    "topic": "product-marketing-positioning,",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "product-marketing",
+    "kind": "professional-marketing",
+    "purpose": "Ensure creative and video present the right product story to the right buyer.",
+    "professionalDefinition": "Product marketing translates product capabilities into audience-relevant benefits, competitive positioning, and launch narratives.",
+    "workflow": [
+      "ICP",
+      "Positioning",
+      "Messaging pillars",
+      "Launch assets",
+      "Enable sales"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "mkt-product-marketing",
+      "title": "Product Marketing",
+      "domain": "marketing-knowledge",
+      "category": "professional-marketing",
+      "description": "Positioning, packaging messages, and go-to-market for a specific product.",
+      "coreConcepts": [
+        "product marketing",
+        "positioning",
+        "GTM",
+        "messaging",
+        "ICP"
+      ],
+      "definitions": [
+        "Product marketing translates product capabilities into audience-relevant benefits, competitive positioning, and launch narratives.",
+        "Ensure creative and video present the right product story to the right buyer."
+      ],
+      "rules": [
+        "Practice: Lead with outcomes",
+        "Practice: Differentiate clearly",
+        "Practice: Align sales and creative messaging"
+      ],
+      "bestPractices": [
+        "Lead with outcomes",
+        "Differentiate clearly",
+        "Align sales and creative messaging"
+      ],
+      "professionalTechniques": [
+        "ICP",
+        "Positioning",
+        "Messaging pillars",
+        "Launch assets",
+        "Enable sales"
+      ],
+      "workflow": [
+        "ICP",
+        "Positioning",
+        "Messaging pillars",
+        "Launch assets",
+        "Enable sales"
+      ],
+      "decisionRules": [
+        "Follow: Lead with outcomes",
+        "Follow: Differentiate clearly",
+        "Follow: Align sales and creative messaging"
+      ],
+      "commonMistakes": [
+        "Feature dumps",
+        "Positioning that ignores competitors"
+      ],
+      "troubleshooting": [
+        "Avoid: Feature dumps",
+        "Avoid: Positioning that ignores competitors"
+      ],
+      "recommendations": [
+        "Lead with outcomes",
+        "Differentiate clearly",
+        "Align sales and creative messaging"
+      ],
+      "examples": [
+        "Feature → benefit matrix feeding demo video script"
+      ],
+      "professionalStandards": [
+        "Product marketing translates product capabilities into audience-relevant benefits, competitive positioning, and launch narratives."
+      ],
+      "relatedTopics": [
+        "value-proposition",
+        "feature-presentation",
+        "benefit-presentation",
+        "product-demonstration"
+      ],
+      "keywords": [
+        "product marketing",
+        "positioning",
+        "GTM",
+        "messaging",
+        "ICP"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:product-marketing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Product Marketing",
+      "category": "professional-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Positioning, packaging messages, and go-to-market for a specific product.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Product marketing translates product capabilities into audience-relevant benefits, competitive positioning, and launch narratives."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Ensure creative and video present the right product story to the right buyer."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "ICP",
+            "Positioning",
+            "Messaging pillars",
+            "Launch assets",
+            "Enable sales"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Lead with outcomes",
+            "Differentiate clearly",
+            "Align sales and creative messaging"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Feature → benefit matrix feeding demo video script"
+          ]
+        }
+      ],
+      "concepts": [
+        "product marketing",
+        "positioning",
+        "GTM",
+        "messaging",
+        "ICP"
+      ],
+      "entities": [
+        "Product Marketing",
+        "marketing-knowledge",
+        "product-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "terminology": [
+        "product marketing",
+        "positioning",
+        "GTM",
+        "messaging",
+        "ICP"
+      ],
+      "rules": [
+        "Avoid: Feature dumps",
+        "Avoid: Positioning that ignores competitors"
+      ],
+      "bestPractices": [
+        "Lead with outcomes",
+        "Differentiate clearly",
+        "Align sales and creative messaging"
+      ],
+      "professionalTechniques": [
+        "ICP",
+        "Positioning",
+        "Messaging pillars",
+        "Launch assets",
+        "Enable sales"
+      ],
+      "examples": [
+        "Feature → benefit matrix feeding demo video script"
+      ],
+      "commonMistakes": [
+        "Feature dumps",
+        "Positioning that ignores competitors"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Lead with outcomes",
+        "Practice: Differentiate clearly",
+        "Practice: Align sales and creative messaging"
+      ],
+      "workflowSteps": [
+        "ICP",
+        "Positioning",
+        "Messaging pillars",
+        "Launch assets",
+        "Enable sales"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "product-knowledge",
+        "branding-knowledge",
+        "sales-psychology"
+      ],
+      "relatedKnowledge": [
+        "sales-value-proposition",
+        "vmkt-feature-presentation",
+        "vmkt-benefit-presentation",
+        "vmkt-product-demonstration"
+      ],
+      "definitions": [
+        "Product marketing translates product capabilities into audience-relevant benefits, competitive positioning, and launch narratives.",
+        "Ensure creative and video present the right product story to the right buyer."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Lead with outcomes",
+      "Differentiate clearly",
+      "Align sales and creative messaging"
+    ],
+    "bestPractices": [
+      "Lead with outcomes",
+      "Differentiate clearly",
+      "Align sales and creative messaging"
+    ],
+    "decisionRules": [
+      "Practice: Lead with outcomes",
+      "Practice: Differentiate clearly",
+      "Practice: Align sales and creative messaging"
+    ]
+  }
+}

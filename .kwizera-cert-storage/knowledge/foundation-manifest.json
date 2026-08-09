@@ -1,0 +1,23 @@
+{
+  "foundationVersion": "0.1.0",
+  "storageRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage",
+  "knowledgeRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge",
+  "categories": [
+    "product-knowledge",
+    "image-knowledge",
+    "video-knowledge",
+    "marketing-knowledge",
+    "brand-knowledge",
+    "language-knowledge",
+    "creative-knowledge",
+    "knowledge-optimization",
+    "knowledge-validation",
+    "knowledge-health-monitor",
+    "technical-knowledge",
+    "workflow-knowledge",
+    "business-knowledge",
+    "user-preference-knowledge",
+    "industry-knowledge"
+  ],
+  "createdAt": "2026-08-08T15:47:32.161Z"
+}

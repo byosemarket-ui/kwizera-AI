@@ -1,0 +1,98 @@
+{
+  "knowledgeId": "sm-bridge-branding-knowledge",
+  "knowledgeType": "marketing-knowledge",
+  "category": "sm-domain-bridge",
+  "title": "Branding Knowledge (related)",
+  "description": "Visual and voice consistency across social surfaces.",
+  "summary": "Feeds, Reels covers, and captions must stay on brand.",
+  "tags": [
+    "social-media",
+    "domain-bridge",
+    "branding-knowledge"
+  ],
+  "keywords": [
+    "branding-knowledge",
+    "social",
+    "media",
+    "platform",
+    "relationship"
+  ],
+  "source": "professional-social-media-knowledge",
+  "sourceReliability": 90,
+  "confidenceScore": 85,
+  "qualityScore": 85,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sm-social-media-fundamentals"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T19:03:43.688Z",
+  "lastUpdated": "2026-08-08T19:03:43.688Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\sm-bridge-branding-knowledge",
+  "integrityStatus": "verified",
+  "contentHash": "27d5bb2334169866ed7ab7b77e0e0daffdb0d300b80dd1913b5aaec2ab49fece",
+  "searchableText": "branding knowledge (related) visual and voice consistency across social surfaces. feeds, reels covers, and captions must stay on brand. sm-domain-bridge social-media domain-bridge branding-knowledge branding-knowledge social media platform relationship",
+  "classification": {
+    "category": "sm-domain-bridge",
+    "topic": "branding-knowledge-(related)",
+    "importance": "high",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 88,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-social-media",
+    "bridgeDomainId": "branding-knowledge",
+    "relationshipAnchor": true,
+    "publishesContent": false,
+    "professionalTechniques": [],
+    "bestPractices": [],
+    "decisionRules": [
+      "Relate social media knowledge to branding-knowledge."
+    ],
+    "structuredKnowledge": {
+      "title": "Branding Knowledge (related)",
+      "category": "domain-bridge",
+      "domain": "branding-knowledge",
+      "description": "Visual and voice consistency across social surfaces.",
+      "sections": [],
+      "concepts": [
+        "branding-knowledge"
+      ],
+      "entities": [
+        "branding-knowledge"
+      ],
+      "terminology": [
+        "branding-knowledge"
+      ],
+      "rules": [],
+      "bestPractices": [],
+      "professionalTechniques": [],
+      "examples": [],
+      "commonMistakes": [],
+      "qualityRules": [],
+      "decisionRules": [
+        "Relate social media knowledge to branding-knowledge."
+      ],
+      "workflowSteps": [],
+      "prerequisites": [],
+      "dependencies": [],
+      "relatedKnowledge": [
+        "sm-social-media-fundamentals"
+      ],
+      "difficultyLevel": "foundation",
+      "confidenceScore": 85,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Social Media Expansion",
+          "type": "curated",
+          "reliability": 95
+        }
+      ]
+    }
+  }
+}

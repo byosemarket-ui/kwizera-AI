@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-08T19:47:00.600Z","level":"info","event":"startup","message":"Image Production Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-generation\\production\\engine"}}
+{"timestamp":"2026-08-08T19:47:04.632Z","level":"info","event":"startup","message":"Image Production Engine startup complete","data":{"recordsLoaded":0}}

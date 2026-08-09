@@ -28,8 +28,9 @@ const DEFAULT_STORAGE_ESTIMATE_BYTES = 300_000;
 /** Builds the pre-download Research Preview and explains AI Me's source decisions to the user. */
 export class ResearchExplainer {
   buildPreview(plan: ResearchPlan, candidates: RankedSourceCandidate[]): ResearchPreview {
-    const estimatedDownloads = Math.min(candidates.length, plan.estimatedSourceCount);
-    const selected = candidates.slice(0, estimatedDownloads);
+    const accepted = candidates.filter((candidate) => candidate.accepted !== false);
+    const estimatedDownloads = Math.min(accepted.length, plan.estimatedSourceCount);
+    const selected = accepted.slice(0, estimatedDownloads);
     const estimatedKnowledgeCoveragePercent = selected.length
       ? Math.round(selected.reduce((total, candidate) => total + candidate.compositeScore, 0) / selected.length)
       : 0;
@@ -54,13 +55,38 @@ export class ResearchExplainer {
   explainSelection(candidate: RankedSourceCandidate): string {
     return (
       `"${candidate.name}" was selected (composite score ${candidate.compositeScore}): ` +
-      `trust ${candidate.trustScore}, quality ${candidate.qualityScore}, freshness ${candidate.freshnessScore}, ` +
-      `relevance ${candidate.relevanceScore}, completeness ${candidate.completenessScore}.`
+      `trust ${candidate.trustScore}, quality ${candidate.qualityScore}, authority ${candidate.authorityScore}, ` +
+      `freshness ${candidate.freshnessScore}, relevance ${candidate.relevanceScore}, completeness ${candidate.completenessScore}.`
     );
   }
 
   explainRejection(name: string, reason: string): string {
     return `"${name}" was not selected: ${reason}`;
+  }
+
+  recommendAdditionalTopics(selectedDomainLabels: string[]): string[] {
+    const catalog = [
+      "Video Production",
+      "Product Photography",
+      "Camera",
+      "Camera Movement",
+      "Lighting",
+      "Composition",
+      "Storytelling",
+      "Marketing",
+      "Branding",
+      "Customer Psychology",
+      "Sales Psychology",
+      "Video Editing",
+      "Motion Graphics",
+      "Animation",
+      "Rendering",
+      "Social Media",
+      "AI Video Production",
+      "Product Marketing",
+    ];
+    const selected = new Set(selectedDomainLabels.map((label) => label.toLowerCase()));
+    return catalog.filter((label) => !selected.has(label.toLowerCase())).slice(0, 6);
   }
 
   explainDownloadRecommendation(candidate: RankedSourceCandidate): string {

@@ -1,0 +1,305 @@
+{
+  "knowledgeId": "anim-squash-and-stretch",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-animation",
+  "title": "Squash and Stretch",
+  "description": "Volume-preserving deformation that sells flexibility, impact, and life.",
+  "summary": "Add life to characters and playful product moments without breaking believability.",
+  "tags": [
+    "professional-animation",
+    "professional",
+    "squash-and-stretch",
+    "squash and stretch",
+    "deform",
+    "elasticity",
+    "impact"
+  ],
+  "keywords": [
+    "squash and stretch",
+    "deform",
+    "elasticity",
+    "impact"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "anim-follow-through",
+    "anim-character-animation",
+    "anim-appeal",
+    "anim-principles-of-animation",
+    "amr-bridge-animation-knowledge",
+    "amr-bridge-marketing-knowledge"
+  ],
+  "version": 2,
+  "creationDate": "2026-08-08T15:36:50.900Z",
+  "lastUpdated": "2026-08-08T17:55:26.660Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\anim-squash-and-stretch",
+  "integrityStatus": "verified",
+  "contentHash": "d0c9db37417c34d9143dc6112bca6cda62a4e09572f80bf8d7ee7885c862e2bf",
+  "searchableText": "squash and stretch volume-preserving deformation that sells flexibility, impact, and life. add life to characters and playful product moments without breaking believability. professional-animation professional-animation professional squash-and-stretch squash and stretch deform elasticity impact squash and stretch deform elasticity impact",
+  "classification": {
+    "category": "professional-animation",
+    "topic": "squash-stretch-volume-preserving",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "squash-and-stretch",
+    "kind": "professional-animation",
+    "purpose": "Add life to characters and playful product moments without breaking believability.",
+    "professionalDefinition": "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force.",
+    "workflow": [
+      "Identify impact",
+      "Add squash",
+      "Recover stretch",
+      "Settle to rest"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "anim-squash-and-stretch",
+      "title": "Squash and Stretch",
+      "domain": "animation-knowledge",
+      "category": "professional-animation",
+      "description": "Volume-preserving deformation that sells flexibility, impact, and life.",
+      "coreConcepts": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "definitions": [
+        "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force.",
+        "Add life to characters and playful product moments without breaking believability."
+      ],
+      "rules": [
+        "Practice: Preserve volume",
+        "Practice: Dial down for premium/realistic brands",
+        "Practice: Use on impacts and landings"
+      ],
+      "bestPractices": [
+        "Preserve volume",
+        "Dial down for premium/realistic brands",
+        "Use on impacts and landings"
+      ],
+      "professionalTechniques": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "workflow": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "decisionRules": [
+        "Follow: Preserve volume",
+        "Follow: Dial down for premium/realistic brands",
+        "Follow: Use on impacts and landings"
+      ],
+      "commonMistakes": [
+        "Melting logos unprofessionally",
+        "Breaking rigid product materials"
+      ],
+      "troubleshooting": [
+        "Avoid: Melting logos unprofessionally",
+        "Avoid: Breaking rigid product materials"
+      ],
+      "recommendations": [
+        "Preserve volume",
+        "Dial down for premium/realistic brands",
+        "Use on impacts and landings"
+      ],
+      "examples": [
+        "Ball bounce; soft icon pop on notification"
+      ],
+      "professionalStandards": [
+        "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force."
+      ],
+      "relatedTopics": [
+        "follow-through",
+        "character-animation",
+        "appeal",
+        "principles-of-animation"
+      ],
+      "keywords": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:squash-and-stretch",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Squash and Stretch",
+      "category": "professional-animation",
+      "domain": "animation-knowledge",
+      "description": "Volume-preserving deformation that sells flexibility, impact, and life.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Add life to characters and playful product moments without breaking believability."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Identify impact",
+            "Add squash",
+            "Recover stretch",
+            "Settle to rest"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Preserve volume",
+            "Dial down for premium/realistic brands",
+            "Use on impacts and landings"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Ball bounce; soft icon pop on notification"
+          ]
+        }
+      ],
+      "concepts": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "entities": [
+        "Squash and Stretch",
+        "animation-knowledge",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "squash and stretch",
+        "deform",
+        "elasticity",
+        "impact"
+      ],
+      "rules": [
+        "Avoid: Melting logos unprofessionally",
+        "Avoid: Breaking rigid product materials"
+      ],
+      "bestPractices": [
+        "Preserve volume",
+        "Dial down for premium/realistic brands",
+        "Use on impacts and landings"
+      ],
+      "professionalTechniques": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "examples": [
+        "Ball bounce; soft icon pop on notification"
+      ],
+      "commonMistakes": [
+        "Melting logos unprofessionally",
+        "Breaking rigid product materials"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Preserve volume",
+        "Practice: Dial down for premium/realistic brands",
+        "Practice: Use on impacts and landings"
+      ],
+      "workflowSteps": [
+        "Identify impact",
+        "Add squash",
+        "Recover stretch",
+        "Settle to rest"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "animation-knowledge",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "anim-follow-through",
+        "anim-character-animation",
+        "anim-appeal",
+        "anim-principles-of-animation"
+      ],
+      "definitions": [
+        "Squash and stretch is temporary shape change that preserves volume to communicate elasticity and force.",
+        "Add life to characters and playful product moments without breaking believability."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "animation-knowledge",
+      "category": "professional-animation",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "Preserve volume",
+      "Dial down for premium/realistic brands",
+      "Use on impacts and landings"
+    ],
+    "bestPractices": [
+      "Preserve volume",
+      "Dial down for premium/realistic brands",
+      "Use on impacts and landings"
+    ],
+    "decisionRules": [
+      "Practice: Preserve volume",
+      "Practice: Dial down for premium/realistic brands",
+      "Practice: Use on impacts and landings"
+    ]
+  }
+}

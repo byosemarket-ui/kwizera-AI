@@ -1,0 +1,29 @@
+{
+  "foundationVersion": "0.1.0",
+  "storageRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage",
+  "generationRoot": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\audio-generation",
+  "modules": [
+    "text-to-speech-generation-engine",
+    "speech-to-speech-generation-engine",
+    "voice-cloning-generation-engine",
+    "music-generation-engine",
+    "sound-effects-generation-engine",
+    "ambient-audio-generation-engine",
+    "audio-enhancement-generation-engine",
+    "audio-restoration-generation-engine",
+    "audio-mixing-generation-engine",
+    "audio-mastering-generation-engine",
+    "audio-production-engine",
+    "audio-rendering-preparation-engine",
+    "audio-quality-validation-engine",
+    "audio-export-planning-engine",
+    "batch-audio-generation-engine",
+    "distributed-audio-generation-engine",
+    "cloud-audio-generation-preparation-engine",
+    "real-time-audio-preparation-engine",
+    "audio-generation-health-monitor"
+  ],
+  "assetTypes": 12,
+  "blueprintStages": 14,
+  "createdAt": "2026-08-08T19:47:07.519Z"
+}

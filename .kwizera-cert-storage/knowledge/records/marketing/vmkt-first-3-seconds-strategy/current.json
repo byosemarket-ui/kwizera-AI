@@ -1,0 +1,303 @@
+{
+  "knowledgeId": "vmkt-first-3-seconds-strategy",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-video-marketing",
+  "title": "First 3 Seconds Strategy",
+  "description": "Deliberate plan for frames 0–3 where most drop-off happens on social.",
+  "summary": "Reduce early drop-off on paid and organic social video.",
+  "tags": [
+    "professional-video-marketing",
+    "professional",
+    "first-3-seconds-strategy",
+    "first 3 seconds",
+    "3-second hook",
+    "early retention",
+    "open strategy"
+  ],
+  "keywords": [
+    "first 3 seconds",
+    "3-second hook",
+    "early retention",
+    "open strategy"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 95,
+  "qualityScore": 94,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "vmkt-hook-creation",
+    "vmkt-audience-retention",
+    "brand-brand-awareness",
+    "cust-attention-psychology",
+    "mbp-bridge-marketing-knowledge",
+    "mbp-bridge-social-media-knowledge",
+    "mbp-bridge-storytelling-knowledge",
+    "mbp-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:26:12.150Z",
+  "lastUpdated": "2026-08-08T18:26:12.150Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\vmkt-first-3-seconds-strategy",
+  "integrityStatus": "verified",
+  "contentHash": "8c9d2dda668d0c41418f4a1faf53b5d01b27e0d4dbe4926e8122a2842ba1f3af",
+  "searchableText": "first 3 seconds strategy deliberate plan for frames 0–3 where most drop-off happens on social. reduce early drop-off on paid and organic social video. professional-video-marketing professional-video-marketing professional first-3-seconds-strategy first 3 seconds 3-second hook early retention open strategy first 3 seconds 3-second hook early retention open strategy",
+  "classification": {
+    "category": "professional-video-marketing",
+    "topic": "first-seconds-strategy",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 95,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "first-3-seconds-strategy",
+    "kind": "professional-video-marketing",
+    "purpose": "Reduce early drop-off on paid and organic social video.",
+    "professionalDefinition": "First-3-seconds strategy prioritizes immediate clarity of audience, problem, or intrigue before brand ceremony.",
+    "workflow": [
+      "Storyboard first 3s",
+      "Multiple opens",
+      "Test retention curves"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "vmkt-first-3-seconds-strategy",
+      "title": "First 3 Seconds Strategy",
+      "domain": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "description": "Deliberate plan for frames 0–3 where most drop-off happens on social.",
+      "coreConcepts": [
+        "first 3 seconds",
+        "3-second hook",
+        "early retention",
+        "open strategy"
+      ],
+      "definitions": [
+        "First-3-seconds strategy prioritizes immediate clarity of audience, problem, or intrigue before brand ceremony.",
+        "Reduce early drop-off on paid and organic social video."
+      ],
+      "rules": [
+        "Practice: Motion or face early",
+        "Practice: On-screen text",
+        "Practice: Delay slow branding"
+      ],
+      "bestPractices": [
+        "Motion or face early",
+        "On-screen text",
+        "Delay slow branding"
+      ],
+      "professionalTechniques": [
+        "Storyboard first 3s",
+        "Multiple opens",
+        "Test retention curves"
+      ],
+      "workflow": [
+        "Storyboard first 3s",
+        "Multiple opens",
+        "Test retention curves"
+      ],
+      "decisionRules": [
+        "Follow: Motion or face early",
+        "Follow: On-screen text",
+        "Follow: Delay slow branding"
+      ],
+      "commonMistakes": [
+        "Slow establishing shots",
+        "Unreadable first text"
+      ],
+      "troubleshooting": [
+        "Avoid: Slow establishing shots",
+        "Avoid: Unreadable first text"
+      ],
+      "recommendations": [
+        "Motion or face early",
+        "On-screen text",
+        "Delay slow branding"
+      ],
+      "examples": [
+        "Cold open problem visual before brand slate"
+      ],
+      "professionalStandards": [
+        "First-3-seconds strategy prioritizes immediate clarity of audience, problem, or intrigue before brand ceremony."
+      ],
+      "relatedTopics": [
+        "hook-creation",
+        "audience-retention",
+        "brand-awareness",
+        "attention-psychology"
+      ],
+      "keywords": [
+        "first 3 seconds",
+        "3-second hook",
+        "early retention",
+        "open strategy"
+      ],
+      "confidenceScore": 95,
+      "qualityScore": 94,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:first-3-seconds-strategy",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "First 3 Seconds Strategy",
+      "category": "professional-video-marketing",
+      "domain": "marketing-knowledge",
+      "description": "Deliberate plan for frames 0–3 where most drop-off happens on social.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "First-3-seconds strategy prioritizes immediate clarity of audience, problem, or intrigue before brand ceremony."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Reduce early drop-off on paid and organic social video."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Storyboard first 3s",
+            "Multiple opens",
+            "Test retention curves"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Motion or face early",
+            "On-screen text",
+            "Delay slow branding"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Cold open problem visual before brand slate"
+          ]
+        }
+      ],
+      "concepts": [
+        "first 3 seconds",
+        "3-second hook",
+        "early retention",
+        "open strategy"
+      ],
+      "entities": [
+        "First 3 Seconds Strategy",
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "first 3 seconds",
+        "3-second hook",
+        "early retention",
+        "open strategy"
+      ],
+      "rules": [
+        "Avoid: Slow establishing shots",
+        "Avoid: Unreadable first text"
+      ],
+      "bestPractices": [
+        "Motion or face early",
+        "On-screen text",
+        "Delay slow branding"
+      ],
+      "professionalTechniques": [
+        "Storyboard first 3s",
+        "Multiple opens",
+        "Test retention curves"
+      ],
+      "examples": [
+        "Cold open problem visual before brand slate"
+      ],
+      "commonMistakes": [
+        "Slow establishing shots",
+        "Unreadable first text"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Motion or face early",
+        "Practice: On-screen text",
+        "Practice: Delay slow branding"
+      ],
+      "workflowSteps": [
+        "Storyboard first 3s",
+        "Multiple opens",
+        "Test retention curves"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "marketing-knowledge",
+        "social-media-knowledge",
+        "storytelling-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "vmkt-hook-creation",
+        "vmkt-audience-retention",
+        "brand-brand-awareness",
+        "cust-attention-psychology"
+      ],
+      "definitions": [
+        "First-3-seconds strategy prioritizes immediate clarity of audience, problem, or intrigue before brand ceremony.",
+        "Reduce early drop-off on paid and organic social video."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 95,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "marketing-knowledge",
+      "category": "professional-video-marketing",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Motion or face early",
+      "On-screen text",
+      "Delay slow branding"
+    ],
+    "bestPractices": [
+      "Motion or face early",
+      "On-screen text",
+      "Delay slow branding"
+    ],
+    "decisionRules": [
+      "Practice: Motion or face early",
+      "Practice: On-screen text",
+      "Practice: Delay slow branding"
+    ]
+  }
+}

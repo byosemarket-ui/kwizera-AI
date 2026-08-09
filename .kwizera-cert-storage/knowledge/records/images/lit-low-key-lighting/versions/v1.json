@@ -1,0 +1,341 @@
+{
+  "knowledgeId": "lit-low-key-lighting",
+  "knowledgeType": "image-knowledge",
+  "category": "professional-lighting",
+  "title": "Low-Key Lighting",
+  "description": "Dark-dominant lighting with selective highlights and deep shadows.",
+  "summary": "Create drama, secrecy, premium night aesthetics, and focused attention.",
+  "tags": [
+    "professional-lighting",
+    "professional",
+    "low-key-lighting",
+    "low-key",
+    "dark",
+    "dramatic lighting",
+    "selective highlight"
+  ],
+  "keywords": [
+    "low-key",
+    "dark",
+    "dramatic lighting",
+    "selective highlight"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 91,
+  "qualityScore": 90,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "lit-hard-lighting",
+    "lit-key-light",
+    "lit-shadows",
+    "lit-rim-light",
+    "lc-bridge-lighting-knowledge",
+    "lc-bridge-storytelling-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-composition-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:26.450Z",
+  "lastUpdated": "2026-08-08T15:32:26.450Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\images\\lit-low-key-lighting",
+  "integrityStatus": "verified",
+  "contentHash": "2f5bfb59849fa861f431c7d969d4c7aa83a57b31c0b3cfe60d0a9e74ed649625",
+  "searchableText": "low-key lighting dark-dominant lighting with selective highlights and deep shadows. create drama, secrecy, premium night aesthetics, and focused attention. professional-lighting professional-lighting professional low-key-lighting low-key dark dramatic lighting selective highlight low-key dark dramatic lighting selective highlight",
+  "classification": {
+    "category": "professional-lighting",
+    "topic": "low-key-lighting-dark-dominant",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "low-key-lighting",
+    "kind": "professional-lighting",
+    "purpose": "Create drama, secrecy, premium night aesthetics, and focused attention.",
+    "whenToUse": [
+      "Luxury night ads",
+      "Thriller beats",
+      "Selective product spotlight"
+    ],
+    "whenNotToUse": [
+      "Informational demos needing full readability",
+      "High-key brand systems"
+    ],
+    "advantages": [
+      "Strong mood",
+      "Hides clutter"
+    ],
+    "limitations": [
+      "Noise risk if underexposed",
+      "Can obscure product features"
+    ],
+    "relatedCameraTechniques": [
+      "exposure for highlight",
+      "noise management",
+      "manual WB in tungsten/LED night"
+    ],
+    "relatedStorytellingTechniques": [
+      "suspense",
+      "exclusivity",
+      "intimacy"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "lit-low-key-lighting",
+      "title": "Low-Key Lighting",
+      "domain": "lighting-knowledge",
+      "category": "professional-lighting",
+      "description": "Dark-dominant lighting with selective highlights and deep shadows.",
+      "coreConcepts": [
+        "low-key",
+        "dark",
+        "dramatic lighting",
+        "selective highlight"
+      ],
+      "definitions": [
+        "Create drama, secrecy, premium night aesthetics, and focused attention."
+      ],
+      "rules": [
+        "Use when: Luxury night ads",
+        "Use when: Thriller beats",
+        "Use when: Selective product spotlight",
+        "Do not use when: Informational demos needing full readability",
+        "Do not use when: High-key brand systems"
+      ],
+      "bestPractices": [
+        "Light what matters; crush what doesn’t",
+        "Use negative fill",
+        "Protect critical highlight shape"
+      ],
+      "professionalTechniques": [
+        "Strong mood",
+        "Hides clutter"
+      ],
+      "workflow": [
+        "Choose Low-Key Lighting",
+        "Light what matters; crush what doesn’t",
+        "Use negative fill",
+        "Protect critical highlight shape"
+      ],
+      "decisionRules": [
+        "Use when: Luxury night ads",
+        "Use when: Thriller beats",
+        "Use when: Selective product spotlight",
+        "Avoid when: Informational demos needing full readability",
+        "Avoid when: High-key brand systems"
+      ],
+      "commonMistakes": [
+        "Muddy underexposure without designed blacks",
+        "Losing logo legibility"
+      ],
+      "troubleshooting": [
+        "Limitation: Noise risk if underexposed",
+        "Limitation: Can obscure product features"
+      ],
+      "recommendations": [
+        "Light what matters; crush what doesn’t",
+        "Use negative fill",
+        "Protect critical highlight shape"
+      ],
+      "examples": [
+        "Single hard key on watch face in void"
+      ],
+      "professionalStandards": [
+        "suspense",
+        "exclusivity",
+        "intimacy"
+      ],
+      "relatedTopics": [
+        "hard-lighting",
+        "key-light",
+        "shadows",
+        "rim-light"
+      ],
+      "keywords": [
+        "low-key",
+        "dark",
+        "dramatic lighting",
+        "selective highlight"
+      ],
+      "confidenceScore": 91,
+      "qualityScore": 90,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:low-key-lighting",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Low-Key Lighting",
+      "category": "professional-lighting",
+      "domain": "lighting-knowledge",
+      "description": "Dark-dominant lighting with selective highlights and deep shadows.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Create drama, secrecy, premium night aesthetics, and focused attention."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Luxury night ads",
+            "Thriller beats",
+            "Selective product spotlight"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Informational demos needing full readability",
+            "High-key brand systems"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Light what matters; crush what doesn’t",
+            "Use negative fill",
+            "Protect critical highlight shape"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Single hard key on watch face in void"
+          ]
+        }
+      ],
+      "concepts": [
+        "low-key",
+        "dark",
+        "dramatic lighting",
+        "selective highlight"
+      ],
+      "entities": [
+        "Low-Key Lighting",
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "terminology": [
+        "low-key",
+        "dark",
+        "dramatic lighting",
+        "selective highlight"
+      ],
+      "rules": [
+        "Avoid when: Informational demos needing full readability",
+        "Avoid when: High-key brand systems"
+      ],
+      "bestPractices": [
+        "Light what matters; crush what doesn’t",
+        "Use negative fill",
+        "Protect critical highlight shape"
+      ],
+      "professionalTechniques": [
+        "Strong mood",
+        "Hides clutter"
+      ],
+      "examples": [
+        "Single hard key on watch face in void"
+      ],
+      "commonMistakes": [
+        "Muddy underexposure without designed blacks",
+        "Losing logo legibility"
+      ],
+      "qualityRules": [
+        "Noise risk if underexposed",
+        "Can obscure product features"
+      ],
+      "decisionRules": [
+        "Use when: Luxury night ads",
+        "Use when: Thriller beats",
+        "Use when: Selective product spotlight",
+        "Do not use when: Informational demos needing full readability",
+        "Do not use when: High-key brand systems"
+      ],
+      "workflowSteps": [
+        "Light what matters; crush what doesn’t",
+        "Use negative fill",
+        "Protect critical highlight shape"
+      ],
+      "prerequisites": [
+        "exposure for highlight",
+        "noise management",
+        "manual WB in tungsten/LED night"
+      ],
+      "dependencies": [
+        "lighting-knowledge",
+        "storytelling-knowledge",
+        "marketing-knowledge",
+        "composition-knowledge"
+      ],
+      "relatedKnowledge": [
+        "lit-hard-lighting",
+        "lit-key-light",
+        "lit-shadows",
+        "lit-rim-light"
+      ],
+      "definitions": [
+        "Create drama, secrecy, premium night aesthetics, and focused attention."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "lighting-knowledge",
+      "category": "professional-lighting",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Light what matters; crush what doesn’t",
+      "Use negative fill",
+      "Protect critical highlight shape"
+    ],
+    "bestPractices": [
+      "Light what matters; crush what doesn’t",
+      "Use negative fill",
+      "Protect critical highlight shape"
+    ],
+    "decisionRules": [
+      "Use when: Luxury night ads",
+      "Use when: Thriller beats",
+      "Use when: Selective product spotlight",
+      "Do not use when: Informational demos needing full readability",
+      "Do not use when: High-key brand systems"
+    ]
+  }
+}

@@ -1,0 +1,306 @@
+{
+  "knowledgeId": "cust-decision-making",
+  "knowledgeType": "marketing-knowledge",
+  "category": "professional-customer-psychology",
+  "title": "Decision Making",
+  "description": "How buyers choose under limited attention, bias, and uncertainty.",
+  "summary": "Design offers and CTAs that support clear decisions.",
+  "tags": [
+    "professional-customer-psychology",
+    "professional",
+    "decision-making",
+    "decision making",
+    "heuristics",
+    "choice",
+    "friction"
+  ],
+  "keywords": [
+    "decision making",
+    "heuristics",
+    "choice",
+    "friction"
+  ],
+  "source": "professional-marketing-branding-psychology-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "sales-objection-handling",
+    "sales-offer-presentation",
+    "sales-cta-strategy",
+    "cust-buying-motivation",
+    "mbp-bridge-customer-psychology",
+    "mbp-bridge-sales-psychology",
+    "mbp-bridge-marketing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T18:25:50.567Z",
+  "lastUpdated": "2026-08-08T18:25:50.567Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\marketing\\cust-decision-making",
+  "integrityStatus": "verified",
+  "contentHash": "ba6e64c9deff897f6dfbe5393f9aa33213c77d0fefa3f145f86c9653ec5ab16e",
+  "searchableText": "decision making how buyers choose under limited attention, bias, and uncertainty. design offers and ctas that support clear decisions. professional-customer-psychology professional-customer-psychology professional decision-making decision making heuristics choice friction decision making heuristics choice friction",
+  "classification": {
+    "category": "professional-customer-psychology",
+    "topic": "decision-making-buyers",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "marketing",
+    "creativeDomain": "campaign-creative",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-marketing-branding-psychology",
+    "expansionVersion": "1.0.0",
+    "topicId": "decision-making",
+    "kind": "professional-customer-psychology",
+    "purpose": "Design offers and CTAs that support clear decisions.",
+    "professionalDefinition": "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes.",
+    "workflow": [
+      "List decision criteria",
+      "Simplify options",
+      "Script clarity",
+      "Test CTA"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "cust-decision-making",
+      "title": "Decision Making",
+      "domain": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "description": "How buyers choose under limited attention, bias, and uncertainty.",
+      "coreConcepts": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "definitions": [
+        "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes.",
+        "Design offers and CTAs that support clear decisions."
+      ],
+      "rules": [
+        "Practice: Reduce cognitive load",
+        "Practice: Make next step obvious",
+        "Practice: Address top objections"
+      ],
+      "bestPractices": [
+        "Reduce cognitive load",
+        "Make next step obvious",
+        "Address top objections"
+      ],
+      "professionalTechniques": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "workflow": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "decisionRules": [
+        "Follow: Reduce cognitive load",
+        "Follow: Make next step obvious",
+        "Follow: Address top objections"
+      ],
+      "commonMistakes": [
+        "Too many choices",
+        "Hidden price/terms"
+      ],
+      "troubleshooting": [
+        "Avoid: Too many choices",
+        "Avoid: Hidden price/terms"
+      ],
+      "recommendations": [
+        "Reduce cognitive load",
+        "Make next step obvious",
+        "Address top objections"
+      ],
+      "examples": [
+        "Single plan highlighted as recommended in offer scene"
+      ],
+      "professionalStandards": [
+        "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes."
+      ],
+      "relatedTopics": [
+        "objection-handling",
+        "offer-presentation",
+        "cta-strategy",
+        "buying-motivation"
+      ],
+      "keywords": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-7:decision-making",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Decision Making",
+      "category": "professional-customer-psychology",
+      "domain": "customer-psychology",
+      "description": "How buyers choose under limited attention, bias, and uncertainty.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Design offers and CTAs that support clear decisions."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "List decision criteria",
+            "Simplify options",
+            "Script clarity",
+            "Test CTA"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Reduce cognitive load",
+            "Make next step obvious",
+            "Address top objections"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Single plan highlighted as recommended in offer scene"
+          ]
+        }
+      ],
+      "concepts": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "entities": [
+        "Decision Making",
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge"
+      ],
+      "terminology": [
+        "decision making",
+        "heuristics",
+        "choice",
+        "friction"
+      ],
+      "rules": [
+        "Avoid: Too many choices",
+        "Avoid: Hidden price/terms"
+      ],
+      "bestPractices": [
+        "Reduce cognitive load",
+        "Make next step obvious",
+        "Address top objections"
+      ],
+      "professionalTechniques": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "examples": [
+        "Single plan highlighted as recommended in offer scene"
+      ],
+      "commonMistakes": [
+        "Too many choices",
+        "Hidden price/terms"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: Reduce cognitive load",
+        "Practice: Make next step obvious",
+        "Practice: Address top objections"
+      ],
+      "workflowSteps": [
+        "List decision criteria",
+        "Simplify options",
+        "Script clarity",
+        "Test CTA"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "customer-psychology",
+        "sales-psychology",
+        "marketing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "sales-objection-handling",
+        "sales-offer-presentation",
+        "sales-cta-strategy",
+        "cust-buying-motivation"
+      ],
+      "definitions": [
+        "Decision-making psychology covers heuristics, evaluation criteria, and friction that shape yes/no/wait outcomes.",
+        "Design offers and CTAs that support clear decisions."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Marketing/Branding/Psychology Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "customer-psychology",
+      "category": "professional-customer-psychology",
+      "difficulty": "advanced",
+      "expansionStep": 7,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "createsAdvertisements": false
+    },
+    "createsAdvertisements": false,
+    "professionalTechniques": [
+      "Reduce cognitive load",
+      "Make next step obvious",
+      "Address top objections"
+    ],
+    "bestPractices": [
+      "Reduce cognitive load",
+      "Make next step obvious",
+      "Address top objections"
+    ],
+    "decisionRules": [
+      "Practice: Reduce cognitive load",
+      "Practice: Make next step obvious",
+      "Practice: Address top objections"
+    ]
+  }
+}

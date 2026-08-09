@@ -1,0 +1,324 @@
+{
+  "knowledgeId": "scene-scene-timing",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-scene-design",
+  "title": "Scene Timing",
+  "description": "Allocating duration so each scene earns its screen time relative to the whole.",
+  "summary": "Protect hook and CTA while giving proof enough room.",
+  "tags": [
+    "professional-scene-design",
+    "professional",
+    "scene-timing",
+    "scene timing",
+    "duration",
+    "pacing",
+    "time budget"
+  ],
+  "keywords": [
+    "scene timing",
+    "duration",
+    "pacing",
+    "time budget"
+  ],
+  "source": "professional-storytelling-scene-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "scene-scene-planning",
+    "scene-scene-purpose",
+    "story-call-to-action-placement",
+    "scene-opening-scene",
+    "ss-bridge-scene-knowledge",
+    "ss-bridge-marketing-knowledge",
+    "ss-bridge-video-production-knowledge",
+    "ss-bridge-storytelling-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:34:08.425Z",
+  "lastUpdated": "2026-08-08T15:34:08.425Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\scene-scene-timing",
+  "integrityStatus": "verified",
+  "contentHash": "670369812f812a313c496ad03ed9ce8474ef8e4ad64a191935ee82415227fca4",
+  "searchableText": "scene timing allocating duration so each scene earns its screen time relative to the whole. protect hook and cta while giving proof enough room. professional-scene-design professional-scene-design professional scene-timing scene timing duration pacing time budget scene timing duration pacing time budget",
+  "classification": {
+    "category": "professional-scene-design",
+    "topic": "scene-timing-allocating",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-storytelling-scene",
+    "expansionVersion": "1.0.0",
+    "topicId": "scene-timing",
+    "kind": "professional-scene-design",
+    "purpose": "Protect hook and CTA while giving proof enough room.",
+    "professionalDefinition": "Scene timing is the deliberate budgeting of seconds (or frames) per scene according to narrative priority and platform length.",
+    "whenToUse": [
+      "Timed ads (6/15/30/60)",
+      "Platform-native lengths"
+    ],
+    "whenNotToUse": [
+      "Untimed documentary observational scenes"
+    ],
+    "workflow": [
+      "Set total length",
+      "Assign % per beat",
+      "Rehearse with stopwatch"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "scene-scene-timing",
+      "title": "Scene Timing",
+      "domain": "scene-knowledge",
+      "category": "professional-scene-design",
+      "description": "Allocating duration so each scene earns its screen time relative to the whole.",
+      "coreConcepts": [
+        "scene timing",
+        "duration",
+        "pacing",
+        "time budget"
+      ],
+      "definitions": [
+        "Scene timing is the deliberate budgeting of seconds (or frames) per scene according to narrative priority and platform length.",
+        "Protect hook and CTA while giving proof enough room."
+      ],
+      "rules": [
+        "Use when: Timed ads (6/15/30/60)",
+        "Use when: Platform-native lengths",
+        "Do not use when: Untimed documentary observational scenes"
+      ],
+      "bestPractices": [
+        "Time-box on paper first",
+        "Front-load hook",
+        "Reserve end for CTA"
+      ],
+      "professionalTechniques": [
+        "Set total length",
+        "Assign % per beat",
+        "Rehearse with stopwatch"
+      ],
+      "workflow": [
+        "Set total length",
+        "Assign % per beat",
+        "Rehearse with stopwatch"
+      ],
+      "decisionRules": [
+        "Use when: Timed ads (6/15/30/60)",
+        "Use when: Platform-native lengths",
+        "Avoid when: Untimed documentary observational scenes"
+      ],
+      "commonMistakes": [
+        "Hero scene eating CTA time",
+        "Equal timing for unequal importance"
+      ],
+      "troubleshooting": [
+        "Avoid: Hero scene eating CTA time",
+        "Avoid: Equal timing for unequal importance"
+      ],
+      "recommendations": [
+        "Time-box on paper first",
+        "Front-load hook",
+        "Reserve end for CTA"
+      ],
+      "examples": [
+        "15s: 2s hook, 5s problem, 5s demo, 3s CTA"
+      ],
+      "professionalStandards": [
+        "Scene timing is the deliberate budgeting of seconds (or frames) per scene according to narrative priority and platform length."
+      ],
+      "relatedTopics": [
+        "scene-planning",
+        "scene-purpose",
+        "call-to-action-placement",
+        "opening-scene"
+      ],
+      "keywords": [
+        "scene timing",
+        "duration",
+        "pacing",
+        "time budget"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-4:scene-timing",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Scene Timing",
+      "category": "professional-scene-design",
+      "domain": "scene-knowledge",
+      "description": "Allocating duration so each scene earns its screen time relative to the whole.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Scene timing is the deliberate budgeting of seconds (or frames) per scene according to narrative priority and platform length."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Protect hook and CTA while giving proof enough room."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Timed ads (6/15/30/60)",
+            "Platform-native lengths"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Untimed documentary observational scenes"
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set total length",
+            "Assign % per beat",
+            "Rehearse with stopwatch"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Time-box on paper first",
+            "Front-load hook",
+            "Reserve end for CTA"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "15s: 2s hook, 5s problem, 5s demo, 3s CTA"
+          ]
+        }
+      ],
+      "concepts": [
+        "scene timing",
+        "duration",
+        "pacing",
+        "time budget"
+      ],
+      "entities": [
+        "Scene Timing",
+        "scene-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "terminology": [
+        "scene timing",
+        "duration",
+        "pacing",
+        "time budget"
+      ],
+      "rules": [
+        "Avoid when: Untimed documentary observational scenes"
+      ],
+      "bestPractices": [
+        "Time-box on paper first",
+        "Front-load hook",
+        "Reserve end for CTA"
+      ],
+      "professionalTechniques": [
+        "Set total length",
+        "Assign % per beat",
+        "Rehearse with stopwatch"
+      ],
+      "examples": [
+        "15s: 2s hook, 5s problem, 5s demo, 3s CTA"
+      ],
+      "commonMistakes": [
+        "Hero scene eating CTA time",
+        "Equal timing for unequal importance"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Use when: Timed ads (6/15/30/60)",
+        "Use when: Platform-native lengths",
+        "Do not use when: Untimed documentary observational scenes"
+      ],
+      "workflowSteps": [
+        "Set total length",
+        "Assign % per beat",
+        "Rehearse with stopwatch"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "scene-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge",
+        "storytelling-knowledge"
+      ],
+      "relatedKnowledge": [
+        "scene-scene-planning",
+        "scene-scene-purpose",
+        "story-call-to-action-placement",
+        "scene-opening-scene"
+      ],
+      "definitions": [
+        "Scene timing is the deliberate budgeting of seconds (or frames) per scene according to narrative priority and platform length.",
+        "Protect hook and CTA while giving proof enough room."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Storytelling & Scene Design Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "scene-knowledge",
+      "category": "professional-scene-design",
+      "difficulty": "advanced",
+      "expansionStep": 4,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false
+    },
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Time-box on paper first",
+      "Front-load hook",
+      "Reserve end for CTA"
+    ],
+    "bestPractices": [
+      "Time-box on paper first",
+      "Front-load hook",
+      "Reserve end for CTA"
+    ],
+    "decisionRules": [
+      "Use when: Timed ads (6/15/30/60)",
+      "Use when: Platform-native lengths",
+      "Do not use when: Untimed documentary observational scenes"
+    ]
+  }
+}

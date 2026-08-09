@@ -11,6 +11,23 @@ import { WorkflowDependencyManager } from "./workflow-dependency-manager.js";
 import { WorkflowHistoryStore } from "./workflow-history-store.js";
 import { WorkflowLogger } from "./workflow-logger.js";
 import { WorkflowPlanValidator } from "./workflow-plan-validator.js";
+import { ProfessionalWorkflowMemoryStore } from "./professional-workflow-memory.js";
+import {
+  buildProfessionalWorkflowFromPlan,
+  executeProfessionalWorkflowCoordination,
+  modifyProfessionalWorkflowResult,
+  optimizeProfessionalWorkflowResult,
+  workflowFingerprint,
+} from "./professional-workflow.js";
+import type {
+  AiMeProfessionalWorkflowAwareness,
+  ProfessionalWorkflowExecutionResult,
+  ProfessionalWorkflowHealthReport,
+  ProfessionalWorkflowModification,
+  ProfessionalWorkflowRepairResult,
+  ProfessionalWorkflowRequest,
+  ProfessionalWorkflowResult,
+} from "./professional-workflow-types.js";
 import type { AiTaskManager } from "../task-manager/task-manager.js";
 import {
   inferPriority,
@@ -36,11 +53,13 @@ export interface AiWorkflowEngineOptions {
 
 /**
  * KWIZERA AI Workflow Engine — coordinates module execution from plans.
- * Step 2E: Does not perform AI work. Does not execute business modules.
+ * execute() remains Step 2E coordinator. createProfessionalWorkflow() adds
+ * Knowledge-Foundation Workflow Intelligence (Step 4) without duplicating planning.
  */
 export class AiWorkflowEngine {
   readonly logger = new WorkflowLogger();
   readonly history = new WorkflowHistoryStore();
+  readonly professionalMemory = new ProfessionalWorkflowMemoryStore();
   readonly planValidator = new WorkflowPlanValidator();
   readonly dependencyManager = new WorkflowDependencyManager();
   readonly taskScheduler = new TaskScheduler();
@@ -52,9 +71,13 @@ export class AiWorkflowEngine {
   private readonly storageRoot: string;
   private readonly workflowDurations: number[] = [];
   private readonly workflowSuccesses: boolean[] = [];
+  private readonly professionalWorkflowDurations: number[] = [];
   private initialized = false;
   private core: AiCoreManager | null = null;
   private taskManager: AiTaskManager | null = null;
+  private lastProfessionalResult: ProfessionalWorkflowResult | null = null;
+  private lastProfessionalHealth: ProfessionalWorkflowHealthReport | null = null;
+  private readonly professionalResults = new Map<string, ProfessionalWorkflowResult>();
 
   constructor(options: AiWorkflowEngineOptions) {
     this.storageRoot = options.storageRoot;
@@ -67,11 +90,13 @@ export class AiWorkflowEngine {
 
     this.logger.initialize(logDir);
     this.history.initialize(workflowsDir);
+    this.professionalMemory.initialize(workflowsDir);
     this.initialized = true;
 
     this.logger.log("info", "workflow-start", "Workflow Engine initialized", {
       logDirectory: logDir,
       workflowsDirectory: workflowsDir,
+      professionalWorkflowMemory: this.professionalMemory.getMemoryPath(),
     });
   }
 
@@ -414,6 +439,357 @@ export class AiWorkflowEngine {
     }
   }
 
+  /**
+   * Professional Workflow Intelligence — create reusable KF-grounded workflows from plans.
+   * Does not generate media. Does not start Recommendation Intelligence.
+   */
+  async createProfessionalWorkflow(input: ProfessionalWorkflowRequest): Promise<ProfessionalWorkflowResult> {
+    if (!this.initialized || !this.core) {
+      throw new WorkflowEngineError("Workflow Engine not initialized", "NOT_INITIALIZED");
+    }
+
+    const start = performance.now();
+    const request = input.request.trim();
+    const objective = input.objective?.trim() || request;
+
+    try {
+      const foundation = this.core.knowledgeFoundation;
+      const planningEngine = this.core.planningEngine;
+      if (!foundation?.isStartupComplete() || !planningEngine?.isInitialized()) {
+        return this.buildUnsupportedProfessionalWorkflow({
+          request,
+          objective,
+          start,
+          reason: "Knowledge Foundation and Planning Engine must be ready before professional workflows.",
+        });
+      }
+
+      let plan = null as Awaited<ReturnType<NonNullable<AiCoreManager["planningEngine"]>["planProfessional"]>> | null;
+      if (input.planId) {
+        const last = planningEngine.getLastProfessionalPlan();
+        if (last?.planId === input.planId) plan = last;
+      }
+      if (!plan) {
+        plan = await planningEngine.planProfessional({
+          request,
+          objective,
+          context: input.context ?? {},
+          requiredDomains: input.requiredDomains,
+          constraints: input.constraints,
+          availableResources: input.availableResources,
+          includeDomainModules: input.includeDomainModules !== false,
+          reuseSimilarPlans: true,
+        });
+      }
+
+      if (!plan.grounded || plan.unsupported) {
+        return this.buildUnsupportedProfessionalWorkflow({
+          request,
+          objective,
+          start,
+          reason: "Professional workflow refused because the upstream plan is unsupported by verified knowledge.",
+          planId: plan.planId,
+        });
+      }
+
+      // Domains must match buildProfessionalWorkflowFromPlan (plan domains + request requiredDomains).
+      const domains = Array.from(
+        new Set([...plan.explanation.domainsUsed, ...(input.requiredDomains ?? [])])
+      );
+      const taskTitles = plan.framework.taskBreakdown.map((task) => task.title);
+      const fingerprint = workflowFingerprint(plan.goal, domains, taskTitles);
+      const exactMatch =
+        input.reuseSimilarWorkflows === false ? null : this.professionalMemory.findByFingerprint(fingerprint);
+      const similar =
+        input.reuseSimilarWorkflows === false
+          ? []
+          : this.professionalMemory.findSimilar(objective, domains, 5);
+
+      const built = buildProfessionalWorkflowFromPlan({
+        request: input,
+        plan,
+        similarWorkflows: similar,
+        exactMatch,
+      });
+
+      const durationMs = Math.round(performance.now() - start);
+      this.professionalWorkflowDurations.push(durationMs);
+      const result: ProfessionalWorkflowResult = { ...built, durationMs };
+      if (!result.reused) this.professionalMemory.append(result.memoryRecord);
+      else this.professionalMemory.update(result.memoryRecord);
+      this.professionalResults.set(result.workflowId, structuredClone(result));
+      this.lastProfessionalResult = structuredClone(result);
+      this.logger.log("info", "workflow-start", "Professional workflow recorded", {
+        workflowId: result.workflowId,
+        reused: result.reused,
+        planId: result.relatedPlanId,
+        confidence: result.confidenceScore,
+      });
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.log("error", "error", "Professional workflow creation failed", { error: message });
+      throw new WorkflowEngineError(message, "PROFESSIONAL_WORKFLOW_FAILED");
+    }
+  }
+
+  modifyProfessionalWorkflow(workflowId: string, modification: ProfessionalWorkflowModification): ProfessionalWorkflowResult {
+    const current = this.requireProfessionalWorkflow(workflowId);
+    const modified = modifyProfessionalWorkflowResult(current, modification, this.professionalMemory);
+    this.professionalResults.set(modified.workflowId, structuredClone(modified));
+    this.lastProfessionalResult = structuredClone(modified);
+    return modified;
+  }
+
+  optimizeProfessionalWorkflow(workflowId: string): ProfessionalWorkflowResult {
+    const current = this.requireProfessionalWorkflow(workflowId);
+    const optimized = optimizeProfessionalWorkflowResult(current, this.professionalMemory);
+    this.professionalResults.set(optimized.workflowId, structuredClone(optimized));
+    this.lastProfessionalResult = structuredClone(optimized);
+    return optimized;
+  }
+
+  explainProfessionalWorkflow(workflowId: string): ProfessionalWorkflowResult["explanation"] & {
+    workflowId: string;
+    workflowName: string;
+    goal: string;
+  } {
+    const current = this.requireProfessionalWorkflow(workflowId);
+    return {
+      workflowId: current.workflowId,
+      workflowName: current.definition.workflowName,
+      goal: current.definition.goal,
+      ...current.explanation,
+    };
+  }
+
+  reuseProfessionalWorkflow(goal: string, domains: string[] = []): ProfessionalWorkflowResult | null {
+    const similar = this.professionalMemory.findSimilar(goal, domains, 1)[0];
+    if (!similar) return null;
+    const existing = this.professionalResults.get(similar.workflowId);
+    return existing ? structuredClone(existing) : null;
+  }
+
+  detectProfessionalWorkflowImprovements(workflowId: string): string[] {
+    const current = this.requireProfessionalWorkflow(workflowId);
+    const similar = this.professionalMemory.findSimilar(current.definition.goal, current.explanation.domainsUsed, 3);
+    const peer = similar.find((item) => item.workflowId !== workflowId) ?? null;
+    const improvements = [...current.explanation.improvementsDetected];
+    if (peer && current.definition.estimatedExecutionMinutes > peer.performanceMetrics.estimatedMinutes) {
+      improvements.push("Peer workflow estimates shorter duration — consider optimizeProfessionalWorkflow");
+    }
+    if (!current.definition.parallelGroups.length) {
+      improvements.push("No parallel groups detected — optimization may unlock concurrency");
+    }
+    return [...new Set(improvements)];
+  }
+
+  executeProfessionalWorkflow(workflowId: string): ProfessionalWorkflowExecutionResult {
+    const current = this.requireProfessionalWorkflow(workflowId);
+    const execution = executeProfessionalWorkflowCoordination(current, this.professionalMemory);
+    const updated = {
+      ...current,
+      memoryRecord: {
+        ...current.memoryRecord,
+        executionHistory: execution.executionHistory,
+        performanceMetrics: execution.performanceMetrics,
+      },
+      explanation: {
+        ...current.explanation,
+        improvementsDetected: execution.improvementsDetected,
+      },
+    };
+    this.professionalResults.set(workflowId, structuredClone(updated));
+    this.lastProfessionalResult = structuredClone(updated);
+    return execution;
+  }
+
+  getAiMeProfessionalWorkflowAwareness(): AiMeProfessionalWorkflowAwareness {
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    const planningReady = Boolean(this.core?.planningEngine?.isInitialized());
+    return {
+      available: this.initialized && foundationReady && planningReady,
+      enabled: this.initialized && foundationReady && planningReady,
+      summary:
+        "AI Me can create, modify, optimize, explain, reuse, and coordinate professional workflows grounded in the Knowledge Foundation and Professional Planning Intelligence. Recommendation Intelligence is available via the Recommendation Engine.",
+      capabilities: [
+        "create workflows",
+        "modify workflows",
+        "optimize workflows",
+        "explain workflows",
+        "reuse existing workflows",
+        "detect workflow improvements",
+      ],
+      groundedInKnowledgeFoundation: true,
+      recommendationIntelligenceEnabled: true,
+      workflowHistoryCount: this.professionalMemory.getCount(),
+      lastConfidenceScore: this.lastProfessionalResult?.confidenceScore ?? null,
+    };
+  }
+
+  getLastProfessionalWorkflow(): ProfessionalWorkflowResult | null {
+    return this.lastProfessionalResult ? structuredClone(this.lastProfessionalResult) : null;
+  }
+
+  getProfessionalWorkflowHistory() {
+    return this.professionalMemory.getAll().map((record) => structuredClone(record));
+  }
+
+  async runProfessionalWorkflowHealthCheck(): Promise<ProfessionalWorkflowHealthReport> {
+    const issues: string[] = [];
+    if (!this.initialized) issues.push("Workflow Engine is not initialized.");
+    const foundationReady = Boolean(this.core?.knowledgeFoundation?.isStartupComplete());
+    const planningReady = Boolean(this.core?.planningEngine?.isInitialized());
+    if (!foundationReady) issues.push("Knowledge Foundation startup is incomplete.");
+    if (!planningReady) issues.push("Planning Engine is not ready.");
+    const memoryWritable = this.professionalMemory.ensureWritable();
+    if (!memoryWritable) issues.push("Professional workflow memory is not writable.");
+
+    let canCreateWorkflow = false;
+    if (this.initialized && foundationReady && planningReady) {
+      try {
+        const sample =
+          this.lastProfessionalResult?.grounded && this.lastProfessionalResult.definition.allTasks.length > 0
+            ? this.lastProfessionalResult
+            : await this.createProfessionalWorkflow({
+                request: "create a professional workflow for camera lighting product advertisement",
+                objective: "Coordinate a knowledge-backed product ad workflow",
+                context: { product: "demo product", audience: "general buyers" },
+                requiredDomains: ["camera-knowledge", "lighting-knowledge", "industry-standards-knowledge"],
+                includeDomainModules: true,
+                reuseSimilarWorkflows: true,
+              });
+        canCreateWorkflow =
+          sample.grounded &&
+          !sample.unsupported &&
+          sample.definition.allTasks.length >= 3 &&
+          sample.definition.dependencies.length > 0;
+        if (!sample.grounded) issues.push("Sample professional workflow was not grounded.");
+      } catch (error) {
+        issues.push(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    const report: ProfessionalWorkflowHealthReport = {
+      healthy: issues.length === 0 && canCreateWorkflow && memoryWritable,
+      initialized: this.initialized,
+      foundationReady,
+      planningReady,
+      canCreateWorkflow,
+      memoryWritable,
+      issues,
+      checkedAt: new Date().toISOString(),
+    };
+    this.lastProfessionalHealth = report;
+    return structuredClone(report);
+  }
+
+  async repairProfessionalWorkflowIntelligence(): Promise<ProfessionalWorkflowRepairResult> {
+    const actions: string[] = [];
+    if (this.professionalMemory.ensureWritable()) actions.push("Ensured professional workflow memory is writable.");
+    const health = await this.runProfessionalWorkflowHealthCheck();
+    if (!health.healthy && this.core?.knowledgeFoundation?.isStartupComplete() && this.core.planningEngine) {
+      await this.createProfessionalWorkflow({
+        request: "professional video production workflow sample",
+        objective: "Validate professional workflow path",
+        includeDomainModules: true,
+        reuseSimilarWorkflows: true,
+      });
+      actions.push("Re-ran grounded professional workflow sample.");
+    }
+    const recheck = await this.runProfessionalWorkflowHealthCheck();
+    return { repaired: recheck.healthy, actions, remainingIssues: recheck.issues };
+  }
+
+  private requireProfessionalWorkflow(workflowId: string): ProfessionalWorkflowResult {
+    const current = this.professionalResults.get(workflowId);
+    if (!current) throw new WorkflowEngineError(`Professional workflow not found: ${workflowId}`, "WORKFLOW_NOT_FOUND");
+    return current;
+  }
+
+  private buildUnsupportedProfessionalWorkflow(input: {
+    request: string;
+    objective: string;
+    start: number;
+    reason: string;
+    planId?: string;
+  }): ProfessionalWorkflowResult {
+    const workflowId = randomUUID();
+    const memoryRecord = {
+      workflowId,
+      goal: input.objective,
+      knowledgeUsed: [],
+      taskStructure: [],
+      dependencies: [],
+      executionHistory: [],
+      performanceMetrics: {
+        estimatedMinutes: 0,
+        actualMinutes: null,
+        taskCount: 0,
+        parallelGroupCount: 0,
+        successRate: null,
+      },
+      confidenceScore: 0,
+      timestamp: new Date().toISOString(),
+      relatedPlanId: input.planId ?? null,
+      relatedDecisionId: null,
+      domainsUsed: [],
+      relatedKnowledgePacks: [],
+      priorWorkflowIds: [],
+      grounded: false,
+      fingerprint: workflowFingerprint(input.objective, [], []),
+    };
+    this.professionalMemory.append(memoryRecord);
+    const durationMs = Math.round(performance.now() - input.start);
+    this.professionalWorkflowDurations.push(durationMs);
+    const result: ProfessionalWorkflowResult = {
+      workflowId,
+      available: false,
+      grounded: false,
+      unsupported: true,
+      reused: false,
+      definition: {
+        workflowId,
+        workflowName: "unsupported-workflow",
+        goal: input.objective,
+        requiredKnowledge: [],
+        requiredModules: [],
+        requiredResources: [],
+        mainTasks: [],
+        subTasks: [],
+        allTasks: [],
+        dependencies: [],
+        validationSteps: [],
+        expectedResults: [],
+        recoverySteps: [],
+        parallelGroups: [],
+        executionOrder: [],
+        estimatedExecutionMinutes: 0,
+      },
+      explanation: {
+        whySelected: input.reason,
+        taskOrderReason: "No tasks generated because workflow is unsupported.",
+        knowledgePacksUsed: [],
+        knowledgeIdsUsed: [],
+        dependenciesSummary: "None",
+        expectedOutcome: "No professional workflow can be issued without Knowledge Foundation evidence.",
+        confidenceScore: 0,
+        domainsUsed: [],
+        improvementsDetected: [],
+      },
+      confidenceScore: 0,
+      confidenceExplanation: "Confidence is 0 because the workflow is unsupported.",
+      memoryRecord,
+      relatedPlanId: input.planId ?? null,
+      relatedDecisionId: null,
+      multiDomain: false,
+      durationMs,
+    };
+    this.lastProfessionalResult = structuredClone(result);
+    this.professionalResults.set(workflowId, structuredClone(result));
+    return result;
+  }
+
   buildStatusReport(): WorkflowEngineStatusReport {
     const total = this.workflowDurations.length;
     const averageWorkflowMs =
@@ -433,8 +809,11 @@ export class AiWorkflowEngine {
     if (!this.initialized) {
       knownIssues.push("Workflow Engine not initialized");
     }
+    if (!this.core?.knowledgeFoundation?.isStartupComplete()) {
+      knownIssues.push("Professional Workflow Intelligence waiting on Knowledge Foundation");
+    }
 
-    const checks = [this.initialized, this.history.getHistoryPath() !== null];
+    const checks = [this.initialized, this.history.getHistoryPath() !== null, this.professionalMemory.isReady()];
     const readinessScore = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
     return {
@@ -442,7 +821,11 @@ export class AiWorkflowEngine {
       executionStatus: this.initialized ? "ready" : "not-ready",
       schedulingQuality: successRate >= 80 ? "high" : successRate >= 50 ? "medium" : "low",
       recoveryStatus: recovered > 0 ? "verified" : "ready",
-      performance: { averageWorkflowMs, totalWorkflows: this.history.getCount(), successRate },
+      performance: {
+        averageWorkflowMs,
+        totalWorkflows: this.history.getCount() + this.professionalMemory.getCount(),
+        successRate,
+      },
       knownIssues,
       readinessScore,
       timestamp: new Date().toISOString(),

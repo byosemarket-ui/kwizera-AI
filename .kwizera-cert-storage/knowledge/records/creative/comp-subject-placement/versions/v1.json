@@ -1,0 +1,325 @@
+{
+  "knowledgeId": "comp-subject-placement",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-composition",
+  "title": "Subject Placement",
+  "description": "Deciding where the primary subject sits in frame relative to space, gaze, and hierarchy.",
+  "summary": "Make the subject unmistakably primary and aligned with story energy.",
+  "tags": [
+    "professional-composition",
+    "professional",
+    "subject-placement",
+    "subject placement",
+    "framing subject",
+    "positioning",
+    "primary subject"
+  ],
+  "keywords": [
+    "subject placement",
+    "framing subject",
+    "positioning",
+    "primary subject"
+  ],
+  "source": "professional-lighting-composition-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 93,
+  "qualityScore": 92,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "comp-rule-of-thirds",
+    "comp-look-room",
+    "comp-visual-hierarchy",
+    "comp-balance",
+    "lc-bridge-composition-knowledge",
+    "lc-bridge-camera-knowledge",
+    "lc-bridge-marketing-knowledge",
+    "lc-bridge-video-production-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:32:33.012Z",
+  "lastUpdated": "2026-08-08T15:32:33.012Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\comp-subject-placement",
+  "integrityStatus": "verified",
+  "contentHash": "88abde4619e71fab226f0408347f58f528f0c28c7a7774bf916093e78fda39cd",
+  "searchableText": "subject placement deciding where the primary subject sits in frame relative to space, gaze, and hierarchy. make the subject unmistakably primary and aligned with story energy. professional-composition professional-composition professional subject-placement subject placement framing subject positioning primary subject subject placement framing subject positioning primary subject",
+  "classification": {
+    "category": "professional-composition",
+    "topic": "subject-placement-deciding",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 94,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-lighting-composition",
+    "expansionVersion": "1.0.0",
+    "topicId": "subject-placement",
+    "kind": "professional-composition",
+    "purpose": "Make the subject unmistakably primary and aligned with story energy.",
+    "whenToUse": [
+      "Every composed shot",
+      "Multi-subject priority decisions"
+    ],
+    "whenNotToUse": [
+      "Random centering without intent"
+    ],
+    "advantages": [
+      "Clear communication",
+      "Edit-friendly consistency"
+    ],
+    "limitations": [
+      "Must reconcile with movement and overlays"
+    ],
+    "relatedCameraTechniques": [
+      "aspect ratio planning",
+      "grid tools",
+      "lens choice"
+    ],
+    "relatedStorytellingTechniques": [
+      "priority",
+      "power positions",
+      "isolation"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "comp-subject-placement",
+      "title": "Subject Placement",
+      "domain": "composition-knowledge",
+      "category": "professional-composition",
+      "description": "Deciding where the primary subject sits in frame relative to space, gaze, and hierarchy.",
+      "coreConcepts": [
+        "subject placement",
+        "framing subject",
+        "positioning",
+        "primary subject"
+      ],
+      "definitions": [
+        "Make the subject unmistakably primary and aligned with story energy."
+      ],
+      "rules": [
+        "Use when: Every composed shot",
+        "Use when: Multi-subject priority decisions",
+        "Do not use when: Random centering without intent"
+      ],
+      "bestPractices": [
+        "Place for look-room and headroom",
+        "Keep brand marks clear",
+        "Plan for captions/UI"
+      ],
+      "professionalTechniques": [
+        "Clear communication",
+        "Edit-friendly consistency"
+      ],
+      "workflow": [
+        "Choose Subject Placement",
+        "Place for look-room and headroom",
+        "Keep brand marks clear",
+        "Plan for captions/UI"
+      ],
+      "decisionRules": [
+        "Use when: Every composed shot",
+        "Use when: Multi-subject priority decisions",
+        "Avoid when: Random centering without intent"
+      ],
+      "commonMistakes": [
+        "Subject lost in pattern",
+        "Amputating joints at edges"
+      ],
+      "troubleshooting": [
+        "Limitation: Must reconcile with movement and overlays"
+      ],
+      "recommendations": [
+        "Place for look-room and headroom",
+        "Keep brand marks clear",
+        "Plan for captions/UI"
+      ],
+      "examples": [
+        "Product lower-third-safe center-right for vertical social"
+      ],
+      "professionalStandards": [
+        "priority",
+        "power positions",
+        "isolation"
+      ],
+      "relatedTopics": [
+        "rule-of-thirds",
+        "look-room",
+        "visual-hierarchy",
+        "balance"
+      ],
+      "keywords": [
+        "subject placement",
+        "framing subject",
+        "positioning",
+        "primary subject"
+      ],
+      "confidenceScore": 93,
+      "qualityScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-3:subject-placement",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Subject Placement",
+      "category": "professional-composition",
+      "domain": "composition-knowledge",
+      "description": "Deciding where the primary subject sits in frame relative to space, gaze, and hierarchy.",
+      "sections": [
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Make the subject unmistakably primary and aligned with story energy."
+          ]
+        },
+        {
+          "title": "When to Use",
+          "kind": "guidance",
+          "items": [
+            "Every composed shot",
+            "Multi-subject priority decisions"
+          ]
+        },
+        {
+          "title": "When Not to Use",
+          "kind": "rules",
+          "items": [
+            "Random centering without intent"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "Place for look-room and headroom",
+            "Keep brand marks clear",
+            "Plan for captions/UI"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "Product lower-third-safe center-right for vertical social"
+          ]
+        }
+      ],
+      "concepts": [
+        "subject placement",
+        "framing subject",
+        "positioning",
+        "primary subject"
+      ],
+      "entities": [
+        "Subject Placement",
+        "composition-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "terminology": [
+        "subject placement",
+        "framing subject",
+        "positioning",
+        "primary subject"
+      ],
+      "rules": [
+        "Avoid when: Random centering without intent"
+      ],
+      "bestPractices": [
+        "Place for look-room and headroom",
+        "Keep brand marks clear",
+        "Plan for captions/UI"
+      ],
+      "professionalTechniques": [
+        "Clear communication",
+        "Edit-friendly consistency"
+      ],
+      "examples": [
+        "Product lower-third-safe center-right for vertical social"
+      ],
+      "commonMistakes": [
+        "Subject lost in pattern",
+        "Amputating joints at edges"
+      ],
+      "qualityRules": [
+        "Must reconcile with movement and overlays"
+      ],
+      "decisionRules": [
+        "Use when: Every composed shot",
+        "Use when: Multi-subject priority decisions",
+        "Do not use when: Random centering without intent"
+      ],
+      "workflowSteps": [
+        "Place for look-room and headroom",
+        "Keep brand marks clear",
+        "Plan for captions/UI"
+      ],
+      "prerequisites": [
+        "aspect ratio planning",
+        "grid tools",
+        "lens choice"
+      ],
+      "dependencies": [
+        "composition-knowledge",
+        "camera-knowledge",
+        "marketing-knowledge",
+        "video-production-knowledge"
+      ],
+      "relatedKnowledge": [
+        "comp-rule-of-thirds",
+        "comp-look-room",
+        "comp-visual-hierarchy",
+        "comp-balance"
+      ],
+      "definitions": [
+        "Make the subject unmistakably primary and aligned with story energy."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 93,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Lighting & Composition Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "composition-knowledge",
+      "category": "professional-composition",
+      "difficulty": "advanced",
+      "expansionStep": 3,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesImages": false,
+      "generatesVideo": false
+    },
+    "generatesImages": false,
+    "generatesVideo": false,
+    "professionalTechniques": [
+      "Place for look-room and headroom",
+      "Keep brand marks clear",
+      "Plan for captions/UI"
+    ],
+    "bestPractices": [
+      "Place for look-room and headroom",
+      "Keep brand marks clear",
+      "Plan for captions/UI"
+    ],
+    "decisionRules": [
+      "Use when: Every composed shot",
+      "Use when: Multi-subject priority decisions",
+      "Do not use when: Random centering without intent"
+    ]
+  }
+}

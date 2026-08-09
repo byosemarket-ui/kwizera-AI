@@ -1,0 +1,308 @@
+{
+  "knowledgeId": "render-render-quality",
+  "knowledgeType": "creative-knowledge",
+  "category": "professional-rendering",
+  "title": "Render Quality",
+  "description": "Tradeoffs among sharpness, noise, banding, and compute time.",
+  "summary": "Hit acceptable quality at sustainable cost/time.",
+  "tags": [
+    "professional-rendering",
+    "professional",
+    "render-quality",
+    "render quality",
+    "fidelity",
+    "banding",
+    "QC"
+  ],
+  "keywords": [
+    "render quality",
+    "fidelity",
+    "banding",
+    "QC"
+  ],
+  "source": "professional-animation-motion-rendering-knowledge",
+  "sourceReliability": 95,
+  "confidenceScore": 92,
+  "qualityScore": 91,
+  "verificationStatus": "verified",
+  "relatedMemory": [],
+  "relatedKnowledge": [
+    "render-bitrate",
+    "render-compression",
+    "render-resolution",
+    "render-hdr",
+    "amr-bridge-rendering-knowledge",
+    "amr-bridge-lighting-knowledge",
+    "amr-bridge-video-editing-knowledge"
+  ],
+  "version": 1,
+  "creationDate": "2026-08-08T15:37:05.786Z",
+  "lastUpdated": "2026-08-08T15:37:05.786Z",
+  "status": "verified",
+  "storageLocation": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\knowledge\\records\\creative\\render-render-quality",
+  "integrityStatus": "verified",
+  "contentHash": "74460cb35ff29887fea64493a7ebac157d521c5829badf4c981d92f6d7b08a85",
+  "searchableText": "render quality tradeoffs among sharpness, noise, banding, and compute time. hit acceptable quality at sustainable cost/time. professional-rendering professional-rendering professional render-quality render quality fidelity banding qc render quality fidelity banding qc",
+  "classification": {
+    "category": "professional-rendering",
+    "topic": "render-quality-tradeoffs",
+    "importance": "critical",
+    "reliability": "high",
+    "businessDomain": "general",
+    "creativeDomain": "creative-production",
+    "learningValue": 93,
+    "futureUsage": "search-retrieval"
+  },
+  "payload": {
+    "step": "knowledge-expansion-animation-motion-rendering",
+    "expansionVersion": "1.0.0",
+    "topicId": "render-quality",
+    "kind": "professional-rendering",
+    "purpose": "Hit acceptable quality at sustainable cost/time.",
+    "professionalDefinition": "Render quality is the perceived and measured fidelity of an output relative to the source and creative intent.",
+    "workflow": [
+      "Set quality target",
+      "Sample frames",
+      "Compare A/B",
+      "Approve"
+    ],
+    "knowledgeItem": {
+      "knowledgeId": "render-render-quality",
+      "title": "Render Quality",
+      "domain": "rendering-knowledge",
+      "category": "professional-rendering",
+      "description": "Tradeoffs among sharpness, noise, banding, and compute time.",
+      "coreConcepts": [
+        "render quality",
+        "fidelity",
+        "banding",
+        "QC"
+      ],
+      "definitions": [
+        "Render quality is the perceived and measured fidelity of an output relative to the source and creative intent.",
+        "Hit acceptable quality at sustainable cost/time."
+      ],
+      "rules": [
+        "Practice: QC on calibrated display",
+        "Practice: Watch gradients for banding",
+        "Practice: Don’t oversharpen encodes"
+      ],
+      "bestPractices": [
+        "QC on calibrated display",
+        "Watch gradients for banding",
+        "Don’t oversharpen encodes"
+      ],
+      "professionalTechniques": [
+        "Set quality target",
+        "Sample frames",
+        "Compare A/B",
+        "Approve"
+      ],
+      "workflow": [
+        "Set quality target",
+        "Sample frames",
+        "Compare A/B",
+        "Approve"
+      ],
+      "decisionRules": [
+        "Follow: QC on calibrated display",
+        "Follow: Watch gradients for banding",
+        "Follow: Don’t oversharpen encodes"
+      ],
+      "commonMistakes": [
+        "Judging on phone only",
+        "Crushing bit depth early"
+      ],
+      "troubleshooting": [
+        "Avoid: Judging on phone only",
+        "Avoid: Crushing bit depth early"
+      ],
+      "recommendations": [
+        "QC on calibrated display",
+        "Watch gradients for banding",
+        "Don’t oversharpen encodes"
+      ],
+      "examples": [
+        "10-bit master to avoid sky banding in grade"
+      ],
+      "professionalStandards": [
+        "Render quality is the perceived and measured fidelity of an output relative to the source and creative intent."
+      ],
+      "relatedTopics": [
+        "bitrate",
+        "compression",
+        "resolution",
+        "hdr"
+      ],
+      "keywords": [
+        "render quality",
+        "fidelity",
+        "banding",
+        "QC"
+      ],
+      "confidenceScore": 92,
+      "qualityScore": 91,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reference": "expansion-step-5:render-quality",
+          "reliability": 95
+        }
+      ],
+      "version": 1
+    },
+    "structuredKnowledge": {
+      "title": "Render Quality",
+      "category": "professional-rendering",
+      "domain": "rendering-knowledge",
+      "description": "Tradeoffs among sharpness, noise, banding, and compute time.",
+      "sections": [
+        {
+          "title": "Professional Definition",
+          "kind": "guidance",
+          "items": [
+            "Render quality is the perceived and measured fidelity of an output relative to the source and creative intent."
+          ]
+        },
+        {
+          "title": "Purpose",
+          "kind": "guidance",
+          "items": [
+            "Hit acceptable quality at sustainable cost/time."
+          ]
+        },
+        {
+          "title": "Workflow",
+          "kind": "workflow",
+          "items": [
+            "Set quality target",
+            "Sample frames",
+            "Compare A/B",
+            "Approve"
+          ]
+        },
+        {
+          "title": "Best Practices",
+          "kind": "guidance",
+          "items": [
+            "QC on calibrated display",
+            "Watch gradients for banding",
+            "Don’t oversharpen encodes"
+          ]
+        },
+        {
+          "title": "Examples",
+          "kind": "examples",
+          "items": [
+            "10-bit master to avoid sky banding in grade"
+          ]
+        }
+      ],
+      "concepts": [
+        "render quality",
+        "fidelity",
+        "banding",
+        "QC"
+      ],
+      "entities": [
+        "Render Quality",
+        "rendering-knowledge",
+        "lighting-knowledge",
+        "video-editing-knowledge"
+      ],
+      "terminology": [
+        "render quality",
+        "fidelity",
+        "banding",
+        "QC"
+      ],
+      "rules": [
+        "Avoid: Judging on phone only",
+        "Avoid: Crushing bit depth early"
+      ],
+      "bestPractices": [
+        "QC on calibrated display",
+        "Watch gradients for banding",
+        "Don’t oversharpen encodes"
+      ],
+      "professionalTechniques": [
+        "Set quality target",
+        "Sample frames",
+        "Compare A/B",
+        "Approve"
+      ],
+      "examples": [
+        "10-bit master to avoid sky banding in grade"
+      ],
+      "commonMistakes": [
+        "Judging on phone only",
+        "Crushing bit depth early"
+      ],
+      "qualityRules": [],
+      "decisionRules": [
+        "Practice: QC on calibrated display",
+        "Practice: Watch gradients for banding",
+        "Practice: Don’t oversharpen encodes"
+      ],
+      "workflowSteps": [
+        "Set quality target",
+        "Sample frames",
+        "Compare A/B",
+        "Approve"
+      ],
+      "prerequisites": [],
+      "dependencies": [
+        "rendering-knowledge",
+        "lighting-knowledge",
+        "video-editing-knowledge"
+      ],
+      "relatedKnowledge": [
+        "render-bitrate",
+        "render-compression",
+        "render-resolution",
+        "render-hdr"
+      ],
+      "definitions": [
+        "Render quality is the perceived and measured fidelity of an output relative to the source and creative intent.",
+        "Hit acceptable quality at sustainable cost/time."
+      ],
+      "difficultyLevel": "advanced",
+      "confidenceScore": 92,
+      "sourceMetadata": [
+        {
+          "name": "KWIZERA Professional Animation/Motion/Rendering Expansion",
+          "type": "curated-professional",
+          "reliability": 95
+        }
+      ]
+    },
+    "metadata": {
+      "domainId": "rendering-knowledge",
+      "category": "professional-rendering",
+      "difficulty": "advanced",
+      "expansionStep": 5,
+      "version": "1.0.0",
+      "learningOnly": true,
+      "generatesVideo": false,
+      "generatesImages": false
+    },
+    "generatesVideo": false,
+    "generatesImages": false,
+    "professionalTechniques": [
+      "QC on calibrated display",
+      "Watch gradients for banding",
+      "Don’t oversharpen encodes"
+    ],
+    "bestPractices": [
+      "QC on calibrated display",
+      "Watch gradients for banding",
+      "Don’t oversharpen encodes"
+    ],
+    "decisionRules": [
+      "Practice: QC on calibrated display",
+      "Practice: Watch gradients for banding",
+      "Practice: Don’t oversharpen encodes"
+    ]
+  }
+}
