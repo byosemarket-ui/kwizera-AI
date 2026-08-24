@@ -1,0 +1,39 @@
+.foundation-cert-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px 18px;
+  margin: 0 0 18px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent, #3d8b7a) 35%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent, #3d8b7a) 12%, transparent), transparent 55%),
+    color-mix(in srgb, var(--panel, #12161c) 92%, #000);
+}
+
+.foundation-cert-card.is-certified {
+  border-color: color-mix(in srgb, #3d8b7a 55%, transparent);
+}
+
+.foundation-cert-card.is-review {
+  border-color: color-mix(in srgb, #c4a35a 50%, transparent);
+}
+
+.foundation-cert-card h3 {
+  margin: 4px 0 6px;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.foundation-cert-card p {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.foundation-cert-detail {
+  margin-top: 8px !important;
+  opacity: 0.75 !important;
+}

@@ -1,0 +1,310 @@
+/* Dockable / floating layout engine styles */
+
+.floating-windows-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+}
+
+.floating-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  background: #151b24;
+  border: 1px solid #3a4754;
+  border-radius: 7px;
+  box-shadow: 0 18px 50px #000a;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, opacity 0.2s ease;
+  animation: floatIn 0.22s ease both;
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.floating-window.maximized {
+  border-radius: 8px;
+}
+
+.floating-window-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  color: #c5d0d9;
+  background: #1a222c;
+  border-bottom: 1px solid #2d3844;
+  cursor: grab;
+  user-select: none;
+}
+
+.floating-window-header strong {
+  flex: 1;
+  font-size: 11px;
+}
+
+.floating-window-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.floating-window-actions button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #8fa0ad;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.floating-window-actions button:hover {
+  color: #e8fff0;
+  background: #24352c;
+}
+
+.floating-window-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+}
+
+.floating-placeholder {
+  margin: 0 0 12px;
+  color: #8b98a4;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.floating-dock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.floating-dock-row button {
+  height: 26px;
+  padding: 0 8px;
+  color: #b7c4ce;
+  background: #121920;
+  border: 1px solid #2d3945;
+  border-radius: 3px;
+  font-size: 9px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.floating-dock-row button:hover {
+  border-color: #4f7c5d;
+  color: #d8ffe4;
+}
+
+.floating-resize-handle {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  background: linear-gradient(135deg, transparent 50%, #6e7c88 50%);
+  border: 0;
+  cursor: nwse-resize;
+  opacity: 0.55;
+}
+
+.layout-manager-panel {
+  position: fixed;
+  z-index: 36;
+  top: 72px;
+  right: 16px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+  color: #dce4ea;
+  background: #151b23;
+  border: 1px solid #3a4652;
+  border-radius: 7px;
+  box-shadow: 0 22px 60px #000b;
+  animation: floatIn 0.2s ease both;
+}
+
+.layout-manager-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-bottom: 1px solid #2c3641;
+}
+
+.layout-manager-panel header span {
+  color: #81909d;
+  font: 9px "DM Mono", monospace;
+  letter-spacing: 0.1em;
+}
+
+.layout-manager-panel h2 {
+  margin: 5px 0 0;
+  font-size: 15px;
+}
+
+.layout-manager-panel header > button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: #a9b4bf;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.layout-manager-panel section {
+  padding: 12px 16px;
+  border-bottom: 1px solid #29333e;
+}
+
+.layout-manager-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: #cbd5dc;
+  font-size: 11px;
+}
+
+.layout-list {
+  display: grid;
+  gap: 4px;
+}
+
+.layout-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.layout-list-item.active {
+  background: #1b3125;
+  border-color: #3a6046;
+}
+
+.layout-load {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  color: #c5d0d8;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layout-load b { font-size: 11px; }
+.layout-load small { color: #80909b; font-size: 8px; }
+
+.layout-item-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.layout-item-actions button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #8a99a5;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.layout-save-row {
+  display: flex;
+  gap: 6px;
+}
+
+.layout-save-row input {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  color: #e2e8ed;
+  background: #1a222b;
+  border: 1px solid #313d49;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.layout-save-row button,
+.layout-manager-panel footer button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  color: #d3ffe0;
+  background: #1e3928;
+  border: 1px solid #477c58;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.layout-float-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.layout-float-toggles button {
+  height: 26px;
+  padding: 0 8px;
+  color: #a9b7c3;
+  background: #121920;
+  border: 1px solid #2d3945;
+  border-radius: 3px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.layout-float-toggles button.active {
+  color: #d8ffe4;
+  border-color: #4f7c5d;
+  background: #1b3125;
+}
+
+.layout-manager-panel footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  color: #788794;
+  font-size: 9px;
+}
+
+.layout-engine-shell .workspace-controls .layout-engine-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-window,
+  .layout-manager-panel {
+    animation: none;
+  }
+}

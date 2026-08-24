@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager, ProductImage } from "../creative-workspace/creative-workspace-manager.js";
-import { detectViewRole } from "../product-intelligence/view-role.js";
+import { detectViewRole, detectViewRoleDetailed } from "../product-intelligence/view-role.js";
 import type { ImageIntelligenceProfile, ImageIntelligenceStore } from "./types.js";
 
 const EMPTY: ImageIntelligenceStore = { profiles: [], history: [], cache: {}, logs: [] };
@@ -87,6 +87,38 @@ export class ImageIntelligenceManager {
     return this.store.profiles.filter((profile) => profile.projectId === projectId).map((profile) => ({ ...profile }));
   }
 
+  /** Manual view correction — analysis metadata only; never touches original image bytes. */
+  async overrideViewRole(projectId: string, imageId: string, viewRole: string, confidence = 1): Promise<ImageIntelligenceProfile> {
+    this.ensureReady();
+    const index = this.store.profiles.findIndex((p) => p.projectId === projectId && p.imageId === imageId);
+    if (index < 0) {
+      const project = await this.workspace!.getProject(projectId);
+      if (!project) throw new Error("Project not found");
+      const image = project.productImages.find((item) => item.id === imageId);
+      if (!image) throw new Error("Image not found");
+      await this.analyzeImage(project, image);
+    }
+    const refreshed = this.store.profiles.findIndex((p) => p.projectId === projectId && p.imageId === imageId);
+    if (refreshed < 0) throw new Error("Image profile not found");
+    const current = this.store.profiles[refreshed]!;
+    const updated: ImageIntelligenceProfile = {
+      ...current,
+      viewRole,
+      metadata: {
+        ...current.metadata,
+        viewConfidence: Math.round(confidence * 100),
+        userCorrected: 1,
+        previousViewRole: current.viewRole,
+      },
+      updatedAt: new Date().toISOString(),
+      cached: false,
+    };
+    this.store.profiles[refreshed] = updated;
+    this.history.record(projectId, imageId, "user-correction", `View role set to ${viewRole} by user.`);
+    await this.persist();
+    return { ...updated };
+  }
+
   async getDashboard(projectId?: string): Promise<{
     profiles: ImageIntelligenceProfile[];
     history: ImageIntelligenceStore["history"];
@@ -129,7 +161,8 @@ export class ImageIntelligenceManager {
     const quality = this.quality.analyze(image);
     const background = this.background.analyze(evidence);
     const objects = this.objects.detect(project, image);
-    const viewRole = detectViewRole(image.fileName);
+    const detection = detectViewRoleDetailed(image.fileName);
+    const viewRole = detection.role;
     const boundaries = this.boundary.detect(background, evidence);
     const resolution = this.resolution.analyze(image);
     const profile: ImageIntelligenceProfile = {
@@ -157,6 +190,7 @@ export class ImageIntelligenceManager {
         ...this.metadata.create(image),
         originalImageUnmodified: 1,
         backgroundRemovalDeferred: 1,
+        viewConfidence: Math.round(detection.confidence * 100),
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -395,7 +429,9 @@ export class DuplicateImageDetector {
     return profiles.map((profile) => {
       const image = project.productImages.find((item) => item.id === profile.imageId);
       if (!image) return profile;
-      const fingerprint = `${image.mimeType}:${image.sizeBytes}:${normalizeStem(image.fileName)}`;
+      const fingerprint = image.checksumSha256
+        ? `sum:${image.checksumSha256}`
+        : `${image.mimeType}:${image.sizeBytes}:${normalizeStem(image.fileName)}`;
       const first = byFingerprint.get(fingerprint);
       if (first && first !== profile.imageId) {
         return { ...profile, duplicateOfImageId: first, defects: unique([...profile.defects, "duplicate image of earlier upload"]) };

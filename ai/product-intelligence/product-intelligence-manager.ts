@@ -18,9 +18,9 @@ import type {
   ProductSellingPoint,
   ProductViewRole,
 } from "./types.js";
-import { detectViewRole } from "./view-role.js";
+import { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 
-export { detectViewRole } from "./view-role.js";
+export { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 
 const EMPTY: ProductIntelligenceStore = { profiles: [], history: [], cache: {}, logs: [] };
 const MATERIALS: Array<[RegExp, string]> = [
@@ -386,7 +386,10 @@ export class MultiViewAnalysisEngine {
       } satisfies ProductViewAnalysis;
     });
     const present = new Set(views.filter((view) => !view.duplicateOf).map((view) => view.role));
-    const missingAngles = [...REQUIRED_ANGLES, ...DETAIL_ANGLES].filter((role) => !present.has(role) && !(role === "side" && (present.has("left") || present.has("right"))));
+    if (present.has("left") || present.has("right")) present.add("side");
+    if (present.has("close-up")) present.add("detail");
+    const recommended = recommendedViewsForCategory(project.productInformation.category || project.productInformation.name || "");
+    const missingAngles = recommended.filter((role) => !present.has(role) && !(role === "side" && (present.has("left") || present.has("right"))));
     const named = views.filter((view) => view.role !== "unknown").length;
     const coverage =
       views.length === 0

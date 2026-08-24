@@ -1,0 +1,14 @@
+export { uxEngine, UxEngine } from "./ux-engine";
+export { commandStack, CommandStack } from "./command-stack";
+export { confirmationService, ConfirmationService } from "./confirmation";
+export { getTooltip, listTooltips, formatTooltipText, explainToolForAiMe } from "./tooltip-registry";
+export { createField, validateField, validateForm, autofillSuggestion } from "./smart-forms";
+export { listProductivityActions, recordAction, toggleFavoriteAction, workspaceTourSteps } from "./productivity";
+export { trapFocus, ensureSkipLink, installFocusModeListeners } from "./focus";
+export { buildAiMeUxContext } from "./aime-ux-awareness";
+export { SmartTooltip, useSmartTitle } from "./SmartTooltip";
+export { ConfirmDialog } from "./ConfirmDialog";
+export { ShortcutGuide } from "./ShortcutGuide";
+export { LiveRegion } from "./LiveRegion";
+export { HelpWorkspacePanel } from "./HelpWorkspacePanel";
+export type * from "./types";

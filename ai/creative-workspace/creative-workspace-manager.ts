@@ -4,6 +4,13 @@ import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { ProjectState } from "../state-manager/types.js";
 
+export interface ProductVariant {
+  id: string;
+  kind: "color" | "size" | "model" | "package" | "other";
+  label: string;
+  values: string[];
+}
+
 export interface ProductInformation {
   name: string;
   category: string;
@@ -18,6 +25,24 @@ export interface ProductInformation {
   sizes?: string[];
   materials?: string[];
   tags?: string[];
+  /** Step 3 Product Profile extensions — all optional for backward compatibility */
+  model?: string;
+  subcategory?: string;
+  barcode?: string;
+  shortDescription?: string;
+  highlights?: string[];
+  benefits?: string[];
+  originalPrice?: number;
+  discount?: number;
+  costPrice?: number;
+  promotionPrice?: number;
+  priceNotes?: string;
+  dimensions?: string;
+  weight?: string;
+  warranty?: string;
+  stock?: string;
+  countryOfOrigin?: string;
+  additionalNotes?: string;
 }
 
 export interface BrandInformation {
@@ -25,6 +50,10 @@ export interface BrandInformation {
   website?: string;
   voice?: string;
   guidelines?: string;
+  /** Step 4 project-specific brand prefs — do not replace global brand DB */
+  style?: string;
+  colors?: string;
+  logoAssetId?: string;
 }
 
 export interface CampaignInformation {
@@ -32,6 +61,17 @@ export interface CampaignInformation {
   objective: string;
   callToAction?: string;
   notes?: string;
+  /** Step 4 Marketing Input extensions */
+  contentFormat?: string;
+  duration?: string;
+  customDurationSeconds?: number;
+  platforms?: string[];
+  promotionType?: string;
+  promotionDetails?: string;
+  tone?: string;
+  style?: string;
+  mood?: string;
+  energy?: string;
 }
 
 export interface ProductImage {
@@ -41,6 +81,11 @@ export interface ProductImage {
   sizeBytes: number;
   uploadedAt: string;
   url: string;
+  /** Optional client/server enrichment — never required for legacy projects */
+  width?: number;
+  height?: number;
+  checksumSha256?: string;
+  sourceFileName?: string;
 }
 
 export interface CreativeProject {
@@ -67,6 +112,9 @@ export interface UploadedImageInput {
   fileName: string;
   mimeType: string;
   dataBase64: string;
+  width?: number;
+  height?: number;
+  checksumSha256?: string;
 }
 
 interface WorkspaceIndex {
@@ -78,8 +126,26 @@ interface WorkspaceIndex {
 const EMPTY_PRODUCT: ProductInformation = { name: "", category: "", description: "" };
 const EMPTY_BRAND: BrandInformation = { name: "" };
 const EMPTY_CAMPAIGN: CampaignInformation = { name: "", objective: "" };
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+/** Step 1 intake formats — architecture ready for SVG/HEIC later (rejected with clear message until enabled). */
+export const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/tiff",
+  "image/bmp",
+  "image/x-ms-bmp",
+]);
+export const FUTURE_IMAGE_TYPES = new Set(["image/svg+xml", "image/heic", "image/heif"]);
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+const EXT_BY_MIME: Record<string, string> = {
+  "image/jpeg": "jpeg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/tiff": "tiff",
+  "image/bmp": "bmp",
+  "image/x-ms-bmp": "bmp",
+};
 
 /**
  * Creative Workspace Manager owns Step 1 project inputs only. It deliberately
@@ -170,29 +236,38 @@ export class CreativeWorkspaceManager {
 
   async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
     const project = await this.requireProject(projectId);
+    if (FUTURE_IMAGE_TYPES.has(image.mimeType)) {
+      throw new Error(`Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
+    }
     if (!ALLOWED_IMAGE_TYPES.has(image.mimeType)) {
-      throw new Error("Only JPEG, PNG, and WebP product images are supported");
+      throw new Error("Unsupported format. Supported: JPG, JPEG, PNG, WEBP, TIFF, BMP");
     }
     const data = Buffer.from(image.dataBase64, "base64");
     if (!data.length || data.length > MAX_IMAGE_BYTES) {
-      throw new Error("Product image must be between 1 byte and 15 MB");
+      throw new Error("Product image must be between 1 byte and 25 MB");
     }
 
-    const extension = image.mimeType.split("/")[1];
+    const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1]?.replace("x-ms-", "") ?? "bin";
     const id = randomUUID();
     const safeName = path.basename(image.fileName).replace(/[^a-zA-Z0-9._-]/g, "_") || `product.${extension}`;
     const storedName = `${id}.${extension}`;
     const imageDirectory = path.join(this.projectPath(projectId), "images");
     await fs.mkdir(imageDirectory, { recursive: true });
+    // Write a project-owned copy only — never touch the user's original Windows path
     await fs.writeFile(path.join(imageDirectory, storedName), data);
 
+    const checksumSha256 = image.checksumSha256 ?? createHash("sha256").update(data).digest("hex");
     const uploaded: ProductImage = {
       id,
       fileName: safeName,
-      mimeType: image.mimeType,
+      mimeType: image.mimeType === "image/x-ms-bmp" ? "image/bmp" : image.mimeType,
       sizeBytes: data.length,
       uploadedAt: new Date().toISOString(),
       url: `/api/workspace/projects/${projectId}/images/${storedName}`,
+      width: image.width,
+      height: image.height,
+      checksumSha256,
+      sourceFileName: image.fileName,
     };
     project.productImages.push(uploaded);
     project.modifiedAt = uploaded.uploadedAt;
@@ -200,8 +275,26 @@ export class CreativeWorkspaceManager {
     return uploaded;
   }
 
+  async removeImage(projectId: string, imageId: string): Promise<CreativeProject> {
+    const project = await this.requireProject(projectId);
+    const image = project.productImages.find((item) => item.id === imageId);
+    if (!image) throw new Error("Image not found");
+    const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1] ?? "bin";
+    const storedName = `${image.id}.${extension}`;
+    const filePath = path.join(this.projectPath(projectId), "images", storedName);
+    try {
+      await fs.unlink(filePath);
+    } catch {
+      /* file may already be missing — still drop metadata */
+    }
+    project.productImages = project.productImages.filter((item) => item.id !== imageId);
+    project.modifiedAt = new Date().toISOString();
+    await this.persist(project);
+    return project;
+  }
+
   async getImagePath(projectId: string, imageFile: string): Promise<string | null> {
-    if (!/^[a-f0-9-]+\.(jpeg|png|webp)$/i.test(imageFile)) return null;
+    if (!/^[a-f0-9-]+\.(jpe?g|png|webp|tiff?|bmp)$/i.test(imageFile)) return null;
     const filePath = path.join(this.projectPath(projectId), "images", imageFile);
     try {
       await fs.access(filePath);
@@ -216,10 +309,11 @@ export class CreativeWorkspaceManager {
     const project = await this.getProject(projectId);
     const image = project?.productImages.find((item) => item.id === imageId);
     if (!image) return null;
-    const extension = image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1];
+    const extension = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
     return this.getImagePath(projectId, `${imageId}.${extension}`);
   }
 
+  /** Full creative brief validation (later steps). */
   validate(project: CreativeProject | null): ValidationResult {
     const errors: string[] = [];
     if (!project) errors.push("Create or open a project before continuing.");
@@ -236,6 +330,60 @@ export class CreativeWorkspaceManager {
     if (!project.language.trim()) errors.push("Language is required.");
     if (!project.platform.trim()) errors.push("Platform is required.");
     return { valid: errors.length === 0, errors };
+  }
+
+  /** Step 1 Product Intake gate — project name + ≥1 stored image. Warnings do not block. */
+  validateIntake(project: CreativeProject | null): ValidationResult {
+    const errors: string[] = [];
+    if (!project) errors.push("Create or open a project before continuing.");
+    if (!project) return { valid: false, errors };
+    if (!project.name.trim()) errors.push("Project name is required.");
+    if (!project.productImages.length) errors.push("Import at least one valid product image.");
+    return { valid: errors.length === 0, errors };
+  }
+
+  /** Step 3 Product Profile gate — critical commerce fields + images. */
+  validateProductProfile(project: CreativeProject | null): ValidationResult {
+    const errors: string[] = [];
+    if (!project) errors.push("Create or open a project before continuing.");
+    if (!project) return { valid: false, errors };
+    if (!project.name.trim() && !project.productInformation.name.trim()) errors.push("Product name is required.");
+    if (!project.productInformation.name.trim()) errors.push("Product name is required.");
+    if (!project.productInformation.category.trim()) errors.push("Product category is required.");
+    if (project.productInformation.price == null || !Number.isFinite(project.productInformation.price) || project.productInformation.price < 0) {
+      errors.push("A valid selling price is required.");
+    }
+    if (project.productInformation.price != null && !String(project.productInformation.currency ?? "").trim()) {
+      errors.push("Currency is required when a price is set.");
+    }
+    if (!project.productImages.length) errors.push("At least one product image is required.");
+    return { valid: errors.length === 0, errors };
+  }
+
+  /** Step 4 Marketing Brief gate — objective, audience, platform, language, format. */
+  validateMarketingBrief(project: CreativeProject | null): ValidationResult {
+    const errors: string[] = [];
+    if (!project) errors.push("Create or open a project before continuing.");
+    if (!project) return { valid: false, errors };
+    if (!project.campaignInformation.objective.trim()) errors.push("Campaign objective is required.");
+    if (!project.targetAudience.trim()) errors.push("Target audience is required.");
+    if (!project.platform.trim() && !(project.campaignInformation.platforms?.length)) {
+      errors.push("At least one marketing platform is required.");
+    }
+    if (!project.language.trim()) errors.push("Language is required.");
+    if (!String(project.campaignInformation.contentFormat ?? "").trim()) {
+      errors.push("Content format is required.");
+    }
+    return { valid: errors.length === 0, errors };
+  }
+
+  /** Step 5 Production Readiness gate — intake + profile + marketing. */
+  validateProductionReadiness(project: CreativeProject | null): ValidationResult {
+    const intake = this.validateIntake(project);
+    const profile = this.validateProductProfile(project);
+    const marketing = this.validateMarketingBrief(project);
+    const errors = [...intake.errors, ...profile.errors, ...marketing.errors];
+    return { valid: errors.length === 0, errors: [...new Set(errors)] };
   }
 
   getIntegrationStatus(): Record<string, boolean> {

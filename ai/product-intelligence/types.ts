@@ -9,6 +9,9 @@ export type ProductViewRole =
   | "detail"
   | "close-up"
   | "side"
+  | "packaging"
+  | "logo"
+  | "angle-45"
   | "unknown";
 
 export interface ProductViewAnalysis {

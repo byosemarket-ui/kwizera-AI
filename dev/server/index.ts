@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-probes.js";
 
 import {
 
@@ -1033,6 +1034,8 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     const pipeline = getPipelineManager()?.getDashboard();
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
+    const resources = probeResourceMetrics(resolveStorageRoot());
+    const activeJobs = pipeline?.jobs.filter((job) => job.status === "queued" || job.status === "running").length ?? 0;
 
     sendJson(res, 200, {
 
@@ -1061,8 +1064,21 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       runtimeMetrics: {
         memoryMb: Math.round(memoryUsage.rss / 1024 / 1024),
         cpuUserMs: Math.round(cpuUsage.user / 1000),
-        gpu: "unavailable",
-        activeJobs: pipeline?.jobs.filter((job) => job.status === "queued" || job.status === "running").length ?? 0,
+        gpu: resources.gpuMemoryTotalMb
+          ? `${resources.gpuUsage}% · ${resources.gpuMemoryUsedMb ?? 0}/${resources.gpuMemoryTotalMb} MB`
+          : resources.source === "heuristic"
+            ? `heuristic ${resources.gpuUsage}%`
+            : "unavailable",
+        activeJobs,
+        cpuUsage: resources.cpuUsage,
+        gpuUsage: resources.gpuUsage,
+        ramUsage: resources.ramUsage,
+        ramTotalMb: resources.systemRamTotalMb,
+        vramUsage: resources.vramUsage,
+        diskUsage: resources.diskUsage,
+        diskUsedGb: resources.storageUsedGb,
+        diskTotalGb: resources.storageTotalGb,
+        activeAiModels: activeJobs > 0 ? Math.min(activeJobs, 3) : 0,
       },
 
     });
@@ -1805,6 +1821,44 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Image analysis failed" });
+
+    }
+
+    return;
+
+  }
+
+  const imageOverrideMatch = url.pathname.match(/^\/api\/image-intelligence\/projects\/([^/]+)\/images\/([^/]+)\/view-role$/);
+
+  if (imageOverrideMatch && req.method === "POST") {
+
+    const intelligence = requireImageIntelligence(res);
+
+    if (!intelligence) return;
+
+    try {
+
+      const body = JSON.parse(await readBody(req)) as { viewRole?: string; confidence?: number };
+
+      if (!body.viewRole) { sendJson(res, 400, { error: "viewRole is required" }); return; }
+
+      const profile = await intelligence.overrideViewRole(
+
+        imageOverrideMatch[1],
+
+        imageOverrideMatch[2],
+
+        body.viewRole,
+
+        typeof body.confidence === "number" ? body.confidence : 1,
+
+      );
+
+      sendJson(res, 200, { profile, dashboard: await intelligence.getDashboard(imageOverrideMatch[1]) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to override view role" });
 
     }
 
@@ -2893,15 +2947,45 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
         dataBase64: body.dataBase64 ?? "",
 
+        width: typeof body.width === "number" ? body.width : undefined,
+
+        height: typeof body.height === "number" ? body.height : undefined,
+
+        checksumSha256: typeof body.checksumSha256 === "string" ? body.checksumSha256 : undefined,
+
       });
 
       const project = await workspace.getProject(uploadMatch[1]);
 
-      sendJson(res, 201, { image, project, validation: workspace.validate(project) });
+      sendJson(res, 201, { image, project, validation: workspace.validate(project), intake: workspace.validateIntake(project) });
 
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to upload image" });
+
+    }
+
+    return;
+
+  }
+
+  const removeImageMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images\/([^/]+)$/);
+
+  if (removeImageMatch && req.method === "DELETE") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    try {
+
+      const project = await workspace.removeImage(removeImageMatch[1], removeImageMatch[2]);
+
+      sendJson(res, 200, { project, validation: workspace.validate(project), intake: workspace.validateIntake(project) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to remove image" });
 
     }
 

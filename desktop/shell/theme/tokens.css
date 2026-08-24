@@ -1,0 +1,51 @@
+/* KWIZERA AI STUDIO — Design tokens for workspace shell */
+
+:root {
+  --shell-bg: #0c0f14;
+  --shell-surface: #101319;
+  --shell-surface-elevated: #151a21;
+  --shell-border: #262b33;
+  --shell-border-subtle: #252a32;
+  --shell-text: #e7e9ed;
+  --shell-text-muted: #8a94a0;
+  --shell-text-subtle: #77818e;
+  --shell-accent: #b9f2cc;
+  --shell-accent-dim: #1b3529;
+  --shell-top-height: 64px;
+  --shell-left-width: 232px;
+  --shell-left-collapsed: 58px;
+  --shell-right-width: 276px;
+  --shell-bottom-collapsed: 28px;
+  --shell-bottom-expanded: 200px;
+  --shell-gap: 0px;
+  --shell-radius: 5px;
+  --shell-font-mono: "DM Mono", monospace;
+  --shell-font-sans: Manrope, sans-serif;
+  --shell-transition: 0.24s ease;
+}
+
+:root[data-theme="light"] {
+  --shell-bg: #edf2f4;
+  --shell-surface: #f8fafb;
+  --shell-surface-elevated: #ffffff;
+  --shell-border: #cbd5dc;
+  --shell-border-subtle: #d8e0e6;
+  --shell-text: #152029;
+  --shell-text-muted: #4c5b67;
+  --shell-text-subtle: #6b7a86;
+  --shell-accent-dim: #d4ede0;
+}
+
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --shell-bg: #edf2f4;
+    --shell-surface: #f8fafb;
+    --shell-surface-elevated: #ffffff;
+    --shell-border: #cbd5dc;
+    --shell-text: #152029;
+  }
+}
+
+:root[data-accent="sky"] { --shell-accent: #78c8ff; }
+:root[data-accent="amber"] { --shell-accent: #efc36d; }
+:root[data-accent="rose"] { --shell-accent: #ed91a3; }

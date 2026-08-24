@@ -1,87 +1,532 @@
-import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Bell, Bot, Box, BrainCircuit, ChevronLeft, ChevronRight, Clapperboard, Command, Contrast, Cpu, Database, FolderKanban, Gauge, Grid2X2, Image, LibraryBig, Menu, MonitorCog, Moon, MoreHorizontal, PanelRightClose, PanelRightOpen, PanelsTopLeft, Palette, Plug, RotateCcw, Search, Settings, SlidersHorizontal, Sparkles, Sun, Video, X } from "lucide-react";
-import { ProjectWorkspace } from "./project-workspace/ProjectWorkspace";
-import { AiStudioWorkspace } from "./ai-studio/AiStudioWorkspace";
-import { CreativeEditingWorkspace } from "./creative-editor/CreativeEditingWorkspace";
-import { BusinessDashboard } from "./business-dashboard/BusinessDashboard";
-import { BrandCenter } from "./brand-center/BrandCenter";
-import { MarketingWorkspace } from "./marketing-workspace/MarketingWorkspace";
-import { BusinessIntelligenceWorkspace } from "./business-intelligence/BusinessIntelligenceWorkspace";
-import { PlatformManagementWorkspace } from "./platform-management/PlatformManagementWorkspace";
+import {
+  ChevronRight, Command, Contrast, Download, MonitorCog, Palette, PanelsTopLeft,
+  RotateCcw, Settings, Upload, X,
+} from "lucide-react";
 import { DesktopNotificationManager, DesktopPreferenceManager } from "./desktop-polish/preference-store";
 import { workspaceProfiles } from "./desktop-polish/profiles";
-import type { DesktopNotification, DesktopPreferences, WorkspaceProfileId } from "./desktop-polish/types";
+import type { DesktopNotification, DesktopPreferences, StartupMode, WorkspaceProfileId } from "./desktop-polish/types";
+import { AppShell } from "./shell/AppShell";
+import { ShellWorkspaceContent } from "./shell/ShellWorkspaceContent";
+import type { CoreStatus, ShellLayoutState } from "./shell/types";
+import { workspaceStateEngine } from "./shell/workspace-state/workspace-state-engine";
+import { personalizationEngine } from "./shell/personalization/personalization-engine";
+import { uxEngine } from "./shell/ux/ux-engine";
+import { navigationStore } from "./shell/navigation/navigation-store";
+import { buildAiMeWorkspaceContext, serializeAiMeContext } from "./shell/aime-awareness";
+import { NotificationCenter } from "./shell/navigation/NotificationCenter";
+import { mapLegacyWorkspace } from "./shell/workspace-registry";
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
+import "./shell/shell.css";
 
-type WorkspaceId = "dashboard" | "projects" | "products" | "media" | "brand" | "ai" | "editor" | "marketing" | "video" | "image" | "intelligence" | "knowledge" | "memory" | "platform" | "settings";
-type LayoutState = { workspace: WorkspaceId; leftCollapsed: boolean; rightOpen: boolean; zen: boolean };
-type CoreStatus = { aiCore: boolean; workflowEngine: boolean; communicationBus: boolean; moduleManager: boolean; memoryFoundation: boolean; knowledgeFoundation: boolean; activeProject: string; runtimeMetrics?: { memoryMb: number; cpuUserMs: number; gpu: string; activeJobs: number } };
-
-const STORAGE_KEY = "kwizera.desktop-workspace.v1";
-const defaultLayout: LayoutState = { workspace: "dashboard", leftCollapsed: false, rightOpen: true, zen: false };
 const preferenceManager = new DesktopPreferenceManager();
 const notificationManager = new DesktopNotificationManager();
-const nav: Array<{ id: WorkspaceId; label: string; icon: typeof Grid2X2; group?: string }> = [
-  { id: "dashboard", label: "Dashboard", icon: Grid2X2 }, { id: "projects", label: "Projects", icon: FolderKanban }, { id: "products", label: "Products", icon: Box }, { id: "media", label: "Media Library", icon: LibraryBig }, { id: "brand", label: "Brand Center", icon: Palette },
-  { id: "ai", label: "AI Studio", icon: Sparkles, group: "Studios" }, { id: "editor", label: "Creative Editor", icon: Clapperboard }, { id: "marketing", label: "Marketing Studio", icon: Gauge }, { id: "video", label: "Video Studio", icon: Video }, { id: "image", label: "Image Studio", icon: Image },
-  { id: "intelligence", label: "Business Intelligence", icon: BrainCircuit, group: "Intelligence" }, { id: "knowledge", label: "Knowledge Center", icon: Database }, { id: "memory", label: "Memory Center", icon: Bot }, { id: "platform", label: "Platform Management", icon: Plug, group: "Platform" }, { id: "settings", label: "Settings", icon: Settings, group: "System" },
-];
 
-function loadLayout(): LayoutState { try { return { ...defaultLayout, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") }; } catch { return defaultLayout; } }
 function App() {
   const [preferences, setPreferences] = useState<DesktopPreferences>(() => preferenceManager.load());
-  const [layout, setLayout] = useState<LayoutState>(() => ({ ...loadLayout(), workspace: (preferenceManager.load().lastWorkspace as WorkspaceId) || loadLayout().workspace }));
   const [core, setCore] = useState<CoreStatus | null>(null);
+  const [layoutSnapshot, setLayoutSnapshot] = useState<ShellLayoutState | null>(null);
+  const [restoredLayout, setRestoredLayout] = useState<ShellLayoutState | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [notifications, setNotifications] = useState<DesktopNotification[]>(() => notificationManager.load());
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(layout)); preferenceManager.backup({ layout, preferences }); }, [layout, preferences]);
-  useEffect(() => { preferenceManager.save(preferences); document.documentElement.dataset.theme = preferences.theme; document.documentElement.dataset.accent = preferences.accent; document.documentElement.classList.toggle("high-contrast", preferences.highContrast); document.documentElement.classList.toggle("reduce-motion", preferences.reducedMotion); document.documentElement.style.setProperty("--desktop-scale", String(preferences.uiScale / 100)); document.documentElement.style.setProperty("--desktop-font-scale", String(preferences.fontScale / 100)); }, [preferences]);
-  useEffect(() => { notificationManager.save(notifications); }, [notifications]);
-  useEffect(() => { const updateWindow = () => setPreferences((current) => ({ ...current, window: { width: window.innerWidth, height: window.innerHeight, x: window.screenX, y: window.screenY } })); updateWindow(); window.addEventListener("resize", updateWindow); return () => window.removeEventListener("resize", updateWindow); }, []);
-  useEffect(() => { const update = () => fetch("/api/desktop-workspace/status").then((response) => response.ok ? response.json() : null).then(setCore).catch(() => setCore(null)); update(); const timer = window.setInterval(update, 15_000); return () => window.clearInterval(timer); }, []);
-  useEffect(() => { const shortcut = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setSearchOpen(true); } if ((event.ctrlKey || event.metaKey) && event.key === ",") { event.preventDefault(); setPreferencesOpen(true); } if (event.key === "Escape") { setSearchOpen(false); setPreferencesOpen(false); setNotificationsOpen(false); setContextMenu(null); } if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "b") { event.preventDefault(); setLayout((current) => ({ ...current, leftCollapsed: !current.leftCollapsed })); } }; window.addEventListener("keydown", shortcut); return () => window.removeEventListener("keydown", shortcut); }, []);
-  const notify = (tone: DesktopNotification["tone"], title: string, detail: string) => setNotifications((current) => [notificationManager.create(tone, title, detail), ...current]);
-  const set = (changes: Partial<LayoutState>) => setLayout((current) => ({ ...current, ...changes }));
-  const switchWorkspace = (workspace: WorkspaceId) => { set({ workspace }); setPreferences((current) => ({ ...current, lastWorkspace: workspace })); };
-  const switchProfile = (profileId: WorkspaceProfileId) => { const profile = workspaceProfiles.find((item) => item.id === profileId); if (!profile) return; switchWorkspace(profile.workspace as WorkspaceId); setPreferences((current) => ({ ...current, activeProfile: profileId, lastWorkspace: profile.workspace })); notify("info", `${profile.label} applied`, profile.detail); };
-  const restoreDesktop = () => { const backup = preferenceManager.restore<{ layout: LayoutState; preferences: DesktopPreferences }>(); if (backup) { setLayout(backup.layout); setPreferences(backup.preferences); notify("success", "Workspace restored", "Last desktop snapshot has been applied."); } };
-  const active = nav.find((item) => item.id === layout.workspace)!;
-  return <main className={`studio-shell ${layout.leftCollapsed ? "left-collapsed" : ""} ${layout.rightOpen ? "" : "right-closed"} ${layout.zen ? "zen" : ""}`} tabIndex={-1} onContextMenu={(event) => { event.preventDefault(); setContextMenu({ x: event.clientX, y: event.clientY }); }} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); notify("info", "Drop received", "Items are prepared for future workspace routing."); }}>
-    <header className="topbar">
-      <a className="brand" href="/desktop" aria-label="KWIZERA AI Studio home"><span className="brand-mark"><Sparkles size={17} /></span><span>KWIZERA</span><em>AI STUDIO</em></a>
-      <div className="project-switcher"><span className="project-dot" /><span>{core?.activeProject ?? "Workspace"}</span><ChevronRight size={14} /></div>
-      <button className="global-search" onClick={() => setSearchOpen(true)}><Search size={16} /><span>Search workspace</span><kbd>Ctrl K</kbd></button>
-      <div className="top-actions"><button className="icon-button" title="Workspace profiles" onClick={() => setPreferencesOpen(true)}><Command size={17} /></button><button className="icon-button notification" title="Notifications" onClick={() => setNotificationsOpen(!notificationsOpen)}><Bell size={17} />{notifications.length > 0 && <i />}</button><div className={`ai-pill ${core?.aiCore ? "online" : ""}`}><span />AI {core?.aiCore ? "Ready" : "Connecting"}</div><button className="avatar" title="User menu">KA</button><button className="icon-button" title="Settings" onClick={() => setPreferencesOpen(true)}><Settings size={17} /></button></div>
-    </header>
-    <aside className="left-sidebar"><div className="sidebar-top"><span className="sidebar-caption">Workspace</span><button className="sidebar-collapse icon-button" onClick={() => set({ leftCollapsed: !layout.leftCollapsed })} title="Collapse sidebar">{layout.leftCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button></div><nav>{nav.map((item, index) => <NavItem key={item.id} item={item} active={layout.workspace === item.id} showGroup={index === 0 || item.group !== nav[index - 1].group} onSelect={() => switchWorkspace(item.id)} />)}</nav><div className="sidebar-footer"><button className="nav-item" onClick={() => setPreferencesOpen(true)}><MoreHorizontal size={18} /><span>Desktop preferences</span></button></div></aside>
-    <section className="workspace-area"><div className="workspace-toolbar"><div><span className="crumb">WORKSPACE / {active.label.toUpperCase()}</span><h1>{active.label}</h1></div><div className="workspace-controls"><button className="soft-button" onClick={() => set({ zen: !layout.zen })}><MonitorCog size={15} />{layout.zen ? "Exit focus" : "Focus mode"}</button><button className="icon-button" onClick={() => set({ rightOpen: !layout.rightOpen })} title="Toggle inspector">{layout.rightOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}</button></div></div>{layout.workspace === "dashboard" ? <BusinessDashboard onNavigate={(workspace) => switchWorkspace(workspace as WorkspaceId)} /> : layout.workspace === "brand" ? <BrandCenter /> : layout.workspace === "marketing" ? <MarketingWorkspace /> : layout.workspace === "intelligence" ? <BusinessIntelligenceWorkspace /> : layout.workspace === "platform" ? <PlatformManagementWorkspace /> : layout.workspace === "editor" ? <CreativeEditingWorkspace /> : <WelcomeDashboard core={core} workspace={layout.workspace} />}</section>
-    <aside className="right-sidebar"><div className="inspector-header"><div><span className="sidebar-caption">Inspector</span><h2>Context</h2></div><button className="icon-button" onClick={() => set({ rightOpen: false })} title="Close inspector"><X size={16} /></button></div><Inspector core={core} workspace={active.label} /></aside>
-    <footer className="statusbar"><span className="status-live"><i />{core?.aiCore ? "System operational" : "Local workspace"}</span><span><Cpu size={13} />CPU <b>{core?.runtimeMetrics ? `${core.runtimeMetrics.cpuUserMs} ms` : "Unavailable"}</b></span><span><Sparkles size={13} />GPU <b>{core?.runtimeMetrics?.gpu ?? "Unavailable"}</b></span><span><SlidersHorizontal size={13} />RAM <b>{core?.runtimeMetrics ? `${core.runtimeMetrics.memoryMb} MB` : "Unavailable"}</b></span><span className="status-workspace"><span>Active</span><b>{active.label}</b></span><span><Bot size={13} />{core?.aiCore ? "AI engine ready" : "AI engine offline"}</span><span><Bell size={13} />{core?.runtimeMetrics?.activeJobs ?? 0}</span><span><Menu size={13} />{core?.runtimeMetrics?.activeJobs ? "Background work active" : "No background tasks"}</span></footer>
-    {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} onSelect={(workspace) => { switchWorkspace(workspace); setSearchOpen(false); }} />}
-    {preferencesOpen && <DesktopPreferencesPanel preferences={preferences} onChange={setPreferences} onProfile={switchProfile} onRestore={restoreDesktop} onClose={() => setPreferencesOpen(false)} />}
-    {notificationsOpen && <DesktopNotifications notifications={notifications} onClear={() => setNotifications([])} onClose={() => setNotificationsOpen(false)} />}
-    {contextMenu && <DesktopContextMenu position={contextMenu} onClose={() => setContextMenu(null)} onPreferences={() => { setContextMenu(null); setPreferencesOpen(true); }} />}
-    {dragging && <div className="desktop-drop-overlay"><Sparkles size={25} /><strong>Drop to prepare workspace routing</strong><span>Files, assets, panels, timeline items, and future AI objects are supported by this foundation.</span></div>}
-  </main>;
-}
-function NavItem({ item, active, showGroup, onSelect }: { item: typeof nav[number]; active: boolean; showGroup: boolean; onSelect: () => void }) { const Icon = item.icon; return <>{showGroup && <span className="nav-group">{item.group ?? "Core"}</span>}<button className={`nav-item ${active ? "active" : ""}`} onClick={onSelect}><Icon size={18} /><span>{item.label}</span></button></>; }
-function WelcomeDashboard({ core, workspace }: { core: CoreStatus | null; workspace: WorkspaceId }) { const active = nav.find((item) => item.id === workspace)!; const ActiveIcon = active.icon; if (workspace === "projects") return <ProjectWorkspace />; if (workspace === "media") return <ProjectWorkspace mediaOnly />; if (workspace === "ai") return <AiStudioWorkspace />; if (workspace !== "dashboard") return <section className="empty-workspace"><div className="empty-icon"><ActiveIcon size={30} /></div><span>Workspace foundation</span><h2>{active.label} is ready for its future editor.</h2><p>This route, context panel, and persistent layout are active. Functional project or AI tooling belongs to later modules.</p></section>; const integration = [{ label: "AI Core", value: core?.aiCore }, { label: "Workflow Engine", value: core?.workflowEngine }, { label: "Communication Bus", value: core?.communicationBus }, { label: "Module Manager", value: core?.moduleManager }, { label: "Memory Foundation", value: core?.memoryFoundation }, { label: "Knowledge Foundation", value: core?.knowledgeFoundation }]; return <div className="dashboard-canvas"><section className="welcome"><div><span className="eyebrow">CREATIVE OPERATIONS</span><h2>Good morning, <strong>creator.</strong></h2><p>Your desktop workspace is ready. Choose a studio from the navigation to begin.</p></div><div className="welcome-orbit"><div className="orbit-core"><Sparkles size={25} /></div><i /><i /><i /></div></section><section className="dashboard-grid"><article className="activity-panel"><div className="panel-heading"><div><span className="eyebrow">WORKSPACE</span><h3>Start from a clear surface</h3></div><button className="text-button">View all</button></div><div className="quick-grid"><Quick icon={<FolderKanban />} title="Projects" detail="Organize future work" /><Quick icon={<Image />} title="Image Studio" detail="Visual creation space" /><Quick icon={<Video />} title="Video Studio" detail="Timeline creation space" /><Quick icon={<Database />} title="Knowledge" detail="Intelligence context" /></div></article><article className="integration-panel"><div className="panel-heading"><div><span className="eyebrow">CONNECTED FOUNDATION</span><h3>System presence</h3></div><span className="connection-label">Read-only</span></div><div className="integration-list">{integration.map((item) => <div key={item.label}><span className={item.value ? "connected" : "awaiting"} /><b>{item.label}</b><small>{item.value ? "Connected" : "Awaiting runtime"}</small></div>)}</div></article></section><section className="recent-strip"><div className="panel-heading"><div><span className="eyebrow">WELCOME SURFACE</span><h3>Desktop workspace architecture</h3></div></div><div className="architecture-row"><span>Top navigation</span><span>Workspace routing</span><span>Dock-ready inspector</span><span>Persisted layout</span><span>System status</span></div></section></div>; }
-function Quick({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) { return <button className="quick-card"><span>{icon}</span><b>{title}</b><small>{detail}</small><ChevronRight size={15} /></button>; }
-function Inspector({ core, workspace }: { core: CoreStatus | null; workspace: string }) { return <div className="inspector-content"><section><span className="inspector-label">ACTIVE WORKSPACE</span><strong>{workspace}</strong><p>Context and properties will appear here as future tools are added.</p></section><section><span className="inspector-label">AI INFORMATION</span><div className="inspector-metric"><span>Engine</span><b>{core?.aiCore ? "Ready" : "Offline"}</b></div><div className="inspector-metric"><span>Project</span><b>{core?.activeProject ?? "None"}</b></div></section><section><span className="inspector-label">QUICK TOOLS</span><button className="tool-row"><Grid2X2 size={15} />Layout presets</button><button className="tool-row"><Settings size={15} />Workspace settings</button></section></div>; }
-function SearchOverlay({ onClose, onSelect }: { onClose: () => void; onSelect: (id: WorkspaceId) => void }) { const [query, setQuery] = useState(""); const matches = nav.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())); return <div className="search-overlay" onMouseDown={onClose}><div className="command-palette" onMouseDown={(event) => event.stopPropagation()}><div><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Go to a workspace..." /><kbd>ESC</kbd></div><span>WORKSPACES</span>{matches.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => onSelect(item.id)}><Icon size={17} />{item.label}<ChevronRight size={15} /></button>; })}</div></div>; }
 
-function DesktopPreferencesPanel({ preferences, onChange, onProfile, onRestore, onClose }: { preferences: DesktopPreferences; onChange: (preferences: DesktopPreferences) => void; onProfile: (profile: WorkspaceProfileId) => void; onRestore: () => void; onClose: () => void }) {
-  const update = (changes: Partial<DesktopPreferences>) => onChange({ ...preferences, ...changes });
-  return <div className="desktop-modal-backdrop" onMouseDown={onClose}><section className="desktop-preferences" onMouseDown={(event) => event.stopPropagation()} aria-label="Desktop preferences"><header><div><span>DESKTOP PERSONALIZATION</span><h2>Workspace preferences</h2></div><button onClick={onClose} title="Close preferences"><X size={16} /></button></header><div className="preference-body"><section><h3><Command size={15} />Workspace profiles</h3><div className="profile-list">{workspaceProfiles.map((profile) => <button key={profile.id} className={preferences.activeProfile === profile.id ? "active" : ""} onClick={() => onProfile(profile.id)}><span><b>{profile.label}</b><small>{profile.detail}</small></span><ChevronRight size={14} /></button>)}</div></section><section><h3><Palette size={15} />Appearance</h3><div className="preference-grid"><label>Theme<select value={preferences.theme} onChange={(event) => update({ theme: event.target.value as DesktopPreferences["theme"] })}><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label><label>Accent<div className="accent-picker">{(["mint", "sky", "amber", "rose"] as const).map((accent) => <button key={accent} aria-label={`${accent} accent`} className={`${accent} ${preferences.accent === accent ? "active" : ""}`} onClick={() => update({ accent })} />)}</div></label><ScaleControl label="UI scale" value={preferences.uiScale} onChange={(uiScale) => update({ uiScale })} /><ScaleControl label="Font scale" value={preferences.fontScale} onChange={(fontScale) => update({ fontScale })} /></div></section><section><h3><Contrast size={15} />Accessibility</h3><label className="toggle-preference"><span><b>High contrast</b><small>Increase visual separation</small></span><input type="checkbox" checked={preferences.highContrast} onChange={(event) => update({ highContrast: event.target.checked })} /></label><label className="toggle-preference"><span><b>Reduced motion</b><small>Minimize non-essential animation</small></span><input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => update({ reducedMotion: event.target.checked })} /></label></section><section><h3><MonitorCog size={15} />Workspace backup</h3><div className="backup-row"><span>Layout, preferences, panel visibility, and last workspace save automatically.</span><button onClick={onRestore}><RotateCcw size={14} />Restore snapshot</button></div></section><footer><span><kbd>Ctrl</kbd> <kbd>,</kbd> Preferences · <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd> Toggle sidebar</span><button onClick={onClose}>Done</button></footer></div></section></div>;
+  useEffect(() => {
+    preferenceManager.save(preferences);
+    document.documentElement.dataset.theme = preferences.theme;
+    document.documentElement.dataset.accent = preferences.accent;
+    document.documentElement.dataset.density = preferences.uiDensity ?? "comfortable";
+    document.documentElement.classList.toggle("high-contrast", preferences.highContrast);
+    document.documentElement.classList.toggle("reduce-motion", preferences.reducedMotion);
+    document.documentElement.style.setProperty("--desktop-scale", String(preferences.uiScale / 100));
+    document.documentElement.style.setProperty("--desktop-font-scale", String(preferences.fontScale / 100));
+  }, [preferences]);
+
+  useEffect(() => { notificationManager.save(notifications); }, [notifications]);
+
+  useEffect(() => {
+    const updateWindow = () => setPreferences((current) => ({
+      ...current,
+      window: { width: window.innerWidth, height: window.innerHeight, x: window.screenX, y: window.screenY },
+    }));
+    updateWindow();
+    window.addEventListener("resize", updateWindow);
+    return () => window.removeEventListener("resize", updateWindow);
+  }, []);
+
+  useEffect(() => {
+    const update = () => fetch("/api/desktop-workspace/status")
+      .then((response) => (response.ok ? response.json() : null))
+      .then(setCore)
+      .catch(() => setCore(null));
+    update();
+    const timer = window.setInterval(update, 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === ",") {
+        event.preventDefault();
+        setPreferencesOpen(true);
+      }
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+        setPreferencesOpen(false);
+        setNotificationsOpen(false);
+        setContextMenu(null);
+      }
+    };
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+
+  const notify = useCallback(
+    (tone: DesktopNotification["tone"], title: string, detail: string, category?: DesktopNotification["category"]) => {
+      const item = notificationManager.create(tone, title, detail, category);
+      if (!notificationManager.isCategoryEnabled(preferenceManager.load(), item.category)) return;
+      setNotifications((current) => [item, ...current]);
+    },
+    [],
+  );
+
+  const switchProfile = (profileId: WorkspaceProfileId) => {
+    const profile = workspaceProfiles.find((item) => item.id === profileId);
+    if (!profile) return;
+    setPreferences((current) => ({
+      ...current,
+      activeProfile: profileId,
+      lastWorkspace: mapLegacyWorkspace(profile.workspace),
+      defaultLayoutId: profile.layoutId ?? current.defaultLayoutId,
+    }));
+    notify("info", `${profile.label} applied`, profile.detail, "updates");
+  };
+
+  const restoreDesktop = async () => {
+    const confirmed = await uxEngine.confirm(
+      "restore-workspace",
+      "Restore workspace snapshot?",
+      "This replaces the current layout and preferences with the last valid snapshot. Production jobs are not cancelled.",
+    );
+    if (!confirmed) {
+      notify("info", "Restore cancelled", "Workspace left unchanged.", "information");
+      return;
+    }
+    const report = workspaceStateEngine.rollbackTo(
+      workspaceStateEngine.loadLatestSnapshot()?.id ?? "",
+    );
+    if (report.restored) {
+      const snap = workspaceStateEngine.loadLatestSnapshot();
+      if (snap) {
+        setPreferences(snap.preferences);
+        setRestoredLayout(snap.shell);
+        setLayoutSnapshot(snap.shell);
+      }
+      notify("success", "Workspace restored", report.explanation, "production-complete");
+      return;
+    }
+    const backup = preferenceManager.restore<{ layout: ShellLayoutState; preferences: DesktopPreferences }>();
+    if (backup) {
+      setPreferences(backup.preferences);
+      setRestoredLayout(backup.layout);
+      setLayoutSnapshot(backup.layout);
+      notify("success", "Workspace restored", "Legacy desktop snapshot has been applied.", "production-complete");
+    } else {
+      notify("warning", "Nothing to restore", "No valid workspace snapshot is available.", "warnings");
+    }
+  };
+
+  const exportProfile = () => {
+    const pkg = personalizationEngine.exportProfile("Exported Profile", preferences, navigationStore.load());
+    const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `kwizera-profile-${Date.now()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    notify("success", "Profile exported", `Saved “${pkg.label}” as a local preference package.`, "updates");
+  };
+
+  const importProfileFromFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      void (async () => {
+        try {
+          const raw = JSON.parse(String(reader.result));
+          const confirmed = await uxEngine.confirm(
+            "restore-workspace",
+            "Import preference profile?",
+            "Importing this profile will overwrite current preferences. A backup is created first.",
+          );
+          if (!confirmed) {
+            notify("info", "Import cancelled", "Preferences were not changed.", "information");
+            return;
+          }
+          personalizationEngine.backupCurrent(preferences, navigationStore.load());
+          const imported = personalizationEngine.importProfileInto(raw, true, navigationStore.load());
+          if (!imported.result.ok || !imported.preferences) {
+            notify("error", "Import failed", imported.result.errors.join("; ") || imported.result.explanation, "errors");
+            return;
+          }
+          setPreferences(imported.preferences);
+          if (imported.navigation) navigationStore.save(imported.navigation);
+          notify("success", "Profile imported", imported.result.explanation, "production-complete");
+        } catch {
+          notify("error", "Import failed", "Could not parse preference profile file.", "errors");
+        }
+      })();
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <>
+      <div
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setContextMenu({ x: event.clientX, y: event.clientY });
+        }}
+      >
+        <AppShell
+          preferences={preferences}
+          setPreferences={setPreferences}
+          core={core}
+          notifications={notifications}
+          setNotifications={setNotifications}
+          notify={notify}
+          onPreferencesOpen={() => setPreferencesOpen(true)}
+          onSearchOpen={() => setSearchOpen(true)}
+          onSearchClose={() => setSearchOpen(false)}
+          searchOpen={searchOpen}
+          onNotificationsToggle={() => setNotificationsOpen(!notificationsOpen)}
+          notificationsOpen={notificationsOpen}
+          onNewProject={() => notify("info", "New Project", "Create a project from Projects → New Project when the wizard mounts.", "information")}
+          onLayoutChange={setLayoutSnapshot}
+          restoredLayout={restoredLayout}
+        >
+          <ShellWorkspaceContent core={core} />
+        </AppShell>
+      </div>
+
+      {preferencesOpen && (
+        <DesktopPreferencesPanel
+          preferences={preferences}
+          onChange={setPreferences}
+          onProfile={switchProfile}
+          onRestore={restoreDesktop}
+          onExportProfile={exportProfile}
+          onImportProfile={importProfileFromFile}
+          onBackupProfile={() => {
+            const pkg = personalizationEngine.backupCurrent(preferences, navigationStore.load());
+            notify("success", "Backup profile saved", `Stored “${pkg.label}” locally.`, "updates");
+          }}
+          onClose={() => setPreferencesOpen(false)}
+        />
+      )}
+      {notificationsOpen && (
+        <NotificationCenter
+          notifications={notifications}
+          onClear={() => setNotifications([])}
+          onClose={() => setNotificationsOpen(false)}
+          onMarkRead={(id) => setNotifications((current) => current.map((item) => (item.id === id ? { ...item, read: true } : item)))}
+        />
+      )}
+      {contextMenu && (
+        <DesktopContextMenu
+          position={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onPreferences={() => { setContextMenu(null); setPreferencesOpen(true); }}
+          onSearch={() => { setContextMenu(null); setSearchOpen(true); }}
+        />
+      )}
+    </>
+  );
 }
-function ScaleControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <label>{label}<div className="scale-control"><input type="range" min="85" max="125" value={value} onChange={(event) => onChange(Number(event.target.value))} /><b>{value}%</b></div></label>; }
-function DesktopNotifications({ notifications, onClear, onClose }: { notifications: DesktopNotification[]; onClear: () => void; onClose: () => void }) { const entries = notifications.length ? notifications : [{ id: "welcome", tone: "info" as const, title: "Desktop ready", detail: "Preferences and workspace restoration are active.", createdAt: new Date().toISOString() }]; return <aside className="desktop-notifications" aria-label="Notification history"><header><div><span>NOTIFICATION CENTER</span><h2>Desktop activity</h2></div><button onClick={onClose} title="Close notifications"><X size={16} /></button></header><div>{entries.map((item) => <article key={item.id}><i className={item.tone} /><div><b>{item.title}</b><p>{item.detail}</p><small>{new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></div></article>)}</div><footer><button onClick={onClear}>Clear history</button></footer></aside>; }
-function DesktopContextMenu({ position, onClose, onPreferences }: { position: { x: number; y: number }; onClose: () => void; onPreferences: () => void }) { return <div className="desktop-context" style={{ left: position.x, top: position.y }} onMouseLeave={onClose} role="menu"><button role="menuitem" onClick={onPreferences}><Settings size={14} />Desktop preferences</button><button role="menuitem" onClick={onClose}><PanelsTopLeft size={14} />Docking layout prepared</button><button role="menuitem" onClick={onClose}><Palette size={14} />Customize appearance</button><span /><button role="menuitem" onClick={onClose}><RotateCcw size={14} />Restore workspace snapshot</button></div>; }
+
+function DesktopPreferencesPanel({ preferences, onChange, onProfile, onRestore, onExportProfile, onImportProfile, onBackupProfile, onClose }: {
+  preferences: DesktopPreferences;
+  onChange: (preferences: DesktopPreferences) => void;
+  onProfile: (profile: WorkspaceProfileId) => void;
+  onRestore: () => void;
+  onExportProfile: () => void;
+  onImportProfile: (file: File) => void;
+  onBackupProfile: () => void;
+  onClose: () => void;
+}) {
+  const update = (changes: Partial<DesktopPreferences>) => onChange({ ...preferences, ...changes });
+  return (
+    <div className="desktop-modal-backdrop" onMouseDown={onClose}>
+      <section className="desktop-preferences" onMouseDown={(event) => event.stopPropagation()} aria-label="Desktop preferences">
+        <header>
+          <div><span>DESKTOP PERSONALIZATION</span><h2>Workspace preferences</h2></div>
+          <button onClick={onClose} title="Close preferences"><X size={16} /></button>
+        </header>
+        <div className="preference-body">
+          <section>
+            <h3><Command size={15} />Workspace profiles</h3>
+            <div className="profile-list">
+              {workspaceProfiles.map((profile) => (
+                <button key={profile.id} className={preferences.activeProfile === profile.id ? "active" : ""} onClick={() => onProfile(profile.id)}>
+                  <span><b>{profile.label}</b><small>{profile.detail}</small></span>
+                  <ChevronRight size={14} />
+                </button>
+              ))}
+            </div>
+            <div className="backup-row" style={{ marginTop: 10 }}>
+              <button onClick={onExportProfile}><Download size={14} />Export profile</button>
+              <label className="soft-button" style={{ display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <Upload size={14} />Import profile
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onImportProfile(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              <button onClick={onBackupProfile}><RotateCcw size={14} />Backup profile</button>
+            </div>
+          </section>
+          <section>
+            <h3><MonitorCog size={15} />Smart startup</h3>
+            <div className="preference-grid">
+              <label>
+                Startup mode
+                <select
+                  value={preferences.startupMode}
+                  onChange={(event) => update({ startupMode: event.target.value as StartupMode })}
+                >
+                  <option value="restore-session">Resume previous session</option>
+                  <option value="last-project">Open last project</option>
+                  <option value="dashboard">Open dashboard</option>
+                  <option value="production">Open production</option>
+                  <option value="welcome">Show welcome (Home)</option>
+                  <option value="profile">Use active profile</option>
+                </select>
+              </label>
+              <label>
+                Language
+                <select value={preferences.language} onChange={(event) => update({ language: event.target.value as DesktopPreferences["language"] })}>
+                  <option value="en">English</option>
+                  <option value="fr">Français</option>
+                  <option value="rw">Kinyarwanda</option>
+                </select>
+              </label>
+              <label>
+                Production mode
+                <select value={preferences.preferredProductionMode} onChange={(event) => update({ preferredProductionMode: event.target.value as DesktopPreferences["preferredProductionMode"] })}>
+                  <option value="guided">Guided</option>
+                  <option value="pro">Pro</option>
+                  <option value="focus">Focus</option>
+                </select>
+              </label>
+              <label>
+                Quick access
+                <select value={preferences.quickAccessMode} onChange={(event) => update({ quickAccessMode: event.target.value as DesktopPreferences["quickAccessMode"] })}>
+                  <option value="smart">Smart (usage-based)</option>
+                  <option value="static">Static</option>
+                </select>
+              </label>
+              <label>
+                Density
+                <select value={preferences.uiDensity} onChange={(event) => update({ uiDensity: event.target.value as DesktopPreferences["uiDensity"] })}>
+                  <option value="comfortable">Comfortable</option>
+                  <option value="compact">Compact</option>
+                </select>
+              </label>
+              <label>
+                Default export profile
+                <input value={preferences.defaultExportProfile} onChange={(event) => update({ defaultExportProfile: event.target.value })} />
+              </label>
+            </div>
+            <label className="toggle-preference">
+              <span><b>Show welcome on startup</b><small>Highlight Home guidance after launch</small></span>
+              <input type="checkbox" checked={preferences.showWelcomeOnStartup} onChange={(event) => update({ showWelcomeOnStartup: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Pin sidebar by default</b><small>Used on fresh sessions</small></span>
+              <input type="checkbox" checked={preferences.sidebarPinnedDefault} onChange={(event) => update({ sidebarPinnedDefault: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Auto save</b><small>Background workspace protection</small></span>
+              <input
+                type="checkbox"
+                checked={preferences.autoSavePreferences.enabled}
+                onChange={(event) => update({
+                  autoSavePreferences: { ...preferences.autoSavePreferences, enabled: event.target.checked },
+                })}
+              />
+            </label>
+          </section>
+          <section>
+            <h3><MonitorCog size={15} />Performance</h3>
+            <div className="preference-grid">
+              <label>
+                Performance mode
+                <select
+                  value={preferences.performanceMode}
+                  onChange={(event) => update({ performanceMode: event.target.value as DesktopPreferences["performanceMode"] })}
+                >
+                  <option value="balanced">Balanced</option>
+                  <option value="performance">Performance</option>
+                  <option value="quality">Quality</option>
+                  <option value="power-saving">Power saving</option>
+                  <option value="auto">Auto (workload-aware)</option>
+                </select>
+              </label>
+              <label>
+                Cache budget (MB)
+                <input
+                  type="number"
+                  min={8}
+                  max={256}
+                  value={preferences.cacheMaxMb}
+                  onChange={(event) => update({ cacheMaxMb: Number(event.target.value) || 32 })}
+                />
+              </label>
+            </div>
+            <label className="toggle-preference">
+              <span><b>Performance alerts</b><small>Notify on RAM / GPU / disk pressure without stopping production</small></span>
+              <input
+                type="checkbox"
+                checked={preferences.autoPerformanceAlerts}
+                onChange={(event) => update({ autoPerformanceAlerts: event.target.checked })}
+              />
+            </label>
+          </section>
+          <section>
+            <h3><Palette size={15} />Appearance</h3>
+            <div className="preference-grid">
+              <label>
+                Theme
+                <select value={preferences.theme} onChange={(event) => update({ theme: event.target.value as DesktopPreferences["theme"] })}>
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="system">System</option>
+                </select>
+              </label>
+              <label>
+                Accent
+                <div className="accent-picker">
+                  {(["mint", "sky", "amber", "rose"] as const).map((accent) => (
+                    <button key={accent} aria-label={`${accent} accent`} className={`${accent} ${preferences.accent === accent ? "active" : ""}`} onClick={() => update({ accent })} />
+                  ))}
+                </div>
+              </label>
+              <ScaleControl label="UI scale" value={preferences.uiScale} onChange={(uiScale) => update({ uiScale })} />
+              <ScaleControl label="Font scale" value={preferences.fontScale} onChange={(fontScale) => update({ fontScale })} />
+            </div>
+          </section>
+          <section>
+            <h3><Contrast size={15} />Accessibility & notifications</h3>
+            <label className="toggle-preference">
+              <span><b>High contrast</b><small>Increase visual separation</small></span>
+              <input type="checkbox" checked={preferences.highContrast} onChange={(event) => update({ highContrast: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Reduced motion</b><small>Minimize non-essential animation</small></span>
+              <input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => update({ reducedMotion: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Smart tooltips</b><small>Purpose, usage, and expected results</small></span>
+              <input type="checkbox" checked={preferences.tooltipsEnabled} onChange={(event) => update({ tooltipsEnabled: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Confirm destructive actions</b><small>Delete, reset, restore, replace</small></span>
+              <input type="checkbox" checked={preferences.confirmDestructive} onChange={(event) => update({ confirmDestructive: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Keyboard hints</b><small>Show shortcut guidance in UX surfaces</small></span>
+              <input type="checkbox" checked={preferences.showKeyboardHints} onChange={(event) => update({ showKeyboardHints: event.target.checked })} />
+            </label>
+            <label className="toggle-preference">
+              <span><b>AI suggestions</b><small>Notification category</small></span>
+              <input
+                type="checkbox"
+                checked={preferences.notificationPreferences.aiSuggestions}
+                onChange={(event) => update({
+                  notificationPreferences: {
+                    ...preferences.notificationPreferences,
+                    aiSuggestions: event.target.checked,
+                  },
+                })}
+              />
+            </label>
+            <label className="toggle-preference">
+              <span><b>Production complete</b><small>Notify when jobs finish</small></span>
+              <input
+                type="checkbox"
+                checked={preferences.notificationPreferences.productionComplete}
+                onChange={(event) => update({
+                  notificationPreferences: {
+                    ...preferences.notificationPreferences,
+                    productionComplete: event.target.checked,
+                  },
+                })}
+              />
+            </label>
+          </section>
+          <section>
+            <h3><MonitorCog size={15} />Workspace backup</h3>
+            <div className="backup-row">
+              <span>Layout, preferences, navigation memory, and session save automatically. Profiles export/import with confirmation.</span>
+              <button onClick={onRestore}><RotateCcw size={14} />Restore snapshot</button>
+            </div>
+          </section>
+          <footer>
+            <span><kbd>Ctrl</kbd> <kbd>K</kbd> Search · <kbd>Ctrl</kbd> <kbd>,</kbd> Preferences · <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd> Sidebar</span>
+            <button onClick={onClose}>Done</button>
+          </footer>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ScaleControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <label>
+      {label}
+      <div className="scale-control">
+        <input type="range" min="85" max="125" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+        <b>{value}%</b>
+      </div>
+    </label>
+  );
+}
+
+function DesktopContextMenu({ position, onClose, onPreferences, onSearch }: {
+  position: { x: number; y: number };
+  onClose: () => void;
+  onPreferences: () => void;
+  onSearch: () => void;
+}) {
+  return (
+    <div className="desktop-context" style={{ left: position.x, top: position.y }} onMouseLeave={onClose} role="menu">
+      <button role="menuitem" onClick={onSearch}><Command size={14} />Global search</button>
+      <button role="menuitem" onClick={onPreferences}><Settings size={14} />Desktop preferences</button>
+      <button role="menuitem" onClick={onClose}><PanelsTopLeft size={14} />Navigation engine active</button>
+      <button role="menuitem" onClick={onClose}><Palette size={14} />Customize appearance</button>
+      <span />
+      <button role="menuitem" onClick={onClose}><RotateCcw size={14} />Restore workspace snapshot</button>
+    </div>
+  );
+}
+
+export function getWorkspaceContextForAiMe(layout: ShellLayoutState, core: CoreStatus | null) {
+  return serializeAiMeContext(buildAiMeWorkspaceContext(layout, core));
+}
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -95,6 +95,7 @@
     "validate:local-resource-manager": "tsx scripts/validate-local-resource-manager.ts",
     "validate:automation-engine": "tsx scripts/validate-automation-engine.ts",
     "validate:workspace-manager": "tsx scripts/validate-workspace-manager.ts",
+    "validate:workspace-foundation-certification": "tsx scripts/validate-workspace-foundation-certification.ts",
     "validate:document-understanding": "tsx scripts/validate-document-understanding.ts",
     "validate:knowledge-extraction": "tsx scripts/validate-knowledge-extraction.ts",
     "validate:knowledge-pack-validation": "tsx scripts/validate-knowledge-pack-validation.ts",

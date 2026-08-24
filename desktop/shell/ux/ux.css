@@ -1,0 +1,218 @@
+.ux-skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 10000;
+  padding: 8px 12px;
+  background: var(--shell-surface, #101820);
+  color: inherit;
+  border: 2px solid var(--focus-color, #6ec8ff);
+}
+
+.ux-skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
+.ux-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.ux-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.ux-tooltip-panel {
+  display: none;
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  top: calc(100% + 6px);
+  min-width: 220px;
+  max-width: 280px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--shell-border, #334) 80%, transparent);
+  background: color-mix(in srgb, var(--shell-surface, #0f161e) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+html.ux-tooltips .ux-tooltip-wrap:hover .ux-tooltip-panel,
+html.ux-tooltips .ux-tooltip-wrap:focus-within .ux-tooltip-panel {
+  display: flex;
+}
+
+.ux-tooltip-panel strong { font-size: 12px; }
+.ux-tooltip-panel em { font-style: normal; opacity: 0.85; }
+.ux-tooltip-panel kbd {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--shell-border, #445) 70%, transparent);
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.ux-confirm-backdrop,
+.ux-shortcut-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 10, 16, 0.55);
+}
+
+.ux-confirm-dialog,
+.ux-shortcut-guide {
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--shell-border, #3a4454) 80%, transparent);
+  background: var(--shell-surface, #121a22);
+  border-radius: 8px;
+}
+
+.ux-confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.ux-confirm-dialog p {
+  margin: 0 0 16px;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+.ux-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ux-confirm-danger {
+  background: color-mix(in srgb, #c44 35%, transparent) !important;
+}
+
+.ux-confirm-primary {
+  background: color-mix(in srgb, var(--accent, #5fd0a5) 35%, transparent) !important;
+}
+
+.ux-shortcut-guide {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.ux-shortcut-guide header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.ux-shortcut-guide header span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.ux-shortcut-guide h2 {
+  margin: 2px 0 0;
+}
+
+.ux-shortcut-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ux-shortcut-grid ul,
+.ux-help-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ux-shortcut-grid li,
+.ux-help-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--shell-border, #334) 50%, transparent);
+  font-size: 12px;
+}
+
+.ux-shortcut-grid kbd,
+.ux-help-list kbd {
+  flex: 0 0 auto;
+  min-width: 88px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--shell-border, #445) 70%, transparent);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.ux-help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 4px 24px;
+  max-width: 720px;
+}
+
+.ux-help-panel > header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.ux-help-panel h2 {
+  margin: 0;
+}
+
+.ux-help-panel p {
+  margin: 6px 0 0;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+.ux-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-focus-mode="keyboard"] .nav-item:focus-visible,
+html[data-focus-mode="keyboard"] .soft-button:focus-visible,
+html[data-focus-mode="keyboard"] .icon-button:focus-visible,
+html[data-focus-mode="keyboard"] .quick-action-btn:focus-visible {
+  outline: 2px solid var(--focus-color, #6ec8ff);
+  outline-offset: 2px;
+}
+
+.ux-feedback-pulse {
+  animation: ux-pulse 0.45s ease;
+}
+
+@keyframes ux-pulse {
+  from { opacity: 0.4; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+html.reduce-motion .ux-feedback-pulse,
+html.perf-reduce-motion .ux-feedback-pulse {
+  animation: none;
+}
+
+@media (max-width: 720px) {
+  .ux-shortcut-grid {
+    grid-template-columns: 1fr;
+  }
+}
