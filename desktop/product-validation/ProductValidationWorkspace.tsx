@@ -89,10 +89,10 @@ export function ProductValidationWorkspace() {
       notify(
         "success",
         "Phase 2 complete",
-        `Production Input Package ${pkg.version} confirmed. Pipeline job ${pkg.pipelineJobId ?? "queued"}.`,
+        `Production Input Package ${pkg.version} confirmed. Opening AI Visual Product Analysis.`,
         "production-complete",
       );
-      switchWorkspace("production");
+      switchWorkspace("visual-analysis");
     } catch (error) {
       notify("error", "Handoff issue", error instanceof Error ? error.message : "Failed", "errors");
     } finally {
@@ -163,11 +163,11 @@ export function ProductValidationWorkspace() {
               disabled={busy || critical.length > 0}
               onClick={() => productValidationEngine.openConfirm()}
             >
-              Continue to Production
+              Continue to Visual Analysis
             </button>
           )}
           {pkg?.status === "handoff-failed" && (
-            <button type="button" className="pv-primary" disabled={busy} onClick={() => void productValidationEngine.retryHandoff().then(() => switchWorkspace("production")).catch((e) => notify("error", "Retry failed", e instanceof Error ? e.message : "Error", "errors"))}>
+            <button type="button" className="pv-primary" disabled={busy} onClick={() => void productValidationEngine.retryHandoff().then(() => switchWorkspace("visual-analysis")).catch((e) => notify("error", "Retry failed", e instanceof Error ? e.message : "Error", "errors"))}>
               <RefreshCw size={14} /> Retry Handoff
             </button>
           )}
@@ -267,20 +267,19 @@ export function ProductValidationWorkspace() {
       {snap.confirmPending && (
         <div className="pv-modal-backdrop">
           <div className="pv-modal">
-            <h2>Ready to start production?</h2>
+            <h2>Ready for AI Visual Analysis?</h2>
             <p>The following information will be used:</p>
             <ul>
               <li>Product Images</li>
               <li>Product Profile</li>
               <li>Marketing Brief</li>
-              <li>AI Analysis (suggestions only)</li>
-              <li>Production Configuration</li>
+              <li>Production Input Package</li>
             </ul>
-            <p className="pv-muted">Explicit confirmation required. Production will not start without it.</p>
+            <p className="pv-muted">Explicit confirmation required. Visual analysis will use the existing Product Image Set — no re-upload.</p>
             <div className="pv-modal-actions">
               <button type="button" onClick={() => productValidationEngine.cancelConfirm()}>Back</button>
               <button type="button" className="pv-primary" disabled={busy} onClick={() => void onConfirm()}>
-                Confirm & Start Production
+                Confirm & Open Visual Analysis
               </button>
             </div>
           </div>

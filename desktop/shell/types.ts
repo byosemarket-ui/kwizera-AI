@@ -13,30 +13,38 @@ export type WorkspaceId =
   | "pipeline"
   | "queue"
   | "active-production"
+  | "command-center"
   | "storyboard"
   | "marketing"
   | "asset-library"
   | "image-organization"
   | "product-information"
   | "product-validation"
+  | "visual-analysis"
+  | "deep-intelligence"
+  | "market-research"
+  | "master-intelligence"
+  | "marketing-strategy"
   | "generated-images"
   | "generated-videos"
   | "generated-audio"
   | "output"
   | "exports"
+  | "creative-review"
   | "reports"
   | "history"
   | "settings"
+  | "system-health"
   | "help";
 
 export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "home", "new-project", "open-project", "recent-projects",
   "knowledge-center", "knowledge-packs", "knowledge-search", "ai-me",
-  "production", "pipeline", "queue", "active-production",
-  "storyboard", "marketing",
-  "asset-library", "image-organization", "product-information", "product-validation", "generated-images", "generated-videos", "generated-audio",
-  "output", "exports", "reports", "history",
-  "settings", "help",
+  "production", "pipeline", "queue", "active-production", "command-center",
+  "storyboard", "marketing", "marketing-strategy",
+  "asset-library", "image-organization", "product-information", "product-validation", "visual-analysis", "deep-intelligence", "market-research", "master-intelligence", "generated-images", "generated-videos", "generated-audio",
+  "output", "exports", "creative-review", "reports", "history",
+  "settings", "system-health", "help",
 ];
 
 /** Legacy workspace IDs migrated on load */

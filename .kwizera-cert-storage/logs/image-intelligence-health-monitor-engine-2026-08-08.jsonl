@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T19:46:35.682Z","level":"info","event":"startup","message":"Image Intelligence Health Monitor initialized","data":{"healthDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-intelligence\\health\\engine"}}
-{"timestamp":"2026-08-08T19:46:37.537Z","level":"info","event":"health-check","message":"Image intelligence health check complete","data":{"checkId":"ii-hc-1786218396940-1dba92","overallScore":94,"overallLevel":"good","warnings":1}}
-{"timestamp":"2026-08-08T19:46:37.541Z","level":"info","event":"audit","message":"Image intelligence audit complete","data":{"auditId":"ii-audit-1786218397538","valid":true,"durationMs":3}}
-{"timestamp":"2026-08-08T19:46:37.549Z","level":"info","event":"startup","message":"Image Intelligence Health Monitor startup complete","data":{"overallScore":94,"overallLevel":"good","durationMs":617}}

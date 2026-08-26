@@ -1,4 +1,10 @@
-# Secrets and credentials — keep local only
+# KWIZERA AI STUDIO — project-specific ignore rules
+# Keep source, tests, docs, build/pack scripts, and configuration.
+# Ignore generated output, dependencies, local runtime data, and secrets.
+
+# ---------------------------------------------------------------------------
+# Secrets and credentials
+# ---------------------------------------------------------------------------
 .env
 .env.*
 !.env.example
@@ -14,3 +20,71 @@ credentials.json
 **/secrets.local.*
 **/*-credentials.json
 **/*.secret
+
+# ---------------------------------------------------------------------------
+# Dependencies (restore with npm ci / npm install from package-lock.json)
+# ---------------------------------------------------------------------------
+node_modules/
+
+# ---------------------------------------------------------------------------
+# TypeScript compiler output (`npm run build` → tsconfig outDir)
+# Source of truth is ai/, storage/, scripts/, tests/, dev/ TypeScript.
+# ---------------------------------------------------------------------------
+/dist/
+
+# ---------------------------------------------------------------------------
+# Vite desktop production bundle
+# desktop.vite.config.ts writes hashed assets to dev/ui/desktop/
+# Keep the hand-authored dev dashboard: dev/ui/index.html, app.js, styles.css
+# ---------------------------------------------------------------------------
+/dev/ui/desktop/
+
+# ---------------------------------------------------------------------------
+# Electron packaging artifacts (electron-builder output)
+# Keep certification evidence under release/certification/ (not logs).
+# ---------------------------------------------------------------------------
+/release/*
+!/release/certification/
+/release/certification/*.log
+*.blockmap
+
+# ---------------------------------------------------------------------------
+# Local runtime / certification storage clone
+# This is generated KWIZERA storage (database, memory indexes, backups,
+# logs, cache, temp, projects). Storage SOURCE lives in storage/.
+# Do not confuse with D:\KWIZERA-AI-STUDIO or %LOCALAPPDATA%\KWIZERA-AI-STUDIO.
+# ---------------------------------------------------------------------------
+/.kwizera-cert-storage/
+
+# ---------------------------------------------------------------------------
+# Local command / pack / test output dumps (not source documentation)
+# Root *-REPORT.md and STEP-*-REPORT.md files are kept.
+# ---------------------------------------------------------------------------
+*.log
+*-out.txt
+*-output.txt
+*-output-*.txt
+/cert-out.txt
+/cert-out2.txt
+/validate-*.txt
+/unit-*-output.txt
+/vitest-*.txt
+/tsc-*-check*.txt
+/ksm-test-output*.txt
+/step3-*.txt
+/build-pack-out.txt
+/stage-out.txt
+
+# ---------------------------------------------------------------------------
+# OS, editor scratch, caches
+# ---------------------------------------------------------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+*.temp
+*.tsbuildinfo
+coverage/
+.cache/
+.turbo/
+.eslintcache

@@ -1,0 +1,101 @@
+.cm {
+  --cm-accent: #3d2f5c;
+  --cm-ink: #142029;
+  --cm-muted: #5a6b75;
+  --cm-panel: rgba(255, 255, 255, 0.94);
+  --cm-line: rgba(20, 32, 41, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--cm-ink);
+  font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+}
+.cm-kicker {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  color: var(--cm-accent);
+  font-weight: 650;
+}
+.cm-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--cm-panel);
+  border: 1px solid var(--cm-line);
+}
+.cm-head h2 {
+  margin: 4px 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cm-head p { margin: 0; color: var(--cm-muted); font-size: 0.82rem; }
+.cm button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--cm-line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+}
+.cm-primary {
+  background: var(--cm-accent) !important;
+  color: #f7f5fb !important;
+  border-color: transparent !important;
+}
+.cm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cm-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  background: rgba(61, 47, 92, 0.08);
+}
+.cm-banner.ok { background: rgba(31, 122, 76, 0.1); color: #1f7a4c; }
+.cm-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--cm-panel);
+  border: 1px solid var(--cm-line);
+}
+.cm-card h3 { margin: 0 0 8px; font-size: 0.88rem; }
+.cm-card dl {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 8px;
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+}
+.cm-card dt { color: var(--cm-muted); }
+.cm-card dd { margin: 0; }
+.cm-card ul { margin: 0; padding-left: 18px; font-size: 0.82rem; }
+.cm-summary p { margin: 2px 0; font-size: 0.78rem; color: var(--cm-muted); }
+.cm-mem {
+  padding: 8px 0;
+  border-top: 1px solid var(--cm-line);
+  font-size: 0.8rem;
+}
+.cm-mem.disabled { opacity: 0.5; }
+.cm-mem header {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  margin-bottom: 4px;
+}
+.cm-mem p { margin: 0 0 4px; }
+.cm-mem small { color: var(--cm-muted); }
+.cm-muted { color: var(--cm-muted); font-size: 0.82rem; }
+.cm.compact .cm-card { padding: 10px; }

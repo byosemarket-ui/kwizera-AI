@@ -10,6 +10,9 @@ import path from "node:path";
 
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-probes.js";
+import { persistentMemoryCenter } from "./persistent-memory-center.js";
+import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
+import { systemHealthCenter } from "./system-health-center.js";
 
 import {
 
@@ -281,7 +284,11 @@ function requireWorkspace(res: ServerResponse) {
 
   if (!workspace) {
 
-    sendJson(res, 503, { error: "Creative workspace is restoring. Try again shortly." });
+    const runtime = getRuntimeStatus();
+    const detail = runtime?.booting
+      ? "Creative workspace is still starting. Wait a moment and try again."
+      : "Creative workspace is unavailable. Restart KWIZERA AI STUDIO and try Create Project again.";
+    sendJson(res, 503, { error: detail });
 
     return null;
 
@@ -1107,6 +1114,389 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  // ——— Phase 7 Step 2: Persistent Memory & Local Knowledge Center ———
+  if (url.pathname === "/api/persistent-memory/health") {
+    sendJson(res, 200, persistentMemoryCenter.health());
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/search" && req.method === "GET") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: persistentMemoryCenter.getBootError() ?? "Memory center starting" });
+      return;
+    }
+    try {
+      const text = url.searchParams.get("q") ?? url.searchParams.get("text") ?? undefined;
+      const kind = url.searchParams.get("kind") as import("./persistent-memory-center.js").StudioMemoryKind | null;
+      const projectId = url.searchParams.get("projectId") ?? undefined;
+      const limit = Number(url.searchParams.get("limit") ?? 40);
+      const records = await persistentMemoryCenter.searchMemory({
+        text,
+        kind: kind ?? undefined,
+        projectId,
+        limit,
+      });
+      sendJson(res, 200, { records, count: records.length });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Search failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/save" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: persistentMemoryCenter.getBootError() ?? "Memory center starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req));
+      const result = await persistentMemoryCenter.saveMemory(body);
+      sendJson(res, result.success || result.action === "updated" ? 200 : 400, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Save failed" });
+    }
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/persistent-memory/record/") && req.method === "GET") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    const memoryId = decodeURIComponent(url.pathname.replace("/api/persistent-memory/record/", ""));
+    if (!memoryId || memoryId.includes("..")) {
+      sendJson(res, 400, { error: "Invalid memory id" });
+      return;
+    }
+    const result = await persistentMemoryCenter.getMemory(memoryId);
+    sendJson(res, result.success ? 200 : 404, result);
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-knowledge/search" && req.method === "GET") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    try {
+      const records = await persistentMemoryCenter.searchKnowledge({
+        text: url.searchParams.get("q") ?? undefined,
+        topic: url.searchParams.get("topic") ?? undefined,
+        limit: Number(url.searchParams.get("limit") ?? 40),
+      });
+      sendJson(res, 200, { records, count: records.length });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge search failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-knowledge/save" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req));
+      const result = await persistentMemoryCenter.saveKnowledge(body);
+      sendJson(res, result.success || result.action === "updated" ? 200 : 400, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge save failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/context" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse((await readBody(req)) || "{}") as { projectId?: string; task?: string; limit?: number };
+      const ctx = await persistentMemoryCenter.buildContext(body);
+      sendJson(res, 200, ctx);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Context build failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/checkpoint" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as { label?: string; data?: Record<string, unknown> };
+      const result = persistentMemoryCenter.writeCheckpoint(body.label ?? "manual", body.data ?? {});
+      sendJson(res, 201, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Checkpoint failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/checkpoints" && req.method === "GET") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    sendJson(res, 200, { checkpoints: persistentMemoryCenter.listCheckpoints() });
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/backup" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    sendJson(res, 201, persistentMemoryCenter.createBackup());
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/backups" && req.method === "GET") {
+    sendJson(res, 200, { backups: persistentMemoryCenter.listBackups() });
+    return;
+  }
+
+  if (url.pathname === "/api/persistent-memory/restore" && req.method === "POST") {
+    if (!persistentMemoryCenter.isReady()) {
+      sendJson(res, 503, { error: "Memory center starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as { backupId?: string; confirm?: boolean };
+      if (!body.backupId) {
+        sendJson(res, 400, { error: "backupId required" });
+        return;
+      }
+      const result = persistentMemoryCenter.restoreBackup(body.backupId, Boolean(body.confirm));
+      if (result.ok) {
+        await persistentMemoryCenter.reboundAfterRestore();
+      }
+      sendJson(res, 200, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Restore failed" });
+    }
+    return;
+  }
+
+  // ---- Phase 7 Step 3 — Online Knowledge Acquisition ----
+  if (url.pathname === "/api/online-knowledge/status" && req.method === "GET") {
+    sendJson(res, 200, onlineKnowledgeEngine.getStatus());
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/network" && req.method === "GET") {
+    sendJson(res, 200, await onlineKnowledgeEngine.refreshNetwork());
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/history" && req.method === "GET") {
+    sendJson(res, 200, { history: onlineKnowledgeEngine.listHistory() });
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/refresh-queue" && req.method === "GET") {
+    sendJson(res, 200, { queue: onlineKnowledgeEngine.listRefreshQueue() });
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/refresh-queue" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as { knowledgeId?: string; topic?: string };
+      if (!body.knowledgeId || !body.topic) {
+        sendJson(res, 400, { error: "knowledgeId and topic required" });
+        return;
+      }
+      onlineKnowledgeEngine.enqueueRefresh(body.knowledgeId, body.topic);
+      sendJson(res, 201, { ok: true, queue: onlineKnowledgeEngine.listRefreshQueue() });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Queue failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/research" && req.method === "POST") {
+    if (!onlineKnowledgeEngine.isReady()) {
+      sendJson(res, 503, { error: "Online knowledge engine starting" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        query?: string;
+        topic?: string;
+        domain?: string;
+        persist?: boolean;
+        maxSources?: number;
+        freshnessRequirement?: "any" | "current" | "recent";
+      };
+      if (!body.query?.trim()) {
+        sendJson(res, 400, { error: "query required" });
+        return;
+      }
+      const result = await onlineKnowledgeEngine.research({
+        query: body.query,
+        topic: body.topic,
+        domain: body.domain as import("./online-knowledge-engine.js").KnowledgeDomain | undefined,
+        persist: body.persist,
+        maxSources: body.maxSources,
+        freshnessRequirement: body.freshnessRequirement,
+      });
+      sendJson(res, result.ok ? 200 : 422, result);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Research failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/online-knowledge/retrieve-local" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as { query?: string; limit?: number };
+      const records = await onlineKnowledgeEngine.retrieveLocal(body.query ?? "", body.limit ?? 10);
+      sendJson(res, 200, { records, count: records.length, mode: "OFFLINE_KNOWLEDGE" });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Retrieve failed" });
+    }
+    return;
+  }
+
+  // ---- Phase 7 Step 4 — System Health / Windows Integration ----
+  if (url.pathname === "/api/system-health" && req.method === "GET") {
+    if (!systemHealthCenter.isReady()) {
+      sendJson(res, 503, { error: "System health center starting" });
+      return;
+    }
+    sendJson(res, 200, await systemHealthCenter.runFastHealthCheck());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/full" && req.method === "GET") {
+    if (!systemHealthCenter.isReady()) {
+      sendJson(res, 503, { error: "System health center starting" });
+      return;
+    }
+    sendJson(res, 200, await systemHealthCenter.runFullDiagnostic());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/self-test" && req.method === "POST") {
+    sendJson(res, 200, await systemHealthCenter.selfTest());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/services" && req.method === "GET") {
+    sendJson(res, 200, { services: systemHealthCenter.listServices() });
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/repair" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        action?: import("./system-health-center.js").AllowedRepairAction;
+        component?: string;
+        level?: import("./system-health-center.js").RepairLevel;
+        problem?: string;
+      };
+      if (!body.action) {
+        sendJson(res, 400, { error: "action required (allowlisted only)" });
+        return;
+      }
+      const entry = await systemHealthCenter.repair({
+        action: body.action,
+        component: body.component,
+        level: body.level,
+        problem: body.problem,
+      });
+      sendJson(res, entry.result === "failed" ? 422 : 200, entry);
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Repair failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/repairs" && req.method === "GET") {
+    sendJson(res, 200, { repairs: systemHealthCenter.listRepairLog() });
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/diagnostic" && req.method === "POST") {
+    sendJson(res, 201, systemHealthCenter.writeDiagnosticReport());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/support-bundle" && req.method === "POST") {
+    sendJson(res, 201, systemHealthCenter.createSupportBundle());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/update" && req.method === "GET") {
+    sendJson(res, 200, systemHealthCenter.getUpdateState());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/update/check" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req) || "{}") as {
+        version?: string;
+        releaseId?: string;
+        checksum?: string;
+        packageUrl?: string;
+      };
+      sendJson(res, 200, systemHealthCenter.checkForUpdate(body));
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Update check failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/update/backup" && req.method === "POST") {
+    sendJson(res, 200, await systemHealthCenter.prepareUpdateBackup());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/update/rollback" && req.method === "POST") {
+    sendJson(res, 200, systemHealthCenter.simulateRollback());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/session" && req.method === "GET") {
+    sendJson(res, 200, systemHealthCenter.getInterruptedSession());
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/session/ack" && req.method === "POST") {
+    systemHealthCenter.clearInterruptedSession();
+    systemHealthCenter.markSessionRunning();
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/session/clean-exit" && req.method === "POST") {
+    systemHealthCenter.markCleanExit();
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  if (url.pathname === "/api/system-health/certification" && req.method === "GET") {
+    const certPath = path.join(process.cwd(), "release", "certification", "phase7-final-certification.json");
+    if (!fs.existsSync(certPath)) {
+      sendJson(res, 404, {
+        ok: false,
+        error: "No certification report yet. Run: npm run certify:phase7",
+        verdict: "NOT READY",
+      });
+      return;
+    }
+    try {
+      const payload = JSON.parse(fs.readFileSync(certPath, "utf8"));
+      sendJson(res, 200, { ok: true, ...payload });
+    } catch (error) {
+      sendJson(res, 500, { ok: false, error: error instanceof Error ? error.message : "Read failed" });
+    }
+    return;
+  }
+
   if (url.pathname === "/api/conversations" && req.method === "GET") {
     const conversations = getPersistentRuntime()?.getManager().conversationEngine;
     if (!conversations) { sendJson(res, 503, { error: "Conversation engine is restoring. Try again shortly." }); return; }
@@ -1148,6 +1538,29 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  if (url.pathname === "/api/workspace/persistence-health" && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      sendJson(res, 200, await workspace.runPersistenceHealth());
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Persistence health check failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/workspace/persistence-backup" && req.method === "POST") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const result = await workspace.createPersistenceBackup();
+      sendJson(res, result.ok ? 201 : 500, result);
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Persistence backup failed" });
+    }
+    return;
   }
 
   if (url.pathname === "/api/pipeline") {
@@ -2875,7 +3288,14 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
 
-    sendJson(res, 200, { project, validation: workspace.validate(project) });
+    sendJson(res, 200, {
+      project,
+      validation: workspace.validate(project),
+      intake: workspace.validateIntake(project),
+      productProfile: workspace.validateProductProfile(project),
+      marketingBrief: workspace.validateMarketingBrief(project),
+      productionReadiness: workspace.validateProductionReadiness(project),
+    });
 
     return;
 
@@ -2897,7 +3317,14 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
         : await workspace.updateProject(projectMatch[1], body.changes ?? {});
 
-      sendJson(res, 200, { project, validation: workspace.validate(project) });
+      sendJson(res, 200, {
+        project,
+        validation: workspace.validate(project),
+        intake: workspace.validateIntake(project),
+        productProfile: workspace.validateProductProfile(project),
+        marketingBrief: workspace.validateMarketingBrief(project),
+        productionReadiness: workspace.validateProductionReadiness(project),
+      });
 
     } catch (error) {
 
@@ -3288,6 +3715,23 @@ async function main(): Promise<void> {
 
 
   startListening(PORT);
+
+  // Phase 7 Step 2 — always boot durable memory/knowledge (independent of full AI core)
+  void persistentMemoryCenter.boot(storageRoot).catch((err) => {
+    console.error("[KWIZERA] Persistent Memory Center boot error:", err);
+  });
+
+  // Phase 7 Step 3 — online acquisition / offline knowledge (does not block startup)
+  void onlineKnowledgeEngine.boot(storageRoot).catch((err) => {
+    console.error("[KWIZERA] Online Knowledge Engine boot error:", err);
+  });
+
+  // Phase 7 Step 4 — system health / Windows integration foundation
+  void systemHealthCenter.boot(storageRoot).then(() => {
+    systemHealthCenter.markSessionRunning();
+  }).catch((err) => {
+    console.error("[KWIZERA] System Health Center boot error:", err);
+  });
 
   void bootPersistentRuntime(HOST, PORT).then((runtime) => {
     console.log(`[KWIZERA] ${runtime.message}`);

@@ -1,1 +1,0 @@
-{"version":3,"file":"compatibility-checker.d.ts","sourceRoot":"","sources":["../../../ai/module-manager/compatibility-checker.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAC;AAGvD,MAAM,WAAW,mBAAmB;IAClC,UAAU,EAAE,OAAO,CAAC;IACpB,OAAO,EAAE,MAAM,CAAC;CACjB;AAED,qBAAa,0BAA0B;IACrC,MAAM,CAAC,MAAM,EAAE,cAAc,GAAG,mBAAmB;CAwBpD"}

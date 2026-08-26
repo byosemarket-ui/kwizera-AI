@@ -31,6 +31,10 @@ export class ImageIntelligenceManager {
   readonly scene = new SceneUnderstandingEngine();
   readonly enhancement = new ImageEnhancementDecisionEngine();
   readonly defects = new ImageDefectDetectionEngine();
+  readonly colorCues = new ColorCueEngine();
+  readonly logoCues = new LogoCueEngine();
+  readonly textCues = new TextCueEngine();
+  readonly visibilityCues = new VisibilityCueEngine();
   readonly duplicates = new DuplicateImageDetector();
   readonly metadata = new ImageMetadataManager();
   readonly history = new ImageHistoryManager(this);
@@ -157,14 +161,29 @@ export class ImageIntelligenceManager {
   }
 
   private buildProfile(project: CreativeProject, image: ProductImage): ImageIntelligenceProfile {
-    const evidence = `${project.productInformation.name} ${project.productInformation.description} ${image.fileName}`;
+    const evidence = `${project.productInformation.name} ${project.productInformation.description} ${image.fileName} ${(project.productInformation.colors ?? []).join(" ")}`;
     const quality = this.quality.analyze(image);
+    quality.classification =
+      quality.score >= 85 ? "GOOD"
+        : quality.score >= 72 ? "ACCEPTABLE"
+          : quality.score >= 55 ? "NEEDS_REVIEW"
+            : "POOR";
     const background = this.background.analyze(evidence);
     const objects = this.objects.detect(project, image);
     const detection = detectViewRoleDetailed(image.fileName);
     const viewRole = detection.role;
     const boundaries = this.boundary.detect(background, evidence);
     const resolution = this.resolution.analyze(image);
+    const defects = this.defects.detect(image, quality, resolution);
+    const colors = this.colorCues.detect(evidence, project.productInformation.colors ?? []);
+    const logo = this.logoCues.detect(evidence, project.productInformation.brand ?? project.brandInformation.name, viewRole);
+    const detectedText = this.textCues.detect(
+      image.fileName,
+      project.productInformation.name,
+      project.productInformation.brand ?? project.brandInformation.name,
+      project.productInformation.sku,
+    );
+    const visibility = this.visibilityCues.analyze(image, defects, quality);
     const profile: ImageIntelligenceProfile = {
       id: randomUUID(),
       projectId: project.id,
@@ -184,13 +203,21 @@ export class ImageIntelligenceManager {
       perspective: this.perspective.analyze(evidence, viewRole),
       objects,
       scene: this.scene.understand(project, objects, background),
-      defects: this.defects.detect(image, quality, resolution),
+      defects,
       enhancements: [],
+      colors,
+      logo,
+      detectedText,
+      visibility,
       metadata: {
         ...this.metadata.create(image),
         originalImageUnmodified: 1,
         backgroundRemovalDeferred: 1,
         viewConfidence: Math.round(detection.confidence * 100),
+        primaryColor: colors[0]?.name ?? "",
+        logoPresent: logo.present ? 1 : 0,
+        visibilityPercent: visibility.percent,
+        qualityClass: quality.classification ?? "ACCEPTABLE",
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -246,9 +273,145 @@ export class ImageQualityAnalyzer {
 
 export class BackgroundAnalysisEngine {
   analyze(evidence: string): ImageIntelligenceProfile["background"] {
-    if (/studio|white|plain|isolated/i.test(evidence)) return { type: "controlled studio background", removable: true, confidence: 72 };
-    if (/outdoor|street|nature|lifestyle/i.test(evidence)) return { type: "environmental background", removable: true, confidence: 68 };
-    return { type: "background requires visual-provider verification", removable: false, confidence: 38 };
+    if (/transparent|cutout|png.?alpha/i.test(evidence)) {
+      return { type: "Transparent", removable: false, confidence: 78, complexity: "low", separation: "Excellent", removalSuitability: "high" };
+    }
+    if (/white|studio|plain|isolated|seamless/i.test(evidence)) {
+      return { type: "White Studio", removable: true, confidence: 82, complexity: "low", separation: "Excellent", removalSuitability: "high" };
+    }
+    if (/black.?bg|dark.?studio/i.test(evidence)) {
+      return { type: "Black", removable: true, confidence: 76, complexity: "low", separation: "Good", removalSuitability: "high" };
+    }
+    if (/gray|grey|neutral/i.test(evidence)) {
+      return { type: "Neutral", removable: true, confidence: 72, complexity: "low", separation: "Good", removalSuitability: "high" };
+    }
+    if (/gradient/i.test(evidence)) {
+      return { type: "Gradient", removable: true, confidence: 68, complexity: "medium", separation: "Fair", removalSuitability: "medium" };
+    }
+    if (/outdoor|street|nature|lifestyle/i.test(evidence)) {
+      return { type: "Outdoor", removable: true, confidence: 70, complexity: "high", separation: "Fair", removalSuitability: "medium" };
+    }
+    if (/indoor|room|interior/i.test(evidence)) {
+      return { type: "Indoor", removable: true, confidence: 66, complexity: "medium", separation: "Fair", removalSuitability: "medium" };
+    }
+    if (/complex|busy|clutter/i.test(evidence)) {
+      return { type: "Complex", removable: false, confidence: 58, complexity: "high", separation: "Poor", removalSuitability: "low" };
+    }
+    return {
+      type: "Unknown",
+      removable: false,
+      confidence: 38,
+      complexity: "unknown",
+      separation: "Unknown",
+      removalSuitability: "unknown",
+    };
+  }
+}
+
+const COLOR_CUES: Array<[RegExp, string]> = [
+  [/black|noir|dark/i, "Black"],
+  [/white|ivory|cream/i, "White"],
+  [/red|crimson|scarlet/i, "Red"],
+  [/blue|navy|azure/i, "Blue"],
+  [/green|olive|emerald/i, "Green"],
+  [/brown|tan|beige|khaki/i, "Brown"],
+  [/gray|grey|silver/i, "Gray"],
+  [/gold|yellow/i, "Gold"],
+  [/pink|rose/i, "Pink"],
+  [/orange/i, "Orange"],
+  [/purple|violet/i, "Purple"],
+];
+
+/** Filename/description color cues — not pixel sampling. */
+export class ColorCueEngine {
+  detect(evidence: string, userColors: string[] = []): ImageIntelligenceProfile["colors"] {
+    const found: ImageIntelligenceProfile["colors"] = [];
+    for (const [pattern, name] of COLOR_CUES) {
+      if (pattern.test(evidence) && !found.some((c) => c.name === name)) {
+        found.push({
+          name,
+          role: found.length === 0 ? "primary" : found.length === 1 ? "secondary" : "accent",
+          confidence: 0.72 + Math.min(0.2, found.length * 0.02),
+        });
+      }
+    }
+    for (const color of userColors) {
+      const name = color.trim();
+      if (!name || found.some((c) => c.name.toLowerCase() === name.toLowerCase())) continue;
+      found.push({
+        name,
+        role: found.length === 0 ? "primary" : "secondary",
+        confidence: 0.55,
+      });
+    }
+    return found.slice(0, 5);
+  }
+}
+
+export class LogoCueEngine {
+  detect(evidence: string, brand: string, viewRole: string): NonNullable<ImageIntelligenceProfile["logo"]> {
+    const logoNamed = /\blogo\b|wordmark|brand[-_ ]?mark/i.test(evidence) || viewRole === "logo";
+    const brandHint = brand && !/requires|unknown|not determined/i.test(brand) ? brand : undefined;
+    if (logoNamed || brandHint) {
+      return {
+        present: logoNamed || Boolean(brandHint),
+        possibleBrand: brandHint,
+        location: logoNamed ? "Logo-oriented view or filename evidence" : "Brand context from product data",
+        confidence: logoNamed ? 0.9 : brandHint ? 0.62 : 0.35,
+      };
+    }
+    return { present: false, confidence: 0.4, location: "No visible logo evidence in filename/view role" };
+  }
+}
+
+export class TextCueEngine {
+  detect(fileName: string, productName: string, brand: string, sku?: string): NonNullable<ImageIntelligenceProfile["detectedText"]> {
+    const out: NonNullable<ImageIntelligenceProfile["detectedText"]> = [];
+    const base = fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+    if (brand && new RegExp(brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(`${fileName} ${base}`)) {
+      out.push({ text: brand, kind: "brand", confidence: 0.78 });
+    }
+    if (productName && productName.length > 2 && new RegExp(productName.split(/\s+/)[0]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(base)) {
+      out.push({ text: productName, kind: "label", confidence: 0.65 });
+    }
+    if (sku && new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(fileName)) {
+      out.push({ text: sku, kind: "model", confidence: 0.8 });
+    }
+    const modelMatch = base.match(/\b([A-Z]{1,4}[-_]?\d{2,6}[A-Z]?)\b/);
+    if (modelMatch) out.push({ text: modelMatch[1]!, kind: "model", confidence: 0.58 });
+    return out.slice(0, 6);
+  }
+}
+
+export class VisibilityCueEngine {
+  analyze(
+    image: ProductImage,
+    defects: string[],
+    quality: ImageIntelligenceProfile["quality"],
+  ): NonNullable<ImageIntelligenceProfile["visibility"]> {
+    const text = defects.join(" ").toLowerCase();
+    const cutoff = /cut.?off|cropped|clipped|edge/i.test(text);
+    const small = /small|tiny|distant/i.test(text) || image.sizeBytes < 10_000;
+    const obstruct = /obstruct|hidden|partial|cover/i.test(text);
+    let percent = 90;
+    if (cutoff) percent -= 25;
+    if (small) percent -= 20;
+    if (obstruct) percent -= 15;
+    if (quality.score < 70) percent -= 10;
+    percent = Math.max(25, Math.min(98, percent));
+    const status =
+      percent >= 85 && !cutoff ? "good"
+        : percent >= 70 ? "acceptable"
+          : percent >= 50 ? "needs-review"
+            : "poor";
+    return {
+      percent,
+      framing: cutoff ? "Too close to edge / cut-off risk" : small ? "Product may be small in frame" : "Good",
+      cutoff,
+      obstruction: obstruct ? "Possible obstruction" : "Low",
+      status,
+      confidence: Math.min(0.88, 0.5 + quality.confidence / 200),
+    };
   }
 }
 

@@ -1,0 +1,7 @@
+KWIZERA AI STUDIO
+Copyright (c) KWIZERA AI STUDIO
+
+This software is provided for local use with the KWIZERA AI STUDIO project.
+User projects, databases, memory, and outputs stored outside the application
+installation directory are retained on uninstall unless the user explicitly
+chooses otherwise.

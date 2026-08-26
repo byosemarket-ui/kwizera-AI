@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-08-26T02:44:07.738Z",
+  "version": "0.1.0",
+  "verdict": "LIMITED PRODUCTION",
+  "kind": "final-machine-verification",
+  "os": "Windows_NT 10.0.19045",
+  "executable": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\win-unpacked\\KWIZERA AI STUDIO.exe",
+  "setup": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\KwizeraAIStudio-Setup-0.1.0.exe",
+  "desktopShortcutTarget": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\win-unpacked\\KWIZERA AI STUDIO.exe",
+  "results": [
+    {
+      "id": "build.setup-exe",
+      "name": "Windows Setup EXE exists",
+      "expected": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\KwizeraAIStudio-Setup-0.1.0.exe",
+      "actual": "89MB",
+      "status": "PASS"
+    },
+    {
+      "id": "build.unpacked-exe",
+      "name": "Unpacked application EXE exists",
+      "expected": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\win-unpacked\\KWIZERA AI STUDIO.exe",
+      "actual": "present",
+      "status": "PASS"
+    },
+    {
+      "id": "deploy.runtime-staged",
+      "name": "Packaged app-server has node_modules",
+      "expected": "tsx present",
+      "actual": "already present",
+      "status": "PASS"
+    },
+    {
+      "id": "windows.desktop-shortcut",
+      "name": "Desktop shortcut targets packaged EXE",
+      "expected": "c:\\users\\mrk\\desktop\\kwizera-ai\\release\\win-unpacked\\kwizera ai studio.exe",
+      "actual": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\win-unpacked\\KWIZERA AI STUDIO.exe",
+      "status": "PASS"
+    },
+    {
+      "id": "windows.shortcuts-script",
+      "name": "install:shortcuts",
+      "expected": "exit 0",
+      "actual": "0",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.app-startup",
+      "name": "Packaged app starts local API",
+      "expected": "/api/health ok",
+      "actual": "storageRoot=C:\\Users\\Mrk\\AppData\\Local\\KWIZERA-AI-STUDIO",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.storage-root",
+      "name": "Actual KWIZERA_STORAGE_ROOT in use",
+      "expected": "configured path",
+      "actual": "C:\\Users\\Mrk\\AppData\\Local\\KWIZERA-AI-STUDIO",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.workspace-ready",
+      "name": "Creative workspace ready",
+      "expected": "GET /api/workspace",
+      "actual": "ready",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.create-project",
+      "name": "Create project from installed app API",
+      "expected": "projectId",
+      "actual": "7c5c4f4b-2a9f-442d-ba53-f0791d4ba826",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.image-upload",
+      "name": "Image upload via installed app API",
+      "expected": "image id",
+      "actual": "4052490e-5a05-4f7a-90f0-bbd3c8b41b5c",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.filesystem-project",
+      "name": "Project on disk under storage root",
+      "expected": "C:\\Users\\Mrk\\AppData\\Local\\KWIZERA-AI-STUDIO\\creative-workspace\\projects\\7c5c4f4b-2a9f-442d-ba53-f0791d4ba826\\project.json",
+      "actual": "exists",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.system-health",
+      "name": "System health from installed app",
+      "expected": "report ok",
+      "actual": "score=96 status=DEGRADED",
+      "status": "PASS"
+    },
+    {
+      "id": "installed.desktop-ui",
+      "name": "Desktop UI served by installed app",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS"
+    },
+    {
+      "id": "ui.file-picker",
+      "name": "Windows file picker click test",
+      "expected": "manual UI",
+      "actual": "NOT RUN in harness",
+      "status": "SKIP"
+    },
+    {
+      "id": "ui.drag-drop",
+      "name": "Drag & drop UI test",
+      "expected": "manual UI",
+      "actual": "NOT RUN in harness",
+      "status": "SKIP"
+    },
+    {
+      "id": "os.windows-reboot",
+      "name": "Windows restart persistence",
+      "expected": "real reboot",
+      "actual": "NOT RUN in harness",
+      "status": "SKIP"
+    },
+    {
+      "id": "production.video-output",
+      "name": "Real video production output",
+      "expected": "completed job + file",
+      "actual": "NOT RUN — requires persistent AI runtime",
+      "status": "NOT CERTIFIED"
+    }
+  ],
+  "counts": {
+    "pass": 13,
+    "fail": 0,
+    "limited": 0,
+    "skip": 3,
+    "notCertified": 1
+  }
+}

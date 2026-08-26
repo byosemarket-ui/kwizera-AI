@@ -1,6 +1,14 @@
 import type { CreativeProjectDto } from "../product-intake/api";
 import { loadStep4Handoff } from "../product-profile/profile-engine";
 import type { ProductProfile, Step4HandoffPayload } from "../product-profile/types";
+import {
+  pickStoreForProject,
+  persistWorkflowStep,
+  prerequisiteBlockReason,
+  readScopedHandoff,
+  resolveBoundProject,
+  writeScopedHandoff,
+} from "../product-creation/workflow";
 import { ensureProjectOpen, fetchMarketingIntelligence, persistMarketingProject } from "./api";
 import {
   buildLocalRecommendations,
@@ -182,6 +190,7 @@ export class MarketingInputEngine {
   private emitEvents: ((type: string, payload: Record<string, unknown>) => void) | null = null;
   private persistTimer: ReturnType<typeof setTimeout> | null = null;
   private saving = false;
+  private _transitioning = false;
   private handoffReady = false;
   private recommendation = "Complete Step 3 Product Profile, then configure marketing inputs.";
 
@@ -253,27 +262,37 @@ export class MarketingInputEngine {
   }
 
   async hydrateFromHandoff(handoff?: Step4HandoffPayload | null): Promise<boolean> {
-    const payload = handoff ?? loadStep4Handoff();
+    const hintId = handoff?.projectId ?? loadStep4Handoff()?.projectId ?? null;
+    const bound = await resolveBoundProject({ handoffProjectId: hintId });
+    if (!bound) {
+      this.recommendation = "No active project. Complete Steps 1–3 first.";
+      this.emit();
+      return false;
+    }
+
+    const block = prerequisiteBlockReason(4, bound.project);
+    const payload = handoff ?? loadStep4Handoff(bound.projectId);
     if (!payload || payload.step !== "step-4-marketing-input") {
-      const stored = Object.values(loadStored())[0];
-      if (stored) {
+      const stored = pickStoreForProject(loadStored(), bound.projectId);
+      if (stored && stored.projectId === bound.projectId) {
         this.brief = enrich(stored);
-        this.recommendation = "Restored local marketing brief.";
+        this.recommendation = "Restored marketing brief for the active project.";
         this.emitEvent("MarketingInputStarted", { projectId: stored.projectId, restored: true });
         this.emitBus("marketing.started", { projectId: stored.projectId, restored: true });
         this.emit();
         return true;
       }
-      this.recommendation = "No Step 3 handoff found. Complete Product Information first.";
+      this.recommendation = block ?? "No Step 3 handoff found. Complete Product Information first.";
+      if (block) this.notify?.("warning", "Step 4 blocked", block, "warnings");
       this.emit();
       return false;
     }
 
-    if (payload.productProfile.projectId !== payload.projectId) {
+    if (payload.productProfile.projectId !== payload.projectId || payload.projectId !== bound.projectId) {
       throw new Error("Cross-project data blocked: product profile project mismatch.");
     }
 
-    const stored = loadStored()[payload.projectId];
+    const stored = pickStoreForProject(loadStored(), payload.projectId);
     let project: CreativeProjectDto;
     try {
       project = await ensureProjectOpen(payload.projectId);
@@ -522,33 +541,39 @@ export class MarketingInputEngine {
     if (!(this.brief.canContinue || this.brief.continueAnyway)) {
       throw new Error(this.brief.continueBlockedReason ?? "Marketing brief incomplete");
     }
-    // Critical errors still block even with continueAnyway
     const errors = this.brief.validations.filter((v) => v.status === "error");
     if (errors.length) throw new Error(errors[0].message);
-
-    await this.flushPersist();
-    const handoff: Step5HandoffPayload = {
-      version: 1,
-      step: "step-5-live-product-validation",
-      projectId: this.brief.projectId,
-      projectName: this.brief.projectName,
-      productProfile: this.brief.productProfile,
-      marketingBrief: this.brief,
-      preparedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(MARKETING_HANDOFF_KEY, JSON.stringify(handoff));
-    this.handoffReady = true;
-    this.emitEvent("MarketingBriefReady", {
-      projectId: handoff.projectId,
-      completeness: this.brief.completeness.overall,
-    });
-    this.emitBus("marketing.completed", {
-      projectId: handoff.projectId,
-      marketingBriefId: this.brief.marketingBriefId,
-      completeness: this.brief.completeness.overall,
-    });
-    this.emit();
-    return handoff;
+    if (this._transitioning) throw new Error("Step transition already in progress.");
+    this._transitioning = true;
+    try {
+      await this.flushPersist();
+      const handoff: Step5HandoffPayload = {
+        version: 1,
+        step: "step-5-live-product-validation",
+        projectId: this.brief.projectId,
+        projectName: this.brief.projectName,
+        productProfile: this.brief.productProfile,
+        marketingBrief: this.brief,
+        preparedAt: new Date().toISOString(),
+      };
+      writeScopedHandoff(MARKETING_HANDOFF_KEY, handoff);
+      await persistWorkflowStep(this.brief.projectId, 5, 4);
+      this.handoffReady = true;
+      console.info("[STEP_4_COMPLETED]", { projectId: this.brief.projectId });
+      this.emitEvent("MarketingBriefReady", {
+        projectId: handoff.projectId,
+        completeness: this.brief.completeness.overall,
+      });
+      this.emitBus("marketing.completed", {
+        projectId: handoff.projectId,
+        marketingBriefId: this.brief.marketingBriefId,
+        completeness: this.brief.completeness.overall,
+      });
+      this.emit();
+      return handoff;
+    } finally {
+      this._transitioning = false;
+    }
   }
 
   private afterFieldChange(field: string, source: MarketingHistoryEntry["source"]): void {
@@ -603,11 +628,7 @@ export class MarketingInputEngine {
 
 export const marketingInputEngine = new MarketingInputEngine();
 
-export function loadStep5Handoff(): Step5HandoffPayload | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(MARKETING_HANDOFF_KEY) ?? "null") as Step5HandoffPayload | null;
-    return raw?.version === 1 ? raw : null;
-  } catch {
-    return null;
-  }
+export function loadStep5Handoff(projectId?: string | null): Step5HandoffPayload | null {
+  const raw = readScopedHandoff<Step5HandoffPayload>(MARKETING_HANDOFF_KEY, projectId);
+  return raw?.version === 1 && raw.step === "step-5-live-product-validation" ? raw : null;
 }

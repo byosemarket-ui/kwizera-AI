@@ -2,6 +2,18 @@ import type {
   DashboardCoreStatus, DashboardLiveSnapshot, DashboardWorkspace,
   LiveProgressState, LiveStatusCard,
 } from "./types";
+import { creativeMemoryEngine } from "../creative-memory/memory-engine";
+
+function creativeAiLine(): string | null {
+  try {
+    creativeMemoryEngine.hydrate();
+    const snap = creativeMemoryEngine.snapshot();
+    if (!snap.available || !snap.summary) return null;
+    return `AI Me READY · ${snap.summary.currentVersion} · Recs ${snap.summary.recommendationCount} · Next: ${snap.summary.nextActionLabel}`;
+  } catch {
+    return null;
+  }
+}
 
 export class DashboardLiveEngine {
   buildSnapshot(
@@ -103,6 +115,8 @@ export class DashboardLiveEngine {
   }
 
   private recommendation(core: DashboardCoreStatus | null, project: string | null, progress: LiveProgressState): string {
+    const fromMemory = creativeAiLine();
+    if (fromMemory) return fromMemory;
     if (!project) return "Create or open a project to unlock AI-guided production recommendations.";
     if (!core?.aiCore) return "Start the local AI runtime to receive live recommendations on this dashboard.";
     if (progress.running > 0) return "Production is active. Review Recent Production and open Pipeline for queue details.";

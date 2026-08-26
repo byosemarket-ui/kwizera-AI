@@ -1,6 +1,15 @@
 import { updateProjectApi, type CreativeProjectDto } from "../product-intake/api";
 import { loadStep3Handoff } from "../image-organization/organization-engine";
 import type { ProductImageSet, Step3HandoffPayload } from "../image-organization/types";
+import {
+  pickStoreForProject,
+  persistWorkflowStep,
+  prerequisiteBlockReason,
+  readProductImageSetFromProject,
+  readScopedHandoff,
+  resolveBoundProject,
+  writeScopedHandoff,
+} from "../product-creation/workflow";
 import { ensureProjectOpen, fetchProductIntelligence } from "./api";
 import { computeCompleteness, textToList, validateProfileFields } from "./validation";
 import type {
@@ -221,6 +230,7 @@ export class ProductProfileEngine {
   private persistTimer: ReturnType<typeof setTimeout> | null = null;
   private saving = false;
   private handoffReady = false;
+  private _transitioning = false;
   private recommendation = "Complete Step 2 Image Organization, then open Product Information.";
 
   setNotify(fn: NotifyFn | null): void {
@@ -278,38 +288,62 @@ export class ProductProfileEngine {
   }
 
   async hydrateFromHandoff(handoff?: Step3HandoffPayload | null): Promise<boolean> {
-    const payload = handoff ?? loadStep3Handoff();
-    if (!payload || payload.step !== "step-3-product-information") {
-      const stored = Object.values(loadStoredProfiles())[0];
-      if (stored) {
-        this.profile = enrichProfile(stored);
-        this.recommendation = "Restored local product profile.";
-        this.emitEvent("ProductInformationStarted", { projectId: stored.projectId, restored: true });
-        this.emit();
-        return true;
-      }
-      this.recommendation = "No Step 2 handoff found. Complete Image Organization first.";
+    const hintId = handoff?.projectId ?? loadStep3Handoff()?.projectId ?? null;
+    const bound = await resolveBoundProject({ handoffProjectId: hintId });
+    if (!bound) {
+      this.recommendation = "No active project. Complete Steps 1–2 first.";
       this.emit();
       return false;
     }
 
-    const stored = loadStoredProfiles()[payload.projectId];
+    const block = prerequisiteBlockReason(3, bound.project);
+    if (block && !handoff && !loadStep3Handoff(bound.projectId) && !readProductImageSetFromProject(bound.project)) {
+      this.recommendation = block;
+      this.notify?.("warning", "Step 3 blocked", block, "warnings");
+      this.emit();
+      return false;
+    }
+
+    const payload = handoff
+      ?? loadStep3Handoff(bound.projectId)
+      ?? null;
+
+    const stored = pickStoreForProject(loadStoredProfiles(), bound.projectId);
     let project: CreativeProjectDto;
     try {
-      project = await ensureProjectOpen(payload.projectId);
+      project = await ensureProjectOpen(bound.projectId);
     } catch (error) {
       this.notify?.("error", "Project unavailable", error instanceof Error ? error.message : "Open failed", "errors");
       return false;
     }
 
-    if (project.id !== payload.projectId) {
-      throw new Error("Cross-project data blocked: handoff project mismatch.");
+    const imageSet = (payload?.productImageSet
+      ?? pickStoreForProject(
+        (() => {
+          try {
+            return JSON.parse(localStorage.getItem("kwizera.image-organization.set.v1") ?? "{}") as Record<string, ProductImageSet>;
+          } catch {
+            return {};
+          }
+        })(),
+        bound.projectId,
+      )
+      ?? readProductImageSetFromProject(project)) as ProductImageSet | null;
+
+    if (!imageSet || (imageSet as ProductImageSet).projectId !== bound.projectId) {
+      // Allow Step 3 with empty image set shell if images exist on project (organization optional recovery)
+      if (!project.productImages?.length) {
+        this.recommendation = "No Step 2 handoff found. Complete Image Organization first.";
+        this.emit();
+        return false;
+      }
     }
 
-    const fields = stored?.fields ?? fieldsFromProject(project, payload.productImageSet.categoryEstimate);
-    if (!fields.category.trim() && payload.productImageSet.categoryEstimate) {
-      fields.category = payload.productImageSet.categoryEstimate;
-    }
+    const categoryHint = imageSet?.categoryEstimate
+      ?? project.productInformation?.category
+      ?? "";
+    const fields = stored?.fields ?? fieldsFromProject(project, categoryHint);
+    if (!fields.category.trim() && categoryHint) fields.category = categoryHint;
     const variants = stored?.variants ?? variantsFromSettings(project.workspaceSettings);
     const history = stored?.history?.length
       ? stored.history
@@ -317,20 +351,73 @@ export class ProductProfileEngine {
 
     let aiDerived = stored?.aiDerived ?? [];
     if (!aiDerived.length) {
-      const intel = await fetchProductIntelligence(payload.projectId);
-      aiDerived = deriveAiFields(intel, payload.productImageSet, fields);
+      const intel = await fetchProductIntelligence(bound.projectId);
+      aiDerived = deriveAiFields(intel, imageSet ?? {
+        version: 1 as const,
+        projectId: bound.projectId,
+        projectName: bound.projectName,
+        categoryEstimate: categoryHint || "general product",
+        images: [],
+        groups: [],
+        missingViews: [],
+        recommendedViews: [],
+        coverageScore: 0,
+        warnings: [],
+        consistencyOk: true,
+        analyzedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }, fields);
     }
+
+    const resolvedSet: ProductImageSet = imageSet && imageSet.projectId === bound.projectId
+      ? imageSet
+      : {
+          version: 1,
+          projectId: bound.projectId,
+          projectName: bound.projectName,
+          categoryEstimate: categoryHint || "general product",
+          images: project.productImages.map((img) => ({
+            assetId: img.id,
+            projectId: bound.projectId,
+            fileName: img.sourceFileName || img.fileName,
+            mimeType: img.mimeType,
+            width: img.width ?? null,
+            height: img.height ?? null,
+            fileSize: img.sizeBytes,
+            url: img.url,
+            viewType: "OTHER",
+            confidence: 0.5,
+            roleInGroup: "primary",
+            groupId: "view-OTHER",
+            backgroundType: "unknown",
+            visibilityStatus: "clear",
+            needsReview: true,
+            analysisFailed: false,
+            userCorrected: false,
+            qualityScore: 50,
+            warnings: [],
+            analyzedAt: img.uploadedAt,
+          })),
+          groups: [],
+          missingViews: [],
+          recommendedViews: [],
+          coverageScore: 0,
+          warnings: [],
+          consistencyOk: true,
+          analyzedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
 
     this.profile = enrichProfile({
       version: 1,
-      productId: payload.projectId,
-      projectId: payload.projectId,
-      projectName: payload.projectName || project.name,
+      productId: bound.projectId,
+      projectId: bound.projectId,
+      projectName: bound.projectName || project.name,
       fields,
       variants,
       aiDerived,
       history,
-      productImageSet: payload.productImageSet,
+      productImageSet: resolvedSet,
       completeness: { information: 0, images: 0, specifications: 0, overall: 0, missingRecommended: [] },
       validations: [],
       validationStatus: "incomplete",
@@ -607,23 +694,31 @@ export class ProductProfileEngine {
     if (!this.profile?.canContinue) {
       throw new Error(this.profile?.continueBlockedReason ?? "Product profile incomplete");
     }
-    await this.flushPersist();
-    const handoff: Step4HandoffPayload = {
-      version: 1,
-      step: "step-4-marketing-input",
-      projectId: this.profile.projectId,
-      projectName: this.profile.projectName,
-      productProfile: this.profile,
-      preparedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(PROFILE_HANDOFF_KEY, JSON.stringify(handoff));
-    this.handoffReady = true;
-    this.emitEvent("ProductProfileReady", {
-      projectId: handoff.projectId,
-      completeness: this.profile.completeness.overall,
-    });
-    this.emit();
-    return handoff;
+    if (this._transitioning) throw new Error("Step transition already in progress.");
+    this._transitioning = true;
+    try {
+      await this.flushPersist();
+      const handoff: Step4HandoffPayload = {
+        version: 1,
+        step: "step-4-marketing-input",
+        projectId: this.profile.projectId,
+        projectName: this.profile.projectName,
+        productProfile: this.profile,
+        preparedAt: new Date().toISOString(),
+      };
+      writeScopedHandoff(PROFILE_HANDOFF_KEY, handoff);
+      await persistWorkflowStep(this.profile.projectId, 4, 3);
+      this.handoffReady = true;
+      console.info("[STEP_3_COMPLETED]", { projectId: this.profile.projectId });
+      this.emitEvent("ProductProfileReady", {
+        projectId: handoff.projectId,
+        completeness: this.profile.completeness.overall,
+      });
+      this.emit();
+      return handoff;
+    } finally {
+      this._transitioning = false;
+    }
   }
 
   private schedulePersist(): void {
@@ -654,11 +749,7 @@ export class ProductProfileEngine {
 
 export const productProfileEngine = new ProductProfileEngine();
 
-export function loadStep4Handoff(): Step4HandoffPayload | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PROFILE_HANDOFF_KEY) ?? "null") as Step4HandoffPayload | null;
-    return raw?.version === 1 ? raw : null;
-  } catch {
-    return null;
-  }
+export function loadStep4Handoff(projectId?: string | null): Step4HandoffPayload | null {
+  const raw = readScopedHandoff<Step4HandoffPayload>(PROFILE_HANDOFF_KEY, projectId);
+  return raw?.version === 1 && raw.step === "step-4-marketing-input" ? raw : null;
 }

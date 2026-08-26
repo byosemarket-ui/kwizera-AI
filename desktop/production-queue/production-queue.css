@@ -1,0 +1,68 @@
+.pqueue {
+  --pq-accent: #1f4d5c;
+  --pq-ink: #142029;
+  --pq-muted: #5a6b75;
+  --pq-panel: rgba(255, 255, 255, 0.88);
+  --pq-line: rgba(20, 32, 41, 0.12);
+  --pq-ok: #1f7a4c;
+  --pq-warn: #9a6b12;
+  --pq-err: #a33b3b;
+  --pq-wait: #3d5a80;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 24px 40px;
+  min-height: 100%;
+  color: var(--pq-ink);
+  background:
+    radial-gradient(900px 380px at 8% -8%, rgba(31, 77, 92, 0.16), transparent 55%),
+    linear-gradient(180deg, #eef3f5 0%, #e3ebee 100%);
+  overflow: auto;
+  font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+}
+.pq-kicker { letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.72rem; color: var(--pq-accent); font-weight: 650; }
+.pq-hero { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.pq-hero h1 { margin: 6px 0 8px; font-size: clamp(1.3rem, 2vw, 1.8rem); }
+.pq-hero p { margin: 0; max-width: 72ch; color: var(--pq-muted); line-height: 1.5; }
+.pq-hero-stats, .pq-scores, .pq-dash { display: flex; gap: 8px; flex-wrap: wrap; }
+.pq-hero-stats div, .pq-scores div, .pq-dash div {
+  min-width: 110px; max-width: 280px; padding: 10px 12px; border-radius: 12px;
+  background: var(--pq-panel); border: 1px solid var(--pq-line);
+}
+.pq-hero-stats b, .pq-scores b, .pq-dash b { display: block; font-size: 0.88rem; }
+.pq-hero-stats span, .pq-scores span, .pq-dash span { font-size: 0.68rem; color: var(--pq-muted); }
+.pq-toolbar, .pq-progress, .pq-panel, .pq-banner {
+  padding: 14px 16px; border-radius: 14px; background: var(--pq-panel); border: 1px solid var(--pq-line);
+}
+.pq-toolbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.pq-toolbar span { display: block; color: var(--pq-muted); font-size: 0.85rem; margin-top: 4px; }
+.pq-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pqueue button {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--pq-line);
+  background: #fff; color: var(--pq-ink); border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit;
+}
+.pqueue button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pq-primary { background: var(--pq-accent) !important; color: #f4f5fb !important; border-color: transparent !important; }
+.pq-progress-head { display: flex; justify-content: space-between; gap: 12px; }
+.pq-progress-head h3 { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 0.95rem; }
+.pq-progress-bar { height: 8px; margin: 10px 0; border-radius: 99px; background: rgba(20, 32, 41, 0.08); overflow: hidden; }
+.pq-progress-bar i { display: block; height: 100%; background: var(--pq-accent); }
+.pq-stages { display: flex; flex-wrap: wrap; gap: 6px; }
+.pq-stages span { font-size: 0.68rem; color: var(--pq-muted); padding: 2px 6px; border-radius: 99px; }
+.pq-stages .done { color: var(--pq-ok); }
+.pq-stages .active { color: var(--pq-accent); background: rgba(31, 77, 92, 0.12); font-weight: 650; }
+.pq-panel-toggle { width: 100%; justify-content: flex-start; background: transparent !important; border: 0 !important; font-weight: 650; padding: 0 !important; }
+.pq-panel-body { margin-top: 12px; }
+.pq-row { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-top: 1px solid var(--pq-line); }
+.pq-row em { font-style: normal; font-size: 0.78rem; color: var(--pq-muted); }
+.pq-note { color: var(--pq-muted); font-size: 0.88rem; }
+.pq-queue-line { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--pq-line); }
+.pq-pill { font-size: 0.72rem; font-weight: 650; padding: 2px 8px; border-radius: 999px; }
+.pq-pill.READY, .pq-pill.COMPLETED { color: var(--pq-ok); background: rgba(31, 122, 76, 0.12); }
+.pq-pill.WAITING, .pq-pill.PENDING { color: var(--pq-wait); background: rgba(61, 90, 128, 0.12); }
+.pq-pill.BLOCKED, .pq-pill.FAILED { color: var(--pq-err); background: rgba(163, 59, 59, 0.12); }
+.pq-pill.RUNNING { color: var(--pq-accent); background: rgba(31, 77, 92, 0.12); }
+.ok { color: var(--pq-ok) !important; }
+.warn { color: var(--pq-warn) !important; }
+.err { color: var(--pq-err) !important; }
+@media (max-width: 720px) { .pq-toolbar-actions { width: 100%; } }

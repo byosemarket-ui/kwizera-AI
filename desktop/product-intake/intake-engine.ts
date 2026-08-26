@@ -2,7 +2,7 @@ import { workspaceIntegrationEngine } from "../shell/integration/integration-eng
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
 import {
   createProjectApi, fetchWorkspaceApi, loadProjectMeta, openProjectApi, removeImageApi,
-  saveHandoff, saveProjectMeta, updateProjectProductName, uploadImageApi,
+  saveHandoff, saveProjectMeta, updateProjectProductName, uploadImageApi, verifyProjectExists,
 } from "./api";
 import { fileToBase64 } from "./hash";
 import { IntakeImportQueue } from "./queue";
@@ -29,6 +29,7 @@ export class ProductIntakeEngine {
   private bytesWindow: Array<{ at: number; bytes: number }> = [];
   private handoffReady = false;
   private currentFile: string | null = null;
+  private _transitioning = false;
 
   setNotify(notify: NotifyFn | null): void {
     this.notify = notify;
@@ -153,7 +154,11 @@ export class ProductIntakeEngine {
 
   async ensureProject(name: string): Promise<string> {
     const trimmed = name.trim();
-    if (!trimmed) throw new Error("Project name is required");
+    if (!trimmed) throw new Error("Enter a project name.");
+    if (trimmed.length > 120) throw new Error("Project name is too long (max 120 characters).");
+    if (/[<>:"/\\|?*\u0000]/.test(trimmed)) {
+      throw new Error("Project name contains invalid characters.");
+    }
     if (this.projectId && this.projectName === trimmed) return this.projectId;
     if (this.projectId) {
       this.projectName = trimmed;
@@ -161,21 +166,28 @@ export class ProductIntakeEngine {
       this.emit();
       return this.projectId;
     }
+    console.info("[PRODUCT_CREATE_STARTED]", { name: trimmed });
     const project = await createProjectApi(trimmed);
-    this.projectId = project.id;
-    this.projectName = project.name;
-    await updateProjectProductName(project.id, trimmed).catch(() => project);
+    const verified = await verifyProjectExists(project.id);
+    if (!verified) {
+      console.error("[PRODUCT_CREATE_FAILED]", { id: project.id, reason: "read-back verification failed" });
+      throw new Error("Project was created but could not be read back from storage. Check local storage and try again.");
+    }
+    this.projectId = verified.id;
+    this.projectName = verified.name;
+    await updateProjectProductName(verified.id, trimmed).catch(() => verified);
+    console.info("[PRODUCT_CREATE_SUCCESS]", { id: verified.id, name: verified.name });
     void workspaceIntegrationEngine.emit({
       type: "project.created",
       source: "workspace",
-      payload: { name: project.name, id: project.id },
+      payload: { name: verified.name, id: verified.id },
       priority: "normal",
     });
-    this.notify?.("success", "Project created", `“${project.name}” is ready for product images.`, "production-complete");
+    this.notify?.("success", "Project created", `“${verified.name}” is ready for product images.`, "production-complete");
     this.persistMeta();
     this.markDirty();
     this.emit();
-    return project.id;
+    return verified.id;
   }
 
   async openExisting(projectId: string): Promise<void> {
@@ -271,39 +283,50 @@ export class ProductIntakeEngine {
     if (!snap.canContinue || !snap.projectId) {
       throw new Error(snap.continueBlockedReason ?? "Intake is not ready");
     }
-    const assets = snap.assets.filter((a) => a.processingStatus === "saved" && a.validationStatus !== "invalid");
-    const handoff: IntakeHandoffPayload = {
-      version: 1,
-      step: "step-2-image-organization",
-      projectId: snap.projectId,
-      projectName: snap.projectName,
-      assets,
-      preparedAt: new Date().toISOString(),
-    };
-    saveHandoff(handoff);
-    this.handoffReady = true;
-    this.persistMeta();
-    this.markDirty();
-    await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
-    void workspaceIntegrationEngine.emit({
-      type: "product.updated",
-      source: "workspace",
-      targets: ["ai-me", "notifications"],
-      payload: {
-        action: "intake.ready-for-step-2",
-        projectId: handoff.projectId,
-        assetCount: assets.length,
-      },
-      priority: "normal",
-      notify: {
-        tone: "success",
-        title: "Ready for Step 2",
-        detail: `${assets.length} product asset(s) prepared for Intelligent Image Organization.`,
-        category: "production-complete",
-      },
-    });
-    this.emit();
-    return handoff;
+    if (this.handoffReady && this._transitioning) {
+      throw new Error("Step transition already in progress.");
+    }
+    this._transitioning = true;
+    try {
+      const assets = snap.assets.filter((a) => a.processingStatus === "saved" && a.validationStatus !== "invalid");
+      const handoff: IntakeHandoffPayload = {
+        version: 1,
+        step: "step-2-image-organization",
+        projectId: snap.projectId,
+        projectName: snap.projectName,
+        assets,
+        preparedAt: new Date().toISOString(),
+      };
+      saveHandoff(handoff);
+      const { persistWorkflowStep } = await import("../product-creation/workflow");
+      await persistWorkflowStep(snap.projectId, 2, 1);
+      this.handoffReady = true;
+      this.persistMeta();
+      this.markDirty();
+      await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
+      console.info("[STEP_1_COMPLETED]", { projectId: snap.projectId, assetCount: assets.length });
+      void workspaceIntegrationEngine.emit({
+        type: "product.updated",
+        source: "workspace",
+        targets: ["ai-me", "notifications"],
+        payload: {
+          action: "intake.ready-for-step-2",
+          projectId: handoff.projectId,
+          assetCount: assets.length,
+        },
+        priority: "normal",
+        notify: {
+          tone: "success",
+          title: "Ready for Step 2",
+          detail: `${assets.length} product asset(s) prepared for Intelligent Image Organization.`,
+          category: "production-complete",
+        },
+      });
+      this.emit();
+      return handoff;
+    } finally {
+      this._transitioning = false;
+    }
   }
 
   private async pump(): Promise<void> {

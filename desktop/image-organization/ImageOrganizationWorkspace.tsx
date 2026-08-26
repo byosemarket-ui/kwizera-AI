@@ -40,7 +40,7 @@ export function ImageOrganizationWorkspace() {
       });
     });
     const unsub = imageOrganizationEngine.subscribe(setSnap);
-    imageOrganizationEngine.hydrateFromHandoff();
+    void imageOrganizationEngine.hydrateFromHandoff();
     return () => {
       unsub();
       imageOrganizationEngine.setNotify(null);

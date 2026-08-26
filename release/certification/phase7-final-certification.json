@@ -1,0 +1,257 @@
+{
+  "generatedAt": "2026-08-25T22:42:38.848Z",
+  "version": "0.1.0",
+  "verdict": "LIMITED PRODUCTION",
+  "applicationName": "KWIZERA AI STUDIO",
+  "results": [
+    {
+      "id": "version.consistency",
+      "name": "Authoritative version across root + electron package",
+      "expected": "0.1.0",
+      "actual": "root=0.1.0 electron=0.1.0",
+      "status": "PASS"
+    },
+    {
+      "id": "identity.icon",
+      "name": "Official application icon",
+      "expected": "icon.ico exists",
+      "actual": "true",
+      "status": "PASS"
+    },
+    {
+      "id": "identity.launcher",
+      "name": "Stable Windows launcher script",
+      "expected": "bat exists",
+      "actual": "true",
+      "status": "PASS"
+    },
+    {
+      "id": "package.setup",
+      "name": "Windows Setup EXE present (may be rebuilt later)",
+      "expected": "KwizeraAIStudio-Setup-0.1.0.exe",
+      "actual": "89MB",
+      "status": "PASS"
+    },
+    {
+      "id": "package.unpacked",
+      "name": "Unpacked production EXE",
+      "expected": "KWIZERA AI STUDIO.exe",
+      "actual": "present",
+      "status": "PASS"
+    },
+    {
+      "id": "windows.desktop-shortcut",
+      "name": "Desktop shortcut exists",
+      "expected": "lnk present",
+      "actual": "true",
+      "status": "PASS"
+    },
+    {
+      "id": "windows.start-menu",
+      "name": "Start Menu shortcut exists",
+      "expected": "lnk present",
+      "actual": "true",
+      "status": "PASS"
+    },
+    {
+      "id": "uninstall.data-safety",
+      "name": "NSIS does not delete AppData on uninstall",
+      "expected": "deleteAppDataOnUninstall: false",
+      "actual": "false",
+      "status": "PASS"
+    },
+    {
+      "id": "security.config-secrets",
+      "name": "No secrets in desktop config source",
+      "expected": "clean",
+      "actual": "desktop config clean",
+      "status": "PASS"
+    },
+    {
+      "id": "deps.required",
+      "name": "Required runtime",
+      "expected": "Node >=20",
+      "actual": "node v24.18.0",
+      "status": "PASS"
+    },
+    {
+      "id": "deps.optional",
+      "name": "Optional tools documented",
+      "expected": "ffmpeg/GPU optional",
+      "actual": "ffmpeg PATH optional; GPU via KWIZERA_LRM_EXTERNAL_PROBES",
+      "status": "PASS"
+    },
+    {
+      "id": "unit.phase7",
+      "name": "Phase 7 Steps 1–4 unit tests",
+      "expected": "exit 0",
+      "actual": "all suites passed",
+      "status": "PASS"
+    },
+    {
+      "id": "live.api-health",
+      "name": "GET /api/health",
+      "expected": "ok:true",
+      "actual": "ready",
+      "status": "PASS"
+    },
+    {
+      "id": "live.system-health",
+      "name": "System health report",
+      "expected": "score 0-100 + subsystems",
+      "actual": "score=94 status=DEGRADED",
+      "status": "PASS"
+    },
+    {
+      "id": "live.self-test",
+      "name": "System self-test",
+      "expected": "checks returned",
+      "actual": "14/14",
+      "status": "PASS"
+    },
+    {
+      "id": "live.memory",
+      "name": "Persistent memory health",
+      "expected": "ready",
+      "actual": "{\"ready\":true,\"memory\":\"READY\",\"knowledge\":\"READY\",\"database\":\"READY\",\"backup\":\"NONE\",\"storageRoot\":\"C:\\\\Users\\\\Mrk\\\\App",
+      "status": "PASS"
+    },
+    {
+      "id": "live.memory-write",
+      "name": "Save memory record",
+      "expected": "id returned",
+      "actual": "system-memory-1787697727230-5540d5984dd06c73",
+      "status": "PASS"
+    },
+    {
+      "id": "live.backup",
+      "name": "Create PMC backup",
+      "expected": "backupId",
+      "actual": "backup-2026-08-25T22-42-07",
+      "status": "PASS"
+    },
+    {
+      "id": "live.safe-repair",
+      "name": "Allowlisted cache/dir repair",
+      "expected": "success",
+      "actual": "success",
+      "status": "PASS"
+    },
+    {
+      "id": "security.repair-deny",
+      "name": "Destructive repair denied",
+      "expected": "DENIED/failed",
+      "actual": "DENIED",
+      "status": "PASS"
+    },
+    {
+      "id": "security.update-allowlist",
+      "name": "Untrusted update URL rejected",
+      "expected": "FAILED",
+      "actual": "FAILED",
+      "status": "PASS"
+    },
+    {
+      "id": "live.network",
+      "name": "Network status (online knowledge)",
+      "expected": "ONLINE|OFFLINE|LIMITED|ERROR",
+      "actual": "ONLINE",
+      "status": "PASS"
+    },
+    {
+      "id": "security.injection",
+      "name": "Web/AI injection does not execute shell",
+      "expected": "research completes; no command execution",
+      "actual": "phase=READY",
+      "status": "PASS"
+    },
+    {
+      "id": "live.project-create",
+      "name": "Create workspace project",
+      "expected": "project id",
+      "actual": "59353321-9d60-4f11-828d-803d3f93d41e",
+      "status": "PASS"
+    },
+    {
+      "id": "live.image-upload",
+      "name": "Upload product image",
+      "expected": "accepted",
+      "actual": "a2f5fcb1-30dd-4d06-b352-f7fd81bf28b8",
+      "status": "PASS"
+    },
+    {
+      "id": "live.project-readback",
+      "name": "Project read-back with step validators",
+      "expected": "intake.valid true after image",
+      "actual": "valid",
+      "status": "PASS"
+    },
+    {
+      "id": "live.persistence-health",
+      "name": "Creative workspace persistence health",
+      "expected": "ok:true",
+      "actual": "assets=1",
+      "status": "PASS"
+    },
+    {
+      "id": "live.desktop-ui",
+      "name": "Desktop UI served",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "status": "PASS"
+    },
+    {
+      "id": "e2e.product-creation",
+      "name": "Full Product Creation workflow + app restart (API)",
+      "expected": "exit 0, 30/30 checks",
+      "actual": "30/30 PASS",
+      "status": "PASS"
+    },
+    {
+      "id": "os.windows-reboot",
+      "name": "Windows restart persistence",
+      "expected": "manual reboot test on installed build",
+      "actual": "NOT RUN in harness — requires human operator",
+      "status": "SKIP"
+    },
+    {
+      "id": "os.nsis-clean-install",
+      "name": "Clean NSIS install to Program Files",
+      "expected": "manual admin install + UI workflow",
+      "actual": "NOT RUN — artifact verified; dev/E2E uses isolated storage",
+      "status": "SKIP"
+    },
+    {
+      "id": "ui.file-picker-dnd",
+      "name": "Windows file picker / folder import / drag-drop",
+      "expected": "real UI interaction on installed build",
+      "actual": "NOT RUN in harness — API/filesystem verified in e2e.product-creation",
+      "status": "SKIP"
+    },
+    {
+      "id": "e2e.full-video-pipeline",
+      "name": "Full product→video render E2E",
+      "expected": "completed job + output files",
+      "actual": "NOT RUN — requires persistent AI + models + time",
+      "status": "SKIP"
+    },
+    {
+      "id": "update.binary-rollback",
+      "name": "Binary update rollback",
+      "expected": "previous EXE restored",
+      "actual": "foundation only (Step 4) — not binary-tested",
+      "status": "LIMITED"
+    }
+  ],
+  "counts": {
+    "pass": 29,
+    "fail": 0,
+    "limited": 1,
+    "skip": 4,
+    "warn": 0
+  },
+  "artifacts": {
+    "setup": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\KwizeraAIStudio-Setup-0.1.0.exe",
+    "unpacked": "C:\\Users\\Mrk\\Desktop\\kwizera-AI\\release\\win-unpacked\\KWIZERA AI STUDIO.exe"
+  }
+}

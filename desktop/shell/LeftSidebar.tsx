@@ -1,8 +1,8 @@
 import {
   Activity, BarChart3, BookOpen, Bot, ChevronDown, ChevronLeft, ChevronRight, Clapperboard,
-  Download, FileAudio, FileImage, FileVideo, FolderOpen, FolderPlus, HelpCircle, History,
+  Download, FileAudio, FileImage, FileVideo, FolderOpen, FolderPlus, Gauge, HeartPulse, HelpCircle, History,
   Home, Layers, Library, ListOrdered, MoreHorizontal, Package, Pin, PinOff, Search, Settings,
-  ShieldCheck, Sparkles, Star, Tag, Workflow,
+  ShieldCheck, Sparkles, Star, Tag, Workflow, Eye, Brain, Globe, FileText, Megaphone,
 } from "lucide-react";
 import type { WorkspaceId } from "./types";
 import { useShell } from "./ShellContext";
@@ -21,20 +21,28 @@ const navIcons: Record<WorkspaceId, typeof Home> = {
   pipeline: Workflow,
   queue: ListOrdered,
   "active-production": Activity,
+  "command-center": Gauge,
   storyboard: Clapperboard,
   marketing: Layers,
+  "marketing-strategy": Megaphone,
   "asset-library": Package,
   "image-organization": Layers,
   "product-information": Tag,
   "product-validation": ShieldCheck,
+  "visual-analysis": Eye,
+  "deep-intelligence": Brain,
+  "market-research": Globe,
+  "master-intelligence": FileText,
   "generated-images": FileImage,
   "generated-videos": FileVideo,
   "generated-audio": FileAudio,
   output: Download,
   exports: Download,
+  "creative-review": Eye,
   reports: BarChart3,
   history: History,
   settings: Settings,
+  "system-health": HeartPulse,
   help: HelpCircle,
 };
 

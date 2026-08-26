@@ -16,6 +16,22 @@ export {
   listProfessionalResearchDomains,
   matchProfessionalResearchDomains,
 } from "./professional-research-domains.js";
+export {
+  generateResearchQueries,
+  dedupeQueries,
+  classifySourceQuality,
+  freshnessFromIso,
+  knowledgeDedupeKey,
+  localCategoryKnowledge,
+  band as researchConfidenceBand,
+} from "./product-market-research.js";
+export type {
+  ProductResearchContext,
+  ResearchQuery,
+  SourceQuality,
+  KnowledgeKind,
+  Freshness,
+} from "./product-market-research.js";
 export type {
   ProfessionalResearchDomainDefinition,
   ResearchDiscoveryKind,

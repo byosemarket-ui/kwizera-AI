@@ -1,1 +1,0 @@
-{"version":3,"file":"task-manager-plugin.d.ts","sourceRoot":"","sources":["../../../ai/task-manager/task-manager-plugin.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAC;AACvD,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,EAAE,aAAa,EAAE,MAAM,mBAAmB,CAAC;AAElD,wBAAgB,uBAAuB,CACrC,OAAO,EAAE,aAAa,EACtB,IAAI,EAAE,aAAa,GAClB,cAAc,CAuBhB"}

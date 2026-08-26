@@ -1,3 +1,0 @@
-export function createProductIntelligencePlugin(manager, _core) { return { id: "product-intelligence-runtime", name: "KWIZERA AI Product Intelligence Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
-        throw new Error("Product Intelligence Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Product intelligence runtime operational" }; } }; }
-//# sourceMappingURL=product-intelligence-plugin.js.map

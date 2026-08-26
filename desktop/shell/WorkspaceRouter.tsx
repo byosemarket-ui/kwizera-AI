@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import {
-  Activity, BarChart3, BookOpen, Clapperboard, Download, FileAudio, FileImage, FileVideo,
-  History, Library, ListOrdered, Package, Search, Settings, Sparkles, Workflow,
+  BarChart3, BookOpen, FileAudio, FileImage, FileVideo,
+  Library, Settings, Sparkles,
 } from "lucide-react";
 import { ProfessionalDashboard } from "../dashboard/ProfessionalDashboard";
 import { ProjectWorkspace } from "../project-workspace/ProjectWorkspace";
@@ -14,9 +14,35 @@ import { ProductIntakeWorkspace } from "../product-intake/ProductIntakeWorkspace
 import { ImageOrganizationWorkspace } from "../image-organization/ImageOrganizationWorkspace";
 import { ProductInformationWorkspace } from "../product-profile/ProductInformationWorkspace";
 import { ProductValidationWorkspace } from "../product-validation/ProductValidationWorkspace";
+import { VisualAnalysisWorkspace } from "../visual-analysis/VisualAnalysisWorkspace";
+import { DeepIntelligenceWorkspace } from "../deep-intelligence/DeepIntelligenceWorkspace";
+import { MarketResearchWorkspace } from "../market-research/MarketResearchWorkspace";
+import { MasterIntelligenceWorkspace } from "../master-intelligence/MasterIntelligenceWorkspace";
+import { MarketingStrategyWorkspace } from "../marketing-strategy/MarketingStrategyWorkspace";
+import { CreativePlannerWorkspace } from "../creative-planner/CreativePlannerWorkspace";
+import { ProductionPlanWorkspace } from "../production-plan/ProductionPlanWorkspace";
+import { ProductionQueueWorkspace } from "../production-queue/ProductionQueueWorkspace";
+import { ProductionPipelineWorkspace } from "../production-pipeline/ProductionPipelineWorkspace";
+import { ProductionCommandCenterWorkspace } from "../production-command-center/ProductionCommandCenterWorkspace";
+import { ProductionFinalWorkspace } from "../production-final/ProductionFinalWorkspace";
+import { ProductionHistoryWorkspace } from "../production-final/ProductionHistoryWorkspace";
+import { CreativeReviewWorkspace } from "../creative-review/CreativeReviewWorkspace";
+import { CreativeAssistantWorkspace } from "../creative-assistant/CreativeAssistantWorkspace";
+import { PersistentMemoryWorkspace } from "../persistent-memory/PersistentMemoryWorkspace";
+import { SystemHealthWorkspace } from "../system-health/SystemHealthWorkspace";
+import { loadStep2AssistantHandoff } from "../creative-review/review-engine";
+import { loadFinalCompleteHandoff } from "../production-final/final-engine";
 import type { CoreStatus, WorkspaceId } from "./types";
 import { mapLegacyWorkspace } from "./workspace-registry";
 import { PlaceholderWorkspace } from "./ProductionWorkspace";
+
+function shouldUseCreativeAssistant(): boolean {
+  try {
+    return Boolean(loadStep2AssistantHandoff()?.productionId || loadFinalCompleteHandoff()?.package?.productionId);
+  } catch {
+    return false;
+  }
+}
 
 interface WorkspaceRouterProps {
   workspace: WorkspaceId;
@@ -39,11 +65,24 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
       return <ProductInformationWorkspace />;
     case "product-validation":
       return <ProductValidationWorkspace />;
+    case "visual-analysis":
+      return <VisualAnalysisWorkspace />;
+    case "deep-intelligence":
+      return <DeepIntelligenceWorkspace />;
+    case "market-research":
+      return <MarketResearchWorkspace />;
+    case "master-intelligence":
+      return <MasterIntelligenceWorkspace />;
+    case "marketing-strategy":
+      return <MarketingStrategyWorkspace />;
     case "ai-me":
-      return <AiStudioWorkspace />;
+      return shouldUseCreativeAssistant() ? <CreativeAssistantWorkspace /> : <AiStudioWorkspace />;
     case "production":
-    case "active-production":
       return <CreativeEditingWorkspace />;
+    case "active-production":
+      return <ProductionPipelineWorkspace />;
+    case "command-center":
+      return <ProductionCommandCenterWorkspace />;
     case "reports":
       return <BusinessIntelligenceWorkspace />;
     case "marketing":
@@ -51,17 +90,16 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
     case "new-project":
       return <ProductIntakeWorkspace />;
     case "knowledge-center":
-      return placeholder(<BookOpen size={30} />, "Knowledge Center", "Knowledge retrieval and context modules will mount here.");
+    case "knowledge-search":
+      return <PersistentMemoryWorkspace />;
     case "knowledge-packs":
       return placeholder(<Library size={30} />, "Knowledge Packs", "Import and manage local knowledge packs.");
-    case "knowledge-search":
-      return placeholder(<Search size={30} />, "Knowledge Search", "Search across seeded knowledge domains.");
     case "pipeline":
-      return placeholder(<Workflow size={30} />, "Pipeline", "Production pipeline stages will appear here.");
+      return <ProductionPlanWorkspace />;
     case "queue":
-      return placeholder(<ListOrdered size={30} />, "Queue", "Local production queue and job list.");
+      return <ProductionQueueWorkspace />;
     case "storyboard":
-      return placeholder(<Clapperboard size={30} />, "Storyboard", "Storyboard and scene planning workspace.");
+      return <CreativePlannerWorkspace />;
     case "generated-images":
       return placeholder(<FileImage size={30} />, "Generated Images", "Image generation outputs and gallery.");
     case "generated-videos":
@@ -69,13 +107,17 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
     case "generated-audio":
       return placeholder(<FileAudio size={30} />, "Generated Audio", "Audio generation outputs and gallery.");
     case "output":
-      return placeholder(<Package size={30} />, "Outputs", "Final renders and delivery previews.");
+      return <ProductionFinalWorkspace />;
     case "exports":
-      return placeholder(<Download size={30} />, "Exports", "Export packages and delivery formats.");
+      return <ProductionFinalWorkspace />;
+    case "creative-review":
+      return <CreativeReviewWorkspace />;
     case "history":
-      return placeholder(<History size={30} />, "History", "Production and navigation history.");
+      return <ProductionHistoryWorkspace />;
     case "settings":
       return placeholder(<Settings size={30} />, "Settings", "Application settings. Desktop preferences remain available from the sidebar footer.");
+    case "system-health":
+      return <SystemHealthWorkspace />;
     case "help":
       return <HelpRoute onNavigate={onNavigate} />;
     default:

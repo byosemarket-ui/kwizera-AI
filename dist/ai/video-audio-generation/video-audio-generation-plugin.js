@@ -1,3 +1,0 @@
-export function createVideoAudioGenerationPlugin(manager, _core) { return { id: "video-audio-generation-runtime", name: "KWIZERA AI Video & Audio Generation Runtime", version: "0.1.0", async initialize() { if (!manager.isInitialized())
-        throw new Error("Video and Audio Generation Manager is not initialized"); }, async shutdown() { }, async healthCheck() { return { healthy: manager.isInitialized(), message: "Video and audio generation runtime operational" }; } }; }
-//# sourceMappingURL=video-audio-generation-plugin.js.map

@@ -1,1 +1,0 @@
-{"version":3,"file":"product-scorer.d.ts","sourceRoot":"","sources":["../../../ai/product-memory-engine/product-scorer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,oBAAoB,EAAE,aAAa,EAAE,MAAM,YAAY,CAAC;AAEjE,qBAAa,aAAa;IACxB,aAAa,CAAC,OAAO,EAAE,OAAO,CAAC,aAAa,CAAC,EAAE,kBAAkB,CAAC,EAAE,MAAM,GAAG,oBAAoB;CA6ClG"}

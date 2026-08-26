@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T19:47:00.781Z","level":"info","event":"startup","message":"Image Generation Health Monitor initialized","data":{"healthDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-generation\\health\\engine"}}
-{"timestamp":"2026-08-08T19:47:04.953Z","level":"info","event":"health-check","message":"Image generation health check complete","data":{"checkId":"ig-hc-1786218424762-f88145","overallScore":89,"overallLevel":"good","warnings":0}}
-{"timestamp":"2026-08-08T19:47:04.957Z","level":"info","event":"audit","message":"Image generation audit complete","data":{"auditId":"ig-audit-1786218424955","valid":true}}
-{"timestamp":"2026-08-08T19:47:04.958Z","level":"info","event":"startup","message":"Image Generation Health Monitor startup complete","data":{"overallScore":89,"overallLevel":"good","durationMs":229}}

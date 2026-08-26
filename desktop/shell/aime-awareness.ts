@@ -23,6 +23,21 @@ import { imageOrganizationEngine } from "../image-organization/organization-engi
 import { productProfileEngine } from "../product-profile/profile-engine";
 import { marketingInputEngine } from "../marketing-input/marketing-engine";
 import { productValidationEngine } from "../product-validation/validation-engine";
+import { visualAnalysisEngine } from "../visual-analysis/visual-analysis-engine";
+import { deepIntelligenceEngine } from "../deep-intelligence/deep-intelligence-engine";
+import { marketResearchEngine } from "../market-research/research-engine";
+import { masterIntelligenceEngine } from "../master-intelligence/master-engine";
+import { marketingStrategyEngine } from "../marketing-strategy/strategy-engine";
+import { creativePlannerEngine } from "../creative-planner/planner-engine";
+import { productionPlanEngine } from "../production-plan/plan-engine";
+import { productionQueueEngine } from "../production-queue/queue-engine";
+import { productionPipelineEngine } from "../production-pipeline/pipeline-engine";
+import { productionCommandCenterEngine } from "../production-command-center/command-center-engine";
+import { productionFinalEngine } from "../production-final/final-engine";
+import { creativeReviewEngine } from "../creative-review/review-engine";
+import { creativeAssistantEngine } from "../creative-assistant/assistant-engine";
+import { creativeDecisionEngine } from "../creative-decision/decision-engine";
+import { creativeMemoryEngine } from "../creative-memory/memory-engine";
 
 export function buildAiMeWorkspaceContext(
   layout: ShellLayoutState,
@@ -55,6 +70,21 @@ export function buildAiMeWorkspaceContext(
   const productProfile = productProfileEngine.buildAiMeContext();
   const marketingInput = marketingInputEngine.buildAiMeContext();
   const productValidation = productValidationEngine.buildAiMeContext();
+  const visualAnalysis = visualAnalysisEngine.buildAiMeContext();
+  const deepIntelligence = deepIntelligenceEngine.buildAiMeContext();
+  const marketResearch = marketResearchEngine.buildAiMeContext();
+  const masterIntelligence = masterIntelligenceEngine.buildAiMeContext();
+  const marketingStrategy = marketingStrategyEngine.buildAiMeContext();
+  const creativePlanner = creativePlannerEngine.buildAiMeContext();
+  const productionPlan = productionPlanEngine.buildAiMeContext();
+  const productionQueue = productionQueueEngine.buildAiMeContext();
+  const productionPipeline = productionPipelineEngine.buildAiMeContext();
+  const productionCommandCenter = productionCommandCenterEngine.buildAiMeContext();
+  const productionFinal = productionFinalEngine.buildAiMeContext();
+  const creativeReview = creativeReviewEngine.buildAiMeContext();
+  const creativeAssistant = creativeAssistantEngine.buildAiMeContext();
+  const creativeDecision = creativeDecisionEngine.buildAiMeContext();
+  const creativeMemory = creativeMemoryEngine.buildAiMeContext();
 
   const regions = [
     { id: "header", label: "Top Header", visible: true },
@@ -81,6 +111,21 @@ export function buildAiMeWorkspaceContext(
     productProfile.explanation,
     marketingInput.explanation,
     productValidation.explanation,
+    visualAnalysis.explanation,
+    deepIntelligence.explanation,
+    marketResearch.explanation,
+    masterIntelligence.explanation,
+    marketingStrategy.explanation,
+    creativePlanner.explanation,
+    productionPlan.explanation,
+    productionQueue.explanation,
+    productionPipeline.explanation,
+    productionCommandCenter.explanation,
+    productionFinal.explanation,
+    creativeReview.explanation,
+    creativeAssistant.explanation,
+    creativeDecision.explanation,
+    creativeMemory.explanation,
     layout.workspace === "home"
       ? buildAiMeDashboardContext(dashboardWidgetStore.load(), {
           updatedAt: new Date().toISOString(),

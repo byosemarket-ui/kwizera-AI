@@ -1,5 +1,15 @@
-import { loadHandoff as loadIntakeHandoff } from "../product-intake/api";
+import { loadHandoff as loadIntakeHandoff, loadProjectMeta, openProjectApi } from "../product-intake/api";
 import type { IntakeAssetMeta, IntakeHandoffPayload } from "../product-intake/types";
+import {
+  pickStoreForProject,
+  persistProductImageSet,
+  persistWorkflowStep,
+  prerequisiteBlockReason,
+  readProductImageSetFromProject,
+  readScopedHandoff,
+  resolveBoundProject,
+  writeScopedHandoff,
+} from "../product-creation/workflow";
 import {
   classifyBackground, classifyFileName, mapServerRoleToView, mapViewToServerRole,
   recommendedViewsForCategory,
@@ -75,13 +85,9 @@ function saveStoredSet(set: ProductImageSet): void {
   localStorage.setItem(ORG_STORE_KEY, JSON.stringify(map));
 }
 
-export function loadStep3Handoff(): Step3HandoffPayload | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(ORG_HANDOFF_KEY) ?? "null") as Step3HandoffPayload | null;
-    return raw?.version === 1 ? raw : null;
-  } catch {
-    return null;
-  }
+export function loadStep3Handoff(projectId?: string | null): Step3HandoffPayload | null {
+  const payload = readScopedHandoff<Step3HandoffPayload>(ORG_HANDOFF_KEY, projectId);
+  return payload?.version === 1 && payload.step === "step-3-product-information" ? payload : null;
 }
 
 function visibilityFromDefects(defects: string[], resolutionTier?: string): OrganizedImage["visibilityStatus"] {
@@ -112,6 +118,7 @@ export class ImageOrganizationEngine {
     running: false,
   };
   private handoffReady = false;
+  private _transitioning = false;
   private emitEvents: ((type: string, payload: Record<string, unknown>) => void) | null = null;
 
   setNotify(fn: NotifyFn | null): void {
@@ -191,32 +198,81 @@ export class ImageOrganizationEngine {
     };
   }
 
-  /** Load Step 1 handoff or restore saved organization for active project. */
-  hydrateFromHandoff(handoff?: IntakeHandoffPayload | null): boolean {
-    const payload = handoff ?? loadIntakeHandoff();
-    if (!payload || payload.step !== "step-2-image-organization") {
-      const stored = Object.values(loadStoredSets())[0];
-      if (stored) {
-        this.projectId = stored.projectId;
-        this.projectName = stored.projectName;
-        this.productImageSet = stored;
-        this.emit();
-        return true;
-      }
+  /** Load Step 1 handoff or restore organization for the active project only. */
+  async hydrateFromHandoff(handoff?: IntakeHandoffPayload | null): Promise<boolean> {
+    const bound = await resolveBoundProject({
+      handoffProjectId: handoff?.projectId ?? loadIntakeHandoff()?.projectId ?? null,
+    });
+    if (!bound) {
+      this.notify?.("warning", "No active project", "Complete Product Intake (Step 1) first.", "warnings");
+      this.emit();
       return false;
     }
-    this.projectId = payload.projectId;
-    this.projectName = payload.projectName;
-    this.intakeAssets = payload.assets.filter((a) => a.processingStatus === "saved" && a.validationStatus !== "invalid");
-    const existing = loadStoredSets()[payload.projectId];
+
+    const block = prerequisiteBlockReason(2, bound.project);
+    if (block) {
+      this.notify?.("warning", "Step 2 blocked", block, "warnings");
+      this.emit();
+      return false;
+    }
+
+    try {
+      await openProjectApi(bound.projectId);
+    } catch (error) {
+      this.notify?.("error", "Project unavailable", error instanceof Error ? error.message : "Open failed", "errors");
+      return false;
+    }
+
+    const payload = handoff
+      ?? loadIntakeHandoff(bound.projectId)
+      ?? (loadIntakeHandoff()?.projectId === bound.projectId ? loadIntakeHandoff() : null);
+
+    this.projectId = bound.projectId;
+    this.projectName = bound.projectName;
+
+    if (payload?.step === "step-2-image-organization" && payload.projectId === bound.projectId) {
+      this.intakeAssets = payload.assets.filter((a) => a.processingStatus === "saved" && a.validationStatus !== "invalid");
+    } else {
+      this.intakeAssets = loadProjectMeta(bound.projectId).filter(
+        (a) => a.processingStatus === "saved" && a.validationStatus !== "invalid",
+      );
+      if (!this.intakeAssets.length && bound.project.productImages?.length) {
+        this.intakeAssets = bound.project.productImages.map((img) => ({
+          assetId: img.id,
+          projectId: bound.projectId,
+          originalFilename: img.sourceFileName || img.fileName,
+          fileType: img.mimeType,
+          width: img.width ?? null,
+          height: img.height ?? null,
+          fileSize: img.sizeBytes,
+          importDate: img.uploadedAt,
+          sourceReference: img.url,
+          validationStatus: "valid" as const,
+          duplicateStatus: "none" as const,
+          processingStatus: "saved" as const,
+          checksum: img.checksumSha256 ?? "",
+          remoteUrl: img.url,
+          thumbnailUrl: img.url,
+          warnings: [],
+        }));
+      }
+    }
+
+    const existing = pickStoreForProject(loadStoredSets(), bound.projectId);
+    const fromServer = readProductImageSetFromProject(bound.project) as ProductImageSet | null;
     if (existing) this.productImageSet = existing;
+    else if (fromServer && typeof fromServer === "object" && (fromServer as ProductImageSet).projectId === bound.projectId) {
+      this.productImageSet = fromServer as ProductImageSet;
+      saveStoredSet(fromServer as ProductImageSet);
+    }
+
     this.emit();
     return true;
   }
 
   async runAnalysis(): Promise<ProductImageSet> {
     if (!this.projectId) {
-      if (!this.hydrateFromHandoff()) throw new Error("No Step 1 handoff found. Complete Product Intake first.");
+      if (!(await this.hydrateFromHandoff())) throw new Error("No Step 1 handoff found. Complete Product Intake first.");
     }
     if (!this.projectId) throw new Error("Project missing");
     if (this.running) throw new Error("Analysis already running");
@@ -224,7 +280,7 @@ export class ImageOrganizationEngine {
     this.running = true;
     const assets = this.intakeAssets.length
       ? this.intakeAssets
-      : (loadIntakeHandoff()?.assets ?? []).filter((a) => a.processingStatus === "saved");
+      : (loadIntakeHandoff(this.projectId)?.assets ?? []).filter((a) => a.processingStatus === "saved");
     this.intakeAssets = assets;
     this.progress = {
       total: Math.max(assets.length, 1),
@@ -551,24 +607,34 @@ export class ImageOrganizationEngine {
     if (!snap.canContinue || !snap.productImageSet || !snap.projectId) {
       throw new Error(snap.continueBlockedReason ?? "Organization incomplete");
     }
-    const handoff: Step3HandoffPayload = {
-      version: 1,
-      step: "step-3-product-information",
-      projectId: snap.projectId,
-      projectName: snap.projectName,
-      productImageSet: snap.productImageSet,
-      preparedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(ORG_HANDOFF_KEY, JSON.stringify(handoff));
-    this.handoffReady = true;
-    this.markDirty();
-    this.emitEvents?.("product.updated", {
-      action: "organization.ready-for-step-3",
-      projectId: handoff.projectId,
-      coverageScore: handoff.productImageSet.coverageScore,
-    });
-    this.emit();
-    return handoff;
+    if (this._transitioning) throw new Error("Step transition already in progress.");
+    this._transitioning = true;
+    try {
+      saveStoredSet(snap.productImageSet);
+      await persistProductImageSet(snap.projectId, snap.productImageSet);
+      const handoff: Step3HandoffPayload = {
+        version: 1,
+        step: "step-3-product-information",
+        projectId: snap.projectId,
+        projectName: snap.projectName,
+        productImageSet: snap.productImageSet,
+        preparedAt: new Date().toISOString(),
+      };
+      writeScopedHandoff(ORG_HANDOFF_KEY, handoff);
+      await persistWorkflowStep(snap.projectId, 3, 2);
+      this.handoffReady = true;
+      this.markDirty();
+      console.info("[STEP_2_COMPLETED]", { projectId: snap.projectId, coverage: snap.productImageSet.coverageScore });
+      this.emitEvents?.("product.updated", {
+        action: "organization.ready-for-step-3",
+        projectId: handoff.projectId,
+        coverageScore: handoff.productImageSet.coverageScore,
+      });
+      this.emit();
+      return handoff;
+    } finally {
+      this._transitioning = false;
+    }
   }
 
   private buildGroups(images: OrganizedImage[], missingViews: OrganizationViewType[]): ViewGroup[] {

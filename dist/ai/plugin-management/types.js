@@ -1,2 +1,0 @@
-export const PLUGIN_CATEGORIES = ["ai", "image", "video", "audio", "marketing", "rendering", "workflow", "database", "memory", "knowledge", "utility", "external-integration"];
-//# sourceMappingURL=types.js.map

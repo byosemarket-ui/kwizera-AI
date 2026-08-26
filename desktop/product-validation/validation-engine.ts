@@ -162,9 +162,18 @@ export class ProductValidationEngine {
   }
 
   async hydrateFromHandoff(payload?: Step5HandoffPayload | null): Promise<boolean> {
-    const handoff = payload ?? loadStep5Handoff();
+    const hintId = payload?.projectId ?? loadStep5Handoff()?.projectId ?? null;
+    const { resolveBoundProject, pickStoreForProject, prerequisiteBlockReason, persistWorkflowStep } = await import("../product-creation/workflow");
+    const bound = await resolveBoundProject({ handoffProjectId: hintId });
+    if (!bound) {
+      this.recommendation = "No active project. Complete Steps 1–4 first.";
+      this.emit();
+      return false;
+    }
+
+    const handoff = payload ?? loadStep5Handoff(bound.projectId);
     if (!handoff || handoff.step !== "step-5-live-product-validation") {
-      const stored = Object.values(loadStore())[0];
+      const stored = pickStoreForProject(loadStore(), bound.projectId);
       if (stored) {
         this.pkg = stored;
         this.issues = stored.issues;
@@ -181,17 +190,20 @@ export class ProductValidationEngine {
           preparedAt: stored.createdAt,
         };
         this.productInputCenterComplete = stored.status === "confirmed" || stored.status === "handed-off";
-        this.recommendation = "Restored local validation / production package.";
+        this.recommendation = "Restored validation package for the active project.";
         this.emitAction("ProductReviewOpened", { restored: true });
         this.emit();
         return true;
       }
-      this.recommendation = "No Step 4 handoff found. Complete Marketing Input first.";
+      const block = prerequisiteBlockReason(5, bound.project);
+      this.recommendation = block ?? "No Step 4 handoff found. Complete Marketing Input first.";
+      if (block) this.notify?.("warning", "Step 5 blocked", block, "warnings");
       this.emit();
       return false;
     }
 
-    if (handoff.productProfile.projectId !== handoff.projectId
+    if (handoff.projectId !== bound.projectId
+      || handoff.productProfile.projectId !== handoff.projectId
       || handoff.marketingBrief.projectId !== handoff.projectId) {
       throw new Error("Cross-project data blocked: validation handoff mismatch.");
     }
@@ -205,7 +217,7 @@ export class ProductValidationEngine {
     }
 
     this.handoff = handoff;
-    const stored = loadStore()[handoff.projectId];
+    const stored = pickStoreForProject(loadStore(), handoff.projectId);
     if (stored && stored.status !== "draft") {
       this.pkg = stored;
       this.issues = stored.issues;
@@ -216,6 +228,7 @@ export class ProductValidationEngine {
     }
 
     this.recommendation = "Ready to run Live Validation.";
+    void persistWorkflowStep(handoff.projectId, 5).catch(() => undefined);
     this.emitAction("ProductValidationStarted", { projectId: handoff.projectId, phase: "hydrated" });
     this.emitBus("product-analysis.started", { projectId: handoff.projectId, step: 5 });
     this.emit();

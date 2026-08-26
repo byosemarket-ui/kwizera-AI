@@ -1,2 +1,0 @@
-{"timestamp":"2026-08-08T19:47:07.517Z","level":"info","event":"startup","message":"Audio Quality Validation Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\audio-generation\\quality-validation\\engine"}}
-{"timestamp":"2026-08-08T19:47:16.072Z","level":"info","event":"startup","message":"Audio Quality Validation Engine startup complete","data":{"recordsLoaded":0}}

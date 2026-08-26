@@ -1,0 +1,9 @@
+{
+  "name": "kwizera-ai-studio",
+  "productName": "KWIZERA AI STUDIO",
+  "version": "0.1.0",
+  "description": "KWIZERA AI STUDIO — Local Windows desktop shell",
+  "author": "KWIZERA AI STUDIO",
+  "main": "main.mjs",
+  "private": true
+}

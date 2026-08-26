@@ -117,6 +117,43 @@ export interface UploadedImageInput {
   checksumSha256?: string;
 }
 
+export type CreativeWorkspaceOrphanKind =
+  | "project-dir-not-in-index"
+  | "index-missing-project-dir"
+  | "missing-project-json"
+  | "asset-meta-missing-file"
+  | "file-without-meta"
+  | "temp-file";
+
+export interface CreativeWorkspaceOrphan {
+  kind: CreativeWorkspaceOrphanKind;
+  projectId?: string;
+  assetId?: string;
+  detail: string;
+}
+
+export interface CreativeWorkspacePersistenceHealth {
+  ok: boolean;
+  checkedAt: string;
+  storageRoot: string;
+  creativeWorkspaceRoot: string;
+  indexOk: boolean;
+  writable: boolean;
+  projectCount: number;
+  projectsOk: number;
+  projectsFailed: number;
+  assetsOk: number;
+  assetsMissingFile: number;
+  workflowPresent: number;
+  productPresent: number;
+  marketingPresent: number;
+  activeProjectId: string | null;
+  orphanCount: number;
+  orphans: CreativeWorkspaceOrphan[];
+  issues: string[];
+  note: string;
+}
+
 interface WorkspaceIndex {
   projectIds: string[];
   activeProjectId: string | null;
@@ -253,8 +290,9 @@ export class CreativeWorkspaceManager {
     const storedName = `${id}.${extension}`;
     const imageDirectory = path.join(this.projectPath(projectId), "images");
     await fs.mkdir(imageDirectory, { recursive: true });
-    // Write a project-owned copy only — never touch the user's original Windows path
-    await fs.writeFile(path.join(imageDirectory, storedName), data);
+    // Project-owned copy only — never touch the user's original Windows path.
+    // Atomic write: temp → rename (avoids half-written files on crash).
+    await this.writeBinaryAtomic(path.join(imageDirectory, storedName), data);
 
     const checksumSha256 = image.checksumSha256 ?? createHash("sha256").update(data).digest("hex");
     const uploaded: ProductImage = {
@@ -396,6 +434,202 @@ export class CreativeWorkspaceManager {
     };
   }
 
+  /**
+   * Persistence health + orphan report. Never deletes data.
+   */
+  async runPersistenceHealth(): Promise<CreativeWorkspacePersistenceHealth> {
+    this.ensureInitialized();
+    const checkedAt = new Date().toISOString();
+    const issues: string[] = [];
+    const orphans: CreativeWorkspaceOrphan[] = [];
+    let projectsOk = 0;
+    let projectsFailed = 0;
+    let assetsOk = 0;
+    let assetsMissingFile = 0;
+    let workflowPresent = 0;
+    let productPresent = 0;
+    let marketingPresent = 0;
+
+    let indexOk = true;
+    try {
+      this.index = await this.readJson<WorkspaceIndex>(this.indexPath(), this.index);
+    } catch (error) {
+      indexOk = false;
+      issues.push(`workspace-session.json unreadable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    const projectsRoot = path.join(this.root, "projects");
+    let diskProjectIds: string[] = [];
+    try {
+      const entries = await fs.readdir(projectsRoot, { withFileTypes: true });
+      diskProjectIds = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {
+      diskProjectIds = [];
+    }
+
+    for (const id of diskProjectIds) {
+      if (!this.index.projectIds.includes(id)) {
+        orphans.push({
+          kind: "project-dir-not-in-index",
+          projectId: id,
+          detail: `Directory projects/${id} exists but is not listed in workspace-session.json`,
+        });
+      }
+    }
+    for (const id of this.index.projectIds) {
+      if (!diskProjectIds.includes(id)) {
+        orphans.push({
+          kind: "index-missing-project-dir",
+          projectId: id,
+          detail: `Index lists ${id} but projects/${id} is missing`,
+        });
+        projectsFailed += 1;
+        continue;
+      }
+
+      const project = await this.getProject(id);
+      if (!project) {
+        projectsFailed += 1;
+        issues.push(`project.json missing or invalid for ${id}`);
+        orphans.push({
+          kind: "missing-project-json",
+          projectId: id,
+          detail: `projects/${id}/project.json could not be loaded`,
+        });
+        continue;
+      }
+      projectsOk += 1;
+
+      if (project.productInformation?.name?.trim()) productPresent += 1;
+      if (
+        project.campaignInformation?.name?.trim()
+        || project.campaignInformation?.objective?.trim()
+        || project.workspaceSettings?.marketingInputBrief
+      ) {
+        marketingPresent += 1;
+      }
+      if (project.workspaceSettings?.productCreation) workflowPresent += 1;
+
+      const imageDir = path.join(this.projectPath(id), "images");
+      let filesOnDisk: string[] = [];
+      try {
+        filesOnDisk = (await fs.readdir(imageDir)).filter((n) => !n.endsWith(".tmp"));
+      } catch {
+        filesOnDisk = [];
+      }
+
+      const metaNames = new Set<string>();
+      for (const image of project.productImages) {
+        const extension = EXT_BY_MIME[image.mimeType]
+          ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1] ?? "bin");
+        const storedName = `${image.id}.${extension}`;
+        metaNames.add(storedName);
+        const filePath = path.join(imageDir, storedName);
+        try {
+          await fs.access(filePath);
+          assetsOk += 1;
+        } catch {
+          assetsMissingFile += 1;
+          orphans.push({
+            kind: "asset-meta-missing-file",
+            projectId: id,
+            assetId: image.id,
+            detail: `Metadata references ${storedName} but file is missing`,
+          });
+        }
+      }
+
+      for (const fileName of filesOnDisk) {
+        if (fileName.endsWith(".tmp")) {
+          orphans.push({
+            kind: "temp-file",
+            projectId: id,
+            detail: `Temporary file left behind: ${fileName}`,
+          });
+          continue;
+        }
+        if (!metaNames.has(fileName)) {
+          orphans.push({
+            kind: "file-without-meta",
+            projectId: id,
+            detail: `File images/${fileName} has no matching productImages entry`,
+          });
+        }
+      }
+    }
+
+    const writable = await this.probeWritable();
+    if (!writable) issues.push("Creative workspace root is not writable");
+
+    const criticalOrphans = orphans.filter(
+      (o) => o.kind === "index-missing-project-dir" || o.kind === "missing-project-json",
+    ).length;
+    const ok = indexOk && writable && projectsFailed === 0 && assetsMissingFile === 0 && criticalOrphans === 0;
+
+    return {
+      ok,
+      checkedAt,
+      storageRoot: path.dirname(this.root),
+      creativeWorkspaceRoot: this.root,
+      indexOk,
+      writable,
+      projectCount: this.index.projectIds.length,
+      projectsOk,
+      projectsFailed,
+      assetsOk,
+      assetsMissingFile,
+      workflowPresent,
+      productPresent,
+      marketingPresent,
+      activeProjectId: this.index.activeProjectId,
+      orphanCount: orphans.length,
+      orphans,
+      issues,
+      note: "Thumbnails currently reuse stored full-size project copies (no separate thumbnail directory).",
+    };
+  }
+
+  /**
+   * Safety backup of creative-workspace into backups/creative-workspace/{id}.
+   * Does not delete source data. Separate from PMC memory/knowledge backups.
+   */
+  async createPersistenceBackup(): Promise<{ ok: boolean; backupId: string; path: string; error?: string }> {
+    this.ensureInitialized();
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const backupId = `creative-workspace-${stamp}`;
+    const dest = path.join(path.dirname(this.root), "backups", "creative-workspace", backupId);
+    try {
+      await fs.mkdir(dest, { recursive: true });
+      await fs.cp(this.root, path.join(dest, "creative-workspace"), { recursive: true });
+      const manifest = {
+        backupId,
+        createdAt: new Date().toISOString(),
+        source: this.root,
+        kind: "creative-workspace",
+      };
+      await this.writeJson(path.join(dest, "manifest.json"), manifest);
+      return { ok: true, backupId, path: dest };
+    } catch (error) {
+      return {
+        ok: false,
+        backupId,
+        path: dest,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  private async probeWritable(): Promise<boolean> {
+    try {
+      const probe = path.join(this.root, `.persist-probe-${process.pid}`);
+      await fs.writeFile(probe, "ok", "utf8");
+      await fs.unlink(probe);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private async persist(project: CreativeProject, isNew = false): Promise<void> {
     this.transition(project.id, isNew ? ProjectState.Open : ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
@@ -434,6 +668,12 @@ export class CreativeWorkspaceManager {
   private async writeJson(filePath: string, value: unknown): Promise<void> {
     const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
     await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    await fs.rename(temporaryPath, filePath);
+  }
+
+  private async writeBinaryAtomic(filePath: string, data: Buffer): Promise<void> {
+    const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
+    await fs.writeFile(temporaryPath, data);
     await fs.rename(temporaryPath, filePath);
   }
 

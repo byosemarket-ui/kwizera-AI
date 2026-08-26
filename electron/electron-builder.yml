@@ -1,0 +1,58 @@
+# Electron Builder — KWIZERA AI STUDIO Windows desktop (Phase 7 Step 1)
+# Run from repo root: electron-builder --win --projectDir electron --config electron-builder.yml
+appId: com.kwizera.aistudio
+productName: KWIZERA AI STUDIO
+copyright: Copyright © KWIZERA AI STUDIO
+directories:
+  output: ../release
+  buildResources: assets
+files:
+  - "**/*"
+  - "!**/*.md"
+  - "!PHASE-7-STEP-1-REPORT.md"
+  - "!make-ico.mjs"
+  - "!electron-builder.yml"
+asar: true
+asarUnpack:
+  - preload.cjs
+extraResources:
+  - from: ..
+    to: app-server
+    filter:
+      - package.json
+      - package-lock.json
+      - tsconfig.json
+      - tsconfig.dev.json
+      - desktop.vite.config.ts
+      - desktop/**/*
+      - dev/**/*
+      - ai/**/*
+      - storage/**/*
+      - scripts/**/*
+      - node_modules/**/*
+      - "!release/**"
+      - "!**/.git/**"
+      - "!**/agent-transcripts/**"
+      - "!**/*.test.ts"
+      - "!electron/**"
+win:
+  icon: assets/icon.ico
+  signAndEditExecutable: false
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: KwizeraAIStudio-Setup-${version}.${ext}
+  publisherName: KWIZERA AI STUDIO
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: KWIZERA AI STUDIO
+  uninstallDisplayName: KWIZERA AI STUDIO
+  license: EULA.txt
+  deleteAppDataOnUninstall: false
+  include: installer.nsh
+electronVersion: 34.5.8
+publish: null

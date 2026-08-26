@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T15:30:04.985Z","level":"info","event":"startup","message":"Learning Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:30:04.989Z","level":"info","event":"startup","message":"Learning Memory Engine startup complete","data":{"historyRecords":0}}
-{"timestamp":"2026-08-08T15:47:16.287Z","level":"info","event":"startup","message":"Learning Memory Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:47:16.335Z","level":"info","event":"startup","message":"Learning Memory Engine startup complete","data":{"historyRecords":0}}

@@ -13,8 +13,9 @@ describe("Navigation Registry", () => {
     const labels = workspaceNav.map((n) => n.label);
     expect(labels).toContain("Home");
     expect(labels).toContain("Knowledge Packs");
-    expect(labels).toContain("Pipeline");
-    expect(labels).toContain("Storyboard");
+    expect(labels).toContain("Production Plan");
+    expect(labels).toContain("Production Queue");
+    expect(labels).toContain("Creative Planner");
     expect(labels).toContain("Generated Images");
     expect(labels).toContain("Exports");
     expect(labels).toContain("Help");
@@ -119,7 +120,7 @@ describe("AI Me Navigation Awareness", () => {
       "in-production",
       nav,
     );
-    expect(context.navigation.currentPage).toBe("Storyboard");
+    expect(context.navigation.currentPage).toBe("Creative Planner");
     expect(context.navigation.breadcrumb).toContain("Nike Shoes");
     expect(context.project.name).toBe("Nike Shoes");
     expect(context.explanation).toContain("Current page");

@@ -1,2 +1,0 @@
-{"timestamp":"2026-08-08T19:46:59.903Z","level":"info","event":"startup","message":"Image-to-Image Generation Engine initialized","data":{"engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\image-generation\\image-to-image\\engine"}}
-{"timestamp":"2026-08-08T19:47:01.825Z","level":"info","event":"startup","message":"Image-to-Image Generation Engine startup complete","data":{"recordsLoaded":0}}

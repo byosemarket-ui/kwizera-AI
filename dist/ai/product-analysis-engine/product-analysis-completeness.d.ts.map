@@ -1,1 +1,0 @@
-{"version":3,"file":"product-analysis-completeness.d.ts","sourceRoot":"","sources":["../../../ai/product-analysis-engine/product-analysis-completeness.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,0BAA0B,EAAE,sBAAsB,EAAE,MAAM,YAAY,CAAC;AAIhF,qBAAa,mCAAmC;IAC9C,MAAM,CAAC,KAAK,EAAE,0BAA0B,EAAE,OAAO,EAAE,sBAAsB,GAAG,MAAM,EAAE;IA2BpF,sBAAsB,CAAC,OAAO,EAAE,MAAM,EAAE,GAAG,OAAO;CAGnD"}

@@ -1,0 +1,3 @@
+# Use `npm run desktop:pack` (config lives in electron/electron-builder.yml).
+# This root file is intentionally not the active builder config.
+dummy: true

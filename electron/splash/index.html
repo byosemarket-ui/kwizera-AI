@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>KWIZERA AI STUDIO</title>
+  <style>
+    :root {
+      --ink: #142029;
+      --muted: #5a6b75;
+      --accent: #3d2f5c;
+      --ok: #1f7a4c;
+      --warn: #9a6b12;
+      --err: #a33b3b;
+      --panel: #f7f5fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "IBM Plex Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(600px 240px at 80% -10%, rgba(61, 47, 92, 0.18), transparent 55%),
+        linear-gradient(180deg, #f2f0f5 0%, #e8e6ec 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    .card {
+      width: min(460px, calc(100% - 32px));
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(20,32,41,0.12);
+      border-radius: 16px;
+      padding: 28px 24px 20px;
+      box-shadow: 0 18px 40px rgba(20, 32, 41, 0.08);
+      -webkit-app-region: no-drag;
+    }
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .brand img {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+    }
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .kicker {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      color: var(--accent);
+      font-weight: 650;
+    }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(20,32,41,0.08);
+      font-size: 0.86rem;
+    }
+    li span { color: var(--muted); font-size: 0.75rem; grid-column: 1 / -1; }
+    .READY { color: var(--ok); font-weight: 650; }
+    .STARTING, .CHECKING { color: var(--accent); font-weight: 650; }
+    .WARNING { color: var(--warn); font-weight: 650; }
+    .FAILED { color: var(--err); font-weight: 650; }
+    .meta {
+      margin-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .fail {
+      display: none;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      background: rgba(163, 59, 59, 0.08);
+      border: 1px solid rgba(163, 59, 59, 0.2);
+    }
+    .fail.active { display: block; }
+    .fail h2 { margin: 0 0 8px; font-size: 0.95rem; color: var(--err); }
+    .fail p { margin: 0 0 8px; font-size: 0.82rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    button {
+      border: 1px solid rgba(20,32,41,0.14);
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: #f7f5fb;
+      border-color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <img src="../assets/icon.png" alt="KWIZERA AI STUDIO" />
+      <div>
+        <div class="kicker">Local AI Studio</div>
+        <h1>KWIZERA AI STUDIO</h1>
+        <p id="subtitle">Starting local AI environment…</p>
+      </div>
+    </div>
+    <ul id="checks"></ul>
+    <div class="meta">
+      <span id="internet">Internet: …</span>
+      <span id="lifecycle">START</span>
+    </div>
+    <div class="fail" id="fail">
+      <h2>KWIZERA AI STUDIO COULD NOT START</h2>
+      <p id="fail-msg"></p>
+      <div class="actions">
+        <button class="primary" id="retry">RETRY</button>
+        <button id="logs">OPEN LOGS</button>
+        <button id="close">CLOSE</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const checksEl = document.getElementById("checks");
+    const internetEl = document.getElementById("internet");
+    const lifecycleEl = document.getElementById("lifecycle");
+    const failEl = document.getElementById("fail");
+    const failMsg = document.getElementById("fail-msg");
+    const subtitle = document.getElementById("subtitle");
+
+    function render(payload) {
+      if (!payload) return;
+      lifecycleEl.textContent = payload.lifecycle || "…";
+      if (payload.internet != null) {
+        internetEl.textContent = "Internet: " + payload.internet;
+      }
+      if (Array.isArray(payload.checks)) {
+        checksEl.innerHTML = payload.checks.map((c) => (
+          "<li><strong>" + c.label + "</strong><em class='" + c.status + "'>" +
+          (c.status === "READY" ? "✓ Ready" : c.status === "FAILED" ? "✕ Failed" : c.status === "WARNING" ? "⚠ Warning" : c.status) +
+          "</em><span>" + (c.detail || "") + "</span></li>"
+        )).join("");
+      }
+    }
+
+    if (window.kwizeraDesktop) {
+      window.kwizeraDesktop.onStartupUpdate(render);
+      window.kwizeraDesktop.onStartupFailed((payload) => {
+        failEl.classList.add("active");
+        subtitle.textContent = "Startup failed";
+        failMsg.textContent = payload?.error || "Unknown startup error";
+        render(payload);
+      });
+      document.getElementById("retry").onclick = () => window.kwizeraDesktop.retryStartup();
+      document.getElementById("logs").onclick = () => window.kwizeraDesktop.openLogs();
+      document.getElementById("close").onclick = () => window.kwizeraDesktop.closeApplication();
+    }
+  </script>
+</body>
+</html>

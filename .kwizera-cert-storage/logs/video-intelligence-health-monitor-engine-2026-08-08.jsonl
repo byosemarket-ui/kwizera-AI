@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T19:46:41.963Z","level":"info","event":"startup","message":"Video Intelligence Health Monitor initialized","data":{"healthDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-intelligence\\health\\engine"}}
-{"timestamp":"2026-08-08T19:46:44.284Z","level":"info","event":"health-check","message":"Video intelligence health check complete","data":{"checkId":"vi-hc-1786218404106-92b292","overallScore":94,"overallLevel":"good","warnings":1}}
-{"timestamp":"2026-08-08T19:46:44.289Z","level":"info","event":"audit","message":"Video intelligence audit complete","data":{"auditId":"vi-audit-1786218404287","valid":true,"durationMs":2}}
-{"timestamp":"2026-08-08T19:46:44.292Z","level":"info","event":"startup","message":"Video Intelligence Health Monitor startup complete","data":{"overallScore":94,"overallLevel":"good","durationMs":264}}

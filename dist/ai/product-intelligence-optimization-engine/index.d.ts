@@ -1,4 +1,0 @@
-export { AiProductIntelligenceOptimizationEngine } from "./product-intelligence-optimization-engine.js";
-export { ProductIntelligenceOptimizationEngineError } from "./types.js";
-export type { OptimizationStrategyType, OptimizationProfile, ModuleOptimizationResult, OptimizationStrategies, CacheOptimization, ProductIntelligenceRecoveryPoint, PerformanceMetrics, OptimizationScores, OptimizationRelationships, ProductIntelligenceOptimizationRelationships, ProductIntelligenceOptimizationInput, ProductIntelligenceOptimizationRecord, ProductIntelligenceOptimizationResult, ProductIntelligenceOptimizationSearchQuery, ProductIntelligenceOptimizationEngineStatusReport, } from "./types.js";
-//# sourceMappingURL=index.d.ts.map

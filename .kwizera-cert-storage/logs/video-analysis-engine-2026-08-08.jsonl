@@ -1,2 +1,0 @@
-{"timestamp":"2026-08-08T19:46:40.310Z","level":"info","event":"startup","message":"Video Analysis Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage","engineDir":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage\\video-intelligence\\analysis\\engine"}}
-{"timestamp":"2026-08-08T19:46:42.791Z","level":"info","event":"startup","message":"Video Analysis Engine startup complete","data":{"videosLoaded":0,"durationMs":139}}

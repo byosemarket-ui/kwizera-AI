@@ -48,6 +48,7 @@ import { EnterpriseCollaborationManager } from "../../ai/enterprise-collaboratio
 import type { DesktopPermission } from "../../ai/desktop-integration/types.js";
 import { createLearningIntelligencePlugin } from "../../ai/learning-intelligence/learning-intelligence-plugin.js";
 import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import path from "node:path";
 import { buildRegistry } from "../server/module-registry.js";
 import { DevSessionStore, type DevRuntimeSnapshot } from "./session-store.js";
 import { bootstrapPersistentStorage } from "./storage-bootstrap.js";
@@ -323,10 +324,25 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     };
 
     if (!isPersistentMode()) {
-      status.message = "Persistent mode disabled — dashboard only";
-      status.booting = false;
-      status.ready = true;
-      return status;
+      // Product Creation / creative workspace must work without full AI core restore.
+      // Heavy AI managers stay deferred; projects + image import use CreativeWorkspaceManager only.
+      try {
+        console.log("[KWIZERA] Dashboard mode — initializing creative workspace (no full AI core)");
+        workspaceManager = new CreativeWorkspaceManager();
+        await workspaceManager.initialize(storageRoot);
+        status.message = "Dashboard + creative workspace ready (AI core deferred)";
+        status.booting = false;
+        status.ready = true;
+        status.restored = true;
+        console.log("[KWIZERA] Creative workspace ready at", path.join(storageRoot, "creative-workspace"));
+        return status;
+      } catch (error) {
+        status.booting = false;
+        status.ready = false;
+        status.message = error instanceof Error ? error.message : "Creative workspace failed to start";
+        workspaceManager = null;
+        throw error;
+      }
     }
 
     try {
@@ -793,28 +809,29 @@ export async function shutdownPersistentRuntime(): Promise<void> {
       /* ignore */
     }
     core = null;
-    workspaceManager = null;
-    planningManager = null;
-    reviewManager = null;
-    pipelineManager = null;
-    modelManager = null;
-    imageGenerationManager = null;
-    videoAudioGenerationManager = null;
-    commercialVideoManager = null;
-    businessIntelligenceManager = null;
-    workspaceSynchronizationManager = null;
-    enterpriseIntegrationManager = null;
-    publishingDistributionManager = null;
-    enterpriseCollaborationManager = null;
-    generationOptimizationManager = null;
-    productIntelligenceManager = null;
-    imageIntelligenceManager = null;
-    productPhotographyManager = null;
-    marketingIntelligenceManager = null;
-    marketingContentManager = null;
-    decisionIntelligenceManager = null;
-    learningIntelligenceManager = null;
   }
+
+  workspaceManager = null;
+  planningManager = null;
+  reviewManager = null;
+  pipelineManager = null;
+  modelManager = null;
+  imageGenerationManager = null;
+  videoAudioGenerationManager = null;
+  commercialVideoManager = null;
+  businessIntelligenceManager = null;
+  workspaceSynchronizationManager = null;
+  enterpriseIntegrationManager = null;
+  publishingDistributionManager = null;
+  enterpriseCollaborationManager = null;
+  generationOptimizationManager = null;
+  productIntelligenceManager = null;
+  imageIntelligenceManager = null;
+  productPhotographyManager = null;
+  marketingIntelligenceManager = null;
+  marketingContentManager = null;
+  decisionIntelligenceManager = null;
+  learningIntelligenceManager = null;
 
   if (status) {
     status.ready = false;

@@ -1,1 +1,0 @@
-{"version":3,"file":"marketing-scorer.d.ts","sourceRoot":"","sources":["../../../ai/marketing-memory-engine/marketing-scorer.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,sBAAsB,EAAE,eAAe,EAAE,MAAM,YAAY,CAAC;AAErE,qBAAa,eAAe;IAC1B,aAAa,CAAC,QAAQ,EAAE,OAAO,CAAC,eAAe,CAAC,EAAE,mBAAmB,CAAC,EAAE,MAAM,GAAG,sBAAsB;CAiDxG"}

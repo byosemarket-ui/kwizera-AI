@@ -1,0 +1,57 @@
+{
+  "name": "KWIZERA AI STUDIO",
+  "versionFrom": "package.json",
+  "environment": "production-local",
+  "bind": {
+    "host": "127.0.0.1",
+    "portEnv": "KWIZERA_DEV_PORT",
+    "defaultPort": 5173
+  },
+  "storage": {
+    "rootEnv": "KWIZERA_STORAGE_ROOT",
+    "preferredWindows": "D:\\KWIZERA-AI-STUDIO",
+    "fallbackWindows": "%LOCALAPPDATA%\\KWIZERA-AI-STUDIO",
+    "segments": [
+      "config",
+      "database",
+      "projects",
+      "uploads",
+      "exports",
+      "media",
+      "memory",
+      "knowledge",
+      "logs",
+      "backups",
+      "cache",
+      "temp"
+    ]
+  },
+  "separation": {
+    "applicationFiles": "Install directory / Electron resources (app-server)",
+    "userData": "KWIZERA_STORAGE_ROOT + Electron userData desktop-config.json"
+  },
+  "flags": {
+    "KWIZERA_PERSISTENT_MODE": {
+      "productionDesktopDefault": "0",
+      "fullAiWorkspace": "1",
+      "note": "0 = fast ready; workspace/pipeline managers may be limited until enabled"
+    },
+    "KWIZERA_SKIP_BROWSER_OPEN": "1 when Electron shell",
+    "KWIZERA_DESKTOP_SHELL": "1 when Electron shell",
+    "KWIZERA_LRM_EXTERNAL_PROBES": "0 unless GPU metrics required",
+    "KWIZERA_FFMPEG_PATH": "optional"
+  },
+  "security": {
+    "bindLocalhostOnly": true,
+    "noSecretsInPackage": true,
+    "repairAllowlistOnly": true,
+    "updateTrustedSourcesOnly": true,
+    "deleteAppDataOnUninstall": false
+  },
+  "logging": {
+    "desktop": "{storageRoot}/logs/desktop-shell.log",
+    "health": "{storageRoot}/logs/system-health/",
+    "level": "info",
+    "redactSecrets": true
+  }
+}

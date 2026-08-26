@@ -1,6 +1,0 @@
-{"timestamp":"2026-08-08T15:30:05.731Z","level":"info","event":"startup","message":"Memory Optimization Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:30:05.735Z","level":"info","event":"startup","message":"Memory Optimization Engine startup complete","data":{"tiers":{"active":0,"frequently-used":0,"learning":0,"archived":0,"historical":0,"system":0},"durationMs":2}}
-{"timestamp":"2026-08-08T15:30:09.997Z","level":"info","event":"analysis","message":"Memory analysis complete","data":{"totalRecords":0,"duplicateGroups":0,"durationMs":9}}
-{"timestamp":"2026-08-08T15:47:18.496Z","level":"info","event":"startup","message":"Memory Optimization Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:47:19.066Z","level":"info","event":"startup","message":"Memory Optimization Engine startup complete","data":{"tiers":{"active":0,"frequently-used":0,"learning":0,"archived":0,"historical":0,"system":0},"durationMs":190}}
-{"timestamp":"2026-08-08T15:47:28.098Z","level":"info","event":"analysis","message":"Memory analysis complete","data":{"totalRecords":0,"duplicateGroups":0,"durationMs":4}}

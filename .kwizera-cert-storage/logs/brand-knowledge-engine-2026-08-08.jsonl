@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T15:30:28.921Z","level":"info","event":"startup","message":"Brand Knowledge Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:30:29.623Z","level":"info","event":"startup","message":"Brand Knowledge Engine startup complete","data":{"brandsLoaded":0,"patternsLoaded":0,"durationMs":700}}
-{"timestamp":"2026-08-08T16:44:02.276Z","level":"info","event":"startup","message":"Brand Knowledge Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T16:44:02.737Z","level":"info","event":"startup","message":"Brand Knowledge Engine startup complete","data":{"brandsLoaded":0,"patternsLoaded":0,"durationMs":408}}

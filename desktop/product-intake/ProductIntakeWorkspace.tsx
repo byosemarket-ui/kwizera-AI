@@ -7,6 +7,7 @@ import { useShell } from "../shell/ShellContext";
 import { productIntakeEngine } from "./intake-engine";
 import type { IntakeAssetMeta, IntakeSnapshot } from "./types";
 import { ACCEPT_ATTR } from "./formats";
+import { desktopPicksToFiles } from "./desktop-import";
 import "./product-intake.css";
 
 const formatBytes = (value: number) =>
@@ -35,7 +36,7 @@ export function ProductIntakeWorkspace() {
 
   const ensureNamed = useCallback(async () => {
     if (!snap.projectName.trim()) {
-      notify("warning", "Project name required", "Enter a project name before importing images.", "warnings");
+      notify("warning", "Project name required", "Enter a project name.", "warnings");
       return false;
     }
     setBusy(true);
@@ -43,7 +44,7 @@ export function ProductIntakeWorkspace() {
       await productIntakeEngine.ensureProject(snap.projectName);
       return true;
     } catch (error) {
-      notify("error", "Project error", error instanceof Error ? error.message : "Unable to create project", "errors");
+      notify("error", "Project could not be created", error instanceof Error ? error.message : "Unable to create project", "errors");
       return false;
     } finally {
       setBusy(false);
@@ -55,10 +56,80 @@ export function ProductIntakeWorkspace() {
     const ok = snap.projectId || await ensureNamed();
     if (!ok && !snap.projectId) return;
     if (!productIntakeEngine.snapshot().projectId) {
-      await productIntakeEngine.ensureProject(snap.projectName.trim() || "Untitled Product");
+      try {
+        await productIntakeEngine.ensureProject(snap.projectName.trim() || "Untitled Product");
+      } catch (error) {
+        notify("error", "Project error", error instanceof Error ? error.message : "Create a project first", "errors");
+        return;
+      }
     }
-    productIntakeEngine.enqueueFiles(files);
-  }, [ensureNamed, snap.projectId, snap.projectName]);
+    const list = [...files];
+    console.info("[IMAGE_IMPORT_STARTED]", { count: list.length });
+    productIntakeEngine.enqueueFiles(list);
+  }, [ensureNamed, notify, snap.projectId, snap.projectName]);
+
+  const pickImagesNative = useCallback(async () => {
+    const bridge = window.kwizeraDesktop;
+    if (!bridge?.openProductImages) {
+      fileRef.current?.click();
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await bridge.openProductImages();
+      if (result.canceled) return;
+      const { files, rejected } = desktopPicksToFiles(result.files);
+      if (rejected.length) {
+        notify(
+          "warning",
+          `${rejected.length} file${rejected.length === 1 ? "" : "s"} skipped`,
+          rejected.map((r) => `${r.name}: ${r.reason}`).slice(0, 3).join(" · "),
+          "warnings",
+        );
+      }
+      if (files.length) await onFiles(files);
+      else if (!rejected.length) notify("info", "No images selected", "Choose one or more product images.", "information");
+    } catch (error) {
+      notify("error", "File picker failed", error instanceof Error ? error.message : "Unable to open Windows file dialog", "errors");
+      fileRef.current?.click();
+    } finally {
+      setBusy(false);
+    }
+  }, [notify, onFiles]);
+
+  const pickFolderNative = useCallback(async () => {
+    const bridge = window.kwizeraDesktop;
+    if (!bridge?.openProductImageFolder) {
+      folderRef.current?.click();
+      return;
+    }
+    setBusy(true);
+    try {
+      console.info("[FOLDER_IMPORT_STARTED]");
+      const result = await bridge.openProductImageFolder();
+      if (result.canceled) return;
+      const { files, rejected } = desktopPicksToFiles(result.files);
+      if (rejected.length) {
+        notify(
+          "warning",
+          `${rejected.length} file${rejected.length === 1 ? "" : "s"} skipped`,
+          rejected.map((r) => `${r.name}: ${r.reason}`).slice(0, 3).join(" · "),
+          "warnings",
+        );
+      }
+      if (files.length) {
+        await onFiles(files);
+        console.info("[FOLDER_IMPORT_SUCCESS]", { count: files.length, folder: result.folder });
+      } else {
+        notify("warning", "No supported images", "The selected folder had no JPG/PNG/WEBP/TIFF/BMP files.", "warnings");
+      }
+    } catch (error) {
+      notify("error", "Folder picker failed", error instanceof Error ? error.message : "Unable to open Windows folder dialog", "errors");
+      folderRef.current?.click();
+    } finally {
+      setBusy(false);
+    }
+  }, [notify, onFiles]);
 
   const onContinue = async () => {
     setBusy(true);
@@ -117,7 +188,7 @@ export function ProductIntakeWorkspace() {
           disabled={busy || !snap.projectName.trim()}
           onClick={() => void ensureNamed()}
         >
-          {snap.projectId ? "Update Project" : "Create Project"}
+          {busy && !snap.projectId ? "Creating…" : snap.projectId ? "Update Project" : "Create Project"}
         </button>
         <div className="intake-status-chip" data-ok={snap.canContinue ? "1" : "0"}>
           {snap.canContinue ? "Ready to continue" : snap.continueBlockedReason ?? "Not ready"}
@@ -139,8 +210,8 @@ export function ProductIntakeWorkspace() {
         <h2>Drag & drop product images</h2>
         <p>JPG, JPEG, PNG, WEBP, TIFF, BMP · Multiple files · Folder import supported</p>
         <div className="intake-drop-actions">
-          <button type="button" onClick={() => fileRef.current?.click()}><Upload size={16} /> Add Images</button>
-          <button type="button" onClick={() => folderRef.current?.click()}><FolderOpen size={16} /> Import Folder</button>
+          <button type="button" disabled={busy} onClick={() => void pickImagesNative()}><Upload size={16} /> {busy ? "Working…" : "Add Images"}</button>
+          <button type="button" disabled={busy} onClick={() => void pickFolderNative()}><FolderOpen size={16} /> Import Folder</button>
         </div>
         <input
           ref={fileRef}

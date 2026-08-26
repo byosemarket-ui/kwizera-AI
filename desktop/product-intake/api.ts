@@ -1,5 +1,6 @@
 import type { IntakeHandoffPayload, IntakeAssetMeta } from "./types";
 import { INTAKE_HANDOFF_KEY, INTAKE_META_KEY } from "./types";
+import { readScopedHandoff, writeScopedHandoff } from "../product-creation/workflow";
 
 export interface CreativeProjectDto {
   id: string;
@@ -78,9 +79,23 @@ export async function createProjectApi(name: string): Promise<CreativeProjectDto
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
-  const body = await response.json() as { project?: CreativeProjectDto; error?: string };
-  if (!response.ok || !body.project) throw new Error(body.error ?? "Unable to create project");
+  const body = await response.json().catch(() => ({})) as { project?: CreativeProjectDto; error?: string };
+  if (!response.ok || !body.project) {
+    if (response.status === 503) {
+      throw new Error(body.error ?? "Creative workspace is not ready yet. Wait a moment and try Create Project again.");
+    }
+    throw new Error(body.error ?? `Unable to create project (HTTP ${response.status})`);
+  }
   return body.project;
+}
+
+/** Read-back verification after create/open. */
+export async function verifyProjectExists(projectId: string): Promise<CreativeProjectDto | null> {
+  const payload = await fetchWorkspaceApi();
+  if (!payload) return null;
+  const found = payload.projects.find((p) => p.id === projectId)
+    ?? (payload.activeProject?.id === projectId ? payload.activeProject : null);
+  return found ?? null;
 }
 
 export async function openProjectApi(projectId: string): Promise<CreativeProjectDto> {
@@ -172,14 +187,9 @@ export function loadProjectMeta(projectId: string): IntakeAssetMeta[] {
 }
 
 export function saveHandoff(payload: IntakeHandoffPayload): void {
-  localStorage.setItem(INTAKE_HANDOFF_KEY, JSON.stringify(payload));
+  writeScopedHandoff(INTAKE_HANDOFF_KEY, payload);
 }
 
-export function loadHandoff(): IntakeHandoffPayload | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(INTAKE_HANDOFF_KEY) ?? "null") as IntakeHandoffPayload | null;
-    return raw?.version === 1 ? raw : null;
-  } catch {
-    return null;
-  }
+export function loadHandoff(projectId?: string | null): IntakeHandoffPayload | null {
+  return readScopedHandoff<IntakeHandoffPayload>(INTAKE_HANDOFF_KEY, projectId);
 }

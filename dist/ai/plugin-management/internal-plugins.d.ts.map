@@ -1,1 +1,0 @@
-{"version":3,"file":"internal-plugins.d.ts","sourceRoot":"","sources":["../../../ai/plugin-management/internal-plugins.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,4BAA4B,CAAC;AAChE,OAAO,KAAK,EAAE,aAAa,EAAE,cAAc,EAAE,MAAM,YAAY,CAAC;AAIhE,wBAAgB,qBAAqB,CAAC,KAAK,EAAE,aAAa,GAAG,KAAK,CAAC;IAAE,QAAQ,EAAE,cAAc,CAAC;IAAC,OAAO,EAAE,aAAa,CAAA;CAAE,CAAC,CAKvH"}

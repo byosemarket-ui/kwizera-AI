@@ -1,4 +1,0 @@
-{"timestamp":"2026-08-08T15:30:04.978Z","level":"info","event":"startup","message":"Memory Retrieval Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:30:04.980Z","level":"info","event":"startup","message":"Memory Retrieval Engine startup complete","data":{"indexedRecords":0}}
-{"timestamp":"2026-08-08T15:47:15.782Z","level":"info","event":"startup","message":"Memory Retrieval Engine initialized","data":{"storageRoot":"C:\\Users\\Mrk\\Desktop\\kwizera-AI\\.kwizera-cert-storage"}}
-{"timestamp":"2026-08-08T15:47:16.126Z","level":"info","event":"startup","message":"Memory Retrieval Engine startup complete","data":{"indexedRecords":0}}

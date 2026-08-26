@@ -1,0 +1,79 @@
+.sh-workspace {
+  padding: 20px 24px 40px;
+  color: #142029;
+  height: 100%;
+  overflow: auto;
+  background:
+    radial-gradient(700px 280px at 0% 0%, rgba(45, 90, 78, 0.1), transparent 55%),
+    linear-gradient(180deg, #f3f5f4 0%, #e8ece9 100%);
+}
+.sh-header { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.sh-kicker { margin: 0; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.68rem; color: #2d5a4e; font-weight: 650; }
+.sh-header h1 { margin: 4px 0; display: flex; gap: 8px; align-items: center; font-size: 1.35rem; }
+.sh-header p { margin: 0; color: #5a6b75; font-size: 0.9rem; }
+.sh-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sh-actions button, .sh-tabs button {
+  border: 1px solid rgba(20,32,41,0.14);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.sh-actions button.primary { background: #2d5a4e; color: #f4f6f5; border-color: transparent; }
+.sh-score {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sh-score > div {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(20,32,41,0.1);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.sh-score span { display: block; color: #5a6b75; font-size: 0.75rem; }
+.sh-score b { font-size: 1.6rem; }
+.sh-score em { font-style: normal; font-weight: 650; }
+.sh-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.sh-tabs button.active { background: #142029; color: #fff; border-color: transparent; }
+.sh-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.sh-card, .sh-panel {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(20,32,41,0.1);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.sh-card { display: flex; flex-direction: column; gap: 4px; min-height: 96px; }
+.sh-card b { font-size: 0.95rem; }
+.sh-card.READY b { color: #1f7a4c; }
+.sh-card.DEGRADED b, .sh-card.STARTING b { color: #9a6b12; }
+.sh-card.FAILED b { color: #a33b3b; }
+.sh-card small { color: #5a6b75; font-size: 0.75rem; }
+.sh-panel.wide { grid-column: 1 / -1; }
+.sh-panel h2 { margin: 0 0 10px; display: flex; gap: 6px; align-items: center; font-size: 1rem; }
+.sh-panel dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; font-size: 0.86rem; }
+.sh-panel dt { color: #5a6b75; }
+.sh-panel dd { margin: 0; word-break: break-word; }
+.sh-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.sh-list li { padding: 10px 0; border-top: 1px solid rgba(20,32,41,0.08); display: grid; gap: 2px; }
+.sh-list span, .sh-list em { color: #5a6b75; font-size: 0.8rem; font-style: normal; }
+.sh-checklist { margin: 0; padding-left: 0; list-style: none; font-size: 0.85rem; }
+.sh-checklist li { padding: 4px 0; }
+.sh-banner { margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.88rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.sh-banner.error { background: rgba(163,59,59,0.1); color: #a33b3b; }
+.sh-banner.ok { background: rgba(31,122,76,0.1); color: #1f7a4c; }
+.sh-banner.warn { background: rgba(154,107,18,0.12); color: #7a560e; }
+.sh-note { color: #5a6b75; font-size: 0.82rem; }
+@media (max-width: 960px) {
+  .sh-score, .sh-grid { grid-template-columns: 1fr 1fr; }
+  .sh-header { flex-direction: column; }
+}
