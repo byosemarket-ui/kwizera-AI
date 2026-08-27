@@ -228,11 +228,11 @@ install_deps_and_build() {
     sudo -u "$SERVICE_USER" -H npm install
   fi
   sudo -u "$SERVICE_USER" -H npm run build:production:server
-  if [[ ! -f "${APP_DIR}/dist/dev/server/index.js" ]]; then
+  if [[ ! -f "${APP_DIR}/dist/dev/server/index.js" ]] || [[ ! -f "${APP_DIR}/dist/dev/server/production-gateway.js" ]]; then
     fail "production entry missing after build"
     exit 1
   fi
-  pass "production build emitted dist/dev/server/index.js"
+  pass "production build emitted gateway + app worker"
 }
 
 install_dropbear() {
@@ -278,7 +278,7 @@ install_systemd() {
   local node_bin
   node_bin="$(command -v node)"
   install -m 644 "${APP_DIR}/deploy/kwizera-ai.service" /etc/systemd/system/kwizera-ai.service
-  sed -i "s|^ExecStart=.*|ExecStart=${node_bin} ${APP_DIR}/dist/dev/server/index.js|" /etc/systemd/system/kwizera-ai.service
+  sed -i "s|^ExecStart=.*|ExecStart=${node_bin} ${APP_DIR}/dist/dev/server/production-gateway.js|" /etc/systemd/system/kwizera-ai.service
   systemctl daemon-reload
   systemctl enable kwizera-ai.service
   systemctl restart kwizera-ai.service

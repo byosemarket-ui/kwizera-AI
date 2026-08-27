@@ -15,12 +15,13 @@ Environment=KWIZERA_SKIP_BROWSER_OPEN=1
 Environment=KWIZERA_PERSISTENT_MODE=1
 Environment=KWIZERA_PROJECT_ROOT=/opt/kwizera-ai
 EnvironmentFile=-/opt/kwizera-ai/.env
-ExecStart=/usr/bin/node /opt/kwizera-ai/dist/dev/server/index.js
+ExecStart=/usr/bin/node /opt/kwizera-ai/dist/dev/server/production-gateway.js
 Restart=always
 RestartSec=5
 TimeoutStartSec=600
 TimeoutStopSec=30
 KillSignal=SIGTERM
+KillMode=control-group
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=kwizera-ai

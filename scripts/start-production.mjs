@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const entry = path.join(root, "dist", "dev", "server", "index.js");
+const entry = path.join(root, "dist", "dev", "server", "production-gateway.js");
 
 if (!fs.existsSync(entry)) {
   console.error("[KWIZERA] Production build missing.");

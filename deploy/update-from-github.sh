@@ -40,6 +40,8 @@ else
 fi
 sudo -u "$SERVICE_USER" -H npm run build:production:server
 
+install -m 644 "$APP_DIR/deploy/kwizera-ai.service" /etc/systemd/system/kwizera-ai.service
+systemctl daemon-reload
 systemctl restart "$SERVICE"
 sleep 2
 systemctl is-active --quiet "$SERVICE"
