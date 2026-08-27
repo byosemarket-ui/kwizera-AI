@@ -74,6 +74,92 @@ export interface FieldValidation {
   message: string;
 }
 
+/** Structured intelligence output merged with user facts (derived data only). */
+export interface StructuredProductProfile {
+  identity: {
+    name: string;
+    brand?: string;
+    model?: string;
+    sku?: string;
+    category?: string;
+    productType?: string;
+    price?: number;
+    currency?: string;
+  };
+  visual: {
+    colors: string[];
+    materials: string[];
+    shapes: string[];
+    textures: string[];
+    features: string[];
+    logos: string[];
+    style?: string;
+  };
+  commercial: {
+    sellingPoints: string[];
+    marketingKeywords: string[];
+    targetAudience?: string;
+    description?: string;
+  };
+  coverage: {
+    viewCount: number;
+    missingAngles: string[];
+    imageQualityScore?: number;
+    coverageLabel?: string;
+  };
+  confidence: {
+    overall: number;
+    notes: string[];
+  };
+  missingInformation: string[];
+  uncertainFields: string[];
+  foundationKnowledgeIds?: string[];
+  readyForCreativeGeneration?: boolean;
+  source: "merged";
+  analyzedAt: string;
+}
+
+export type ProductReadinessState =
+  | "READY_FOR_AI_PROCESSING"
+  | "MISSING_REQUIRED_INFORMATION"
+  | "OPTIONAL_INFORMATION_MISSING";
+
+export interface ProductReadiness {
+  state: ProductReadinessState;
+  canGenerateVideo: boolean;
+  canContinueToMarketing: boolean;
+  blockedReason: string | null;
+  required: Array<{ field: string; label: string; satisfied: boolean; status: "ok" | "missing" | "error" }>;
+  optional: Array<{ field: string; label: string; satisfied: boolean; status: "ok" | "missing" }>;
+  message: string;
+}
+
+export type ProductionStageStatus = "pending" | "active" | "completed" | "failed";
+
+export interface ProductionStageRow {
+  id: string;
+  label: string;
+  status: ProductionStageStatus;
+}
+
+export interface ProductionRunState {
+  jobId: string | null;
+  status: "idle" | "running" | "completed" | "failed";
+  progress: number;
+  currentStage: string | null;
+  stages: ProductionStageRow[];
+  error: string | null;
+  errorStage?: string | null;
+  errorCode?: string | null;
+  outputUrl: string | null;
+  outputVersion: string | null;
+  outputQuality: number | null;
+  outputDurationSec?: number | null;
+  outputValidated?: boolean;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
 export interface ProductProfile {
   version: 1;
   productId: string;
@@ -87,6 +173,9 @@ export interface ProductProfile {
   completeness: CompletenessBreakdown;
   validations: FieldValidation[];
   validationStatus: "incomplete" | "warnings" | "valid";
+  readiness: ProductReadiness;
+  structuredProfile: StructuredProductProfile | null;
+  production: ProductionRunState;
   canContinue: boolean;
   continueBlockedReason: string | null;
   createdAt: string;

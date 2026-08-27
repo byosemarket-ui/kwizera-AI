@@ -153,16 +153,23 @@ export class AiInferenceRuntime {
   }
 
   private async select(category: AiModelCategory, modelId: string): Promise<ProviderStatus> {
+    const model = this.models.getMutable(modelId);
+    const providerModelId = model.providerModelId?.trim() || modelId;
     const candidates = [...this.providers.values()].filter((provider) => provider.enabled && provider.supportedCategories.includes(category));
     let hasAvailableProvider = false;
     for (const provider of candidates) {
       await this.check(provider);
       if (!provider.available) continue;
       hasAvailableProvider = true;
-      if (provider.models.includes(modelId)) return provider;
+      if (provider.models.includes(modelId) || provider.models.includes(providerModelId)) return provider;
     }
     if (hasAvailableProvider) throw new Error(`No available local inference provider has validated model ${modelId} for ${category} inference.`);
     throw new Error(`No available local inference provider supports ${category}. Configure a compatible loopback runtime first.`);
+  }
+
+  resolveProviderModelId(modelId: string): string {
+    const model = this.models.getMutable(modelId);
+    return model.providerModelId?.trim() || modelId;
   }
 
   private async check(provider: ProviderStatus): Promise<void> {
@@ -208,9 +215,10 @@ export class AiInferenceRuntime {
   }
 
   private async executeOllama(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
+    const runtimeModel = this.resolveProviderModelId(request.modelId);
     const path = request.category === "embedding" ? "/api/embed" : "/api/generate";
-    const body = request.category === "embedding" ? { model: request.modelId, input: request.prompt } : { ...(request.input ?? {}), model: request.modelId, prompt: request.prompt, stream: false };
-    const response = await fetch(`${provider.endpoint}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: request.signal ?? AbortSignal.timeout(120_000) });
+    const body = request.category === "embedding" ? { model: runtimeModel, input: request.prompt } : { ...(request.input ?? {}), model: runtimeModel, prompt: request.prompt, stream: false };
+    const response = await fetch(`${provider.endpoint}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: request.signal ?? AbortSignal.timeout(300_000) });
     if (!response.ok) throw new Error(`Ollama inference failed with ${response.status}: ${await response.text()}`);
     const payload = await response.json() as { response?: string; embeddings?: number[][]; embedding?: number[] };
     if (request.category === "embedding") return payload.embeddings?.[0] ?? payload.embedding ?? (() => { throw new Error("Ollama returned no embedding"); })();
@@ -219,7 +227,8 @@ export class AiInferenceRuntime {
   }
 
   private async executeOpenAiCompatible(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
-    const response = await fetch(`${provider.endpoint}/v1/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(request.input ?? {}), model: request.modelId, messages: [{ role: "user", content: request.prompt }] }), signal: request.signal ?? AbortSignal.timeout(120_000) });
+    const runtimeModel = this.resolveProviderModelId(request.modelId);
+    const response = await fetch(`${provider.endpoint}/v1/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(request.input ?? {}), model: runtimeModel, messages: [{ role: "user", content: request.prompt }] }), signal: request.signal ?? AbortSignal.timeout(120_000) });
     if (!response.ok) throw new Error(`Local OpenAI-compatible inference failed with ${response.status}: ${await response.text()}`);
     const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = payload.choices?.[0]?.message?.content;

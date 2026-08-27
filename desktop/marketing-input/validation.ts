@@ -25,11 +25,12 @@ export function validateMarketingFields(fields: MarketingInputFields): FieldVali
   else push("platforms", "ok", "Platform");
 
   if (!fields.contentFormat.trim() || (fields.contentFormat === "Custom Format" && !fields.customFormat.trim())) {
-    push("contentFormat", "error", "Content format is required.");
+    push("contentFormat", "warning", "Content format will default to Short Product Video.");
   } else push("contentFormat", "ok", "Content format");
 
-  if (!resolvedLanguage(fields)) push("language", "error", "Language is required.");
-  else push("language", "ok", "Language");
+  if (!resolvedLanguage(fields)) {
+    push("language", "warning", "Language will default to Kinyarwanda.");
+  } else push("language", "ok", "Language");
 
   if (fields.duration === "custom" && (fields.customDurationSeconds == null || fields.customDurationSeconds <= 0)) {
     push("duration", "error", "Custom duration needs a positive length in seconds.");

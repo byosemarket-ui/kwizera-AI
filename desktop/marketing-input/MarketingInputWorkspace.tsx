@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Save, Sparkles,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clapperboard, Save, Sparkles,
 } from "lucide-react";
 import { useShell } from "../shell/ShellContext";
 import { workspaceIntegrationEngine } from "../shell/integration/integration-engine";
@@ -53,6 +53,8 @@ export function MarketingInputWorkspace() {
     review: true,
   });
   const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
   const [interestsText, setInterestsText] = useState("");
 
@@ -114,6 +116,30 @@ export function MarketingInputWorkspace() {
     }
   };
 
+  const onGeneratePlan = async () => {
+    setPlanning(true);
+    try {
+      await marketingInputEngine.generateMarketingPlan();
+      notify("success", "Marketing plan ready", "Structured plan generated from product profile and campaign inputs.", "updates");
+    } catch (error) {
+      notify("error", "Plan failed", error instanceof Error ? error.message : "Unable to generate plan", "errors");
+    } finally {
+      setPlanning(false);
+    }
+  };
+
+  const onGenerateVideo = async () => {
+    setGenerating(true);
+    try {
+      await marketingInputEngine.startVideoProduction();
+      notify("info", "Video production started", "KWIZERA AI is running the creative pipeline.", "production-complete");
+    } catch (error) {
+      notify("error", "Cannot start production", error instanceof Error ? error.message : "Pipeline unavailable", "errors");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   if (!brief || !fields || !product) {
     return (
       <div className="marketing-input">
@@ -165,7 +191,23 @@ export function MarketingInputWorkspace() {
           <button type="button" onClick={() => switchWorkspace("product-information")}>Edit Product</button>
           <button
             type="button"
+            disabled={planning || !brief.canStartProduction}
+            onClick={() => void onGeneratePlan()}
+            title={brief.productionBlockedReason ?? "Generate structured marketing plan"}
+          >
+            <Sparkles size={14} /> {planning ? "Planning…" : "Generate Plan"}
+          </button>
+          <button
+            type="button"
             className="mi-primary"
+            disabled={generating || brief.production.status === "running" || !brief.canStartProduction}
+            onClick={() => void onGenerateVideo()}
+            title={brief.productionBlockedReason ?? "Start KWIZERA video production"}
+          >
+            <Clapperboard size={15} /> {generating || brief.production.status === "running" ? "Starting…" : "Generate Video"}
+          </button>
+          <button
+            type="button"
             disabled={busy || !(brief.canContinue || brief.continueAnyway) || brief.validations.some((v) => v.status === "error")}
             onClick={() => void onContinue()}
           >
@@ -543,6 +585,73 @@ export function MarketingInputWorkspace() {
               <p className="mi-ok"><CheckCircle2 size={14} /> Ready for Step 5 handoff.</p>
             )}
           </Section>
+
+          {brief.marketingPlan && (
+            <Section title="Marketing Plan" open={true} onToggle={() => toggle("review")}>
+              <div className="mi-summary">
+                <div><span>Audience</span><b>{brief.marketingPlan.audience}</b></div>
+                <div><span>Angle</span><b>{brief.marketingPlan.angle}</b></div>
+                <div><span>Main selling point</span><b>{brief.marketingPlan.mainSellingPoint}</b></div>
+                <div><span>Message</span><b>{brief.marketingPlan.message}</b></div>
+                <div><span>CTA</span><b>{brief.marketingPlan.cta}</b></div>
+                <div><span>Platform strategy</span><b>{brief.marketingPlan.platformStrategy}</b></div>
+                <div><span>Tone</span><b>{brief.marketingPlan.tone}</b></div>
+                <div><span>Video objective</span><b>{brief.marketingPlan.videoObjective}</b></div>
+              </div>
+              {brief.marketingPlan.supportingPoints.length > 0 && (
+                <p className="mi-note">Supporting points: {brief.marketingPlan.supportingPoints.join(" · ")}</p>
+              )}
+              {brief.videoConcept && (
+                <p className="mi-note">
+                  Video concept: {brief.videoConcept.purpose} · ~{brief.videoConcept.approximateDurationSec}s · {brief.videoConcept.sceneStrategy}
+                </p>
+              )}
+            </Section>
+          )}
+
+          {(brief.production.status !== "idle" || brief.marketingPlan) && (
+            <section className="mi-panel mi-production">
+              {brief.production.status !== "idle" && (
+                <>
+                  <h3>Production Progress</h3>
+                  <div className="mi-progress-head">
+                    <strong>{brief.production.progress}%</strong>
+                    <span>{brief.production.status === "running" ? "In progress" : brief.production.status}</span>
+                  </div>
+                  <div className="mi-progress-bar">
+                    <div className="mi-progress-fill" style={{ width: `${brief.production.progress}%` }} />
+                  </div>
+                  <ul className="mi-stages">
+                    {brief.production.stages.map((stage) => (
+                      <li key={stage.id} className={stage.status}>
+                        {stage.status === "completed" ? "✓" : stage.status === "active" ? "▶" : "○"} {stage.label}
+                      </li>
+                    ))}
+                  </ul>
+                  {brief.production.error && (
+                    <p className="mi-err">
+                      {brief.production.errorStage ?? "ERROR"}: {brief.production.error}
+                      {brief.production.errorCode ? ` (${brief.production.errorCode})` : ""}
+                    </p>
+                  )}
+                  {brief.production.status === "completed" && brief.production.outputValidated && brief.production.outputUrl && (
+                    <div className="mi-video-ready">
+                      <p className="mi-ok"><CheckCircle2 size={14} /> VIDEO READY</p>
+                      <img src={brief.production.outputUrl} alt="Generated video preview" className="mi-output-preview" />
+                      {brief.production.outputVersion && (
+                        <p className="mi-note">Version {brief.production.outputVersion}
+                          {brief.production.outputQuality != null ? ` · Quality ${brief.production.outputQuality}/100` : ""}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {brief.production.status === "completed" && !brief.production.outputValidated && (
+                    <p className="mi-warn">Pipeline finished but output did not pass quality control.</p>
+                  )}
+                </>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>

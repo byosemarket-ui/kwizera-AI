@@ -79,7 +79,9 @@ export function AppShell({
 }: AppShellProps) {
   const [layout, setLayoutState] = useState<ShellLayoutState>(() => {
     const loaded = shellLayoutManager.load();
-    return { ...loaded, workspace: mapLegacyWorkspace(preferences.lastWorkspace || loaded.workspace) };
+    // Fresh renderer session always starts on Home — never last Step/workspace.
+    // Layout chrome (panels, etc.) may still load from persistence.
+    return { ...loaded, workspace: "home" };
   });
   const [navigation, setNavigationState] = useState<NavigationState>(() => navigationStore.load());
   const [layoutManager, setLayoutManagerState] = useState<LayoutManagerState>(() => workspaceLayoutManager.load());
@@ -288,6 +290,8 @@ export function AppShell({
   }, [restoredLayout]);
 
   useEffect(() => {
+    // Do not sync lastWorkspace → UI during bootstrap (avoids flashing last Step before Home).
+    if (bootstrappingRef.current) return;
     const external = mapLegacyWorkspace(preferences.lastWorkspace);
     if (external !== layout.workspace) {
       setLayoutState((current) => ({ ...current, workspace: external }));

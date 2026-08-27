@@ -109,6 +109,7 @@ export class ProductIntelligenceManager {
 
     const imageProfiles = this.imageIntelligence ? await this.imageIntelligence.analyzeProject(projectId) : [];
     const profile = this.buildProfile(project, imageProfiles);
+    profile.foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
     this.store.profiles = this.store.profiles.filter((item) => item.projectId !== projectId);
     this.store.profiles.unshift(profile);
     this.store.cache[key] = profile.id;
@@ -336,6 +337,16 @@ export class ProductIntelligenceManager {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY);
       throw error;
     }
+  }
+
+  private async retrieveFoundationKnowledge(project: CreativeProject): Promise<string[]> {
+    const { retrieveFoundationKnowledgeForProject } = await import("../knowledge-foundation/knowledge-teaching-service.js");
+    return retrieveFoundationKnowledgeForProject(
+      this.core?.knowledgeFoundation,
+      project,
+      "product-intelligence-manager",
+      ["product"],
+    );
   }
 
   private ensureReady(): void {
@@ -711,12 +722,18 @@ export class ProductCacheManager {
 
 export class ProductValidationManager {
   validate(project: CreativeProject): { valid: boolean; issues: string[] } {
+    const hasName = Boolean(project.productInformation.name.trim());
+    const hasImages = project.productImages.length > 0;
+    const hasPrice = project.productInformation.price != null && Number.isFinite(project.productInformation.price);
+    const hasDescription = Boolean(project.productInformation.description.trim() || project.productInformation.shortDescription?.trim());
     const issues = [
-      !project.productInformation.name.trim() ? "Product name is required for analysis." : "",
-      !project.productInformation.description.trim() ? "Product description is required for analysis." : "",
-      !project.productImages.length ? "Upload at least one product image for analysis." : "",
+      !hasName ? "Product name is required for analysis." : "",
+      !hasImages ? "Upload at least one product image for analysis." : "",
+      !hasPrice ? "A valid selling price improves product understanding." : "",
+      !hasDescription ? "Description is optional — AI will derive observations from images." : "",
     ].filter(Boolean);
-    return { valid: !issues.length, issues };
+    const critical = !hasName || !hasImages;
+    return { valid: !critical, issues };
   }
 }
 

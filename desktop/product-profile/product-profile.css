@@ -105,6 +105,116 @@
   font: inherit;
 }
 
+.pp-primary,
+.pp-generate {
+  background: var(--pp-accent);
+  color: #fff;
+  border: none;
+}
+
+.pp-generate {
+  background: #1a5f46;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pp-readiness h3,
+.pp-production h3,
+.pp-structured h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.pp-readiness-banner {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 650;
+}
+
+.pp-readiness-banner.ready {
+  background: rgba(31, 122, 76, 0.12);
+  color: var(--pp-ok);
+}
+
+.pp-readiness-banner.blocked {
+  background: rgba(163, 59, 59, 0.1);
+  color: var(--pp-err);
+}
+
+.pp-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.pp-readiness-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--pp-line);
+  font-size: 0.82rem;
+}
+
+.pp-readiness-row.ok b { color: var(--pp-ok); }
+.pp-readiness-row.err b { color: var(--pp-err); }
+.pp-readiness-row.opt b { color: var(--pp-muted); }
+
+.pp-progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pp-progress-bar {
+  height: 8px;
+  background: rgba(20, 32, 41, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.pp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1a5f46, var(--pp-accent));
+  transition: width 0.4s ease;
+}
+
+.pp-stage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+}
+
+.pp-stage-list li {
+  font-size: 0.82rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.pp-stage-list .stage-completed { color: var(--pp-ok); }
+.pp-stage-list .stage-active { color: var(--pp-accent); font-weight: 650; }
+.pp-stage-list .stage-failed { color: var(--pp-err); }
+
+.pp-output-preview {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--pp-line);
+  margin-top: 8px;
+}
+
+.pp-structured {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pp-line);
+}
+
 .pp-primary {
   background: var(--pp-accent) !important;
   color: #fff !important;

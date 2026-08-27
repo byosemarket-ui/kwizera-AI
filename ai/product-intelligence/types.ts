@@ -82,6 +82,8 @@ export interface ProductIntelligenceProfile {
   sizes: string[];
   tags: string[];
   specifications: Record<string, string>;
+  /** Verified/taught Knowledge Foundation IDs reused for this analysis */
+  foundationKnowledgeIds?: string[];
   quality: { score: number; confidence: number; notes: string[] };
   relationships: Array<{ type: string; target: string; confidence: number }>;
   multiView: {

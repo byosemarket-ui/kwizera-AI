@@ -1,6 +1,6 @@
 /** Phase 2 Step 4 — Marketing Input, Campaign Configuration & Production Brief */
 
-import type { ProductProfile } from "../product-profile/types";
+import type { ProductProfile, ProductionRunState } from "../product-profile/types";
 
 export type ChangeSource = "user" | "ai-recommendation" | "system";
 export type AiRecStatus = "pending" | "accepted" | "rejected" | "edited";
@@ -93,6 +93,30 @@ export interface FieldValidation {
   message: string;
 }
 
+export interface StructuredMarketingPlan {
+  audience: string;
+  angle: string;
+  mainSellingPoint: string;
+  supportingPoints: string[];
+  message: string;
+  cta: string;
+  platformStrategy: string;
+  tone: string;
+  videoObjective: string;
+  analyzedAt: string;
+}
+
+export interface VideoConcept {
+  purpose: string;
+  presentationStyle: string;
+  visualDirection: string;
+  storyDirection: string;
+  approximateDurationSec: number;
+  sceneStrategy: string;
+  ctaPlacement: string;
+  createdAt: string;
+}
+
 export interface MarketingProductionBrief {
   version: 1;
   marketingBriefId: string;
@@ -108,8 +132,13 @@ export interface MarketingProductionBrief {
   validations: FieldValidation[];
   validationStatus: "incomplete" | "warnings" | "valid";
   canContinue: boolean;
+  canStartProduction: boolean;
   continueBlockedReason: string | null;
+  productionBlockedReason: string | null;
   continueAnyway: boolean;
+  marketingPlan: StructuredMarketingPlan | null;
+  videoConcept: VideoConcept | null;
+  production: ProductionRunState;
   createdAt: string;
   updatedAt: string;
 }

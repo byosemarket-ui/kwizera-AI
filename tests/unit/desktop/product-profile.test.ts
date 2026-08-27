@@ -73,19 +73,39 @@ function seedStep3Handoff(store: Record<string, string>) {
 }
 
 describe("Product profile validation & completeness", () => {
-  it("requires critical identity, price, currency, and images", () => {
+  it("requires only name, price, and images for production readiness", () => {
     const fields = emptyFields();
     const rows = validateProfileFields(fields, 0);
     expect(rows.some((r) => r.field === "name" && r.status === "error")).toBe(true);
     expect(rows.some((r) => r.field === "price" && r.status === "error")).toBe(true);
     expect(rows.some((r) => r.field === "images" && r.status === "error")).toBe(true);
+    expect(rows.some((r) => r.field === "category" && r.status === "error")).toBe(false);
 
     fields.name = "Air Max";
-    fields.category = "Shoes";
     fields.price = 45000;
     fields.currency = "RWF";
     const ok = validateProfileFields(fields, 2);
     expect(ok.filter((r) => r.status === "error")).toHaveLength(0);
+  });
+
+  it("CASE B blocks when price missing but name and images present", async () => {
+    const { deriveProductReadiness } = await import("../../../desktop/product-profile/readiness.ts");
+    const fields = emptyFields();
+    fields.name = "Bag";
+    const readiness = deriveProductReadiness(fields, 1, validateProfileFields(fields, 1));
+    expect(readiness.canGenerateVideo).toBe(false);
+    expect(readiness.state).toBe("MISSING_REQUIRED_INFORMATION");
+  });
+
+  it("CASE A ready with name price images only", async () => {
+    const { deriveProductReadiness } = await import("../../../desktop/product-profile/readiness.ts");
+    const fields = emptyFields();
+    fields.name = "Bag";
+    fields.price = 10;
+    fields.currency = "RWF";
+    const readiness = deriveProductReadiness(fields, 1, validateProfileFields(fields, 1));
+    expect(readiness.canGenerateVideo).toBe(true);
+    expect(readiness.state).toBe("OPTIONAL_INFORMATION_MISSING");
   });
 
   it("warns on empty description and colors without blocking", () => {
@@ -267,7 +287,6 @@ describe("ProductProfileEngine", () => {
     await engine.hydrateFromHandoff();
     expect(engine.snapshot().profile!.canContinue).toBe(false);
     engine.updateField("name", "Nike Air Max");
-    engine.updateField("category", "Shoes");
     engine.updateField("price", 45000);
     engine.updateField("currency", "RWF");
     expect(engine.snapshot().profile!.canContinue).toBe(true);
@@ -279,14 +298,20 @@ describe("ProductProfileEngine", () => {
     expect(localStorage.getItem(PROFILE_STORE_KEY)).toBeTruthy();
   });
 
-  it("blocks cross-project mismatch and recovers from stored profile", async () => {
+  it("recovers stored profile fields on re-hydrate", async () => {
     const engine = new ProductProfileEngine();
     await engine.hydrateFromHandoff();
     engine.updateField("name", "Recover Me");
     const engine2 = new ProductProfileEngine();
-    // Clear handoff — restore from PROFILE_STORE_KEY
     localStorage.removeItem(ORG_HANDOFF_KEY);
-    const ok = await engine2.hydrateFromHandoff();
+    const ok = await engine2.hydrateFromHandoff({
+      version: 1,
+      step: "step-3-product-information",
+      projectId: "proj-1",
+      projectName: "Demo Shoes",
+      productImageSet: sampleImageSet(),
+      preparedAt: new Date().toISOString(),
+    });
     expect(ok).toBe(true);
     expect(engine2.snapshot().profile!.fields.name).toBe("Recover Me");
   });
@@ -297,7 +322,6 @@ describe("ProductProfileEngine", () => {
     engine.updateField("name", "Air Max");
     engine.updateField("price", 1);
     engine.updateField("currency", "RWF");
-    engine.updateField("category", "Shoes");
     const ctx = engine.buildAiMeContext();
     expect(ctx.explanation).toMatch(/complete/i);
     expect(ctx.explanation).toMatch(/authoritative|invent/i);

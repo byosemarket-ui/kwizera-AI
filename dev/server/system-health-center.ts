@@ -436,20 +436,47 @@ export class SystemHealthCenter {
       score: knowStatus === "READY" ? 100 : 50,
     });
 
-    // AI engine (optional when persistent runtime off)
+    // AI engine — KWIZERA AI Core is the foundation; optional providers (Ollama) are not required.
     const statusUrl = await httpGetJson(`http://127.0.0.1:${port}/api/desktop-workspace/status`);
     const aiCore = statusUrl.ok && statusUrl.body && typeof statusUrl.body === "object"
       ? Boolean((statusUrl.body as { aiCore?: boolean }).aiCore)
       : false;
-    const aiStatus: ServiceStatus = aiCore ? "READY" : "DEGRADED";
-    this.setService("ai-engine", aiStatus, aiCore ? null : "Full AI core not ready (optional in desktop fast mode)");
+    const localInference = statusUrl.ok && statusUrl.body && typeof statusUrl.body === "object"
+      ? Boolean((statusUrl.body as { localInference?: boolean }).localInference)
+      : false;
+
+    let aiDetail = "KWIZERA AI Core not ready";
+    let aiStatus: ServiceStatus = "DEGRADED";
+    let aiScore = 50;
+
+    if (aiCore) {
+      aiStatus = "READY";
+      aiScore = 100;
+      aiDetail = "KWIZERA AI Core ready (memory · knowledge · intelligence)";
+      if (localInference) {
+        const runtime = await httpGetJson(`http://127.0.0.1:${port}/api/models/runtime`, 4_000);
+        const providers = runtime.ok && runtime.body && typeof runtime.body === "object"
+          ? (runtime.body as { providers?: Array<{ kind?: string; available?: boolean; models?: string[] }> }).providers ?? []
+          : [];
+        const ollama = providers.find((provider) => provider.kind === "ollama" && provider.available && (provider.models?.length ?? 0) > 0);
+        if (ollama) {
+          aiDetail = `${aiDetail} · optional Ollama (${ollama.models!.length} model(s))`;
+        }
+      }
+    } else if (localInference) {
+      aiStatus = "DEGRADED";
+      aiScore = 55;
+      aiDetail = "Model manager present without KWIZERA AI Core (enable persistent runtime)";
+    }
+
+    this.setService("ai-engine", aiStatus, aiStatus === "READY" ? null : aiDetail);
     subsystems.push({
       id: "ai-engine",
       label: "AI Engine",
       status: aiStatus,
       required: false,
-      detail: aiCore ? "Runtime reports AI core ready" : "Optional — local studio UI/API still usable",
-      score: aiCore ? 100 : 60,
+      detail: aiDetail,
+      score: aiScore,
     });
 
     // Network (Step 3)

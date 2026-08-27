@@ -114,16 +114,17 @@ function seedStep4(store: Record<string, string>) {
 }
 
 describe("Marketing validation & completeness", () => {
-  it("requires objective, audience, platform, format, language", () => {
+  it("requires objective, audience, platform; defaults format and language", () => {
     const fields = emptyMarketingFields();
     const rows = validateMarketingFields(fields);
     expect(rows.some((r) => r.field === "objective" && r.status === "error")).toBe(true);
     expect(rows.some((r) => r.field === "platforms" && r.status === "error")).toBe(true);
+    expect(rows.some((r) => r.field === "contentFormat" && r.status === "warning")).toBe(true);
+    const clearedLang = { ...emptyMarketingFields(), language: "", languageOther: "" };
+    expect(validateMarketingFields(clearedLang).some((r) => r.field === "language" && r.status === "warning")).toBe(true);
     fields.objective = "Direct Sales";
     fields.audienceType = "Shoppers";
     fields.platforms = ["TikTok"];
-    fields.contentFormat = "Short Product Video";
-    fields.language = "Kinyarwanda";
     const ok = validateMarketingFields(fields);
     expect(ok.filter((r) => r.status === "error")).toHaveLength(0);
     expect(ok.some((r) => r.field === "cta" && r.status === "warning")).toBe(true);
@@ -233,6 +234,9 @@ describe("MarketingInputEngine", () => {
             },
           }),
         };
+      }
+      if (u.includes("/api/production/projects/")) {
+        return { ok: true, json: async () => ({ job: null }) };
       }
       return { ok: false, json: async () => ({ error: "missing" }) };
     }));

@@ -4,6 +4,17 @@ export { KnowledgeRegistry } from "./knowledge-registry.js";
 export { KnowledgeStorageManager } from "./knowledge-storage.js";
 export { KnowledgePackImportEngine } from "./knowledge-pack-import-engine.js";
 export { KnowledgeImportError } from "./knowledge-import-types.js";
+export {
+  KnowledgeTeachingService,
+  createKnowledgeTeachingService,
+} from "./knowledge-teaching-service.js";
+export type {
+  KnowledgeScope,
+  TeachKnowledgeInput,
+  TeachKnowledgeResult,
+  RetrieveKnowledgeInput,
+  RetrieveKnowledgeResult,
+} from "./knowledge-teaching-service.js";
 export { KnowledgeValidationIntegrationEngine } from "../knowledge-validation-integration/knowledge-validation-integration-engine.js";
 export { KNOWLEDGE_VALIDATION_INTEGRATION_VERSION } from "../knowledge-validation-integration/types.js";
 export type {

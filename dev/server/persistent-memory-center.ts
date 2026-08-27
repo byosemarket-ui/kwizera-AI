@@ -134,6 +134,9 @@ export interface SaveKnowledgeRequest {
   verificationStatus?: KnowledgeVerificationStatus;
   knowledgeId?: string;
   payload?: Record<string, unknown>;
+  /** permanent = global KWIZERA knowledge; project = project-only */
+  scope?: "permanent" | "project";
+  projectId?: string;
 }
 
 export interface MemoryContextPackage {
@@ -361,7 +364,41 @@ export class PersistentMemoryCenter {
 
   async saveKnowledge(input: SaveKnowledgeRequest) {
     this.ensureReady();
+    const content = (input.content ?? "").trim();
+    const topic = (input.topic ?? "").trim();
+    const title = (input.title ?? "").trim();
+    if (!topic || !title || content.length < 12) {
+      return {
+        success: false,
+        action: "failed" as const,
+        knowledgeId: undefined,
+        validation: { code: "invalid-knowledge", message: "INVALID_KNOWLEDGE: title, topic, and sufficient content are required" },
+      };
+    }
+    if (content.includes("\0") || content.length > 100_000) {
+      return {
+        success: false,
+        action: "failed" as const,
+        knowledgeId: undefined,
+        validation: { code: "invalid-knowledge", message: "INVALID_KNOWLEDGE: content is corrupt or too large" },
+      };
+    }
+    const scope = input.scope === "project" ? "project" : "permanent";
+    if (scope === "project" && !input.projectId?.trim()) {
+      return {
+        success: false,
+        action: "failed" as const,
+        knowledgeId: undefined,
+        validation: { code: "invalid-knowledge", message: "INVALID_KNOWLEDGE: projectId is required for project-scoped knowledge" },
+      };
+    }
+
     const knowledgeType = input.knowledgeType ?? KnowledgeStorageType.Creative;
+    const scopeTags = [
+      `scope-${scope}`,
+      ...(scope === "project" && input.projectId ? [`project-${input.projectId}`] : []),
+      ...(input.tags ?? [input.topic]),
+    ];
     const recordInput: KnowledgeRecordInput = {
       knowledgeId: input.knowledgeId,
       knowledgeType,
@@ -369,18 +406,21 @@ export class PersistentMemoryCenter {
       title: input.title,
       description: input.content,
       summary: input.content.slice(0, 280),
-      tags: input.tags ?? [input.topic],
+      tags: scopeTags,
       keywords: [input.topic, ...(input.tags ?? [])],
       source: input.source ?? "local-studio",
       sourceReliability: 70,
       confidenceScore: input.confidence ?? 70,
       qualityScore: input.confidence ?? 70,
-      verificationStatus: input.verificationStatus ?? KnowledgeVerificationStatus.Unverified,
+      // Do not silently mark Verified — teach/validation path may upgrade later.
+      verificationStatus: input.verificationStatus ?? KnowledgeVerificationStatus.Pending,
       status: KnowledgeRecordStatus.Active,
       payload: {
         topic: input.topic,
         sourceUrl: input.sourceUrl ?? null,
         acquiredAt: new Date().toISOString(),
+        scope,
+        projectId: scope === "project" ? input.projectId ?? null : null,
         ...(input.payload ?? {}),
       },
     };
@@ -407,22 +447,52 @@ export class PersistentMemoryCenter {
     return { ...result, action: result.success ? ("created" as const) : ("failed" as const), knowledgeId: result.record?.knowledgeId };
   }
 
-  async searchKnowledge(opts: { text?: string; topic?: string; limit?: number }): Promise<KnowledgeRecord[]> {
+  async searchKnowledge(opts: {
+    text?: string;
+    topic?: string;
+    limit?: number;
+    projectId?: string;
+    permanentOnly?: boolean;
+  }): Promise<KnowledgeRecord[]> {
     this.ensureReady();
     const limit = Math.min(opts.limit ?? 40, 200);
     const entries = this.knowledgeEngine.getIndexEntries();
     const text = (opts.text ?? "").toLowerCase().trim();
     const topic = (opts.topic ?? "").toLowerCase().trim();
     const filtered = entries.filter((e) => {
+      const titleLower = e.title.toLowerCase();
       if (topic && !e.category.toLowerCase().includes(topic) && !e.searchableText.includes(topic)) return false;
-      if (text && !e.searchableText.includes(text) && !e.title.toLowerCase().includes(text)) return false;
+      if (text) {
+        const tokens = text.split(/\s+/).filter(Boolean);
+        const matches = tokens.length === 0 || tokens.every(
+          (token) => e.searchableText.includes(token) || titleLower.includes(token),
+        );
+        if (!matches) return false;
+      }
       return true;
-    }).slice(0, limit);
+    }).slice(0, limit * 3);
 
     const records: KnowledgeRecord[] = [];
     for (const entry of filtered) {
       const read = await this.knowledgeEngine.getRecord(entry.knowledgeId, "persistent-memory-center");
-      if (read.success && read.record) records.push(read.record);
+      if (!read.success || !read.record) continue;
+      const payload = read.record.payload && typeof read.record.payload === "object"
+        ? read.record.payload as Record<string, unknown>
+        : {};
+      const scope = typeof payload.scope === "string" ? payload.scope : (
+        read.record.tags?.includes("scope-project") ? "project" : "permanent"
+      );
+      const recordProjectId = typeof payload.projectId === "string" ? payload.projectId : undefined;
+
+      if (opts.projectId) {
+        if ((scope === "project" || recordProjectId) && recordProjectId !== opts.projectId) continue;
+        // permanent knowledge is reusable across projects
+      } else if (opts.permanentOnly !== false) {
+        if (scope === "project" || recordProjectId) continue;
+      }
+
+      records.push(read.record);
+      if (records.length >= limit) break;
     }
     return records;
   }

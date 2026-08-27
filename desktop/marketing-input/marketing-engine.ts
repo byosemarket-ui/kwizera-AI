@@ -16,13 +16,31 @@ import {
   detectConflicts,
   validateMarketingFields,
 } from "./validation";
+import {
+  applyMarketingDefaults,
+  buildStructuredMarketingPlan,
+  buildVideoConcept,
+} from "./marketing-plan";
+import {
+  emptyProductionState,
+  fetchProductionArtifacts,
+  loadProductionJob,
+  mapPipelineToProductionStages,
+  parsePipelineError,
+  persistProductionJob,
+  pollPipelineJob,
+  startPipeline,
+  validateProductionOutput,
+} from "../product-creation/production-orchestrator";
 import type {
   AiRecommendation,
   MarketingHistoryEntry,
   MarketingInputFields,
   MarketingProductionBrief,
   MarketingSnapshot,
+  StructuredMarketingPlan,
   Step5HandoffPayload,
+  VideoConcept,
 } from "./types";
 import {
   emptyMarketingFields,
@@ -63,24 +81,33 @@ function saveStored(brief: MarketingProductionBrief): void {
 }
 
 function enrich(brief: MarketingProductionBrief): MarketingProductionBrief {
-  const validations = validateMarketingFields(brief.fields);
-  const baseConflicts = detectConflicts(brief.fields).map((c) => {
+  const fields = applyMarketingDefaults(brief.fields);
+  const validations = validateMarketingFields(fields);
+  const baseConflicts = detectConflicts(fields).map((c) => {
     const prev = brief.conflicts.find((x) => x.id === c.id);
     return prev ? { ...c, acknowledged: prev.acknowledged } : c;
   });
-  const completeness = computeMarketingCompleteness(brief.fields);
+  const completeness = computeMarketingCompleteness(fields);
   const errors = validations.filter((v) => v.status === "error");
   const warnings = validations.filter((v) => v.status === "warning");
   const blockingConflicts = baseConflicts.filter((c) => c.severity === "error" && !c.acknowledged);
   const canContinue = errors.length === 0 && blockingConflicts.length === 0;
+  const productionErrors = errors.filter((e) => ["objective", "audience", "platforms"].includes(e.field));
+  const canStartProduction = productionErrors.length === 0;
   return {
     ...brief,
+    fields,
     validations,
     conflicts: baseConflicts,
     completeness,
     validationStatus: errors.length ? "incomplete" : (warnings.length || baseConflicts.some((c) => !c.acknowledged)) ? "warnings" : "valid",
     canContinue,
+    canStartProduction,
     continueBlockedReason: errors[0]?.message ?? blockingConflicts[0]?.message ?? null,
+    productionBlockedReason: productionErrors[0]?.message ?? null,
+    production: brief.production ?? emptyProductionState(),
+    marketingPlan: brief.marketingPlan ?? null,
+    videoConcept: brief.videoConcept ?? null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -262,7 +289,9 @@ export class MarketingInputEngine {
   }
 
   async hydrateFromHandoff(handoff?: Step4HandoffPayload | null): Promise<boolean> {
-    const hintId = handoff?.projectId ?? loadStep4Handoff()?.projectId ?? null;
+    const storedMap = loadStored();
+    const storedHint = Object.keys(storedMap)[0] ?? null;
+    const hintId = handoff?.projectId ?? loadStep4Handoff()?.projectId ?? storedHint;
     const bound = await resolveBoundProject({ handoffProjectId: hintId });
     if (!bound) {
       this.recommendation = "No active project. Complete Steps 1–3 first.";
@@ -330,11 +359,24 @@ export class MarketingInputEngine {
       validations: [],
       validationStatus: "incomplete",
       canContinue: false,
+      canStartProduction: false,
       continueBlockedReason: null,
+      productionBlockedReason: null,
       continueAnyway: stored?.continueAnyway ?? false,
+      marketingPlan: stored?.marketingPlan ?? null,
+      videoConcept: stored?.videoConcept ?? null,
+      production: stored?.production ?? emptyProductionState(),
       createdAt: stored?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
+
+    const serverJob = await loadProductionJob(payload.projectId);
+    if (serverJob && this.brief) {
+      this.brief = enrich({ ...this.brief, production: serverJob });
+      if (serverJob.status === "running" && serverJob.jobId) {
+        this.startProductionPolling(serverJob.jobId);
+      }
+    }
 
     this.recommendation = this.brief.canContinue || this.brief.continueAnyway
       ? "Critical marketing settings valid — review the Production Brief, then continue."
@@ -520,6 +562,8 @@ export class MarketingInputEngine {
             completeness: b.completeness,
             validationStatus: b.validationStatus,
             productProfileRef: b.productId,
+            marketingPlan: b.marketingPlan,
+            videoConcept: b.videoConcept,
             version: b.history.length + 1,
           },
         },
@@ -534,6 +578,157 @@ export class MarketingInputEngine {
     } finally {
       this.saving = false;
     }
+  }
+
+  async generateMarketingPlan(): Promise<StructuredMarketingPlan> {
+    if (!this.brief) throw new Error("No marketing brief");
+    if (!this.brief.canStartProduction) {
+      throw new Error(this.brief.productionBlockedReason ?? "Configure objective, audience, and platform first.");
+    }
+    await this.flushPersist();
+    const intel = await fetchMarketingIntelligence(this.brief.projectId).catch(() => null);
+    const plan = buildStructuredMarketingPlan(this.brief.fields, this.brief.productProfile, intel);
+    const concept = buildVideoConcept(this.brief.fields, this.brief.productProfile, plan);
+    this.brief = enrich({
+      ...this.brief,
+      marketingPlan: plan,
+      videoConcept: concept,
+    });
+    saveStored(this.brief);
+    await this.flushPersist();
+    this.emitEvent("MarketingPlanGenerated", { projectId: this.brief.projectId, objective: plan.videoObjective });
+    this.emitBus("marketing.plan", { projectId: this.brief.projectId });
+    this.emit();
+    return plan;
+  }
+
+  /** Start real KWIZERA creative pipeline production from Step 4. */
+  async startVideoProduction(): Promise<void> {
+    if (!this.brief?.canStartProduction) {
+      throw new Error(this.brief?.productionBlockedReason ?? "Configure objective, audience, and platform first.");
+    }
+    if (this.brief.production.status === "running") {
+      throw new Error("Production already in progress.");
+    }
+    if (!this.brief.marketingPlan) {
+      await this.generateMarketingPlan();
+    }
+    await this.flushPersist();
+    await fetch(`/api/workspace/projects/${encodeURIComponent(this.brief!.projectId)}/production-defaults`, {
+      method: "POST",
+    }).catch(() => null);
+
+    const started = await startPipeline(this.brief!.projectId);
+    if (!started.jobId) {
+      throw new Error(started.error ?? "Unable to start video production — AI Core pipeline unavailable.");
+    }
+
+    this.brief = enrich({
+      ...this.brief!,
+      production: {
+        ...emptyProductionState(),
+        jobId: started.jobId,
+        status: "running",
+        startedAt: new Date().toISOString(),
+        stages: mapPipelineToProductionStages([], "validation", false),
+        currentStage: "validation",
+      },
+    });
+    saveStored(this.brief);
+    await persistProductionJob(this.brief.projectId, { ...this.brief.production, jobId: started.jobId });
+    this.emitEvent("workflow.started", { projectId: this.brief.projectId, jobId: started.jobId, source: "step-4" });
+    this.emitBus("production.progress", { projectId: this.brief.projectId, progress: 0, status: "running" });
+    this.emit();
+    this.startProductionPolling(started.jobId);
+  }
+
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  private startProductionPolling(jobId: string): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = setInterval(() => {
+      void this.refreshProductionProgress(jobId);
+    }, 2000);
+    void this.refreshProductionProgress(jobId);
+  }
+
+  private async refreshProductionProgress(jobId: string): Promise<void> {
+    if (!this.brief) return;
+    try {
+      const snap = await pollPipelineJob(jobId);
+      const failed = snap.status === "failed";
+      const pipelineCompleted = snap.status === "completed";
+      const parsed = parsePipelineError(snap.error);
+      let production = {
+        ...this.brief.production,
+        progress: snap.progress,
+        currentStage: snap.stage,
+        stages: mapPipelineToProductionStages(snap.completedStages, snap.stage, failed),
+        status: failed ? "failed" as const : pipelineCompleted ? "completed" as const : "running" as const,
+        error: snap.error,
+        errorStage: parsed.stage,
+        errorCode: parsed.code,
+      };
+
+      if (pipelineCompleted) {
+        const validation = await validateProductionOutput(this.brief.projectId);
+        production = {
+          ...production,
+          outputUrl: validation.outputUrl,
+          outputVersion: validation.version,
+          outputQuality: validation.quality,
+          outputDurationSec: validation.durationSec,
+          outputValidated: validation.valid,
+          completedAt: new Date().toISOString(),
+          progress: validation.valid ? 100 : snap.progress,
+          status: validation.valid ? "completed" : "failed",
+          error: validation.valid ? null : (validation.issues[0] ?? "QUALITY_CONTROL_FAILED: output validation failed"),
+          errorCode: validation.valid ? null : "QUALITY_CONTROL_FAILED",
+        };
+        if (this.pollTimer) {
+          clearInterval(this.pollTimer);
+          this.pollTimer = null;
+        }
+        if (validation.valid) {
+          this.notify?.("success", "Video ready", "Production completed with a validated output.", "production-complete");
+        } else {
+          this.notify?.("error", "Quality control failed", production.error ?? "Output validation failed", "errors");
+        }
+      } else {
+        this.emitBus("production.progress", {
+          projectId: this.brief.projectId,
+          progress: snap.progress,
+          stage: snap.stage,
+          status: production.status,
+        });
+      }
+
+      this.brief = enrich({ ...this.brief, production });
+      saveStored(this.brief);
+      await persistProductionJob(this.brief.projectId, { ...this.brief.production, jobId });
+      this.emit();
+    } catch (error) {
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+      }
+      this.brief = enrich({
+        ...this.brief,
+        production: {
+          ...this.brief.production,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error),
+          errorCode: "PIPELINE_ERROR",
+        },
+      });
+      saveStored(this.brief);
+      this.emit();
+    }
+  }
+
+  async fetchArtifactsSummary(): Promise<{ storyboard?: { sceneCount: number; scriptScore?: number }; scenePlan?: { sceneCount: number; flowScore?: number } }> {
+    if (!this.brief) return {};
+    return fetchProductionArtifacts(this.brief.projectId);
   }
 
   async continueToStep5(): Promise<Step5HandoffPayload> {

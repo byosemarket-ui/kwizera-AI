@@ -29,7 +29,7 @@ describe("Preference Validation", () => {
   it("repairs corrupt and legacy preferences", () => {
     const corrupt = validateAndRepairPreferences(null);
     expect(corrupt.repaired).toBe(true);
-    expect(corrupt.preferences.startupMode).toBe("restore-session");
+    expect(corrupt.preferences.startupMode).toBe("dashboard");
 
     const legacy = validateAndRepairPreferences({
       theme: "dark",
@@ -95,41 +95,43 @@ describe("Smart Startup", () => {
     ...over,
   });
 
-  it("resumes session when configured", () => {
+  it("always opens Home on a fresh application session", () => {
     const decision = decideSmartStartup({
       preferences: { ...defaultPreferences, startupMode: "restore-session" },
       restore: baseRestore(),
       shell: { ...defaultShellLayout, workspace: "storyboard" },
       lastProject: "Demo",
     });
-    expect(decision.workspace).toBe("storyboard");
-    expect(decision.explanation).toContain("Resumed previous session");
+    expect(decision.workspace).toBe("home");
+    expect(decision.openLastProject).toBe(false);
+    expect(decision.explanation).toMatch(/Home/i);
+    expect(decision.explanation).toMatch(/Demo/);
   });
 
-  it("opens dashboard or production by preference", () => {
+  it("opens Home even when preference is production or last-project", () => {
     expect(decideSmartStartup({
-      preferences: { ...defaultPreferences, startupMode: "dashboard" },
+      preferences: { ...defaultPreferences, startupMode: "production" },
       restore: baseRestore(),
       shell: { ...defaultShellLayout, workspace: "storyboard" },
       lastProject: null,
     }).workspace).toBe("home");
 
     expect(decideSmartStartup({
-      preferences: { ...defaultPreferences, startupMode: "production" },
+      preferences: { ...defaultPreferences, startupMode: "last-project", lastOpenedProject: "X" },
       restore: baseRestore(),
       shell: defaultShellLayout,
-      lastProject: null,
-    }).workspace).toBe("production");
+      lastProject: "X",
+    }).workspace).toBe("home");
   });
 
-  it("keeps crash recovery workspace", () => {
+  it("opens Home after crash recovery (data restored separately)", () => {
     const decision = decideSmartStartup({
       preferences: { ...defaultPreferences, startupMode: "dashboard" },
       restore: baseRestore({ recoveredFromCrash: true }),
       shell: { ...defaultShellLayout, workspace: "production" },
       lastProject: null,
     });
-    expect(decision.workspace).toBe("production");
+    expect(decision.workspace).toBe("home");
     expect(decision.explanation.toLowerCase()).toContain("crash");
   });
 });

@@ -62,7 +62,10 @@ export class ImageIntelligenceManager {
     if (!project) throw new Error("Project not found");
     const validation = this.validation.validate(project);
     if (!validation.valid) throw new Error(validation.issues.join(" "));
-    const profiles = await Promise.all(project.productImages.map((image) => this.analyzeImage(project, image)));
+    const foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
+    const profiles = await Promise.all(
+      project.productImages.map((image) => this.analyzeImage(project, image, foundationKnowledgeIds)),
+    );
     const marked = this.duplicates.mark(project, profiles);
     for (const profile of marked) {
       const index = this.store.profiles.findIndex((item) => item.imageId === profile.imageId);
@@ -72,12 +75,16 @@ export class ImageIntelligenceManager {
     return marked.map((profile) => ({ ...profile }));
   }
 
-  async analyzeImage(project: CreativeProject, image: ProductImage): Promise<ImageIntelligenceProfile> {
+  async analyzeImage(
+    project: CreativeProject,
+    image: ProductImage,
+    foundationKnowledgeIds: string[] = [],
+  ): Promise<ImageIntelligenceProfile> {
     const key = this.cache.key(project, image);
     const cachedId = this.store.cache[key];
     const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined;
     if (cached) return { ...cached, cached: true };
-    const profile = this.buildProfile(project, image);
+    const profile = this.buildProfile(project, image, foundationKnowledgeIds);
     this.store.profiles = this.store.profiles.filter((item) => item.imageId !== image.id);
     this.store.profiles.unshift(profile);
     this.store.cache[key] = profile.id;
@@ -160,7 +167,21 @@ export class ImageIntelligenceManager {
     this.core?.logger.info("image-intelligence", message);
   }
 
-  private buildProfile(project: CreativeProject, image: ProductImage): ImageIntelligenceProfile {
+  private async retrieveFoundationKnowledge(project: CreativeProject): Promise<string[]> {
+    const { retrieveFoundationKnowledgeForProject } = await import("../knowledge-foundation/knowledge-teaching-service.js");
+    return retrieveFoundationKnowledgeForProject(
+      this.core?.knowledgeFoundation,
+      project,
+      "image-intelligence-manager",
+      ["image", "lighting", "composition"],
+    );
+  }
+
+  private buildProfile(
+    project: CreativeProject,
+    image: ProductImage,
+    foundationKnowledgeIds: string[] = [],
+  ): ImageIntelligenceProfile {
     const evidence = `${project.productInformation.name} ${project.productInformation.description} ${image.fileName} ${(project.productInformation.colors ?? []).join(" ")}`;
     const quality = this.quality.analyze(image);
     quality.classification =
@@ -219,6 +240,7 @@ export class ImageIntelligenceManager {
         visibilityPercent: visibility.percent,
         qualityClass: quality.classification ?? "ACCEPTABLE",
       },
+      foundationKnowledgeIds: foundationKnowledgeIds.length ? foundationKnowledgeIds : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       cached: false,

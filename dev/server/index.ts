@@ -1048,23 +1048,31 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       aiCore: Boolean(runtime?.isReady()),
 
+      localInference: Boolean(getModelManager()?.isInitialized()),
+
+      memoryFoundation: Boolean(runtime?.memoryFoundation),
+
+      knowledgeFoundation: Boolean(runtime?.knowledgeFoundation),
+
+      productIntelligence: Boolean(runtime?.productIntelligenceFoundation),
+
+      imageIntelligence: Boolean(runtime?.imageIntelligenceFoundation),
+
+      videoIntelligence: Boolean(runtime?.videoIntelligenceFoundation),
+
       workflowEngine: Boolean(runtime?.workflowEngine),
 
       communicationBus: Boolean(runtime?.communicationBus),
 
       moduleManager: Boolean(runtime?.moduleManager),
 
-      memoryFoundation: Boolean(runtime?.memoryFoundation),
-
-      knowledgeFoundation: Boolean(runtime?.knowledgeFoundation),
-
       automationEngine: Boolean(runtime?.workflowEngine),
 
       taskScheduler: Boolean(runtime?.taskManager),
 
-      productIntelligence: Boolean(runtime?.productIntelligenceFoundation),
-
       cameraSimulation: Boolean(runtime?.videoIntelligenceFoundation),
+
+      foundation: "kwizera-ai-core",
 
       activeProject: activeProject?.name ?? "No active project",
       activeProjectId: activeProject?.id ?? null,
@@ -1183,10 +1191,142 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         text: url.searchParams.get("q") ?? undefined,
         topic: url.searchParams.get("topic") ?? undefined,
         limit: Number(url.searchParams.get("limit") ?? 40),
+        projectId: url.searchParams.get("projectId") ?? undefined,
+        permanentOnly: url.searchParams.get("permanentOnly") === "1" ? true
+          : url.searchParams.get("projectId") ? false : true,
       });
       sendJson(res, 200, { records, count: records.length });
     } catch (error) {
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge search failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/knowledge/teach" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        topic?: string;
+        content?: string;
+        scope?: "permanent" | "project";
+        projectId?: string;
+        knowledgeType?: string;
+        autoApprove?: boolean;
+        sourceName?: string;
+      };
+      const foundation = getPersistentRuntime()?.getManager()?.knowledgeFoundation;
+      if (foundation?.isStartupComplete()) {
+        const { createKnowledgeTeachingService } = await import("../../ai/knowledge-foundation/knowledge-teaching-service.js");
+        const teaching = createKnowledgeTeachingService(foundation);
+        const taught = await teaching.teach({
+          topic: body.topic ?? "",
+          content: body.content ?? "",
+          scope: body.scope ?? "permanent",
+          projectId: body.projectId,
+          autoApprove: body.autoApprove !== false,
+          sourceName: body.sourceName,
+          knowledgeType: body.knowledgeType as never,
+        });
+        sendJson(res, taught.ok ? 200 : 400, { foundation: "kwizera-ai-core", ...taught });
+        return;
+      }
+      // Fallback: Persistent Memory Center (same knowledge disk) when AI Core still booting
+      if (!persistentMemoryCenter.isReady()) {
+        sendJson(res, 503, { error: "Knowledge teaching unavailable until Knowledge Foundation or Memory Center is ready" });
+        return;
+      }
+      const saved = await persistentMemoryCenter.saveKnowledge({
+        title: `Taught: ${body.topic ?? "knowledge"}`,
+        topic: body.topic ?? "",
+        content: body.content ?? "",
+        scope: body.scope ?? "permanent",
+        projectId: body.projectId,
+        source: body.sourceName ?? "kwizera-teaching",
+      });
+      sendJson(res, saved.success || saved.action === "updated" ? 200 : 400, {
+        foundation: "persistent-memory-center",
+        ok: Boolean(saved.success || saved.action === "updated"),
+        knowledgeId: saved.knowledgeId,
+        imported: Boolean(saved.success || saved.action === "updated"),
+        scope: body.scope ?? "permanent",
+        projectId: body.projectId,
+        error: saved.success || saved.action === "updated" ? undefined : (saved as { validation?: { message?: string } }).validation?.message,
+      });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge teaching failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/knowledge/retrieve" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        text?: string;
+        projectId?: string;
+        includePermanent?: boolean;
+        permanentOnly?: boolean;
+        limit?: number;
+        verifiedOnly?: boolean;
+      };
+      const foundation = getPersistentRuntime()?.getManager()?.knowledgeFoundation;
+      if (foundation?.isStartupComplete()) {
+        const { createKnowledgeTeachingService } = await import("../../ai/knowledge-foundation/knowledge-teaching-service.js");
+        const teaching = createKnowledgeTeachingService(foundation);
+        const retrieved = await teaching.retrieve({
+          text: body.text ?? "",
+          projectId: body.projectId,
+          includePermanent: body.includePermanent,
+          permanentOnly: body.permanentOnly,
+          limit: body.limit,
+          verifiedOnly: body.verifiedOnly,
+        });
+        sendJson(res, retrieved.ok ? 200 : 400, { foundation: "kwizera-ai-core", ...retrieved });
+        return;
+      }
+      if (!persistentMemoryCenter.isReady()) {
+        sendJson(res, 503, { error: "Knowledge retrieval unavailable" });
+        return;
+      }
+      const records = await persistentMemoryCenter.searchKnowledge({
+        text: body.text,
+        projectId: body.projectId,
+        permanentOnly: body.projectId ? false : body.permanentOnly !== false,
+        limit: body.limit ?? 20,
+      });
+      sendJson(res, 200, {
+        foundation: "persistent-memory-center",
+        ok: true,
+        records,
+        knowledgeIds: records.map((r) => r.knowledgeId),
+        count: records.length,
+      });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge retrieval failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/knowledge/approve" && req.method === "POST") {
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        requestId?: string;
+        scope?: "permanent" | "project";
+        projectId?: string;
+      };
+      const foundation = getPersistentRuntime()?.getManager()?.knowledgeFoundation;
+      if (!foundation?.isStartupComplete()) {
+        sendJson(res, 503, { error: "Knowledge Foundation not ready for approve" });
+        return;
+      }
+      if (!body.requestId) {
+        sendJson(res, 400, { error: "requestId is required" });
+        return;
+      }
+      const { createKnowledgeTeachingService } = await import("../../ai/knowledge-foundation/knowledge-teaching-service.js");
+      const teaching = createKnowledgeTeachingService(foundation);
+      const approved = await teaching.approve(body.requestId, { scope: body.scope, projectId: body.projectId });
+      sendJson(res, approved.ok ? 200 : 400, { foundation: "kwizera-ai-core", ...approved });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Knowledge approve failed" });
     }
     return;
   }
@@ -1607,11 +1747,37 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      sendJson(res, 200, await models.discoverProviders());
+      const sync = await models.syncLocalInferenceProviders();
+
+      sendJson(res, 200, { ...await models.discoverProviders(), sync });
 
     } catch (error) {
 
       sendJson(res, 503, { error: error instanceof Error ? error.message : "Unable to discover local inference providers" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/models/smoke" && req.method === "POST") {
+
+    const models = requireModelManager(res);
+
+    if (!models) return;
+
+    try {
+
+      const body = JSON.parse((await readBody(req)) || "{}") as { modelId?: string };
+
+      const smoke = await models.smokeInference(body.modelId ?? "studio-language-base");
+
+      sendJson(res, smoke.ok ? 200 : 503, { smoke, runtime: await models.runtimeStatus() });
+
+    } catch (error) {
+
+      sendJson(res, 503, { error: error instanceof Error ? error.message : "Local AI smoke test failed" });
 
     }
 
@@ -2440,6 +2606,44 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Product audio generation failed" });
+
+    }
+
+    return;
+
+  }
+
+  const productRenderingPreviewMatch = url.pathname.match(/^\/api\/product-rendering-export\/projects\/([^/]+)\/preview$/);
+
+  if (productRenderingPreviewMatch && req.method === "GET") {
+
+    const rendering = requireProductRenderingExport(res);
+
+    if (!rendering) return;
+
+    try {
+
+      const dashboard = await rendering.getDashboard(productRenderingPreviewMatch[1]);
+
+      const latest = dashboard.renders[0];
+
+      if (!latest?.artifacts?.previewRelativePath) {
+
+        sendJson(res, 404, { error: "No rendered preview available yet" });
+
+        return;
+
+      }
+
+      const previewPath = await rendering.getArtifactAbsolutePath(latest.artifacts.previewRelativePath);
+
+      if (!previewPath) { sendJson(res, 404, { error: "Preview artifact missing on disk" }); return; }
+
+      await serveStatic(res, previewPath);
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to serve preview" });
 
     }
 
@@ -3329,6 +3533,188 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to save project" });
+
+    }
+
+    return;
+
+  }
+
+  const productionDefaultsMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/production-defaults$/);
+
+  if (productionDefaultsMatch && req.method === "POST") {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    try {
+
+      const project = await workspace.ensureProductProductionDefaults(productionDefaultsMatch[1]);
+
+      sendJson(res, 200, { project, productProfile: workspace.validateProductProfile(project) });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to apply production defaults" });
+
+    }
+
+    return;
+
+  }
+
+  const productionJobMatch = url.pathname.match(/^\/api\/production\/projects\/([^/]+)\/job$/);
+
+  if (productionJobMatch) {
+
+    const workspace = requireWorkspace(res);
+
+    if (!workspace) return;
+
+    const projectId = productionJobMatch[1];
+
+    if (req.method === "GET") {
+
+      const job = await workspace.getProductionJob(projectId);
+
+      sendJson(res, 200, { job });
+
+      return;
+
+    }
+
+    if (req.method === "POST") {
+
+      try {
+
+        const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+
+        const project = await workspace.saveProductionJob(projectId, body);
+
+        sendJson(res, 200, { job: body, project });
+
+      } catch (error) {
+
+        sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to save production job" });
+
+      }
+
+      return;
+
+    }
+
+  }
+
+  const productionOutputMatch = url.pathname.match(/^\/api\/production\/projects\/([^/]+)\/output-validation$/);
+
+  if (productionOutputMatch && req.method === "GET") {
+
+    const rendering = requireProductRenderingExport(res);
+
+    if (!rendering) return;
+
+    try {
+
+      const projectId = productionOutputMatch[1];
+
+      const delivery = await rendering.getRender(projectId);
+
+      if (!delivery) {
+
+        sendJson(res, 200, { valid: false, outputUrl: null, version: null, quality: null, durationSec: null, format: null, fileSizeBytes: null, issues: ["No render output found"] });
+
+        return;
+
+      }
+
+      const finalPath = await rendering.getArtifactAbsolutePath(delivery.artifacts.finalVideoRelativePath);
+
+      const previewPath = await rendering.getArtifactAbsolutePath(delivery.artifacts.previewRelativePath);
+
+      const issues: string[] = [];
+
+      if (!finalPath) issues.push("Final output file missing");
+
+      if (!previewPath) issues.push("Preview artifact missing");
+
+      let fileSizeBytes: number | null = null;
+
+      if (finalPath) {
+
+        const stat = await (await import("node:fs/promises")).stat(finalPath);
+
+        fileSizeBytes = stat.size;
+
+        if (stat.size < 50) issues.push("Output file empty or too small");
+
+        const content = await (await import("node:fs/promises")).readFile(finalPath, "utf8");
+
+        if (!content.includes("<svg") && !content.includes("<?xml")) issues.push("Invalid output format");
+
+      }
+
+      if (delivery.quality.overall < 30) issues.push(`Quality score ${delivery.quality.overall}/100 below minimum`);
+
+      const valid = issues.length === 0;
+
+      sendJson(res, 200, {
+
+        valid,
+
+        outputUrl: valid ? `/api/product-rendering-export/projects/${encodeURIComponent(projectId)}/preview` : null,
+
+        version: String(delivery.version),
+
+        quality: delivery.quality.overall,
+
+        durationSec: null,
+
+        format: delivery.settings.format,
+
+        fileSizeBytes,
+
+        issues,
+
+      });
+
+    } catch (error) {
+
+      sendJson(res, 500, { valid: false, outputUrl: null, version: null, quality: null, durationSec: null, format: null, fileSizeBytes: null, issues: [error instanceof Error ? error.message : "Validation failed"] });
+
+    }
+
+    return;
+
+  }
+
+  const productionArtifactsMatch = url.pathname.match(/^\/api\/production\/projects\/([^/]+)\/artifacts$/);
+
+  if (productionArtifactsMatch && req.method === "GET") {
+
+    const scenePlanning = requireProductScenePlanning(res);
+
+    const storyboard = requireProductStoryboard(res);
+
+    const projectId = productionArtifactsMatch[1];
+
+    try {
+
+      const scenePlan = scenePlanning ? (await scenePlanning.getDashboard(projectId)).plans.at(-1) : undefined;
+
+      const story = storyboard ? (await storyboard.getDashboard(projectId)).storyboards.at(-1) : undefined;
+
+      sendJson(res, 200, {
+
+        scenePlan: scenePlan ? { sceneCount: scenePlan.sceneCount, flowScore: scenePlan.quality.marketingFlowScore } : undefined,
+
+        storyboard: story ? { sceneCount: story.totalScenes, scriptScore: story.quality.scriptScore } : undefined,
+
+      });
+
+    } catch (error) {
+
+      sendJson(res, 200, { scenePlan: undefined, storyboard: undefined, error: error instanceof Error ? error.message : "Artifacts unavailable" });
 
     }
 

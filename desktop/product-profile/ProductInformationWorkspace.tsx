@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Image as ImageIcon,
-  Save, Sparkles,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clapperboard, Image as ImageIcon,
+  Play, Save, Sparkles,
 } from "lucide-react";
 import { useShell } from "../shell/ShellContext";
 import { workspaceIntegrationEngine } from "../shell/integration/integration-engine";
@@ -36,6 +36,8 @@ export function ProductInformationWorkspace() {
     review: true,
   });
   const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
   const [variantDraft, setVariantDraft] = useState<{
     kind: "color" | "size" | "model" | "package" | "other";
@@ -100,6 +102,30 @@ export function ProductInformationWorkspace() {
       notify("error", "Cannot continue", error instanceof Error ? error.message : "Incomplete", "errors");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      await productProfileEngine.runProductUnderstanding();
+      notify("success", "Product understood", "KWIZERA AI built a structured product profile from your images and inputs.", "ai-suggestions");
+    } catch (error) {
+      notify("error", "Analysis failed", error instanceof Error ? error.message : "Unable to analyze", "errors");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const onGenerateVideo = async () => {
+    setGenerating(true);
+    try {
+      await productProfileEngine.startVideoGeneration();
+      notify("info", "Video production started", "KWIZERA AI is running the creative pipeline.", "production-complete");
+    } catch (error) {
+      notify("error", "Cannot start production", error instanceof Error ? error.message : "Pipeline unavailable", "errors");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -170,6 +196,23 @@ export function ProductInformationWorkspace() {
           <button type="button" onClick={() => switchWorkspace("image-organization")}>Back to Images</button>
           <button
             type="button"
+            disabled={analyzing || !profile.readiness.canGenerateVideo}
+            onClick={() => void onAnalyze()}
+            title="Run Product + Image Intelligence"
+          >
+            {analyzing ? "Analyzing…" : "Analyze Product"}
+          </button>
+          <button
+            type="button"
+            className="pp-generate"
+            disabled={generating || profile.production.status === "running" || !profile.readiness.canGenerateVideo}
+            onClick={() => void onGenerateVideo()}
+            title={profile.readiness.blockedReason ?? "Start KWIZERA video production"}
+          >
+            <Clapperboard size={15} /> {generating || profile.production.status === "running" ? "Starting…" : "Generate Video"}
+          </button>
+          <button
+            type="button"
             className="pp-primary"
             disabled={busy || !profile.canContinue}
             onClick={() => void onContinue()}
@@ -179,6 +222,97 @@ export function ProductInformationWorkspace() {
           </button>
         </div>
       </section>
+
+      <section className="pp-panel pp-readiness">
+        <h3>Product Readiness</h3>
+        <p className={`pp-readiness-banner ${profile.readiness.canGenerateVideo ? "ready" : "blocked"}`}>
+          {profile.readiness.message}
+        </p>
+        <div className="pp-readiness-grid">
+          {profile.readiness.required.map((row) => (
+            <div key={row.field} className={`pp-readiness-row ${row.satisfied ? "ok" : "err"}`}>
+              <span>{row.label}</span>
+              <b>{row.satisfied ? "✓" : "✗"}</b>
+            </div>
+          ))}
+          {profile.readiness.optional.slice(0, 6).map((row) => (
+            <div key={row.field} className={`pp-readiness-row ${row.satisfied ? "ok" : "opt"}`}>
+              <span>{row.label}</span>
+              <b>{row.satisfied ? "✓" : "—"}</b>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {(profile.production.status !== "idle" || profile.structuredProfile) && (
+        <section className="pp-panel pp-production">
+          {profile.production.status !== "idle" && (
+            <>
+              <h3>Video Production</h3>
+              <div className="pp-progress-head">
+                <strong>{profile.production.progress}%</strong>
+                <span>{profile.production.status === "running" ? "In progress" : profile.production.status}</span>
+              </div>
+              <div className="pp-progress-bar">
+                <div className="pp-progress-fill" style={{ width: `${profile.production.progress}%` }} />
+              </div>
+              <ul className="pp-stage-list">
+                {profile.production.stages.map((stage) => (
+                  <li key={stage.id} className={`stage-${stage.status}`}>
+                    <span>{stage.status === "completed" ? "✓" : stage.status === "active" ? "▶" : stage.status === "failed" ? "✗" : "○"}</span>
+                    {stage.label}
+                  </li>
+                ))}
+              </ul>
+              {profile.production.error && (
+                <p className="pp-err">{profile.production.error}</p>
+              )}
+              {profile.production.status === "completed" && profile.production.outputUrl && (
+                <div className="pp-output">
+                  <h4>Output Preview</h4>
+                  {profile.production.outputUrl.endsWith(".svg") || profile.production.outputUrl.includes("preview") ? (
+                    <img src={profile.production.outputUrl} alt="Generated video preview" className="pp-output-preview" />
+                  ) : (
+                    <a href={profile.production.outputUrl} target="_blank" rel="noreferrer">
+                      <Play size={14} /> Open output
+                    </a>
+                  )}
+                  {profile.production.outputVersion && (
+                    <p className="pp-muted">Version {profile.production.outputVersion}
+                      {profile.production.outputQuality != null ? ` · Quality ${profile.production.outputQuality}/100` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
+              {profile.production.status === "completed" && !profile.production.outputUrl && (
+                <p className="pp-warn">
+                  Pipeline finished but no validated preview artifact was found. Check AI Services and storage.
+                </p>
+              )}
+            </>
+          )}
+          {profile.structuredProfile && (
+            <div className="pp-structured">
+              <h3>Structured Product Profile</h3>
+              <div className="pp-summary">
+                <div><span>Category</span><b>{profile.structuredProfile.identity.category ?? "—"}</b></div>
+                <div><span>Product type</span><b>{profile.structuredProfile.identity.productType ?? "—"}</b></div>
+                <div><span>Confidence</span><b>{profile.structuredProfile.confidence.overall}%</b></div>
+                <div><span>Image views</span><b>{profile.structuredProfile.coverage.viewCount}</b></div>
+                <div><span>Colors</span><b>{profile.structuredProfile.visual.colors.join(" / ") || "—"}</b></div>
+                <div><span>Materials</span><b>{profile.structuredProfile.visual.materials.join(" / ") || "—"}</b></div>
+                <div className="span-2"><span>Selling points</span><b>{profile.structuredProfile.commercial.sellingPoints.slice(0, 4).join(" · ") || "—"}</b></div>
+              </div>
+              {profile.structuredProfile.uncertainFields.length > 0 && (
+                <p className="pp-warn">Review needed: {profile.structuredProfile.uncertainFields.join(", ")}</p>
+              )}
+              {profile.structuredProfile.missingInformation.length > 0 && (
+                <p className="pp-muted">Optional gaps: {profile.structuredProfile.missingInformation.slice(0, 5).join(", ")}</p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="pp-layout">
         <aside className="pp-images">
@@ -232,7 +366,7 @@ export function ProductInformationWorkspace() {
                 <input value={fields.barcode} placeholder="8–14 digits" onChange={(e) => productProfileEngine.updateField("barcode", e.target.value)} />
               </label>
               <label>Category {validationIcon("category")}
-                <input value={fields.category} onChange={(e) => productProfileEngine.updateField("category", e.target.value)} />
+                <input value={fields.category} placeholder="Optional — AI can suggest" onChange={(e) => productProfileEngine.updateField("category", e.target.value)} />
               </label>
               <label>Subcategory
                 <input value={fields.subcategory} onChange={(e) => productProfileEngine.updateField("subcategory", e.target.value)} />
@@ -503,7 +637,7 @@ export function ProductInformationWorkspace() {
               <div><span>Validation</span><b>{profile.validationStatus.toUpperCase()}</b></div>
               <div className="span-2">
                 <span>Status</span>
-                <b>{profile.canContinue ? "READY FOR MARKETING" : "NEEDS CRITICAL FIELDS"}</b>
+                <b>{profile.readiness.message}</b>
               </div>
             </div>
             {profile.completeness.missingRecommended.length > 0 && (

@@ -34,6 +34,7 @@
     "smoke:decision-intelligence": "tsx scripts/smoke-decision-intelligence.ts",
     "smoke:persistence-restart": "node scripts/smoke-persistence-restart.mjs",
     "e2e:product-creation": "node scripts/e2e-product-creation-functional.mjs",
+    "certify:step5": "node scripts/step5-product-to-video-certification.mjs",
     "verify:machine": "node scripts/machine-final-verification.mjs",
     "stage:packaged-runtime": "node scripts/stage-packaged-runtime.mjs",
     "validate:reasoning-engine": "tsx scripts/validate-reasoning-engine.ts",

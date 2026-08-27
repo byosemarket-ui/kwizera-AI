@@ -74,6 +74,8 @@ export interface ImageIntelligenceProfile {
   detectedText?: DetectedTextCue[];
   visibility?: VisibilityCue;
   metadata: Record<string, string | number>;
+  /** Knowledge Foundation record ids used during this analysis */
+  foundationKnowledgeIds?: string[];
   createdAt: string;
   updatedAt: string;
   cached: boolean;

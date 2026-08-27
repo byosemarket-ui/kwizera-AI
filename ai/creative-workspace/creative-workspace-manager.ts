@@ -380,25 +380,100 @@ export class CreativeWorkspaceManager {
     return { valid: errors.length === 0, errors };
   }
 
-  /** Step 3 Product Profile gate — critical commerce fields + images. */
+  /** Step 3 Product Profile gate — name + price + images (category optional; AI may derive). */
   validateProductProfile(project: CreativeProject | null): ValidationResult {
     const errors: string[] = [];
     if (!project) errors.push("Create or open a project before continuing.");
     if (!project) return { valid: false, errors };
     if (!project.name.trim() && !project.productInformation.name.trim()) errors.push("Product name is required.");
     if (!project.productInformation.name.trim()) errors.push("Product name is required.");
-    if (!project.productInformation.category.trim()) errors.push("Product category is required.");
     if (project.productInformation.price == null || !Number.isFinite(project.productInformation.price) || project.productInformation.price < 0) {
       errors.push("A valid selling price is required.");
-    }
-    if (project.productInformation.price != null && !String(project.productInformation.currency ?? "").trim()) {
-      errors.push("Currency is required when a price is set.");
     }
     if (!project.productImages.length) errors.push("At least one product image is required.");
     return { valid: errors.length === 0, errors };
   }
 
-  /** Step 4 Marketing Brief gate — objective, audience, platform, language, format. */
+  /** Fill empty production/marketing fields from Step 3/4 data — never overwrites user values. */
+  async ensureProductProductionDefaults(projectId: string): Promise<CreativeProject> {
+    this.ensureInitialized();
+    const project = await this.getProject(projectId);
+    if (!project) throw new Error("Project not found");
+    const info = project.productInformation;
+    const brief = project.workspaceSettings?.marketingInputBrief as {
+      fields?: {
+        objective?: string;
+        audienceType?: string;
+        audienceNotes?: string;
+        customerSegment?: string;
+        platforms?: string[];
+        contentFormat?: string;
+        customFormat?: string;
+        language?: string;
+        languageOther?: string;
+        cta?: string;
+        ctaCustom?: string;
+        tone?: string;
+        style?: string;
+      };
+    } | undefined;
+    const bf = brief?.fields;
+    const audienceFromBrief = [bf?.audienceType, bf?.customerSegment, bf?.audienceNotes].filter(Boolean).join(" · ");
+    const platformFromBrief = bf?.platforms?.[0];
+    const formatFromBrief = bf?.contentFormat === "Custom Format" ? bf?.customFormat : bf?.contentFormat;
+    const langFromBrief = bf?.language === "Other" ? bf?.languageOther : bf?.language;
+    const ctaFromBrief = bf?.cta === "Custom CTA" ? bf?.ctaCustom : bf?.cta;
+    const brand = project.brandInformation?.name?.trim() || info.brand?.trim() || info.name.trim();
+    const description = info.description?.trim() || info.shortDescription?.trim() || `${info.name} product showcase`;
+    const category = info.category?.trim() || "General product";
+    const patch: Partial<CreativeProject> = {
+      productInformation: {
+        ...info,
+        category: info.category?.trim() ? info.category : category,
+        description: info.description?.trim() ? info.description : description,
+        currency: info.currency?.trim() || "RWF",
+      },
+      brandInformation: {
+        ...project.brandInformation,
+        name: project.brandInformation?.name?.trim() ? project.brandInformation.name : brand,
+      },
+      campaignInformation: {
+        ...project.campaignInformation,
+        name: project.campaignInformation.name?.trim() || `${info.name} campaign`,
+        objective: project.campaignInformation.objective?.trim() || bf?.objective?.trim() || "Showcase product value",
+        contentFormat: project.campaignInformation.contentFormat?.trim() || formatFromBrief?.trim() || "short-form video",
+        callToAction: project.campaignInformation.callToAction?.trim() || ctaFromBrief?.trim() || undefined,
+        tone: project.campaignInformation.tone?.trim() || bf?.tone?.trim() || undefined,
+        style: project.campaignInformation.style?.trim() || bf?.style?.trim() || undefined,
+        platforms: project.campaignInformation.platforms?.length ? project.campaignInformation.platforms : (bf?.platforms ?? []),
+      },
+      targetAudience: project.targetAudience?.trim() || audienceFromBrief || "Product buyers",
+      language: project.language?.trim() || (langFromBrief === "Kinyarwanda" ? "rw" : langFromBrief === "English" ? "en" : langFromBrief?.toLowerCase().slice(0, 8)) || "rw",
+      platform: project.platform?.trim() || platformFromBrief?.toLowerCase() || "instagram",
+    };
+    return this.updateProject(projectId, patch);
+  }
+
+  async saveProductionJob(projectId: string, job: Record<string, unknown>): Promise<CreativeProject> {
+    this.ensureInitialized();
+    const project = await this.getProject(projectId);
+    if (!project) throw new Error("Project not found");
+    return this.updateProject(projectId, {
+      workspaceSettings: {
+        ...project.workspaceSettings,
+        productionJob: job,
+      },
+    });
+  }
+
+  async getProductionJob(projectId: string): Promise<Record<string, unknown> | null> {
+    this.ensureInitialized();
+    const project = await this.getProject(projectId);
+    const job = project?.workspaceSettings?.productionJob;
+    return job && typeof job === "object" ? job as Record<string, unknown> : null;
+  }
+
+  /** Step 4 Marketing Brief gate — objective, audience, platform (format/language default at production). */
   validateMarketingBrief(project: CreativeProject | null): ValidationResult {
     const errors: string[] = [];
     if (!project) errors.push("Create or open a project before continuing.");
@@ -407,10 +482,6 @@ export class CreativeWorkspaceManager {
     if (!project.targetAudience.trim()) errors.push("Target audience is required.");
     if (!project.platform.trim() && !(project.campaignInformation.platforms?.length)) {
       errors.push("At least one marketing platform is required.");
-    }
-    if (!project.language.trim()) errors.push("Language is required.");
-    if (!String(project.campaignInformation.contentFormat ?? "").trim()) {
-      errors.push("Content format is required.");
     }
     return { valid: errors.length === 0, errors };
   }

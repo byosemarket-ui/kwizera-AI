@@ -13,7 +13,7 @@ export function validateProfileFields(
   if (!fields.name.trim()) push("name", "error", "Product name is required.");
   else push("name", "ok", "Product name");
 
-  if (!fields.category.trim()) push("category", "error", "Category is required.");
+  if (!fields.category.trim()) push("category", "warning", "Category empty — AI can suggest from images.");
   else push("category", "ok", "Category");
 
   if (fields.price == null || !Number.isFinite(fields.price) || fields.price < 0) {
@@ -21,7 +21,7 @@ export function validateProfileFields(
   } else push("price", "ok", "Price");
 
   if (fields.price != null && !fields.currency.trim()) {
-    push("currency", "error", "Currency is required when a price is set.");
+    push("currency", "warning", "Currency will default to RWF.");
   } else if (fields.currency.trim()) push("currency", "ok", "Currency");
 
   if (fields.originalPrice != null && fields.price != null && fields.originalPrice < fields.price) {

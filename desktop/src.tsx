@@ -308,7 +308,7 @@ function DesktopPreferencesPanel({ preferences, onChange, onProfile, onRestore, 
                   value={preferences.startupMode}
                   onChange={(event) => update({ startupMode: event.target.value as StartupMode })}
                 >
-                  <option value="restore-session">Resume previous session</option>
+                  <option value="restore-session">Remember session (still opens Home on launch)</option>
                   <option value="last-project">Open last project</option>
                   <option value="dashboard">Open dashboard</option>
                   <option value="production">Open production</option>

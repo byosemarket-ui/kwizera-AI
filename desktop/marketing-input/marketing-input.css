@@ -315,6 +315,17 @@
 .mi-summary span { font-size: 0.75rem; color: var(--mi-muted); }
 .mi-summary b { font-size: 0.95rem; }
 
+.mi-production h3 { margin: 0 0 10px; }
+.mi-progress-head { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
+.mi-progress-bar { height: 8px; background: var(--mi-line); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.mi-progress-fill { height: 100%; background: var(--mi-accent); transition: width 0.3s ease; }
+.mi-stages { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; font-size: 0.85rem; }
+.mi-stages .completed { color: var(--mi-ok); }
+.mi-stages .active { color: var(--mi-accent); font-weight: 600; }
+.mi-stages .failed { color: var(--mi-err, #c0392b); }
+.mi-output-preview { max-width: 100%; border-radius: 10px; border: 1px solid var(--mi-line); margin-top: 8px; }
+.mi-video-ready { margin-top: 8px; }
+
 @media (max-width: 980px) {
   .mi-layout { grid-template-columns: 1fr; }
   .mi-product { position: static; }

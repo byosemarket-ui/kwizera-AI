@@ -39,6 +39,12 @@ export function loadDesktopConfig(userDataPath) {
       featureFlags: { ...defaults.featureFlags, ...(parsed.featureFlags || {}) },
       __userDataPath: userDataPath,
     };
+    // One-time architecture restore: older installs used persistentRuntime=false (dashboard-only),
+    // which disconnected KWIZERA AI Core. Re-enable unless KWIZERA_PERSISTENT_MODE=0.
+    if (parsed.featureFlags?.persistentRuntime === false && process.env.KWIZERA_PERSISTENT_MODE !== "0") {
+      merged.featureFlags.persistentRuntime = true;
+      try { saveDesktopConfig(merged); } catch { /* ignore */ }
+    }
     // If a previously saved root is not writable (e.g. missing D: drive), fall back.
     try {
       fs.mkdirSync(merged.storageRoot, { recursive: true });
@@ -102,7 +108,9 @@ function defaultConfig() {
     featureFlags: {
       skipBrowserOpen: true,
       preferLocalServices: true,
-      persistentRuntime: false,
+      // KWIZERA AI Core (memory/knowledge/intelligence foundations) is the desktop foundation.
+      // Optional third-party providers (e.g. Ollama) are not required for core readiness.
+      persistentRuntime: true,
     },
   };
 }

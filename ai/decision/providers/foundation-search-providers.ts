@@ -26,15 +26,28 @@ export class FoundationMemorySearchProvider implements MemorySearchProvider {
 export class FoundationKnowledgeSearchProvider implements KnowledgeSearchProvider {
   constructor(private readonly core: AiCoreManager) {}
 
-  async search(query: string, _context: Record<string, unknown>): Promise<KnowledgeSearchResult> {
+  async search(query: string, context: Record<string, unknown>): Promise<KnowledgeSearchResult> {
     const foundation = this.core.knowledgeFoundation;
     if (!foundation?.isStartupComplete()) return { found: false, items: [], message: "Knowledge Foundation is not ready." };
-    const result = await foundation.getRetrievalEngine().search({ text: query, limit: RESULT_LIMIT, requesterId: "decision-reasoning" });
-    const items = result.results.flatMap((item) => item.record ? [{
-      id: item.record.knowledgeId,
-      fact: item.record.summary.slice(0, 500),
-      source: item.record.source,
-    }] : []);
-    return { found: items.length > 0, items, message: result.diagnostics.join(" ") || `${items.length} knowledge result(s) found.` };
+    const projectId = typeof context.projectId === "string" ? context.projectId : undefined;
+    const { createKnowledgeTeachingService } = await import("../../knowledge-foundation/knowledge-teaching-service.js");
+    const teaching = createKnowledgeTeachingService(foundation);
+    const retrieved = await teaching.retrieve({
+      text: query,
+      projectId,
+      includePermanent: true,
+      limit: RESULT_LIMIT,
+      requesterId: "decision-reasoning",
+    });
+    const items = retrieved.records.map((record) => ({
+      id: record.knowledgeId,
+      fact: record.summary.slice(0, 500),
+      source: record.source,
+    }));
+    return {
+      found: items.length > 0,
+      items,
+      message: retrieved.error || `${items.length} knowledge result(s) found.`,
+    };
   }
 }

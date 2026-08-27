@@ -100,4 +100,60 @@ describe("AiModelManager", () => {
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
   });
+
+  it("binds Ollama provider model ids so catalog profiles can execute through the local runtime", async () => {
+    const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-ollama-bind-"));
+    roots.push(storageRoot);
+    const server = createServer((request, response) => {
+      if (request.url === "/api/tags") {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ models: [{ name: "llama3.2:3b" }] }));
+        return;
+      }
+      if (request.url === "/api/generate" && request.method === "POST") {
+        let raw = "";
+        request.on("data", (chunk) => { raw += chunk; });
+        request.on("end", () => {
+          const body = JSON.parse(raw) as { model?: string };
+          expect(body.model).toBe("llama3.2:3b");
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ response: "READY" }));
+        });
+        return;
+      }
+      response.writeHead(404); response.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Unable to start Ollama fixture");
+
+    try {
+      const manager = new AiModelManager();
+      await manager.initialize(storageRoot);
+      manager.inference.configure({
+        id: "ollama-local",
+        name: "Ollama Local",
+        kind: "ollama",
+        endpoint: `http://127.0.0.1:${address.port}`,
+        enabled: true,
+        supportedCategories: ["language", "vision", "embedding"],
+      });
+
+      await manager.install("studio-language-base");
+      manager.getMutable("studio-language-base").providerModelId = "llama3.2:3b";
+      manager.getMutable("studio-language-base").requirements = { ramMb: 0, storageMb: 0 };
+      await manager.persist();
+
+      const result = await manager.inference.infer({
+        modelId: "studio-language-base",
+        category: "language",
+        prompt: "Reply READY",
+        priority: "high",
+      });
+      expect(result.output).toBe("READY");
+      expect(result.providerId).toBe("ollama-local");
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  });
 });

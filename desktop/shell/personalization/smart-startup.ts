@@ -3,93 +3,41 @@ import { workspaceProfiles } from "../../desktop-polish/profiles";
 import type { ShellLayoutState, WorkspaceId } from "../types";
 import type { SmartStartupInput, StartupDecision } from "./types";
 
+/**
+ * Fresh application session (Desktop icon / cold start): always open Home.
+ *
+ * Project data, snapshots, preferences, and navigation memory remain intact.
+ * Only the initial UI route is forced to Home — in-session navigation is unchanged.
+ */
 export function decideSmartStartup(input: SmartStartupInput): StartupDecision {
-  const { preferences, restore, shell, lastProject } = input;
-  const mode = preferences.startupMode ?? "restore-session";
+  const { preferences, restore, lastProject } = input;
+  const mode = preferences.startupMode ?? "dashboard";
 
-  // Crash recovery always wins — never discard emergency restore
-  if (restore.recoveredFromCrash) {
-    return {
-      mode,
-      workspace: shell.workspace,
-      openWelcome: false,
-      openLastProject: Boolean(lastProject),
-      explanation: `Startup followed crash recovery: kept restored workspace “${shell.workspace}” despite preference “${mode}”.`,
-      applied: true,
-    };
-  }
+  // Crash recovery still restores persistent data via workspace-state-engine;
+  // the initial visible route remains Home so users are not dropped onto a mid-flow step.
+  const crashNote = restore.recoveredFromCrash
+    ? " Crash recovery restored workspace data; UI starts on Home."
+    : "";
+  const projectNote = lastProject || preferences.lastOpenedProject
+    ? ` Previous project “${lastProject || preferences.lastOpenedProject}” remains available from Home.`
+    : "";
 
-  if (mode === "restore-session" && restore.restored) {
-    return {
-      mode,
-      workspace: shell.workspace,
-      openWelcome: false,
-      openLastProject: Boolean(lastProject || preferences.lastOpenedProject),
-      explanation: `Resumed previous session on “${shell.workspace}” as configured in startup preferences.`,
-      applied: true,
-    };
-  }
-
-  if (mode === "last-project" && (lastProject || preferences.lastOpenedProject)) {
-    return {
-      mode,
-      workspace: "production",
-      openWelcome: false,
-      openLastProject: true,
-      explanation: `Opened Production workspace for last project “${lastProject || preferences.lastOpenedProject}”.`,
-      applied: true,
-    };
-  }
-
-  if (mode === "dashboard" || mode === "welcome") {
-    return {
-      mode,
-      workspace: "home",
-      openWelcome: mode === "welcome" || preferences.showWelcomeOnStartup,
-      openLastProject: false,
-      explanation: mode === "welcome"
-        ? "Opened Home with welcome guidance per startup preference."
-        : "Opened Dashboard (Home) per startup preference.",
-      applied: true,
-    };
-  }
-
-  if (mode === "production") {
-    return {
-      mode,
-      workspace: "production",
-      openWelcome: false,
-      openLastProject: Boolean(lastProject || preferences.lastOpenedProject),
-      explanation: "Opened Production workspace per startup preference.",
-      applied: true,
-    };
-  }
-
-  if (mode === "profile") {
-    const profile = workspaceProfiles.find((p) => p.id === preferences.activeProfile) ?? workspaceProfiles[0];
-    const workspace = mapLegacyWorkspace(profile.workspace) as WorkspaceId;
-    return {
-      mode,
-      workspace,
-      openWelcome: false,
-      openLastProject: false,
-      explanation: `Opened “${profile.label}” starting page (${workspace}) from active preference profile.`,
-      applied: true,
-    };
-  }
-
-  // Fallback: last workspace preference
-  const last = mapLegacyWorkspace(preferences.lastWorkspace || shell.workspace) as WorkspaceId;
   return {
     mode,
-    workspace: last,
-    openWelcome: preferences.showWelcomeOnStartup,
-    openLastProject: Boolean(preferences.lastOpenedProject),
-    explanation: `Opened last active workspace “${last}”.`,
+    workspace: "home",
+    openWelcome: mode === "welcome" || Boolean(preferences.showWelcomeOnStartup),
+    openLastProject: false,
+    explanation: `Opened Home for this application session.${projectNote}${crashNote}`,
     applied: true,
   };
 }
 
 export function applyStartupWorkspace(shell: ShellLayoutState, workspace: WorkspaceId): ShellLayoutState {
-  return { ...shell, workspace };
+  return { ...shell, workspace: mapLegacyWorkspace(workspace) as WorkspaceId };
+}
+
+/** Resolve preferred workspace from a preference profile (used when user explicitly switches profile). */
+export function resolveProfileStartupWorkspace(activeProfile: string | undefined): WorkspaceId {
+  const profile = workspaceProfiles.find((p) => p.id === activeProfile) ?? workspaceProfiles[0];
+  return mapLegacyWorkspace(profile.workspace) as WorkspaceId;
 }

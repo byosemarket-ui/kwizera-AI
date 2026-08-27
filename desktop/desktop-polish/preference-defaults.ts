@@ -22,7 +22,7 @@ export const defaultPreferences: DesktopPreferences = {
   lastWorkspace: "home",
   window: { width: 0, height: 0, x: 0, y: 0 },
   language: "en",
-  startupMode: "restore-session",
+  startupMode: "dashboard",
   defaultLayoutId: "default",
   sidebarPinnedDefault: false,
   panelVisibilityDefaults: {},

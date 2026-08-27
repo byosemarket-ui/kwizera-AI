@@ -12,6 +12,18 @@ import {
 } from "../product-creation/workflow";
 import { ensureProjectOpen, fetchProductIntelligence } from "./api";
 import { computeCompleteness, textToList, validateProfileFields } from "./validation";
+import { deriveProductReadiness } from "./readiness";
+import {
+  emptyProductionState,
+  fetchProductionOutput,
+  mapPipelineToProductionStages,
+  mergeStructuredProfile,
+  parsePipelineError,
+  persistProductionJob,
+  pollPipelineJob,
+  validateProductionOutput,
+} from "./production";
+import { startPipeline, ensureProductionDefaults } from "./production-api";
 import type {
   AiDerivedField,
   ProductProfile,
@@ -20,6 +32,7 @@ import type {
   ProfileHistoryEntry,
   ProfileSnapshot,
   Step4HandoffPayload,
+  StructuredProductProfile,
 } from "./types";
 import {
   emptyFields,
@@ -160,18 +173,24 @@ function productInfoPayload(fields: ProductProfileFields): Record<string, unknow
 function enrichProfile(profile: ProductProfile): ProductProfile {
   const imageCount = profile.productImageSet?.images.length ?? 0;
   const coverage = profile.productImageSet?.coverageScore ?? (imageCount > 0 ? 50 : 0);
-  const validations = validateProfileFields(profile.fields, imageCount);
-  const completeness = computeCompleteness(profile.fields, coverage, profile.variants);
+  const fields = { ...profile.fields };
+  if (fields.price != null && !fields.currency.trim()) fields.currency = "RWF";
+  const validations = validateProfileFields(fields, imageCount);
+  const completeness = computeCompleteness(fields, coverage, profile.variants);
+  const readiness = deriveProductReadiness(fields, imageCount, validations);
   const errors = validations.filter((v) => v.status === "error");
   const warnings = validations.filter((v) => v.status === "warning");
-  const canContinue = errors.length === 0;
+  const canContinue = readiness.canContinueToMarketing;
   return {
     ...profile,
+    fields,
     validations,
     completeness,
+    readiness,
     validationStatus: errors.length ? "incomplete" : warnings.length ? "warnings" : "valid",
     canContinue,
-    continueBlockedReason: errors[0]?.message ?? null,
+    continueBlockedReason: readiness.blockedReason,
+    production: profile.production ?? emptyProductionState(),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -421,6 +440,17 @@ export class ProductProfileEngine {
       completeness: { information: 0, images: 0, specifications: 0, overall: 0, missingRecommended: [] },
       validations: [],
       validationStatus: "incomplete",
+      readiness: {
+        state: "MISSING_REQUIRED_INFORMATION",
+        canGenerateVideo: false,
+        canContinueToMarketing: false,
+        blockedReason: null,
+        required: [],
+        optional: [],
+        message: "MISSING REQUIRED INFORMATION",
+      },
+      structuredProfile: null,
+      production: emptyProductionState(),
       canContinue: false,
       continueBlockedReason: null,
       createdAt: stored?.createdAt ?? new Date().toISOString(),
@@ -672,6 +702,8 @@ export class ProductProfileEngine {
           productProfileMeta: {
             completeness: p.completeness,
             validationStatus: p.validationStatus,
+            readiness: p.readiness,
+            structuredProfile: p.structuredProfile,
             aiDerived: p.aiDerived,
             productImageSetRef: p.productImageSet?.projectId ?? null,
             version: p.history.length + 1,
@@ -690,6 +722,156 @@ export class ProductProfileEngine {
     }
   }
 
+  /** Run Product + Image Intelligence and merge into structured profile (original images unchanged). */
+  async runProductUnderstanding(): Promise<StructuredProductProfile | null> {
+    if (!this.profile?.readiness.canGenerateVideo) {
+      throw new Error(this.profile.readiness.blockedReason ?? "Product is not ready for AI processing.");
+    }
+    await this.flushPersist();
+    this.emitEvent("product-analysis.started", { projectId: this.profile.projectId });
+    const intel = await fetchProductIntelligence(this.profile.projectId);
+    if (!intel) {
+      this.notify?.("warning", "Product Intelligence unavailable", "AI Core may still be starting. Try again shortly.", "warnings");
+      return null;
+    }
+    const structured = mergeStructuredProfile(intel, this.profile.fields);
+    const aiDerived = deriveAiFields(intel, this.profile.productImageSet, this.profile.fields);
+    this.profile = enrichProfile({
+      ...this.profile,
+      structuredProfile: structured,
+      aiDerived: aiDerived.length ? aiDerived : this.profile.aiDerived,
+    });
+    saveStoredProfile(this.profile);
+    await this.flushPersist();
+    this.emitEvent("product-analysis.completed", {
+      projectId: this.profile.projectId,
+      readyForCreativeGeneration: structured.readyForCreativeGeneration,
+      confidence: structured.confidence.overall,
+    });
+    this.recommendation = structured.readyForCreativeGeneration
+      ? "Product understood — ready to generate video or continue to Marketing."
+      : "Product profile built — review AI observations before generating video.";
+    this.emit();
+    return structured;
+  }
+
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Start real KWIZERA creative pipeline production from Step 3. */
+  async startVideoGeneration(): Promise<void> {
+    if (!this.profile?.readiness.canGenerateVideo) {
+      throw new Error(this.profile.readiness.blockedReason ?? "Required product information missing.");
+    }
+    if (this.profile.production.status === "running") {
+      throw new Error("Production already in progress.");
+    }
+    await this.runProductUnderstanding();
+    await ensureProductionDefaults(this.profile!.projectId);
+    await this.flushPersist();
+
+    const started = await startPipeline(this.profile!.projectId);
+    if (!started.jobId) {
+      throw new Error(started.error ?? "Unable to start video production — AI Core pipeline unavailable.");
+    }
+
+    this.profile = enrichProfile({
+      ...this.profile!,
+      production: {
+        ...emptyProductionState(),
+        jobId: started.jobId,
+        status: "running",
+        startedAt: new Date().toISOString(),
+        stages: mapPipelineToProductionStages([], "validation", false),
+        currentStage: "validation",
+      },
+    });
+    saveStoredProfile(this.profile);
+    this.emitEvent("workflow.started", { projectId: this.profile.projectId, jobId: started.jobId });
+    this.emit();
+    this.startProductionPolling(started.jobId);
+  }
+
+  private startProductionPolling(jobId: string): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+    this.pollTimer = setInterval(() => {
+      void this.refreshProductionProgress(jobId);
+    }, 2000);
+    void this.refreshProductionProgress(jobId);
+  }
+
+  private async refreshProductionProgress(jobId: string): Promise<void> {
+    if (!this.profile) return;
+    try {
+      const snap = await pollPipelineJob(jobId);
+      const failed = snap.status === "failed";
+      const pipelineCompleted = snap.status === "completed";
+      const parsed = parsePipelineError(snap.error);
+      let production = {
+        ...this.profile.production,
+        progress: snap.progress,
+        currentStage: snap.stage,
+        stages: mapPipelineToProductionStages(snap.completedStages, snap.stage, failed),
+        status: failed ? "failed" as const : pipelineCompleted ? "completed" as const : "running" as const,
+        error: snap.error,
+        errorStage: parsed.stage,
+        errorCode: parsed.code,
+      };
+
+      if (pipelineCompleted) {
+        const validation = await validateProductionOutput(this.profile.projectId);
+        production = {
+          ...production,
+          completedAt: new Date().toISOString(),
+          outputUrl: validation.outputUrl ?? (await fetchProductionOutput(this.profile.projectId)).outputUrl,
+          outputVersion: validation.version,
+          outputQuality: validation.quality,
+          outputDurationSec: validation.durationSec,
+          outputValidated: validation.valid,
+          progress: validation.valid ? 100 : snap.progress,
+          status: validation.valid ? "completed" : "failed",
+          error: validation.valid ? null : (validation.issues[0] ?? "QUALITY_CONTROL_FAILED: output validation failed"),
+          errorCode: validation.valid ? null : "QUALITY_CONTROL_FAILED",
+        };
+        if (this.pollTimer) {
+          clearInterval(this.pollTimer);
+          this.pollTimer = null;
+        }
+        this.emitEvent("production.progress", {
+          projectId: this.profile.projectId,
+          progress: production.progress,
+          status: production.status,
+        });
+      } else {
+        this.emitEvent("production.progress", {
+          projectId: this.profile.projectId,
+          progress: snap.progress,
+          stage: snap.stage,
+          status: production.status,
+        });
+      }
+
+      this.profile = enrichProfile({ ...this.profile, production });
+      saveStoredProfile(this.profile);
+      await persistProductionJob(this.profile.projectId, { ...this.profile.production, jobId: jobId });
+      this.emit();
+    } catch (error) {
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+      }
+      this.profile = enrichProfile({
+        ...this.profile,
+        production: {
+          ...this.profile.production,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+      saveStoredProfile(this.profile);
+      this.emit();
+    }
+  }
+
   async continueToStep4(): Promise<Step4HandoffPayload> {
     if (!this.profile?.canContinue) {
       throw new Error(this.profile?.continueBlockedReason ?? "Product profile incomplete");
@@ -697,6 +879,7 @@ export class ProductProfileEngine {
     if (this._transitioning) throw new Error("Step transition already in progress.");
     this._transitioning = true;
     try {
+      await this.runProductUnderstanding();
       await this.flushPersist();
       const handoff: Step4HandoffPayload = {
         version: 1,

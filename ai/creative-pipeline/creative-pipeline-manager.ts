@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
@@ -219,7 +220,14 @@ export class CreativePipelineManager {
   }
 
   private async executeStage(job: PipelineJob, project: NonNullable<Awaited<ReturnType<CreativeWorkspaceManager["getProject"]>>>, stage: PipelineStage): Promise<void> {
-    if (stage === "validation") { const result = this.workspace!.validate(project); if (!result.valid) throw new Error(result.errors.join(" ")); return; }
+    if (stage === "validation") {
+      await this.workspace!.ensureProductProductionDefaults(project.id);
+      const refreshed = await this.workspace!.getProject(project.id);
+      if (!refreshed) throw new Error("Project no longer exists");
+      const gate = this.workspace!.validateProductProfile(refreshed);
+      if (!gate.valid) throw new Error(gate.errors.join(" "));
+      return;
+    }
     if (stage === "analysis") { const imageProfiles = this.imageIntelligenceRuntime ? await this.imageIntelligenceRuntime.analyzeProject(project.id) : []; const profile = this.productIntelligenceRuntime ? await this.productIntelligenceRuntime.analyzeProductIntelligence(project.id) : null; const marketing = this.marketingIntelligenceRuntime ? await this.marketingIntelligenceRuntime.analyze(project.id) : null; this.note(job, "info", profile ? `Product Intelligence Step 1: ${imageProfiles.length} image(s) analyzed; profile ${profile.identifiedAs}; views ${profile.viewCount} (${profile.multiView.coverage}); missing angles ${profile.imageAnalysis.missingAngles.length}; ready=${profile.readyForCreativeGeneration}; originals unmodified.${marketing ? ` Marketing strategy ready at ${marketing.score}/100.` : ""}` : "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence."); return; }
     if (stage === "asset-preparation") {
       if (!this.productAssetPreparationRuntime?.isInitialized()) {
@@ -261,6 +269,10 @@ export class CreativePipelineManager {
       return;
     }
     if (stage === "generation") {
+      const freeMb = Math.round(os.freemem() / 1024 / 1024);
+      if (freeMb < 384) {
+        throw new Error(`VIDEO_GENERATION: RESOURCE_UNAVAILABLE — insufficient memory (~384MB free required, ${freeMb}MB available)`);
+      }
       if (this.productImageGenerationRuntime?.isInitialized()) {
         const sceneImages = await this.productImageGenerationRuntime.generateProductSceneImages(project.id);
         this.note(job, "info", `Product Image Generation Step 6: ${sceneImages.images.length} scene still(s); quality ${sceneImages.quality.overall}/100; product preservation ${sceneImages.quality.productPreservationScore}/100.`);
@@ -365,7 +377,16 @@ export class CreativePipelineManager {
       if (this.productRenderingExportRuntime?.isInitialized()) {
         const delivery = (await this.productRenderingExportRuntime.getRender(project.id))
           ?? (await this.productRenderingExportRuntime.renderAndPackage(project.id));
-        this.note(job, "info", `Product Export Step 9: delivery v${delivery.version} ready (${delivery.settings.format}/${delivery.settings.platform}); manifest ${delivery.artifacts.projectManifestRelativePath}.`);
+        const finalPath = await this.productRenderingExportRuntime.getArtifactAbsolutePath(delivery.artifacts.finalVideoRelativePath);
+        if (!finalPath) throw new Error("QUALITY_CONTROL_FAILED: final output file missing");
+        const stat = await fs.stat(finalPath);
+        if (stat.size < 50) throw new Error("QUALITY_CONTROL_FAILED: output file empty or unreadable");
+        const previewPath = await this.productRenderingExportRuntime.getArtifactAbsolutePath(delivery.artifacts.previewRelativePath);
+        if (!previewPath) throw new Error("QUALITY_CONTROL_FAILED: preview artifact missing");
+        if (delivery.quality.overall < 30) {
+          throw new Error(`QUALITY_CONTROL_FAILED: quality score ${delivery.quality.overall}/100 below minimum`);
+        }
+        this.note(job, "info", `Product Export Step 9: delivery v${delivery.version} ready (${delivery.settings.format}/${delivery.settings.platform}); manifest ${delivery.artifacts.projectManifestRelativePath}; QC passed.`);
         const reviewState = await this.review!.getProjectState(project.id);
         const asset = reviewState.assets.find((item) => item.approved) ?? reviewState.assets[0];
         if (asset && !asset.approved) await this.review!.approve(project.id, asset.id);

@@ -324,13 +324,20 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     };
 
     if (!isPersistentMode()) {
-      // Product Creation / creative workspace must work without full AI core restore.
-      // Heavy AI managers stay deferred; projects + image import use CreativeWorkspaceManager only.
+      // Explicit opt-out: workspace only. Does NOT treat Ollama as KWIZERA AI.
       try {
-        console.log("[KWIZERA] Dashboard mode — initializing creative workspace (no full AI core)");
+        console.log("[KWIZERA] Lightweight mode — creative workspace only (KWIZERA AI Core deferred)");
         workspaceManager = new CreativeWorkspaceManager();
         await workspaceManager.initialize(storageRoot);
-        status.message = "Dashboard + creative workspace ready (AI core deferred)";
+        modelManager = new AiModelManager();
+        await modelManager.initialize(storageRoot);
+        // Optional experimental providers stay available via API; never block or define readiness.
+        void modelManager.syncLocalInferenceProviders().then((sync) => {
+          console.log("[KWIZERA] Optional inference provider sync:", sync.detail);
+        }).catch((error) => {
+          console.warn("[KWIZERA] Optional inference provider sync skipped:", error instanceof Error ? error.message : error);
+        });
+        status.message = "Workspace ready (KWIZERA AI Core deferred — set KWIZERA_PERSISTENT_MODE=1 to restore full architecture)";
         status.booting = false;
         status.ready = true;
         status.restored = true;
@@ -341,6 +348,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         status.ready = false;
         status.message = error instanceof Error ? error.message : "Creative workspace failed to start";
         workspaceManager = null;
+        modelManager = null;
         throw error;
       }
     }
@@ -443,6 +451,13 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       modelManager = manager.modelManager;
       if (!modelManager) throw new Error("AI Model Management is not available");
+      try {
+        // Optional experimental language/image providers — never required for KWIZERA AI Core.
+        const sync = await modelManager.syncLocalInferenceProviders();
+        console.log("[KWIZERA] Optional inference provider sync:", sync.detail);
+      } catch (error) {
+        console.warn("[KWIZERA] Optional inference provider sync deferred:", error instanceof Error ? error.message : error);
+      }
       manager.conversationEngine?.setRuntimeStatusProvider({
         getSummary: () => {
           const runtime = modelManager?.inference.status();
