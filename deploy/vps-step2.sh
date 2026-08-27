@@ -19,9 +19,13 @@ fail() { log "FAIL  $*"; }
 note() { log "INFO  $*"; }
 
 mkdir -p "$(dirname "$REPORT")"
-if [[ "${1:-}" != "post-reboot" ]]; then
+if [[ "${1:-}" != "post-reboot" && "${1:-}" != "continue" ]]; then
   : >"$REPORT"
 fi
+
+ensure_git_safe() {
+  git config --global --add safe.directory "$APP_DIR" >/dev/null 2>&1 || true
+}
 
 json_field() {
   python3 - "$1" <<'PY'
@@ -90,6 +94,7 @@ audit_hardware() {
 
 inspect_existing() {
   note "=== Existing install inspection (no deletes) ==="
+  ensure_git_safe
   id "$SERVICE_USER" >/dev/null 2>&1 && log "user ${SERVICE_USER} exists" || log "user ${SERVICE_USER} does not exist yet"
   if [[ -d "$APP_DIR" ]]; then
     log "app dir exists: $APP_DIR"
@@ -151,6 +156,7 @@ create_user() {
 deploy_github() {
   note "=== Deploy from GitHub ==="
   mkdir -p /opt
+  ensure_git_safe
   if [[ -d "$APP_DIR/.git" ]]; then
     git -C "$APP_DIR" remote set-url origin "$REPO_URL"
     git -C "$APP_DIR" fetch --tags origin
@@ -162,18 +168,23 @@ deploy_github() {
   else
     git clone --branch main "$REPO_URL" "$APP_DIR"
   fi
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "$APP_DIR"
+  ensure_git_safe
   log "git_remote=$(git -C "$APP_DIR" remote get-url origin)"
   log "git_branch=$(git -C "$APP_DIR" rev-parse --abbrev-ref HEAD)"
   log "git_commit=$(git -C "$APP_DIR" rev-parse HEAD)"
   log "git_status=$(git -C "$APP_DIR" status -sb)"
-  local head
+  local head origin_head
   head="$(git -C "$APP_DIR" rev-parse HEAD)"
-  if [[ "$head" == "$GITHUB_COMMIT_EXPECTED"* || "$head" == "$(git -C "$APP_DIR" rev-parse origin/main)" ]]; then
+  origin_head="$(git -C "$APP_DIR" rev-parse origin/main)"
+  log "git_owner=$(stat -c '%U:%G' "$APP_DIR")"
+  if [[ "$head" == "$origin_head" ]]; then
     pass "deployed identifiable GitHub commit $head"
   else
-    note "deployed commit $head (origin/main=$(git -C "$APP_DIR" rev-parse origin/main))"
+    note "deployed commit $head (origin/main=$origin_head)"
   fi
+  chown -R "${SERVICE_USER}:${SERVICE_USER}" "$APP_DIR"
+  ensure_git_safe
+  log "git_owner_after_chown=$(stat -c '%U:%G' "$APP_DIR")"
 }
 
 write_env() {
@@ -226,6 +237,10 @@ install_deps_and_build() {
 
 install_dropbear() {
   note "=== Dropbear on :2222 (OpenSSH hostbound workaround, root key auth) ==="
+  if systemctl is-active --quiet kwizera-dropbear.service 2>/dev/null && ss -lntp | grep -q ':2222'; then
+    pass "dropbear already listening on 2222"
+    return 0
+  fi
   mkdir -p /etc/dropbear
   if [[ ! -f /etc/dropbear/dropbear_ed25519_host_key ]]; then
     dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key >/dev/null
@@ -519,19 +534,7 @@ fix_root_authorized_keys() {
   log "authorized_keys valid lines=$(grep -cE '^ssh-' "$keys" 2>/dev/null || echo 0)"
 }
 
-main() {
-  if [[ "${1:-}" == "post-reboot" ]]; then
-    post_reboot_main
-    return 0
-  fi
-
-  log "KWIZERA AI STUDIO STEP 2 starting $(date -u -Iseconds)"
-  audit_hardware
-  inspect_existing
-  fix_root_authorized_keys
-  prepare_linux
-  create_user
-  deploy_github
+run_remaining_deploy() {
   write_env
   prepare_storage
   install_deps_and_build
@@ -546,9 +549,55 @@ main() {
   cp "$REPORT" "${STORAGE_ROOT}/logs/step2-report.txt"
   chown "${SERVICE_USER}:${SERVICE_USER}" "${STORAGE_ROOT}/logs/step2-report.txt" || true
   install_post_reboot_verify
-
   log "STEP2_PRE_REBOOT_COMPLETE"
   log "dropbear=tcp/2222 systemd=kwizera-ai enabled"
+}
+
+continue_main() {
+  log "KWIZERA AI STUDIO STEP 2 CONTINUE $(date -u -Iseconds)"
+  ensure_git_safe
+  audit_hardware
+  inspect_existing
+  if command -v node >/dev/null && command -v ffmpeg >/dev/null && command -v git >/dev/null && command -v npm >/dev/null; then
+    log "node=$(node -v)"
+    log "npm=$(npm -v)"
+    log "git=$(git --version)"
+    log "ffmpeg=$(ffmpeg -version 2>/dev/null | head -1 || echo missing)"
+    command -v ollama >/dev/null && log "ollama present (NOT required, not started)" || log "ollama not installed (correct)"
+    pass "runtime packages already installed — skipping apt reinstall"
+  else
+    prepare_linux
+  fi
+  create_user
+  deploy_github
+  run_remaining_deploy
+  if [[ "${KWIZERA_STEP2_REBOOT:-0}" == "1" ]]; then
+    note "rebooting in 5s for recovery test (service enabled at boot)"
+    sleep 5
+    systemctl reboot
+  else
+    note "reboot skipped (KWIZERA_STEP2_REBOOT=0) — Dropbear :2222 left running for remaining recovery test"
+  fi
+}
+
+main() {
+  if [[ "${1:-}" == "post-reboot" ]]; then
+    post_reboot_main
+    return 0
+  fi
+  if [[ "${1:-}" == "continue" ]]; then
+    continue_main
+    return 0
+  fi
+
+  log "KWIZERA AI STUDIO STEP 2 starting $(date -u -Iseconds)"
+  audit_hardware
+  inspect_existing
+  fix_root_authorized_keys
+  prepare_linux
+  create_user
+  deploy_github
+  run_remaining_deploy
   if [[ "${KWIZERA_STEP2_REBOOT:-1}" == "1" ]]; then
     note "rebooting in 5s for recovery test (service enabled at boot)"
     sleep 5
