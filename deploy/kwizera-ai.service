@@ -16,10 +16,14 @@ Environment=KWIZERA_PERSISTENT_MODE=1
 Environment=KWIZERA_PROJECT_ROOT=/opt/kwizera-ai
 EnvironmentFile=-/opt/kwizera-ai/.env
 ExecStart=/usr/bin/node /opt/kwizera-ai/dist/dev/server/index.js
-Restart=on-failure
+Restart=always
 RestartSec=5
 TimeoutStartSec=600
 TimeoutStopSec=30
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kwizera-ai
 NoNewPrivileges=true
 PrivateTmp=true
 
