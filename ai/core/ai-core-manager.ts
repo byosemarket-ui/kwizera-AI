@@ -15,6 +15,7 @@ import { AiShutdownManager } from "./ai-shutdown-manager.js";
 import { AiCoordinator } from "./ai-coordinator.js";
 import { AiController } from "./ai-controller.js";
 import { AiCoreStatusReport, AiLifecycleState } from "./types.js";
+import { yieldEventLoop } from "../../config/yield-event-loop.js";
 import { AiDecisionEngine } from "../decision/decision-engine.js";
 import { createDecisionEnginePlugin } from "../decision/decision-engine-plugin.js";
 import { AiReasoningEngine } from "../reasoning/reasoning-engine.js";
@@ -224,6 +225,7 @@ export class AiCoreManager {
       );
       await this._memoryFoundation.runStartup();
       console.log("[KWIZERA] AI Core startup: memory foundation ready");
+      await yieldEventLoop();
       const memoryPlugin = createMemoryFoundationPlugin(this._memoryFoundation, this);
       await this._moduleManager.registerAndInitialize(memoryPlugin);
       console.log("[KWIZERA] AI Core startup: memory plugin registered");
@@ -322,6 +324,7 @@ export class AiCoreManager {
       process.stdout.write("[KWIZERA] AI Core startup: knowledge foundation initialize() done, running startup…\n");
       await this._knowledgeFoundation.runStartup();
       console.log("[KWIZERA] AI Core startup: knowledge foundation ready");
+      await yieldEventLoop();
       const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation, this);
       await this._moduleManager.registerAndInitialize(knowledgePlugin);
     }

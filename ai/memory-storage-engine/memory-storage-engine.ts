@@ -83,7 +83,7 @@ export class AiMemoryStorageEngine {
       throw new MemoryStorageEngineError("Storage unavailable", "STORAGE_UNAVAILABLE");
     }
 
-    this.lastIntegrity = this.integrityChecker!.runFullCheck();
+    this.lastIntegrity = await this.integrityChecker!.runFullCheckAsync();
     this.startupComplete = true;
 
     this.logger.log("info", "startup", "Memory Storage Engine startup complete", {

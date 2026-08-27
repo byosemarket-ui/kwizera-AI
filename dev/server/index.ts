@@ -3981,43 +3981,63 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
 
 
-const server = createServer(async (req, res) => {
+const server = createServer((req, res) => {
 
   const url = new URL(req.url ?? "/", `http://${HOST}:${activePort}`);
 
-
-
-  if (url.pathname.startsWith("/api/")) {
-
-    await handleApi(req, res, url);
-
+  if (url.pathname === "/api/health") {
+    const runtime = getRuntimeStatus();
+    sendJson(res, 200, {
+      ok: true,
+      status: runtime?.ready ? "healthy" : runtime?.booting ? "starting" : "healthy",
+      name: "KWIZERA AI STUDIO",
+      mode: isProductionEnv()
+        ? "production"
+        : isPersistentMode()
+          ? "persistent-local-development"
+          : "local-development",
+      host: HOST,
+      port: activePort,
+      storageRoot,
+      persistent: isPersistentMode(),
+      runtimeReady: runtime?.ready ?? false,
+      sessionRestored: runtime?.restored ?? false,
+      architecture: "kwizera-ai-core",
+    });
     return;
-
   }
 
-
-
-  let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : url.pathname === "/desktop" || url.pathname === "/desktop/" ? path.join(UI_DIR, "desktop", "index.html") : resolveUiAsset(url.pathname);
-
-  if (!filePath) {
-
-    res.writeHead(404);
-
-    res.end("Not found");
-
-    return;
-
-  }
-
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-
-    filePath = path.join(UI_DIR, "index.html");
-
-  }
-
-  await serveStatic(res, filePath);
+  void handleIncomingRequest(req, res, url);
 
 });
+
+async function handleIncomingRequest(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  try {
+    if (url.pathname.startsWith("/api/")) {
+      await handleApi(req, res, url);
+      return;
+    }
+
+    let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : url.pathname === "/desktop" || url.pathname === "/desktop/" ? path.join(UI_DIR, "desktop", "index.html") : resolveUiAsset(url.pathname);
+
+    if (!filePath) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(UI_DIR, "index.html");
+    }
+
+    await serveStatic(res, filePath);
+  } catch (error) {
+    console.error("[KWIZERA] Request handler error:", error);
+    if (!res.headersSent) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Request failed" });
+    }
+  }
+}
 
 
 
@@ -4123,31 +4143,30 @@ async function main(): Promise<void> {
   const bootDelayMs = Number(process.env.KWIZERA_BOOT_DELAY_MS ?? 750);
 
   setTimeout(() => {
-
-  // Phase 7 Step 2 — always boot durable memory/knowledge (independent of full AI core)
-  void persistentMemoryCenter.boot(storageRoot).catch((err) => {
-    console.error("[KWIZERA] Persistent Memory Center boot error:", err);
-  });
-
-  // Phase 7 Step 3 — online acquisition / offline knowledge (does not block startup)
-  void onlineKnowledgeEngine.boot(storageRoot).catch((err) => {
-    console.error("[KWIZERA] Online Knowledge Engine boot error:", err);
-  });
-
-  // Phase 7 Step 4 — system health / Windows integration foundation
-  void systemHealthCenter.boot(storageRoot).then(() => {
-    systemHealthCenter.markSessionRunning();
-  }).catch((err) => {
-    console.error("[KWIZERA] System Health Center boot error:", err);
-  });
-
-  void bootPersistentRuntime(HOST, PORT).then((runtime) => {
-    console.log(`[KWIZERA] ${runtime.message}`);
-    void saveRuntimeSnapshot();
-  }).catch((err) => {
-    console.error("[KWIZERA] Background runtime boot error:", err);
-  });
-
+    void (async () => {
+      try {
+        await persistentMemoryCenter.boot(storageRoot);
+      } catch (err) {
+        console.error("[KWIZERA] Persistent Memory Center boot error:", err);
+      }
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      void onlineKnowledgeEngine.boot(storageRoot).catch((err) => {
+        console.error("[KWIZERA] Online Knowledge Engine boot error:", err);
+      });
+      void systemHealthCenter.boot(storageRoot).then(() => {
+        systemHealthCenter.markSessionRunning();
+      }).catch((err) => {
+        console.error("[KWIZERA] System Health Center boot error:", err);
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      try {
+        const runtime = await bootPersistentRuntime(HOST, PORT);
+        console.log(`[KWIZERA] ${runtime.message}`);
+        void saveRuntimeSnapshot();
+      } catch (err) {
+        console.error("[KWIZERA] Background runtime boot error:", err);
+      }
+    })();
   }, bootDelayMs);
 
 }

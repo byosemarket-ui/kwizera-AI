@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { yieldEventLoop } from "../../config/yield-event-loop.js";
 import { KnowledgeIntegrityCheckResult, KnowledgeRecord } from "./types.js";
 import { KnowledgeRecordValidator } from "./knowledge-record-validator.js";
 import { KnowledgeRecordIndex } from "./knowledge-record-index.js";
@@ -16,74 +17,105 @@ export class KnowledgeIntegrityChecker {
   ) {}
 
   runFullCheck(): KnowledgeIntegrityCheckResult {
-    const issues: string[] = [];
-    let recordsChecked = 0;
-    let relationshipsValid = true;
-    let metadataAccurate = true;
-    let versionIntegrity = true;
-    let filesAvailable = true;
+    const acc = this.emptyAccumulator();
+    for (const entry of this.index.getIndex().entries) this.applyEntry(entry, acc);
+    return this.finish(acc);
+  }
 
+  /** Same scan as runFullCheck, but yields so HTTP can run during startup. */
+  async runFullCheckAsync(): Promise<KnowledgeIntegrityCheckResult> {
+    const acc = this.emptyAccumulator();
+    let n = 0;
     for (const entry of this.index.getIndex().entries) {
-      recordsChecked++;
-      const recordPath = entry.storageLocation;
+      this.applyEntry(entry, acc);
+      n += 1;
+      if (n % 4 === 0) await yieldEventLoop();
+    }
+    return this.finish(acc);
+  }
 
-      if (!fs.existsSync(recordPath)) {
-        issues.push(`Storage path missing for ${entry.knowledgeId}`);
-        filesAvailable = false;
-        continue;
-      }
+  private emptyAccumulator(): {
+    issues: string[];
+    recordsChecked: number;
+    relationshipsValid: boolean;
+    metadataAccurate: boolean;
+    versionIntegrity: boolean;
+    filesAvailable: boolean;
+  } {
+    return {
+      issues: [],
+      recordsChecked: 0,
+      relationshipsValid: true,
+      metadataAccurate: true,
+      versionIntegrity: true,
+      filesAvailable: true,
+    };
+  }
 
-      if (!this.store.verifyRecordChecksum(recordPath)) {
-        issues.push(`Checksum failed for ${entry.knowledgeId}`);
-        metadataAccurate = false;
-      }
+  private applyEntry(
+    entry: { knowledgeId: string; storageLocation: string; contentHash?: string },
+    acc: ReturnType<KnowledgeIntegrityChecker["emptyAccumulator"]>
+  ): void {
+    acc.recordsChecked += 1;
+    const recordPath = entry.storageLocation;
 
-      const { data } = this.store.readRecord<KnowledgeRecord>(recordPath);
-      if (!data) {
-        issues.push(`Cannot read record ${entry.knowledgeId}`);
-        filesAvailable = false;
-        continue;
-      }
+    if (!fs.existsSync(recordPath)) {
+      acc.issues.push(`Storage path missing for ${entry.knowledgeId}`);
+      acc.filesAvailable = false;
+      return;
+    }
 
-      const integrity = this.validator.validateRecordIntegrity(data);
-      if (!integrity.valid) {
-        issues.push(...integrity.diagnostics.map((d) => `${entry.knowledgeId}: ${d}`));
-        metadataAccurate = false;
-      }
+    if (!this.store.verifyRecordChecksum(recordPath)) {
+      acc.issues.push(`Checksum failed for ${entry.knowledgeId}`);
+      acc.metadataAccurate = false;
+    }
 
-      for (const relatedId of data.relatedKnowledge) {
-        if (relatedId !== entry.knowledgeId && !this.index.findById(relatedId)) {
-          issues.push(`Broken related knowledge link: ${entry.knowledgeId} -> ${relatedId}`);
-          relationshipsValid = false;
-        }
-      }
+    const { data } = this.store.readRecord<KnowledgeRecord>(recordPath);
+    if (!data) {
+      acc.issues.push(`Cannot read record ${entry.knowledgeId}`);
+      acc.filesAvailable = false;
+      return;
+    }
 
-      if (entry.contentHash !== data.contentHash) {
-        issues.push(`Index metadata mismatch for ${entry.knowledgeId}`);
-        metadataAccurate = false;
-      }
+    const integrity = this.validator.validateRecordIntegrity(data);
+    if (!integrity.valid) {
+      acc.issues.push(...integrity.diagnostics.map((d) => `${entry.knowledgeId}: ${d}`));
+      acc.metadataAccurate = false;
+    }
 
-      const versions = this.versionManager.listVersions(recordPath);
-      if (data.version > 1 && versions.length === 0) {
-        issues.push(`Missing version history for ${entry.knowledgeId}`);
-        versionIntegrity = false;
+    for (const relatedId of data.relatedKnowledge) {
+      if (relatedId !== entry.knowledgeId && !this.index.findById(relatedId)) {
+        acc.issues.push(`Broken related knowledge link: ${entry.knowledgeId} -> ${relatedId}`);
+        acc.relationshipsValid = false;
       }
     }
 
-    const verified = issues.length === 0;
-    this.logger.log(verified ? "info" : "warn", "integrity", "Knowledge integrity check complete", {
-      recordsChecked,
-      issues: issues.length,
-    });
+    if (entry.contentHash !== data.contentHash) {
+      acc.issues.push(`Index metadata mismatch for ${entry.knowledgeId}`);
+      acc.metadataAccurate = false;
+    }
 
+    const versions = this.versionManager.listVersions(recordPath);
+    if (data.version > 1 && versions.length === 0) {
+      acc.issues.push(`Missing version history for ${entry.knowledgeId}`);
+      acc.versionIntegrity = false;
+    }
+  }
+
+  private finish(acc: ReturnType<KnowledgeIntegrityChecker["emptyAccumulator"]>): KnowledgeIntegrityCheckResult {
+    const verified = acc.issues.length === 0;
+    this.logger.log(verified ? "info" : "warn", "integrity", "Knowledge integrity check complete", {
+      recordsChecked: acc.recordsChecked,
+      issues: acc.issues.length,
+    });
     return {
       verified,
-      recordsChecked,
-      issues,
-      relationshipsValid,
-      metadataAccurate,
-      versionIntegrity,
-      filesAvailable,
+      recordsChecked: acc.recordsChecked,
+      issues: acc.issues,
+      relationshipsValid: acc.relationshipsValid,
+      metadataAccurate: acc.metadataAccurate,
+      versionIntegrity: acc.versionIntegrity,
+      filesAvailable: acc.filesAvailable,
       timestamp: new Date().toISOString(),
     };
   }
