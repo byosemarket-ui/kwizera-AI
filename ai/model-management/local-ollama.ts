@@ -1,9 +1,10 @@
 /**
- * Local Ollama discovery + process ensure for KWIZERA AI STUDIO.
+ * Local Ollama discovery + optional process ensure for KWIZERA AI STUDIO.
+ * Ollama is an optional experimental provider — never required for KWIZERA AI Core.
  * Uses the installed Ollama runtime only — never fabricates models or responses.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -26,7 +27,16 @@ export type OllamaProbeResult = {
   error?: string;
   binaryPath?: string;
   startedByStudio?: boolean;
+  required: false;
+  code:
+    | "PROVIDER_AVAILABLE"
+    | "PROVIDER_UNAVAILABLE"
+    | "MODEL_RUNTIME_UNAVAILABLE"
+    | "RUNTIME_UNAVAILABLE";
 };
+
+let cachedBinary: { value: string | null; at: number } | null = null;
+const BINARY_CACHE_MS = 30_000;
 
 function candidateBinaries(): string[] {
   const home = process.env.LOCALAPPDATA || process.env.USERPROFILE || "";
@@ -38,24 +48,57 @@ function candidateBinaries(): string[] {
     "C:\\Program Files\\Ollama\\ollama\\ollama.exe",
     "/usr/local/bin/ollama",
     "/usr/bin/ollama",
-    "ollama",
   ].filter((value): value is string => Boolean(value));
 }
 
-export function findOllamaBinary(): string | null {
-  for (const candidate of candidateBinaries()) {
-    if (candidate === "ollama") return candidate;
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return null;
+function resolveOnPath(name: string): string | null {
+  const finder = process.platform === "win32" ? "where" : "which";
+  const result = spawnSync(finder, [name], { encoding: "utf8", windowsHide: true });
+  if (result.status !== 0) return null;
+  const line = (result.stdout || "").split(/\r?\n/).map((item) => item.trim()).find(Boolean);
+  return line && fs.existsSync(line) ? line : null;
 }
 
-export async function probeOllama(timeoutMs = 2_500): Promise<OllamaProbeResult> {
+/** Return an actual filesystem binary. Never return a bare "ollama" PATH name that spawn would ENOENT. */
+export function findOllamaBinary(): string | null {
+  const now = Date.now();
+  if (cachedBinary && now - cachedBinary.at < BINARY_CACHE_MS) return cachedBinary.value;
+
+  let found: string | null = null;
+  for (const candidate of candidateBinaries()) {
+    if (fs.existsSync(candidate)) {
+      found = candidate;
+      break;
+    }
+  }
+  if (!found) found = resolveOnPath(process.platform === "win32" ? "ollama.exe" : "ollama");
+
+  cachedBinary = { value: found, at: now };
+  return found;
+}
+
+export function resetOllamaBinaryCache(): void {
+  cachedBinary = null;
+}
+
+function unavailable(error: string, binaryPath?: string, code: OllamaProbeResult["code"] = "PROVIDER_UNAVAILABLE"): OllamaProbeResult {
+  return {
+    available: false,
+    required: false,
+    endpoint: OLLAMA_ENDPOINT,
+    models: [],
+    error,
+    binaryPath,
+    code,
+  };
+}
+
+export async function probeOllama(timeoutMs = 1_200): Promise<OllamaProbeResult> {
   const binaryPath = findOllamaBinary() ?? undefined;
   try {
     const response = await fetch(`${OLLAMA_ENDPOINT}/api/tags`, { signal: AbortSignal.timeout(timeoutMs) });
     if (!response.ok) {
-      return { available: false, endpoint: OLLAMA_ENDPOINT, models: [], error: `Ollama tags returned ${response.status}`, binaryPath };
+      return unavailable(`Ollama tags returned ${response.status}`, binaryPath);
     }
     const payload = await response.json() as { models?: Array<Record<string, unknown>> };
     const models = (payload.models ?? []).flatMap((item) => {
@@ -71,65 +114,102 @@ export async function probeOllama(timeoutMs = 2_500): Promise<OllamaProbeResult>
         quantization: typeof details.quantization_level === "string" ? details.quantization_level : undefined,
       } satisfies OllamaModelInfo];
     });
-    return { available: true, endpoint: OLLAMA_ENDPOINT, models, binaryPath };
-  } catch (error) {
     return {
-      available: false,
+      available: true,
+      required: false,
       endpoint: OLLAMA_ENDPOINT,
-      models: [],
-      error: error instanceof Error ? error.message : String(error),
+      models,
       binaryPath,
+      code: "PROVIDER_AVAILABLE",
     };
+  } catch (error) {
+    return unavailable(
+      error instanceof Error ? error.message : String(error),
+      binaryPath,
+      binaryPath ? "RUNTIME_UNAVAILABLE" : "MODEL_RUNTIME_UNAVAILABLE",
+    );
   }
 }
 
+function spawnServe(binary: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: { ok: true } | { ok: false; error: string }) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    try {
+      const child = spawn(binary, ["serve"], {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+        shell: false,
+      });
+      child.once("error", (error) => {
+        finish({ ok: false, error: error instanceof Error ? error.message : String(error) });
+      });
+      child.once("spawn", () => {
+        child.unref();
+        finish({ ok: true });
+      });
+    } catch (error) {
+      finish({ ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+}
+
 /**
- * If Ollama is installed but not answering, start `ollama serve` detached.
- * Does not download models.
+ * If Ollama is installed but not answering, optionally start `ollama serve` detached.
+ * Never required. Never downloads models. Never waits if the binary is missing.
  */
 export async function ensureOllamaRunning(options?: { waitMs?: number }): Promise<OllamaProbeResult> {
-  const waitMs = options?.waitMs ?? 45_000;
+  const waitMs = options?.waitMs ?? 8_000;
   const first = await probeOllama();
   if (first.available) return first;
 
   const binary = first.binaryPath ?? findOllamaBinary();
   if (!binary) {
-    return { ...first, error: first.error ?? "MODEL_RUNTIME_UNAVAILABLE: Ollama binary not found" };
+    return unavailable(
+      "PROVIDER_UNAVAILABLE: Ollama is optional and is not installed",
+      undefined,
+      "MODEL_RUNTIME_UNAVAILABLE",
+    );
   }
 
-  try {
-    const child = spawn(binary, ["serve"], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      shell: false,
-    });
-    child.unref();
-  } catch (error) {
-    return {
-      available: false,
-      endpoint: OLLAMA_ENDPOINT,
-      models: [],
-      binaryPath: binary,
-      error: error instanceof Error ? error.message : String(error),
-    };
+  const allowStart = process.env.KWIZERA_START_OLLAMA === "1";
+  if (!allowStart) {
+    return unavailable(
+      first.error ?? "PROVIDER_UNAVAILABLE: Ollama is installed but not running (set KWIZERA_START_OLLAMA=1 to auto-start)",
+      binary,
+    );
+  }
+
+  const started = await spawnServe(binary);
+  if (!started.ok) {
+    return unavailable(
+      `PROVIDER_UNAVAILABLE: failed to spawn Ollama (${started.error})`,
+      binary,
+      "MODEL_RUNTIME_UNAVAILABLE",
+    );
   }
 
   const deadline = Date.now() + waitMs;
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 1_500));
-    const probe = await probeOllama(2_000);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const probe = await probeOllama(800);
     if (probe.available) {
       return { ...probe, startedByStudio: true, binaryPath: binary };
     }
   }
 
   const last = await probeOllama();
-  return {
-    ...last,
-    binaryPath: binary,
-    error: last.error ?? "RUNTIME_UNAVAILABLE: Ollama did not become ready after serve start",
-  };
+  return unavailable(
+    last.error ?? "RUNTIME_UNAVAILABLE: Ollama did not become ready after serve start",
+    binary,
+    "RUNTIME_UNAVAILABLE",
+  );
 }
 
 /** Rough free-RAM gate before attempting to load a multi-GB GGUF model. */
@@ -173,8 +253,17 @@ export function pickPreferredLanguageModel(names: string[]): string | null {
   return names[0] ?? null;
 }
 
-export async function smokeOllamaGenerate(model: string, timeoutMs = 300_000): Promise<{ ok: boolean; output?: string; durationMs: number; error?: string }> {
+export async function smokeOllamaGenerate(model: string, timeoutMs = 300_000): Promise<{ ok: boolean; output?: string; durationMs: number; error?: string; code?: string }> {
   const started = performance.now();
+  const probe = await probeOllama(1_200);
+  if (!probe.available) {
+    return {
+      ok: false,
+      durationMs: Math.round(performance.now() - started),
+      error: probe.error ?? "PROVIDER_UNAVAILABLE: Ollama is optional and is not running",
+      code: probe.code,
+    };
+  }
   try {
     const response = await fetch(`${OLLAMA_ENDPOINT}/api/generate`, {
       method: "POST",

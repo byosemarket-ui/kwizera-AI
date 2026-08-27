@@ -210,11 +210,12 @@ export class AiKnowledgeFoundation {
     this.ensureReady();
     const start = Date.now();
     this.lifecycleState = KnowledgeLifecycleState.Loading;
-    const mark = (stage: string): void => {
+    const yieldEventLoop = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+    const mark = async (stage: string): Promise<void> => {
       process.stdout.write(`[KWIZERA] Knowledge startup: ${stage}\n`);
+      await yieldEventLoop();
     };
-    mark("begin");
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await mark("begin");
 
     this.lastIntegrity = this.integrityVerifier.verify(this.storage, this.registry);
     if (!this.lastIntegrity.verified && this.lastIntegrity.issues.length > 0) {
@@ -234,66 +235,75 @@ export class AiKnowledgeFoundation {
 
     this.storageEngine.initialize(this, this.storageRoot, this.storage.getKnowledgeRoot());
     await this.storageEngine.runStartup();
-    mark("storage engine");
+    await mark("storage engine");
 
     this.retrievalEngine.initialize(this, this.storageRoot);
     await this.retrievalEngine.runStartup();
-    mark("retrieval engine");
+    await mark("retrieval engine");
 
     this.graphEngine.initialize(this, this.storageRoot);
     await this.graphEngine.runStartup();
-    mark("graph engine");
+    await mark("graph engine");
 
     this.imageKnowledgeEngine.initialize(this, this.storageRoot);
     await this.imageKnowledgeEngine.runStartup();
-    mark("image knowledge");
+    await mark("image knowledge");
 
     this.videoKnowledgeEngine.initialize(this, this.storageRoot);
     await this.videoKnowledgeEngine.runStartup();
-    mark("video knowledge");
+    await mark("video knowledge");
 
     // Professional Video Production Knowledge Expansion Step 1 starts after domain planner + extraction below.
 
     this.marketingKnowledgeEngine.initialize(this, this.storageRoot);
     await this.marketingKnowledgeEngine.runStartup();
-    mark("marketing knowledge");
+    await mark("marketing knowledge");
 
     this.productKnowledgeEngine.initialize(this, this.storageRoot);
     await this.productKnowledgeEngine.runStartup();
-    mark("product knowledge");
+    await mark("product knowledge");
 
     this.brandKnowledgeEngine.initialize(this, this.storageRoot);
     await this.brandKnowledgeEngine.runStartup();
+    await yieldEventLoop();
 
     this.languageKnowledgeEngine.initialize(this, this.storageRoot);
     await this.languageKnowledgeEngine.runStartup();
+    await yieldEventLoop();
 
     this.creativeKnowledgeEngine.initialize(this, this.storageRoot);
     await this.creativeKnowledgeEngine.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeOptimizationEngine.initialize(this, this.storageRoot);
     await this.knowledgeOptimizationEngine.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeValidationEngine.initialize(this, this.storageRoot);
     await this.knowledgeValidationEngine.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeHealthMonitorEngine.initialize(this, this.storageRoot);
     await this.knowledgeHealthMonitorEngine.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeAcquisitionEngine.initialize(this, this.storageRoot);
     await this.knowledgeAcquisitionEngine.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeSourceManager.initialize(this, this.storageRoot);
     await this.knowledgeSourceManager.runStartup();
+    await yieldEventLoop();
 
     this.knowledgeResearchEngine.initialize(this, this.storageRoot);
     await this.knowledgeResearchEngine.runStartup();
+    await yieldEventLoop();
 
     await this.knowledgeReasoningEngine.initialize(this, this.storageRoot);
 
     this.knowledgeDomainPlanner.initialize(this, this.storageRoot);
     await this.knowledgeDomainPlanner.runStartup();
-    mark("domain planner");
+    await mark("domain planner");
 
     this.documentUnderstandingEngine.initialize(this, this.storageRoot);
     await this.documentUnderstandingEngine.runStartup();
@@ -303,32 +313,36 @@ export class AiKnowledgeFoundation {
 
     this.professionalVideoProductionKnowledge.initialize(this, this.storageRoot);
     await this.professionalVideoProductionKnowledge.runStartup();
-    mark("professional video production knowledge");
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await mark("professional video production knowledge");
     this.videoProductionKnowledgeBuilder.bindProfessionalKnowledge(this.professionalVideoProductionKnowledge);
 
     this.professionalCameraKnowledge.initialize(this, this.storageRoot);
     await this.professionalCameraKnowledge.runStartup();
-    mark("professional camera knowledge");
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await mark("professional camera knowledge");
 
     this.professionalLightingCompositionKnowledge.initialize(this, this.storageRoot);
     await this.professionalLightingCompositionKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.professionalStorytellingSceneKnowledge.initialize(this, this.storageRoot);
     await this.professionalStorytellingSceneKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.professionalAnimationMotionRenderingKnowledge.initialize(this, this.storageRoot);
     await this.professionalAnimationMotionRenderingKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.professionalMarketingBrandingPsychologyKnowledge.initialize(this, this.storageRoot);
     await this.professionalMarketingBrandingPsychologyKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.professionalSocialMediaKnowledge.initialize(this, this.storageRoot);
     await this.professionalSocialMediaKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.professionalIndustryStandardsQualityKnowledge.initialize(this, this.storageRoot);
     await this.professionalIndustryStandardsQualityKnowledge.runStartup();
+    await yieldEventLoop();
 
     this.knowledgePackValidationEngine.initialize(this, this.storageRoot);
     await this.knowledgePackValidationEngine.runStartup();

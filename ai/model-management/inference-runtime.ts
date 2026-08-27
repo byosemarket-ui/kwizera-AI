@@ -215,6 +215,10 @@ export class AiInferenceRuntime {
   }
 
   private async executeOllama(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
+    await this.check(provider);
+    if (!provider.available) {
+      throw new Error(`PROVIDER_UNAVAILABLE: Ollama is optional and is not running${provider.error ? ` (${provider.error})` : ""}`);
+    }
     const runtimeModel = this.resolveProviderModelId(request.modelId);
     const path = request.category === "embedding" ? "/api/embed" : "/api/generate";
     const body = request.category === "embedding" ? { model: runtimeModel, input: request.prompt } : { ...(request.input ?? {}), model: runtimeModel, prompt: request.prompt, stream: false };

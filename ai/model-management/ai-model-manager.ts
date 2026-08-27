@@ -71,11 +71,17 @@ export class AiModelManager {
     detail: string;
   }> {
     this.assertReady();
-    const ollama = await ensureOllamaRunning({ waitMs: 60_000 });
+    const ollama = await ensureOllamaRunning({ waitMs: 5_000 });
     if (!ollama.available) {
       this.log("warning", "discovery", ollama.error ?? "Ollama unavailable");
       await this.persist();
-      return { ollama, registered: [], boundCatalog: [], ready: false, detail: ollama.error ?? "RUNTIME_UNAVAILABLE" };
+      return {
+        ollama,
+        registered: [],
+        boundCatalog: [],
+        ready: false,
+        detail: ollama.error ?? "PROVIDER_UNAVAILABLE: Ollama is optional and is not installed",
+      };
     }
     if (!ollama.models.length) {
       const detail = "MODEL_NOT_FOUND: Ollama is running but no usable model files are installed";
