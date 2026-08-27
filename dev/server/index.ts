@@ -11,7 +11,6 @@ import path from "node:path";
 import { findProjectRoot, resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import { isProductionEnv, loadProjectEnv, resolveBindHost, resolveBindPort, resolveHealthProbeHost } from "../../config/runtime-env.js";
 import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-probes.js";
-import { findOllamaBinary } from "../../ai/model-management/local-ollama.js";
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
@@ -1013,7 +1012,6 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   if (url.pathname === "/api/health") {
 
     const runtime = getRuntimeStatus();
-    const ollamaBinary = findOllamaBinary();
 
     sendJson(res, 200, {
 
@@ -1039,15 +1037,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       sessionRestored: runtime?.restored ?? false,
 
-      optionalProviders: {
-        ollama: {
-          required: false,
-          installed: Boolean(ollamaBinary),
-          available: false,
-          status: ollamaBinary ? "optional-installed" : "optional-unavailable",
-          detail: "Ollama is an optional experimental provider and is not required for KWIZERA AI Core, Memory, Knowledge, or Product → Video initialization",
-        },
-      },
+      architecture: "kwizera-ai-core",
 
     });
 

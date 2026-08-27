@@ -111,7 +111,6 @@ function defaultConfig() {
       skipBrowserOpen: true,
       preferLocalServices: true,
       // KWIZERA AI Core (memory/knowledge/intelligence foundations) is the desktop foundation.
-      // Optional third-party providers (e.g. Ollama) are not required for core readiness.
       persistentRuntime: true,
     },
   };

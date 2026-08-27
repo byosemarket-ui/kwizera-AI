@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # KWIZERA AI STUDIO — STEP 2 real VPS deploy from GitHub.
-# Run as root on the VPS. Does not install Ollama. Does not delete storage.
+# Run as root on the VPS. Does not install external LLMs. Does not delete storage.
 set -euo pipefail
 
 REPO_URL="https://github.com/byosemarket-ui/kwizera-AI.git"
@@ -141,7 +141,7 @@ prepare_linux() {
   log "git=$(git --version)"
   log "ffmpeg=$(ffmpeg -version 2>/dev/null | head -1 || echo missing)"
   log "python=$(python3 --version)"
-  command -v ollama >/dev/null && log "ollama present (NOT required, not started)" || log "ollama not installed (correct)"
+  log "external LLM runtimes are not part of this install"
 }
 
 create_user() {
@@ -563,7 +563,7 @@ continue_main() {
     log "npm=$(npm -v)"
     log "git=$(git --version)"
     log "ffmpeg=$(ffmpeg -version 2>/dev/null | head -1 || echo missing)"
-    command -v ollama >/dev/null && log "ollama present (NOT required, not started)" || log "ollama not installed (correct)"
+    log "external LLM runtimes are not part of this install"
     pass "runtime packages already installed — skipping apt reinstall"
   else
     prepare_linux

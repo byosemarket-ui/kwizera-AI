@@ -324,18 +324,18 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     };
 
     if (!isPersistentMode()) {
-      // Explicit opt-out: workspace only. Does NOT treat Ollama as KWIZERA AI.
+      // Workspace-only boot. KWIZERA AI Core is deferred, not replaced by an external LLM.
       try {
         console.log("[KWIZERA] Lightweight mode — creative workspace only (KWIZERA AI Core deferred)");
         workspaceManager = new CreativeWorkspaceManager();
         await workspaceManager.initialize(storageRoot);
         modelManager = new AiModelManager();
         await modelManager.initialize(storageRoot);
-        // Optional experimental providers stay available via API; never block or define readiness.
+        // Image/video loopback adapters stay discoverable via API; they do not define Core readiness.
         void modelManager.syncLocalInferenceProviders().then((sync) => {
-          console.log("[KWIZERA] Optional inference provider sync:", sync.detail);
+          console.log("[KWIZERA] Inference architecture:", sync.detail);
         }).catch((error) => {
-          console.warn("[KWIZERA] Optional inference provider sync skipped:", error instanceof Error ? error.message : error);
+          console.warn("[KWIZERA] Inference architecture check skipped:", error instanceof Error ? error.message : error);
         });
         status.message = "Workspace ready (KWIZERA AI Core deferred — set KWIZERA_PERSISTENT_MODE=1 to restore full architecture)";
         status.booting = false;
@@ -455,11 +455,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       modelManager = manager.modelManager;
       if (!modelManager) throw new Error("AI Model Management is not available");
-      // Optional experimental providers must never block KWIZERA AI Core or the Product → Video pipeline.
+      // Language work uses KWIZERA AI Core. Do not block Product → Video on an external LLM.
       void modelManager.syncLocalInferenceProviders().then((sync) => {
-        console.log("[KWIZERA] Optional inference provider sync:", sync.detail);
+        console.log("[KWIZERA] Inference architecture:", sync.detail);
       }).catch((error) => {
-        console.warn("[KWIZERA] Optional inference provider sync deferred:", error instanceof Error ? error.message : error);
+        console.warn("[KWIZERA] Inference architecture check skipped:", error instanceof Error ? error.message : error);
       });
       manager.conversationEngine?.setRuntimeStatusProvider({
         getSummary: () => {

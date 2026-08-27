@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Safe update from GitHub for an existing KWIZERA AI STUDIO VPS install.
-# Does not delete KWIZERA_STORAGE_ROOT. Does not install Ollama.
+# Does not delete KWIZERA_STORAGE_ROOT. Does not install any external LLM.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/kwizera-ai}"

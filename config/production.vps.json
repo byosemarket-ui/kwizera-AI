@@ -41,7 +41,7 @@
   },
   "architecture": {
     "aiCore": "original KWIZERA AI Core / Memory / Knowledge / Intelligence modules",
-    "externalProviders": "optional (Ollama, OpenAI, ComfyUI, Automatic1111) — never required for startup"
+    "externalProviders": "optional loopback image/video adapters (ComfyUI, Automatic1111) — never required for startup; no external LLM"
   },
   "security": {
     "bindLoopbackByDefault": true,

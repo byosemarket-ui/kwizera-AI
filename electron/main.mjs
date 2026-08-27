@@ -161,90 +161,6 @@ function detectHardware() {
 }
 
 /**
- * Discover local Ollama binary candidates on Windows/macOS/Linux.
- * @returns {string[]}
- */
-function ollamaBinaryCandidates() {
-  const home = process.env.LOCALAPPDATA || process.env.USERPROFILE || "";
-  return [
-    process.env.OLLAMA_PATH,
-    process.env.OLLAMA_BIN,
-    path.join(home, "Programs", "Ollama", "ollama.exe"),
-    "C:\\Program Files\\Ollama\\ollama.exe",
-    "/usr/local/bin/ollama",
-    "/usr/bin/ollama",
-    "ollama",
-  ].filter(Boolean);
-}
-
-/**
- * @returns {string | null}
- */
-function findOllamaBinary() {
-  for (const candidate of ollamaBinaryCandidates()) {
-    if (candidate === "ollama") return candidate;
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return null;
-}
-
-/**
- * Probe Ollama tags API.
- * @param {number} [timeoutMs]
- */
-async function probeOllamaTags(timeoutMs = 2500) {
-  const result = await httpGetJson("http://127.0.0.1:11434/api/tags", timeoutMs);
-  if (!result.ok || !result.body || typeof result.body !== "object") {
-    return { available: false, models: /** @type {string[]} */ ([]), error: "RUNTIME_UNAVAILABLE" };
-  }
-  const models = Array.isArray(/** @type {{ models?: unknown }} */ (result.body).models)
-    ? /** @type {{ models: Array<{ name?: string; model?: string }> }} */ (result.body).models
-      .map((item) => item.name || item.model || "")
-      .filter(Boolean)
-    : [];
-  return { available: true, models, error: null };
-}
-
-/**
- * Start Ollama serve if installed but not answering.
- */
-async function ensureOllamaRunning() {
-  let probe = await probeOllamaTags();
-  if (probe.available) return { ...probe, started: false, binary: findOllamaBinary() };
-
-  const binary = findOllamaBinary();
-  if (!binary) {
-    return { available: false, models: [], error: "RUNTIME_UNAVAILABLE: Ollama binary not found", started: false, binary: null };
-  }
-
-  appendAppLog(config, `Starting local Ollama runtime: ${binary} serve`);
-  try {
-    const child = spawn(binary, ["serve"], {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-      shell: false,
-    });
-    child.unref();
-  } catch (error) {
-    return {
-      available: false,
-      models: [],
-      error: error instanceof Error ? error.message : "Failed to start Ollama",
-      started: false,
-      binary,
-    };
-  }
-
-  for (let i = 0; i < 40; i++) {
-    await delay(1500);
-    probe = await probeOllamaTags(2000);
-    if (probe.available) return { ...probe, started: true, binary };
-  }
-  return { ...probe, started: true, binary, error: probe.error || "RUNTIME_UNAVAILABLE: Ollama did not become ready" };
-}
-
-/**
  * @param {string} root
  */
 function detectLocalAi(root) {
@@ -254,16 +170,6 @@ function detectLocalAi(root) {
     path.join(config.storageRoot, "cache", "models"),
   ];
   const existing = modelHints.filter((p) => fs.existsSync(p));
-  const manifestPath = path.join(config.storageRoot, "models", "local-ollama.manifest.json");
-  let manifestModels = 0;
-  try {
-    if (fs.existsSync(manifestPath)) {
-      const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      manifestModels = Array.isArray(parsed.models) ? parsed.models.length : 0;
-    }
-  } catch {
-    /* ignore */
-  }
   const dirHasFiles = existing.some((p) => {
     try {
       return fs.readdirSync(p).length > 0;
@@ -273,11 +179,10 @@ function detectLocalAi(root) {
   });
   return {
     modelsDirectory: existing[0] ?? modelHints[0],
-    modelsPresent: dirHasFiles || manifestModels > 0,
-    manifestModels,
+    modelsPresent: dirHasFiles,
     note: existing.length
-      ? (dirHasFiles || manifestModels > 0
-        ? "Model directory / Ollama manifest present — validating runtime…"
+      ? (dirHasFiles
+        ? "Model directory present — KWIZERA AI Core is the language runtime."
         : "Model directory found but no usable AI model files were detected yet.")
       : "No local model directory detected yet.",
   };
@@ -627,7 +532,7 @@ async function runStartupSequence(splash) {
   push("ai", "AI Services", "CHECKING", "Waiting for KWIZERA AI Core…", false);
   const models = detectLocalAi(projectRoot());
 
-  // Foundation readiness = first-party AiCoreManager (memory/knowledge/intelligence), NOT Ollama.
+  // Foundation readiness = first-party AiCoreManager (memory/knowledge/intelligence).
   let aiCore = false;
   let localInference = false;
   let coreWaitDetail = "Starting KWIZERA AI Core…";
@@ -648,19 +553,7 @@ async function runStartupSequence(splash) {
     const detail = "KWIZERA AI Core ready (memory · knowledge · intelligence foundations)";
     push("ai", "AI Services", "READY", detail, false);
     models.note = detail;
-    // Optional experimental language provider — never required for AI Services READY.
-    try {
-      const ollama = await probeOllamaTags(2000);
-      if (ollama.available && (ollama.models?.length ?? 0) > 0) {
-        models.modelsPresent = true;
-        models.note = `${detail} · optional provider: Ollama (${ollama.models.length} model(s))`;
-        appendAppLog(config, `Optional Ollama available with ${ollama.models.length} model(s)`);
-      } else {
-        appendAppLog(config, "Optional Ollama not required — KWIZERA AI Core is the foundation");
-      }
-    } catch {
-      /* optional */
-    }
+    appendAppLog(config, "KWIZERA AI Core is the language runtime");
   } else {
     push(
       "ai",

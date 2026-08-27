@@ -6,7 +6,6 @@ import os from "node:os";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { AiInferenceRuntime } from "./inference-runtime.js";
-import { ensureOllamaRunning, pickPreferredLanguageModel, sanitizeProviderModelId, smokeOllamaGenerate, assertInferenceMemoryAvailable, type OllamaProbeResult } from "./local-ollama.js";
 import type { AiModel, AiModelCategory, HardwareSnapshot, LocalInferenceProvider, ModelLog, ModelSettings, ModelStore } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -59,183 +58,45 @@ export class AiModelManager {
   isInitialized(): boolean { return Boolean(this.root); }
 
   /**
-   * Ensure local Ollama is running, discover installed models, register them,
-   * and bind studio language/vision/embedding profiles to a real provider model.
-   * Does not download models and never marks READY without a discovered model.
+   * Confirm the studio language path is KWIZERA AI Core — not an external LLM.
+   * Does not spawn binaries, probe ports, or download models.
    */
   async syncLocalInferenceProviders(): Promise<{
-    ollama: OllamaProbeResult;
+    architecture: "kwizera-ai-core";
     registered: string[];
     boundCatalog: string[];
     ready: boolean;
     detail: string;
   }> {
     this.assertReady();
-    const ollama = await ensureOllamaRunning({ waitMs: 5_000 });
-    if (!ollama.available) {
-      this.log("warning", "discovery", ollama.error ?? "Ollama unavailable");
-      await this.persist();
-      return {
-        ollama,
-        registered: [],
-        boundCatalog: [],
-        ready: false,
-        detail: ollama.error ?? "PROVIDER_UNAVAILABLE: Ollama is optional and is not installed",
-      };
-    }
-    if (!ollama.models.length) {
-      const detail = "MODEL_NOT_FOUND: Ollama is running but no usable model files are installed";
-      this.log("warning", "discovery", detail);
-      await this.writeModelsManifest(ollama, []);
-      await this.persist();
-      return { ollama, registered: [], boundCatalog: [], ready: false, detail };
-    }
-
-    const status = await this.discoverProviders();
-    const provider = status.providers.find((item) => item.kind === "ollama" && item.available);
-    if (!provider?.models.length) {
-      const detail = "MODEL_INVALID: Ollama models could not be validated through the inference runtime";
-      this.log("warning", "discovery", detail);
-      await this.persist();
-      return { ollama, registered: [], boundCatalog: [], ready: false, detail };
-    }
-
-    const registered: string[] = [];
-    for (const name of provider.models) {
-      const id = sanitizeProviderModelId(name);
-      const existing = this.store.models.find((model) => model.id === id && model.status !== "removed");
-      if (existing) {
-        existing.providerModelId = name;
-        existing.health = "healthy";
-        if (existing.status === "available") existing.status = "installed";
-        continue;
-      }
-      await this.register({
-        id,
-        name,
-        category: "language",
-        version: "1.0.0",
-        description: `Local Ollama model ${name}`,
-        providerModelId: name,
-        requirements: { ramMb: 2048, storageMb: 1024 },
-        capabilities: ["language", "local-ollama"],
-      });
-      registered.push(id);
-    }
-
-    const preferred = pickPreferredLanguageModel(provider.models);
-    const boundCatalog: string[] = [];
-    if (preferred) {
-      for (const catalogId of ["studio-language-base", "studio-vision-base", "studio-embedding-base"] as const) {
-        const category: AiModelCategory = catalogId.includes("vision") ? "vision" : catalogId.includes("embedding") ? "embedding" : "language";
-        let model = this.store.models.find((item) => item.id === catalogId && item.status !== "removed");
-        if (!model) {
-          try {
-            model = await this.install(catalogId);
-          } catch {
-            continue;
-          }
-        }
-        model = this.getMutable(catalogId);
-        model.providerModelId = preferred;
-        model.category = category;
-        model.health = "healthy";
-        model.status = model.status === "loaded" ? "loaded" : "installed";
-        boundCatalog.push(catalogId);
-      }
-    }
-
-    await this.writeModelsManifest(ollama, provider.models);
-    this.log("info", "discovery", `Synced ${provider.models.length} Ollama model(s); bound ${boundCatalog.join(", ") || "none"}`);
     await this.persist();
+    const detail = "KWIZERA AI Core is the language runtime. External LLM providers are not used.";
+    this.log("info", "discovery", detail);
     return {
-      ollama,
-      registered,
-      boundCatalog,
-      ready: Boolean(preferred),
-      detail: preferred
-        ? `Local Ollama ready with ${provider.models.length} model(s); language profile bound to ${preferred}`
-        : "MODEL_NOT_FOUND: no preferred language model available",
+      architecture: "kwizera-ai-core",
+      registered: [],
+      boundCatalog: [],
+      ready: true,
+      detail,
     };
   }
 
-  async smokeInference(modelId = "studio-language-base"): Promise<{ ok: boolean; modelId: string; providerModelId?: string; output?: string; durationMs: number; error?: string }> {
+  async smokeInference(modelId = "studio-language-base"): Promise<{
+    ok: boolean;
+    modelId: string;
+    durationMs: number;
+    architecture: "kwizera-ai-core";
+    detail: string;
+  }> {
     this.assertReady();
-    let target = this.store.models.find((model) => model.id === modelId && model.status !== "removed");
-    if (!target?.providerModelId) {
-      const sync = await this.syncLocalInferenceProviders();
-      if (!sync.ready) return { ok: false, modelId, durationMs: 0, error: sync.detail };
-      target = this.store.models.find((model) => model.id === modelId && model.status !== "removed")
-        ?? this.store.models.find((model) => model.providerModelId && (model.category === "language" || model.capabilities.includes("local-ollama")) && model.status !== "removed");
-    }
-    if (!target) return { ok: false, modelId, durationMs: 0, error: "MODEL_NOT_FOUND" };
-    if (target.category !== "language") {
-      target = this.store.models.find((model) => model.id === "studio-language-base" && model.status !== "removed" && model.providerModelId)
-        ?? this.store.models.find((model) => model.category === "language" && model.status !== "removed" && model.providerModelId)
-        ?? target;
-    }
-    const providerModelId = target.providerModelId;
-    if (!providerModelId) return { ok: false, modelId: target.id, durationMs: 0, error: "MODEL_INCOMPATIBLE: catalog profile has no provider model binding" };
-    if (target.category !== "language") {
-      const direct = await smokeOllamaGenerate(providerModelId);
-      return direct.ok
-        ? { ok: true, modelId: target.id, providerModelId, output: direct.output, durationMs: direct.durationMs }
-        : { ok: false, modelId: target.id, providerModelId, durationMs: direct.durationMs, error: direct.error };
-    }
-
-    const memory = assertInferenceMemoryAvailable(1_200);
-    if (!memory.ok) {
-      return { ok: false, modelId: target.id, providerModelId, durationMs: 0, error: memory.error };
-    }
-
-    const previousRequirements = { ...target.requirements };
-    target.requirements = { ramMb: 256, storageMb: 128 };
-    try {
-      const result = await this.inference.infer({
-        modelId: target.id,
-        category: "language",
-        prompt: "Reply with exactly one word: READY",
-        priority: "high",
-        input: { options: { num_predict: 8, temperature: 0 } },
-      });
-      const output = typeof result.output === "string" ? result.output : JSON.stringify(result.output);
-      return { ok: true, modelId: target.id, providerModelId, output, durationMs: result.durationMs };
-    } catch (error) {
-      const direct = await smokeOllamaGenerate(providerModelId);
-      if (direct.ok) {
-        await this.activateForInference(target.id, "ollama-local");
-        return { ok: true, modelId: target.id, providerModelId, output: direct.output, durationMs: direct.durationMs };
-      }
-      return {
-        ok: false,
-        modelId: target.id,
-        providerModelId,
-        durationMs: direct.durationMs,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    } finally {
-      target.requirements = previousRequirements;
-      await this.persist();
-    }
-  }
-
-  private async writeModelsManifest(ollama: OllamaProbeResult, modelNames: string[]): Promise<void> {
-    try {
-      const storageRoot = path.dirname(this.root);
-      const modelsDir = path.join(storageRoot, "models");
-      await fs.mkdir(modelsDir, { recursive: true });
-      const manifest = {
-        updatedAt: new Date().toISOString(),
-        provider: "ollama-local",
-        endpoint: ollama.endpoint,
-        binaryPath: ollama.binaryPath,
-        models: modelNames,
-        note: "Models are executed by the local Ollama runtime; blobs live under the Ollama model store.",
-      };
-      await fs.writeFile(path.join(modelsDir, "local-ollama.manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-    } catch {
-      /* optional discoverability aid for splash / operators */
-    }
+    const sync = await this.syncLocalInferenceProviders();
+    return {
+      ok: true,
+      modelId,
+      durationMs: 0,
+      architecture: "kwizera-ai-core",
+      detail: sync.detail,
+    };
   }
   async dashboard(): Promise<{ installed: AiModel[]; available: AiModel[]; hardware: HardwareSnapshot; settings: ModelSettings; logs: ModelLog[]; performance: Record<string, number>; integrations: Record<string, boolean> }> {
     const hardware = await this.detectHardware();
@@ -258,7 +119,7 @@ export class AiModelManager {
   getMutable(id: string): AiModel { const model = this.store.models.find((item) => item.id === id && item.status !== "removed"); if (!model) throw new Error("Registered model not found"); return model; }
   log(level: ModelLog["level"], event: string, detail: string, modelId?: string): void { this.store.logs.unshift({ at: new Date().toISOString(), level, event, detail, modelId }); this.store.logs.splice(100, Number.MAX_SAFE_INTEGER); this.core?.logger.info("model-management", detail, { event, modelId }); }
   async persist(): Promise<void> { const target = path.join(this.root, "models.json"); const temporary = `${target}.${randomUUID()}.tmp`; await fs.writeFile(temporary, `${JSON.stringify({ ...this.store, providers: this.inference.configuredProviders() }, null, 2)}\n`, "utf8"); await fs.rename(temporary, target); }
-  private async readStore(): Promise<ModelStore> { try { const saved = JSON.parse(await fs.readFile(path.join(this.root, "models.json"), "utf8")) as Partial<ModelStore> & { providers?: LocalInferenceProvider[] }; for (const provider of saved.providers ?? []) this.inference.configure(provider); return { models: saved.models ?? [], settings: { ...DEFAULT_SETTINGS, ...saved.settings }, logs: saved.logs ?? [] }; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { models: [], settings: DEFAULT_SETTINGS, logs: [] }; throw error; } }
+  private async readStore(): Promise<ModelStore> { try { const saved = JSON.parse(await fs.readFile(path.join(this.root, "models.json"), "utf8")) as Partial<ModelStore> & { providers?: Array<LocalInferenceProvider & { kind?: string; id?: string }> }; for (const provider of saved.providers ?? []) { if (provider.kind === "ollama" || provider.id === "ollama-local") continue; this.inference.configure(provider); } return { models: saved.models ?? [], settings: { ...DEFAULT_SETTINGS, ...saved.settings }, logs: saved.logs ?? [] }; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return { models: [], settings: DEFAULT_SETTINGS, logs: [] }; throw error; } }
   private integrationStatus(): Record<string, boolean> { return { aiCore: Boolean(this.core), moduleManager: Boolean(this.core?.moduleManager), stateManager: Boolean(this.core?.stateManager), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), creativePipeline: Boolean(this.core?.workflowEngine), configurationManager: Boolean(this.core?.configuration) }; }
   private assertReady(): void { if (!this.root) throw new Error("AI Model Manager is not initialized"); }
 }

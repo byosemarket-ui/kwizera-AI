@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * STEP 1 production verification — actually starts the compiled server
- * and checks live HTTP responses. Does not treat Ollama as required.
+ * and checks live HTTP responses against KWIZERA AI Core.
  */
 
 import { spawn } from "node:child_process";
@@ -148,8 +148,8 @@ async function main() {
 
     record("persistent runtime ready", Boolean(runtime?.ready), runtime?.message ?? "");
     record(
-      "KWIZERA AI Core initialized without requiring Ollama",
-      Boolean(runtime?.ready) && !/ollama.*(required|missing|unavailable).*fatal/i.test(JSON.stringify(runtime ?? {})),
+      "KWIZERA AI Core initialized",
+      Boolean(runtime?.ready),
       runtime?.message ?? "",
     );
 
@@ -198,10 +198,10 @@ async function main() {
     );
 
     record(
-      "Ollama is not a required dependency",
-      !combinedLogs.toLowerCase().includes("ollama is required")
+      "startup does not spawn or require an external LLM",
+      !/spawn ollama/i.test(combinedLogs)
         && !/must install ollama/i.test(combinedLogs),
-      "optional provider only",
+      "KWIZERA AI Core only",
     );
   } catch (error) {
     record("verification run", false, error instanceof Error ? error.message : String(error));

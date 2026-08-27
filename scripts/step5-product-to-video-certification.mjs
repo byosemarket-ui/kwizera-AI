@@ -120,12 +120,12 @@ async function main() {
   console.log(`Isolated storage: ${tmpRoot}`);
   console.log(`Free RAM: ${Math.round(os.freemem() / 1024 / 1024)} MB`);
 
-  // --- Architecture (no Ollama foundation) ---
+  // --- Architecture (KWIZERA AI Core) ---
   const arch = await runArchitectureVerify();
   record(
     "architecture.kwizera-core",
     arch.ok ? "PASS" : "FAIL",
-    arch.ok ? "KWIZERA AI Core foundations connected; Ollama not required" : arch.out.slice(0, 300),
+    arch.ok ? "KWIZERA AI Core foundations connected" : arch.out.slice(0, 300),
   );
   record("architecture.external-llm-foundation", "PASS", "NOT REQUIRED FOR KWIZERA AI FOUNDATION");
 

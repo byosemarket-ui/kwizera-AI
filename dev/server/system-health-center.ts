@@ -439,7 +439,7 @@ export class SystemHealthCenter {
       score: knowStatus === "READY" ? 100 : 50,
     });
 
-    // AI engine — KWIZERA AI Core is the foundation; optional providers (Ollama) are not required.
+    // AI engine — KWIZERA AI Core is the foundation.
     const statusUrl = await httpGetJson(`http://${probeHost}:${port}/api/desktop-workspace/status`);
     const aiCore = statusUrl.ok && statusUrl.body && typeof statusUrl.body === "object"
       ? Boolean((statusUrl.body as { aiCore?: boolean }).aiCore)
@@ -456,16 +456,6 @@ export class SystemHealthCenter {
       aiStatus = "READY";
       aiScore = 100;
       aiDetail = "KWIZERA AI Core ready (memory · knowledge · intelligence)";
-      if (localInference) {
-        const runtime = await httpGetJson(`http://${probeHost}:${port}/api/models/runtime`, 4_000);
-        const providers = runtime.ok && runtime.body && typeof runtime.body === "object"
-          ? (runtime.body as { providers?: Array<{ kind?: string; available?: boolean; models?: string[] }> }).providers ?? []
-          : [];
-        const ollama = providers.find((provider) => provider.kind === "ollama" && provider.available && (provider.models?.length ?? 0) > 0);
-        if (ollama) {
-          aiDetail = `${aiDetail} · optional Ollama (${ollama.models!.length} model(s))`;
-        }
-      }
     } else if (localInference) {
       aiStatus = "DEGRADED";
       aiScore = 55;

@@ -1,5 +1,5 @@
 /**
- * Step 1 — Verify KWIZERA AI Core foundations are connected without requiring Ollama.
+ * Step 1 — Verify KWIZERA AI Core foundations are connected.
  */
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     console.error("FAIL: disconnected modules:", failed.join(", "));
     process.exit(1);
   }
-  console.log("PASS: KWIZERA AI Core foundations connected (Ollama not required)");
+  console.log("PASS: KWIZERA AI Core foundations connected");
 }
 
 main().catch((error) => {

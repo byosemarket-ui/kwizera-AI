@@ -2489,7 +2489,7 @@ function buildPlan(intent: ConversationIntent, message: string, projectId: strin
 
 function buildResponse(language: ConversationLanguage, plan: ConversationPlan, context: ConversationResponse["context"], synchronization: { cloudState: string; trackedFiles: number; queuedChanges: number; unresolvedConflicts: number; lastBackupAt: string | null } | null, integration: { total: number; enabled: number; unhealthy: number; routes: number; webhooks: number } | null, enterprise: { organizations: number; teams: number; users: number; activeLocks: number; activePresence: number; unreadNotifications: number } | null, publishing: { packages: number; scheduled: number; readyLocal: number; published: number; failed: number; connectedProfiles: number } | null, runtime: { providers: Array<{ name: string; available: boolean; models: number; error?: string }>; gpuName?: string; vramFreeMb?: number } | null): string {
   if (plan.intent === "system") {
-    if (!runtime) return "Runtime diagnostics are restoring. Configure a local Automatic1111, ComfyUI, or Ollama provider before requesting inference.";
+    if (!runtime) return "Runtime diagnostics are restoring. KWIZERA AI Core is the language runtime; image and video adapters (Automatic1111, ComfyUI) are optional loopback services.";
     const available = runtime.providers.filter((provider) => provider.available);
     const unavailable = runtime.providers.filter((provider) => !provider.available);
     const availableDetail = available.length ? available.map((provider) => `${provider.name} (${provider.models} model(s))`).join(", ") : "none";

@@ -4,12 +4,10 @@ import type { AiModelCategory, ImageInferenceRequest, ImageInferenceResult, Infe
 const DEFAULT_PROVIDERS: LocalInferenceProvider[] = [
   { id: "automatic1111-local", name: "Automatic1111 Local", kind: "automatic1111", endpoint: "http://127.0.0.1:7860", enabled: true, supportedCategories: ["image"] },
   { id: "comfyui-local", name: "ComfyUI Local", kind: "comfyui-video", endpoint: "http://127.0.0.1:8188", enabled: true, supportedCategories: ["video"] },
-  { id: "ollama-local", name: "Ollama Local", kind: "ollama", endpoint: "http://127.0.0.1:11434", enabled: true, supportedCategories: ["language", "vision", "embedding"] },
 ];
 const ADAPTER_CATEGORIES: Record<LocalInferenceProvider["kind"], AiModelCategory[]> = {
 	automatic1111: ["image"],
   "comfyui-video": ["video"],
-  ollama: ["language", "vision", "embedding"],
   "openai-compatible": ["language"],
 };
 
@@ -33,6 +31,9 @@ export class AiInferenceRuntime {
   }
 
   configure(provider: LocalInferenceProvider): void {
+    if ((provider as { kind?: string }).kind === "ollama" || provider.id === "ollama-local") {
+      throw new Error("Ollama is not part of KWIZERA AI STUDIO");
+    }
     const endpoint = new URL(provider.endpoint);
     if (!/^https?:$/.test(endpoint.protocol) || !["127.0.0.1", "localhost", "[::1]"].includes(endpoint.hostname)) throw new Error("Inference providers must use a loopback HTTP endpoint");
     if (provider.supportedCategories.some((category) => !ADAPTER_CATEGORIES[provider.kind].includes(category))) throw new Error(`${provider.kind} does not support one or more configured inference categories`);
@@ -143,7 +144,10 @@ export class AiInferenceRuntime {
   private async execute(job: QueuedInference): Promise<void> {
     const startedAt = performance.now();
     try {
-      const output = job.provider.kind === "ollama" ? await this.executeOllama(job.provider, job.request) : await this.executeOpenAiCompatible(job.provider, job.request);
+      if (job.provider.kind !== "openai-compatible") {
+        throw new Error(`Language inference is handled by KWIZERA AI Core; ${job.provider.kind} is not a language adapter`);
+      }
+      const output = await this.executeOpenAiCompatible(job.provider, job.request);
       this.completed++;
       job.resolve({ modelId: job.request.modelId, providerId: job.provider.id, backend: job.provider.kind, output, durationMs: Math.round(performance.now() - startedAt), createdAt: new Date().toISOString() });
     } catch (error) {
@@ -174,7 +178,7 @@ export class AiInferenceRuntime {
 
   private async check(provider: ProviderStatus): Promise<void> {
     try {
-      const healthPath = provider.kind === "ollama" ? "/api/tags" : provider.kind === "automatic1111" ? "/sdapi/v1/options" : provider.kind === "comfyui-video" ? "/system_stats" : "/v1/models";
+      const healthPath = provider.kind === "automatic1111" ? "/sdapi/v1/options" : provider.kind === "comfyui-video" ? "/system_stats" : "/v1/models";
       const response = await fetch(`${provider.endpoint}${healthPath}`, { signal: AbortSignal.timeout(1_500) });
       if (!response.ok) throw new Error(`Health endpoint returned ${response.status}`);
       const health = await response.json().catch(() => ({})) as Record<string, unknown>;
@@ -187,10 +191,6 @@ export class AiInferenceRuntime {
   }
 
   private async discoverProviderDetails(provider: ProviderStatus, health: Record<string, unknown>): Promise<Pick<ProviderStatus, "version" | "models" | "components" | "capabilities" | "system">> {
-    if (provider.kind === "ollama") {
-      const models = Array.isArray(health.models) ? health.models.flatMap((item) => typeof item === "object" && item && typeof (item as { name?: unknown }).name === "string" ? [(item as { name: string }).name] : []) : [];
-      return { models, version: typeof health.version === "string" ? health.version : undefined, capabilities: ["language", "vision", "embedding"] };
-    }
     if (provider.kind === "automatic1111") {
       const [version, models, loras, vaes, upscalers] = await Promise.all([
         this.fetchJson(provider.endpoint, "/sdapi/v1/version"), this.fetchJson(provider.endpoint, "/sdapi/v1/sd-models"), this.fetchJson(provider.endpoint, "/sdapi/v1/loras"), this.fetchJson(provider.endpoint, "/sdapi/v1/sd-vae"), this.fetchJson(provider.endpoint, "/sdapi/v1/upscalers"),
@@ -212,22 +212,6 @@ export class AiInferenceRuntime {
 
   private async fetchJson(endpoint: string, pathname: string): Promise<Record<string, unknown> | unknown[] | null> {
     try { const response = await fetch(`${endpoint}${pathname}`, { signal: AbortSignal.timeout(1_500) }); return response.ok ? await response.json() as Record<string, unknown> | unknown[] : null; } catch { return null; }
-  }
-
-  private async executeOllama(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
-    await this.check(provider);
-    if (!provider.available) {
-      throw new Error(`PROVIDER_UNAVAILABLE: Ollama is optional and is not running${provider.error ? ` (${provider.error})` : ""}`);
-    }
-    const runtimeModel = this.resolveProviderModelId(request.modelId);
-    const path = request.category === "embedding" ? "/api/embed" : "/api/generate";
-    const body = request.category === "embedding" ? { model: runtimeModel, input: request.prompt } : { ...(request.input ?? {}), model: runtimeModel, prompt: request.prompt, stream: false };
-    const response = await fetch(`${provider.endpoint}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: request.signal ?? AbortSignal.timeout(300_000) });
-    if (!response.ok) throw new Error(`Ollama inference failed with ${response.status}: ${await response.text()}`);
-    const payload = await response.json() as { response?: string; embeddings?: number[][]; embedding?: number[] };
-    if (request.category === "embedding") return payload.embeddings?.[0] ?? payload.embedding ?? (() => { throw new Error("Ollama returned no embedding"); })();
-    if (!payload.response) throw new Error("Ollama returned no inference response");
-    return payload.response;
   }
 
   private async executeOpenAiCompatible(provider: ProviderStatus, request: InferenceRequest): Promise<string | number[] | Record<string, unknown>> {
