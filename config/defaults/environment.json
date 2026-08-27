@@ -1,6 +1,6 @@
 {
   "configVersion": "1.0.0",
   "nodeEnv": "development",
-  "port": 3847,
+  "port": 5173,
   "host": "127.0.0.1"
 }

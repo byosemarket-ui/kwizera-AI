@@ -1,9 +1,9 @@
 {
   "persistentMode": true,
-  "storageRoot": "D:\\KWIZERA-AI-STUDIO",
+  "storageRoot": "",
   "devPort": 5173,
   "autoStartOnWindowsLogon": false,
   "autoOpenBrowser": true,
   "sessionAutoSaveIntervalMs": 60000,
-  "description": "KWIZERA AI STUDIO persistent local development configuration. All user data, memory, knowledge, and project state are stored permanently under storageRoot. Nothing is deleted on restart."
+  "description": "KWIZERA AI STUDIO persistent local development configuration. Set KWIZERA_STORAGE_ROOT for the data directory. Nothing is deleted on restart."
 }

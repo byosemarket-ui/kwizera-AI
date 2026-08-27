@@ -14,7 +14,8 @@ import {
   StorageConfig,
 } from "./types.js";
 import type { AiCoreLogger } from "./logger.js";
-import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import { findProjectRoot, resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import { resolveBindHost, resolveBindPort } from "../../config/runtime-env.js";
 
 function readJsonFile<T>(filePath: string): T {
   if (!fs.existsSync(filePath)) {
@@ -35,7 +36,7 @@ export class AiConfigurationManager {
 
   constructor(options: AiConfigurationManagerOptions = {}) {
     const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    const projectRoot = path.resolve(moduleDir, "..", "..");
+    const projectRoot = findProjectRoot(moduleDir);
     this.configRoot = options.configRoot ?? path.join(projectRoot, "config", "defaults");
   }
 
@@ -64,7 +65,7 @@ export class AiConfigurationManager {
       );
 
       const storageRoot = resolveStorageRoot(
-        storageRootOverride ?? process.env.KWIZERA_STORAGE_ROOT ?? storageDefaults.storageRoot
+        storageRootOverride || process.env.KWIZERA_STORAGE_ROOT || storageDefaults.storageRoot || undefined,
       );
 
       const storage: StorageConfig = {
@@ -72,9 +73,16 @@ export class AiConfigurationManager {
         storageRoot,
       };
 
+      const environmentResolved: EnvironmentConfig = {
+        ...environment,
+        nodeEnv: process.env.NODE_ENV || process.env.KWIZERA_ENV || environment.nodeEnv,
+        host: resolveBindHost() || environment.host,
+        port: resolveBindPort(environment.port),
+      };
+
       this.configuration = {
         application,
-        environment,
+        environment: environmentResolved,
         storage,
         language,
         brand,

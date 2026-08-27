@@ -160,7 +160,7 @@ export class AiStateManager {
       };
       return true;
     }, context, moduleId);
-    if (result.accepted) {
+    if (result.accepted && context?.systemAction !== "module-lifecycle") {
       this.createSnapshot("module-state-change");
     }
     return result;

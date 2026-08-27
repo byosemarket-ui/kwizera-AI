@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { findProjectRoot } from "../../storage/paths/storage-paths.js";
 import { BLUEPRINT_STEPS, PHASE_DEFINITIONS } from "./phase-definitions.js";
 
 export type ModuleStatus = "pass" | "fail" | "unknown" | "not-run" | "blueprint";
@@ -32,7 +33,7 @@ export interface PhaseSummary {
   status: ModuleStatus;
 }
 
-const PROJECT_ROOT = path.resolve(import.meta.dirname, "../..");
+const PROJECT_ROOT = findProjectRoot(import.meta.dirname);
 
 let registryCache: PhaseSummary[] | null = null;
 

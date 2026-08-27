@@ -167,6 +167,7 @@ export class AiCoreManager {
   }
 
   async start(correlationId?: string): Promise<void> {
+    console.log("[KWIZERA] AI Core startup: loading configuration and storage…");
     await this.startup.start(
       {
         lifecycle: this.lifecycle,
@@ -184,6 +185,7 @@ export class AiCoreManager {
       }
     );
     this.started = true;
+    console.log("[KWIZERA] AI Core startup: configuration ready, initializing engines…");
 
     const storageRoot =
       this.options.storageRootOverride ??
@@ -221,8 +223,10 @@ export class AiCoreManager {
         this._communicationBus
       );
       await this._memoryFoundation.runStartup();
+      console.log("[KWIZERA] AI Core startup: memory foundation ready");
       const memoryPlugin = createMemoryFoundationPlugin(this._memoryFoundation, this);
       await this._moduleManager.registerAndInitialize(memoryPlugin);
+      console.log("[KWIZERA] AI Core startup: memory plugin registered");
     }
 
     if (!this.options.skipReasoningEngine) {
@@ -233,6 +237,7 @@ export class AiCoreManager {
       });
       const reasoningPlugin = createReasoningEnginePlugin(this._reasoningEngine, this);
       await this._moduleManager.registerAndInitialize(reasoningPlugin);
+      console.log("[KWIZERA] AI Core startup: reasoning engine ready");
     }
 
     if (!this.options.skipDecisionEngine) {
@@ -246,15 +251,18 @@ export class AiCoreManager {
       }
       const plugin = createDecisionEnginePlugin(this._decisionEngine, this);
       await this._moduleManager.registerAndInitialize(plugin);
+      console.log("[KWIZERA] AI Core startup: decision engine ready");
     }
 
     if (!this.options.skipPlanningEngine) {
+      process.stdout.write("[KWIZERA] AI Core startup: initializing planning engine…\n");
       this._planningEngine = new AiPlanningEngine({ storageRoot });
       const planningPlugin = createPlanningEnginePlugin(this._planningEngine, this);
       await this._moduleManager.registerAndInitialize(planningPlugin);
       if (this._decisionEngine) {
         this._decisionEngine.setPlanningEngine(this._planningEngine);
       }
+      process.stdout.write("[KWIZERA] AI Core startup: planning engine ready\n");
     }
 
     if (!this.options.skipTaskManager) {
@@ -300,7 +308,9 @@ export class AiCoreManager {
     }
 
     if (!this.options.skipKnowledgeFoundation) {
+      process.stdout.write("[KWIZERA] AI Core startup: initializing knowledge foundation…\n");
       this._knowledgeFoundation = new AiKnowledgeFoundation();
+      process.stdout.write("[KWIZERA] AI Core startup: knowledge foundation constructed\n");
       this._knowledgeFoundation.initialize(
         this,
         storageRoot,
@@ -309,7 +319,9 @@ export class AiCoreManager {
         this._stateManager,
         this._communicationBus
       );
+      process.stdout.write("[KWIZERA] AI Core startup: knowledge foundation initialize() done, running startup…\n");
       await this._knowledgeFoundation.runStartup();
+      console.log("[KWIZERA] AI Core startup: knowledge foundation ready");
       const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation, this);
       await this._moduleManager.registerAndInitialize(knowledgePlugin);
     }

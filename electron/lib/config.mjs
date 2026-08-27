@@ -95,7 +95,9 @@ function defaultConfig() {
     }
   }
   if (!storageRoot) {
-    storageRoot = path.join(os.homedir(), "KWIZERA-AI-STUDIO");
+    storageRoot = process.platform === "win32"
+      ? path.join(os.homedir(), "KWIZERA-AI-STUDIO")
+      : path.join(os.homedir(), ".local", "share", "kwizera-ai-studio");
   }
   return {
     version: 1,

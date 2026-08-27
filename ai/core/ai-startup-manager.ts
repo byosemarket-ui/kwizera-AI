@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { resolveLogDirectory } from "../../storage/paths/storage-paths.js";
+import { resolveLogDirectory, resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import {
   AiCoreError,
   AiInitializationDiagnostic,
@@ -111,12 +111,7 @@ export class AiStartupManager {
 
       deps.logger.error("startup", "AI Core startup failed", { error: message });
 
-      const recoveryPath = options.storageRootOverride
-        ? path.join(options.storageRootOverride, "logs")
-        : path.join(
-            options.storageRootOverride ?? "D:\\KWIZERA-AI-STUDIO",
-            "logs"
-          );
+      const recoveryPath = path.join(resolveStorageRoot(options.storageRootOverride), "logs");
 
       if (!fs.existsSync(recoveryPath)) {
         fs.mkdirSync(recoveryPath, { recursive: true });

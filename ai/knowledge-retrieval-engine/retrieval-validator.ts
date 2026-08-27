@@ -37,7 +37,7 @@ export class KnowledgeRetrievalValidator {
       return {
         valid: false,
         diagnostics,
-        recoverySuggestion: "Verify storage root accessibility at D:\\KWIZERA-AI-STUDIO",
+        recoverySuggestion: "Verify storage root accessibility at the configured KWIZERA_STORAGE_ROOT",
       };
     }
 

@@ -355,11 +355,14 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
     try {
       console.log("[KWIZERA] Restoring persistent session from", storageRoot);
+      console.log("[KWIZERA] Loading KWIZERA AI Core module…");
       const { createAiCore } = await import("../../ai/core/index.js");
       core = createAiCore({ storageRootOverride: storageRoot });
       const manager = core.getManager();
 
+      console.log("[KWIZERA] Starting KWIZERA AI Core…");
       await core.start("persistent-dev-restore");
+      console.log("[KWIZERA] KWIZERA AI Core started");
       workspaceManager = new CreativeWorkspaceManager();
       await workspaceManager.initialize(storageRoot, manager);
       const backup = manager.memoryFoundation?.getMemoryBackupEngine();
@@ -438,6 +441,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       pipelineManager = new CreativePipelineManager();
       await pipelineManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, planning: planningManager, review: reviewManager });
+      console.log("[KWIZERA] Creative pipeline initialized");
       manager.conversationEngine?.setExecutionDispatcher({
         dispatch: async (projectId, plan) => ({
           jobId: plan.intent === "marketing"
@@ -451,13 +455,12 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       modelManager = manager.modelManager;
       if (!modelManager) throw new Error("AI Model Management is not available");
-      try {
-        // Optional experimental language/image providers — never required for KWIZERA AI Core.
-        const sync = await modelManager.syncLocalInferenceProviders();
+      // Optional experimental providers must never block KWIZERA AI Core or the Product → Video pipeline.
+      void modelManager.syncLocalInferenceProviders().then((sync) => {
         console.log("[KWIZERA] Optional inference provider sync:", sync.detail);
-      } catch (error) {
+      }).catch((error) => {
         console.warn("[KWIZERA] Optional inference provider sync deferred:", error instanceof Error ? error.message : error);
-      }
+      });
       manager.conversationEngine?.setRuntimeStatusProvider({
         getSummary: () => {
           const runtime = modelManager?.inference.status();
@@ -683,6 +686,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         getAiMeProductRenderingExportAwareness: () => productRenderingExportManager!.getAiMeProductRenderingExportAwareness(),
       });
       pipelineManager.attachProductRenderingExport(productRenderingExportManager);
+      console.log("[KWIZERA] Product → Video pipeline managers initialized");
       creativeGenerationCertificationManager = new CreativeGenerationCertificationManager();
       await creativeGenerationCertificationManager.initialize(storageRoot, { core: manager });
       if (manager.moduleManager) {

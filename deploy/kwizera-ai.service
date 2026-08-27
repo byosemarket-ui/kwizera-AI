@@ -1,0 +1,29 @@
+[Unit]
+Description=KWIZERA AI STUDIO
+Documentation=file:///opt/kwizera-ai/config/production.vps.json
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kwizera-ai
+User=kwizera
+Group=kwizera
+Environment=NODE_ENV=production
+Environment=KWIZERA_ENV=production
+Environment=KWIZERA_SKIP_BROWSER_OPEN=1
+Environment=KWIZERA_PERSISTENT_MODE=1
+Environment=KWIZERA_PROJECT_ROOT=/opt/kwizera-ai
+EnvironmentFile=-/opt/kwizera-ai/.env
+ExecStart=/usr/bin/node /opt/kwizera-ai/dist/dev/server/index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=600
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Persistent data lives in KWIZERA_STORAGE_ROOT (set in .env), not in the unit file.
+
+[Install]
+WantedBy=multi-user.target

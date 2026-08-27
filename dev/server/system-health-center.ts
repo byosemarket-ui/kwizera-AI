@@ -11,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-probes.js";
+import { resolveBindHost, resolveBindPort, resolveHealthProbeHost } from "../../config/runtime-env.js";
 import { resolveStoragePath, resolveStorageRoot } from "../../storage/paths/storage-paths.js";
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
@@ -304,8 +305,10 @@ export class SystemHealthCenter {
     });
 
     // Backend / local API (self)
-    const port = Number(process.env.KWIZERA_DEV_PORT ?? 5173);
-    const health = await httpGetJson(`http://127.0.0.1:${port}/api/health`);
+    const port = resolveBindPort();
+    const bindHost = resolveBindHost();
+    const probeHost = resolveHealthProbeHost(bindHost);
+    const health = await httpGetJson(`http://${probeHost}:${port}/api/health`);
     const backendOk = health.ok && typeof health.body === "object" && health.body && (health.body as { ok?: boolean }).ok;
     this.setService("local-api", backendOk ? "READY" : "STARTING", backendOk ? null : "Health endpoint not ready yet");
     subsystems.push({
@@ -313,7 +316,7 @@ export class SystemHealthCenter {
       label: "Backend / Local API",
       status: backendOk ? "READY" : "STARTING",
       required: true,
-      detail: backendOk ? `Responding on 127.0.0.1:${port}` : `Waiting for /api/health on port ${port}`,
+      detail: backendOk ? `Responding on ${probeHost}:${port}` : `Waiting for /api/health on port ${port}`,
       score: backendOk ? 100 : 55,
     });
 
@@ -437,7 +440,7 @@ export class SystemHealthCenter {
     });
 
     // AI engine — KWIZERA AI Core is the foundation; optional providers (Ollama) are not required.
-    const statusUrl = await httpGetJson(`http://127.0.0.1:${port}/api/desktop-workspace/status`);
+    const statusUrl = await httpGetJson(`http://${probeHost}:${port}/api/desktop-workspace/status`);
     const aiCore = statusUrl.ok && statusUrl.body && typeof statusUrl.body === "object"
       ? Boolean((statusUrl.body as { aiCore?: boolean }).aiCore)
       : false;
@@ -454,7 +457,7 @@ export class SystemHealthCenter {
       aiScore = 100;
       aiDetail = "KWIZERA AI Core ready (memory · knowledge · intelligence)";
       if (localInference) {
-        const runtime = await httpGetJson(`http://127.0.0.1:${port}/api/models/runtime`, 4_000);
+        const runtime = await httpGetJson(`http://${probeHost}:${port}/api/models/runtime`, 4_000);
         const providers = runtime.ok && runtime.body && typeof runtime.body === "object"
           ? (runtime.body as { providers?: Array<{ kind?: string; available?: boolean; models?: string[] }> }).providers ?? []
           : [];
@@ -505,16 +508,16 @@ export class SystemHealthCenter {
       score: networkState === "ONLINE" ? 100 : networkState === "OFFLINE" ? 70 : 50,
     });
 
-    // Windows integration metadata
+    // Desktop-shell integration is Windows-only; on Linux/VPS it is not a health failure.
     subsystems.push({
       id: "windows-integration",
       label: "Windows Integration",
-      status: process.platform === "win32" ? "READY" : "DEGRADED",
+      status: "READY",
       required: false,
       detail: process.platform === "win32"
         ? "Launcher/scripts available (Electron desktop + install shortcuts)"
-        : `Platform ${process.platform} — Windows shortcuts N/A`,
-      score: process.platform === "win32" ? 100 : 40,
+        : `Platform ${process.platform} — Windows desktop shortcuts not applicable`,
+      score: 100,
     });
 
     // Resources
@@ -892,7 +895,7 @@ export class SystemHealthCenter {
 
   private registerDefaultServices(): void {
     const defs: Array<Omit<RegisteredService, "status" | "lastError" | "lastCheckedAt" | "restartAttempts">> = [
-      { id: "local-api", name: "Local API", type: "http", criticality: "required", maxRestarts: 3, port: Number(process.env.KWIZERA_DEV_PORT ?? 5173) },
+      { id: "local-api", name: "Local API", type: "http", criticality: "required", maxRestarts: 3, port: resolveBindPort() },
       { id: "database", name: "Database", type: "storage", criticality: "required", maxRestarts: 1 },
       { id: "storage", name: "Storage", type: "filesystem", criticality: "required", maxRestarts: 1 },
       { id: "memory", name: "Memory Center", type: "ai-memory", criticality: "required", maxRestarts: 3 },

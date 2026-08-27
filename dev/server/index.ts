@@ -8,7 +8,8 @@ import os from "node:os";
 
 import path from "node:path";
 
-import { resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import { findProjectRoot, resolveStorageRoot } from "../../storage/paths/storage-paths.js";
+import { isProductionEnv, loadProjectEnv, resolveBindHost, resolveBindPort, resolveHealthProbeHost } from "../../config/runtime-env.js";
 import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-probes.js";
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
@@ -100,13 +101,15 @@ import { PHASE_DEFINITIONS } from "./phase-definitions.js";
 
 
 
-const PORT = Number(process.env.KWIZERA_DEV_PORT ?? 5173);
+const projectRoot = getProjectRoot() || findProjectRoot(import.meta.dirname);
 
-const HOST = "127.0.0.1";
+loadProjectEnv(projectRoot);
 
-const UI_DIR = path.resolve(import.meta.dirname, "../ui");
+const PORT = resolveBindPort();
 
-const projectRoot = getProjectRoot();
+const HOST = resolveBindHost();
+
+const UI_DIR = path.join(projectRoot, "dev", "ui");
 
 const storageRoot = resolveStorageRoot();
 
@@ -118,7 +121,9 @@ let activePort = PORT;
 
 
 
-console.log("[KWIZERA] Starting persistent local development environment…");
+console.log(isProductionEnv()
+  ? "[KWIZERA] Starting KWIZERA AI STUDIO production runtime…"
+  : "[KWIZERA] Starting persistent local development environment…");
 
 console.log("[KWIZERA] Storage root:", storageRoot);
 
@@ -1014,7 +1019,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       name: "KWIZERA AI STUDIO",
 
-      mode: isPersistentMode() ? "persistent-local-development" : "local-development",
+      mode: isProductionEnv()
+        ? "production"
+        : isPersistentMode()
+          ? "persistent-local-development"
+          : "local-development",
 
       host: HOST,
 
@@ -4012,7 +4021,7 @@ const server = createServer(async (req, res) => {
 
 function openBrowser(address: string): void {
 
-  if (process.env.KWIZERA_SKIP_BROWSER_OPEN === "1") return;
+  if (process.env.KWIZERA_SKIP_BROWSER_OPEN === "1" || isProductionEnv()) return;
 
   if (process.platform === "win32") {
 
@@ -4026,19 +4035,25 @@ function openBrowser(address: string): void {
 
 function printStartupBanner(port: number, restored: boolean): void {
 
-  const address = `http://${HOST}:${port}`;
+  const address = `http://${resolveHealthProbeHost(HOST)}:${port}`;
 
   console.log("");
 
-  console.log("  KWIZERA AI STUDIO — Persistent Local Development");
+  console.log(isProductionEnv()
+    ? "  KWIZERA AI STUDIO — Production"
+    : "  KWIZERA AI STUDIO — Persistent Local Development");
 
   console.log(`  Dashboard: ${address}`);
+
+  console.log(`  Bind:      ${HOST}:${port}`);
 
   console.log(`  Storage:   ${storageRoot}`);
 
   console.log(`  Session:   ${restored ? "restored from previous run" : "initialized"}`);
 
-  console.log("  Offline only — not deployed");
+  console.log(isProductionEnv()
+    ? "  KWIZERA AI Core remains the foundation — external providers are optional"
+    : "  Offline only — not deployed");
 
   console.log("");
 
@@ -4056,7 +4071,7 @@ function startListening(port: number): void {
 
       console.error(`[KWIZERA] Port ${port} is already in use.`);
 
-      console.error(`  Stop the other process, or run: $env:KWIZERA_DEV_PORT=5174; npm run dev`);
+      console.error(`  Stop the other process, or set KWIZERA_PORT to a free port and retry.`);
 
       process.exit(1);
 
@@ -4102,6 +4117,11 @@ async function main(): Promise<void> {
 
   startListening(PORT);
 
+  // Let the HTTP server accept health probes before CPU-heavy AI Core init.
+  const bootDelayMs = Number(process.env.KWIZERA_BOOT_DELAY_MS ?? 750);
+
+  setTimeout(() => {
+
   // Phase 7 Step 2 — always boot durable memory/knowledge (independent of full AI core)
   void persistentMemoryCenter.boot(storageRoot).catch((err) => {
     console.error("[KWIZERA] Persistent Memory Center boot error:", err);
@@ -4125,6 +4145,8 @@ async function main(): Promise<void> {
   }).catch((err) => {
     console.error("[KWIZERA] Background runtime boot error:", err);
   });
+
+  }, bootDelayMs);
 
 }
 

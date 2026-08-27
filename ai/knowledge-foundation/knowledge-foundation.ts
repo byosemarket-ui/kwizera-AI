@@ -210,6 +210,11 @@ export class AiKnowledgeFoundation {
     this.ensureReady();
     const start = Date.now();
     this.lifecycleState = KnowledgeLifecycleState.Loading;
+    const mark = (stage: string): void => {
+      process.stdout.write(`[KWIZERA] Knowledge startup: ${stage}\n`);
+    };
+    mark("begin");
+    await new Promise<void>((resolve) => setImmediate(resolve));
 
     this.lastIntegrity = this.integrityVerifier.verify(this.storage, this.registry);
     if (!this.lastIntegrity.verified && this.lastIntegrity.issues.length > 0) {
@@ -229,26 +234,33 @@ export class AiKnowledgeFoundation {
 
     this.storageEngine.initialize(this, this.storageRoot, this.storage.getKnowledgeRoot());
     await this.storageEngine.runStartup();
+    mark("storage engine");
 
     this.retrievalEngine.initialize(this, this.storageRoot);
     await this.retrievalEngine.runStartup();
+    mark("retrieval engine");
 
     this.graphEngine.initialize(this, this.storageRoot);
     await this.graphEngine.runStartup();
+    mark("graph engine");
 
     this.imageKnowledgeEngine.initialize(this, this.storageRoot);
     await this.imageKnowledgeEngine.runStartup();
+    mark("image knowledge");
 
     this.videoKnowledgeEngine.initialize(this, this.storageRoot);
     await this.videoKnowledgeEngine.runStartup();
+    mark("video knowledge");
 
     // Professional Video Production Knowledge Expansion Step 1 starts after domain planner + extraction below.
 
     this.marketingKnowledgeEngine.initialize(this, this.storageRoot);
     await this.marketingKnowledgeEngine.runStartup();
+    mark("marketing knowledge");
 
     this.productKnowledgeEngine.initialize(this, this.storageRoot);
     await this.productKnowledgeEngine.runStartup();
+    mark("product knowledge");
 
     this.brandKnowledgeEngine.initialize(this, this.storageRoot);
     await this.brandKnowledgeEngine.runStartup();
@@ -281,6 +293,7 @@ export class AiKnowledgeFoundation {
 
     this.knowledgeDomainPlanner.initialize(this, this.storageRoot);
     await this.knowledgeDomainPlanner.runStartup();
+    mark("domain planner");
 
     this.documentUnderstandingEngine.initialize(this, this.storageRoot);
     await this.documentUnderstandingEngine.runStartup();
@@ -290,10 +303,14 @@ export class AiKnowledgeFoundation {
 
     this.professionalVideoProductionKnowledge.initialize(this, this.storageRoot);
     await this.professionalVideoProductionKnowledge.runStartup();
+    mark("professional video production knowledge");
+    await new Promise<void>((resolve) => setImmediate(resolve));
     this.videoProductionKnowledgeBuilder.bindProfessionalKnowledge(this.professionalVideoProductionKnowledge);
 
     this.professionalCameraKnowledge.initialize(this, this.storageRoot);
     await this.professionalCameraKnowledge.runStartup();
+    mark("professional camera knowledge");
+    await new Promise<void>((resolve) => setImmediate(resolve));
 
     this.professionalLightingCompositionKnowledge.initialize(this, this.storageRoot);
     await this.professionalLightingCompositionKnowledge.runStartup();

@@ -1,0 +1,60 @@
+{
+  "name": "KWIZERA AI STUDIO",
+  "versionFrom": "package.json",
+  "environment": "production",
+  "bind": {
+    "hostEnv": "KWIZERA_HOST",
+    "portEnv": "KWIZERA_PORT",
+    "defaultHost": "127.0.0.1",
+    "defaultPort": 5173,
+    "note": "Default bind is loopback. Use a reverse proxy (nginx/caddy) on the VPS, or set KWIZERA_HOST=0.0.0.0 only when firewall and TLS are configured."
+  },
+  "storage": {
+    "rootEnv": "KWIZERA_STORAGE_ROOT",
+    "recommendedLinux": "/var/lib/kwizera-ai-studio",
+    "fallbackLinux": "$HOME/.local/share/kwizera-ai-studio",
+    "segments": [
+      "config",
+      "database",
+      "projects",
+      "uploads",
+      "exports",
+      "media",
+      "memory",
+      "knowledge",
+      "logs",
+      "backups",
+      "cache",
+      "temp"
+    ]
+  },
+  "separation": {
+    "applicationFiles": "Git checkout / install directory (compiled dist + source UI/config)",
+    "userData": "KWIZERA_STORAGE_ROOT (never the application checkout)"
+  },
+  "flags": {
+    "NODE_ENV": "production",
+    "KWIZERA_ENV": "production",
+    "KWIZERA_PERSISTENT_MODE": "1",
+    "KWIZERA_SKIP_BROWSER_OPEN": "1",
+    "KWIZERA_FFMPEG_PATH": "optional — required only for actual ffmpeg encoding, not for pipeline initialization"
+  },
+  "architecture": {
+    "aiCore": "original KWIZERA AI Core / Memory / Knowledge / Intelligence modules",
+    "externalProviders": "optional (Ollama, OpenAI, ComfyUI, Automatic1111) — never required for startup"
+  },
+  "security": {
+    "bindLoopbackByDefault": true,
+    "noSecretsInPackage": true,
+    "envFile": ".env (not committed)"
+  },
+  "commands": {
+    "build": "npm run build:production",
+    "buildServerOnly": "npm run build:production:server",
+    "start": "npm run start:production",
+    "verify": "npm run verify:production"
+  },
+  "firstBoot": {
+    "note": "First start seeds KWIZERA Knowledge into KWIZERA_STORAGE_ROOT. Allow several minutes. systemd TimeoutStartSec should be at least 600."
+  }
+}

@@ -1,7 +1,73 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-/** Default permanent storage root per TECHNOLOGY-STACK-BLUEPRINT Step 1M */
-export const DEFAULT_STORAGE_ROOT = "D:\\KWIZERA-AI-STUDIO";
+/** Windows desktop preferred root. Never used automatically on Linux/macOS. */
+export const WINDOWS_PREFERRED_STORAGE_ROOT = "D:\\KWIZERA-AI-STUDIO";
+
+/**
+ * True when a configured storage root can be used on this operating system.
+ * Rejects empty values and Windows drive-letter paths on non-Windows hosts.
+ */
+export function isUsableStorageRoot(value?: string | null): value is string {
+  if (!value || !value.trim()) return false;
+  const trimmed = value.trim();
+  if (process.platform !== "win32" && /^[A-Za-z]:[\\/]/.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+export function findProjectRoot(fromDir?: string): string {
+  const envRoot = process.env.KWIZERA_PROJECT_ROOT;
+  if (envRoot && fs.existsSync(path.join(envRoot, "package.json"))) {
+    return path.resolve(envRoot);
+  }
+
+  let dir = fromDir ?? path.dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 16; i++) {
+    const pkgPath = path.join(dir, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as { name?: string };
+        if (parsed.name === "kwizera-ai-studio") {
+          return dir;
+        }
+      } catch {
+        /* keep walking */
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  throw new Error(
+    "Unable to locate KWIZERA AI STUDIO project root (package.json). Set KWIZERA_PROJECT_ROOT.",
+  );
+}
+
+export function platformDefaultStorageRoot(): string {
+  if (process.platform === "win32") {
+    const preferred = WINDOWS_PREFERRED_STORAGE_ROOT;
+    try {
+      if (fs.existsSync(preferred)) return preferred;
+    } catch {
+      /* fall through */
+    }
+    const localApp = process.env.LOCALAPPDATA;
+    if (localApp) return path.join(localApp, "KWIZERA-AI-STUDIO");
+    return path.join(os.homedir(), "KWIZERA-AI-STUDIO");
+  }
+
+  const xdg = process.env.XDG_DATA_HOME;
+  if (xdg) return path.join(xdg, "kwizera-ai-studio");
+  return path.join(os.homedir(), ".local", "share", "kwizera-ai-studio");
+}
+
+/** Snapshot of the platform default at module load. Prefer resolveStorageRoot(). */
+export const DEFAULT_STORAGE_ROOT = platformDefaultStorageRoot();
 
 export interface StorageDirectories {
   config: string;
@@ -26,16 +92,18 @@ export interface StorageDirectories {
 }
 
 export function resolveStorageRoot(override?: string): string {
-  return (
-    override ??
-    process.env.KWIZERA_STORAGE_ROOT ??
-    DEFAULT_STORAGE_ROOT
-  );
+  if (isUsableStorageRoot(override)) {
+    return path.resolve(override);
+  }
+  if (isUsableStorageRoot(process.env.KWIZERA_STORAGE_ROOT)) {
+    return path.resolve(process.env.KWIZERA_STORAGE_ROOT);
+  }
+  return path.resolve(platformDefaultStorageRoot());
 }
 
 export function resolveStoragePath(
   storageRoot: string,
-  segment: keyof StorageDirectories
+  segment: keyof StorageDirectories,
 ): string {
   const segments: StorageDirectories = {
     config: "config",
