@@ -36,9 +36,13 @@ async function main(): Promise<void> {
         ? "Configuration loaded"
         : "Configuration missing",
     };
+    const configured = core.getManager().configuration.getConfiguration().futureModules.futureModules;
+    const missingSlots = configured.filter((module) => !core.getManager().registry.getEntry(module.id));
     results.registry = {
-      passed: core.getManager().registry.getSlotCount() === 17,
-      detail: `${core.getManager().registry.getSlotCount()} module slots reserved`,
+      passed: missingSlots.length === 0 && configured.length > 0,
+      detail: missingSlots.length
+        ? `Missing configured slots: ${missingSlots.map((module) => module.id).join(", ")}`
+        : `${core.getManager().registry.getSlotCount()} module slots reserved (${configured.length} configured)`,
     };
     results.logging = {
       passed: core.getManager().logger.isInitialized(),

@@ -87,12 +87,18 @@ export class AiController {
     const runtimeReady = this.deps.runtime.isInitialized();
     const loggerReady = this.deps.logger.isInitialized();
     const slots = this.deps.registry.getSlotCount();
+    const configuredModules = configLoaded
+      ? this.deps.configuration.getConfiguration().futureModules.futureModules
+      : [];
+    const registryComplete =
+      configuredModules.length > 0 &&
+      configuredModules.every((module) => Boolean(this.deps.registry.getEntry(module.id)));
 
     const checks = [
       configLoaded,
       runtimeReady,
       loggerReady,
-      slots === 10,
+      registryComplete,
       lifecycle === AiLifecycleState.Ready ||
         lifecycle === AiLifecycleState.Running ||
         lifecycle === AiLifecycleState.Stopped,

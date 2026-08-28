@@ -478,9 +478,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       imageGenerationManager = new ImageGenerationManager();
       await imageGenerationManager.initialize(storageRoot, { core: manager, models: modelManager, workspace: workspaceManager, planning: planningManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createImageGenerationPlugin(imageGenerationManager, manager));
+      pipelineManager.attachImageGeneration(imageGenerationManager);
       videoAudioGenerationManager = new VideoAudioGenerationManager();
       await videoAudioGenerationManager.initialize(storageRoot, { core: manager, models: modelManager, workspace: workspaceManager, planning: planningManager, images: imageGenerationManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createVideoAudioGenerationPlugin(videoAudioGenerationManager, manager));
+      pipelineManager.attachVideoAudioGeneration(videoAudioGenerationManager);
       generationOptimizationManager = new GenerationOptimizationManager();
       await generationOptimizationManager.initialize(storageRoot, { core: manager, models: modelManager, images: imageGenerationManager, videoAudio: videoAudioGenerationManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createGenerationOptimizationPlugin(generationOptimizationManager, manager));
@@ -488,9 +490,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       imageIntelligenceManager = new ImageIntelligenceManager();
       await imageIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createImageIntelligencePlugin(imageIntelligenceManager, manager));
+      pipelineManager.attachImageIntelligence(imageIntelligenceManager);
       productIntelligenceManager = new ProductIntelligenceManager();
       await productIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager });
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createProductIntelligencePlugin(productIntelligenceManager, manager));
+      pipelineManager.attachProductIntelligence(productIntelligenceManager);
       productIntelligenceManager.attachImageIntelligence(imageIntelligenceManager);
       manager.conversationEngine?.setProductIntelligenceProvider({
         isInitialized: () => productIntelligenceManager!.isInitialized(),
@@ -709,6 +713,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         marketingIntelligenceManager = new MarketingIntelligenceManager();
         await marketingIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager });
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createMarketingIntelligencePlugin(marketingIntelligenceManager, manager));
+        pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
         planningManager.attachMarketingIntelligence(marketingIntelligenceManager);
         marketingContentManager = new MarketingContentManager(workspaceManager, productIntelligenceManager, marketingIntelligenceManager, imageGenerationManager, reviewManager);
         await marketingContentManager.initialize(storageRoot);
@@ -717,6 +722,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         decisionIntelligenceManager = new DecisionIntelligenceManager();
         await decisionIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, models: modelManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager });
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createDecisionIntelligencePlugin(decisionIntelligenceManager, manager));
+        pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
         planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
@@ -724,6 +730,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         learningIntelligenceManager = new AiLearningManager();
         await learningIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager, decisions: decisionIntelligenceManager });
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createLearningIntelligencePlugin(learningIntelligenceManager, manager));
+        pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
         console.log("[KWIZERA] Learning intelligence runtime initialized");
       imageGenerationManager.attachProductIntelligence(productIntelligenceManager);
       videoAudioGenerationManager.attachProductIntelligence(productIntelligenceManager);
