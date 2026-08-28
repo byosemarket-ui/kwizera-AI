@@ -40,9 +40,21 @@ else
 fi
 sudo -u "$SERVICE_USER" -H npm run build:production:server
 
+GATEWAY_JS="$APP_DIR/dist/dev/server/production-gateway.js"
+APP_JS="$APP_DIR/dist/dev/server/index.js"
+if [[ ! -f "$GATEWAY_JS" ]] || [[ ! -f "$APP_JS" ]]; then
+  echo "[KWIZERA] production-gateway.js or app worker missing after build" >&2
+  exit 1
+fi
+
 install -m 644 "$APP_DIR/deploy/kwizera-ai.service" /etc/systemd/system/kwizera-ai.service
+if ! grep -q 'production-gateway.js' /etc/systemd/system/kwizera-ai.service; then
+  echo "[KWIZERA] systemd unit was not updated to production-gateway.js" >&2
+  exit 1
+fi
 systemctl daemon-reload
 systemctl restart "$SERVICE"
 sleep 2
 systemctl is-active --quiet "$SERVICE"
+echo "[KWIZERA] ExecStart=$(systemctl show -p ExecStart --value "$SERVICE")"
 echo "[KWIZERA] service $SERVICE active after GitHub update"

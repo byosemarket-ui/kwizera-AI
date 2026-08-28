@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if [[ ! -f "$ROOT/dist/dev/server/index.js" ]]; then
+if [[ ! -f "$ROOT/dist/dev/server/production-gateway.js" ]] || [[ ! -f "$ROOT/dist/dev/server/index.js" ]]; then
   echo "[KWIZERA] Production build missing. Run: npm run build:production" >&2
   exit 1
 fi
@@ -22,4 +22,4 @@ if [[ -f "$ROOT/.env" ]]; then
   set +a
 fi
 
-exec node "$ROOT/dist/dev/server/index.js"
+exec node "$ROOT/dist/dev/server/production-gateway.js"

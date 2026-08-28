@@ -75,11 +75,13 @@ await build({
   outExtension: { ".js": ".js" },
 });
 
+const gateway = path.join(dist, "dev", "server", "production-gateway.js");
 const entry = path.join(dist, "dev", "server", "index.js");
-if (!fs.existsSync(entry)) {
-  console.error("[KWIZERA] Production entry was not emitted:", entry);
+if (!fs.existsSync(entry) || !fs.existsSync(gateway)) {
+  console.error("[KWIZERA] Production entry was not emitted:", !fs.existsSync(gateway) ? gateway : entry);
   process.exit(1);
 }
 
-console.log("[KWIZERA] Production JS emit complete:", path.relative(root, entry));
+console.log("[KWIZERA] Production JS emit complete:", path.relative(root, gateway));
+console.log("[KWIZERA] App worker:", path.relative(root, entry));
 console.log("[KWIZERA] Next: npm run start:production");
