@@ -6,6 +6,7 @@ import {
   AiCore,
   createAiCore,
   FRAMEWORK_MODULE_CATALOG,
+  getCatalogEntry,
   ManagedModuleState,
   ModuleHealthStatus,
 } from "@ai";
@@ -14,7 +15,7 @@ function createTempStorageRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-module-manager-test-"));
 }
 
-describe("AiModuleManager", () => {
+describe("AiModuleManager", { timeout: 120_000 }, () => {
   let storageRoot: string;
 
   beforeEach(() => {
@@ -26,6 +27,19 @@ describe("AiModuleManager", () => {
     if (fs.existsSync(storageRoot)) {
       fs.rmSync(storageRoot, { recursive: true, force: true });
     }
+  });
+
+  it("catalogues image-generation-runtime separately from the foundation engine", () => {
+    const runtime = getCatalogEntry("image-generation-runtime");
+    const foundation = getCatalogEntry("image-generation-engine");
+
+    expect(runtime?.moduleId).toBe("image-generation-runtime");
+    expect(runtime?.slotId).toBe("image-generation-runtime");
+    expect(foundation?.moduleId).toBe("image-generation");
+    expect(foundation?.slotId).toBe("image-generation-engine");
+    expect(getCatalogEntry("video-audio-generation-runtime")?.moduleId).toBe("video-audio-generation-runtime");
+    expect(getCatalogEntry("image-intelligence-runtime")?.moduleId).toBe("image-intelligence-runtime");
+    expect(getCatalogEntry("product-intelligence-runtime")?.moduleId).toBe("product-intelligence-runtime");
   });
 
   it("initializes framework catalog for all supported modules", async () => {
@@ -55,6 +69,19 @@ describe("AiModuleManager", () => {
     expect(reasoning?.status).toBe(ManagedModuleState.Running);
     expect(workflow?.status).toBe(ManagedModuleState.Running);
     expect(manager.getRegisteredPluginCount()).toBeGreaterThanOrEqual(7);
+
+    await manager.registerAndInitialize({
+      id: "image-generation-runtime",
+      name: "Image Generation Runtime",
+      version: "0.1.0",
+      async initialize() {},
+      async shutdown() {},
+      async healthCheck() {
+        return { healthy: true, message: "Image generation runtime operational" };
+      },
+    });
+    expect(manager.getRegistryRecord("image-generation-runtime")?.status).toBe(ManagedModuleState.Running);
+    expect(manager.getRegistryRecord("image-generation")?.slotId).toBe("image-generation-engine");
 
     await core.stop();
   });

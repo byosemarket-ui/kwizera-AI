@@ -5,6 +5,7 @@ import {
   ModuleRegistrationStatus,
 } from "./types.js";
 import type { AiCoreLogger } from "./logger.js";
+import { getCatalogEntry } from "../module-manager/module-catalog.js";
 
 /** Reserved future module IDs — slots only, no implementations in Step 2A */
 export const FUTURE_MODULE_IDS = [
@@ -56,9 +57,23 @@ export class AiModuleRegistry {
   }
 
   registerPlugin(plugin: AiModulePlugin, logger: AiCoreLogger): void {
-    const existing = this.entries.get(plugin.id);
+    let existing = this.entries.get(plugin.id);
     if (!existing) {
-      throw new Error(`Cannot register unknown module: ${plugin.id}`);
+      const catalog = getCatalogEntry(plugin.id);
+      if (!catalog) {
+        throw new Error(`Cannot register unknown module: ${plugin.id}`);
+      }
+      existing = {
+        id: plugin.id,
+        name: catalog.moduleName,
+        status: "slot-reserved",
+        enabled: true,
+      };
+      this.entries.set(plugin.id, existing);
+      logger.info("module-registration", `Reserved catalog module slot: ${plugin.id}`, {
+        moduleId: plugin.id,
+        moduleName: catalog.moduleName,
+      });
     }
 
     this.entries.set(plugin.id, {

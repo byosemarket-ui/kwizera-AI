@@ -25,6 +25,23 @@
     { "id": "export-engine", "name": "Export Engine", "enabled": false },
     { "id": "recovery-engine", "name": "Recovery Engine", "enabled": false },
     { "id": "health-monitor", "name": "Health Monitor", "enabled": false },
-    { "id": "ai-model-management", "name": "KWIZERA AI Model Management", "enabled": false }
+    { "id": "ai-model-management", "name": "KWIZERA AI Model Management", "enabled": false },
+    { "id": "image-generation-runtime", "name": "Image Generation Runtime", "enabled": false },
+    { "id": "video-audio-generation-runtime", "name": "Video & Audio Generation Runtime", "enabled": false },
+    { "id": "generation-optimization-runtime", "name": "Generation Optimization Runtime", "enabled": false },
+    { "id": "image-intelligence-runtime", "name": "Image Intelligence Runtime", "enabled": false },
+    { "id": "product-intelligence-runtime", "name": "Product Intelligence Runtime", "enabled": false },
+    { "id": "product-asset-preparation-runtime", "name": "Product Asset Preparation Runtime", "enabled": false },
+    { "id": "product-scene-planning-runtime", "name": "Product Scene Planning Runtime", "enabled": false },
+    { "id": "product-storyboard-runtime", "name": "Product Storyboard Runtime", "enabled": false },
+    { "id": "product-prompt-orchestration-runtime", "name": "Product Prompt Orchestration Runtime", "enabled": false },
+    { "id": "product-image-generation-runtime", "name": "Product Image Generation Runtime", "enabled": false },
+    { "id": "product-video-generation-runtime", "name": "Product Video Generation Runtime", "enabled": false },
+    { "id": "product-audio-generation-runtime", "name": "Product Audio Generation Runtime", "enabled": false },
+    { "id": "product-rendering-export-runtime", "name": "Product Rendering Export Runtime", "enabled": false },
+    { "id": "creative-generation-certification", "name": "Creative Generation Certification", "enabled": false },
+    { "id": "marketing-intelligence-runtime", "name": "Marketing Intelligence Runtime", "enabled": false },
+    { "id": "decision-intelligence-runtime", "name": "Decision Intelligence Runtime", "enabled": false },
+    { "id": "learning-intelligence-runtime", "name": "Learning Intelligence Runtime", "enabled": false }
   ]
 }

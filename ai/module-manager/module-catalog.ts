@@ -10,7 +10,49 @@ export interface FrameworkModuleDefinition {
   compatibility: string;
 }
 
-/** Framework catalog — management only, implementations deferred */
+function runtimeModule(
+  moduleId: string,
+  moduleName: string,
+  features: string[],
+  dependencies: string[] = ["ai-core"]
+): FrameworkModuleDefinition {
+  return {
+    moduleId,
+    moduleName,
+    slotId: moduleId,
+    dependencies,
+    capabilities: { features, interfaces: [`${moduleId}-api`] },
+    owner: "KWIZERA AI",
+    compatibility: ">=0.1.0",
+  };
+}
+
+/**
+ * Persistent studio runtimes (Image / Video / Product / Marketing intelligence).
+ * Separate from foundation engine slots so registration does not overwrite
+ * image-generation-engine, image-engine, or product-engine.
+ */
+const KWIZERA_RUNTIME_MODULE_CATALOG: FrameworkModuleDefinition[] = [
+  runtimeModule("image-generation-runtime", "Image Generation Runtime", ["image-generation"]),
+  runtimeModule("video-audio-generation-runtime", "Video & Audio Generation Runtime", ["video-generation", "audio-generation"]),
+  runtimeModule("generation-optimization-runtime", "Generation Optimization Runtime", ["generation-optimization"]),
+  runtimeModule("image-intelligence-runtime", "Image Intelligence Runtime", ["image-analysis"]),
+  runtimeModule("product-intelligence-runtime", "Product Intelligence Runtime", ["product-analysis"]),
+  runtimeModule("product-asset-preparation-runtime", "Product Asset Preparation Runtime", ["product-asset-preparation"]),
+  runtimeModule("product-scene-planning-runtime", "Product Scene Planning Runtime", ["product-scene-planning"]),
+  runtimeModule("product-storyboard-runtime", "Product Storyboard Runtime", ["product-storyboard"]),
+  runtimeModule("product-prompt-orchestration-runtime", "Product Prompt Orchestration Runtime", ["product-prompt-orchestration"]),
+  runtimeModule("product-image-generation-runtime", "Product Image Generation Runtime", ["product-image-generation"]),
+  runtimeModule("product-video-generation-runtime", "Product Video Generation Runtime", ["product-video-generation"]),
+  runtimeModule("product-audio-generation-runtime", "Product Audio Generation Runtime", ["product-audio-generation"]),
+  runtimeModule("product-rendering-export-runtime", "Product Rendering Export Runtime", ["product-rendering-export"]),
+  runtimeModule("creative-generation-certification", "Creative Generation Certification", ["creative-generation-certification"]),
+  runtimeModule("marketing-intelligence-runtime", "Marketing Intelligence Runtime", ["marketing"]),
+  runtimeModule("decision-intelligence-runtime", "Decision Intelligence Runtime", ["decision-intelligence"]),
+  runtimeModule("learning-intelligence-runtime", "Learning Intelligence Runtime", ["learning-intelligence"]),
+];
+
+/** Framework catalog — foundation slots plus persistent studio runtimes. */
 export const FRAMEWORK_MODULE_CATALOG: FrameworkModuleDefinition[] = [
   {
     moduleId: "ai-core",
@@ -254,6 +296,7 @@ export const FRAMEWORK_MODULE_CATALOG: FrameworkModuleDefinition[] = [
     owner: "KWIZERA AI",
     compatibility: ">=0.1.0",
   },
+  ...KWIZERA_RUNTIME_MODULE_CATALOG,
 ];
 
 export function getCatalogEntry(moduleId: string): FrameworkModuleDefinition | undefined {
