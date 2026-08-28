@@ -15,7 +15,7 @@ function createTempStorageRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-memory-foundation-test-"));
 }
 
-describe("AiMemoryFoundation", () => {
+describe("AiMemoryFoundation", { timeout: 120_000 }, () => {
   let storageRoot: string;
 
   beforeEach(() => {

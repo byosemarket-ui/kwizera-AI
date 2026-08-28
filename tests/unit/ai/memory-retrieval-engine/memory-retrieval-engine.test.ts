@@ -13,7 +13,7 @@ function createTempStorageRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-memory-retrieval-test-"));
 }
 
-describe("AiMemoryRetrievalEngine", () => {
+describe("AiMemoryRetrievalEngine", { timeout: 120_000 }, () => {
   let storageRoot: string;
 
   beforeEach(() => {

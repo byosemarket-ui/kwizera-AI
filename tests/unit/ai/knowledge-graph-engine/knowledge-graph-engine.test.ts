@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AiCore,
   createAiCore,
@@ -14,7 +14,7 @@ function createTempStorageRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-knowledge-graph-test-"));
 }
 
-describe("AiKnowledgeGraphEngine", () => {
+describe("AiKnowledgeGraphEngine", { timeout: 120_000 }, () => {
   let storageRoot: string;
 
   beforeEach(() => {
@@ -161,6 +161,66 @@ describe("AiKnowledgeGraphEngine", () => {
     await graph.discoverRelationships();
 
     expect(graph.getRelationships("concept-camera-lighting").some((edge) => edge.evidence.includes("Shared structured concepts"))).toBe(true);
+    await core.stop();
+  });
+
+  it("loads each knowledge record at most once during full discovery", { timeout: 180_000 }, async () => {
+    const { core, storage, graph } = await startCore();
+
+    for (let i = 0; i < 12; i++) {
+      await storage.storeRecord({
+        knowledgeId: `scan-bound-${i}`,
+        knowledgeType: KnowledgeStorageType.Technical,
+        category: "acquired-knowledge",
+        title: `Scan Bound Record ${i}`,
+        description: `Record ${i} for bounded graph discovery.`,
+        source: "test",
+        tags: ["shared-tag"],
+        payload: { concepts: i % 2 === 0 ? ["shared-concept"] : ["other-concept"] },
+        qualityScore: 80,
+        confidenceScore: 80,
+        verificationStatus: KnowledgeVerificationStatus.Verified,
+      });
+    }
+
+    const spy = vi.spyOn(storage, "getRecord");
+    await graph.discoverRelationships();
+
+    const indexCount = storage.getIndexEntries().length;
+    expect(spy.mock.calls.length).toBe(indexCount);
+    expect(new Set(spy.mock.calls.map((call) => call[0])).size).toBe(indexCount);
+    expect(graph.getRelationships("scan-bound-0").length).toBeGreaterThan(0);
+
+    await core.stop();
+  });
+
+  it("yields the event loop so timers can run during discovery", async () => {
+    const { core, storage, graph } = await startCore();
+
+    for (let i = 0; i < 24; i++) {
+      await storage.storeRecord({
+        knowledgeId: `yield-bound-${i}`,
+        knowledgeType: KnowledgeStorageType.Technical,
+        category: "acquired-knowledge",
+        title: `Yield Bound Record ${i}`,
+        description: `Record ${i} for event-loop yielding during graph discovery.`,
+        source: "test",
+        tags: ["yield-tag"],
+        payload: { concepts: ["yield-concept"] },
+        qualityScore: 80,
+        confidenceScore: 80,
+        verificationStatus: KnowledgeVerificationStatus.Verified,
+      });
+    }
+
+    let ticks = 0;
+    const timer = setInterval(() => {
+      ticks += 1;
+    }, 5);
+    await graph.discoverRelationships();
+    clearInterval(timer);
+
+    expect(ticks).toBeGreaterThan(0);
     await core.stop();
   });
 

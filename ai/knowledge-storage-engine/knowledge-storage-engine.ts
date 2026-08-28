@@ -367,7 +367,11 @@ export class AiKnowledgeStorageEngine {
     };
   }
 
-  async getRecord(knowledgeId: string, requesterId = "knowledge-storage-engine"): Promise<KnowledgeStorageReadResult> {
+  async getRecord(
+    knowledgeId: string,
+    requesterId = "knowledge-storage-engine",
+    options?: { skipAudit?: boolean }
+  ): Promise<KnowledgeStorageReadResult> {
     this.ensureReady();
     const start = Date.now();
 
@@ -376,13 +380,15 @@ export class AiKnowledgeStorageEngine {
       return { success: false, durationMs: Date.now() - start, message: `Record not found: ${knowledgeId}` };
     }
 
-    const access = await this.requestFoundationAccess(
-      indexEntry.knowledgeType,
-      KnowledgeAccessOperation.Read,
-      requesterId
-    );
-    if (!access.granted) {
-      return { success: false, durationMs: Date.now() - start, message: access.message };
+    if (!options?.skipAudit) {
+      const access = await this.requestFoundationAccess(
+        indexEntry.knowledgeType,
+        KnowledgeAccessOperation.Read,
+        requesterId
+      );
+      if (!access.granted) {
+        return { success: false, durationMs: Date.now() - start, message: access.message };
+      }
     }
 
     const { data, durationMs } = this.store.readRecord<KnowledgeRecord>(indexEntry.storageLocation);

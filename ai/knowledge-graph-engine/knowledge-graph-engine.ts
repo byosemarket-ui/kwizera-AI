@@ -1,4 +1,5 @@
 import path from "node:path";
+import { yieldEventLoop } from "../../config/yield-event-loop.js";
 import type { AiKnowledgeFoundation } from "../knowledge-foundation/knowledge-foundation.js";
 import { KnowledgeStorageType } from "../knowledge-storage-engine/types.js";
 import { KnowledgeGraphDiscovery } from "./knowledge-graph-discovery.js";
@@ -74,11 +75,28 @@ export class AiKnowledgeGraphEngine {
     this.logger.log("info", "startup", "Knowledge Graph Engine initialized", { storageRoot });
   }
 
+  beginDiscoveryBatch(): void {
+    this.ensureReady();
+    this.graph.setBatchPersist(true);
+  }
+
+  endDiscoveryBatch(): void {
+    this.ensureReady();
+    this.graph.setBatchPersist(false);
+    const entries = this.foundation!.getStorageEngine().getIndexEntries();
+    this.graph.markDiscoveryComplete(this.graph.computeIndexFingerprint(entries), entries.length);
+  }
+
   async runStartup(): Promise<void> {
     this.ensureReady();
     const start = Date.now();
 
     const entries = this.foundation!.getStorageEngine().getIndexEntries();
+    process.stdout.write(
+      `[KWIZERA] Knowledge Graph Engine startup: ${entries.length} indexed records\n`
+    );
+
+    let ensured = 0;
     for (const entry of entries) {
       this.graph.ensureKnowledgeNode(
         entry.knowledgeId,
@@ -86,9 +104,25 @@ export class AiKnowledgeGraphEngine {
         entry.title,
         entry.searchableText
       );
+      ensured++;
+      if (ensured % 20 === 0) {
+        await yieldEventLoop();
+      }
     }
 
-    await this.discoverRelationships();
+    const fingerprint = this.graph.computeIndexFingerprint(entries);
+    const knowledgeIds = entries.map((entry) => entry.knowledgeId);
+    if (this.graph.canReuseDiscovery(fingerprint, knowledgeIds)) {
+      process.stdout.write(
+        `[KWIZERA] Knowledge Graph Engine: reusing persisted relationships (${entries.length} records)\n`
+      );
+      this.logger.log("info", "startup", "Reusing persisted knowledge graph discovery", {
+        records: entries.length,
+      });
+    } else {
+      await this.discoverRelationships();
+    }
+
     const integrityReport = this.validateIntegrity();
     this.lastIntegrityMs = integrityReport.durationMs;
 
@@ -98,11 +132,13 @@ export class AiKnowledgeGraphEngine {
       edges: this.graph.getGraph().edgeCount,
       durationMs: Date.now() - start,
     });
+    process.stdout.write(
+      `[KWIZERA] Knowledge Graph Engine startup complete (${Date.now() - start}ms)\n`
+    );
   }
 
   async evolveGraph(knowledgeId: string): Promise<KnowledgeGraphDiscoveryResult> {
     this.ensureReady();
-    this.logger.log("info", "evolution", "Evolving graph from knowledge change", { knowledgeId });
     return this.discoverRelationships(knowledgeId);
   }
 
@@ -116,6 +152,10 @@ export class AiKnowledgeGraphEngine {
     this.ensureReady();
     const start = Date.now();
     const result = await this.discovery!.discover(knowledgeId);
+    if (!knowledgeId) {
+      const entries = this.foundation!.getStorageEngine().getIndexEntries();
+      this.graph.markDiscoveryComplete(this.graph.computeIndexFingerprint(entries), entries.length);
+    }
     this.discoveryTimes.push(Date.now() - start);
     return result;
   }
@@ -133,7 +173,7 @@ export class AiKnowledgeGraphEngine {
       input.confidenceScore ?? 80
     );
 
-    if (edge) {
+    if (edge && !this.graph.isBatchPersist()) {
       this.logger.log("info", "relationship", "Knowledge relationship created", {
         relationshipId: edge.relationshipId,
         type: edge.relationshipType,

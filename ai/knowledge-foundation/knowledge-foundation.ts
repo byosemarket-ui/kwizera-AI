@@ -242,8 +242,12 @@ export class AiKnowledgeFoundation {
     await mark("retrieval engine");
 
     this.graphEngine.initialize(this, this.storageRoot);
-    await this.graphEngine.runStartup();
     await mark("graph engine");
+    await this.graphEngine.runStartup();
+    await mark("graph engine ready");
+
+    this.graphEngine.beginDiscoveryBatch();
+    try {
 
     this.imageKnowledgeEngine.initialize(this, this.storageRoot);
     await this.imageKnowledgeEngine.runStartup();
@@ -431,6 +435,9 @@ export class AiKnowledgeFoundation {
 
     this.professionalKnowledgeCertificationEngine.initialize(this, this.storageRoot);
     await this.professionalKnowledgeCertificationEngine.runStartup();
+    } finally {
+      this.graphEngine.endDiscoveryBatch();
+    }
 
     this.storageEngine.setRecordChangeHandler((knowledgeId, operation) => {
       this.retrievalEngine.invalidateCache(knowledgeId);
