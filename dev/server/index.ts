@@ -81,6 +81,8 @@ import {
 
   getRuntimeStatus,
 
+  coreHttpHealth,
+
   getSessionStore,
 
   getWorkspaceManager,
@@ -1011,11 +1013,13 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (url.pathname === "/api/health") {
 
-    const runtime = getRuntimeStatus();
+    const health = coreHttpHealth(getRuntimeStatus());
 
     sendJson(res, 200, {
 
-      ok: true,
+      ok: health.status !== "unhealthy",
+
+      status: health.status,
 
       name: "KWIZERA AI STUDIO",
 
@@ -1033,9 +1037,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       persistent: isPersistentMode(),
 
-      runtimeReady: runtime?.ready ?? false,
+      runtimeReady: health.runtimeReady,
 
-      sessionRestored: runtime?.restored ?? false,
+      sessionRestored: health.sessionRestored,
+
+      message: health.message,
 
       architecture: "kwizera-ai-core",
 
@@ -3986,10 +3992,10 @@ const server = createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://${HOST}:${activePort}`);
 
   if (url.pathname === "/api/health") {
-    const runtime = getRuntimeStatus();
+    const health = coreHttpHealth(getRuntimeStatus());
     sendJson(res, 200, {
-      ok: true,
-      status: runtime?.ready ? "healthy" : runtime?.booting ? "starting" : "healthy",
+      ok: health.status !== "unhealthy",
+      status: health.status,
       name: "KWIZERA AI STUDIO",
       mode: isProductionEnv()
         ? "production"
@@ -4000,8 +4006,9 @@ const server = createServer((req, res) => {
       port: activePort,
       storageRoot,
       persistent: isPersistentMode(),
-      runtimeReady: runtime?.ready ?? false,
-      sessionRestored: runtime?.restored ?? false,
+      runtimeReady: health.runtimeReady,
+      sessionRestored: health.sessionRestored,
+      message: health.message,
       architecture: "kwizera-ai-core",
     });
     return;

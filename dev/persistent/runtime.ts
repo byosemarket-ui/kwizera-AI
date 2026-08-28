@@ -297,6 +297,8 @@ export function getRuntimeStatus(): PersistentRuntimeStatus | null {
   return status;
 }
 
+export { coreHttpHealth } from "./runtime-health.js";
+
 export function isPersistentMode(): boolean {
   return process.env.KWIZERA_PERSISTENT_MODE !== "0";
 }
@@ -718,9 +720,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
+        console.log("[KWIZERA] Initializing learning intelligence runtime");
         learningIntelligenceManager = new AiLearningManager();
         await learningIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager, decisions: decisionIntelligenceManager });
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createLearningIntelligencePlugin(learningIntelligenceManager, manager));
+        console.log("[KWIZERA] Learning intelligence runtime initialized");
       imageGenerationManager.attachProductIntelligence(productIntelligenceManager);
       videoAudioGenerationManager.attachProductIntelligence(productIntelligenceManager);
       imageGenerationManager.attachImageIntelligence(imageIntelligenceManager);
@@ -785,6 +789,9 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         bootstrap: { created: bootstrap.created.length, existing: bootstrap.existing.length },
       };
       console.error("[KWIZERA] Persistent runtime boot failed:", message);
+      if (err instanceof Error && err.stack) {
+        console.error(err.stack);
+      }
       return status;
     } finally {
       bootPromise = null;

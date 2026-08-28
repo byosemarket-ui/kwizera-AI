@@ -38,13 +38,14 @@ export function createHealthGateway(options: {
   appHost: string;
   appPort: number;
   getStatus: () => GatewayHealthStatus;
+  getExtra?: () => Record<string, unknown>;
 }): Server {
-  const { host, port, appHost, appPort, getStatus } = options;
+  const { host, port, appHost, appPort, getStatus, getExtra } = options;
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const pathname = (req.url ?? "/").split("?")[0];
     if (pathname === "/api/health") {
-      sendHealthJson(res, getStatus(), { host, port });
+      sendHealthJson(res, getStatus(), { host, port, ...getExtra?.() });
       return;
     }
 
@@ -100,12 +101,18 @@ export async function main(): Promise<void> {
   const appEntry = path.join(projectRoot, "dist", "dev", "server", "index.js");
 
   let status: GatewayHealthStatus = "starting";
+  let lastCore: { runtimeReady?: boolean; sessionRestored?: boolean; message?: string } = {};
   const server = createHealthGateway({
     host,
     port,
     appHost,
     appPort,
     getStatus: () => status,
+    getExtra: () => ({
+      runtimeReady: lastCore.runtimeReady === true,
+      sessionRestored: lastCore.sessionRestored === true,
+      message: lastCore.message,
+    }),
   });
 
   await new Promise<void>((resolve, reject) => {
@@ -148,8 +155,14 @@ export async function main(): Promise<void> {
         up.on("data", (chunk) => chunks.push(chunk as Buffer));
         up.on("end", () => {
           try {
-            const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as { runtimeReady?: boolean; status?: string };
-            status = body.runtimeReady === true || body.status === "healthy" ? "healthy" : "starting";
+            const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as {
+              runtimeReady?: boolean;
+              sessionRestored?: boolean;
+              status?: string;
+              message?: string;
+            };
+            lastCore = body;
+            status = body.runtimeReady === true ? "healthy" : "starting";
           } catch {
             status = "starting";
           }

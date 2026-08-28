@@ -45,4 +45,45 @@ describe("production HTTP gateway", () => {
     expect(body.gateway).toBe(true);
     expect(elapsed).toBeLessThan(1000);
   });
+
+  it("includes runtimeReady from getExtra without treating a failed Core boot as healthy", async () => {
+    const hanging = createServer(() => {
+      /* unused upstream */
+    });
+    servers.push(hanging);
+    await new Promise<void>((resolve) => hanging.listen(0, "127.0.0.1", resolve));
+    const hangingAddress = hanging.address();
+    if (!hangingAddress || typeof hangingAddress === "string") throw new Error("hanging server has no port");
+
+    const gateway = createHealthGateway({
+      host: "127.0.0.1",
+      port: 0,
+      appHost: "127.0.0.1",
+      appPort: hangingAddress.port,
+      getStatus: () => "starting",
+      getExtra: () => ({
+        runtimeReady: false,
+        sessionRestored: false,
+        message: "Runtime boot failed: Unknown memory category: learning-intelligence-runtime",
+      }),
+    });
+    servers.push(gateway);
+    await new Promise<void>((resolve) => gateway.listen(0, "127.0.0.1", resolve));
+    const gatewayAddress = gateway.address();
+    if (!gatewayAddress || typeof gatewayAddress === "string") throw new Error("gateway has no port");
+
+    const response = await fetch(`http://127.0.0.1:${gatewayAddress.port}/api/health`);
+    const body = await response.json() as {
+      status?: string;
+      runtimeReady?: boolean;
+      sessionRestored?: boolean;
+      message?: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("starting");
+    expect(body.runtimeReady).toBe(false);
+    expect(body.sessionRestored).toBe(false);
+    expect(body.message).toContain("Unknown memory category");
+  });
 });
