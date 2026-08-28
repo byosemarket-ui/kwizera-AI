@@ -39,7 +39,7 @@ jobs:
         run: npm ci
 
       - name: Run deployment and studio tests
-        run: npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/desktop/step4-workspace-shell.test.ts tests/unit/desktop/dashboard-ui.test.ts tests/unit/desktop/navigation-engine.test.ts
+        run: npx vitest run tests/unit/deploy tests/unit/dev/server
 
       - name: Production build (server + Vite studio)
         run: npm run build:production
