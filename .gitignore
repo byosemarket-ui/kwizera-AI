@@ -88,3 +88,4 @@ coverage/
 .cache/
 .turbo/
 .eslintcache
+.local-deployment-status/

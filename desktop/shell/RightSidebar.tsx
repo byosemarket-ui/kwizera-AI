@@ -1,4 +1,5 @@
 import { Bot, ChevronLeft, ChevronRight, Lightbulb, PanelRightClose, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useShell } from "./ShellContext";
 import { buildAiMeWorkspaceContext, primaryAiMeRecommendation } from "./aime-awareness";
 import { getActiveWorkspaceLabel } from "./LeftSidebar";
@@ -8,10 +9,70 @@ interface RightSidebarProps {
   onClose: () => void;
 }
 
+type DeploymentPhase = "local" | "github" | "deploying" | "verifying" | "live" | "failed" | "rolled_back";
+
+interface DeploymentStatus {
+  status: DeploymentPhase;
+  requestedCommit: string | null;
+  deployedCommit: string | null;
+  previousCommit: string | null;
+  timestamp: string;
+  result: "success" | "failure" | "in-progress" | null;
+  message: string;
+  lastFailure: { timestamp: string; commit: string | null; message: string } | null;
+  verifiedLive: boolean;
+}
+
+const PHASE_LABELS: Record<DeploymentPhase, string> = {
+  local: "Local",
+  github: "GitHub",
+  deploying: "Deploying",
+  verifying: "Verifying",
+  live: "Live",
+  failed: "Failed",
+  rolled_back: "Rolled Back",
+};
+
+function shortSha(sha: string | null): string {
+  if (!sha) return "—";
+  return sha.slice(0, 7);
+}
+
+function phaseLabel(record: DeploymentStatus | null): string {
+  if (!record) return "Local";
+  if (record.verifiedLive) return "Live";
+  if (record.status === "live") return "Verifying";
+  return PHASE_LABELS[record.status];
+}
+
 export function RightSidebar({ onClose }: RightSidebarProps) {
   const { layout, core, saveState, setLayout, switchWorkspace, navigation, projectStatus, layoutManager, restoreReport, preferences } = useShell();
   const aiContext = buildAiMeWorkspaceContext(layout, core, saveState, projectStatus, navigation, layoutManager, restoreReport, preferences);
   const activeLabel = getActiveWorkspaceLabel(layout.workspace);
+  const [deployment, setDeployment] = useState<DeploymentStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const read = () => {
+      void fetch("/api/deployment")
+        .then((response) => (response.ok ? response.json() as Promise<DeploymentStatus> : null))
+        .then((payload) => {
+          if (!cancelled && payload?.status) setDeployment(payload);
+        })
+        .catch(() => {
+          /* keep last known real record; never invent Live */
+        });
+    };
+    read();
+    const timer = window.setInterval(read, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const deployLabel = phaseLabel(deployment);
+  const verifiedLive = deployment?.verifiedLive === true;
 
   return (
     <aside className="right-sidebar shell-right-sidebar" aria-label="AI assistance">
@@ -36,6 +97,32 @@ export function RightSidebar({ onClose }: RightSidebarProps) {
 
       {!layout.rightCollapsed && (
         <div className="inspector-content ai-assist-content">
+          <section>
+            <span className="inspector-label">DEPLOYMENT</span>
+            <div className="inspector-metric">
+              <span>Status</span>
+              <b>{deployLabel}</b>
+            </div>
+            <div className="inspector-metric">
+              <span>Production commit</span>
+              <b>{shortSha(deployment?.deployedCommit ?? null)}</b>
+            </div>
+            <div className="inspector-metric">
+              <span>Previous</span>
+              <b>{shortSha(deployment?.previousCommit ?? null)}</b>
+            </div>
+            <p className="ai-context-summary">
+              {verifiedLive
+                ? `Verified live at ${deployment?.timestamp ?? "unknown"}.`
+                : (deployment?.message || "Not a verified production deploy. Local and GitHub changes are not live until CI/CD health checks succeed.")}
+            </p>
+            {deployment?.lastFailure && (
+              <p className="ai-context-summary">
+                Last failure: {deployment.lastFailure.message}
+              </p>
+            )}
+          </section>
+
           <section>
             <span className="inspector-label">RECOMMENDATION</span>
             <p className="ai-context-summary">{primaryAiMeRecommendation(aiContext)}</p>

@@ -1,0 +1,5 @@
+# One-time VPS install (as root):
+#   install -m 440 deploy/kwizera-deploy.sudoers /etc/sudoers.d/kwizera-deploy
+# Replace "kwizera" if the GitHub Actions SSH user is different.
+# visudo -c -f /etc/sudoers.d/kwizera-deploy
+kwizera ALL=(root) NOPASSWD: /opt/kwizera-ai/deploy/update-from-github.sh

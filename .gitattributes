@@ -1,0 +1,4 @@
+# Keep deployment scripts Unix-executable after Windows checkouts.
+*.sh text eol=lf
+deploy/*.sudoers text eol=lf
+.github/workflows/* text eol=lf

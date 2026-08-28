@@ -322,7 +322,7 @@ export function primaryAiMeRecommendation(context: AiMeWorkspaceContext): string
   if (!context.certification?.certified) {
     return context.certification?.recommendation || "Review System Health if a foundation check is incomplete.";
   }
-  return "Studio context is live. Use Core navigation or quick actions to continue production.";
+  return "Studio context is ready. Use Core navigation or quick actions to continue production.";
 }
 
 export function restoreLayoutForAiMe(layoutId: string): string {

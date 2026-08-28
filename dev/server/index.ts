@@ -15,6 +15,7 @@ import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
+import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 
 import {
 
@@ -1032,6 +1033,15 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  if (url.pathname === "/api/deployment") {
+    const record = loadDeploymentRecord(storageRoot, projectRoot, isProductionEnv());
+    sendJson(res, 200, {
+      ...record,
+      verifiedLive: isVerifiedLive(record),
+    });
+    return;
   }
 
   if (url.pathname === "/api/desktop-workspace/status") {
