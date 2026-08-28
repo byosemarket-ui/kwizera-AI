@@ -223,16 +223,20 @@ install_deps_and_build() {
   note "=== npm install + production build ==="
   cd "$APP_DIR"
   if [[ -f package-lock.json ]]; then
-    sudo -u "$SERVICE_USER" -H npm ci
+    sudo -u "$SERVICE_USER" -H env NODE_ENV=development npm ci --include=dev
   else
-    sudo -u "$SERVICE_USER" -H npm install
+    sudo -u "$SERVICE_USER" -H env NODE_ENV=development npm install
   fi
-  sudo -u "$SERVICE_USER" -H npm run build:production:server
+  sudo -u "$SERVICE_USER" -H npm run build:production
   if [[ ! -f "${APP_DIR}/dist/dev/server/index.js" ]] || [[ ! -f "${APP_DIR}/dist/dev/server/production-gateway.js" ]]; then
     fail "production entry missing after build"
     exit 1
   fi
-  pass "production build emitted gateway + app worker"
+  if [[ ! -f "${APP_DIR}/dev/ui/desktop/index.html" ]]; then
+    fail "studio UI missing after build: ${APP_DIR}/dev/ui/desktop/index.html"
+    exit 1
+  fi
+  pass "production build emitted gateway + app worker + studio UI"
 }
 
 install_dropbear() {

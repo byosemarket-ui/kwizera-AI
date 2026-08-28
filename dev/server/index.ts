@@ -14,6 +14,7 @@ import { probeResourceMetrics } from "../../ai/local-resource-manager/resource-p
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
+import { resolvePublicUiFile } from "./static-ui.js";
 
 import {
 
@@ -128,6 +129,8 @@ console.log(isProductionEnv()
   : "[KWIZERA] Starting persistent local development environment…");
 
 console.log("[KWIZERA] Storage root:", storageRoot);
+console.log("[KWIZERA] Studio UI:", path.join(UI_DIR, "desktop", "index.html"),
+  fs.existsSync(path.join(UI_DIR, "desktop", "index.html")) ? "(present)" : "MISSING — run npm run build:production");
 
 registerShutdownHandlers();
 
@@ -262,26 +265,6 @@ async function serveStatic(res: ServerResponse, filePath: string): Promise<void>
     res.end("Unable to read file");
 
   }
-
-}
-
-function resolveUiAsset(pathname: string): string | null {
-
-  let decodedPath: string;
-
-  try {
-
-    decodedPath = decodeURIComponent(pathname);
-
-  } catch {
-
-    return null;
-
-  }
-
-  const filePath = path.resolve(UI_DIR, `.${decodedPath}`);
-
-  return filePath === UI_DIR || filePath.startsWith(`${UI_DIR}${path.sep}`) ? filePath : null;
 
 }
 
@@ -4025,28 +4008,21 @@ async function handleIncomingRequest(req: IncomingMessage, res: ServerResponse, 
       return;
     }
 
-    const desktopIndex = path.join(UI_DIR, "desktop", "index.html");
-    const legacyDashboard = path.join(UI_DIR, "index.html");
-    const wantsLegacy = url.pathname === "/dev" || url.pathname === "/dev/" || url.pathname === "/dev-dashboard";
-    const wantsStudio = url.pathname === "/" || url.pathname === "/desktop" || url.pathname === "/desktop/";
-
-    let filePath = wantsLegacy
-      ? legacyDashboard
-      : wantsStudio
-        ? (fs.existsSync(desktopIndex) ? desktopIndex : legacyDashboard)
-        : resolveUiAsset(url.pathname);
-
-    if (!filePath) {
+    const resolved = resolvePublicUiFile(url.pathname, UI_DIR);
+    if (resolved.kind === "missing-studio") {
+      sendJson(res, 503, {
+        error: "Studio UI is not built. Run npm run build:production so dev/ui/desktop/index.html exists.",
+        expected: path.join(UI_DIR, "desktop", "index.html"),
+      });
+      return;
+    }
+    if (resolved.kind === "not-found") {
       res.writeHead(404);
       res.end("Not found");
       return;
     }
 
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = fs.existsSync(desktopIndex) ? desktopIndex : legacyDashboard;
-    }
-
-    await serveStatic(res, filePath);
+    await serveStatic(res, resolved.filePath);
   } catch (error) {
     console.error("[KWIZERA] Request handler error:", error);
     if (!res.headersSent) {

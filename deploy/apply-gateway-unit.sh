@@ -21,10 +21,11 @@ if [[ ! -f "$UNIT_SRC" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$GATEWAY_JS" ]] || [[ ! -f "$APP_JS" ]]; then
-  echo "[KWIZERA] gateway/app worker missing — rebuilding production server"
+if [[ ! -f "$GATEWAY_JS" ]] || [[ ! -f "$APP_JS" ]] || [[ ! -f "$APP_DIR/dev/ui/desktop/index.html" ]]; then
+  echo "[KWIZERA] gateway/app worker/studio UI missing — rebuilding production (server + Vite desktop)"
   cd "$APP_DIR"
-  sudo -u "$SERVICE_USER" -H npm run build:production:server
+  sudo -u "$SERVICE_USER" -H env NODE_ENV=development npm ci --include=dev
+  sudo -u "$SERVICE_USER" -H npm run build:production
 fi
 
 if [[ ! -f "$GATEWAY_JS" ]]; then

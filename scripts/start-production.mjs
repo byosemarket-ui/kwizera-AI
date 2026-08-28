@@ -11,9 +11,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const entry = path.join(root, "dist", "dev", "server", "production-gateway.js");
+const studioIndex = path.join(root, "dev", "ui", "desktop", "index.html");
 
 if (!fs.existsSync(entry)) {
   console.error("[KWIZERA] Production build missing.");
+  console.error("  Run: npm run build:production");
+  process.exit(1);
+}
+if (!fs.existsSync(studioIndex)) {
+  console.error("[KWIZERA] Studio UI missing:", studioIndex);
   console.error("  Run: npm run build:production");
   process.exit(1);
 }

@@ -5,7 +5,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 if [[ ! -f "$ROOT/dist/dev/server/production-gateway.js" ]] || [[ ! -f "$ROOT/dist/dev/server/index.js" ]]; then
-  echo "[KWIZERA] Production build missing. Run: npm run build:production" >&2
+  echo "[KWIZERA] Production server build missing. Run: npm run build:production" >&2
+  exit 1
+fi
+if [[ ! -f "$ROOT/dev/ui/desktop/index.html" ]]; then
+  echo "[KWIZERA] Studio UI missing at $ROOT/dev/ui/desktop/index.html. Run: npm run build:production" >&2
   exit 1
 fi
 

@@ -50,9 +50,9 @@
   },
   "commands": {
     "build": "npm run build:production",
-    "buildServerOnly": "npm run build:production:server",
     "start": "npm run start:production",
     "verify": "npm run verify:production",
+    "studioUi": "dev/ui/desktop/index.html",
     "gateway": "dist/dev/server/production-gateway.js (public listen); app worker remains dist/dev/server/index.js on loopback KWIZERA_INTERNAL_PORT"
   },
   "firstBoot": {

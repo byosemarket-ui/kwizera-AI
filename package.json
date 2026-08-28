@@ -14,10 +14,11 @@
     "build:desktop": "vite build --config desktop.vite.config.ts",
     "start": "npm run dev",
     "preview": "npm run dev",
-    "build:production": "node scripts/build-production.mjs && vite build --config desktop.vite.config.ts",
-    "build:production:server": "node scripts/build-production.mjs",
+    "build:production": "node scripts/build-production.mjs",
+    "build:production:server": "node scripts/build-production.mjs --server-only",
     "start:production": "node scripts/start-production.mjs",
     "verify:production": "node scripts/verify-vps-step1.mjs",
+    "verify:studio-ui": "node scripts/verify-studio-static.mjs",
     "desktop": "electron .",
     "desktop:dev": "electron .",
     "make:ico": "node electron/make-ico.mjs",
@@ -226,19 +227,21 @@
     "validate:video-generation-health-monitor": "tsx scripts/validate-video-generation-health-monitor.ts",
     "validate:video-generation-certification": "tsx scripts/validate-video-generation-certification.ts"
   },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.7"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
     "electron": "^34.5.8",
     "electron-builder": "^25.1.8",
-    "lucide-react": "^0.468.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7",
     "vitest": "^2.1.8"
   }
 }

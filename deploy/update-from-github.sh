@@ -34,18 +34,29 @@ fi
 
 cd "$APP_DIR"
 if [[ -f package-lock.json ]]; then
-  sudo -u "$SERVICE_USER" -H npm ci
+  sudo -u "$SERVICE_USER" -H env NODE_ENV=development npm ci --include=dev
 else
-  sudo -u "$SERVICE_USER" -H npm install
+  sudo -u "$SERVICE_USER" -H env NODE_ENV=development npm install
 fi
 sudo -u "$SERVICE_USER" -H npm run build:production
 
 GATEWAY_JS="$APP_DIR/dist/dev/server/production-gateway.js"
 APP_JS="$APP_DIR/dist/dev/server/index.js"
+DESKTOP_INDEX="$APP_DIR/dev/ui/desktop/index.html"
 if [[ ! -f "$GATEWAY_JS" ]] || [[ ! -f "$APP_JS" ]]; then
   echo "[KWIZERA] production-gateway.js or app worker missing after build" >&2
   exit 1
 fi
+if [[ ! -f "$DESKTOP_INDEX" ]]; then
+  echo "[KWIZERA] Studio UI missing after build: $DESKTOP_INDEX" >&2
+  echo "[KWIZERA] npm run build:production must emit the Vite desktop bundle." >&2
+  exit 1
+fi
+if grep -q "Dev Dashboard" "$DESKTOP_INDEX"; then
+  echo "[KWIZERA] $DESKTOP_INDEX still looks like the legacy Dev Dashboard" >&2
+  exit 1
+fi
+echo "[KWIZERA] Studio UI: $DESKTOP_INDEX"
 
 install -m 644 "$APP_DIR/deploy/kwizera-ai.service" /etc/systemd/system/kwizera-ai.service
 if ! grep -q 'production-gateway.js' /etc/systemd/system/kwizera-ai.service; then
