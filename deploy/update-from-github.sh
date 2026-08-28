@@ -38,7 +38,7 @@ if [[ -f package-lock.json ]]; then
 else
   sudo -u "$SERVICE_USER" -H npm install
 fi
-sudo -u "$SERVICE_USER" -H npm run build:production:server
+sudo -u "$SERVICE_USER" -H npm run build:production
 
 GATEWAY_JS="$APP_DIR/dist/dev/server/production-gateway.js"
 APP_JS="$APP_DIR/dist/dev/server/index.js"

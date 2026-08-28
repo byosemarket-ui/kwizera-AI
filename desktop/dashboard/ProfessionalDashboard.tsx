@@ -4,8 +4,8 @@ import {
   Lightbulb, MonitorCog, Plus, RefreshCw, Settings, Sparkles, Video, X,
 } from "lucide-react";
 import type {
-  DashboardCoreStatus, DashboardLayoutV2, DashboardLiveSnapshot,
-  DashboardProject, DashboardWidgetId, DashboardWorkspace, WidgetPlacement,
+  DashboardCoreStatus, DashboardLayoutV2, DashboardLiveSnapshot, DashboardMemoryHealth,
+  DashboardPipelineSnapshot, DashboardProject, DashboardWidgetId, DashboardWorkspace, WidgetPlacement,
 } from "./types";
 import { dashboardWidgetStore, WIDGET_LABELS } from "./widget-store";
 import { dashboardLiveEngine } from "./live-engine";
@@ -40,26 +40,30 @@ export function ProfessionalDashboard({ onNavigate, workspaceLabel = "Home" }: P
   const [layout, setLayout] = useState<DashboardLayoutV2>(() => dashboardWidgetStore.load());
   const [core, setCore] = useState<DashboardCoreStatus | null>(null);
   const [workspace, setWorkspace] = useState<DashboardWorkspace | null>(null);
+  const [pipeline, setPipeline] = useState<DashboardPipelineSnapshot | null>(null);
+  const [memory, setMemory] = useState<DashboardMemoryHealth | null>(null);
   const [live, setLive] = useState<DashboardLiveSnapshot | null>(null);
-  const [tick, setTick] = useState(0);
   const [personalizeOpen, setPersonalizeOpen] = useState(false);
   const [dragId, setDragId] = useState<DashboardWidgetId | null>(null);
 
   const refresh = useCallback(async () => {
-    const [nextCore, nextWorkspace] = await Promise.all([
+    const [nextCore, nextWorkspace, nextPipeline, nextMemory] = await Promise.all([
       fetchJson<DashboardCoreStatus>("/api/desktop-workspace/status"),
       fetchJson<DashboardWorkspace>("/api/workspace"),
+      fetchJson<DashboardPipelineSnapshot>("/api/pipeline"),
+      fetchJson<DashboardMemoryHealth>("/api/persistent-memory/health"),
     ]);
     setCore(nextCore);
     setWorkspace(nextWorkspace);
+    setPipeline(nextPipeline);
+    setMemory(nextMemory);
   }, []);
 
   useEffect(() => { void refresh(); const t = window.setInterval(() => void refresh(), 15_000); return () => clearInterval(t); }, [refresh]);
-  useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 4_000); return () => clearInterval(t); }, []);
   useEffect(() => { dashboardWidgetStore.save(layout); }, [layout]);
   useEffect(() => {
-    setLive(dashboardLiveEngine.buildSnapshot(core, workspace, workspaceLabel, tick));
-  }, [core, workspace, workspaceLabel, tick]);
+    setLive(dashboardLiveEngine.buildSnapshot(core, workspace, workspaceLabel, pipeline, memory));
+  }, [core, workspace, workspaceLabel, pipeline, memory]);
 
   const patch = (id: DashboardWidgetId, changes: Partial<WidgetPlacement>) =>
     setLayout((current) => dashboardWidgetStore.updateWidget(current, id, changes));
@@ -159,10 +163,10 @@ export function ProfessionalDashboard({ onNavigate, workspaceLabel = "Home" }: P
         return frame(
           <div className="dash-stat-grid">
             <StatCard label="Projects" value={workspace?.projects.length ?? 0} trend="Local" />
-            <StatCard label="AI Tasks" value={core?.aiCore ? "Ready" : "--"} />
-            <StatCard label="Images" value="--" />
-            <StatCard label="Videos" value="--" />
-            <StatCard label="Campaigns" value="--" />
+            <StatCard label="AI Tasks" value={core?.runtimeMetrics?.activeJobs ?? 0} />
+            <StatCard label="Images" value={live.imageCount ?? 0} />
+            <StatCard label="Jobs" value={(pipeline?.jobs.length ?? 0) + (pipeline?.history.length ?? 0)} />
+            <StatCard label="Knowledge" value={memory?.knowledgeCount ?? (core?.knowledgeFoundation ? "Ready" : 0)} />
             <StatCard label="Storage" value={bytes(storage)} />
           </div>,
         );
@@ -173,8 +177,8 @@ export function ProfessionalDashboard({ onNavigate, workspaceLabel = "Home" }: P
             <ActionCard label="Open project" onClick={() => onNavigate("open-project")} />
             <ActionCard label="AI Me" onClick={() => onNavigate("ai-me")} />
             <ActionCard label="Production" onClick={() => onNavigate("production")} />
-            <ActionCard label="Images" onClick={() => onNavigate("generated-images")} />
-            <ActionCard label="Settings" onClick={() => onNavigate("settings")} />
+            <ActionCard label="Images" onClick={() => onNavigate("image-organization")} />
+            <ActionCard label="System Health" onClick={() => onNavigate("system-health")} />
           </div>,
         );
       case "production-modules":
@@ -291,8 +295,8 @@ function HealthGrid({ core, storage }: { core: DashboardCoreStatus | null; stora
   const items = [
     { label: "AI engine", value: core?.aiCore ? "Ready" : "Offline", good: core?.aiCore },
     { label: "Workflow", value: core?.workflowEngine ? "Ready" : "Idle", good: core?.workflowEngine },
-    { label: "Memory", value: core?.memoryFoundation ? "Connected" : "Standby", good: core?.memoryFoundation },
-    { label: "Knowledge", value: core?.knowledgeFoundation ? "Indexed" : "Awaiting", good: core?.knowledgeFoundation },
+    { label: "Memory", value: core?.memoryFoundation ? "Ready" : "Offline", good: core?.memoryFoundation },
+    { label: "Knowledge", value: core?.knowledgeFoundation ? "Ready" : "Offline", good: core?.knowledgeFoundation },
     { label: "RAM", value: core?.runtimeMetrics ? `${core.runtimeMetrics.memoryMb} MB` : "Local", good: true },
     { label: "Storage", value: bytes(storage), good: true },
   ];
@@ -307,7 +311,7 @@ function HealthGrid({ core, storage }: { core: DashboardCoreStatus | null; stora
 
 function buildNotifications(core: DashboardCoreStatus | null, project: DashboardProject | null) {
   return [
-    { tone: core?.aiCore ? "success" : "warning", title: core?.aiCore ? "AI Core connected" : "AI Core waiting", detail: core?.aiCore ? "Live cards update from runtime." : "Dashboard runs in local mode." },
+    { tone: core?.aiCore ? "success" : "warning", title: core?.aiCore ? "AI Core ready" : "AI Core offline", detail: core?.aiCore ? "Live cards update from runtime." : "Dashboard runs in local mode." },
     { tone: project ? "info" : "warning", title: project ? "Project synchronized" : "No active project", detail: project ? `${project.name} is active.` : "Create or open a project." },
     { tone: "info", title: "Widget memory active", detail: "Positions, sizes, and visibility restore on startup." },
   ];

@@ -35,6 +35,7 @@ import type { IntegrationSnapshot } from "./integration/types";
 import { workspaceCertificationEngine } from "./certification/certification-engine";
 import type { CertificationSnapshot } from "./certification/types";
 import type { RestoreReport } from "./workspace-state/types";
+import { deriveProjectStatus, resolveActiveProjectName } from "./project-context";
 import "./layout/layout-engine.css";
 import "./performance/performance.css";
 import "./ux/ux.css";
@@ -94,7 +95,10 @@ export function AppShell({
   const [shortcutGuideOpen, setShortcutGuideOpen] = useState(false);
   const [integrationSnapshot, setIntegrationSnapshot] = useState<IntegrationSnapshot | null>(null);
   const [certificationSnapshot, setCertificationSnapshot] = useState<CertificationSnapshot | null>(null);
-  const projectStatus: ProjectStatus = core?.activeProject ? "in-production" : "idle";
+  const projectStatus: ProjectStatus = deriveProjectStatus(
+    resolveActiveProjectName(core?.activeProject),
+    core?.runtimeMetrics?.activeJobs ?? 0,
+  );
   const lastProjectEventRef = useRef<string | null>(null);
 
   const layoutRef = useRef(layout);
@@ -242,8 +246,8 @@ export function AppShell({
   }, [core, projectStatus]);
 
   useEffect(() => {
-    const name = core?.activeProject;
-    if (!name || name === "No active project" || name === lastProjectEventRef.current) return;
+    const name = resolveActiveProjectName(core?.activeProject);
+    if (!name || name === lastProjectEventRef.current) return;
     lastProjectEventRef.current = name;
     void workspaceIntegrationEngine.emit({
       type: "project.loaded",
@@ -324,11 +328,12 @@ export function AppShell({
   }, [layout.panels]);
 
   useEffect(() => {
-    workspaceStateEngine.syncProject(core?.activeProject);
-    if (core?.activeProject && !bootstrappingRef.current) {
-      sessionStore.pushHistory("project", `Active project: ${core.activeProject}`);
-      setPreferences((current) => personalizationEngine.syncProjectMemory(current, core.activeProject));
-      setNavigationState((current) => navigationStore.recordProject(current, core.activeProject!));
+    workspaceStateEngine.syncProject(resolveActiveProjectName(core?.activeProject));
+    const activeName = resolveActiveProjectName(core?.activeProject);
+    if (activeName && !bootstrappingRef.current) {
+      sessionStore.pushHistory("project", `Active project: ${activeName}`);
+      setPreferences((current) => personalizationEngine.syncProjectMemory(current, activeName));
+      setNavigationState((current) => navigationStore.recordProject(current, activeName));
     }
   }, [core?.activeProject, setPreferences]);
 

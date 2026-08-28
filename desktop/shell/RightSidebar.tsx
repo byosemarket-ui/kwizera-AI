@@ -1,6 +1,6 @@
 import { Bot, ChevronLeft, ChevronRight, Lightbulb, PanelRightClose, Sparkles } from "lucide-react";
 import { useShell } from "./ShellContext";
-import { buildAiMeWorkspaceContext } from "./aime-awareness";
+import { buildAiMeWorkspaceContext, primaryAiMeRecommendation } from "./aime-awareness";
 import { getActiveWorkspaceLabel } from "./LeftSidebar";
 import { panelEngine } from "./panel-engine";
 
@@ -36,6 +36,11 @@ export function RightSidebar({ onClose }: RightSidebarProps) {
 
       {!layout.rightCollapsed && (
         <div className="inspector-content ai-assist-content">
+          <section>
+            <span className="inspector-label">RECOMMENDATION</span>
+            <p className="ai-context-summary">{primaryAiMeRecommendation(aiContext)}</p>
+          </section>
+
           <section>
             <span className="inspector-label">WORKSPACE AWARENESS</span>
             <p className="ai-context-summary">{aiContext.explanation}</p>
@@ -219,8 +224,20 @@ export function RightSidebar({ onClose }: RightSidebarProps) {
               <b>{core?.aiCore ? "Ready" : "Offline"}</b>
             </div>
             <div className="inspector-metric">
+              <span>Memory</span>
+              <b>{core?.memoryFoundation ? "Ready" : "Offline"}</b>
+            </div>
+            <div className="inspector-metric">
+              <span>Knowledge</span>
+              <b>{core?.knowledgeFoundation ? "Ready" : "Offline"}</b>
+            </div>
+            <div className="inspector-metric">
               <span>Project</span>
-              <b>{core?.activeProject ?? "None"}</b>
+              <b>{core?.activeProject && core.activeProject !== "No active project" ? core.activeProject : "None"}</b>
+            </div>
+            <div className="inspector-metric">
+              <span>Active jobs</span>
+              <b>{core?.runtimeMetrics?.activeJobs ?? 0}</b>
             </div>
           </section>
 

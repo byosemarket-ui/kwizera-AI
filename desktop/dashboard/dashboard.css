@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100%;
   padding: 22px;
-  overflow: auto;
+  overflow: visible;
   background: #0d1117;
   animation: dashReveal 0.45s ease both;
 }

@@ -15,7 +15,7 @@ describe("Dashboard Widget Store", () => {
 
   it("loads default widget layout with 12 widgets", () => {
     const layout = dashboardWidgetStore.load();
-    expect(layout.version).toBe(2);
+    expect(layout.version).toBe(3);
     expect(layout.widgets.length).toBe(DEFAULT_WIDGETS.length);
     expect(layout.columns).toBe(12);
   });
@@ -68,7 +68,7 @@ describe("Dashboard Live Engine", () => {
       },
       { activeProject: { id: "1", name: "Demo", modifiedAt: new Date().toISOString(), productImages: [{ sizeBytes: 1024 }] }, projects: [] },
       "Home",
-      3,
+      { jobs: [{ id: "j1", status: "running", stage: "rendering", progress: 40, updatedAt: new Date().toISOString() }], history: [] },
     );
     expect(snapshot.statuses).toHaveLength(6);
     expect(snapshot.statuses.map((s) => s.key)).toEqual([
@@ -79,9 +79,24 @@ describe("Dashboard Live Engine", () => {
   });
 
   it("updates progress tasks with running and waiting counts", () => {
-    const progress = dashboardLiveEngine.buildProgress(2, 5);
-    expect(progress.running).toBeGreaterThan(0);
+    const progress = dashboardLiveEngine.buildProgress(2, {
+      jobs: [
+        { id: "a", status: "running", stage: "rendering", progress: 40 },
+        { id: "b", status: "queued", stage: "export", progress: 0 },
+      ],
+      history: [{ id: "c", status: "completed", stage: "analysis", progress: 100 }],
+    });
+    expect(progress.running).toBe(1);
+    expect(progress.waiting).toBe(1);
     expect(progress.tasks.length).toBe(4);
+  });
+
+  it("does not invent running jobs when the pipeline is idle", () => {
+    const progress = dashboardLiveEngine.buildProgress(0, { jobs: [], history: [] });
+    expect(progress.running).toBe(0);
+    expect(progress.waiting).toBe(0);
+    expect(progress.percent).toBe(0);
+    expect(progress.tasks.every((task) => task.status === "waiting")).toBe(true);
   });
 });
 
@@ -106,7 +121,7 @@ describe("AI Me Dashboard Awareness", () => {
     const ctx = buildAiMeDashboardContext(layout, {
       updatedAt: new Date().toISOString(),
       statuses: [],
-      progress: dashboardLiveEngine.buildProgress(1, 2),
+      progress: dashboardLiveEngine.buildProgress(1, { jobs: [{ id: "j", status: "running", stage: "rendering", progress: 20 }], history: [] }),
       activeProject: "Nike Shoes",
       workspaceLabel: "Home",
       aiRecommendation: "Start with storyboard.",

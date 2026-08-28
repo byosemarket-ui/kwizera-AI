@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { navigationEngine, QUICK_ACTIONS, KEYBOARD_SHORTCUTS } from "../../../desktop/shell/navigation/navigation-engine.ts";
 import { navigationStore, defaultNavigationState } from "../../../desktop/shell/navigation/navigation-store.ts";
-import { getNavByGroup, mapLegacyWorkspace, workspaceNav } from "../../../desktop/shell/workspace-registry.ts";
+import { getNavByGroup, getSidebarNavByGroup, mapLegacyWorkspace, workspaceNav } from "../../../desktop/shell/workspace-registry.ts";
 import { buildAiMeWorkspaceContext, guideUserToWorkspace } from "../../../desktop/shell/aime-awareness.ts";
 import { defaultShellLayout } from "../../../desktop/shell/layout-store.ts";
 import { ALL_WORKSPACE_IDS } from "../../../desktop/shell/types.ts";
@@ -27,6 +27,18 @@ describe("Navigation Registry", () => {
     expect(names).toEqual(expect.arrayContaining([
       "Dashboard", "Projects", "Knowledge", "Production", "Creative", "Assets", "Outputs", "Settings",
     ]));
+  });
+
+  it("exposes a compact primary sidebar without dropping live routes", () => {
+    const sidebar = getSidebarNavByGroup();
+    expect(sidebar.map((g) => g.label)).toEqual(["Core", "Creative / Assets", "Production", "System"]);
+    const ids = sidebar.flatMap((g) => g.items.map((item) => item.id));
+    expect(ids).toEqual(expect.arrayContaining([
+      "home", "ai-me", "new-project", "open-project", "production",
+      "product-information", "image-organization", "system-health",
+    ]));
+    expect(ids).not.toContain("generated-images");
+    expect(workspaceNav.some((item) => item.id === "generated-images")).toBe(true);
   });
 
   it("maps legacy workspace IDs without loss", () => {

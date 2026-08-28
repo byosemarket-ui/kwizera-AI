@@ -56,7 +56,7 @@ export interface WidgetPlacement {
 }
 
 export interface DashboardLayoutV2 {
-  version: 2;
+  version: 2 | 3;
   columns: number;
   widgets: WidgetPlacement[];
 }
@@ -96,6 +96,29 @@ export interface DashboardLiveSnapshot {
   aiRecommendation: string;
   lastActivity: string;
   recentProduction: string;
+  imageCount?: number;
+}
+
+export interface DashboardPipelineJob {
+  id: string;
+  status: string;
+  stage?: string;
+  progress?: number;
+  updatedAt?: string;
+}
+
+export interface DashboardPipelineSnapshot {
+  jobs: DashboardPipelineJob[];
+  history: DashboardPipelineJob[];
+  monitor?: Record<string, number | string>;
+}
+
+export interface DashboardMemoryHealth {
+  ready: boolean;
+  memory: string;
+  knowledge: string;
+  memoryCount: number;
+  knowledgeCount: number;
 }
 
 export interface DashboardCoreStatus {
@@ -108,6 +131,7 @@ export interface DashboardCoreStatus {
   automationEngine?: boolean;
   taskScheduler?: boolean;
   activeProject: string;
+  activeProjectId?: string | null;
   runtimeMetrics?: { memoryMb: number; cpuUserMs: number; gpu: string; activeJobs: number };
 }
 

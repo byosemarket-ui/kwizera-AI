@@ -18,6 +18,7 @@ import { workspacePerformanceEngine } from "./performance/performance-engine";
 import { uxEngine } from "./ux/ux-engine";
 import { workspaceIntegrationEngine } from "./integration/integration-engine";
 import { workspaceCertificationEngine } from "./certification/certification-engine";
+import { resolveActiveProjectName } from "./project-context";
 import { productIntakeEngine } from "../product-intake/intake-engine";
 import { imageOrganizationEngine } from "../image-organization/organization-engine";
 import { productProfileEngine } from "../product-profile/profile-engine";
@@ -160,7 +161,7 @@ export function buildAiMeWorkspaceContext(
       .filter((p) => p.mode !== "hidden")
       .map((p) => ({ id: p.id, zone: p.zone, mode: p.mode, locked: p.locked })),
     project: {
-      name: core?.activeProject ?? "No project",
+      name: resolveActiveProjectName(core?.activeProject) ?? "No project",
       status: projectStatus,
       saveState,
     },
@@ -306,6 +307,22 @@ export function guideUserToWorkspace(workspaceId: WorkspaceId): string {
   const item = getNavItem(workspaceId);
   const path = navigationEngine.buildBreadcrumb(workspaceId).map((s) => s.label).join(" > ");
   return `To reach ${item.label}, open Left Navigation → ${item.groupLabel} → ${item.label}, or press Ctrl+K and search “${item.label}”. Path: ${path}.`;
+}
+
+export function primaryAiMeRecommendation(context: AiMeWorkspaceContext): string {
+  if (!context.project.name || context.project.name === "No project") {
+    return "Create or open a project so production, memory, and AI Me share the same context.";
+  }
+  if (context.productIntake && context.productIntake.assetCount === 0) {
+    return context.productIntake.recommendation || "Import product images in New Project to continue.";
+  }
+  if (context.imageOrganization?.recommendation) return context.imageOrganization.recommendation;
+  if (context.productIntake?.recommendation) return context.productIntake.recommendation;
+  if (context.integration?.recommendation) return context.integration.recommendation;
+  if (!context.certification?.certified) {
+    return context.certification?.recommendation || "Review System Health if a foundation check is incomplete.";
+  }
+  return "Studio context is live. Use Core navigation or quick actions to continue production.";
 }
 
 export function restoreLayoutForAiMe(layoutId: string): string {

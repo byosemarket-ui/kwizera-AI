@@ -23,13 +23,13 @@ export const DEFAULT_WIDGETS: WidgetPlacement[] = [
   { id: "system-health", x: 1, y: 9, w: 4, h: 3, pinned: false, locked: false, hidden: false, compact: false, kind: "statistics" },
   { id: "statistics", x: 5, y: 9, w: 4, h: 3, pinned: false, locked: false, hidden: false, compact: false, kind: "statistics" },
   { id: "quick-actions", x: 9, y: 9, w: 4, h: 3, pinned: false, locked: false, hidden: false, compact: false, kind: "action" },
-  { id: "production-modules", x: 1, y: 12, w: 8, h: 4, pinned: false, locked: true, hidden: false, compact: false, kind: "preview" },
-  { id: "reserved-panels", x: 9, y: 12, w: 4, h: 4, pinned: false, locked: true, hidden: false, compact: false, kind: "preview" },
+  { id: "production-modules", x: 1, y: 12, w: 8, h: 4, pinned: false, locked: true, hidden: true, compact: false, kind: "preview" },
+  { id: "reserved-panels", x: 9, y: 12, w: 4, h: 4, pinned: false, locked: true, hidden: true, compact: false, kind: "preview" },
   { id: "notifications", x: 1, y: 16, w: 12, h: 2, pinned: false, locked: false, hidden: false, compact: true, kind: "notification" },
 ];
 
 export const defaultDashboardLayout: DashboardLayoutV2 = {
-  version: 2,
+  version: 3,
   columns: 12,
   widgets: DEFAULT_WIDGETS,
 };
@@ -57,17 +57,30 @@ function mergeWidgets(defaults: WidgetPlacement[], stored?: WidgetPlacement[]): 
   return defaults.map((d) => ({ ...d, ...byId.get(d.id) }));
 }
 
+function hideDecorativePlaceholders(widgets: WidgetPlacement[], version?: number): WidgetPlacement[] {
+  if (version === 3) return widgets;
+  return widgets.map((widget) => (
+    widget.id === "production-modules" || widget.id === "reserved-panels"
+      ? { ...widget, hidden: true }
+      : widget
+  ));
+}
+
 export class DashboardWidgetStore {
   load(): DashboardLayoutV2 {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<DashboardLayoutV2>;
       const legacy = !stored.widgets?.length ? migrateLegacy() : null;
+      const widgets = hideDecorativePlaceholders(
+        mergeWidgets(DEFAULT_WIDGETS, stored.widgets ?? legacy?.widgets),
+        stored.version,
+      );
       return {
         ...defaultDashboardLayout,
         ...legacy,
         ...stored,
-        version: 2,
-        widgets: mergeWidgets(DEFAULT_WIDGETS, stored.widgets ?? legacy?.widgets),
+        version: 3,
+        widgets,
       };
     } catch {
       return { ...defaultDashboardLayout };

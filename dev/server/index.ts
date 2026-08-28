@@ -1091,7 +1091,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       foundation: "kwizera-ai-core",
 
-      activeProject: activeProject?.name ?? "No active project",
+      activeProject: activeProject?.name ?? "",
       activeProjectId: activeProject?.id ?? null,
       runtimeMetrics: {
         memoryMb: Math.round(memoryUsage.rss / 1024 / 1024),
@@ -4025,7 +4025,16 @@ async function handleIncomingRequest(req: IncomingMessage, res: ServerResponse, 
       return;
     }
 
-    let filePath = url.pathname === "/" ? path.join(UI_DIR, "index.html") : url.pathname === "/desktop" || url.pathname === "/desktop/" ? path.join(UI_DIR, "desktop", "index.html") : resolveUiAsset(url.pathname);
+    const desktopIndex = path.join(UI_DIR, "desktop", "index.html");
+    const legacyDashboard = path.join(UI_DIR, "index.html");
+    const wantsLegacy = url.pathname === "/dev" || url.pathname === "/dev/" || url.pathname === "/dev-dashboard";
+    const wantsStudio = url.pathname === "/" || url.pathname === "/desktop" || url.pathname === "/desktop/";
+
+    let filePath = wantsLegacy
+      ? legacyDashboard
+      : wantsStudio
+        ? (fs.existsSync(desktopIndex) ? desktopIndex : legacyDashboard)
+        : resolveUiAsset(url.pathname);
 
     if (!filePath) {
       res.writeHead(404);
@@ -4034,7 +4043,7 @@ async function handleIncomingRequest(req: IncomingMessage, res: ServerResponse, 
     }
 
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(UI_DIR, "index.html");
+      filePath = fs.existsSync(desktopIndex) ? desktopIndex : legacyDashboard;
     }
 
     await serveStatic(res, filePath);

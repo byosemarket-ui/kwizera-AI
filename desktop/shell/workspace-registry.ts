@@ -12,7 +12,7 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "recent-projects", label: "Recent Projects", group: "projects", groupLabel: "Projects", keywords: ["recent", "history", "projects"] },
 
   { id: "knowledge-center", label: "Knowledge Center", group: "knowledge", groupLabel: "Knowledge", keywords: ["knowledge", "center", "memory"] },
-  { id: "knowledge-packs", label: "Knowledge Packs", group: "knowledge", groupLabel: "Knowledge", keywords: ["packs", "import", "knowledge"] },
+  { id: "knowledge-packs", label: "Knowledge Packs", group: "knowledge", groupLabel: "Knowledge", keywords: ["packs", "import", "knowledge"], inSidebar: false },
   { id: "knowledge-search", label: "Knowledge Search", group: "knowledge", groupLabel: "Knowledge", keywords: ["search", "query", "knowledge"] },
   { id: "ai-me", label: "AI Me", group: "knowledge", groupLabel: "Knowledge", keywords: ["ai", "assistant", "conversation"], shortcut: "Ctrl+Shift+A" },
 
@@ -34,9 +34,9 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "deep-intelligence", label: "Product Intelligence", group: "assets", groupLabel: "Assets", keywords: ["intelligence", "cross-validation", "identity", "features", "consistency", "inference"] },
   { id: "market-research", label: "Product Research", group: "assets", groupLabel: "Assets", keywords: ["research", "market", "customer", "knowledge", "insights", "online", "offline"] },
   { id: "master-intelligence", label: "Master Intelligence", group: "assets", groupLabel: "Assets", keywords: ["master", "creative brief", "claim safety", "intelligence report", "phase 3", "content production"] },
-  { id: "generated-images", label: "Generated Images", group: "assets", groupLabel: "Assets", keywords: ["images", "generated", "visual"] },
-  { id: "generated-videos", label: "Generated Videos", group: "assets", groupLabel: "Assets", keywords: ["videos", "generated", "motion"] },
-  { id: "generated-audio", label: "Generated Audio", group: "assets", groupLabel: "Assets", keywords: ["audio", "sound", "voice"] },
+  { id: "generated-images", label: "Generated Images", group: "assets", groupLabel: "Assets", keywords: ["images", "generated", "visual"], inSidebar: false },
+  { id: "generated-videos", label: "Generated Videos", group: "assets", groupLabel: "Assets", keywords: ["videos", "generated", "motion"], inSidebar: false },
+  { id: "generated-audio", label: "Generated Audio", group: "assets", groupLabel: "Assets", keywords: ["audio", "sound", "voice"], inSidebar: false },
 
   { id: "output", label: "Final Outputs", group: "outputs", groupLabel: "Outputs", keywords: ["output", "results", "final", "render", "export", "phase 5", "step 4", "qc", "thumbnail"] },
   { id: "exports", label: "Exports", group: "outputs", groupLabel: "Outputs", keywords: ["export", "download", "deliver", "final package", "phase 5"] },
@@ -62,6 +62,30 @@ export function getNavByGroup(): Array<{ group: NavGroupId; label: string; items
     const items = workspaceNav.filter((item) => item.group === group);
     return { group, label: items[0]?.groupLabel ?? group, items };
   }).filter((entry) => entry.items.length > 0);
+}
+
+/** Primary sidebar: Core / Creative / Production / System. Remaining routes stay searchable. */
+export const SIDEBAR_SECTIONS: Array<{ group: NavGroupId; label: string; ids: WorkspaceId[] }> = [
+  { group: "dashboard", label: "Core", ids: ["home", "ai-me", "new-project", "open-project", "production"] },
+  {
+    group: "assets",
+    label: "Creative / Assets",
+    ids: ["product-information", "image-organization", "visual-analysis", "deep-intelligence", "storyboard"],
+  },
+  {
+    group: "production",
+    label: "Production",
+    ids: ["pipeline", "queue", "active-production", "command-center", "output"],
+  },
+  { group: "system", label: "System", ids: ["system-health", "knowledge-center", "settings"] },
+];
+
+export function getSidebarNavByGroup(): Array<{ group: NavGroupId; label: string; items: WorkspaceNavItem[] }> {
+  return SIDEBAR_SECTIONS.map((section) => ({
+    group: section.group,
+    label: section.label,
+    items: section.ids.map((id) => getNavItem(id)),
+  }));
 }
 
 export function getFutureModuleSlots(): WorkspaceModuleSlot[] {

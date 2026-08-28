@@ -212,7 +212,13 @@ export interface CoreStatus {
   moduleManager: boolean;
   memoryFoundation: boolean;
   knowledgeFoundation: boolean;
+  productIntelligence?: boolean;
+  imageIntelligence?: boolean;
+  videoIntelligence?: boolean;
+  automationEngine?: boolean;
+  taskScheduler?: boolean;
   activeProject: string;
+  activeProjectId?: string | null;
   runtimeMetrics?: {
     memoryMb: number;
     cpuUserMs: number;
@@ -238,6 +244,8 @@ export interface WorkspaceNavItem {
   keywords: string[];
   action?: "navigate" | "modal";
   shortcut?: string;
+  /** When false, the item stays routable and searchable but is omitted from the primary sidebar. */
+  inSidebar?: boolean;
 }
 
 export interface WorkspaceModuleSlot {

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import type { WorkspaceId } from "./types";
 import { useShell } from "./ShellContext";
-import { getNavByGroup, getNavItem } from "./workspace-registry";
+import { getNavItem, getSidebarNavByGroup } from "./workspace-registry";
 
 const navIcons: Record<WorkspaceId, typeof Home> = {
   home: Home,
@@ -55,7 +55,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
   const {
     layout, switchWorkspace, setLayout, navigation, setNavigation, toggleFavorite, notify,
   } = useShell();
-  const groups = getNavByGroup();
+  const groups = getSidebarNavByGroup();
 
   const handleSelect = (id: WorkspaceId, action?: "navigate" | "modal") => {
     if (action === "modal" || id === "new-project") {
@@ -97,68 +97,67 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
         </div>
       </div>
 
-      {!layout.leftCollapsed && navigation.favorites.length > 0 && (
-        <div className="nav-quick-section">
-          <span className="nav-group">Favorites</span>
-          {navigation.favorites.map((id) => {
-            const item = getNavItem(id);
-            const Icon = navIcons[id];
-            return (
-              <button
-                key={`fav-${id}`}
-                className={`nav-item ${layout.workspace === id ? "active" : ""}`}
-                onClick={() => handleSelect(id, item.action)}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-                <Star size={12} className="nav-star filled" />
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <nav className="nav-tree" tabIndex={0} aria-label="Studio pages">
+        {!layout.leftCollapsed && navigation.favorites.length > 0 && (
+          <div className="nav-quick-section">
+            <span className="nav-group">Favorites</span>
+            {navigation.favorites.map((id) => {
+              const item = getNavItem(id);
+              const Icon = navIcons[id];
+              return (
+                <button
+                  key={`fav-${id}`}
+                  className={`nav-item ${layout.workspace === id ? "active" : ""}`}
+                  onClick={() => handleSelect(id, item.action)}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                  <Star size={12} className="nav-star filled" />
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {!layout.leftCollapsed && (navigation.quickAccess?.length ?? 0) > 0 && (
-        <div className="nav-quick-section">
-          <span className="nav-group">Frequent</span>
-          {(navigation.quickAccess ?? []).slice(0, 5).map((id) => {
-            const item = getNavItem(id);
-            const Icon = navIcons[id];
-            return (
-              <button
-                key={`freq-${id}`}
-                className={`nav-item ${layout.workspace === id ? "active" : ""}`}
-                onClick={() => handleSelect(id, item.action)}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+        {!layout.leftCollapsed && (navigation.quickAccess?.length ?? 0) > 0 && (
+          <div className="nav-quick-section">
+            <span className="nav-group">Frequent</span>
+            {(navigation.quickAccess ?? []).slice(0, 4).map((id) => {
+              const item = getNavItem(id);
+              const Icon = navIcons[id];
+              return (
+                <button
+                  key={`freq-${id}`}
+                  className={`nav-item ${layout.workspace === id ? "active" : ""}`}
+                  onClick={() => handleSelect(id, item.action)}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {!layout.leftCollapsed && navigation.recent.length > 0 && (
-        <div className="nav-quick-section">
-          <span className="nav-group">Recently Used</span>
-          {navigation.recent.slice(0, 5).map((id) => {
-            const item = getNavItem(id);
-            const Icon = navIcons[id];
-            return (
-              <button
-                key={`recent-${id}`}
-                className={`nav-item ${layout.workspace === id ? "active" : ""}`}
-                onClick={() => handleSelect(id, item.action)}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <nav className="nav-tree">
+        {!layout.leftCollapsed && navigation.recent.length > 0 && (
+          <div className="nav-quick-section">
+            <span className="nav-group">Recently Used</span>
+            {navigation.recent.slice(0, 4).map((id) => {
+              const item = getNavItem(id);
+              const Icon = navIcons[id];
+              return (
+                <button
+                  key={`recent-${id}`}
+                  className={`nav-item ${layout.workspace === id ? "active" : ""}`}
+                  onClick={() => handleSelect(id, item.action)}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         {groups.map(({ group, label, items }) => {
           const collapsed = navigation.collapsedGroups.includes(group);
           return (

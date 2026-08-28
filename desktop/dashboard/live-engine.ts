@@ -1,8 +1,9 @@
 import type {
-  DashboardCoreStatus, DashboardLiveSnapshot, DashboardWorkspace,
-  LiveProgressState, LiveStatusCard,
+  DashboardCoreStatus, DashboardLiveSnapshot, DashboardMemoryHealth,
+  DashboardPipelineSnapshot, DashboardWorkspace, LiveProgressState, LiveStatusCard,
 } from "./types";
 import { creativeMemoryEngine } from "../creative-memory/memory-engine";
+import { resolveActiveProjectName } from "../shell/project-context";
 
 function creativeAiLine(): string | null {
   try {
@@ -20,29 +21,35 @@ export class DashboardLiveEngine {
     core: DashboardCoreStatus | null,
     workspace: DashboardWorkspace | null,
     workspaceLabel: string,
-    tick: number,
+    pipeline?: DashboardPipelineSnapshot | null,
+    memory?: DashboardMemoryHealth | null,
   ): DashboardLiveSnapshot {
-    const activeProject = workspace?.activeProject?.name ?? core?.activeProject ?? null;
+    const activeProject = resolveActiveProjectName(
+      workspace?.activeProject?.name ?? core?.activeProject,
+    );
     const storageBytes = workspace?.projects.reduce(
       (sum, p) => sum + p.productImages.reduce((t, i) => t + i.sizeBytes, 0), 0,
     ) ?? 0;
-    const activeJobs = core?.runtimeMetrics?.activeJobs ?? 0;
-    const progress = this.buildProgress(activeJobs, tick);
+    const reportedJobs = core?.runtimeMetrics?.activeJobs ?? 0;
+    const progress = this.buildProgress(reportedJobs, pipeline ?? null);
+    const imageCount = workspace?.projects.reduce((n, p) => n + p.productImages.length, 0) ?? 0;
 
     const statuses: LiveStatusCard[] = [
       {
         key: "active-project",
         label: "Active Project",
         value: activeProject ?? "None",
-        detail: workspace?.activeProject ? `${workspace.activeProject.productImages.length} assets` : "Open a project to begin",
+        detail: workspace?.activeProject
+          ? `${workspace.activeProject.productImages.length} assets`
+          : "Open a project to begin",
         online: Boolean(activeProject),
       },
       {
         key: "production",
         label: "Production",
-        value: activeJobs > 0 ? "Running" : "Idle",
+        value: progress.running > 0 ? "Running" : "Idle",
         detail: `${progress.running} running · ${progress.waiting} waiting`,
-        online: activeJobs > 0,
+        online: progress.running > 0,
         progress: progress.percent,
       },
       {
@@ -59,23 +66,25 @@ export class DashboardLiveEngine {
         value: progress.running > 0 ? "In progress" : "Standby",
         detail: progress.remainingLabel,
         online: progress.running > 0,
-        progress: Math.min(100, progress.percent + (tick % 5)),
+        progress: progress.percent,
       },
       {
         key: "knowledge",
         label: "Knowledge",
-        value: core?.knowledgeFoundation ? "Indexed" : "Awaiting",
-        detail: core?.memoryFoundation ? "Memory foundation linked" : "Standby",
-        online: Boolean(core?.knowledgeFoundation),
-        progress: core?.knowledgeFoundation ? 85 : 20,
+        value: memory?.knowledge === "READY" || core?.knowledgeFoundation ? "Indexed" : "Offline",
+        detail: memory
+          ? `${memory.knowledgeCount} knowledge · ${memory.memoryCount} memory`
+          : core?.memoryFoundation ? "Memory foundation linked" : "Standby",
+        online: Boolean(memory?.ready ?? core?.knowledgeFoundation),
+        progress: memory?.ready || core?.knowledgeFoundation ? 100 : 0,
       },
       {
         key: "storage",
         label: "Storage",
         value: storageBytes ? `${(storageBytes / 1024 / 1024).toFixed(1)} MB` : "Local",
-        detail: core?.runtimeMetrics ? `${core.runtimeMetrics.memoryMb} MB RAM in use` : "Offline workspace",
-        online: true,
-        progress: Math.min(100, Math.round((storageBytes / (50 * 1024 * 1024)) * 100) || 12),
+        detail: core?.runtimeMetrics ? `${core.runtimeMetrics.memoryMb} MB RAM in use` : "Workspace status unavailable",
+        online: Boolean(core),
+        progress: Math.min(100, Math.round((storageBytes / (50 * 1024 * 1024)) * 100) || 0),
       },
     ];
 
@@ -86,41 +95,78 @@ export class DashboardLiveEngine {
       progress,
       activeProject,
       workspaceLabel,
-      aiRecommendation: this.recommendation(core, activeProject, progress),
+      aiRecommendation: this.recommendation(core, activeProject, progress, memory),
       lastActivity: lastProject
         ? `${lastProject.name} updated ${formatRelative(lastProject.modifiedAt)}`
         : "Dashboard initialized · awaiting project activity",
       recentProduction: lastProject?.name ?? "No recent production",
+      imageCount,
     };
   }
 
-  buildProgress(activeJobs: number, tick: number): LiveProgressState {
-    const base = activeJobs > 0 ? 45 + (tick % 40) : 8 + (tick % 12);
-    const running = activeJobs > 0 ? Math.max(1, activeJobs) : tick % 3 === 0 ? 1 : 0;
-    const waiting = running > 0 ? Math.max(0, 3 - running) : 2;
-    const completed = 2 + (tick % 4);
-    return {
-      percent: Math.min(99, base),
-      remainingLabel: running > 0 ? `~${Math.max(1, 12 - (tick % 10))} min remaining` : "No active render",
-      completed,
-      running,
-      waiting,
-      tasks: [
-        { id: "analyze", label: "Product analysis", status: completed > 0 ? "completed" : "waiting", progress: completed > 0 ? 100 : 0 },
-        { id: "story", label: "Storyboard prep", status: running > 0 ? "running" : "waiting", progress: running > 0 ? base : 0 },
-        { id: "render", label: "Render queue", status: running > 0 ? "running" : "waiting", progress: running > 0 ? Math.max(20, base - 10) : 0 },
-        { id: "export", label: "Export packaging", status: "waiting", progress: 0 },
-      ],
-    };
+  buildProgress(activeJobs: number, pipeline?: DashboardPipelineSnapshot | null): LiveProgressState {
+    const jobs = pipeline?.jobs ?? [];
+    const history = pipeline?.history ?? [];
+    const runningFromJobs = jobs.filter((job) => job.status === "running").length;
+    const running = pipeline ? runningFromJobs : (activeJobs > 0 ? activeJobs : 0);
+    const waiting = jobs.filter((job) => job.status === "queued" || job.status === "paused").length;
+    const completed = history.filter((job) => job.status === "completed").length
+      + jobs.filter((job) => job.status === "completed").length;
+    const percents = jobs.map((job) => job.progress ?? 0);
+    const percent = running > 0 || waiting > 0
+      ? Math.min(99, Math.round(percents.reduce((sum, n) => sum + n, 0) / Math.max(1, jobs.length)))
+      : completed > 0 ? 100 : 0;
+
+    const rendering = jobs.find((job) => job.stage === "rendering" || job.status === "running");
+    const remainingLabel = rendering
+      ? (pipeline?.monitor?.estimatedCompletion as string | undefined) ?? "Job in progress"
+      : running > 0
+        ? "Job in progress"
+        : "No active render";
+
+    const tasks = this.buildTasks(jobs, history);
+
+    return { percent, remainingLabel, completed, running, waiting, tasks };
   }
 
-  private recommendation(core: DashboardCoreStatus | null, project: string | null, progress: LiveProgressState): string {
+  private buildTasks(
+    jobs: NonNullable<DashboardPipelineSnapshot["jobs"]>,
+    history: NonNullable<DashboardPipelineSnapshot["history"]>,
+  ): LiveProgressState["tasks"] {
+    const latest = [...history, ...jobs].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+    const byStage = new Map(latest.map((job) => [job.stage ?? job.status, job]));
+    const stages: Array<{ id: string; label: string; stage: string }> = [
+      { id: "analyze", label: "Product analysis", stage: "analysis" },
+      { id: "story", label: "Storyboard prep", stage: "storyboard" },
+      { id: "render", label: "Render queue", stage: "rendering" },
+      { id: "export", label: "Export packaging", stage: "export" },
+    ];
+    return stages.map((stage) => {
+      const job = byStage.get(stage.stage) ?? jobs.find((item) => item.stage === stage.stage);
+      if (!job) {
+        return { id: stage.id, label: stage.label, status: "waiting" as const, progress: 0 };
+      }
+      const status = job.status === "completed" ? "completed"
+        : job.status === "running" ? "running"
+          : "waiting";
+      return { id: stage.id, label: stage.label, status, progress: job.progress ?? (status === "completed" ? 100 : 0) };
+    });
+  }
+
+  private recommendation(
+    core: DashboardCoreStatus | null,
+    project: string | null,
+    progress: LiveProgressState,
+    memory?: DashboardMemoryHealth | null,
+  ): string {
     const fromMemory = creativeAiLine();
     if (fromMemory) return fromMemory;
+    if (!core) return "Gateway status is unavailable. Confirm the public application can reach the local Core.";
     if (!project) return "Create or open a project to unlock AI-guided production recommendations.";
-    if (!core?.aiCore) return "Start the local AI runtime to receive live recommendations on this dashboard.";
-    if (progress.running > 0) return "Production is active. Review Recent Production and open Pipeline for queue details.";
-    return "Ready for storyboard and asset import. AI Me suggests starting with Product Upload when modules mount.";
+    if (!core.aiCore) return "AI Core is offline. Local workspace tools remain available.";
+    if (progress.running > 0) return "Production is active. Review Production Queue or Command Center for live jobs.";
+    if (memory && !memory.ready) return "Memory/knowledge center is not ready. System Health has diagnostics.";
+    return "Ready for product intake, image organization, and production planning.";
   }
 }
 

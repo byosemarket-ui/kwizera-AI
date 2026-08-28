@@ -11,14 +11,14 @@ export const QUICK_ACTIONS: Array<{
   detail: string;
   shortcut?: string;
 }> = [
-  { id: "new-project", label: "New Project", workspace: "new-project", detail: "Create a new production project", shortcut: "Ctrl+N" },
-  { id: "import-images", label: "Import Images", workspace: "asset-library", detail: "Import product images into the asset library" },
-  { id: "analyze-product", label: "Analyze Product", workspace: "production", detail: "Run product analysis on the active project" },
-  { id: "generate-story", label: "Generate Story", workspace: "storyboard", detail: "Generate storyboard and narrative" },
-  { id: "generate-images", label: "Generate Images", workspace: "generated-images", detail: "Open image generation workspace" },
-  { id: "generate-video", label: "Generate Video", workspace: "generated-videos", detail: "Open video generation workspace" },
-  { id: "render", label: "Render", workspace: "pipeline", detail: "Queue a render job" },
-  { id: "export", label: "Export", workspace: "exports", detail: "Export finished outputs" },
+  { id: "new-project", label: "New Project", workspace: "new-project", detail: "Create a project and import product images", shortcut: "Ctrl+N" },
+  { id: "import-images", label: "Import Images", workspace: "new-project", detail: "Import product images through product intake" },
+  { id: "analyze-product", label: "Analyze Product", workspace: "deep-intelligence", detail: "Open Product Intelligence for the active project" },
+  { id: "generate-story", label: "Generate Story", workspace: "storyboard", detail: "Open Creative Planner for storyboard and narrative" },
+  { id: "generate-images", label: "Generate Images", workspace: "image-organization", detail: "Open Image Organization — the live image workspace" },
+  { id: "generate-video", label: "Generate Video", workspace: "storyboard", detail: "Open Creative Planner — the live story/video planning workspace" },
+  { id: "render", label: "Render", workspace: "pipeline", detail: "Open Production Plan and the render pipeline" },
+  { id: "export", label: "Export", workspace: "exports", detail: "Open Final Outputs / export packaging" },
   { id: "save", label: "Save", detail: "Save current workspace state", shortcut: "Ctrl+S" },
 ];
 

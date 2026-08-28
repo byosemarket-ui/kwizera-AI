@@ -209,7 +209,7 @@ function App() {
           searchOpen={searchOpen}
           onNotificationsToggle={() => setNotificationsOpen(!notificationsOpen)}
           notificationsOpen={notificationsOpen}
-          onNewProject={() => notify("info", "New Project", "Create a project from Projects → New Project when the wizard mounts.", "information")}
+          onNewProject={() => undefined}
           onLayoutChange={setLayoutSnapshot}
           restoredLayout={restoredLayout}
         >

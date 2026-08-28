@@ -7,6 +7,63 @@
 .layout-engine-shell > .right-sidebar { grid-column: 3; grid-row: 2; }
 .layout-engine-shell > .bottom-panel { grid-column: 1 / -1; grid-row: 3; }
 
+.layout-engine-shell > .left-sidebar,
+.shell-left-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.shell-left-sidebar .sidebar-top,
+.shell-left-sidebar .sidebar-footer {
+  flex-shrink: 0;
+}
+
+.shell-left-sidebar .nav-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  outline: none;
+}
+
+.layout-engine-shell > .workspace-area,
+.production-workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-toolbar,
+.quick-action-bar {
+  flex-shrink: 0;
+}
+
+.layout-engine-shell > .right-sidebar,
+.shell-right-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inspector-header {
+  flex-shrink: 0;
+}
+
+.inspector-content,
+.ai-assist-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Layout engine grid — extends workspace.css shell */
 .layout-engine-shell {
   --top: var(--shell-top-height);
@@ -505,9 +562,10 @@
 }
 
 .production-canvas {
+  flex: 1 1 auto;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: calc(100% - 140px);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
 }
 
 .production-main-panel {
@@ -516,14 +574,7 @@
 }
 
 .module-reservations {
-  display: none;
-  padding: 12px 28px 20px;
-  border-top: 1px dashed var(--shell-border);
-}
-
-.layout-engine-shell[data-workspace="production"] .module-reservations,
-.layout-engine-shell[data-workspace="home"] .module-reservations {
-  display: block;
+  display: none !important;
 }
 
 .reservation-grid {
@@ -624,11 +675,28 @@
     grid-template-columns: 55px minmax(0, 1fr);
   }
 
-  .layout-engine-shell .right-sidebar { display: none; }
+  .layout-engine-shell.right-closed .right-sidebar {
+    display: none;
+  }
+
+  .layout-engine-shell:not(.right-closed) .right-sidebar {
+    display: flex;
+    position: fixed;
+    top: var(--top);
+    right: 0;
+    bottom: var(--bottom);
+    width: min(100vw, 320px);
+    z-index: 20;
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+  }
 
   .bottom-tab span { display: none; }
   .reservation-grid { grid-template-columns: 1fr; }
-  .quick-action-bar { gap: 4px; }
+  .quick-action-bar {
+    gap: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
 }
 
 @media (min-width: 1920px) {

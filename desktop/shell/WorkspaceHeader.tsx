@@ -6,6 +6,7 @@ import type { ProjectStatus } from "./types";
 import { useShell } from "./ShellContext";
 import { getNavItem } from "./workspace-registry";
 import { navigationEngine } from "./navigation/navigation-engine";
+import { resolveActiveProjectName } from "./project-context";
 
 const statusLabels: Record<ProjectStatus, string> = {
   idle: "No active project",
@@ -34,10 +35,12 @@ export function WorkspaceHeader({
   const unread = notifications.filter((n) => !n.read).length;
   const fps = performanceSnapshot?.metrics.fps;
   const ram = performanceSnapshot?.metrics.ramUsage ?? core?.runtimeMetrics?.ramUsage;
+  const projectName = resolveActiveProjectName(core?.activeProject);
+  const gatewayReachable = core != null;
 
   return (
     <header className="topbar workspace-header nav-engine-header" role="banner">
-      <a className="brand" href="/desktop" aria-label="KWIZERA AI Studio home">
+      <a className="brand" href="/" aria-label="KWIZERA AI Studio home">
         <span className="brand-mark"><Sparkles size={17} /></span>
         <span>KWIZERA</span>
         <em>AI STUDIO</em>
@@ -51,7 +54,7 @@ export function WorkspaceHeader({
       <div className="header-project-block">
         <div className="project-switcher">
           <span className="project-dot" />
-          <span className="project-name">{core?.activeProject || "No project"}</span>
+          <span className="project-name">{projectName ?? "No project"}</span>
         </div>
         <span className="project-status-badge">{statusLabels[projectStatus]}</span>
       </div>
@@ -65,8 +68,13 @@ export function WorkspaceHeader({
       <div className="header-status-cluster" aria-label="Workspace status">
         <StatusChip icon={<Bot size={12} />} label="AI" value={status.ai} online={core?.aiCore} />
         <StatusChip icon={<RefreshCw size={12} />} label="Mode" value={status.mode} />
-        <StatusChip icon={<Cpu size={12} />} label="Prod" value={status.production} />
-        <StatusChip icon={<WifiOff size={12} />} label="Net" value="Offline" />
+        <StatusChip icon={<Cpu size={12} />} label="Prod" value={status.production} online={projectStatus === "in-production"} />
+        <StatusChip
+          icon={gatewayReachable ? <Cloud size={12} /> : <WifiOff size={12} />}
+          label="Net"
+          value={gatewayReachable ? "Local" : "Unreachable"}
+          online={gatewayReachable}
+        />
         <StatusChip icon={<HardDrive size={12} />} label="HW" value={
           fps != null
             ? `${fps}fps · ${ram ?? core?.runtimeMetrics?.memoryMb ?? "—"}%`
