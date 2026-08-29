@@ -190,7 +190,7 @@ export interface ProductIntelligenceProfile {
   productProvenance?: ProductIntelligenceProvenance;
   memoryStatus?: "linked" | "unavailable" | "error";
   memoryMessage?: string;
-  knowledgeStatus?: "linked" | "unavailable" | "empty" | "error";
+  knowledgeStatus?: "linked" | "already-linked" | "existing" | "unavailable" | "empty" | "error";
   knowledgeMessage?: string;
   metadata: Record<string, string | number | boolean>;
   createdAt: string;

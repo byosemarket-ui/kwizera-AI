@@ -386,6 +386,44 @@ export class KnowledgeTeachingService {
     // Global retrieve: permanent only
     return scope !== "project" && !recordProjectId;
   }
+
+  /**
+   * Confirm duplicate knowledge IDs are reusable and belong to this project.
+   * Never treats another project's record as a valid equivalent.
+   */
+  async findReusableProjectEquivalents(projectId: string, knowledgeIds: string[]): Promise<string[]> {
+    const reusable: string[] = [];
+    for (const knowledgeId of [...new Set(knowledgeIds.filter(Boolean))]) {
+      const read = await this.foundation.getStorageEngine().getRecord(knowledgeId, "knowledge-teaching-service");
+      if (!read.success || !read.record) continue;
+      if (!this.isReusableEquivalent(read.record)) continue;
+      if (!this.matchesScope(read.record, { projectId, includePermanent: false, permanentOnly: false })) continue;
+      reusable.push(knowledgeId);
+    }
+    return reusable;
+  }
+
+  isReusableEquivalent(record: { status?: string; integrityStatus?: string }): boolean {
+    const status = String(record.status ?? "").toLowerCase();
+    const integrity = String(record.integrityStatus ?? "").toLowerCase();
+    if (status === "deleted" || status === "rejected" || status === "archived") return false;
+    if (integrity === "corrupted") return false;
+    return true;
+  }
+
+  /** Store project-scoped knowledge when a global equivalent belongs to a different project. */
+  async storeTaughtKnowledge(input: {
+    topic: string;
+    content: string;
+    scope: KnowledgeScope;
+    projectId?: string;
+    knowledgeType: KnowledgeStorageType;
+    sourceName?: string;
+    requestId?: string;
+    preview?: KnowledgeAcquisitionPreview;
+  }): Promise<TeachKnowledgeResult> {
+    return this.teachDirectStore(input);
+  }
 }
 
 export function createKnowledgeTeachingService(foundation: AiKnowledgeFoundation): KnowledgeTeachingService {

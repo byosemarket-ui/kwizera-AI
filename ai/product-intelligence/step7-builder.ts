@@ -439,10 +439,10 @@ function rankCreativeAngles(
 }
 
 function inferredAudience(profile: ProductIntelligenceProfile): string {
-  if (/apparel|fashion/i.test(profile.category)) return "style-conscious shoppers (inferred)";
-  if (/beverage|bottle/i.test(profile.category + profile.productType)) return "people who carry drinks daily (inferred)";
-  if (/beauty/i.test(profile.category)) return "personal-care shoppers (inferred)";
-  return "likely buyers of this product category (inferred)";
+  if (/apparel|fashion/i.test(profile.category)) return "style-conscious shoppers";
+  if (/beverage|bottle/i.test(profile.category + profile.productType)) return "people who carry drinks daily";
+  if (/beauty/i.test(profile.category)) return "personal-care shoppers";
+  return "likely buyers of this product category";
 }
 
 function needForDirection(id: MarketingDirection["id"]): string {

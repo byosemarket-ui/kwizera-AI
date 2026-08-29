@@ -23,7 +23,8 @@ import { PRODUCT_INTELLIGENCE_VERSION } from "./types.js";
 import { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { enrichProductIntelligence } from "./step7-builder.js";
-import { recordProductIntelligenceFoundation } from "./product-intelligence-bridge.js";
+import { recordProductIntelligenceFoundation, refreshStaleProductKnowledgeStatus } from "./product-intelligence-bridge.js";
+import { normalizeProductIntelligenceProfile } from "./normalize-profile.js";
 
 export { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 
@@ -134,7 +135,8 @@ export class ProductIntelligenceManager {
     const cachedId = this.store.cache[key];
     const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined;
     if (cached && cached.analysisVersion === PRODUCT_INTELLIGENCE_VERSION) {
-      return { ...cached, cached: true, analysisState: cached.analysisState ?? "ready" };
+      const normalized = await this.hydratePersistedProfile(project, cached);
+      return { ...normalized, cached: true, analysisState: normalized.analysisState ?? "ready" };
     }
 
     this.analyzing.add(projectId);
@@ -187,7 +189,11 @@ export class ProductIntelligenceManager {
 
   async getProfile(projectId: string): Promise<ProductIntelligenceProfile | null> {
     this.ensureReady();
-    return this.store.profiles.find((profile) => profile.projectId === projectId) ?? null;
+    const profile = this.store.profiles.find((item) => item.projectId === projectId) ?? null;
+    if (!profile || !this.workspace) return profile;
+    const project = await this.workspace.getProject(projectId);
+    if (!project) return { ...profile };
+    return this.hydratePersistedProfile(project, profile);
   }
 
   async explainProduct(projectId: string): Promise<ProductIntelligenceExplainResult> {
@@ -403,6 +409,39 @@ export class ProductIntelligenceManager {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY);
       throw error;
     }
+  }
+
+  private async hydratePersistedProfile(
+    project: CreativeProject,
+    profile: ProductIntelligenceProfile,
+  ): Promise<ProductIntelligenceProfile> {
+    const normalized = normalizeProductIntelligenceProfile(profile, project);
+    let next = normalized.profile;
+    let changed = normalized.changed;
+    if (next.knowledgeStatus === "error" && /already exists|equivalent knowledge/i.test(next.knowledgeMessage ?? "")) {
+      const refreshed = await refreshStaleProductKnowledgeStatus(this.core, project, next);
+      next = { ...next, ...refreshed };
+      if (refreshed.knowledgeStatus !== "error") changed = true;
+      else if (this.core) {
+        const foundation = await recordProductIntelligenceFoundation(this.core, project, next);
+        if (foundation.knowledgeStatus === "linked" || foundation.knowledgeStatus === "already-linked" || foundation.knowledgeStatus === "existing") {
+          next = {
+            ...next,
+            knowledgeStatus: foundation.knowledgeStatus,
+            knowledgeMessage: foundation.knowledgeMessage,
+            foundationKnowledgeIds: foundation.foundationKnowledgeIds,
+            memoryStatus: foundation.memoryStatus ?? next.memoryStatus,
+            memoryMessage: foundation.memoryMessage ?? next.memoryMessage,
+          };
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      this.store.profiles = this.store.profiles.map((item) => item.id === profile.id ? next : item);
+      void this.persist();
+    }
+    return { ...next };
   }
 
   private async retrieveFoundationKnowledge(project: CreativeProject): Promise<string[]> {

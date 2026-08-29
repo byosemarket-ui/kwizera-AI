@@ -59,6 +59,7 @@ export interface ProductIntelligenceDto {
   missingInformation?: Array<{ field: string; severity: string; recommendation: string }>;
   memoryStatus?: string;
   knowledgeStatus?: string;
+  knowledgeMessage?: string;
 }
 
 export interface MarketingIntelligenceDto {
@@ -173,4 +174,20 @@ export async function updateCreativePlan(projectId: string, changes: Record<stri
     body: JSON.stringify({ changes }),
   });
   return readJson(response);
+}
+
+const PROVENANCE_RUN = /(?:\s*\((?:inferred|observed-from-image|user-provided|recommended|marketing-recommendation)\))+/gi;
+
+export function collapseRepeatedProvenance(text: string): string {
+  return text
+    .replace(PROVENANCE_RUN, (run) => {
+      const match = run.match(/\((inferred|observed-from-image|user-provided|recommended|marketing-recommendation)\)/i);
+      return match ? ` (${match[1].toLowerCase()})` : "";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function stripInferredMarker(text: string): string {
+  return collapseRepeatedProvenance(text).replace(/\s*\(inferred\)/gi, "").trim();
 }

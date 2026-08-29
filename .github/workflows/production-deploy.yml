@@ -39,7 +39,7 @@ jobs:
         run: npm ci
 
       - name: Run deployment and studio tests
-        run: npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/ai/creative-workspace tests/unit/ai/image-intelligence/png-pixels.test.ts tests/unit/ai/image-intelligence/step6-image-ingestion.test.ts tests/unit/ai/image-intelligence/image-intelligence-manager.test.ts tests/unit/ai/product-intelligence/product-intelligence-manager.test.ts tests/unit/ai/product-intelligence/step7-product-intelligence.test.ts tests/unit/ai/marketing-intelligence/marketing-intelligence-manager.test.ts tests/unit/ai/creative-planning/creative-planning-manager.test.ts
+        run: npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/ai/creative-workspace tests/unit/ai/image-intelligence/png-pixels.test.ts tests/unit/ai/image-intelligence/step6-image-ingestion.test.ts tests/unit/ai/image-intelligence/image-intelligence-manager.test.ts tests/unit/ai/product-intelligence/product-intelligence-manager.test.ts tests/unit/ai/product-intelligence/step7-product-intelligence.test.ts tests/unit/ai/product-intelligence/step7-hardening.test.ts tests/unit/ai/marketing-intelligence/marketing-intelligence-manager.test.ts tests/unit/ai/creative-planning/creative-planning-manager.test.ts
 
       - name: Production build (server + Vite studio)
         run: npm run build:production

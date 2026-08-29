@@ -8,6 +8,7 @@ import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-e
 import { deepIntelligenceEngine } from "./deep-intelligence-engine";
 import type { DeepIntelligenceSnapshot } from "./types";
 import type { CreativePlanSceneDto, ProvenanceStatementDto } from "./live-api";
+import { collapseRepeatedProvenance, stripInferredMarker } from "./live-api";
 import "./deep-intelligence.css";
 
 const KIND_LABEL: Record<string, string> = {
@@ -171,6 +172,9 @@ export function DeepIntelligenceWorkspace() {
             <div><span>Product ID</span><b>{product.productId || product.projectId}</b></div>
             <div><span>Memory</span><b>{product.memoryStatus ?? "n/a"}</b></div>
             <div><span>Knowledge</span><b>{product.knowledgeStatus ?? "n/a"}</b></div>
+            {product.knowledgeStatus === "error" && product.knowledgeMessage ? (
+              <div><span>Knowledge detail</span><b>{product.knowledgeMessage}</b></div>
+            ) : null}
           </div>
         ) : <p className="di-muted">Not analyzed.</p>}
       </Section>
@@ -188,7 +192,7 @@ export function DeepIntelligenceWorkspace() {
       <Section title="Customer" open={open.customer} onToggle={() => toggle("customer")}>
         {product?.customerIntelligence ? (
           <>
-            <p><span className={`di-kind ${product.customerIntelligence.label}`}>{product.customerIntelligence.label.toUpperCase()}</span> {product.customerIntelligence.customerType}</p>
+            <p><span className={`di-kind ${product.customerIntelligence.label}`}>{product.customerIntelligence.label.toUpperCase()}</span> {stripInferredMarker(product.customerIntelligence.customerType)}</p>
             <p>Use case: {product.customerIntelligence.useCase}</p>
             <p>Needs: {product.customerIntelligence.needs.join("; ") || "—"}</p>
             <p>Motivations: {product.customerIntelligence.buyingMotivations.join("; ") || "—"}</p>
@@ -245,7 +249,7 @@ export function DeepIntelligenceWorkspace() {
         {plan ? (
           <div className="di-summary">
             <div><span>Objective</span><b>{plan.objective || "—"}</b></div>
-            <div><span>Audience</span><b>{plan.audience || "—"}</b></div>
+            <div><span>Audience</span><b>{collapseRepeatedProvenance(plan.audience || "—")}</b></div>
             <div><span>Message</span><b>{plan.message || "—"}</b></div>
             <div><span>Angle</span><b>{plan.angle || "—"}</b></div>
             <div><span>Visual</span><b>{plan.visualDirection || "—"}</b></div>

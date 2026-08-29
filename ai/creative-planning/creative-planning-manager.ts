@@ -10,6 +10,7 @@ import type { ImageIntelligenceManager } from "../image-intelligence/image-intel
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { ProjectState } from "../state-manager/types.js";
 import { planProductScenes } from "./scene-planner.js";
+import { appendProvenanceOnce, collapseRepeatedProvenanceMarkers } from "../product-intelligence/provenance-text.js";
 
 export interface PlanScene {
   id: string;
@@ -203,7 +204,10 @@ export class CreativePlanningManager {
     const campaign = project.campaignInformation;
     const platform = platformGuidance(project.platform);
     const angle = product?.creativeAngles?.[0];
-    const audience = product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
+    const audienceRaw = product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
+    const audience = product?.customerIntelligence?.label === "inferred"
+      ? appendProvenanceOnce(audienceRaw, "inferred")
+      : collapseRepeatedProvenanceMarkers(audienceRaw);
     const message = product?.valueProposition?.customerBenefit || productInfo.description || productInfo.name;
     const visualDirection = product?.imageObservations?.find((item) => item.field === "lighting")?.value
       || "Keep lighting and colour consistent with the source product photographs.";
@@ -220,7 +224,7 @@ export class CreativePlanningManager {
         product: product?.valueProposition?.productSummary || `${productInfo.name} is a ${productInfo.category || product?.category || "product"}: ${productInfo.description}`,
         brand: `${brand.name || "brand requires confirmation"}${brand.voice ? ` communicates with a ${brand.voice} voice` : ""}.`,
         campaign: `${campaign.name || "campaign"} is focused on ${campaign.objective || "introducing the product"}.`,
-        audience: `Primary audience: ${audience}${product?.customerIntelligence?.label === "inferred" ? " (inferred)" : ""}.`,
+        audience: `Primary audience: ${audience}.`,
         platform: platform.analysis,
         language: `Use ${languageName(project.language)} for all on-screen and spoken planning copy.`,
       },
