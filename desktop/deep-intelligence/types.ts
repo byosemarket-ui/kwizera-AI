@@ -144,6 +144,8 @@ export interface IntelligenceProgress {
   running: boolean;
 }
 
+import type { ProductIntelligenceDto, MarketingIntelligenceDto, CreativePlanDto } from "./live-api";
+
 export interface DeepIntelligenceSnapshot {
   version: 1;
   package: ProductIntelligencePackage | null;
@@ -152,6 +154,13 @@ export interface DeepIntelligenceSnapshot {
   handoffReady: boolean;
   serviceAvailable: boolean;
   updatedAt: string;
+  projectId?: string | null;
+  projectName?: string;
+  analysisState?: string;
+  product?: ProductIntelligenceDto | null;
+  marketing?: MarketingIntelligenceDto | null;
+  plan?: CreativePlanDto | null;
+  limitation?: string | null;
 }
 
 export interface Step3MarketIntelHandoffPayload {

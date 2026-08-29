@@ -1,4 +1,10 @@
 import { loadStep2CreativePlannerHandoff } from "../marketing-strategy/strategy-engine";
+import { resolveBoundProject } from "../product-creation/workflow";
+import {
+  generateCreativePlan,
+  getCreativePlan,
+  type CreativePlanDto,
+} from "../deep-intelligence/live-api";
 import type { Step2CreativePlannerHandoffPayload } from "../marketing-strategy/types";
 import type { MasterMarketingStrategy } from "../marketing-strategy/types";
 import type { MasterProductIntelligence } from "../master-intelligence/types";
@@ -89,6 +95,8 @@ export class CreativePlannerEngine {
   private reviewOpen = false;
   private recommendation = "Confirm Marketing Strategy (Phase 4 Step 1), then compile the Creative Blueprint.";
   private resumeStageIndex = 0;
+  private livePlan: CreativePlanDto | null = null;
+  private projectId: string | null = null;
 
   setNotify(fn: NotifyFn | null): void { this.notify = fn; }
   setEventEmitter(fn: ((type: string, payload: Record<string, unknown>) => void) | null): void { this.emitEvents = fn; }
@@ -108,6 +116,8 @@ export class CreativePlannerEngine {
       handoffReady: this.handoffReady,
       reviewOpen: this.reviewOpen,
       updatedAt: new Date().toISOString(),
+      livePlan: this.livePlan,
+      projectId: this.projectId,
     };
   }
 
@@ -129,16 +139,34 @@ export class CreativePlannerEngine {
     };
   }
 
+  async hydrateLive(): Promise<void> {
+    const bound = await resolveBoundProject();
+    if (!bound) return;
+    this.projectId = bound.projectId;
+    try {
+      this.livePlan = (await getCreativePlan(bound.projectId)).plan;
+      if (this.livePlan && (!this.strategy || !this.strategy.userConfirmed)) {
+        this.recommendation = `Live Creative Plan v${this.livePlan.version} restored for “${bound.projectName}”.`;
+        this.emit();
+      }
+    } catch {
+      this.livePlan = null;
+    }
+  }
+
   hydrate(): boolean {
+    void this.hydrateLive();
     const handoff = loadStep2CreativePlannerHandoff();
     this.step2 = handoff;
     this.strategy = handoff?.strategy ?? null;
     this.master = handoff?.master ?? null;
     this.brief = handoff?.marketingBrief ?? null;
     if (!this.strategy || !this.strategy.userConfirmed) {
-      this.recommendation = "No confirmed Marketing Strategy found. Complete Phase 4 Step 1 first.";
+      this.recommendation = this.livePlan
+        ? `Live Creative Plan v${this.livePlan.version} is loaded from the project. Generate or edit scenes here, or compile a Phase 4 blueprint after Marketing Strategy.`
+        : "No confirmed Marketing Strategy. A live Creative Plan can still be generated from Product Intelligence.";
       this.emit();
-      return false;
+      return Boolean(this.livePlan);
     }
     this.imageSet = loadImageSet(this.strategy.projectId) ?? this.brief?.productProfile?.productImageSet ?? null;
     const stored = loadStore()[this.strategy.projectId];
@@ -165,6 +193,18 @@ export class CreativePlannerEngine {
 
   async run(options?: { force?: boolean }): Promise<MasterCreativeBlueprint> {
     if (!this.strategy) {
+      if (this.projectId || (await resolveBoundProject())?.projectId) {
+        const projectId = this.projectId || (await resolveBoundProject())!.projectId;
+        this.projectId = projectId;
+        this.progress = { total: PLANNER_STAGES.length, completed: 1, percent: 20, currentLabel: "Generating live Creative Plan", currentStage: "loaded", running: true };
+        this.emit();
+        this.livePlan = (await generateCreativePlan(projectId)).plan;
+        this.progress = { total: PLANNER_STAGES.length, completed: PLANNER_STAGES.length, percent: 100, currentLabel: "Live plan saved", currentStage: "saved", running: false };
+        this.recommendation = `Live Creative Plan v${this.livePlan.version} generated. No video was rendered.`;
+        this.emit();
+        if (this.pkg) return this.pkg;
+        throw new Error("Live Creative Plan generated. Open Product Intelligence to review scenes, or confirm Marketing Strategy for the Phase 4 blueprint.");
+      }
       if (!this.hydrate()) throw new Error("Confirmed Marketing Strategy required");
     }
     if (this.progress.running) throw new Error("Planning already running");

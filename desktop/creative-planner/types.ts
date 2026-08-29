@@ -297,6 +297,8 @@ export interface CreativePlannerSnapshot {
   handoffReady: boolean;
   reviewOpen: boolean;
   updatedAt: string;
+  livePlan?: import("../deep-intelligence/live-api").CreativePlanDto | null;
+  projectId?: string | null;
 }
 
 export interface Step3PreProductionHandoffPayload {

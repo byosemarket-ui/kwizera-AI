@@ -10,6 +10,7 @@ import type {
   ImageAnalysisSummary,
   MissingProductInformation,
   PhotoRecommendation,
+  ProductAnalysisState,
   ProductIntelligenceExplainResult,
   ProductIntelligenceHealthReport,
   ProductIntelligenceProfile,
@@ -18,8 +19,11 @@ import type {
   ProductSellingPoint,
   ProductViewRole,
 } from "./types.js";
+import { PRODUCT_INTELLIGENCE_VERSION } from "./types.js";
 import { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import { enrichProductIntelligence } from "./step7-builder.js";
+import { recordProductIntelligenceFoundation } from "./product-intelligence-bridge.js";
 
 export { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 
@@ -50,6 +54,8 @@ export class ProductIntelligenceManager {
   private workspace: CreativeWorkspaceManager | null = null;
   private imageIntelligence: ImageIntelligenceManager | null = null;
   private store: ProductIntelligenceStore = structuredClone(EMPTY);
+  private inflight = new Map<string, Promise<ProductIntelligenceProfile>>();
+  private analyzing = new Set<string>();
 
   readonly identification = new ProductIdentificationEngine();
   readonly classification = new ProductClassificationEngine();
@@ -98,6 +104,27 @@ export class ProductIntelligenceManager {
   }
 
   async analyze(projectId: string): Promise<ProductIntelligenceProfile> {
+    const running = this.inflight.get(projectId);
+    if (running) return running;
+    const job = this.runAnalyze(projectId);
+    this.inflight.set(projectId, job);
+    try {
+      return await job;
+    } finally {
+      this.inflight.delete(projectId);
+      this.analyzing.delete(projectId);
+    }
+  }
+
+  getAnalysisState(projectId: string): ProductAnalysisState {
+    if (this.analyzing.has(projectId) || this.inflight.has(projectId)) return "analyzing";
+    const profile = this.store.profiles.find((item) => item.projectId === projectId);
+    if (!profile) return "not-analyzed";
+    if (profile.analysisVersion !== PRODUCT_INTELLIGENCE_VERSION) return "partial";
+    return profile.analysisState ?? "ready";
+  }
+
+  private async runAnalyze(projectId: string): Promise<ProductIntelligenceProfile> {
     this.ensureReady();
     const project = await this.workspace!.getProject(projectId);
     if (!project) throw new Error("Project not found");
@@ -106,18 +133,51 @@ export class ProductIntelligenceManager {
     const key = this.cache.key(project);
     const cachedId = this.store.cache[key];
     const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined;
-    if (cached) return { ...cached, cached: true };
+    if (cached && cached.analysisVersion === PRODUCT_INTELLIGENCE_VERSION) {
+      return { ...cached, cached: true, analysisState: cached.analysisState ?? "ready" };
+    }
 
-    const imageProfiles = this.imageIntelligence ? await this.imageIntelligence.analyzeProject(projectId) : [];
-    const profile = this.buildProfile(project, imageProfiles);
-    profile.foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
-    this.store.profiles = this.store.profiles.filter((item) => item.projectId !== projectId);
-    this.store.profiles.unshift(profile);
-    this.store.cache[key] = profile.id;
-    this.history.record(projectId, "analysis", `Built a ${profile.viewCount}-view digital product profile at ${profile.quality.score}/100.`);
-    this.log("info", `Product profile analyzed for ${project.name}.`);
-    await this.persist();
-    return { ...profile };
+    this.analyzing.add(projectId);
+    const previous = this.store.profiles.find((item) => item.projectId === projectId);
+    try {
+      const imageProfiles = await this.collectImageProfiles(projectId, project);
+      const profile = enrichProductIntelligence(
+        project,
+        this.buildProfile(project, imageProfiles),
+        imageProfiles,
+        previous?.id,
+      );
+      profile.foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
+      const foundation = await recordProductIntelligenceFoundation(this.core, project, profile);
+      Object.assign(profile, foundation);
+      this.store.profiles = this.store.profiles.filter((item) => item.projectId !== projectId);
+      this.store.profiles.unshift(profile);
+      this.store.cache[key] = profile.id;
+      this.history.record(projectId, "analysis", `Built a ${profile.viewCount}-view digital product profile at ${profile.quality.score}/100 (${PRODUCT_INTELLIGENCE_VERSION}).`);
+      this.log("info", `Product profile analyzed for ${project.name}.`);
+      await this.persist();
+      return { ...profile };
+    } catch (error) {
+      if (previous) {
+        previous.analysisState = "failed";
+        previous.analysisError = error instanceof Error ? error.message : "Product analysis failed";
+        previous.updatedAt = new Date().toISOString();
+        await this.persist();
+        return { ...previous, cached: false };
+      }
+      throw error;
+    }
+  }
+
+  private async collectImageProfiles(projectId: string, project: CreativeProject): Promise<ImageIntelligenceProfile[]> {
+    if (!this.imageIntelligence) return [];
+    const originals = project.productImages.filter(isOriginalProductImage);
+    const existing = await this.imageIntelligence.getProfiles(projectId);
+    const missing = originals.filter((image) => !existing.some((profile) => profile.imageId === image.id && profile.visualMetrics));
+    if (!missing.length) {
+      return existing.filter((profile) => originals.some((image) => image.id === profile.imageId));
+    }
+    return this.imageIntelligence.analyzeProject(projectId);
   }
 
   /** Step 1 entry: analyze product + images and return the creative-pipeline product intelligence profile. */
@@ -203,6 +263,7 @@ export class ProductIntelligenceManager {
 
   async getDashboard(projectId?: string): Promise<{
     profiles: ProductIntelligenceProfile[];
+    analysisState?: ProductAnalysisState;
     history: ProductIntelligenceStore["history"];
     logs: ProductIntelligenceStore["logs"];
     analytics: Record<string, number>;
@@ -212,6 +273,7 @@ export class ProductIntelligenceManager {
     const profiles = this.store.profiles.filter((profile) => !projectId || profile.projectId === projectId);
     return {
       profiles: structuredClone(profiles),
+      analysisState: projectId ? this.getAnalysisState(projectId) : undefined,
       history: this.store.history.filter((item) => !projectId || item.projectId === projectId),
       logs: [...this.store.logs],
       analytics: this.analytics.summary(),
@@ -271,6 +333,7 @@ export class ProductIntelligenceManager {
     const profile: ProductIntelligenceProfile = {
       id: randomUUID(),
       projectId: project.id,
+      productId: project.id,
       productName: project.productInformation.name,
       identifiedAs: this.identification.identify(project, category),
       productType,
@@ -307,6 +370,8 @@ export class ProductIntelligenceManager {
       detailRecommendations,
       readyForCreativeGeneration: this.decision.isReady(quality, missingInformation, view),
       originalImagesUnmodified: true,
+      analysisState: "ready",
+      analysisVersion: PRODUCT_INTELLIGENCE_VERSION,
       metadata: {
         ...this.metadata.create(project, view),
         imageIntelligenceProfiles: imageProfiles.length,
@@ -712,11 +777,12 @@ export class ProductCacheManager {
   key(project: CreativeProject): string {
     return createHash("sha256")
       .update(JSON.stringify({
+        version: PRODUCT_INTELLIGENCE_VERSION,
         productInformation: project.productInformation,
         brandInformation: project.brandInformation,
         campaignInformation: project.campaignInformation,
         targetAudience: project.targetAudience,
-        images: project.productImages.map((image) => [image.id, image.fileName, image.sizeBytes]),
+        images: project.productImages.filter(isOriginalProductImage).map((image) => [image.id, image.fileName, image.sizeBytes, image.checksumSha256 ?? ""]),
       }))
       .digest("hex");
   }
@@ -936,5 +1002,12 @@ function normalizeLegacyProfile(profile: ProductIntelligenceProfile): ProductInt
     detailRecommendations: profile.detailRecommendations ?? [],
     readyForCreativeGeneration: profile.readyForCreativeGeneration ?? (profile.quality?.confidence ?? 0) >= 70,
     originalImagesUnmodified: true,
+    productId: profile.productId ?? profile.projectId,
+    analysisState: profile.analysisVersion === PRODUCT_INTELLIGENCE_VERSION ? (profile.analysisState ?? "ready") : (profile.analysisState ?? "partial"),
+    analysisVersion: profile.analysisVersion,
+    userFacts: profile.userFacts ?? [],
+    imageObservations: profile.imageObservations ?? [],
+    inferences: profile.inferences ?? [],
+    recommendations: profile.recommendations ?? [],
   };
 }

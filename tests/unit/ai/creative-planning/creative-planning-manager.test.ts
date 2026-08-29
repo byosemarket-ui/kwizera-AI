@@ -26,6 +26,7 @@ describe("CreativePlanningManager", () => {
     expect(result.plan?.storyboard).toContain("Scene 1");
     expect(result.plan?.script).toContain("Studio Bottle");
     expect(result.plan?.scenes).toHaveLength(3);
+    expect(result.plan?.scenes[0]?.assetId).toBe("image-1");
     expect(result.plan?.prompts.video).toContain("vertical social video");
     expect(result.plan?.workflow).toHaveLength(5);
 

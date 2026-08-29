@@ -53,9 +53,84 @@ export interface ImageAnalysisSummary {
   viewCoverage: ProductViewAnalysis[];
 }
 
+export const PRODUCT_INTELLIGENCE_VERSION = "step7-v1";
+
+export type StatementKind =
+  | "user-provided"
+  | "observed-from-image"
+  | "inferred"
+  | "marketing-recommendation";
+
+export type ProductAnalysisState = "not-analyzed" | "analyzing" | "ready" | "partial" | "failed";
+
+export interface ProvenanceStatement {
+  field: string;
+  value: string;
+  kind: StatementKind;
+  confidence: number;
+  source?: string;
+  assetId?: string;
+}
+
+export interface StructuredValueProposition {
+  productSummary: string;
+  customerProblem: string;
+  customerBenefit: string;
+  differentiators: string[];
+  positioning: string;
+  provenance: "user-provided" | "inferred" | "mixed";
+}
+
+export interface CustomerIntelligence {
+  customerType: string;
+  useCase: string;
+  needs: string[];
+  buyingMotivations: string[];
+  possibleObjections: string[];
+  relevantBenefits: string[];
+  label: "user-provided" | "inferred" | "recommended";
+}
+
+export type MarketingDirectionId =
+  | "premium"
+  | "practical"
+  | "lifestyle"
+  | "fashion"
+  | "performance"
+  | "convenience"
+  | "gift"
+  | "business"
+  | "promotional";
+
+export interface MarketingDirection {
+  id: MarketingDirectionId;
+  recommended: boolean;
+  evidence: string[];
+  confidence: number;
+}
+
+export interface CreativeAngle {
+  id: string;
+  name: string;
+  rationale: string;
+  rank: number;
+  evidence: string[];
+}
+
+export interface ProductIntelligenceProvenance {
+  analysisType: "product-intelligence";
+  analysisVersion: string;
+  provider: string;
+  timestamp: string;
+  previousProfileId?: string;
+  imageProfileIds: string[];
+}
+
 export interface ProductIntelligenceProfile {
   id: string;
   projectId: string;
+  /** Stable product identity — Creative Workspace product container uses projectId. */
+  productId: string;
   productName: string;
   identifiedAs: string;
   productType: string;
@@ -100,6 +175,23 @@ export interface ProductIntelligenceProfile {
   readyForCreativeGeneration: boolean;
   /** Original uploaded bytes are never rewritten by this engine. */
   originalImagesUnmodified: true;
+  analysisState?: ProductAnalysisState;
+  analysisVersion?: string;
+  analysisError?: string;
+  aiInferenceStatus?: "deterministic-only" | "IMAGE_ANALYSIS_UNAVAILABLE" | "not-configured";
+  userFacts?: ProvenanceStatement[];
+  imageObservations?: ProvenanceStatement[];
+  inferences?: ProvenanceStatement[];
+  recommendations?: ProvenanceStatement[];
+  valueProposition?: StructuredValueProposition;
+  customerIntelligence?: CustomerIntelligence;
+  marketingDirections?: MarketingDirection[];
+  creativeAngles?: CreativeAngle[];
+  productProvenance?: ProductIntelligenceProvenance;
+  memoryStatus?: "linked" | "unavailable" | "error";
+  memoryMessage?: string;
+  knowledgeStatus?: "linked" | "unavailable" | "empty" | "error";
+  knowledgeMessage?: string;
   metadata: Record<string, string | number | boolean>;
   createdAt: string;
   updatedAt: string;

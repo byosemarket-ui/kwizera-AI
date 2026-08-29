@@ -5,6 +5,7 @@ import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import type { ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { MarketingIntelligenceProfile, MarketingIntelligenceStore } from "./types.js";
 
 const EMPTY: MarketingIntelligenceStore = { profiles: [], history: [], cache: {}, logs: [] };
@@ -15,19 +16,94 @@ export class MarketingIntelligenceManager {
   readonly analysis = new MarketingAnalysisEngine(); readonly audience = new AudienceAnalysisEngine(); readonly brand = new BrandIntelligenceEngine(); readonly campaign = new CampaignIntelligenceEngine(); readonly sellingPoints = new ProductSellingPointAnalyzer(); readonly value = new ValuePropositionEngine(); readonly cta = new CallToActionEngine(); readonly platform = new PlatformOptimizationEngine(); readonly content = new ContentStrategyEngine(); readonly competitors = new CompetitorAnalysisEngine(); readonly recommendations = new MarketingRecommendationEngine(); readonly decision = new MarketingDecisionEngine(); readonly metadata = new MarketingMetadataManager(); readonly history = new MarketingHistoryManager(this); readonly cache = new MarketingCacheManager(); readonly validation = new MarketingValidationManager(); readonly analytics = new MarketingAnalyticsManager(this);
   async initialize(storageRoot: string, dependencies: { core: AiCoreManager; workspace: CreativeWorkspaceManager; products: ProductIntelligenceManager; images: ImageIntelligenceManager }): Promise<void> { this.root = path.join(storageRoot, "marketing-intelligence-runtime"); this.core = dependencies.core; this.workspace = dependencies.workspace; this.products = dependencies.products; this.images = dependencies.images; await fs.mkdir(this.root, { recursive: true }); this.store = await this.readStore(); this.log("info", "Marketing intelligence runtime restored."); await this.persist(); }
   isInitialized(): boolean { return Boolean(this.root); }
-  async analyze(projectId: string): Promise<MarketingIntelligenceProfile> { this.ensureReady(); const project = await this.workspace!.getProject(projectId); if (!project) throw new Error("Project not found"); const check = this.validation.validate(project); if (!check.valid) throw new Error(check.issues.join(" ")); const key = this.cache.key(project); const cachedId = this.store.cache[key]; const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined; if (cached) return { ...cached, cached: true }; const [product, images, foundationKnowledgeIds] = await Promise.all([this.products!.analyze(projectId), this.images!.analyzeProject(projectId), this.retrieveFoundationKnowledge(project)]); const profile = this.buildProfile(project, product, images, foundationKnowledgeIds); this.store.profiles = this.store.profiles.filter((item) => item.projectId !== projectId); this.store.profiles.unshift(profile); this.store.cache[key] = profile.id; this.history.record(projectId, "analysis", `Built marketing strategy profile at ${profile.score}/100.`); this.log("info", `Marketing profile analyzed for ${project.name}.`); await this.persist(); return { ...profile }; }
+  async analyze(projectId: string): Promise<MarketingIntelligenceProfile> {
+    this.ensureReady();
+    const project = await this.workspace!.getProject(projectId);
+    if (!project) throw new Error("Project not found");
+    const check = this.validation.validate(project);
+    if (!check.valid) throw new Error(check.issues.join(" "));
+    const key = this.cache.key(project);
+    const cachedId = this.store.cache[key];
+    const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined;
+    if (cached) return { ...cached, cached: true };
+    const product = await this.products!.analyze(projectId);
+    const images = await this.images!.getProfiles(projectId);
+    const foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
+    const profile = this.buildProfile(project, product, images, foundationKnowledgeIds);
+    this.store.profiles = this.store.profiles.filter((item) => item.projectId !== projectId);
+    this.store.profiles.unshift(profile);
+    this.store.cache[key] = profile.id;
+    this.history.record(projectId, "analysis", `Built marketing strategy profile at ${profile.score}/100.`);
+    this.log("info", `Marketing profile analyzed for ${project.name}.`);
+    await this.persist();
+    return { ...profile };
+  }
   async getProfile(projectId: string): Promise<MarketingIntelligenceProfile | null> { return this.store.profiles.find((profile) => profile.projectId === projectId) ?? null; }
   async getDashboard(projectId?: string): Promise<{ profiles: MarketingIntelligenceProfile[]; history: MarketingIntelligenceStore["history"]; logs: MarketingIntelligenceStore["logs"]; analytics: Record<string, number>; integrations: Record<string, boolean> }> { const profiles = this.store.profiles.filter((profile) => !projectId || profile.projectId === projectId); return { profiles: structuredClone(profiles), history: this.store.history.filter((item) => !projectId || item.projectId === projectId), logs: [...this.store.logs], analytics: this.analytics.summary(), integrations: { aiCore: Boolean(this.core), productIntelligence: Boolean(this.products), imageIntelligence: Boolean(this.images), productIntelligenceFoundation: Boolean(this.core?.productIntelligenceFoundation), imageIntelligenceFoundation: Boolean(this.core?.imageIntelligenceFoundation), memoryFoundation: Boolean(this.core?.memoryFoundation), knowledgeFoundation: Boolean(this.core?.knowledgeFoundation), stateManager: Boolean(this.core?.stateManager), moduleManager: Boolean(this.core?.moduleManager), creativePipeline: Boolean(this.core?.workflowEngine), generationLayer: Boolean(this.core?.imageGenerationFoundation || this.core?.videoGenerationFoundation) } }; }
   async persist(): Promise<void> { await fs.writeFile(path.join(this.root, "profiles.json"), `${JSON.stringify(this.store, null, 2)}\n`, "utf8"); }
   log(level: "info" | "warning" | "error", message: string): void { this.store.logs.unshift({ at: new Date().toISOString(), level, message }); this.store.logs.splice(100); this.core?.logger.info("marketing-intelligence", message); }
-  private buildProfile(project: CreativeProject, product: Awaited<ReturnType<ProductIntelligenceManager["analyze"]>>, images: Awaited<ReturnType<ImageIntelligenceManager["analyzeProject"]>>, foundationKnowledgeIds: string[] = []): MarketingIntelligenceProfile { const audience = this.audience.analyze(project); const brand = this.brand.analyze(project); const campaign = this.campaign.analyze(project); const sellingPoints = this.sellingPoints.analyze(project, product, images); const platform = this.platform.optimize(project.platform); const ctas = this.cta.create(project, campaign); const value = this.value.create(project, sellingPoints, audience); const strategy = this.content.create(project, value, platform, ctas[0]); const score = this.analysis.score(project, product, images, sellingPoints); return { id: randomUUID(), projectId: project.id, productOverview: `${product.identifiedAs}; ${product.materials.join(", ")}; ${product.viewCount} reference view(s).`, audience, brand, campaign, sellingPoints, valueProposition: value, strategy, ctas, platform, competitors: this.competitors.analyze(project, product.category), recommendations: this.recommendations.create(project, platform, images), score, performancePrediction: this.decision.predict(score, platform), metadata: this.metadata.create(product, images), foundationKnowledgeIds: foundationKnowledgeIds.length ? foundationKnowledgeIds : undefined, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), cached: false }; }
+  private buildProfile(project: CreativeProject, product: Awaited<ReturnType<ProductIntelligenceManager["analyze"]>>, images: Awaited<ReturnType<ImageIntelligenceManager["analyzeProject"]>>, foundationKnowledgeIds: string[] = []): MarketingIntelligenceProfile {
+    const audience = this.audience.analyze(project, product);
+    const brand = this.brand.analyze(project);
+    const campaign = this.campaign.analyze(project);
+    const sellingPoints = this.sellingPoints.analyze(project, product, images);
+    const platform = this.platform.optimize(project.platform);
+    const ctas = this.cta.create(project, campaign);
+    const value = product.valueProposition?.productSummary
+      ? `${product.valueProposition.productSummary} ${product.valueProposition.customerBenefit}`
+      : this.value.create(project, sellingPoints, audience);
+    const strategy = this.content.create(project, value, platform, ctas[0]);
+    const score = this.analysis.score(project, product, images, sellingPoints);
+    const directions = (product.marketingDirections ?? []).filter((item) => item.recommended);
+    return {
+      id: randomUUID(),
+      projectId: project.id,
+      productId: product.productId || project.id,
+      productOverview: `${product.identifiedAs}; ${product.materials.join(", ")}; ${product.viewCount} reference view(s).`,
+      audience,
+      brand,
+      campaign,
+      sellingPoints,
+      valueProposition: value,
+      valuePropositionStructured: product.valueProposition,
+      directions,
+      strategy,
+      ctas,
+      platform,
+      competitors: this.competitors.analyze(project, product.category),
+      recommendations: this.recommendations.create(project, platform, images, directions),
+      score,
+      performancePrediction: this.decision.predict(score, platform),
+      metadata: this.metadata.create(product, images),
+      foundationKnowledgeIds: foundationKnowledgeIds.length ? foundationKnowledgeIds : undefined,
+      analysisState: directions.length || product.valueProposition ? "ready" : "partial",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      cached: false,
+    };
+  }
   private async retrieveFoundationKnowledge(project: CreativeProject): Promise<string[]> { const { retrieveFoundationKnowledgeForProject } = await import("../knowledge-foundation/knowledge-teaching-service.js"); return retrieveFoundationKnowledgeForProject(this.core?.knowledgeFoundation, project, "marketing-intelligence-manager", ["marketing", "campaign", "cta"]); }
   private async readStore(): Promise<MarketingIntelligenceStore> { try { const value = JSON.parse(await fs.readFile(path.join(this.root, "profiles.json"), "utf8")) as Partial<MarketingIntelligenceStore>; return { ...structuredClone(EMPTY), ...value, profiles: value.profiles ?? [], history: value.history ?? [], cache: value.cache ?? {}, logs: value.logs ?? [] }; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY); throw error; } }
   private ensureReady(): void { if (!this.root || !this.workspace || !this.products || !this.images) throw new Error("Marketing Intelligence Manager is not initialized"); }
 }
 
 export class MarketingAnalysisEngine { score(project: CreativeProject, product: { quality: { score: number } }, images: Array<{ quality: { score: number } }>, sellingPoints: string[]): number { const imageScore = images.length ? Math.round(images.reduce((sum, image) => sum + image.quality.score, 0) / images.length) : 0; return Math.min(97, Math.round(product.quality.score * .4 + imageScore * .2 + Math.min(20, sellingPoints.length * 4) + (project.campaignInformation.callToAction ? 10 : 5) + (project.brandInformation.voice ? 7 : 3))); } }
-export class AudienceAnalysisEngine { analyze(project: CreativeProject): MarketingIntelligenceProfile["audience"] { const audience = project.targetAudience || "campaign audience requires confirmation"; return { persona: audience, needs: [/active|urban/i.test(audience) ? "portable everyday utility" : "clear product relevance", "credible benefit proof"], messaging: `Speak directly to ${audience} with benefit-led, understandable language.` }; } }
+export class AudienceAnalysisEngine {
+  analyze(project: CreativeProject, product?: { customerIntelligence?: { customerType: string; needs: string[]; label?: string } }): MarketingIntelligenceProfile["audience"] {
+    const userAudience = project.targetAudience.trim();
+    const inferred = product?.customerIntelligence?.customerType;
+    const persona = userAudience || inferred || "campaign audience requires confirmation";
+    const needs = product?.customerIntelligence?.needs?.length
+      ? product.customerIntelligence.needs
+      : [/active|urban/i.test(persona) ? "portable everyday utility" : "clear product relevance", "credible benefit proof"];
+    return {
+      persona,
+      needs,
+      messaging: `Speak directly to ${persona} with benefit-led, understandable language.`,
+      label: userAudience ? "user-provided" : inferred ? "inferred" : "recommended",
+    };
+  }
+}
 export class BrandIntelligenceEngine { analyze(project: CreativeProject): MarketingIntelligenceProfile["brand"] { return { identity: project.brandInformation.name || "brand requires confirmation", voice: project.brandInformation.voice || "clear and confident", consistency: project.brandInformation.guidelines || "Keep product, tone, and CTA consistent across every campaign asset." }; } }
 export class CampaignIntelligenceEngine { analyze(project: CreativeProject): MarketingIntelligenceProfile["campaign"] { return { name: project.campaignInformation.name || "campaign requires confirmation", objective: project.campaignInformation.objective || "objective requires confirmation", goal: `Move the audience toward ${project.campaignInformation.objective || "the next campaign action"}.` }; } }
 export class ProductSellingPointAnalyzer { analyze(project: CreativeProject, product: { materials: string[]; features: string[]; functions: string[] }, images: Array<{ quality: { score: number } }>): string[] { return unique([project.productInformation.description, ...product.features, ...product.functions, ...product.materials.filter((item) => !item.includes("verification")), images.length > 1 ? "multiple product reference views" : "product reference image"].filter(Boolean)); } }
@@ -36,11 +112,32 @@ export class CallToActionEngine { create(project: CreativeProject, campaign: Mar
 export class PlatformOptimizationEngine { optimize(platform: string): MarketingIntelligenceProfile["platform"] { const guides: Record<string, { format: string; recommendations: string[] }> = { instagram: { format: "vertical visual-first social content", recommendations: ["Lead with a product hook in the first three seconds.", "Use concise benefit-led captions and a direct CTA."] }, tiktok: { format: "native vertical short-form content", recommendations: ["Use an authentic, fast demonstration.", "Frame the value as a practical audience insight."] }, linkedin: { format: "credible professional social content", recommendations: ["Lead with evidence and clear business relevance.", "Use a considered CTA and polished brand treatment."] }, facebook: { format: "trust-building social content", recommendations: ["Make the core benefit readable early.", "Use clear proof and a simple closing action."] }, youtube: { format: "narrative video content", recommendations: ["Build value through a clear narrative arc.", "Use a memorable final CTA."] } }; const guide = guides[platform] ?? guides.instagram; return { name: platform, ...guide }; } }
 export class ContentStrategyEngine { create(project: CreativeProject, value: string, platform: MarketingIntelligenceProfile["platform"], cta: string): string { return `For ${platform.name}, lead with ${value} Use ${platform.format}, product proof, and finish with “${cta}”.`; } }
 export class CompetitorAnalysisEngine { analyze(project: CreativeProject, category: string): string[] { return [`Category benchmark: ${category} campaigns compete for immediate audience relevance.`, `Differentiate ${project.brandInformation.name || "the brand"} through concrete product proof, not unsupported competitor claims.`]; } }
-export class MarketingRecommendationEngine { create(project: CreativeProject, platform: MarketingIntelligenceProfile["platform"], images: Array<{ enhancements: string[] }>): string[] { return unique([...platform.recommendations, ...(images[0]?.enhancements?.slice(0, 2) ?? []), `Align every asset with ${project.brandInformation.name || "the brand"} voice and campaign objective.`]); } }
+export class MarketingRecommendationEngine {
+  create(project: CreativeProject, platform: MarketingIntelligenceProfile["platform"], images: Array<{ enhancements: string[] }>, directions: Array<{ id: string; evidence: string[] }> = []): string[] {
+    return unique([
+      ...platform.recommendations,
+      ...directions.map((item) => `Recommended ${item.id} direction: ${item.evidence[0] ?? "supported by product evidence"}.`),
+      ...(images[0]?.enhancements?.slice(0, 2) ?? []),
+      `Align every asset with ${project.brandInformation.name || "the brand"} voice and campaign objective.`,
+    ]);
+  }
+}
 export class MarketingDecisionEngine { predict(score: number, platform: MarketingIntelligenceProfile["platform"]): string { return score >= 80 ? `Strong readiness for ${platform.name} creative planning.` : "Improve product evidence, CTA clarity, or audience definition before high-confidence creative planning."; } }
 export class MarketingMetadataManager { create(product: { id: string; quality: { score: number } }, images: Array<{ id: string }>): Record<string, string | number> { return { provider: "local-marketing-strategy-analyzer", productProfileId: product.id, imageProfileCount: images.length, productQuality: product.quality.score, generatedAt: new Date().toISOString() }; } }
 export class MarketingHistoryManager { constructor(private readonly manager: MarketingIntelligenceManager) {} record(projectId: string, event: string, detail: string): void { this.manager["store"].history.unshift({ id: randomUUID(), at: new Date().toISOString(), projectId, event, detail }); this.manager["store"].history.splice(100); } }
-export class MarketingCacheManager { key(project: CreativeProject): string { return createHash("sha256").update(JSON.stringify({ product: project.productInformation, brand: project.brandInformation, campaign: project.campaignInformation, audience: project.targetAudience, platform: project.platform, images: project.productImages.map((image) => [image.id, image.fileName, image.sizeBytes]) })).digest("hex"); } }
-export class MarketingValidationManager { validate(project: CreativeProject): { valid: boolean; issues: string[] } { const issues = [!project.productInformation.name.trim() ? "Product name is required for marketing analysis." : "", !project.targetAudience.trim() ? "Target audience is required for marketing analysis." : "", !project.campaignInformation.objective.trim() ? "Campaign objective is required for marketing analysis." : "", !project.brandInformation.name.trim() ? "Brand name is required for marketing analysis." : ""].filter(Boolean); return { valid: !issues.length, issues }; } }
+export class MarketingCacheManager { key(project: CreativeProject): string { return createHash("sha256").update(JSON.stringify({ product: project.productInformation, brand: project.brandInformation, campaign: project.campaignInformation, audience: project.targetAudience, platform: project.platform, images: project.productImages.filter(isOriginalProductImage).map((image) => [image.id, image.fileName, image.sizeBytes]) })).digest("hex"); } }
+export class MarketingValidationManager {
+  validate(project: CreativeProject): { valid: boolean; issues: string[] } {
+    const issues = [
+      !project.productInformation.name.trim() ? "Product name is required for marketing analysis." : "",
+      !project.productImages.length ? "Upload at least one product image for marketing analysis." : "",
+      !project.targetAudience.trim() ? "Target audience is not provided — audience will be labeled inferred/recommended." : "",
+      !project.campaignInformation.objective.trim() ? "Campaign objective is not provided — strategy will stay product-led." : "",
+      !project.brandInformation.name.trim() ? "Brand name is not provided — brand voice will remain unconfirmed." : "",
+    ].filter(Boolean);
+    const critical = !project.productInformation.name.trim() || !project.productImages.length;
+    return { valid: !critical, issues };
+  }
+}
 export class MarketingAnalyticsManager { constructor(private readonly manager: MarketingIntelligenceManager) {} summary(): Record<string, number> { const profiles = this.manager["store"].profiles; return { profiles: profiles.length, averageScore: profiles.length ? Math.round(profiles.reduce((sum, profile) => sum + profile.score, 0) / profiles.length) : 0, platformOptimized: profiles.filter((profile) => profile.platform.recommendations.length > 0).length, ctaSuggestions: profiles.reduce((sum, profile) => sum + profile.ctas.length, 0), cachedAnalyses: Object.keys(this.manager["store"].cache).length }; } }
 function unique(values: string[]): string[] { return [...new Set(values)]; }

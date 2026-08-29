@@ -2749,13 +2749,30 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       const profile = await intelligence.analyze(productAnalysisMatch[1]);
 
-      sendJson(res, 201, { profile, dashboard: await intelligence.getDashboard(productAnalysisMatch[1]) });
+      sendJson(res, 201, { profile, analysisState: intelligence.getAnalysisState(productAnalysisMatch[1]), dashboard: await intelligence.getDashboard(productAnalysisMatch[1]) });
 
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Product analysis failed" });
 
     }
+
+    return;
+
+  }
+
+  const productProfileMatch = url.pathname.match(/^\/api\/product-intelligence\/projects\/([^/]+)$/);
+
+  if (productProfileMatch && req.method === "GET") {
+
+    const intelligence = requireProductIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, {
+      profile: await intelligence.getProfile(productProfileMatch[1]),
+      analysisState: intelligence.getAnalysisState(productProfileMatch[1]),
+    });
 
     return;
 
@@ -2780,6 +2797,20 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing analysis failed" });
 
     }
+
+    return;
+
+  }
+
+  const marketingProfileMatch = url.pathname.match(/^\/api\/marketing-intelligence\/projects\/([^/]+)$/);
+
+  if (marketingProfileMatch && req.method === "GET") {
+
+    const intelligence = requireMarketingIntelligence(res);
+
+    if (!intelligence) return;
+
+    sendJson(res, 200, { profile: await intelligence.getProfile(marketingProfileMatch[1]) });
 
     return;
 
@@ -3443,7 +3474,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!planning) return;
 
-    sendJson(res, 200, { plan: await planning.getPlan(planMatch[1]), integrations: planning.getIntegrationStatus() });
+      sendJson(res, 200, { plan: await planning.getPlan(planMatch[1]), integrations: planning.getIntegrationStatus() });
 
     return;
 
@@ -3467,7 +3498,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
         if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
 
-        const result = await planning.createPlan(project, workspace.validate(project));
+        const result = await planning.createPlan(project, planning.validateForPlan(project));
 
         if (!result.plan) { sendJson(res, 422, { error: "Complete required workspace inputs before planning.", validation: result.validation }); return; }
 

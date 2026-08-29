@@ -715,6 +715,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createMarketingIntelligencePlugin(marketingIntelligenceManager, manager));
         pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
         planningManager.attachMarketingIntelligence(marketingIntelligenceManager);
+        planningManager.attachProductIntelligence(productIntelligenceManager);
+        planningManager.attachImageIntelligence(imageIntelligenceManager);
         marketingContentManager = new MarketingContentManager(workspaceManager, productIntelligenceManager, marketingIntelligenceManager, imageGenerationManager, reviewManager);
         await marketingContentManager.initialize(storageRoot);
         commercialVideoManager = new CommercialVideoManager(workspaceManager, productIntelligenceManager, marketingIntelligenceManager, imageGenerationManager, videoAudioGenerationManager, reviewManager);

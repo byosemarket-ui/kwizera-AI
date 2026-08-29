@@ -49,7 +49,12 @@ export function CreativePlannerWorkspace() {
       workspaceStateEngine.autoSave.markDirty();
       notify("success", "Blueprint drafted", "Review story and claims. No video is rendered.", "ai-suggestions");
     } catch (error) {
-      notify("error", "Planning failed", error instanceof Error ? error.message : "Unable to plan", "errors");
+      const message = error instanceof Error ? error.message : "Unable to plan";
+      if (message.includes("Live Creative Plan generated")) {
+        notify("success", "Creative Plan generated", message, "ai-suggestions");
+      } else {
+        notify("error", "Planning failed", message, "errors");
+      }
     } finally {
       setBusy(false);
     }
@@ -78,7 +83,7 @@ export function CreativePlannerWorkspace() {
   const toggle = (id: string) => setOpen((p) => ({ ...p, [id]: !p[id] }));
   const hook = pkg?.hooks.find((h) => h.id === pkg.primaryHookId);
 
-  if (!pkg && !snap.progress.running && snap.recommendation.includes("No confirmed")) {
+  if (!pkg && !snap.livePlan && !snap.progress.running && snap.recommendation.includes("No confirmed")) {
     return (
       <div className="cplan">
         <header className="cp-hero">
@@ -104,10 +109,10 @@ export function CreativePlannerWorkspace() {
           <p>Blueprint only — no video, image, or audio files are generated here.</p>
         </div>
         <div className="cp-hero-stats">
-          <div><b>{pkg?.contentType || "—"}</b><span>CONTENT TYPE</span></div>
-          <div><b>{hook?.kind || "—"}</b><span>HOOK</span></div>
-          <div><b>{pkg ? `${pkg.totalDurationSec}s` : "—"}</b><span>DURATION</span></div>
-          <div><b>{pkg ? `${pkg.validation.readinessPercent}%` : "—"}</b><span>READINESS</span></div>
+          <div><b>{pkg?.contentType || snap.livePlan?.angle || "—"}</b><span>CONTENT TYPE</span></div>
+          <div><b>{hook?.kind || snap.livePlan?.angle || "—"}</b><span>HOOK</span></div>
+          <div><b>{pkg ? `${pkg.totalDurationSec}s` : snap.livePlan ? `${snap.livePlan.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0)}s` : "—"}</b><span>DURATION</span></div>
+          <div><b>{pkg ? `${pkg.validation.readinessPercent}%` : snap.livePlan ? `v${snap.livePlan.version}` : "—"}</b><span>READINESS</span></div>
         </div>
       </header>
 
@@ -159,6 +164,22 @@ export function CreativePlannerWorkspace() {
               </span>
             ))}
           </div>
+        </section>
+      )}
+
+      {snap.livePlan && (
+        <section className="cp-panel">
+          <h3>Live Creative Plan v{snap.livePlan.version}</h3>
+          <p>{snap.livePlan.creativeStrategy}</p>
+          <p>Objective: {snap.livePlan.objective || "—"} · Audience: {snap.livePlan.audience || "—"} · CTA: {snap.livePlan.callToAction || "—"}</p>
+          {snap.livePlan.scenes.map((scene) => (
+            <article key={scene.id} className="cp-row">
+              <strong>SCENE {scene.order} {scene.purpose} · {scene.durationSeconds}s</strong>
+              <span>Asset {scene.assetId || "unassigned"} · {scene.cameraDirection || scene.camera}</span>
+              <span>{scene.visual}</span>
+              <span>{scene.text || scene.narration}</span>
+            </article>
+          ))}
         </section>
       )}
 
