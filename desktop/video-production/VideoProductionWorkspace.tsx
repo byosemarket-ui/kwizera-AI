@@ -1,0 +1,299 @@
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Clapperboard, Play, RefreshCw } from "lucide-react";
+import { useShell } from "../shell/ShellContext";
+import { resolveBoundProject } from "../product-creation/workflow";
+import type { CreativeProjectDto } from "../product-intake/api";
+import {
+  ASPECT_OPTIONS,
+  CAMERA_OPTIONS,
+  MOTION_OPTIONS,
+  TRANSITION_OPTIONS,
+  createVideoProject,
+  getVideoJob,
+  getVideoProject,
+  startVideoRender,
+  updateVideoProject,
+  type VideoProject,
+  type VideoRenderJob,
+} from "./api";
+import "./video-production.css";
+
+export function VideoProductionWorkspace() {
+  const { notify, switchWorkspace } = useShell();
+  const [project, setProject] = useState<CreativeProjectDto | null>(null);
+  const [video, setVideo] = useState<VideoProject | null>(null);
+  const [job, setJob] = useState<VideoRenderJob | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [textDraft, setTextDraft] = useState("");
+
+  const selected = video?.timeline.find((clip) => clip.id === selectedId) ?? video?.timeline[0];
+  const assetUrl = (assetId?: string) => project?.productImages.find((image) => image.id === assetId)?.url;
+
+  useEffect(() => {
+    void hydrate();
+  }, []);
+
+  useEffect(() => {
+    if (selected) setTextDraft(selected.text[0]?.content ?? "");
+  }, [selected?.id]);
+
+  useEffect(() => {
+    const jobId = job?.id || video?.activeJobId;
+    if (!jobId || !project || (job?.status !== "queued" && job?.status !== "processing" && video?.renderState !== "queued" && video?.renderState !== "processing")) {
+      return;
+    }
+    const projectId = project.id;
+    const timer = window.setInterval(() => {
+      void getVideoJob(jobId).then((result) => {
+        setJob(result.job);
+        if (result.job.status === "completed" || result.job.status === "failed") {
+          void getVideoProject(projectId).then((payload) => setVideo(payload.video));
+        }
+      }).catch(() => undefined);
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [job?.id, job?.status, video?.activeJobId, video?.renderState, project?.id]);
+
+  async function hydrate() {
+    setError(null);
+    const bound = await resolveBoundProject();
+    if (!bound) {
+      setError("Open a project with a Creative Plan before producing video.");
+      return;
+    }
+    setProject(bound.project);
+    const payload = await getVideoProject(bound.projectId);
+    setVideo(payload.video);
+    if (payload.video?.timeline[0]) setSelectedId(payload.video.timeline[0].id);
+    if (payload.video?.activeJobId) {
+      try {
+        const current = await getVideoJob(payload.video.activeJobId);
+        setJob(current.job);
+      } catch {
+        setJob(null);
+      }
+    }
+  }
+
+  const run = async (action: "create" | "render") => {
+    if (!project) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (action === "create") {
+        const result = await createVideoProject(project.id);
+        setVideo(result.video);
+        setSelectedId(result.video.timeline[0]?.id ?? null);
+        notify("success", "Video project ready", "Timeline generated from the Creative Plan.", "ai-suggestions");
+      } else {
+        const result = await startVideoRender(project.id, "preview");
+        setVideo(result.video);
+        setJob(result.job);
+        notify("info", "Render queued", "Preview render started. Health remains available while FFmpeg runs.", "updates");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Video production failed";
+      setError(message);
+      notify("error", "Video production failed", message, "errors");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const persist = async (changes: Parameters<typeof updateVideoProject>[1]) => {
+    if (!project) return;
+    setBusy(true);
+    try {
+      const result = await updateVideoProject(project.id, changes);
+      setVideo(result.video);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to save timeline";
+      setError(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const originals = useMemo(
+    () => (project?.productImages ?? []).filter((image) => !image.parentAssetId && image.origin !== "generated" && image.assetType !== "video"),
+    [project],
+  );
+
+  return (
+    <div className="vprod">
+      <header className="vp-hero">
+        <div>
+          <div className="vp-kicker">Step 8 · Video production</div>
+          <h1>Video Production</h1>
+          <p>
+            Creative Plan becomes a real timeline, then a preview MP4 via FFmpeg. AI video generation is reported unavailable until a provider is configured.
+          </p>
+        </div>
+        <div className="vp-stats">
+          <div><b>{project?.name ?? "No project"}</b><span>Workspace project</span></div>
+          <div><b>{video?.timeline.length ?? 0} scenes</b><span>Bound to original assets</span></div>
+          <div><b>{video?.renderState ?? "idle"}</b><span>Render state</span></div>
+        </div>
+      </header>
+
+      <div className="vp-toolbar">
+        <div>
+          <strong>{video ? "Timeline loaded" : "No video project yet"}</strong>
+          <div className="vp-note">
+            {video?.videoGenerationProviderMessage ?? "Create a video project from the current Creative Plan."}
+          </div>
+        </div>
+        <div className="vp-toolbar-actions">
+          <button type="button" onClick={() => switchWorkspace("storyboard")}>Creative Plan</button>
+          <button type="button" onClick={() => void hydrate()} disabled={busy}><RefreshCw size={14} /> Reload</button>
+          <button type="button" onClick={() => void run("create")} disabled={busy || !project}>Generate timeline</button>
+          <button type="button" className="vp-primary" onClick={() => void run("render")} disabled={busy || !video?.timeline.length}>
+            <Play size={14} /> Render preview
+          </button>
+        </div>
+      </div>
+
+      {error ? <div className="vp-panel err">{error}</div> : null}
+
+      {video ? (
+        <>
+          <div className="vp-panel">
+            <div className="vp-note">Audio: {video.audioPlan.message}</div>
+            <div className="vp-progress-bar"><i style={{ width: `${job?.progress ?? (video.renderState === "completed" ? 100 : 0)}%` }} /></div>
+            <div className="vp-note">
+              Job {job?.status ?? video.renderState}
+              {job?.error ? ` · ${job.error}` : ""}
+            </div>
+            <label>
+              Aspect
+              <select
+                value={video.renderPlan.aspectRatio}
+                disabled={busy}
+                onChange={(event) => void persist({ aspectRatio: event.target.value as typeof video.renderPlan.aspectRatio })}
+              >
+                {ASPECT_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <div className="vp-editor">
+            <section className="vp-panel">
+              <h3><Clapperboard size={16} /> Timeline</h3>
+              <div className="vp-timeline-wrap">
+                <div className="vp-timeline">
+                  {video.timeline.map((clip) => (
+                    <button
+                      key={clip.id}
+                      type="button"
+                      className={`vp-clip${selected?.id === clip.id ? " selected" : ""}`}
+                      onClick={() => setSelectedId(clip.id)}
+                    >
+                      {assetUrl(clip.assetId) ? <img src={assetUrl(clip.assetId)} alt="" /> : <div style={{ height: 90 }} />}
+                      <span className="vp-clip-meta">
+                        <b>{clip.order}. {clip.purpose}</b>
+                        <span>{(clip.durationMs / 1000).toFixed(1)}s · {clip.camera} · {clip.motion}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="vp-panel">
+              <h3>Scene editor</h3>
+              {selected ? (
+                <>
+                <div className="vp-toolbar-actions" style={{ marginBottom: 10 }}>
+                  <button type="button" disabled={busy || selected.order === 1} onClick={() => {
+                    const ids = video.timeline.map((clip) => clip.id);
+                    const index = ids.indexOf(selected.id);
+                    if (index <= 0) return;
+                    [ids[index - 1], ids[index]] = [ids[index]!, ids[index - 1]!];
+                    void persist({ reorder: ids });
+                  }}>Move earlier</button>
+                  <button type="button" disabled={busy || selected.order === video.timeline.length} onClick={() => {
+                    const ids = video.timeline.map((clip) => clip.id);
+                    const index = ids.indexOf(selected.id);
+                    if (index < 0 || index >= ids.length - 1) return;
+                    [ids[index + 1], ids[index]] = [ids[index]!, ids[index + 1]!];
+                    void persist({ reorder: ids });
+                  }}>Move later</button>
+                </div>
+                <div className="vp-fields">
+                  <label>Duration (ms)
+                    <input
+                      type="number"
+                      min={1000}
+                      max={4000}
+                      value={selected.durationMs}
+                      onBlur={(event) => void persist({ clip: { id: selected.id, durationMs: Number(event.target.value) } })}
+                      onChange={(event) => {
+                        if (!video) return;
+                        setVideo({
+                          ...video,
+                          timeline: video.timeline.map((clip) => clip.id === selected.id ? { ...clip, durationMs: Number(event.target.value) } : clip),
+                        });
+                      }}
+                    />
+                  </label>
+                  <label>Camera
+                    <select value={selected.camera} onChange={(event) => void persist({ clip: { id: selected.id, camera: event.target.value as typeof selected.camera } })}>
+                      {CAMERA_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label>Motion
+                    <select value={selected.motion} onChange={(event) => void persist({ clip: { id: selected.id, motion: event.target.value as typeof selected.motion } })}>
+                      {MOTION_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label>Transition
+                    <select value={selected.transitionOut} onChange={(event) => void persist({ clip: { id: selected.id, transitionOut: event.target.value as typeof selected.transitionOut } })}>
+                      {TRANSITION_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label>Asset
+                    <select value={selected.assetId} onChange={(event) => void persist({ clip: { id: selected.id, assetId: event.target.value } })}>
+                      {originals.map((image) => <option key={image.id} value={image.id}>{image.fileName}</option>)}
+                    </select>
+                  </label>
+                  <label>Headline
+                    <input
+                      value={textDraft}
+                      onChange={(event) => setTextDraft(event.target.value)}
+                      onBlur={() => void persist({ clip: { id: selected.id, text: textDraft } })}
+                    />
+                  </label>
+                </div>
+                </>
+              ) : <p className="vp-note">Select a scene to edit.</p>}
+            </section>
+          </div>
+
+          <section className="vp-panel vp-preview">
+            <h3>Output</h3>
+            {video.output?.url && video.renderState === "completed" ? (
+              <>
+                <video key={video.output.assetId} src={video.output.url} controls playsInline />
+                <div className="vp-note ok">
+                  Asset {video.output.assetId} · {video.output.width}×{video.output.height} · {(video.output.durationMs / 1000).toFixed(1)}s · {video.output.sizeBytes} bytes
+                </div>
+              </>
+            ) : (
+              <p className="vp-note">No validated output yet. Render a preview to produce an MP4 asset.</p>
+            )}
+          </section>
+        </>
+      ) : (
+        <div className="vp-panel">
+          <p>Open the Creative Planner first if this project has no plan, then generate the video timeline here.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function VideoProductionPlaceholder(): ReactNode {
+  return <VideoProductionWorkspace />;
+}

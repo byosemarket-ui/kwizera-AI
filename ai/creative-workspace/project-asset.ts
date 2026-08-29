@@ -76,6 +76,7 @@ export function isOriginalProductImage(image: {
   if (image.parentAssetId) return false;
   if (image.origin === "derived" || image.origin === "generated") return false;
   if (image.assetType === "derived-image" || image.assetType === "generated-image") return false;
+  if (image.assetType === "video" || image.assetType === "audio" || image.assetType === "rendered") return false;
   return true;
 }
 

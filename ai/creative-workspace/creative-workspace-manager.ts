@@ -124,6 +124,8 @@ export interface ProductImage {
   analysisState?: AssetAnalysisState;
   derivedKind?: DerivedImageKind;
   assetRole?: AssetRole;
+  /** Present on registered video outputs — never used as a product photograph. */
+  durationMs?: number;
 }
 
 export interface CreativeProject {
@@ -230,6 +232,7 @@ const EXT_BY_MIME: Record<string, string> = {
   "image/tiff": "tiff",
   "image/bmp": "bmp",
   "image/x-ms-bmp": "bmp",
+  "video/mp4": "mp4",
 };
 
 /**
@@ -440,6 +443,82 @@ export class CreativeWorkspaceManager {
     return this.getImagePath(projectId, `${imageId}.${extension}`);
   }
 
+  async getVideoPath(projectId: string, videoFile: string): Promise<string | null> {
+    if (!isSafeProjectId(projectId)) return null;
+    if (!/^[a-f0-9-]+\.mp4$/i.test(videoFile)) return null;
+    const project = await this.getProject(projectId);
+    if (!project) return null;
+    const videoId = videoFile.replace(/\.[^.]+$/, "");
+    const asset = project.productImages.find((item) => item.id === videoId && (item.assetType === "video" || item.mimeType === "video/mp4"));
+    if (!asset) return null;
+    const filePath = path.join(this.projectPath(projectId), "videos", videoFile);
+    try {
+      await fs.access(filePath);
+      return filePath;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Register a rendered MP4 as a generated video asset. Does not inspect as an image
+   * and never treats the file as an original product photograph.
+   */
+  async registerOutputAsset(projectId: string, input: {
+    sourcePath: string;
+    fileName: string;
+    mimeType: "video/mp4";
+    width: number;
+    height: number;
+    sizeBytes: number;
+    durationMs: number;
+    parentAssetId?: string;
+    renderJobId?: string;
+  }): Promise<ProductImage> {
+    const project = await this.requireProject(projectId);
+    if (!path.isAbsolute(input.sourcePath)) {
+      throw new CreativeWorkspaceError("INVALID_IMAGE", "Video output path must be absolute", 400);
+    }
+    if (input.mimeType !== "video/mp4") {
+      throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", "Video output must be video/mp4");
+    }
+    const data = await fs.readFile(input.sourcePath);
+    if (!data.length || data.length < 100) {
+      throw new CreativeWorkspaceError("INVALID_IMAGE", "Rendered video file is empty or unreadable");
+    }
+    const id = randomUUID();
+    const storedName = `${id}.mp4`;
+    const videoDirectory = path.join(this.projectPath(projectId), "videos");
+    await fs.mkdir(videoDirectory, { recursive: true });
+    await this.writeBinaryAtomic(path.join(videoDirectory, storedName), data);
+    const checksumSha256 = createHash("sha256").update(data).digest("hex");
+    const uploaded: ProductImage = {
+      id,
+      fileName: path.basename(input.fileName).replace(/[^a-zA-Z0-9._-]/g, "_") || "product-video.mp4",
+      mimeType: "video/mp4",
+      sizeBytes: data.length,
+      uploadedAt: new Date().toISOString(),
+      url: `/api/workspace/projects/${projectId}/videos/${storedName}`,
+      width: input.width,
+      height: input.height,
+      durationMs: input.durationMs,
+      checksumSha256,
+      sourceFileName: input.renderJobId ? `render-${input.renderJobId}.mp4` : input.fileName,
+      projectId,
+      assetType: "video",
+      origin: "generated",
+      processingStatus: "ready",
+      parentAssetId: input.parentAssetId,
+      analysisState: "not-applicable",
+      derivedKind: "generated",
+      assetRole: "generated",
+    };
+    project.productImages.push(uploaded);
+    project.modifiedAt = uploaded.uploadedAt;
+    await this.persist(project);
+    return uploaded;
+  }
+
   listProjectAssets(project: CreativeProject): ProjectAssetRef[] {
     return project.productImages.map((image) => this.toAssetRef(project.id, image));
   }
@@ -535,7 +614,9 @@ export class CreativeWorkspaceManager {
         ?? (image.parentAssetId || image.origin === "derived" ? "not-applicable" : "pending"),
       derivedKind: image.derivedKind,
       assetRole: image.assetRole ?? "unassigned",
-      url: image.url || `/api/workspace/projects/${projectId}/images/${image.id}.${EXT_BY_MIME[image.mimeType] ?? "bin"}`,
+      url: image.url || (image.assetType === "video" || image.mimeType === "video/mp4"
+        ? `/api/workspace/projects/${projectId}/videos/${image.id}.mp4`
+        : `/api/workspace/projects/${projectId}/images/${image.id}.${EXT_BY_MIME[image.mimeType] ?? "bin"}`),
     };
   }
 
@@ -778,12 +859,14 @@ export class CreativeWorkspaceManager {
       }
 
       const metaNames = new Set<string>();
+      const videoDir = path.join(this.projectPath(id), "videos");
       for (const image of project.productImages) {
         const extension = EXT_BY_MIME[image.mimeType]
           ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1] ?? "bin");
         const storedName = `${image.id}.${extension}`;
-        metaNames.add(storedName);
-        const filePath = path.join(imageDir, storedName);
+        const isVideo = image.assetType === "video" || image.mimeType.startsWith("video/");
+        if (!isVideo) metaNames.add(storedName);
+        const filePath = path.join(isVideo ? videoDir : imageDir, storedName);
         try {
           await fs.access(filePath);
           assetsOk += 1;

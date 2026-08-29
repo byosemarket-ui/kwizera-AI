@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import {
-  BarChart3, BookOpen, FileAudio, FileImage, FileVideo,
+  BarChart3, BookOpen, FileAudio, FileImage,
   Library, Settings, Sparkles,
 } from "lucide-react";
 import { ProfessionalDashboard } from "../dashboard/ProfessionalDashboard";
@@ -20,6 +20,7 @@ import { MarketResearchWorkspace } from "../market-research/MarketResearchWorksp
 import { MasterIntelligenceWorkspace } from "../master-intelligence/MasterIntelligenceWorkspace";
 import { MarketingStrategyWorkspace } from "../marketing-strategy/MarketingStrategyWorkspace";
 import { CreativePlannerWorkspace } from "../creative-planner/CreativePlannerWorkspace";
+import { VideoProductionWorkspace } from "../video-production/VideoProductionWorkspace";
 import { ProductionPlanWorkspace } from "../production-plan/ProductionPlanWorkspace";
 import { ProductionQueueWorkspace } from "../production-queue/ProductionQueueWorkspace";
 import { ProductionPipelineWorkspace } from "../production-pipeline/ProductionPipelineWorkspace";
@@ -103,7 +104,7 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
     case "generated-images":
       return placeholder(<FileImage size={30} />, "Generated Images", "Image generation outputs and gallery.");
     case "generated-videos":
-      return placeholder(<FileVideo size={30} />, "Generated Videos", "Video generation outputs and gallery.");
+      return <VideoProductionWorkspace />;
     case "generated-audio":
       return placeholder(<FileAudio size={30} />, "Generated Audio", "Audio generation outputs and gallery.");
     case "output":

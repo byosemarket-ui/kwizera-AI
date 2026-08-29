@@ -1,0 +1,462 @@
+import { createHash, randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { AiCoreManager } from "../core/ai-core-manager.js";
+import type { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
+import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import {
+  concatClips,
+  ffmpegAvailable,
+  probeVideo,
+  renderStillClip,
+  resolveFontFile,
+} from "./ffmpeg-renderer.js";
+import {
+  aspectFromPlatform,
+  buildRenderPlan,
+  buildTimelineFromPlan,
+  timelineDurationMs,
+} from "./plan-to-timeline.js";
+import {
+  VIDEO_PRODUCTION_VERSION,
+  VideoProductionError,
+  type VideoAspectRatio,
+  type VideoCameraId,
+  type VideoMotionId,
+  type VideoProject,
+  type VideoRenderJob,
+  type VideoTimelineClip,
+  type VideoTransitionId,
+} from "./types.js";
+import { recordVideoProductionFoundation } from "./video-production-foundation.js";
+
+const PROVIDER_MESSAGE = "VIDEO GENERATION PROVIDER UNAVAILABLE. Deterministic FFmpeg still-to-video remains available.";
+const AUDIO_MESSAGE = "No audio generation provider is configured. Video will render without audio.";
+
+export class VideoProductionManager {
+  private root = "";
+  private core: AiCoreManager | null = null;
+  private workspace: CreativeWorkspaceManager | null = null;
+  private planning: CreativePlanningManager | null = null;
+  private rendering = false;
+  private draining = false;
+
+  async initialize(
+    storageRoot: string,
+    deps: { core?: AiCoreManager; workspace: CreativeWorkspaceManager; planning: CreativePlanningManager },
+  ): Promise<void> {
+    this.root = path.join(storageRoot, "video-production");
+    this.core = deps.core ?? null;
+    this.workspace = deps.workspace;
+    this.planning = deps.planning;
+    await fs.mkdir(path.join(this.root, "projects"), { recursive: true });
+    await fs.mkdir(path.join(this.root, "jobs"), { recursive: true });
+    await fs.mkdir(path.join(this.root, "tmp"), { recursive: true });
+    await this.failInterruptedJobs();
+  }
+
+  isInitialized(): boolean {
+    return Boolean(this.root && this.workspace && this.planning);
+  }
+
+  async getVideoProject(projectId: string): Promise<VideoProject | null> {
+    this.ensureInitialized();
+    return this.readJson<VideoProject | null>(this.projectFile(projectId), null);
+  }
+
+  async getJob(jobId: string): Promise<VideoRenderJob | null> {
+    this.ensureInitialized();
+    if (!jobId) return null;
+    return this.readJson<VideoRenderJob | null>(this.jobFile(jobId), null);
+  }
+
+  async createOrRefresh(projectId: string, options?: { preserveEdits?: boolean }): Promise<VideoProject> {
+    this.ensureInitialized();
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+    const plan = await this.planning!.getPlan(projectId);
+    if (!plan) throw new VideoProductionError("MISSING_PLAN", "Generate a Creative Plan before creating a video project", 422);
+    const originals = workspaceProject.productImages.filter(isOriginalProductImage);
+    if (!originals.length) {
+      throw new VideoProductionError("MISSING_ASSET", "At least one original product image is required", 422);
+    }
+
+    const existing = await this.getVideoProject(projectId);
+    const preserve = options?.preserveEdits !== false;
+    const existingClips = preserve ? existing?.timeline.filter((clip) => clip.userEdited) : undefined;
+    const timeline = buildTimelineFromPlan(workspaceProject, plan, {
+      preview: true,
+      existing: existingClips,
+    });
+    if (!timeline.length) {
+      throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
+    }
+    const aspect = existing?.renderPlan.aspectRatio ?? aspectFromPlatform(workspaceProject.platform);
+    const now = new Date().toISOString();
+    const video: VideoProject = {
+      id: existing?.id ?? randomUUID(),
+      projectId,
+      productId: plan.productId || projectId,
+      creativePlanId: plan.id,
+      creativePlanVersion: plan.version,
+      createdAt: existing?.createdAt ?? now,
+      modifiedAt: now,
+      version: (existing?.version ?? 0) + 1,
+      timeline,
+      audioPlan: {
+        backgroundMusic: "none",
+        voiceover: "none",
+        soundEffects: "none",
+        status: "UNAVAILABLE",
+        message: AUDIO_MESSAGE,
+      },
+      renderPlan: buildRenderPlan(aspect, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview"),
+      renderState: existing?.renderState === "processing" || existing?.renderState === "queued"
+        ? existing.renderState
+        : existing?.output ? "completed" : "idle",
+      activeJobId: existing?.activeJobId,
+      output: existing?.output,
+      videoGenerationProvider: "UNAVAILABLE",
+      videoGenerationProviderMessage: PROVIDER_MESSAGE,
+      userEdited: existing?.userEdited,
+      foundationKnowledgeIds: existing?.foundationKnowledgeIds,
+    };
+    const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
+    Object.assign(video, foundation);
+    await this.writeJson(this.projectFile(projectId), video);
+    return video;
+  }
+
+  async updateVideoProject(projectId: string, changes: {
+    aspectRatio?: VideoAspectRatio;
+    reorder?: string[];
+    clip?: {
+      id: string;
+      durationMs?: number;
+      camera?: VideoCameraId;
+      motion?: VideoMotionId;
+      transitionOut?: VideoTransitionId;
+      assetId?: string;
+      text?: string;
+    };
+  }): Promise<VideoProject> {
+    this.ensureInitialized();
+    const video = await this.getVideoProject(projectId) ?? await this.createOrRefresh(projectId);
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+
+    let timeline = [...video.timeline];
+    if (changes.reorder?.length) {
+      const ordered = changes.reorder
+        .map((id, index) => {
+          const clip = timeline.find((item) => item.id === id || item.sceneId === id);
+          return clip ? { ...clip, order: index + 1, userEdited: true } : null;
+        })
+        .filter((clip): clip is VideoTimelineClip => Boolean(clip));
+      if (ordered.length === timeline.length) timeline = ordered;
+    }
+    if (changes.clip) {
+      const originals = workspaceProject.productImages.filter(isOriginalProductImage);
+      timeline = timeline.map((clip) => {
+        if (clip.id !== changes.clip!.id && clip.sceneId !== changes.clip!.id) return clip;
+        const next = { ...clip, userEdited: true };
+        if (typeof changes.clip!.durationMs === "number") {
+          next.durationMs = Math.min(4000, Math.max(1000, Math.round(changes.clip!.durationMs)));
+        }
+        if (changes.clip!.camera) next.camera = changes.clip!.camera;
+        if (changes.clip!.motion) next.motion = changes.clip!.motion;
+        if (changes.clip!.transitionOut) next.transitionOut = changes.clip!.transitionOut;
+        if (changes.clip!.assetId) {
+          if (!originals.some((image) => image.id === changes.clip!.assetId)) {
+            throw new VideoProductionError("INVALID_ASSET", "Replacement asset must be an original product image", 422);
+          }
+          next.assetId = changes.clip!.assetId;
+        }
+        if (typeof changes.clip!.text === "string") {
+          const content = changes.clip!.text.trim().slice(0, 80);
+          next.text = content
+            ? [{ content, kind: "headline", startMs: clip.startMs, durationMs: next.durationMs, position: "top" }]
+            : [];
+        }
+        return next;
+      });
+    }
+    timeline = recomputeStarts(timeline);
+    const aspect = changes.aspectRatio ?? video.renderPlan.aspectRatio;
+    const updated: VideoProject = {
+      ...video,
+      timeline,
+      renderPlan: buildRenderPlan(aspect, timelineDurationMs(timeline), video.renderPlan.preset),
+      modifiedAt: new Date().toISOString(),
+      version: video.version + 1,
+      userEdited: true,
+      videoGenerationProvider: "UNAVAILABLE",
+      videoGenerationProviderMessage: PROVIDER_MESSAGE,
+    };
+    await this.writeJson(this.projectFile(projectId), updated);
+    return updated;
+  }
+
+  async startRender(projectId: string, preset: "preview" | "standard" = "preview"): Promise<{ job: VideoRenderJob; video: VideoProject }> {
+    this.ensureInitialized();
+    if (!(await ffmpegAvailable())) {
+      throw new VideoProductionError("FFMPEG_UNAVAILABLE", "FFmpeg is not available on this host", 503);
+    }
+    let video = await this.getVideoProject(projectId);
+    if (!video) video = await this.createOrRefresh(projectId);
+    if (video.activeJobId) {
+      const active = await this.getJob(video.activeJobId);
+      if (active && (active.status === "queued" || active.status === "processing")) {
+        throw new VideoProductionError("RENDER_IN_PROGRESS", "A render is already running for this project", 409);
+      }
+    }
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+    for (const clip of video.timeline) {
+      const source = await this.workspace!.getOriginalImagePath(projectId, clip.assetId);
+      if (!source) {
+        throw new VideoProductionError("MISSING_ASSET", `Scene ${clip.order} is missing original asset ${clip.assetId}`, 422);
+      }
+    }
+    const now = new Date().toISOString();
+    const job: VideoRenderJob = {
+      id: randomUUID(),
+      projectId,
+      videoProjectId: video.id,
+      status: "queued",
+      progress: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    video = {
+      ...video,
+      renderPlan: buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(video.timeline), preset),
+      renderState: "queued",
+      activeJobId: job.id,
+      modifiedAt: now,
+    };
+    await this.writeJson(this.jobFile(job.id), job);
+    await this.writeJson(this.projectFile(projectId), video);
+    this.scheduleDrain();
+    return { job, video };
+  }
+
+  async getOutputFilePath(projectId: string): Promise<string | null> {
+    const video = await this.getVideoProject(projectId);
+    if (!video?.output?.assetId) return null;
+    return this.workspace!.getVideoPath(projectId, `${video.output.assetId}.mp4`);
+  }
+
+  private scheduleDrain(): void {
+    if (this.draining) return;
+    this.draining = true;
+    setImmediate(() => {
+      void this.drain().finally(() => {
+        this.draining = false;
+      });
+    });
+  }
+
+  private async drain(): Promise<void> {
+    if (this.rendering) return;
+    const next = await this.nextQueuedJob();
+    if (!next) return;
+    this.rendering = true;
+    try {
+      await this.processJob(next);
+    } finally {
+      this.rendering = false;
+      const more = await this.nextQueuedJob();
+      if (more) this.scheduleDrain();
+    }
+  }
+
+  private async nextQueuedJob(): Promise<VideoRenderJob | null> {
+    let entries: string[] = [];
+    try {
+      entries = await fs.readdir(path.join(this.root, "jobs"));
+    } catch {
+      return null;
+    }
+    const jobs: VideoRenderJob[] = [];
+    for (const name of entries.filter((item) => item.endsWith(".json"))) {
+      const job = await this.readJson<VideoRenderJob | null>(path.join(this.root, "jobs", name), null);
+      if (job?.status === "queued") jobs.push(job);
+    }
+    jobs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return jobs[0] ?? null;
+  }
+
+  private async processJob(job: VideoRenderJob): Promise<void> {
+    const started: VideoRenderJob = {
+      ...job,
+      status: "processing",
+      progress: 5,
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await this.writeJson(this.jobFile(job.id), started);
+    await this.patchVideo(job.projectId, { renderState: "processing", activeJobId: job.id });
+
+    const tmpDir = path.join(this.root, "tmp", job.id);
+    await fs.mkdir(tmpDir, { recursive: true });
+    try {
+      const video = await this.getVideoProject(job.projectId);
+      if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
+      const fontFile = await resolveFontFile();
+      const clipPaths: string[] = [];
+      for (const [index, clip] of video.timeline.entries()) {
+        await yieldLoop();
+        const imagePath = await this.workspace!.getOriginalImagePath(job.projectId, clip.assetId);
+        if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${clip.assetId} is not on disk`, 422);
+        const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
+        await renderStillClip({ clip, imagePath }, video.renderPlan, clipPath, fontFile);
+        clipPaths.push(clipPath);
+        await this.writeJson(this.jobFile(job.id), {
+          ...started,
+          progress: Math.min(80, 10 + Math.round(((index + 1) / video.timeline.length) * 70)),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      await yieldLoop();
+      const outputPath = path.join(tmpDir, "output.mp4");
+      if (clipPaths.length === 1) {
+        await fs.copyFile(clipPaths[0]!, outputPath);
+      } else {
+        await concatClips(clipPaths, outputPath);
+      }
+      const probed = await probeVideo(outputPath);
+      const parentAssetId = video.timeline[0]?.assetId;
+      const registered = await this.workspace!.registerOutputAsset(job.projectId, {
+        sourcePath: outputPath,
+        fileName: "product-video.mp4",
+        mimeType: "video/mp4",
+        width: probed.width,
+        height: probed.height,
+        sizeBytes: probed.sizeBytes,
+        durationMs: probed.durationMs,
+        parentAssetId,
+        renderJobId: job.id,
+      });
+      const completedAt = new Date().toISOString();
+      const completed: VideoRenderJob = {
+        ...started,
+        status: "completed",
+        progress: 100,
+        completedAt,
+        updatedAt: completedAt,
+        outputPath: registered.url,
+        outputAssetId: registered.id,
+      };
+      const workspaceProject = await this.workspace!.getProject(job.projectId);
+      const updatedVideo: VideoProject = {
+        ...video,
+        renderState: "completed",
+        activeJobId: job.id,
+        modifiedAt: completedAt,
+        output: {
+          assetId: registered.id,
+          mimeType: "video/mp4",
+          durationMs: probed.durationMs,
+          width: probed.width,
+          height: probed.height,
+          sizeBytes: probed.sizeBytes,
+          url: registered.url,
+          renderJobId: job.id,
+          createdAt: completedAt,
+        },
+      };
+      if (workspaceProject) {
+        Object.assign(updatedVideo, await recordVideoProductionFoundation(this.core, workspaceProject, updatedVideo));
+      }
+      await this.writeJson(this.jobFile(job.id), completed);
+      await this.writeJson(this.projectFile(job.projectId), updatedVideo);
+    } catch (error) {
+      const failed: VideoRenderJob = {
+        ...started,
+        status: "failed",
+        progress: 0,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Render failed",
+      };
+      await this.writeJson(this.jobFile(job.id), failed);
+      await this.patchVideo(job.projectId, { renderState: "failed", activeJobId: job.id });
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
+
+  private async patchVideo(projectId: string, patch: Partial<VideoProject>): Promise<void> {
+    const video = await this.getVideoProject(projectId);
+    if (!video) return;
+    await this.writeJson(this.projectFile(projectId), { ...video, ...patch, modifiedAt: new Date().toISOString() });
+  }
+
+  private async failInterruptedJobs(): Promise<void> {
+    let entries: string[] = [];
+    try {
+      entries = await fs.readdir(path.join(this.root, "jobs"));
+    } catch {
+      return;
+    }
+    for (const name of entries.filter((item) => item.endsWith(".json"))) {
+      const job = await this.readJson<VideoRenderJob | null>(path.join(this.root, "jobs", name), null);
+      if (!job) continue;
+      if (job.status !== "queued" && job.status !== "processing") continue;
+      const failed: VideoRenderJob = {
+        ...job,
+        status: "failed",
+        error: "Studio restarted before render completed.",
+        updatedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      };
+      await this.writeJson(this.jobFile(job.id), failed);
+      await this.patchVideo(job.projectId, { renderState: "failed" });
+    }
+  }
+
+  private projectFile(projectId: string): string {
+    return path.join(this.root, "projects", `${projectId}.json`);
+  }
+
+  private jobFile(jobId: string): string {
+    return path.join(this.root, "jobs", `${jobId}.json`);
+  }
+
+  private async readJson<T>(filePath: string, fallback: T): Promise<T> {
+    try {
+      return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return fallback;
+      throw error;
+    }
+  }
+
+  private async writeJson(filePath: string, value: unknown): Promise<void> {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
+    await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    await fs.rename(temporaryPath, filePath);
+  }
+
+  private ensureInitialized(): void {
+    if (!this.isInitialized()) throw new Error("Video Production Manager is not initialized");
+  }
+}
+
+function recomputeStarts(clips: VideoTimelineClip[]): VideoTimelineClip[] {
+  let cursor = 0;
+  return clips.map((clip, index) => {
+    const next = { ...clip, order: index + 1, startMs: cursor };
+    cursor += next.durationMs;
+    return next;
+  });
+}
+
+function yieldLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+export { VIDEO_PRODUCTION_VERSION };

@@ -17,6 +17,7 @@ import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
+import { VideoProductionError } from "../../ai/video-production/types.js";
 import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
 import { ingestUploadedImage } from "../../ai/image-intelligence/image-ingest.js";
 
@@ -29,6 +30,8 @@ import {
   getImageGenerationManager,
 
   getVideoAudioGenerationManager,
+
+  getVideoProductionManager,
 
   getCommercialVideoManager,
 
@@ -300,6 +303,14 @@ function sendWorkspaceError(res: ServerResponse, error: unknown): void {
   sendJson(res, 400, { error: error instanceof Error ? error.message : "Workspace request failed" });
 }
 
+function sendVideoProductionError(res: ServerResponse, error: unknown): void {
+  if (error instanceof VideoProductionError) {
+    sendJson(res, error.httpStatus, { error: error.message, code: error.code });
+    return;
+  }
+  sendJson(res, 400, { error: error instanceof Error ? error.message : "Video production request failed" });
+}
+
 async function withFoundation(
   workspace: NonNullable<ReturnType<typeof getWorkspaceManager>>,
   project: NonNullable<Awaited<ReturnType<NonNullable<ReturnType<typeof getWorkspaceManager>>["getActiveProject"]>>>,
@@ -328,6 +339,15 @@ function requirePlanning(res: ServerResponse) {
 
   return planning;
 
+}
+
+function requireVideoProduction(res: ServerResponse) {
+  const manager = getVideoProductionManager();
+  if (!manager) {
+    sendJson(res, 503, { error: "Video production is restoring. Try again shortly." });
+    return null;
+  }
+  return manager;
 }
 
 function requireReview(res: ServerResponse) {
@@ -3522,6 +3542,78 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  const videoProjectMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)$/);
+  if (videoProjectMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const video = await production.getVideoProject(videoProjectMatch[1]);
+      sendJson(res, 200, { video });
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
+  if (videoProjectMatch && req.method === "POST") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        action?: string;
+        aspectRatio?: "16:9" | "9:16" | "1:1";
+        reorder?: string[];
+        clip?: {
+          id: string;
+          durationMs?: number;
+          camera?: import("../../ai/video-production/types.js").VideoCameraId;
+          motion?: import("../../ai/video-production/types.js").VideoMotionId;
+          transitionOut?: import("../../ai/video-production/types.js").VideoTransitionId;
+          assetId?: string;
+          text?: string;
+        };
+      };
+      if (body.action === "update") {
+        const video = await production.updateVideoProject(videoProjectMatch[1], {
+          aspectRatio: body.aspectRatio,
+          reorder: body.reorder,
+          clip: body.clip,
+        });
+        sendJson(res, 200, { video });
+      } else {
+        const video = await production.createOrRefresh(videoProjectMatch[1]);
+        sendJson(res, 201, { video });
+      }
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
+  const videoRenderMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/render$/);
+  if (videoRenderMatch && req.method === "POST") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const body = JSON.parse(await readBody(req) || "{}") as { preset?: "preview" | "standard" };
+      const result = await production.startRender(videoRenderMatch[1], body.preset === "standard" ? "standard" : "preview");
+      sendJson(res, 202, result);
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
+  const videoJobMatch = url.pathname.match(/^\/api\/video-production\/jobs\/([^/]+)$/);
+  if (videoJobMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    const job = await production.getJob(videoJobMatch[1]);
+    if (!job) { sendJson(res, 404, { error: "Render job not found" }); return; }
+    sendJson(res, 200, { job });
+    return;
+  }
+
   if (url.pathname === "/api/workspace/projects" && req.method === "POST") {
 
     const workspace = requireWorkspace(res);
@@ -3812,6 +3904,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  const videoFileMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/videos\/([^/]+)$/);
+  if (videoFileMatch && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    const videoPath = await workspace.getVideoPath(videoFileMatch[1], videoFileMatch[2]);
+    if (!videoPath) { sendJson(res, 404, { error: "Video not found" }); return; }
+    await serveStatic(res, videoPath);
+    return;
   }
 
   const uploadMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images$/);

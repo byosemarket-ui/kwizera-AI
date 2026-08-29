@@ -7,6 +7,7 @@ import { ImageGenerationManager } from "../../ai/image-generation/image-generati
 import { createImageGenerationPlugin } from "../../ai/image-generation/image-generation-plugin.js";
 import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
+import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
 import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
 import { CommercialVideoManager } from "../../ai/commercial-video/commercial-video-manager.js";
 import { BusinessIntelligenceManager } from "../../ai/business-intelligence/business-intelligence-manager.js";
@@ -80,6 +81,7 @@ let pipelineManager: CreativePipelineManager | null = null;
 let modelManager: AiModelManager | null = null;
 let imageGenerationManager: ImageGenerationManager | null = null;
 let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
+let videoProductionManager: VideoProductionManager | null = null;
 let commercialVideoManager: CommercialVideoManager | null = null;
 let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
@@ -195,6 +197,10 @@ export function getImageGenerationManager(): ImageGenerationManager | null {
 
 export function getVideoAudioGenerationManager(): VideoAudioGenerationManager | null {
   return videoAudioGenerationManager;
+}
+
+export function getVideoProductionManager(): VideoProductionManager | null {
+  return videoProductionManager;
 }
 
 export function getCommercialVideoManager(): CommercialVideoManager | null {
@@ -726,6 +732,12 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createDecisionIntelligencePlugin(decisionIntelligenceManager, manager));
         pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
         planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        videoProductionManager = new VideoProductionManager();
+        await videoProductionManager.initialize(storageRoot, {
+          core: manager,
+          workspace: workspaceManager,
+          planning: planningManager,
+        });
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
         console.log("[KWIZERA] Initializing learning intelligence runtime");
@@ -853,6 +865,7 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   modelManager = null;
   imageGenerationManager = null;
   videoAudioGenerationManager = null;
+  videoProductionManager = null;
   commercialVideoManager = null;
   businessIntelligenceManager = null;
   workspaceSynchronizationManager = null;

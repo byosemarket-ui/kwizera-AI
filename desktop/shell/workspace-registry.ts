@@ -35,7 +35,7 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "market-research", label: "Product Research", group: "assets", groupLabel: "Assets", keywords: ["research", "market", "customer", "knowledge", "insights", "online", "offline"] },
   { id: "master-intelligence", label: "Master Intelligence", group: "assets", groupLabel: "Assets", keywords: ["master", "creative brief", "claim safety", "intelligence report", "phase 3", "content production"] },
   { id: "generated-images", label: "Generated Images", group: "assets", groupLabel: "Assets", keywords: ["images", "generated", "visual"], inSidebar: false },
-  { id: "generated-videos", label: "Generated Videos", group: "assets", groupLabel: "Assets", keywords: ["videos", "generated", "motion"], inSidebar: false },
+  { id: "generated-videos", label: "Video Production", group: "assets", groupLabel: "Assets", keywords: ["videos", "generated", "motion", "timeline", "render", "ffmpeg"] },
   { id: "generated-audio", label: "Generated Audio", group: "assets", groupLabel: "Assets", keywords: ["audio", "sound", "voice"], inSidebar: false },
 
   { id: "output", label: "Final Outputs", group: "outputs", groupLabel: "Outputs", keywords: ["output", "results", "final", "render", "export", "phase 5", "step 4", "qc", "thumbnail"] },
@@ -70,7 +70,7 @@ export const SIDEBAR_SECTIONS: Array<{ group: NavGroupId; label: string; ids: Wo
   {
     group: "assets",
     label: "Creative / Assets",
-    ids: ["product-information", "image-organization", "visual-analysis", "deep-intelligence", "storyboard"],
+    ids: ["product-information", "image-organization", "visual-analysis", "deep-intelligence", "storyboard", "generated-videos"],
   },
   {
     group: "production",
@@ -125,7 +125,7 @@ export const workspaceTiers: Record<WorkspaceId, WorkspaceTier> = {
   "market-research": "live",
   "master-intelligence": "live",
   "generated-images": "placeholder",
-  "generated-videos": "placeholder",
+  "generated-videos": "live",
   "generated-audio": "placeholder",
   output: "live",
   exports: "live",
