@@ -5,7 +5,6 @@ import {
 import { ImageOrganizationEngine } from "../../../desktop/image-organization/organization-engine.ts";
 import type { IntakeHandoffPayload } from "../../../desktop/product-intake/types.ts";
 import { INTAKE_HANDOFF_KEY } from "../../../desktop/product-intake/types.ts";
-import { ORG_HANDOFF_KEY } from "../../../desktop/image-organization/types.ts";
 
 function mockStorage() {
   const store: Record<string, string> = {};
@@ -54,6 +53,23 @@ describe("Organization engine", () => {
   beforeEach(() => {
     mockStorage();
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      const demoProject = {
+        id: "proj-1",
+        name: "Demo Shoe",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        modifiedAt: "2026-01-01T00:00:00.000Z",
+        productImages: [
+          { id: "a1", fileName: "front.jpg", mimeType: "image/jpeg", sizeBytes: 1000, uploadedAt: "2026-01-01T00:00:00.000Z", url: "/img/a1" },
+          { id: "a2", fileName: "mystery.jpg", mimeType: "image/jpeg", sizeBytes: 500, uploadedAt: "2026-01-01T00:00:00.000Z", url: "/img/a2" },
+        ],
+        productInformation: { name: "Demo Shoe", category: "footwear", description: "" },
+      };
+      if (String(url) === "/api/workspace") {
+        return { ok: true, json: async () => ({ activeProject: demoProject, projects: [demoProject] }) };
+      }
+      if (String(url).includes("/api/workspace/projects/proj-1") && String(url).includes("assets") === false) {
+        return { ok: true, json: async () => ({ project: demoProject }) };
+      }
       if (String(url).includes("/image-intelligence/") && String(url).includes("/analyze")) {
         return {
           ok: true,
@@ -145,7 +161,7 @@ describe("Organization engine", () => {
     localStorage.setItem(INTAKE_HANDOFF_KEY, JSON.stringify(handoff));
 
     const engine = new ImageOrganizationEngine();
-    expect(engine.hydrateFromHandoff()).toBe(true);
+    expect(await engine.hydrateFromHandoff()).toBe(true);
     const set = await engine.runAnalysis();
     expect(set.images).toHaveLength(2);
     expect(set.images.find((i) => i.assetId === "a1")?.viewType).toBe("FRONT");
@@ -163,6 +179,6 @@ describe("Organization engine", () => {
     expect(engine.snapshot().canContinue).toBe(true);
     const step3 = await engine.continueToStep3();
     expect(step3.step).toBe("step-3-product-information");
-    expect(JSON.parse(localStorage.getItem(ORG_HANDOFF_KEY) ?? "null").projectId).toBe("proj-1");
+    expect(step3.projectId).toBe("proj-1");
   });
 });

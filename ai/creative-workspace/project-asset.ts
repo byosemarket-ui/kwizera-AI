@@ -13,7 +13,24 @@ export type ProjectAssetType =
   | "document";
 
 export type AssetOrigin = "upload" | "derived" | "generated" | "system";
-export type AssetProcessingStatus = "ready" | "processing" | "failed";
+export type AssetProcessingStatus = "pending" | "processing" | "ready" | "failed";
+export type AssetAnalysisState =
+  | "pending"
+  | "analyzing"
+  | "ready"
+  | "failed"
+  | "unavailable"
+  | "not-applicable";
+export type DerivedImageKind = "thumbnail" | "preview" | "optimized" | "analyzed" | "enhanced" | "generated";
+export type AssetRole =
+  | "primary"
+  | "secondary"
+  | "packaging"
+  | "detail"
+  | "lifestyle"
+  | "generated"
+  | "reference"
+  | "unassigned";
 
 export interface ProjectAssetRef {
   assetId: string;
@@ -30,6 +47,9 @@ export interface ProjectAssetRef {
   origin: AssetOrigin;
   parentAssetId?: string;
   checksumSha256?: string;
+  analysisState?: AssetAnalysisState;
+  derivedKind?: DerivedImageKind;
+  assetRole?: AssetRole;
   metadata: Record<string, unknown>;
 }
 
@@ -45,6 +65,18 @@ export interface ProjectFoundationLinks {
 
 export function isSafeProjectId(projectId: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId);
+}
+
+/** Original uploaded product images only — never derived/generated representations. */
+export function isOriginalProductImage(image: {
+  origin?: string;
+  assetType?: string;
+  parentAssetId?: string;
+}): boolean {
+  if (image.parentAssetId) return false;
+  if (image.origin === "derived" || image.origin === "generated") return false;
+  if (image.assetType === "derived-image" || image.assetType === "generated-image") return false;
+  return true;
 }
 
 export class CreativeWorkspaceError extends Error {

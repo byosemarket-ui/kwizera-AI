@@ -30,6 +30,28 @@ interface ServerProfile {
   duplicateOfImageId?: string;
   resolution?: { tier: string };
   metadata?: Record<string, string | number>;
+  analysisState?: string;
+  aiVisionStatus?: string;
+  processingState?: string;
+  analysisVersion?: string;
+  derivedThumbnailId?: string;
+  provenance?: {
+    provider?: string;
+    analysisVersion?: string;
+    timestamp?: string;
+    originalChecksumSha256?: string;
+  };
+  visualMetrics?: {
+    method?: string;
+    pixelAnalysisAvailable?: boolean;
+    width?: number;
+    height?: number;
+    aspectRatio?: number;
+    dominantColors?: Array<{ name: string; hex: string }>;
+    lightingObserved?: string;
+    backgroundObserved?: string;
+  };
+  observations?: Array<{ field: string; value: string; kind: string; confidence: number }>;
 }
 
 interface ProductIntelProfile {
@@ -237,7 +259,9 @@ export class ImageOrganizationEngine {
         (a) => a.processingStatus === "saved" && a.validationStatus !== "invalid",
       );
       if (!this.intakeAssets.length && bound.project.productImages?.length) {
-        this.intakeAssets = bound.project.productImages.map((img) => ({
+        this.intakeAssets = bound.project.productImages
+          .filter((img) => !img.parentAssetId && img.origin !== "derived" && img.assetType !== "derived-image")
+          .map((img) => ({
           assetId: img.id,
           projectId: bound.projectId,
           originalFilename: img.sourceFileName || img.fileName,
@@ -285,11 +309,11 @@ export class ImageOrganizationEngine {
     this.progress = {
       total: Math.max(assets.length, 1),
       completed: 0,
-      percent: 0,
+      percent: 5,
       currentFile: null,
       currentClassification: null,
       currentConfidence: null,
-      statusLabel: "Starting analysis…",
+      statusLabel: "Requesting image intelligence…",
       running: true,
     };
     this.emitEvents?.("product-analysis.started", { projectId: this.projectId });
@@ -310,6 +334,12 @@ export class ImageOrganizationEngine {
         product = null;
       }
 
+      this.progress.statusLabel = profiles.length
+        ? "Server analysis complete. Organizing results…"
+        : "Server analysis unavailable. Using local filename classification…";
+      this.progress.percent = 40;
+      this.emit();
+
       const organized: OrganizedImage[] = [];
       const warnings: OrganizationWarning[] = [];
       const category = product?.category || product?.productType || product?.identifiedAs || "general product";
@@ -319,7 +349,7 @@ export class ImageOrganizationEngine {
         this.progress.currentFile = asset.originalFilename;
         this.progress.completed = i;
         this.progress.percent = Math.round((i / Math.max(assets.length, 1)) * 100);
-        this.progress.statusLabel = "Classifying…";
+        this.progress.statusLabel = "Organizing analyzed assets…";
         this.emit();
 
         const profile = profiles.find((p) => p.imageId === asset.assetId);
@@ -391,8 +421,8 @@ export class ImageOrganizationEngine {
           projectId: this.projectId!,
           fileName: asset.originalFilename,
           mimeType: asset.fileType,
-          width: asset.width,
-          height: asset.height,
+          width: profile?.visualMetrics?.width ?? asset.width,
+          height: profile?.visualMetrics?.height ?? asset.height,
           fileSize: asset.fileSize,
           url: asset.remoteUrl || asset.thumbnailUrl,
           viewType,
@@ -409,10 +439,19 @@ export class ImageOrganizationEngine {
           qualityScore: profile?.quality?.score ?? 70,
           warnings: itemWarnings,
           analyzedAt: new Date().toISOString(),
+          origin: "original",
+          processingState: "ready",
+          analysisState: profile?.analysisState ?? (profile ? "ready" : "unavailable"),
+          aiVisionStatus: profile?.aiVisionStatus ?? "IMAGE_ANALYSIS_UNAVAILABLE",
+          analysisVersion: profile?.analysisVersion,
+          provenanceProvider: profile?.provenance?.provider,
+          visualMethod: profile?.visualMetrics?.method,
+          pixelAnalysisAvailable: Boolean(profile?.visualMetrics?.pixelAnalysisAvailable),
+          observations: profile?.observations,
+          derivedThumbnailId: profile?.derivedThumbnailId,
         };
         organized.push(image);
         warnings.push(...itemWarnings);
-        await delay(40);
       }
 
       // Assign primary per group (highest confidence, prefer non-duplicates)
@@ -484,7 +523,7 @@ export class ImageOrganizationEngine {
         currentFile: null,
         currentClassification: null,
         currentConfidence: null,
-        statusLabel: "Analysis Complete ✓",
+        statusLabel: profiles.length ? "Analysis complete" : "Organization complete (filename classification)",
         running: false,
       };
       this.emitEvents?.("product-analysis.completed", {
@@ -662,10 +701,6 @@ export class ImageOrganizationEngine {
     const snap = this.snapshot();
     this.listeners.forEach((l) => l(snap));
   }
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function dedupeWarnings(list: OrganizationWarning[]): OrganizationWarning[] {

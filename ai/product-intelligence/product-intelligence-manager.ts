@@ -19,6 +19,7 @@ import type {
   ProductViewRole,
 } from "./types.js";
 import { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 
 export { detectViewRole, detectViewRoleDetailed, recommendedViewsForCategory } from "./view-role.js";
 
@@ -386,7 +387,8 @@ export class MultiViewAnalysisEngine {
     views: ProductViewAnalysis[];
     missingAngles: ProductViewRole[];
   } {
-    const views = project.productImages.map((image) => {
+    const originals = project.productImages.filter(isOriginalProductImage);
+    const views = originals.map((image) => {
       const profile = imageProfiles.find((item) => item.imageId === image.id);
       const role = (profile?.viewRole as ProductViewRole | undefined) || detectViewRole(image.fileName);
       return {
@@ -410,7 +412,7 @@ export class MultiViewAnalysisEngine {
           : views.length > 1
             ? "multi-view"
             : "single-view";
-    return { viewCount: project.productImages.length, coverage, views, missingAngles };
+    return { viewCount: originals.length, coverage, views, missingAngles };
   }
 }
 
@@ -559,7 +561,7 @@ export class SellingPointExtractor {
     for (const colour of colours.filter((item) => !item.includes("verification")).slice(0, 1)) {
       points.push({ point: `${colour} colourway`, source: "image-evidence", confidence: 68 });
     }
-    if (project.productImages.length > 1) {
+    if (project.productImages.filter(isOriginalProductImage).length > 1) {
       points.push({ point: "multi-angle product documentation available", source: "image-evidence", confidence: 80 });
     }
     if (!points.length && features[0]) {

@@ -28,6 +28,7 @@ export function detectViewRoleDetailed(fileName: string): ViewRoleDetection {
     { role: "bottom", pattern: /(^|[^a-z])bottom([^a-z]|$)|underside|sole|base.?view/, confidence: 0.93 },
     { role: "angle-45", pattern: /45|three[-_ ]?quarter|3[-_ ]?4|oblique|diagonal/, confidence: 0.9 },
     { role: "packaging", pattern: /\bpack(aging)?\b|box|carton|retail[-_ ]?pack/, confidence: 0.9 },
+    { role: "lifestyle", pattern: /lifestyle|in[-_ ]?use|on[-_ ]?model|editorial|context/, confidence: 0.86 },
     { role: "logo", pattern: /\blogo\b|wordmark|brand[-_ ]?mark/, confidence: 0.92 },
     { role: "close-up", pattern: /close[-_ ]?up|macro/, confidence: 0.9 },
     { role: "detail", pattern: /(^|[^a-z])detail([^a-z]|$)|texture|stitch|zipper|hardware|port|screen/, confidence: 0.88 },

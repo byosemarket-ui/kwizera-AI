@@ -6,20 +6,28 @@ import { ProjectState } from "../state-manager/types.js";
 import { inspectImageBuffer } from "./image-inspect.js";
 import {
   CreativeWorkspaceError,
+  isOriginalProductImage,
   isSafeProjectId,
+  type AssetAnalysisState,
   type AssetOrigin,
   type AssetProcessingStatus,
+  type AssetRole,
+  type DerivedImageKind,
   type ProjectAssetRef,
   type ProjectAssetType,
   type ProjectFoundationLinks,
 } from "./project-asset.js";
 export {
   CreativeWorkspaceError,
+  isOriginalProductImage,
   isSafeProjectId,
 } from "./project-asset.js";
 export type {
+  AssetAnalysisState,
   AssetOrigin,
   AssetProcessingStatus,
+  AssetRole,
+  DerivedImageKind,
   ProjectAssetRef,
   ProjectAssetType,
   ProjectFoundationLinks,
@@ -113,6 +121,9 @@ export interface ProductImage {
   origin?: AssetOrigin;
   processingStatus?: AssetProcessingStatus;
   parentAssetId?: string;
+  analysisState?: AssetAnalysisState;
+  derivedKind?: DerivedImageKind;
+  assetRole?: AssetRole;
 }
 
 export interface CreativeProject {
@@ -149,6 +160,9 @@ export interface UploadedImageInput {
   assetType?: ProjectAssetType;
   origin?: AssetOrigin;
   parentAssetId?: string;
+  derivedKind?: DerivedImageKind;
+  analysisState?: AssetAnalysisState;
+  assetRole?: AssetRole;
 }
 
 export type CreativeWorkspaceOrphanKind =
@@ -372,6 +386,10 @@ export class CreativeWorkspaceManager {
       origin: image.origin ?? "upload",
       processingStatus: "ready",
       parentAssetId: image.parentAssetId,
+      analysisState: image.analysisState
+        ?? (image.parentAssetId || image.origin === "derived" ? "not-applicable" : "pending"),
+      derivedKind: image.derivedKind,
+      assetRole: image.assetRole ?? "unassigned",
     };
     project.productImages.push(uploaded);
     project.modifiedAt = uploaded.uploadedAt;
@@ -444,7 +462,28 @@ export class CreativeWorkspaceManager {
       assetType: input.assetType ?? "derived-image",
       origin: "derived",
       parentAssetId: input.parentAssetId,
+      analysisState: "not-applicable",
+      derivedKind: input.derivedKind ?? "preview",
     });
+  }
+
+  /**
+   * Update asset metadata only. Never rewrites original or derived image bytes.
+   */
+  async patchImage(
+    projectId: string,
+    imageId: string,
+    patch: Partial<Pick<ProductImage, "processingStatus" | "analysisState" | "derivedKind" | "assetRole">>,
+  ): Promise<ProductImage> {
+    const project = await this.requireProject(projectId);
+    const index = project.productImages.findIndex((item) => item.id === imageId);
+    if (index < 0) throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Image not found", 404);
+    const current = project.productImages[index]!;
+    const updated: ProductImage = { ...current, ...patch };
+    project.productImages[index] = updated;
+    project.modifiedAt = new Date().toISOString();
+    await this.persist(project);
+    return this.normalizeImage(projectId, updated);
   }
 
   private toAssetRef(projectId: string, image: ProductImage): ProjectAssetRef {
@@ -464,7 +503,15 @@ export class CreativeWorkspaceManager {
       origin: hydrated.origin ?? "upload",
       parentAssetId: hydrated.parentAssetId,
       checksumSha256: hydrated.checksumSha256,
-      metadata: {},
+      analysisState: hydrated.analysisState,
+      derivedKind: hydrated.derivedKind,
+      assetRole: hydrated.assetRole,
+      metadata: {
+        analysisState: hydrated.analysisState ?? null,
+        derivedKind: hydrated.derivedKind ?? null,
+        assetRole: hydrated.assetRole ?? null,
+        original: isOriginalProductImage(hydrated),
+      },
     };
   }
 
@@ -484,6 +531,10 @@ export class CreativeWorkspaceManager {
       assetType: image.assetType ?? "original-image",
       origin: image.origin ?? "upload",
       processingStatus: image.processingStatus ?? "ready",
+      analysisState: image.analysisState
+        ?? (image.parentAssetId || image.origin === "derived" ? "not-applicable" : "pending"),
+      derivedKind: image.derivedKind,
+      assetRole: image.assetRole ?? "unassigned",
       url: image.url || `/api/workspace/projects/${projectId}/images/${image.id}.${EXT_BY_MIME[image.mimeType] ?? "bin"}`,
     };
   }

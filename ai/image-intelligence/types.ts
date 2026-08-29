@@ -39,6 +39,26 @@ export interface VisibilityCue {
   confidence: number;
 }
 
+export type ObservationKind = "observed-from-image" | "user-provided" | "inferred";
+
+export interface ImageAnalysisProvenance {
+  sourceAssetId: string;
+  analysisType: "image-intelligence";
+  analysisVersion: string;
+  provider: string;
+  model: string | null;
+  timestamp: string;
+  originalChecksumSha256?: string;
+  previousProfileId?: string;
+}
+
+export interface VisualObservation {
+  field: string;
+  value: string;
+  kind: ObservationKind;
+  confidence: number;
+}
+
 export interface ImageIntelligenceProfile {
   id: string;
   projectId: string;
@@ -64,12 +84,12 @@ export interface ImageIntelligenceProfile {
   cameraAngle: string;
   composition: string;
   perspective: string;
-  objects: Array<{ label: string; confidence: number }>;
+  objects: Array<{ label: string; confidence: number; kind?: ObservationKind }>;
   scene: string;
   defects: string[];
   enhancements: string[];
   /** Optional Phase 3 visual cues — backward compatible */
-  colors?: DetectedColorCue[];
+  colors?: Array<DetectedColorCue & { kind?: ObservationKind }>;
   logo?: LogoCue;
   detectedText?: DetectedTextCue[];
   visibility?: VisibilityCue;
@@ -79,6 +99,18 @@ export interface ImageIntelligenceProfile {
   createdAt: string;
   updatedAt: string;
   cached: boolean;
+  analysisVersion?: string;
+  analysisState?: "pending" | "analyzing" | "ready" | "failed" | "unavailable";
+  processingState?: "pending" | "processing" | "ready" | "failed";
+  aiVisionStatus?: "IMAGE_ANALYSIS_UNAVAILABLE" | "not-configured" | "completed";
+  visualMetrics?: import("./visual-metrics.js").VisualMetrics;
+  provenance?: ImageAnalysisProvenance;
+  observations?: VisualObservation[];
+  derivedThumbnailId?: string;
+  memoryStatus?: "linked" | "unavailable" | "error";
+  memoryMessage?: string;
+  knowledgeStatus?: "linked" | "unavailable" | "empty" | "error";
+  knowledgeMessage?: string;
 }
 
 export interface ImageIntelligenceStore {

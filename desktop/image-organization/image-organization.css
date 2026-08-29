@@ -369,7 +369,28 @@
 }
 
 .org-modal-card dt { font-size: 0.75rem; color: var(--org-muted); }
-.org-modal-card dd { margin: 0; font-weight: 650; }
+.org-modal-card dd { margin: 0; font-weight: 650; word-break: break-all; }
+
+.org-observations {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--org-line);
+}
+
+.org-observations h4 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+}
+
+.org-observations ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.org-observations small {
+  color: var(--org-muted);
+  font-weight: 500;
+}
 
 @media (max-width: 1050px) {
   .org-hero, .org-toolbar, .org-footer { flex-direction: column; align-items: stretch; }

@@ -7,6 +7,9 @@ import { CreativeWorkspaceManager } from "../../../../ai/creative-workspace/crea
 import { ImageIntelligenceManager } from "../../../../ai/image-intelligence/image-intelligence-manager.js";
 import { ProductIntelligenceManager } from "../../../../ai/product-intelligence/product-intelligence-manager.js";
 
+const PNG_1X1 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
@@ -33,12 +36,12 @@ describe("ProductIntelligenceManager", () => {
     await workspace.uploadImage(project.id, {
       fileName: "black-steel-bottle-front.png",
       mimeType: "image/png",
-      dataBase64: "iVBORw0KGgo=",
+      dataBase64: PNG_1X1,
     });
     await workspace.uploadImage(project.id, {
       fileName: "black-steel-bottle-side.png",
       mimeType: "image/png",
-      dataBase64: "iVBORw0KGgo=",
+      dataBase64: PNG_1X1,
     });
     const manager = new ProductIntelligenceManager();
     await manager.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });
@@ -83,12 +86,12 @@ describe("ProductIntelligenceManager", () => {
     await workspace.uploadImage(project.id, {
       fileName: "bottle-front.png",
       mimeType: "image/png",
-      dataBase64: "iVBORw0KGgo=",
+      dataBase64: PNG_1X1,
     });
     await workspace.uploadImage(project.id, {
       fileName: "bottle-front-copy.png",
       mimeType: "image/png",
-      dataBase64: "iVBORw0KGgo=",
+      dataBase64: PNG_1X1,
     });
     const images = new ImageIntelligenceManager();
     await images.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });

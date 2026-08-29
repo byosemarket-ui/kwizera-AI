@@ -3,8 +3,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager, ProductImage } from "../creative-workspace/creative-workspace-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { detectViewRole, detectViewRoleDetailed } from "../product-intelligence/view-role.js";
-import type { ImageIntelligenceProfile, ImageIntelligenceStore } from "./types.js";
+import { recordImageAnalysisFoundation } from "./analysis-bridge.js";
+import { ensureThumbnailAsset } from "./image-ingest.js";
+import type { ImageIntelligenceProfile, ImageIntelligenceStore, ObservationKind, VisualObservation } from "./types.js";
+import { ANALYSIS_VERSION, computeVisualMetrics, type VisualMetrics } from "./visual-metrics.js";
 
 const EMPTY: ImageIntelligenceStore = { profiles: [], history: [], cache: {}, logs: [] };
 
@@ -63,9 +67,11 @@ export class ImageIntelligenceManager {
     const validation = this.validation.validate(project);
     if (!validation.valid) throw new Error(validation.issues.join(" "));
     const foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
-    const profiles = await Promise.all(
-      project.productImages.map((image) => this.analyzeImage(project, image, foundationKnowledgeIds)),
-    );
+    const originals = project.productImages.filter(isOriginalProductImage);
+    const profiles: ImageIntelligenceProfile[] = [];
+    for (const image of originals) {
+      profiles.push(await this.analyzeImage(project, image, foundationKnowledgeIds));
+    }
     const marked = this.duplicates.mark(project, profiles);
     for (const profile of marked) {
       const index = this.store.profiles.findIndex((item) => item.imageId === profile.imageId);
@@ -75,23 +81,83 @@ export class ImageIntelligenceManager {
     return marked.map((profile) => ({ ...profile }));
   }
 
+  async analyzeAsset(projectId: string, imageId: string): Promise<ImageIntelligenceProfile> {
+    this.ensureReady();
+    const project = await this.workspace!.getProject(projectId);
+    if (!project) throw new Error("Project not found");
+    const image = project.productImages.find((item) => item.id === imageId);
+    if (!image) throw new Error("Image not found");
+    if (!isOriginalProductImage(image)) throw new Error("Derived images are not analyzed as source assets");
+    const foundationKnowledgeIds = await this.retrieveFoundationKnowledge(project);
+    return this.analyzeImage(project, image, foundationKnowledgeIds);
+  }
+
+  async attachDerivedThumbnail(projectId: string, imageId: string, thumbnailId: string): Promise<void> {
+    const index = this.store.profiles.findIndex((profile) => profile.projectId === projectId && profile.imageId === imageId);
+    if (index < 0) return;
+    this.store.profiles[index] = { ...this.store.profiles[index]!, derivedThumbnailId: thumbnailId };
+    await this.persist();
+  }
+
   async analyzeImage(
     project: CreativeProject,
     image: ProductImage,
     foundationKnowledgeIds: string[] = [],
   ): Promise<ImageIntelligenceProfile> {
+    if (!isOriginalProductImage(image)) {
+      throw new Error("Derived images are not analyzed as source assets");
+    }
     const key = this.cache.key(project, image);
     const cachedId = this.store.cache[key];
     const cached = cachedId ? this.store.profiles.find((profile) => profile.id === cachedId) : undefined;
-    if (cached) return { ...cached, cached: true };
-    const profile = this.buildProfile(project, image, foundationKnowledgeIds);
-    this.store.profiles = this.store.profiles.filter((item) => item.imageId !== image.id);
-    this.store.profiles.unshift(profile);
-    this.store.cache[key] = profile.id;
-    this.history.record(project.id, image.id, "analysis", `Analyzed ${image.fileName}: ${profile.quality.score}/100 quality.`);
-    this.log("info", `Image intelligence profile created for ${image.fileName}.`);
-    await this.persist();
-    return { ...profile };
+    if (cached?.analysisVersion === ANALYSIS_VERSION && cached.visualMetrics) {
+      if (!cached.derivedThumbnailId) {
+        const bytes = await this.readOriginalBytes(project.id, image.id);
+        const ingest = await ensureThumbnailAsset(this.workspace!, project, image, bytes);
+        if (ingest.thumbnailId) await this.attachDerivedThumbnail(project.id, image.id, ingest.thumbnailId);
+      }
+      return { ...cached, cached: true };
+    }
+
+    await this.workspace!.patchImage(project.id, image.id, { analysisState: "analyzing" }).catch(() => undefined);
+    try {
+      const bytes = await this.readOriginalBytes(project.id, image.id);
+      const visual = computeVisualMetrics({
+        bytes,
+        mimeType: image.mimeType,
+        width: image.width,
+        height: image.height,
+        sizeBytes: image.sizeBytes,
+      });
+      const previous = this.store.profiles.find((item) => item.imageId === image.id);
+      const profile = this.buildProfile(project, image, foundationKnowledgeIds, visual, previous?.id);
+      const ingest = await ensureThumbnailAsset(this.workspace!, project, image, bytes);
+      profile.derivedThumbnailId = ingest.thumbnailId;
+      const foundation = await recordImageAnalysisFoundation(
+        this.core,
+        project,
+        image,
+        profile,
+        this.store.profiles.filter((item) => item.projectId === project.id),
+      );
+      Object.assign(profile, foundation);
+      this.store.profiles = this.store.profiles.filter((item) => item.imageId !== image.id);
+      this.store.profiles.unshift(profile);
+      this.store.cache[key] = profile.id;
+      this.history.record(
+        project.id,
+        image.id,
+        previous ? "analysis-superseded" : "analysis",
+        `${previous ? `Superseded ${previous.id}. ` : ""}Analyzed ${image.fileName}: ${profile.quality.score}/100 (${ANALYSIS_VERSION}).`,
+      );
+      this.log("info", `Image intelligence profile created for ${image.fileName}.`);
+      await this.persist();
+      await this.workspace!.patchImage(project.id, image.id, { analysisState: "ready" }).catch(() => undefined);
+      return { ...profile };
+    } catch (error) {
+      await this.workspace!.patchImage(project.id, image.id, { analysisState: "failed" }).catch(() => undefined);
+      throw error;
+    }
   }
 
   async getProfiles(projectId: string): Promise<ImageIntelligenceProfile[]> {
@@ -181,22 +247,34 @@ export class ImageIntelligenceManager {
     project: CreativeProject,
     image: ProductImage,
     foundationKnowledgeIds: string[] = [],
+    visual: VisualMetrics,
+    previousProfileId?: string,
   ): ImageIntelligenceProfile {
     const evidence = `${project.productInformation.name} ${project.productInformation.description} ${image.fileName} ${(project.productInformation.colors ?? []).join(" ")}`;
-    const quality = this.quality.analyze(image);
+    const quality = this.quality.analyze(image, visual);
     quality.classification =
       quality.score >= 85 ? "GOOD"
         : quality.score >= 72 ? "ACCEPTABLE"
           : quality.score >= 55 ? "NEEDS_REVIEW"
             : "POOR";
-    const background = this.background.analyze(evidence);
+    const background = this.background.analyze(evidence, visual);
     const objects = this.objects.detect(project, image);
     const detection = detectViewRoleDetailed(image.fileName);
     const viewRole = detection.role;
-    const boundaries = this.boundary.detect(background, evidence);
-    const resolution = this.resolution.analyze(image);
+    const boundaries = this.boundary.detect(background, evidence, visual);
+    const resolution = this.resolution.analyze(image, visual);
     const defects = this.defects.detect(image, quality, resolution);
-    const colors = this.colorCues.detect(evidence, project.productInformation.colors ?? []);
+    const heuristicColors = this.colorCues.detect(evidence, project.productInformation.colors ?? []);
+    const pixelColors = (visual.dominantColors ?? []).map((color, index) => ({
+      name: color.name,
+      role: (index === 0 ? "primary" : index === 1 ? "secondary" : "accent") as "primary" | "secondary" | "accent",
+      confidence: Math.min(0.92, 0.62 + color.share * 0.3),
+      kind: "observed-from-image" as ObservationKind,
+    }));
+    const colors = [
+      ...pixelColors,
+      ...heuristicColors.filter((color) => !pixelColors.some((pixel) => pixel.name.toLowerCase() === color.name.toLowerCase())),
+    ].slice(0, 5);
     const logo = this.logoCues.detect(evidence, project.productInformation.brand ?? project.brandInformation.name, viewRole);
     const detectedText = this.textCues.detect(
       image.fileName,
@@ -205,6 +283,11 @@ export class ImageIntelligenceManager {
       project.productInformation.sku,
     );
     const visibility = this.visibilityCues.analyze(image, defects, quality);
+    const lightingHeuristic = this.lighting.analyze(evidence);
+    const lighting = visual.pixelAnalysisAvailable && visual.lightingObserved
+      ? `${visual.lightingObserved}; ${lightingHeuristic}`
+      : lightingHeuristic;
+    const observations = this.collectObservations(project, image, visual, viewRole, detection.confidence, objects, colors);
     const profile: ImageIntelligenceProfile = {
       id: randomUUID(),
       projectId: project.id,
@@ -216,11 +299,13 @@ export class ImageIntelligenceManager {
       boundaries,
       resolution,
       viewRole,
-      lighting: this.lighting.analyze(evidence),
+      lighting,
       shadows: this.shadow.analyze(evidence),
       reflections: this.reflection.analyze(evidence),
       cameraAngle: this.camera.analyze(evidence, viewRole),
-      composition: this.composition.analyze(evidence),
+      composition: visual.pixelAnalysisAvailable
+        ? `${visual.cleanlinessObserved ?? "composition observed from pixels"}; ${this.composition.analyze(evidence)}`
+        : this.composition.analyze(evidence),
       perspective: this.perspective.analyze(evidence, viewRole),
       objects,
       scene: this.scene.understand(project, objects, background),
@@ -239,14 +324,110 @@ export class ImageIntelligenceManager {
         logoPresent: logo.present ? 1 : 0,
         visibilityPercent: visibility.percent,
         qualityClass: quality.classification ?? "ACCEPTABLE",
+        analysisVersion: ANALYSIS_VERSION,
+        pixelAnalysisAvailable: visual.pixelAnalysisAvailable ? 1 : 0,
+        aiVisionStatus: "IMAGE_ANALYSIS_UNAVAILABLE",
       },
       foundationKnowledgeIds: foundationKnowledgeIds.length ? foundationKnowledgeIds : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       cached: false,
+      analysisVersion: ANALYSIS_VERSION,
+      analysisState: "ready",
+      processingState: "ready",
+      aiVisionStatus: "IMAGE_ANALYSIS_UNAVAILABLE",
+      visualMetrics: visual,
+      provenance: {
+        sourceAssetId: image.id,
+        analysisType: "image-intelligence",
+        analysisVersion: ANALYSIS_VERSION,
+        provider: visual.provider,
+        model: null,
+        timestamp: new Date().toISOString(),
+        originalChecksumSha256: image.checksumSha256,
+        previousProfileId,
+      },
+      observations,
     };
     profile.enhancements = this.enhancement.recommend(profile);
     return this.analysis.finalize(profile);
+  }
+
+  private collectObservations(
+    project: CreativeProject,
+    image: ProductImage,
+    visual: VisualMetrics,
+    viewRole: string,
+    viewConfidence: number,
+    objects: ImageIntelligenceProfile["objects"],
+    colors: NonNullable<ImageIntelligenceProfile["colors"]>,
+  ): VisualObservation[] {
+    const observations: VisualObservation[] = [
+      { field: "mimeType", value: image.mimeType, kind: "observed-from-image", confidence: 1 },
+      { field: "sizeBytes", value: String(image.sizeBytes), kind: "observed-from-image", confidence: 1 },
+    ];
+    if (visual.width && visual.height) {
+      observations.push({
+        field: "dimensions",
+        value: `${visual.width}x${visual.height}`,
+        kind: "observed-from-image",
+        confidence: visual.pixelAnalysisAvailable ? 0.99 : 0.9,
+      });
+    }
+    if (visual.aspectRatio) {
+      observations.push({ field: "aspectRatio", value: String(visual.aspectRatio), kind: "observed-from-image", confidence: 0.99 });
+    }
+    if (visual.backgroundObserved && visual.backgroundObserved !== "unavailable") {
+      observations.push({ field: "background", value: visual.backgroundObserved, kind: "observed-from-image", confidence: visual.borderUniformity ?? 0.5 });
+    }
+    if (visual.lightingObserved && visual.pixelAnalysisAvailable) {
+      observations.push({ field: "lighting", value: visual.lightingObserved, kind: "observed-from-image", confidence: 0.7 });
+    }
+    for (const color of colors.filter((color) => color.kind === "observed-from-image")) {
+      observations.push({ field: "color", value: color.name, kind: "observed-from-image", confidence: color.confidence });
+    }
+    observations.push({
+      field: "viewRole",
+      value: viewRole,
+      kind: "inferred",
+      confidence: viewConfidence,
+    });
+    for (const object of objects.filter((object) => object.kind === "inferred")) {
+      observations.push({ field: "object", value: object.label, kind: "inferred", confidence: object.confidence / 100 });
+    }
+    if (project.productInformation.name) {
+      observations.push({
+        field: "productName",
+        value: project.productInformation.name,
+        kind: "user-provided",
+        confidence: 1,
+      });
+    }
+    if (project.productInformation.category) {
+      observations.push({
+        field: "productCategory",
+        value: project.productInformation.category,
+        kind: "user-provided",
+        confidence: 1,
+      });
+    }
+    observations.push({
+      field: "aiVision",
+      value: "IMAGE_ANALYSIS_UNAVAILABLE",
+      kind: "inferred",
+      confidence: 1,
+    });
+    return observations;
+  }
+
+  private async readOriginalBytes(projectId: string, imageId: string): Promise<Buffer | null> {
+    try {
+      const originalPath = await this.workspace!.getOriginalImagePath(projectId, imageId);
+      if (!originalPath) return null;
+      return await fs.readFile(originalPath);
+    } catch {
+      return null;
+    }
   }
 
   private async readStore(): Promise<ImageIntelligenceStore> {
@@ -273,28 +454,42 @@ export class ImageIntelligenceManager {
 
 export class ImageAnalysisEngine {
   finalize(profile: ImageIntelligenceProfile): ImageIntelligenceProfile {
-    return { ...profile, metadata: { ...profile.metadata, provider: "local-image-evidence-analyzer" } };
+    return {
+      ...profile,
+      metadata: {
+        ...profile.metadata,
+        provider: profile.visualMetrics?.provider ?? "local-image-evidence-analyzer",
+        aiVisionStatus: "IMAGE_ANALYSIS_UNAVAILABLE",
+      },
+    };
   }
 }
 
 export class ImageQualityAnalyzer {
-  analyze(image: ProductImage): ImageIntelligenceProfile["quality"] {
+  analyze(image: ProductImage, visual?: VisualMetrics): ImageIntelligenceProfile["quality"] {
+    const width = visual?.width ?? image.width;
+    const height = visual?.height ?? image.height;
+    const pixels = (width ?? 0) * (height ?? 0);
+    const dimScore = pixels >= 2_000_000 ? 24 : pixels >= 300_000 ? 16 : pixels >= 10_000 ? 10 : pixels >= 1 ? 4 : 0;
     const sizeScore = image.sizeBytes > 100_000 ? 20 : image.sizeBytes > 10_000 ? 14 : 7;
-    const score = Math.min(94, 58 + sizeScore + (image.mimeType === "image/png" ? 8 : 5));
+    const score = Math.min(94, 50 + dimScore + sizeScore + (image.mimeType === "image/png" ? 8 : 5));
     return {
       score,
       confidence: Math.min(88, score - 8),
       notes: [
+        pixels
+          ? `Quality uses measured ${width}×${height} (${visual?.method ?? "header"}).`
+          : "Quality is assessed from file metadata; pixel dimensions were not available.",
         image.sizeBytes < 10_000 ? "Small source file may limit detail retention." : "Source file size supports standard creative use.",
-        "Quality is assessed from file metadata until a pixel-level provider is configured.",
         "Original image bytes were not modified.",
+        "AI vision is not configured — this is not a model-generated product description.",
       ],
     };
   }
 }
 
 export class BackgroundAnalysisEngine {
-  analyze(evidence: string): ImageIntelligenceProfile["background"] {
+  analyze(evidence: string, visual?: VisualMetrics): ImageIntelligenceProfile["background"] {
     if (/transparent|cutout|png.?alpha/i.test(evidence)) {
       return { type: "Transparent", removable: false, confidence: 78, complexity: "low", separation: "Excellent", removalSuitability: "high" };
     }
@@ -318,6 +513,12 @@ export class BackgroundAnalysisEngine {
     }
     if (/complex|busy|clutter/i.test(evidence)) {
       return { type: "Complex", removable: false, confidence: 58, complexity: "high", separation: "Poor", removalSuitability: "low" };
+    }
+    if (visual?.backgroundObserved === "uniform-light") {
+      return { type: "White Studio", removable: true, confidence: 64, complexity: "low", separation: "Good", removalSuitability: "high" };
+    }
+    if (visual?.backgroundObserved === "uniform-dark") {
+      return { type: "Black", removable: true, confidence: 60, complexity: "low", separation: "Good", removalSuitability: "high" };
     }
     return {
       type: "Unknown",
@@ -354,6 +555,7 @@ export class ColorCueEngine {
           name,
           role: found.length === 0 ? "primary" : found.length === 1 ? "secondary" : "accent",
           confidence: 0.72 + Math.min(0.2, found.length * 0.02),
+          kind: "inferred",
         });
       }
     }
@@ -364,6 +566,7 @@ export class ColorCueEngine {
         name,
         role: found.length === 0 ? "primary" : "secondary",
         confidence: 0.55,
+        kind: "user-provided",
       });
     }
     return found.slice(0, 5);
@@ -470,7 +673,14 @@ export class BackgroundRemovalAnalyzer {
 }
 
 export class ProductBoundaryDetector {
-  detect(background: ImageIntelligenceProfile["background"], evidence: string): ImageIntelligenceProfile["boundaries"] {
+  detect(background: ImageIntelligenceProfile["background"], evidence: string, visual?: VisualMetrics): ImageIntelligenceProfile["boundaries"] {
+    if (visual?.pixelAnalysisAvailable && (visual.borderUniformity ?? 0) >= 0.8) {
+      return {
+        detected: true,
+        confidence: Math.min(82, Math.round(50 + (visual.borderUniformity ?? 0) * 40)),
+        notes: "Product/background separation observed from border uniformity. No mask was written to disk.",
+      };
+    }
     if (background.removable) {
       return {
         detected: true,
@@ -494,13 +704,20 @@ export class ProductBoundaryDetector {
 }
 
 export class ImageResolutionAnalyzer {
-  analyze(image: ProductImage): ImageIntelligenceProfile["resolution"] {
+  analyze(image: ProductImage, visual?: VisualMetrics): ImageIntelligenceProfile["resolution"] {
+    const width = visual?.width ?? image.width;
+    const height = visual?.height ?? image.height;
+    const pixels = (width ?? 0) * (height ?? 0);
     const estimatedFromBytes = Math.max(0.05, Number((image.sizeBytes / 180_000).toFixed(2)));
-    const tier = image.sizeBytes < 10_000 ? "low" : image.sizeBytes < 250_000 ? "standard" : "high";
+    const tier = pixels
+      ? pixels >= 2_000_000 ? "high" : pixels >= 300_000 ? "standard" : "low"
+      : image.sizeBytes < 10_000 ? "low" : image.sizeBytes < 250_000 ? "standard" : "high";
     return {
       tier,
       estimatedFromBytes,
-      notes: `Resolution tier ${tier} estimated from ${image.sizeBytes} source bytes (not pixel-decoded).`,
+      notes: width && height
+        ? `Measured ${width}×${height} from ${visual?.method ?? "image header"} (${image.sizeBytes} bytes).`
+        : `Resolution tier ${tier} estimated from ${image.sizeBytes} source bytes (not pixel-decoded).`,
     };
   }
 }
@@ -559,10 +776,16 @@ export class PerspectiveAnalyzer {
 
 export class ObjectDetectionEngine {
   detect(project: CreativeProject, image: ProductImage): ImageIntelligenceProfile["objects"] {
-    return [
-      { label: project.productInformation.name || "primary product", confidence: 86 },
-      ...(image.fileName.toLowerCase().includes("bottle") ? [{ label: "bottle", confidence: 82 }] : []),
-    ];
+    const objects: ImageIntelligenceProfile["objects"] = [];
+    if (project.productInformation.name) {
+      objects.push({ label: project.productInformation.name, confidence: 90, kind: "user-provided" });
+    } else {
+      objects.push({ label: "primary product", confidence: 40, kind: "inferred" });
+    }
+    if (image.fileName.toLowerCase().includes("bottle")) {
+      objects.push({ label: "bottle", confidence: 62, kind: "inferred" });
+    }
+    return objects;
   }
 }
 
@@ -651,9 +874,10 @@ export class ImageCacheManager {
   key(project: CreativeProject, image: ProductImage): string {
     return createHash("sha256")
       .update(JSON.stringify({
+        version: ANALYSIS_VERSION,
         project: project.id,
         product: project.productInformation,
-        image: [image.id, image.fileName, image.mimeType, image.sizeBytes],
+        image: [image.id, image.fileName, image.mimeType, image.sizeBytes, image.checksumSha256 ?? ""],
       }))
       .digest("hex");
   }
@@ -661,7 +885,8 @@ export class ImageCacheManager {
 
 export class ImageValidationManager {
   validate(project: CreativeProject): { valid: boolean; issues: string[] } {
-    const issues = [!project.productImages.length ? "Upload at least one product image for analysis." : ""].filter(Boolean);
+    const originals = project.productImages.filter(isOriginalProductImage);
+    const issues = [!originals.length ? "Upload at least one product image for analysis." : ""].filter(Boolean);
     return { valid: !issues.length, issues };
   }
 }

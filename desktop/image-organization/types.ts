@@ -54,6 +54,16 @@ export interface OrganizedImage {
   qualityScore: number;
   warnings: OrganizationWarning[];
   analyzedAt: string;
+  origin?: "original" | "derived";
+  processingState?: string;
+  analysisState?: string;
+  aiVisionStatus?: string;
+  analysisVersion?: string;
+  provenanceProvider?: string;
+  visualMethod?: string;
+  pixelAnalysisAvailable?: boolean;
+  observations?: Array<{ field: string; value: string; kind: string; confidence: number }>;
+  derivedThumbnailId?: string;
 }
 
 export interface ViewGroup {

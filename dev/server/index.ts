@@ -18,6 +18,7 @@ import { resolvePublicUiFile } from "./static-ui.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
+import { ingestUploadedImage } from "../../ai/image-intelligence/image-ingest.js";
 
 import {
 
@@ -3810,6 +3811,13 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       });
 
+      const intelligence = getImageIntelligenceManager();
+      if (intelligence?.isInitialized()) {
+        setImmediate(() => {
+          void ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id).catch(() => undefined);
+        });
+      }
+
       const raw = await workspace.getProject(uploadMatch[1]);
       const project = raw ? await withFoundation(workspace, raw, "asset") : raw;
       sendJson(res, 201, {
@@ -3818,6 +3826,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         asset: project ? workspace.getAsset(project, image.id) : null,
         validation: workspace.validate(project),
         intake: workspace.validateIntake(project),
+        ingestQueued: Boolean(intelligence?.isInitialized()),
       });
 
     } catch (error) {

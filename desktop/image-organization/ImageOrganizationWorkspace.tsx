@@ -17,6 +17,10 @@ export function ImageOrganizationWorkspace() {
   const { notify, switchWorkspace } = useShell();
   const [snap, setSnap] = useState<OrganizationSnapshot>(() => imageOrganizationEngine.snapshot());
   const [preview, setPreview] = useState<OrganizedImage | null>(null);
+  const [details, setDetails] = useState<{
+    derivedCount: number;
+    original: boolean;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -57,6 +61,24 @@ export function ImageOrganizationWorkspace() {
       notify("error", "Analysis failed", error instanceof Error ? error.message : "Unable to analyze", "errors");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const openDetails = async (img: OrganizedImage) => {
+    setPreview(img);
+    setDetails(null);
+    if (!img.projectId) return;
+    try {
+      const response = await fetch(`/api/workspace/projects/${img.projectId}/assets`);
+      const body = await response.json() as { assets?: Array<{ assetId: string; parentAssetId?: string; metadata?: { original?: boolean } }> };
+      const derivedCount = (body.assets ?? []).filter((asset) => asset.parentAssetId === img.assetId).length;
+      const self = (body.assets ?? []).find((asset) => asset.assetId === img.assetId);
+      setDetails({
+        derivedCount,
+        original: Boolean(self?.metadata?.original ?? true),
+      });
+    } catch {
+      setDetails(null);
     }
   };
 
@@ -189,6 +211,9 @@ export function ImageOrganizationWorkspace() {
                               {img.width && img.height ? `${img.width}×${img.height}` : "—"} · {formatBytes(img.fileSize)}
                             </small>
                             <small>{img.backgroundType} · {img.visibilityStatus}</small>
+                            <small>
+                              {img.analysisState ?? "pending"} · {img.aiVisionStatus === "completed" ? "AI analyzed" : "AI vision unavailable"}
+                            </small>
                             {(img.duplicateOfAssetId) && (
                               <div className="org-dup">
                                 <span>Possible duplicate</span>
@@ -206,7 +231,7 @@ export function ImageOrganizationWorkspace() {
                             </label>
                           </div>
                           <div className="org-card-actions">
-                            <button type="button" title="Preview" onClick={() => setPreview(img)}><Eye size={14} /></button>
+                            <button type="button" title="Preview" onClick={() => void openDetails(img)}><Eye size={14} /></button>
                             <button type="button" title="Set Primary" onClick={() => void imageOrganizationEngine.setPrimary(img.assetId)}><Star size={14} /></button>
                             <button type="button" title="Remove from group" onClick={() => imageOrganizationEngine.removeFromGroup(img.assetId)}><RefreshCw size={14} /></button>
                           </div>
@@ -236,20 +261,45 @@ export function ImageOrganizationWorkspace() {
       </footer>
 
       {preview && (
-        <div className="org-modal" onClick={() => setPreview(null)}>
+        <div className="org-modal" onClick={() => { setPreview(null); setDetails(null); }}>
           <div className="org-modal-card" onClick={(e) => e.stopPropagation()}>
             <header>
               <h3>{preview.fileName}</h3>
-              <button type="button" onClick={() => setPreview(null)}>Close</button>
+              <button type="button" onClick={() => { setPreview(null); setDetails(null); }}>Close</button>
             </header>
             {preview.url && <img src={preview.url} alt="" />}
             <dl>
+              <div><dt>Asset ID</dt><dd>{preview.assetId}</dd></div>
+              <div><dt>Project</dt><dd>{preview.projectId}</dd></div>
+              <div><dt>Original / derived</dt><dd>{details?.original === false ? "Derived" : "Original source"}</dd></div>
+              <div><dt>Type</dt><dd>{preview.mimeType}</dd></div>
+              <div><dt>Dimensions</dt><dd>{preview.width && preview.height ? `${preview.width}×${preview.height}` : "—"}</dd></div>
+              <div><dt>File size</dt><dd>{formatBytes(preview.fileSize)}</dd></div>
+              <div><dt>Processing</dt><dd>{preview.processingState ?? "ready"}</dd></div>
+              <div><dt>Analysis</dt><dd>{preview.analysisState ?? "pending"}</dd></div>
+              <div><dt>AI vision</dt><dd>{preview.aiVisionStatus === "completed" ? "completed" : "IMAGE ANALYSIS UNAVAILABLE"}</dd></div>
               <div><dt>View</dt><dd>{preview.viewType} ({Math.round(preview.confidence * 100)}%)</dd></div>
-              <div><dt>Role</dt><dd>{preview.roleInGroup}</dd></div>
+              <div><dt>Role in set</dt><dd>{preview.roleInGroup}</dd></div>
               <div><dt>Background</dt><dd>{preview.backgroundType}</dd></div>
               <div><dt>Visibility</dt><dd>{preview.visibilityStatus}</dd></div>
               <div><dt>Quality</dt><dd>{preview.qualityScore}/100</dd></div>
+              <div><dt>Visual method</dt><dd>{preview.visualMethod ?? "—"}</dd></div>
+              <div><dt>Provenance</dt><dd>{preview.provenanceProvider ?? "—"} {preview.analysisVersion ? `· ${preview.analysisVersion}` : ""}</dd></div>
+              <div><dt>Derived assets</dt><dd>{details ? `${details.derivedCount} linked` : preview.derivedThumbnailId ? "thumbnail registered" : "—"}</dd></div>
             </dl>
+            {preview.observations && preview.observations.length > 0 && (
+              <div className="org-observations">
+                <h4>Visual observations</h4>
+                <ul>
+                  {preview.observations.slice(0, 12).map((item) => (
+                    <li key={`${item.field}-${item.value}`}>
+                      <b>{item.field}</b> {item.value}
+                      <small> {item.kind} · {Math.round(item.confidence * 100)}%</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}
