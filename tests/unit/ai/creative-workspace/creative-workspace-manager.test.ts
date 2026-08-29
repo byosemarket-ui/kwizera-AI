@@ -31,7 +31,7 @@ describe("CreativeWorkspaceManager", () => {
     await workspace.uploadImage(project.id, {
       fileName: "bottle.png",
       mimeType: "image/png",
-      dataBase64: "iVBORw0KGgo=",
+      dataBase64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
     });
 
     const restoredWorkspace = new CreativeWorkspaceManager();

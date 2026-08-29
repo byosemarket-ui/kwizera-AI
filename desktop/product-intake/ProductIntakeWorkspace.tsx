@@ -190,6 +190,11 @@ export function ProductIntakeWorkspace() {
         >
           {busy && !snap.projectId ? "Creating…" : snap.projectId ? "Update Project" : "Create Project"}
         </button>
+        {snap.projectId && (
+          <div className="intake-status-chip" data-ok="1" title={snap.projectId}>
+            Project ID {snap.projectId.slice(0, 8)}
+          </div>
+        )}
         <div className="intake-status-chip" data-ok={snap.canContinue ? "1" : "0"}>
           {snap.canContinue ? "Ready to continue" : snap.continueBlockedReason ?? "Not ready"}
         </div>

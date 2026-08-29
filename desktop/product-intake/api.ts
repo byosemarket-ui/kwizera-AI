@@ -7,7 +7,7 @@ export interface CreativeProjectDto {
   name: string;
   createdAt: string;
   modifiedAt: string;
-  productImages: Array<{
+    productImages: Array<{
     id: string;
     fileName: string;
     mimeType: string;
@@ -18,6 +18,11 @@ export interface CreativeProjectDto {
     height?: number;
     checksumSha256?: string;
     sourceFileName?: string;
+    projectId?: string;
+    assetType?: string;
+    origin?: string;
+    parentAssetId?: string;
+    processingStatus?: string;
   }>;
   productInformation: Record<string, unknown> & {
     name: string;

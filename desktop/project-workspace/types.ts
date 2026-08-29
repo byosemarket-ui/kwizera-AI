@@ -5,8 +5,26 @@ export interface WorkspaceProject {
   name: string;
   createdAt: string;
   modifiedAt: string;
-  productImages: Array<{ id: string; fileName: string; mimeType: string; sizeBytes: number; uploadedAt: string; url: string }>;
+  status?: "open" | "closed";
+  productImages: Array<{
+    id: string;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    uploadedAt: string;
+    url: string;
+    width?: number;
+    height?: number;
+    assetType?: string;
+    origin?: string;
+    parentAssetId?: string;
+  }>;
   productInformation: { name: string; category: string };
+  foundation?: {
+    memoryStatus?: string;
+    knowledgeStatus?: string;
+    memoryId?: string | null;
+  };
 }
 
 export interface AssetRecord {

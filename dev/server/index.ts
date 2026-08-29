@@ -16,6 +16,8 @@ import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
+import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
+import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
 
 import {
 
@@ -287,6 +289,28 @@ function requireWorkspace(res: ServerResponse) {
 
   return workspace;
 
+}
+
+function sendWorkspaceError(res: ServerResponse, error: unknown): void {
+  if (error instanceof CreativeWorkspaceError) {
+    sendJson(res, error.httpStatus, { error: error.message, code: error.code });
+    return;
+  }
+  sendJson(res, 400, { error: error instanceof Error ? error.message : "Workspace request failed" });
+}
+
+async function withFoundation(
+  workspace: NonNullable<ReturnType<typeof getWorkspaceManager>>,
+  project: NonNullable<Awaited<ReturnType<NonNullable<ReturnType<typeof getWorkspaceManager>>["getActiveProject"]>>>,
+  reason: "create" | "open" | "asset",
+) {
+  try {
+    const manager = getPersistentRuntime()?.getManager();
+    const foundation = await linkProjectFoundation(project, manager, reason);
+    return await workspace.updateProject(project.id, { foundation });
+  } catch {
+    return project;
+  }
 }
 
 function requirePlanning(res: ServerResponse) {
@@ -3476,13 +3500,13 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       const body = JSON.parse(await readBody(req)) as { name?: string };
 
-      const project = await workspace.createProject(body.name ?? "");
-
+      const created = await workspace.createProject(body.name ?? "");
+      const project = await withFoundation(workspace, created, "create");
       sendJson(res, 201, { project, validation: workspace.validate(project) });
 
     } catch (error) {
 
-      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to create project" });
+      sendWorkspaceError(res, error);
 
     }
 
@@ -3504,6 +3528,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     sendJson(res, 200, {
       project,
+      assets: workspace.listProjectAssets(project),
       validation: workspace.validate(project),
       intake: workspace.validateIntake(project),
       productProfile: workspace.validateProductProfile(project),
@@ -3525,14 +3550,21 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       const body = JSON.parse(await readBody(req)) as { action?: string; changes?: Record<string, unknown> };
 
-      const project = body.action === "open"
-
+      let project = body.action === "open"
         ? await workspace.openProject(projectMatch[1])
+        : body.action === "close"
+          ? await workspace.closeProject(projectMatch[1])
+          : await workspace.updateProject(projectMatch[1], body.changes ?? {});
 
-        : await workspace.updateProject(projectMatch[1], body.changes ?? {});
+      if (!project) { sendJson(res, 404, { error: "Project not found", code: "PROJECT_NOT_FOUND" }); return; }
+
+      if (body.action === "open") {
+        project = await withFoundation(workspace, project, "open");
+      }
 
       sendJson(res, 200, {
         project,
+        assets: workspace.listProjectAssets(project),
         validation: workspace.validate(project),
         intake: workspace.validateIntake(project),
         productProfile: workspace.validateProductProfile(project),
@@ -3542,7 +3574,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     } catch (error) {
 
-      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to save project" });
+      sendWorkspaceError(res, error);
 
     }
 
@@ -3778,13 +3810,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       });
 
-      const project = await workspace.getProject(uploadMatch[1]);
-
-      sendJson(res, 201, { image, project, validation: workspace.validate(project), intake: workspace.validateIntake(project) });
+      const raw = await workspace.getProject(uploadMatch[1]);
+      const project = raw ? await withFoundation(workspace, raw, "asset") : raw;
+      sendJson(res, 201, {
+        image,
+        project,
+        asset: project ? workspace.getAsset(project, image.id) : null,
+        validation: workspace.validate(project),
+        intake: workspace.validateIntake(project),
+      });
 
     } catch (error) {
 
-      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to upload image" });
+      sendWorkspaceError(res, error);
 
     }
 
@@ -3808,7 +3846,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     } catch (error) {
 
-      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to remove image" });
+      sendWorkspaceError(res, error);
 
     }
 
@@ -3816,6 +3854,67 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  const assetsMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/assets$/);
+
+  if (assetsMatch && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    const project = await workspace.getProject(assetsMatch[1]);
+    if (!project) { sendJson(res, 404, { error: "Project not found", code: "PROJECT_NOT_FOUND" }); return; }
+    sendJson(res, 200, {
+      projectId: project.id,
+      assets: workspace.listProjectAssets(project),
+    });
+    return;
+  }
+
+  if (assetsMatch && req.method === "POST") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        fileName?: string;
+        mimeType?: string;
+        dataBase64?: string;
+        parentAssetId?: string;
+        assetType?: "derived-image" | "generated-image";
+      };
+      if (!body.parentAssetId) {
+        sendJson(res, 400, { error: "parentAssetId is required for derived assets", code: "INVALID_ASSET" });
+        return;
+      }
+      const derived = await workspace.registerDerivedAsset(assetsMatch[1], {
+        fileName: body.fileName ?? "derived.png",
+        mimeType: body.mimeType ?? "image/png",
+        dataBase64: body.dataBase64 ?? "",
+        parentAssetId: body.parentAssetId,
+        assetType: body.assetType ?? "derived-image",
+      });
+      const raw = await workspace.getProject(assetsMatch[1]);
+      const project = raw ? await withFoundation(workspace, raw, "asset") : raw;
+      sendJson(res, 201, {
+        image: derived,
+        asset: project ? workspace.getAsset(project, derived.id) : null,
+        project,
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const assetMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/assets\/([^/]+)$/);
+
+  if (assetMatch && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    const project = await workspace.getProject(assetMatch[1]);
+    if (!project) { sendJson(res, 404, { error: "Project not found", code: "PROJECT_NOT_FOUND" }); return; }
+    const asset = workspace.getAsset(project, assetMatch[2]);
+    if (!asset) { sendJson(res, 404, { error: "Asset not found", code: "ASSET_NOT_FOUND" }); return; }
+    sendJson(res, 200, { asset });
+    return;
+  }
 
 
   if (url.pathname === "/api/session/ui" && req.method === "POST") {

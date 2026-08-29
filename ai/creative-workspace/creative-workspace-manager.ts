@@ -3,6 +3,27 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { ProjectState } from "../state-manager/types.js";
+import { inspectImageBuffer } from "./image-inspect.js";
+import {
+  CreativeWorkspaceError,
+  isSafeProjectId,
+  type AssetOrigin,
+  type AssetProcessingStatus,
+  type ProjectAssetRef,
+  type ProjectAssetType,
+  type ProjectFoundationLinks,
+} from "./project-asset.js";
+export {
+  CreativeWorkspaceError,
+  isSafeProjectId,
+} from "./project-asset.js";
+export type {
+  AssetOrigin,
+  AssetProcessingStatus,
+  ProjectAssetRef,
+  ProjectAssetType,
+  ProjectFoundationLinks,
+} from "./project-asset.js";
 
 export interface ProductVariant {
   id: string;
@@ -86,6 +107,12 @@ export interface ProductImage {
   height?: number;
   checksumSha256?: string;
   sourceFileName?: string;
+  /** STEP 5 additive fields — absent on pre-STEP-5 project.json records */
+  projectId?: string;
+  assetType?: ProjectAssetType;
+  origin?: AssetOrigin;
+  processingStatus?: AssetProcessingStatus;
+  parentAssetId?: string;
 }
 
 export interface CreativeProject {
@@ -101,6 +128,10 @@ export interface CreativeProject {
   language: string;
   platform: string;
   workspaceSettings: Record<string, unknown>;
+  /** STEP 5 — Memory/Knowledge links. Optional so legacy projects still load. */
+  description?: string;
+  status?: "open" | "closed";
+  foundation?: ProjectFoundationLinks;
 }
 
 export interface ValidationResult {
@@ -115,6 +146,9 @@ export interface UploadedImageInput {
   width?: number;
   height?: number;
   checksumSha256?: string;
+  assetType?: ProjectAssetType;
+  origin?: AssetOrigin;
+  parentAssetId?: string;
 }
 
 export type CreativeWorkspaceOrphanKind =
@@ -222,6 +256,8 @@ export class CreativeWorkspaceManager {
       language: "en",
       platform: "instagram",
       workspaceSettings: {},
+      description: "",
+      status: "open",
     };
 
     await fs.mkdir(this.projectPath(project.id), { recursive: true });
@@ -240,7 +276,9 @@ export class CreativeWorkspaceManager {
 
   async getProject(projectId: string): Promise<CreativeProject | null> {
     this.ensureInitialized();
-    return this.readJson<CreativeProject | null>(this.projectFile(projectId), null);
+    if (!isSafeProjectId(projectId)) return null;
+    const project = await this.readJson<CreativeProject | null>(this.projectFile(projectId), null);
+    return project ? this.hydrateProject(project) : null;
   }
 
   async getActiveProject(): Promise<CreativeProject | null> {
@@ -250,9 +288,28 @@ export class CreativeWorkspaceManager {
   async openProject(projectId: string): Promise<CreativeProject> {
     const project = await this.requireProject(projectId);
     this.index.activeProjectId = project.id;
+    project.status = "open";
+    project.modifiedAt = new Date().toISOString();
+    await this.persist(project);
     await this.saveIndex();
     this.transition(project.id, ProjectState.Open);
-    return project;
+    return this.hydrateProject(project);
+  }
+
+  async closeProject(projectId?: string): Promise<CreativeProject | null> {
+    this.ensureInitialized();
+    const target = projectId ?? this.index.activeProjectId;
+    if (!target) return null;
+    const project = await this.getProject(target);
+    if (this.index.activeProjectId === target) {
+      this.index.activeProjectId = null;
+      await this.saveIndex();
+    }
+    if (!project) return null;
+    project.status = "closed";
+    project.modifiedAt = new Date().toISOString();
+    await this.persist(project);
+    return this.hydrateProject(project);
   }
 
   async updateProject(projectId: string, changes: Partial<Omit<CreativeProject, "id" | "createdAt" | "modifiedAt" | "productImages">>): Promise<CreativeProject> {
@@ -274,17 +331,21 @@ export class CreativeWorkspaceManager {
   async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
     const project = await this.requireProject(projectId);
     if (FUTURE_IMAGE_TYPES.has(image.mimeType)) {
-      throw new Error(`Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
+      throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", `Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
     }
     if (!ALLOWED_IMAGE_TYPES.has(image.mimeType)) {
-      throw new Error("Unsupported format. Supported: JPG, JPEG, PNG, WEBP, TIFF, BMP");
+      throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", "Unsupported format. Supported: JPG, JPEG, PNG, WEBP, TIFF, BMP");
     }
     const data = Buffer.from(image.dataBase64, "base64");
     if (!data.length || data.length > MAX_IMAGE_BYTES) {
-      throw new Error("Product image must be between 1 byte and 25 MB");
+      throw new CreativeWorkspaceError("INVALID_IMAGE", "Product image must be between 1 byte and 25 MB");
+    }
+    const inspected = inspectImageBuffer(data, image.mimeType);
+    if (!inspected.ok) {
+      throw new CreativeWorkspaceError(inspected.code, inspected.message);
     }
 
-    const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1]?.replace("x-ms-", "") ?? "bin";
+    const extension = EXT_BY_MIME[inspected.mimeType] ?? inspected.mimeType.split("/")[1]?.replace("x-ms-", "") ?? "bin";
     const id = randomUUID();
     const safeName = path.basename(image.fileName).replace(/[^a-zA-Z0-9._-]/g, "_") || `product.${extension}`;
     const storedName = `${id}.${extension}`;
@@ -298,14 +359,19 @@ export class CreativeWorkspaceManager {
     const uploaded: ProductImage = {
       id,
       fileName: safeName,
-      mimeType: image.mimeType === "image/x-ms-bmp" ? "image/bmp" : image.mimeType,
+      mimeType: inspected.mimeType,
       sizeBytes: data.length,
       uploadedAt: new Date().toISOString(),
       url: `/api/workspace/projects/${projectId}/images/${storedName}`,
-      width: image.width,
-      height: image.height,
+      width: inspected.width ?? image.width,
+      height: inspected.height ?? image.height,
       checksumSha256,
       sourceFileName: image.fileName,
+      projectId,
+      assetType: image.assetType ?? "original-image",
+      origin: image.origin ?? "upload",
+      processingStatus: "ready",
+      parentAssetId: image.parentAssetId,
     };
     project.productImages.push(uploaded);
     project.modifiedAt = uploaded.uploadedAt;
@@ -316,7 +382,7 @@ export class CreativeWorkspaceManager {
   async removeImage(projectId: string, imageId: string): Promise<CreativeProject> {
     const project = await this.requireProject(projectId);
     const image = project.productImages.find((item) => item.id === imageId);
-    if (!image) throw new Error("Image not found");
+    if (!image) throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Image not found", 404);
     const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1] ?? "bin";
     const storedName = `${image.id}.${extension}`;
     const filePath = path.join(this.projectPath(projectId), "images", storedName);
@@ -332,7 +398,12 @@ export class CreativeWorkspaceManager {
   }
 
   async getImagePath(projectId: string, imageFile: string): Promise<string | null> {
+    if (!isSafeProjectId(projectId)) return null;
     if (!/^[a-f0-9-]+\.(jpe?g|png|webp|tiff?|bmp)$/i.test(imageFile)) return null;
+    const project = await this.getProject(projectId);
+    if (!project) return null;
+    const imageId = imageFile.replace(/\.[^.]+$/, "");
+    if (!project.productImages.some((item) => item.id === imageId)) return null;
     const filePath = path.join(this.projectPath(projectId), "images", imageFile);
     try {
       await fs.access(filePath);
@@ -349,6 +420,72 @@ export class CreativeWorkspaceManager {
     if (!image) return null;
     const extension = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
     return this.getImagePath(projectId, `${imageId}.${extension}`);
+  }
+
+  listProjectAssets(project: CreativeProject): ProjectAssetRef[] {
+    return project.productImages.map((image) => this.toAssetRef(project.id, image));
+  }
+
+  getAsset(project: CreativeProject, assetId: string): ProjectAssetRef | null {
+    const image = project.productImages.find((item) => item.id === assetId);
+    return image ? this.toAssetRef(project.id, image) : null;
+  }
+
+  /**
+   * Store a derived representation next to the original. Never overwrites the parent file.
+   */
+  async registerDerivedAsset(projectId: string, input: UploadedImageInput & { parentAssetId: string; assetType?: ProjectAssetType }): Promise<ProductImage> {
+    const project = await this.requireProject(projectId);
+    if (!project.productImages.some((item) => item.id === input.parentAssetId)) {
+      throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Parent asset not found", 404);
+    }
+    return this.uploadImage(projectId, {
+      ...input,
+      assetType: input.assetType ?? "derived-image",
+      origin: "derived",
+      parentAssetId: input.parentAssetId,
+    });
+  }
+
+  private toAssetRef(projectId: string, image: ProductImage): ProjectAssetRef {
+    const hydrated = this.normalizeImage(projectId, image);
+    return {
+      assetId: hydrated.id,
+      projectId,
+      assetType: hydrated.assetType ?? "original-image",
+      originalFilename: hydrated.sourceFileName ?? hydrated.fileName,
+      storageRef: hydrated.url,
+      mimeType: hydrated.mimeType,
+      sizeBytes: hydrated.sizeBytes,
+      width: hydrated.width,
+      height: hydrated.height,
+      createdAt: hydrated.uploadedAt,
+      processingStatus: hydrated.processingStatus ?? "ready",
+      origin: hydrated.origin ?? "upload",
+      parentAssetId: hydrated.parentAssetId,
+      checksumSha256: hydrated.checksumSha256,
+      metadata: {},
+    };
+  }
+
+  private hydrateProject(project: CreativeProject): CreativeProject {
+    const active = this.index.activeProjectId === project.id;
+    return {
+      ...project,
+      status: active ? "open" : (project.status ?? "closed"),
+      productImages: project.productImages.map((image) => this.normalizeImage(project.id, image)),
+    };
+  }
+
+  private normalizeImage(projectId: string, image: ProductImage): ProductImage {
+    return {
+      ...image,
+      projectId: image.projectId ?? projectId,
+      assetType: image.assetType ?? "original-image",
+      origin: image.origin ?? "upload",
+      processingStatus: image.processingStatus ?? "ready",
+      url: image.url || `/api/workspace/projects/${projectId}/images/${image.id}.${EXT_BY_MIME[image.mimeType] ?? "bin"}`,
+    };
   }
 
   /** Full creative brief validation (later steps). */
@@ -718,7 +855,7 @@ export class CreativeWorkspaceManager {
 
   private async requireProject(projectId: string): Promise<CreativeProject> {
     const project = await this.getProject(projectId);
-    if (!project) throw new Error("Project not found");
+    if (!project) throw new CreativeWorkspaceError("PROJECT_NOT_FOUND", "Project not found", 404);
     return project;
   }
 

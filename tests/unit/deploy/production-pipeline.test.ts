@@ -88,7 +88,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("secrets.VPS_KNOWN_HOSTS");
     expect(yml).toContain("BatchMode=yes");
     expect(yml).toContain("npm run build:production");
-    expect(yml).toContain("npx vitest run tests/unit/deploy tests/unit/dev/server");
+    expect(yml).toContain("npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/ai/creative-workspace");
     expect(yml).not.toContain("tests/unit/desktop");
     expect(yml).not.toContain("162.35.114.19");
     expect(yml).not.toMatch(/BEGIN (OPENSSH|RSA|EC) PRIVATE KEY/);
