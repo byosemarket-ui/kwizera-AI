@@ -340,7 +340,7 @@ export class ProductIntelligenceManager {
       category,
       brand,
       description: project.productInformation.description,
-      imageIds: project.productImages.map((image) => image.id),
+      imageIds: project.productImages.filter(isOriginalProductImage).map((image) => image.id),
       viewCount: view.viewCount,
       materials,
       colours: colours.filter((item) => !item.includes("verification") || !userColours.length),

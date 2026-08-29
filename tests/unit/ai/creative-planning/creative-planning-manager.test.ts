@@ -37,6 +37,29 @@ describe("CreativePlanningManager", () => {
     expect(updated.version).toBe(2);
     expect((await restoredManager.getPlan(project.id))?.creativeBrief).toBe("Approved custom creative brief.");
   });
+
+  it("creates a plan from product name and original images without campaign fields", async () => {
+    const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-planning-step7-"));
+    roots.push(storageRoot);
+    const manager = new CreativePlanningManager();
+    await manager.initialize(storageRoot);
+    manager.attachDecisionIntelligence({
+      decide: async () => {
+        throw new Error("Campaign objective is required for a decision. Target audience is required for a decision.");
+      },
+    } as never);
+    const project = {
+      ...projectFixture(),
+      id: "project-step7-minimal",
+      brandInformation: { name: "" },
+      campaignInformation: { name: "", objective: "" },
+      targetAudience: "",
+    };
+    const result = await manager.createPlan(project, manager.validateForPlan(project));
+    expect(result.plan?.scenes.length).toBeGreaterThanOrEqual(3);
+    expect(result.plan?.scenes.every((scene) => scene.assetId === "image-1")).toBe(true);
+    expect(result.plan?.callToAction).toContain("Studio Bottle");
+  });
 });
 
 function projectFixture(): CreativeProject {

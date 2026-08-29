@@ -71,6 +71,9 @@ export async function recordProductIntelligenceFoundation(
       if (taught.ok && taught.knowledgeId) {
         result.knowledgeStatus = "linked";
         result.foundationKnowledgeIds = [...new Set([...(result.foundationKnowledgeIds ?? []), taught.knowledgeId])];
+      } else if (/already exists|equivalent knowledge/i.test(taught.error ?? "")) {
+        result.knowledgeStatus = "linked";
+        result.knowledgeMessage = taught.error;
       } else {
         result.knowledgeStatus = taught.ok ? "empty" : "error";
         result.knowledgeMessage = taught.error ?? "Knowledge teaching did not store a record";

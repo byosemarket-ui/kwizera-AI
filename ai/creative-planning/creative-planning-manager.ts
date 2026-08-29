@@ -124,7 +124,11 @@ export class CreativePlanningManager {
 
     const existing = await this.getPlan(project.id);
     const now = new Date().toISOString();
-    await this.decisionIntelligence?.decide(project.id, "pipeline");
+    try {
+      await this.decisionIntelligence?.decide(project.id, "pipeline");
+    } catch {
+      // STEP 7 planning can proceed from product + images without a full campaign decision.
+    }
     const product = this.products
       ? (await this.products.getProfile(project.id)) ?? await this.products.analyze(project.id).catch(() => null)
       : null;
