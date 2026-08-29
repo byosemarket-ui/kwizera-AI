@@ -67,7 +67,7 @@ export async function recordImageAnalysisFoundation(
         scope: "project",
         projectId: project.id,
         knowledgeType: KnowledgeStorageType.Image,
-        sourceName: "image-intelligence-step6",
+        sourceName: "image-knowledge-engine",
         requesterId: "image-intelligence-manager",
         autoApprove: true,
       });
