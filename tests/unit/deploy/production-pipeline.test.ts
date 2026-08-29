@@ -79,7 +79,9 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("on:");
     expect(yml).toContain("branches: [main]");
     expect(yml).toContain("github.sha");
-    expect(yml).toContain("KWIZERA_DEPLOY_SHA");
+    expect(yml).toContain("DEPLOY_SHA");
+    expect(yml).toContain("/opt/kwizera-ai/deploy/update-from-github.sh");
+    expect(yml).not.toContain("sudo env KWIZERA_DEPLOY_SHA");
     expect(yml).toContain("secrets.VPS_HOST");
     expect(yml).toContain("secrets.VPS_USER");
     expect(yml).toContain("secrets.VPS_SSH_KEY");
@@ -92,6 +94,10 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).not.toMatch(/BEGIN (OPENSSH|RSA|EC) PRIVATE KEY/);
     expect(yml).not.toMatch(/password:/i);
     expect(yml).toContain("cancel-in-progress: false");
+    const sudoers = read("deploy/kwizera-deploy.sudoers");
+    expect(sudoers).toContain("!requiretty");
+    expect(sudoers).toContain("/opt/kwizera-ai/deploy/update-from-github.sh");
+    expect(sudoers).toMatch(/\[A-Fa-f0-9\]\*/);
   });
 
   it("AI Me reads real /api/deployment and does not invent Live", () => {

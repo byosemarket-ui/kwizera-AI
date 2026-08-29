@@ -92,19 +92,39 @@ jobs:
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
           umask 077
-          printf '%s\n' "$VPS_SSH_KEY" > "$HOME/.ssh/deploy_key"
+          python3 - <<'PY'
+          import os, pathlib
+          home = pathlib.Path.home() / ".ssh"
+          def write(name, raw, unescape_if_single_line=True):
+              text = (raw or "").replace("\r\n", "\n").replace("\r", "\n")
+              if unescape_if_single_line and "BEGIN" in text and text.count("\n") < 2:
+                  text = text.replace("\\n", "\n")
+              if text and not text.endswith("\n"):
+                  text += "\n"
+              path = home / name
+              path.write_text(text, encoding="utf-8")
+          write("deploy_key", os.environ["VPS_SSH_KEY"])
+          known = os.environ.get("VPS_KNOWN_HOSTS", "")
+          if known.strip():
+              hosts = known.replace("\r\n", "\n").replace("\r", "\n")
+              if hosts.count("\n") < 1:
+                  hosts = hosts.replace("\\n", "\n")
+              if hosts and not hosts.endswith("\n"):
+                  hosts += "\n"
+              (home / "known_hosts").write_text(hosts, encoding="utf-8")
+          PY
           chmod 600 "$HOME/.ssh/deploy_key"
-          if [ -n "${VPS_KNOWN_HOSTS:-}" ]; then
-            printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          else
+          if [ ! -s "$HOME/.ssh/known_hosts" ]; then
             ssh-keyscan -p "${VPS_PORT:-22}" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts"
           fi
           chmod 644 "$HOME/.ssh/known_hosts"
           ssh -i "$HOME/.ssh/deploy_key" \
             -o IdentitiesOnly=yes \
             -o BatchMode=yes \
+            -o NumberOfPasswordPrompts=0 \
+            -o ConnectTimeout=20 \
             -o StrictHostKeyChecking=yes \
             -p "${VPS_PORT:-22}" \
             "$VPS_USER@$VPS_HOST" \
-            "sudo env KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh"
+            "sudo -- /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"
           echo "requestedCommit=${DEPLOY_SHA}"

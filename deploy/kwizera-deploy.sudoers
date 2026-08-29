@@ -2,4 +2,6 @@
 #   install -m 440 deploy/kwizera-deploy.sudoers /etc/sudoers.d/kwizera-deploy
 # Replace "kwizera" if the GitHub Actions SSH user is different.
 # visudo -c -f /etc/sudoers.d/kwizera-deploy
-kwizera ALL=(root) NOPASSWD: /opt/kwizera-ai/deploy/update-from-github.sh
+Defaults:kwizera !requiretty
+kwizera ALL=(root) NOPASSWD:SETENV: /opt/kwizera-ai/deploy/update-from-github.sh
+kwizera ALL=(root) NOPASSWD:SETENV: /opt/kwizera-ai/deploy/update-from-github.sh [A-Fa-f0-9]*
