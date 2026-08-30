@@ -183,6 +183,9 @@ export interface CreativePlanDto {
   productionStatus?: "DRAFT" | "PARTIALLY_READY" | "READY_FOR_VIDEO_PRODUCTION";
   commercial?: ProductionManifestDto["commercial"];
   productionScript?: ProductionManifestDto["script"];
+  productionMode?: string;
+  creativeTone?: string;
+  planStatus?: "DRAFT" | "GENERATING" | "READY_FOR_REVIEW" | "APPROVED_FOR_VIDEO";
 }
 
 async function readJson<T>(response: Response): Promise<T> {

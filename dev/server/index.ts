@@ -3680,7 +3680,13 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      const body = JSON.parse(await readBody(req)) as { action?: string; changes?: Record<string, unknown> };
+      const body = JSON.parse(await readBody(req)) as {
+        action?: string;
+        changes?: Record<string, unknown>;
+        productionMode?: import("../../ai/video-production/production-mode-types.js").ProductionModeId;
+        creativeTone?: import("../../ai/video-production/production-mode-types.js").CreativeToneId;
+        regenerate?: boolean;
+      };
 
       if (body.action === "generate") {
 
@@ -3688,7 +3694,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
         if (!project) { sendJson(res, 404, { error: "Project not found" }); return; }
 
-        const result = await planning.createPlan(project, planning.validateForPlan(project));
+        const result = await planning.createPlan(project, planning.validateForPlan(project), {
+          productionMode: body.productionMode,
+          creativeTone: body.creativeTone,
+          regenerate: body.regenerate,
+        });
 
         if (!result.plan) { sendJson(res, 422, { error: "Complete required workspace inputs before planning.", validation: result.validation }); return; }
 
@@ -3748,6 +3758,18 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  const videoCapabilitiesMatch = url.pathname === "/api/video-production/capabilities";
+  if (videoCapabilitiesMatch && req.method === "GET") {
+    try {
+      const { getProductionCapabilities } = await import("../../ai/video-production/production-capabilities.js");
+      const uniqueViewCount = Number(url.searchParams.get("views") ?? "0") || 0;
+      sendJson(res, 200, { capabilities: await getProductionCapabilities({ uniqueViewCount }) });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Unable to read production capabilities" });
+    }
+    return;
   }
 
   const videoProjectMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)$/);

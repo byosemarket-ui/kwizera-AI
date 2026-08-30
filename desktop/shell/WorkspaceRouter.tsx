@@ -13,6 +13,7 @@ import { HelpWorkspacePanel } from "./ux/HelpWorkspacePanel";
 import { ProductSetupWorkspace } from "../product-setup/ProductSetupWorkspace";
 import { VideoRequirementsWorkspace } from "../video-requirements/VideoRequirementsWorkspace";
 import { VideoStyleWorkspace } from "../video-style/VideoStyleWorkspace";
+import { FinalReviewWorkspace } from "../final-review/FinalReviewWorkspace";
 import { ImageOrganizationWorkspace } from "../image-organization/ImageOrganizationWorkspace";
 import { ProductInformationWorkspace } from "../product-profile/ProductInformationWorkspace";
 import { ProductValidationWorkspace } from "../product-validation/ProductValidationWorkspace";
@@ -70,6 +71,8 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
       return <VideoRequirementsWorkspace />;
     case "video-style":
       return <VideoStyleWorkspace />;
+    case "final-video-review":
+      return <FinalReviewWorkspace />;
     case "product-validation":
       return <ProductValidationWorkspace />;
     case "visual-analysis":

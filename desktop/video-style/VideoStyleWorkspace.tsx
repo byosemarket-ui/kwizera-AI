@@ -1,51 +1,244 @@
+import { useCallback, useEffect, useState } from "react";
+import { ChevronRight, Loader2, RefreshCw } from "lucide-react";
+import type { CreativeToneId, ProductionModeId } from "../../ai/video-production/production-mode-types.js";
 import { WorkflowProgress } from "../product-creation/WorkflowProgress";
 import { useShell } from "../shell/ShellContext";
-import { readScopedHandoff } from "../product-creation/workflow";
-import { STEP3_HANDOFF_KEY, type Step3HandoffPayload } from "../video-requirements/types";
-import "../video-requirements/video-requirements.css";
+import {
+  motionLabel,
+  scenePurposeLabel,
+  videoStyleEngine,
+} from "./video-style-engine";
+import type { VideoStyleSnapshot } from "./types";
+import "./video-style.css";
 
-/** STEP 3 placeholder — Video Style & Production Review */
+function saveLabel(state: VideoStyleSnapshot["saveState"]): string {
+  switch (state) {
+    case "saving": return "Saving…";
+    case "saved": return "Saved";
+    case "error": return "Unable to save";
+    default: return "Unsaved";
+  }
+}
+
 export function VideoStyleWorkspace() {
-  const { switchWorkspace } = useShell();
-  const handoff = readScopedHandoff<Step3HandoffPayload>(STEP3_HANDOFF_KEY);
+  const { notify, switchWorkspace } = useShell();
+  const [snap, setSnap] = useState<VideoStyleSnapshot>(() => videoStyleEngine.snapshot());
+  const [busy, setBusy] = useState(false);
+  const [editingScene, setEditingScene] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+
+  useEffect(() => {
+    videoStyleEngine.setNotify((tone, title, detail) => notify(tone, title, detail));
+    const unsub = videoStyleEngine.subscribe(setSnap);
+    void videoStyleEngine.hydrate();
+    return () => {
+      unsub();
+      videoStyleEngine.setNotify(null);
+    };
+  }, [notify]);
+
+  const onContinue = useCallback(async () => {
+    setBusy(true);
+    try {
+      await videoStyleEngine.continueToStep4();
+      notify("success", "Step 3 complete", "Opening Final Video Review.", "production-complete");
+      switchWorkspace("final-video-review");
+    } catch (error) {
+      notify("error", "Cannot continue", error instanceof Error ? error.message : "Validation failed", "errors");
+    } finally {
+      setBusy(false);
+    }
+  }, [notify, switchWorkspace]);
+
+  const s = snap.summary;
 
   return (
-    <div className="vr-page">
-      <WorkflowProgress currentStep={3} projectName={handoff?.projectName} />
+    <div className="vs-page">
+      <WorkflowProgress currentStep={3} projectName={snap.projectName || undefined} />
+
       <div className="vr-intro">
-        <span className="kw-workflow-progress__step-label">STEP 3 OF 5 · VIDEO STYLE &amp; PRODUCTION REVIEW</span>
-        <h1>Video Style &amp; Production Review</h1>
-        <p>
-          Your marketing brief is saved. Step 3 will review video style and production planning automatically.
-          This step is not yet fully implemented.
-        </p>
+        <span className="kw-workflow-progress__step-label">STEP 3 OF 5 · VIDEO STYLE &amp; PRODUCTION PLAN</span>
+        <h1>Video Style &amp; Production Plan</h1>
+        <p>Choose how your product should be transformed into a marketing video.</p>
       </div>
-      {handoff && (
+
+      {s ? (
+        <div className="vs-summary">
+          <div className="vs-summary-thumb">
+            {s.heroUrl ? <img src={s.heroUrl} alt="" /> : null}
+          </div>
+          <dl className="vs-summary-grid">
+            <div><dt>Product</dt><dd>{s.productName}</dd></div>
+            <div><dt>Platform</dt><dd>{s.platformLabel}</dd></div>
+            <div><dt>Format</dt><dd>{s.aspectRatio}</dd></div>
+            <div><dt>Duration</dt><dd>{s.durationSeconds} seconds</dd></div>
+            {s.priceLabel ? <div><dt>Price</dt><dd>{s.priceLabel}{s.discountLabel ? ` · ${s.discountLabel}` : ""}</dd></div> : null}
+          </dl>
+        </div>
+      ) : (
         <section className="vr-section">
-          <h2>Brief Ready</h2>
-          <ul>
-            <li>Product ID: {handoff.productId.slice(0, 8)}…</li>
-            <li>Assets: {handoff.assetIds.length} original image{handoff.assetIds.length === 1 ? "" : "s"}</li>
-            <li>Platform: {handoff.platformId.replace(/_/g, " ")}</li>
-            <li>Duration: {handoff.durationSeconds}s</li>
-            <li>Objective: {handoff.objective}</li>
-            <li>Language: {handoff.language}</li>
-          </ul>
+          <p>Complete Video Settings (Step 2) to configure your production plan.</p>
         </section>
       )}
+
       <section className="vr-section">
-        <div className="vr-duration-row">
-          <button type="button" className="vr-chip" onClick={() => switchWorkspace("video-requirements")}>
-            ← Back to Step 2
-          </button>
-          <button type="button" className="vr-chip" onClick={() => switchWorkspace("storyboard")}>
-            Open Creative Planner
-          </button>
-          <button type="button" className="vr-chip" onClick={() => switchWorkspace("generated-videos")}>
-            Open Video Production
-          </button>
+        <h2>Choose Video Style</h2>
+        <div className="vs-mode-grid">
+          {snap.modes.map((mode) => (
+            <button
+              key={mode.mode}
+              type="button"
+              className={[
+                "vs-mode-card",
+                snap.selectedMode === mode.mode ? "is-selected" : "",
+                !mode.available ? "is-unavailable" : "",
+              ].filter(Boolean).join(" ")}
+              disabled={!mode.available || snap.generating}
+              onClick={() => void videoStyleEngine.selectMode(mode.mode as ProductionModeId)}
+            >
+              {mode.recommended && mode.available ? (
+                <span className="vs-badge vs-badge--rec">Recommended</span>
+              ) : null}
+              {!mode.available ? (
+                <span className="vs-badge vs-badge--unavail">Unavailable</span>
+              ) : null}
+              <b>{mode.label}</b>
+              <p>{mode.description}</p>
+              {!mode.available ? <p><em>{mode.reason}</em></p> : null}
+            </button>
+          ))}
+        </div>
+        {snap.recommendedReason && snap.modes.some((m) => m.recommended) ? (
+          <p className="vr-hint">{snap.recommendedReason}</p>
+        ) : null}
+      </section>
+
+      <section className="vr-section">
+        <h2>Creative Tone</h2>
+        <div className="vs-tone-row">
+          {snap.toneOptions.map((tone) => (
+            <button
+              key={tone}
+              type="button"
+              className={`vs-tone-chip${snap.creativeTone === tone ? " is-selected" : ""}`}
+              disabled={snap.generating}
+              onClick={() => void videoStyleEngine.selectTone(tone as CreativeToneId)}
+            >
+              {tone}
+            </button>
+          ))}
         </div>
       </section>
+
+      <section className="vr-section">
+        <div className="vs-plan-head">
+          <h3>{snap.planPreview?.statusLabel ?? "AI Production Plan"}</h3>
+          {snap.generating ? <Loader2 size={18} className="vr-spin" /> : null}
+          <button
+            type="button"
+            className="vr-chip"
+            disabled={snap.generating || !snap.selectedMode}
+            onClick={() => void videoStyleEngine.generatePlan(true)}
+          >
+            <RefreshCw size={14} /> Regenerate
+          </button>
+        </div>
+        {snap.planPreview ? (
+          <>
+            <p><strong>{snap.planPreview.headline}</strong></p>
+            <div className="vs-plan-stats">
+              <span>{snap.planPreview.sceneCount} scenes</span>
+              <span>{snap.planPreview.uniqueViewCount} unique product view{snap.planPreview.uniqueViewCount === 1 ? "" : "s"}</span>
+              <span>{snap.summary?.aspectRatio} · {snap.planPreview.formatLabel}</span>
+              {snap.planPreview.includesPrice ? <span className="ok">Price included</span> : null}
+              {snap.planPreview.includesDiscount ? <span className="ok">Discount included</span> : null}
+              {snap.planPreview.includesWebsite ? <span className="ok">Website included</span> : null}
+              {snap.planPreview.includesCta ? <span className="ok">CTA included</span> : null}
+            </div>
+          </>
+        ) : (
+          <p className="vr-hint">Select an available production mode to generate your plan.</p>
+        )}
+      </section>
+
+      {snap.scenes.length > 0 ? (
+        <section className="vr-section">
+          <h2>Scene Preview</h2>
+          <div className="vs-scene-list">
+            {snap.scenes.map((scene) => (
+              <article key={scene.id} className="vs-scene-card">
+                <div className="vs-scene-thumb">
+                  {scene.thumbnailUrl ? <img src={scene.thumbnailUrl} alt="" /> : null}
+                </div>
+                <div className="vs-scene-meta">
+                  <b>{scene.order}. {scenePurposeLabel(scene.purpose)}</b>
+                  <small>
+                    {scene.view.replace(/_/g, " ")} · {motionLabel(scene.motion)} · {scene.transition}
+                    {scene.userEdited ? " · edited" : ""}
+                  </small>
+                  <div className="vs-scene-text">
+                    {editingScene === scene.id ? (
+                      <input
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onBlur={() => {
+                          void videoStyleEngine.updateSceneText(scene.id, editText);
+                          setEditingScene(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            void videoStyleEngine.updateSceneText(scene.id, editText);
+                            setEditingScene(null);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="vr-link-btn"
+                        onClick={() => {
+                          setEditingScene(scene.id);
+                          setEditText(scene.textPreview === "—" ? "" : scene.textPreview);
+                        }}
+                      >
+                        {scene.textPreview}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <span className="vs-scene-dur">{scene.durationSeconds.toFixed(1)}s</span>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {snap.readiness.blockingIssues.length > 0 ? (
+        <section className="vr-section vr-readiness vr-readiness--block">
+          <ul>{snap.readiness.blockingIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+        </section>
+      ) : null}
+
+      <footer className="vs-footer">
+        <div className="vs-footer__left">
+          <button type="button" onClick={() => switchWorkspace("video-requirements")}>
+            ← Back to Step 2
+          </button>
+        </div>
+        <div className="vs-footer__center">{saveLabel(snap.saveState)}</div>
+        <div className="vs-footer__right">
+          <button
+            type="button"
+            className="primary"
+            disabled={!snap.canContinue || busy}
+            onClick={() => void onContinue()}
+          >
+            {busy ? <Loader2 size={16} className="vr-spin" /> : null}
+            Continue to Step 4 <ChevronRight size={16} />
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

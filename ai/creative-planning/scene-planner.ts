@@ -132,6 +132,30 @@ function pickAsset(
   };
 }
 
+function applyModeAndTone(
+  motion: string,
+  transition: string,
+  beat: StoryBeatId,
+  mode: string,
+  tone?: string,
+): { motion: string; transition: string } {
+  let nextMotion = motion;
+  let nextTransition = transition;
+  if (mode === "CLASSIC_SHOWCASE") {
+    if (beat !== "HOOK") nextMotion = beat === "CTA" || beat === "PRICE" ? "HOLD" : "SLOW_PUSH_IN";
+    nextTransition = beat === "CTA" ? "fade" : "cut";
+  }
+  if (tone === "Minimal" || tone === "Luxury" || tone === "Premium") {
+    if (beat === "CTA" || beat === "PRICE") nextMotion = "HOLD";
+    if (beat === "DETAIL") nextMotion = "CLOSE_UP_ZOOM";
+  }
+  if (tone === "Energetic" && beat !== "CTA" && beat !== "PRICE") {
+    nextMotion = "SLOW_PUSH_IN";
+    nextTransition = "cut";
+  }
+  return { motion: nextMotion, transition: nextTransition };
+}
+
 export function planProductScenes(
   project: CreativeProject,
   product?: ProductIntelligenceProfile | null,
@@ -141,6 +165,8 @@ export function planProductScenes(
     canonical?: CanonicalProduct | null;
     brief?: AuthoritativeMarketingBrief | null;
     commercial?: ConfirmedCommercial | null;
+    productionMode?: import("../video-production/production-mode-types.js").ProductionModeId;
+    creativeTone?: import("../video-production/production-mode-types.js").CreativeToneId;
   },
 ): PlanScene[] {
   const originals = originalsFrom(project, extras?.canonical);
@@ -180,6 +206,13 @@ export function planProductScenes(
     const pick = pickAsset(originals, VIEW_FOR_BEAT[beat], used, beat);
     used.add(pick.assetId);
     const camera = cameraFor(pick.view, beat);
+    const modeAdjusted = applyModeAndTone(
+      camera.motion,
+      beat === "CTA" ? "fade" : beat === "HOOK" ? "cut" : "cut",
+      beat,
+      extras?.productionMode ?? "AI_PRODUCT_MOTION",
+      extras?.creativeTone,
+    );
     const sceneDuration = durations[index] ?? 2000;
     const existingKeep = existing.find((item) => item.userEdited && generated.every((scene) => scene.id !== item.id) && (
       item.beat === beat || item.purpose === beatPurpose(beat)
@@ -245,14 +278,14 @@ export function planProductScenes(
       camera: camera.camera,
       lighting: profile?.visualMetrics?.lightingObserved || profile?.lighting || "Keep lighting consistent with the source product photograph.",
       composition: beat === "CTA" ? "Stable closing frame for CTA text" : "Product remains the visual priority",
-      animation: camera.motion.replace(/_/g, " ").toLowerCase(),
+      animation: modeAdjusted.motion.replace(/_/g, " ").toLowerCase(),
       assetId: pick.assetId,
       imageRole: pick.view,
       visualPurpose: beatPurpose(beat),
       cameraDirection: camera.camera,
-      motion: camera.motion,
+      motion: modeAdjusted.motion,
       view: pick.view,
-      transition: beat === "CTA" ? "fade" : beat === "HOOK" ? "cut" : "cut",
+      transition: modeAdjusted.transition,
       text,
       copy,
       selectedFor: beatPurpose(beat),

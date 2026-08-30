@@ -5,6 +5,7 @@ export type WorkspaceId =
   | "new-project"
   | "video-requirements"
   | "video-style"
+  | "final-video-review"
   | "open-project"
   | "recent-projects"
   | "knowledge-center"
@@ -40,7 +41,7 @@ export type WorkspaceId =
   | "help";
 
 export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
-  "home", "new-project", "video-requirements", "video-style", "open-project", "recent-projects",
+  "home", "new-project", "video-requirements", "video-style", "final-video-review", "open-project", "recent-projects",
   "knowledge-center", "knowledge-packs", "knowledge-search", "ai-me",
   "production", "pipeline", "queue", "active-production", "command-center",
   "storyboard", "marketing", "marketing-strategy",
