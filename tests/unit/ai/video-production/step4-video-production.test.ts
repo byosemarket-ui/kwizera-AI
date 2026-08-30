@@ -86,6 +86,7 @@ describe("STEP 4 professional video production", () => {
       aspectRatio: "9:16" as const,
       sceneCount: 3,
       durationMs: 2000,
+      sourceFingerprint: "abc123",
       output: {
         assetId: previewAsset.id,
         mimeType: "video/mp4" as const,

@@ -80,20 +80,32 @@ function drawtextFilter(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile
   if (!fontFile || !clip.text.length) return "";
   const font = fontFile.replace(/\\/g, "/").replace(/:/g, "\\:");
   const scale = Math.max(1, Math.round(Math.min(plan.width, plan.height) / 480));
-  const fontSize = 22 * scale;
   const filters: string[] = [];
-  for (const layer of clip.text.slice(0, 2)) {
+  const bottomLayers = clip.text.filter((layer) => layer.position === "bottom");
+  const topLayers = clip.text.filter((layer) => layer.position === "top" || layer.position === "center");
+  for (const layer of topLayers.slice(0, 1)) {
     const escaped = sanitizeRenderText(layer.content);
     if (!escaped) continue;
-    const y = layer.position === "top"
-      ? `h*${plan.aspectRatio === "9:16" ? "0.12" : "0.08"}`
-      : layer.position === "center"
-        ? "(h-text_h)/2"
-        : `h*${plan.aspectRatio === "9:16" ? "0.82" : "0.86"}`;
+    const fontSize = 22 * scale;
+    const y = layer.position === "center" ? "(h-text_h)/2" : `h*${plan.aspectRatio === "9:16" ? "0.12" : "0.08"}`;
     filters.push(
       `drawtext=fontfile='${font}':text='${escaped}':fontsize=${fontSize}:fontcolor=white:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
     );
   }
+  bottomLayers.slice(0, 3).forEach((layer, index) => {
+    const escaped = sanitizeRenderText(layer.content);
+    if (!escaped) return;
+    const isWas = layer.kind === "price_was";
+    const isSave = layer.kind === "price_save";
+    const fontSize = (isWas ? 16 : isSave ? 18 : layer.kind === "price" ? 26 : 20) * scale;
+    const baseY = plan.aspectRatio === "9:16" ? 0.82 : 0.86;
+    const offset = index * (plan.aspectRatio === "9:16" ? 0.06 : 0.05);
+    const y = `h*${Math.max(0.55, baseY - offset)}`;
+    const color = isSave ? "0xFFD966" : "white";
+    filters.push(
+      `drawtext=fontfile='${font}':text='${escaped}':fontsize=${fontSize}:fontcolor=${color}:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
+    );
+  });
   return filters.join(",");
 }
 

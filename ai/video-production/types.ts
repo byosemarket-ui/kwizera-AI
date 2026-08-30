@@ -1,4 +1,13 @@
-export const VIDEO_PRODUCTION_VERSION = "step4-v1";
+export const VIDEO_PRODUCTION_VERSION = "step5-v1";
+
+export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
+export type VideoPlatformId =
+  | "tiktok"
+  | "instagram_reels"
+  | "instagram_feed"
+  | "youtube_shorts"
+  | "youtube"
+  | "facebook_feed";
 
 export type VideoRenderJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
 export type VideoRenderStage = "queued" | "preparing" | "processing" | "rendering" | "encoding" | "validating" | "registering" | "completed" | "failed";
@@ -34,7 +43,7 @@ export type VideoTransitionId = "cut" | "fade";
 
 export interface VideoTextLayer {
   content: string;
-  kind: "headline" | "supporting" | "feature" | "benefit" | "cta" | "price";
+  kind: "headline" | "supporting" | "feature" | "benefit" | "cta" | "price" | "price_was" | "price_save";
   startMs: number;
   durationMs: number;
   position: "top" | "bottom" | "center";
@@ -80,20 +89,68 @@ export interface VideoRenderPlan {
   audioCodec: "none";
   outputFormat: "mp4";
   preset: "preview" | "standard";
+  platform?: VideoPlatformId;
   x264Preset?: "veryfast" | "medium";
   crf?: number;
+}
+
+export interface VideoRenderValidation {
+  ready: boolean;
+  issues: string[];
+  warnings: string[];
+  platform: VideoPlatformId;
+  platformLabel: string;
+  aspectRatio: VideoAspectRatio;
+  dimensions: string;
+  sceneCount: number;
+  uniqueAssetCount: number;
+  durationMs: number;
+  commercial: {
+    productName: string | null;
+    hasPrice: boolean;
+    hasDiscount: boolean;
+    hasWebsite: boolean;
+    hasCta: boolean;
+  };
+  outputStatus: VideoOutputStatus;
+}
+
+export interface VideoOutputDetails {
+  assetId: string;
+  url: string;
+  mimeType: "video/mp4";
+  width: number;
+  height: number;
+  durationMs: number;
+  sizeBytes: number;
+  platform?: VideoPlatformId;
+  platformLabel?: string;
+  preset?: "preview" | "standard";
+  renderJobId: string;
+  createdAt: string;
+  outputStatus: VideoOutputStatus;
+  validationStatus: "TECHNICALLY_VALIDATED" | "FAILED" | "NONE";
+  validationChecks?: Record<string, boolean>;
+  creativePlanId: string;
+  creativePlanVersion: number;
+  manifestId?: string;
+  sceneCount: number;
+  sourceAssetIds: string[];
+  textOverlay?: VideoTextOverlayStatus;
 }
 
 export interface VideoVersion {
   versionId: string;
   renderJobId: string;
   preset: "preview" | "standard";
+  platform?: VideoPlatformId;
   creativePlanId: string;
   creativePlanVersion: number;
   manifestId?: string;
   aspectRatio: VideoAspectRatio;
   sceneCount: number;
   durationMs: number;
+  sourceFingerprint: string;
   output: VideoOutputAsset;
   createdAt: string;
 }
@@ -108,6 +165,9 @@ export interface VideoOutputAsset {
   url: string;
   renderJobId: string;
   createdAt: string;
+  preset?: "preview" | "standard";
+  platform?: VideoPlatformId;
+  validationStatus?: "TECHNICALLY_VALIDATED" | "FAILED";
 }
 
 export interface VideoRenderJob {
@@ -137,6 +197,7 @@ export interface VideoProject {
   creativePlanId: string;
   creativePlanVersion: number;
   manifestId?: string;
+  platform?: VideoPlatformId;
   createdAt: string;
   modifiedAt: string;
   version: number;
@@ -147,6 +208,9 @@ export interface VideoProject {
   renderState: VideoRenderJobStatus | "idle";
   activeJobId?: string;
   output?: VideoOutputAsset;
+  outputStatus?: VideoOutputStatus;
+  outputSourceFingerprint?: string;
+  outputValidation?: Record<string, boolean>;
   versions?: VideoVersion[];
   videoGenerationProvider: "UNAVAILABLE";
   videoGenerationProviderMessage: string;

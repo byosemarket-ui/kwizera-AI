@@ -8,13 +8,18 @@ import {
   CAMERA_OPTIONS,
   MOTION_OPTIONS,
   TRANSITION_OPTIONS,
+  VIDEO_PLATFORM_OPTIONS,
   createVideoProject,
   getVideoJob,
+  getVideoOutputDetails,
   getVideoProject,
   startVideoRender,
   updateVideoProject,
+  validateVideoRender,
+  type VideoOutputDetails,
   type VideoProject,
   type VideoRenderJob,
+  type VideoRenderValidation,
 } from "./api";
 import "./video-production.css";
 
@@ -27,6 +32,8 @@ export function VideoProductionWorkspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState("");
+  const [validation, setValidation] = useState<VideoRenderValidation | null>(null);
+  const [outputDetails, setOutputDetails] = useState<VideoOutputDetails | null>(null);
 
   const selected = video?.timeline.find((clip) => clip.id === selectedId) ?? video?.timeline[0];
   const assetUrl = (assetId?: string) => project?.productImages.find((image) => image.id === assetId)?.url;
@@ -35,7 +42,7 @@ export function VideoProductionWorkspace() {
   const checkpoint = useMemo(() => ({
     name: productInfo?.name ?? productInfo?.title ?? project?.name ?? "—",
     imageCount: (project?.productImages ?? []).filter((image) => !image.parentAssetId && image.assetType !== "video").length,
-    platform: project?.platform ?? "—",
+    platform: video?.platform ?? project?.platform ?? "—",
     price: productInfo?.price ?? productInfo?.currentPrice,
     oldPrice: productInfo?.originalPrice ?? productInfo?.oldPrice,
     discount: productInfo?.discountPercentage ?? productInfo?.discount,
@@ -80,6 +87,14 @@ export function VideoProductionWorkspace() {
     setProject(bound.project);
     const payload = await getVideoProject(bound.projectId);
     setVideo(payload.video);
+    if (payload.video) {
+      void validateVideoRender(bound.projectId, "standard").then((result) => setValidation(result.validation)).catch(() => setValidation(null));
+      if (payload.video.output) {
+        void getVideoOutputDetails(bound.projectId).then((result) => setOutputDetails(result.output)).catch(() => setOutputDetails(null));
+      } else {
+        setOutputDetails(null);
+      }
+    }
     if (payload.video?.timeline[0]) setSelectedId(payload.video.timeline[0].id);
     if (payload.video?.activeJobId) {
       try {
@@ -147,10 +162,10 @@ export function VideoProductionWorkspace() {
     <div className="vprod">
       <header className="vp-hero">
         <div>
-          <div className="vp-kicker">Step 4 · Professional video production</div>
+          <div className="vp-kicker">Step 5 · Final video export</div>
           <h1>Video Production</h1>
           <p>
-            Approved Creative Plan becomes a full timeline, then a validated MP4 via FFmpeg. Preview uses 3 scenes at low resolution; final render uses the complete approved sequence at platform resolution.
+            Export a validated marketing video from the approved timeline. Preview is a quick sample; final export renders the complete sequence at platform resolution with technical validation before registration.
           </p>
         </div>
         <div className="vp-stats">
@@ -174,8 +189,8 @@ export function VideoProductionWorkspace() {
           <button type="button" onClick={() => void run("preview")} disabled={busy || !video?.timeline.length}>
             <Play size={14} /> Render preview
           </button>
-          <button type="button" className="vp-primary" onClick={() => void run("final")} disabled={busy || !video?.timeline.length}>
-            <Film size={14} /> Render final video
+          <button type="button" className="vp-primary" onClick={() => void run("final")} disabled={busy || !video?.timeline.length || validation?.ready === false}>
+            <Film size={14} /> Export final video
           </button>
         </div>
       </div>
@@ -198,6 +213,18 @@ export function VideoProductionWorkspace() {
               {checkpoint.website ? <div><span>Website</span><b>{checkpoint.website}</b></div> : null}
               {checkpoint.cta ? <div><span>CTA</span><b>{checkpoint.cta}</b></div> : null}
             </div>
+            {validation ? (
+              <div className={`vp-validation${validation.ready ? " ok" : " err"}`}>
+                {validation.ready ? "Ready for final export" : "Export blocked"}
+                {validation.issues.length ? `: ${validation.issues.join(" ")}` : ""}
+                {validation.warnings.length ? (
+                  <div className="vp-note">{validation.warnings.join(" · ")}</div>
+                ) : null}
+              </div>
+            ) : null}
+            {video.outputStatus === "OUTDATED" ? (
+              <div className="vp-panel err">Current output is outdated. Project data or timeline changed since the last render. Export again to refresh the final video.</div>
+            ) : null}
           </div>
 
           <div className="vp-panel">
@@ -216,7 +243,17 @@ export function VideoProductionWorkspace() {
               {" · "}Memory {video.memoryStatus ?? "n/a"}
             </div>
             <label>
-              Aspect
+              Target platform
+              <select
+                value={video.platform ?? VIDEO_PLATFORM_OPTIONS[0]?.id}
+                disabled={busy}
+                onChange={(event) => void persist({ platform: event.target.value as typeof video.platform })}
+              >
+                {VIDEO_PLATFORM_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.width}×{item.height}</option>)}
+              </select>
+            </label>
+            <label>
+              Aspect override
               <select
                 value={video.renderPlan.aspectRatio}
                 disabled={busy}
@@ -324,16 +361,30 @@ export function VideoProductionWorkspace() {
           </div>
 
           <section className="vp-panel vp-preview">
-            <h3>Output</h3>
-            {video.output?.url && video.renderState === "completed" ? (
+            <h3>Final output</h3>
+            {video.output?.url ? (
               <>
                 <video key={video.output.assetId} src={video.output.url} controls playsInline />
                 <div className="vp-note ok">
+                  {video.outputStatus === "OUTDATED" ? "Outdated · " : video.outputStatus === "CURRENT" ? "Current · " : ""}
+                  {outputDetails?.validationStatus === "TECHNICALLY_VALIDATED" ? "Technically validated · " : ""}
                   Asset {video.output.assetId} · {video.output.width}×{video.output.height} · {(video.output.durationMs / 1000).toFixed(1)}s · {video.output.sizeBytes} bytes
                 </div>
+                {outputDetails ? (
+                  <div className="vp-details">
+                    <div><span>Platform</span><b>{outputDetails.platformLabel ?? outputDetails.platform ?? "—"}</b></div>
+                    <div><span>Render mode</span><b>{outputDetails.preset ?? "—"}</b></div>
+                    <div><span>Scenes</span><b>{outputDetails.sceneCount}</b></div>
+                    <div><span>Source assets</span><b>{outputDetails.sourceAssetIds.length}</b></div>
+                    <div><span>Creative plan</span><b>v{outputDetails.creativePlanVersion}</b></div>
+                    <div><span>Validation</span><b>{outputDetails.validationStatus}</b></div>
+                    <div><span>Created</span><b>{new Date(outputDetails.createdAt).toLocaleString()}</b></div>
+                    <a className="vp-download" href={video.output.url} download={`${checkpoint.name || "product"}-video.mp4`}>Download MP4</a>
+                  </div>
+                ) : null}
               </>
             ) : (
-              <p className="vp-note">No validated output yet. Render a preview or final video to produce an MP4 asset.</p>
+              <p className="vp-note">No validated output yet. Export a preview or final video to produce an MP4 asset.</p>
             )}
             {(video.versions?.length ?? 0) > 0 ? (
               <div className="vp-versions">

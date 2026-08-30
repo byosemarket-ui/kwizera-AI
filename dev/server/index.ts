@@ -3770,6 +3770,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       const body = JSON.parse(await readBody(req)) as {
         action?: string;
         aspectRatio?: "16:9" | "9:16" | "1:1";
+        platform?: import("../../ai/video-production/types.js").VideoPlatformId;
         reorder?: string[];
         clip?: {
           id: string;
@@ -3784,6 +3785,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       if (body.action === "update") {
         const video = await production.updateVideoProject(videoProjectMatch[1], {
           aspectRatio: body.aspectRatio,
+          platform: body.platform,
           reorder: body.reorder,
           clip: body.clip,
         });
@@ -3792,6 +3794,34 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         const video = await production.createOrRefresh(videoProjectMatch[1]);
         sendJson(res, 201, { video });
       }
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
+  const videoValidateMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/validate$/);
+  if (videoValidateMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const preset = url.searchParams.get("preset") === "preview" ? "preview" : "standard";
+      const validation = await production.validateRender(videoValidateMatch[1], preset);
+      sendJson(res, 200, { validation });
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
+  const videoOutputMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/output$/);
+  if (videoOutputMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const details = await production.getOutputDetails(videoOutputMatch[1]);
+      if (!details) { sendJson(res, 404, { error: "No video output registered for this project" }); return; }
+      sendJson(res, 200, { output: details });
     } catch (error) {
       sendVideoProductionError(res, error);
     }

@@ -14,20 +14,26 @@ import {
   resolveFontFile,
 } from "./ffmpeg-renderer.js";
 import {
-  aspectFromPlatform,
   buildRenderPlan,
+  buildRenderPlanForProfile,
   buildTimelineFromPlan,
   sliceTimelineForRender,
   timelineDurationMs,
 } from "./plan-to-timeline.js";
+import { computeOutputStatus, timelineFingerprint, uniqueAssetIds } from "./output-stale.js";
+import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
+import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
 import {
   VIDEO_PRODUCTION_VERSION,
   VideoProductionError,
   type VideoAspectRatio,
   type VideoCameraId,
   type VideoMotionId,
+  type VideoOutputDetails,
+  type VideoPlatformId,
   type VideoProject,
   type VideoRenderJob,
+  type VideoRenderValidation,
   type VideoTextOverlayStatus,
   type VideoTimelineClip,
   type VideoTransitionId,
@@ -72,17 +78,73 @@ export class VideoProductionManager {
     const staleEquivalent =
       (video.knowledgeStatus === "error" || video.knowledgeStatus === "failed") &&
       isEquivalentKnowledgeMessage(video.knowledgeMessage);
-    if (!staleEquivalent) return video;
+    if (!staleEquivalent) return this.decorateVideo(video);
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) return video;
     try {
       const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
       const repaired: VideoProject = { ...video, ...foundation, modifiedAt: new Date().toISOString() };
       await this.writeJson(this.projectFile(projectId), repaired);
-      return repaired;
+      return this.decorateVideo(repaired);
     } catch {
-      return video;
+      return this.decorateVideo(video);
     }
+  }
+
+  async validateRender(projectId: string, preset: "preview" | "standard" = "standard"): Promise<VideoRenderValidation> {
+    this.ensureInitialized();
+    let video = await this.getVideoProject(projectId);
+    if (!video) video = await this.createOrRefresh(projectId);
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+    const profile = profileForPlatform(video.platform ?? workspaceProject.platform);
+    const renderClips = sliceTimelineForRender(video.timeline, preset);
+    const assetChecks = await Promise.all(renderClips.map(async (clip) => ({
+      assetId: clip.assetId,
+      available: Boolean(await this.workspace!.getOriginalImagePath(projectId, clip.assetId)),
+    })));
+    return validateBeforeRender({
+      video,
+      project: workspaceProject,
+      profile,
+      preset,
+      renderClips,
+      assetsAvailable: (assetId) => assetChecks.find((item) => item.assetId === assetId)?.available ?? false,
+    });
+  }
+
+  async getOutputDetails(projectId: string): Promise<VideoOutputDetails | null> {
+    this.ensureInitialized();
+    const video = await this.getVideoProject(projectId);
+    if (!video?.output) return null;
+    const profile = video.platform ? profileForPlatform(video.platform) : null;
+    return {
+      assetId: video.output.assetId,
+      url: video.output.url,
+      mimeType: "video/mp4",
+      width: video.output.width,
+      height: video.output.height,
+      durationMs: video.output.durationMs,
+      sizeBytes: video.output.sizeBytes,
+      platform: video.output.platform ?? video.platform,
+      platformLabel: profile?.label,
+      preset: video.output.preset,
+      renderJobId: video.output.renderJobId,
+      createdAt: video.output.createdAt,
+      outputStatus: video.outputStatus ?? "NONE",
+      validationStatus: video.output.validationStatus === "TECHNICALLY_VALIDATED"
+        ? "TECHNICALLY_VALIDATED"
+        : video.output.validationStatus === "FAILED"
+          ? "FAILED"
+          : "NONE",
+      validationChecks: video.outputValidation,
+      creativePlanId: video.creativePlanId,
+      creativePlanVersion: video.creativePlanVersion,
+      manifestId: video.manifestId,
+      sceneCount: video.timeline.length,
+      sourceAssetIds: uniqueAssetIds(video.timeline),
+      textOverlay: video.textOverlay,
+    };
   }
 
   async getJob(jobId: string, projectId?: string): Promise<VideoRenderJob | null> {
@@ -113,8 +175,9 @@ export class VideoProductionManager {
     if (!timeline.length) {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
-    const aspect = resolveAspect(existing, manifest, workspaceProject.platform);
+    const profile = profileForPlatform(workspaceProject.platform);
     const now = new Date().toISOString();
+    const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
     const video: VideoProject = {
       id: existing?.id ?? randomUUID(),
       projectId,
@@ -122,6 +185,7 @@ export class VideoProductionManager {
       creativePlanId: plan.id,
       creativePlanVersion: plan.version,
       manifestId: manifest?.manifestId ?? plan.manifestId ?? existing?.manifestId,
+      platform: profile.id,
       createdAt: existing?.createdAt ?? now,
       modifiedAt: now,
       version: (existing?.version ?? 0) + 1,
@@ -134,12 +198,14 @@ export class VideoProductionManager {
         status: "UNAVAILABLE",
         message: AUDIO_MESSAGE,
       },
-      renderPlan: buildRenderPlan(aspect, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview"),
+      renderPlan,
       renderState: existing?.renderState === "processing" || existing?.renderState === "queued"
         ? existing.renderState
         : existing?.output ? "completed" : "idle",
       activeJobId: existing?.activeJobId,
       output: existing?.output,
+      outputSourceFingerprint: existing?.outputSourceFingerprint,
+      outputValidation: existing?.outputValidation,
       versions: existing?.versions ?? [],
       videoGenerationProvider: "UNAVAILABLE",
       videoGenerationProviderMessage: PROVIDER_MESSAGE,
@@ -149,12 +215,14 @@ export class VideoProductionManager {
     };
     const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
     Object.assign(video, foundation);
-    await this.writeJson(this.projectFile(projectId), video);
-    return video;
+    const decorated = this.decorateVideo(video);
+    await this.writeJson(this.projectFile(projectId), decorated);
+    return decorated;
   }
 
   async updateVideoProject(projectId: string, changes: {
     aspectRatio?: VideoAspectRatio;
+    platform?: VideoPlatformId;
     reorder?: string[];
     clip?: {
       id: string;
@@ -208,17 +276,26 @@ export class VideoProductionManager {
       });
     }
     timeline = recomputeStarts(timeline);
-    const aspect = changes.aspectRatio ?? video.renderPlan.aspectRatio;
-    const updated: VideoProject = {
+    const profile = changes.platform
+      ? profileForPlatform(changes.platform)
+      : video.platform
+        ? profileForPlatform(video.platform)
+        : profileForPlatform(workspaceProject.platform);
+    const renderPlan = changes.aspectRatio
+      ? buildRenderPlan(changes.aspectRatio, timelineDurationMs(timeline), video.renderPlan.preset, profile.id)
+      : buildRenderPlanForProfile(profile, timelineDurationMs(timeline), video.renderPlan.preset);
+    const updatedBase: VideoProject = {
       ...video,
+      platform: profile.id,
       timeline,
-      renderPlan: buildRenderPlan(aspect, timelineDurationMs(timeline), video.renderPlan.preset),
+      renderPlan,
       modifiedAt: new Date().toISOString(),
       version: video.version + 1,
       userEdited: true,
       videoGenerationProvider: "UNAVAILABLE",
       videoGenerationProviderMessage: PROVIDER_MESSAGE,
     };
+    const updated = this.decorateVideo(updatedBase);
     await this.writeJson(this.projectFile(projectId), updated);
     return updated;
   }
@@ -244,7 +321,12 @@ export class VideoProductionManager {
     }
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+    const profile = profileForPlatform(video.platform ?? workspaceProject.platform);
     const renderClips = sliceTimelineForRender(video.timeline, preset);
+    const validation = await this.validateRender(projectId, preset);
+    if (!validation.ready) {
+      throw new VideoProductionError("VALIDATION_FAILED", validation.issues.join(" "), 422);
+    }
     for (const clip of renderClips) {
       const source = await this.workspace!.getOriginalImagePath(projectId, clip.assetId);
       if (!source) {
@@ -265,7 +347,8 @@ export class VideoProductionManager {
     };
     video = {
       ...video,
-      renderPlan: buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(renderClips), preset),
+      platform: profile.id,
+      renderPlan: buildRenderPlanForProfile(profile, timelineDurationMs(renderClips), preset),
       renderState: "queued",
       activeJobId: job.id,
       modifiedAt: now,
@@ -342,7 +425,9 @@ export class VideoProductionManager {
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
       const preset = job.preset ?? video.renderPlan.preset ?? "preview";
       const renderClips = sliceTimelineForRender(video.timeline, preset);
-      const renderPlan = buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(renderClips), preset);
+      const profile = profileForPlatform(video.platform ?? "youtube");
+      const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(renderClips), preset);
+      const plannedDurationMs = timelineDurationMs(renderClips);
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
@@ -374,8 +459,16 @@ export class VideoProductionManager {
       }
       await this.writeJob(job.id, { ...started, stage: "validating", progress: 88 });
       const probed = await probeVideo(outputPath);
-      if (probed.width !== renderPlan.width || probed.height !== renderPlan.height) {
-        throw new VideoProductionError("INVALID_OUTPUT", "Output dimensions do not match the render plan", 500);
+      const qc = validateRenderedOutput({
+        probed,
+        plannedDurationMs,
+        plannedWidth: renderPlan.width,
+        plannedHeight: renderPlan.height,
+        sceneCount: renderClips.length,
+        preset,
+      });
+      if (!qc.valid) {
+        throw new VideoProductionError("INVALID_OUTPUT", qc.issues.join(" "), 500);
       }
       await this.writeJob(job.id, { ...started, stage: "registering", progress: 92 });
       const parentAssetId = renderClips[0]?.assetId;
@@ -392,6 +485,7 @@ export class VideoProductionManager {
       });
       overlay = mergeOverlay(overlays);
       const completedAt = new Date().toISOString();
+      const sourceFingerprint = timelineFingerprint({ ...video, renderPlan });
       const output = {
         assetId: registered.id,
         mimeType: "video/mp4" as const,
@@ -402,17 +496,22 @@ export class VideoProductionManager {
         url: registered.url,
         renderJobId: job.id,
         createdAt: completedAt,
+        preset,
+        platform: profile.id,
+        validationStatus: "TECHNICALLY_VALIDATED" as const,
       };
       const version: VideoVersion = {
         versionId: randomUUID(),
         renderJobId: job.id,
         preset,
+        platform: profile.id,
         creativePlanId: video.creativePlanId,
         creativePlanVersion: video.creativePlanVersion,
         manifestId: video.manifestId,
         aspectRatio: renderPlan.aspectRatio,
         sceneCount: renderClips.length,
         durationMs: probed.durationMs,
+        sourceFingerprint,
         output,
         createdAt: completedAt,
       };
@@ -428,16 +527,19 @@ export class VideoProductionManager {
         textOverlay: overlay,
         preset,
       };
-      const updatedVideo: VideoProject = {
+      const updatedVideo = this.decorateVideo({
         ...video,
+        platform: profile.id,
         renderPlan,
         renderState: "completed",
         activeJobId: job.id,
         modifiedAt: completedAt,
         textOverlay: overlay,
         output,
+        outputSourceFingerprint: sourceFingerprint,
+        outputValidation: qc.checks,
         versions: [...(video.versions ?? []), version],
-      };
+      });
       await this.writeJson(this.jobFile(job.id), completed);
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
       const workspaceProject = await this.workspace!.getProject(job.projectId);
@@ -530,19 +632,16 @@ export class VideoProductionManager {
     await fs.rename(temporaryPath, filePath);
   }
 
+  private decorateVideo(video: VideoProject): VideoProject {
+    return {
+      ...video,
+      outputStatus: computeOutputStatus(video),
+    };
+  }
+
   private ensureInitialized(): void {
     if (!this.isInitialized()) throw new Error("Video Production Manager is not initialized");
   }
-}
-
-function resolveAspect(
-  existing: VideoProject | null,
-  manifest: { format?: { aspectRatio?: VideoAspectRatio } } | null,
-  platform?: string,
-): VideoAspectRatio {
-  if (manifest?.format?.aspectRatio) return manifest.format.aspectRatio;
-  if (existing?.renderPlan.aspectRatio) return existing.renderPlan.aspectRatio;
-  return aspectFromPlatform(platform);
 }
 
 function renderErrorCode(error: unknown): string {

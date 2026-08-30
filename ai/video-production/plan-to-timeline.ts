@@ -1,10 +1,13 @@
 import type { CreativePlan, PlanScene } from "../creative-planning/creative-planning-manager.js";
+import { buildConfirmedCommercial, priceSceneCopy, type ConfirmedCommercial } from "../creative-planning/commercial.js";
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
 import type {
   VideoAspectRatio,
   VideoCameraId,
   VideoMotionId,
+  VideoPlatformId,
   VideoRenderPlan,
   VideoTextLayer,
   VideoTimelineClip,
@@ -24,31 +27,43 @@ const STANDARD_SIZE: Record<VideoAspectRatio, { width: number; height: number }>
 };
 
 export function aspectFromPlatform(platform?: string): VideoAspectRatio {
-  const value = (platform ?? "").toLowerCase();
-  if (/tiktok|reel|short|9:16|vertical|instagram/.test(value)) return "9:16";
-  if (/square|1:1/.test(value)) return "1:1";
-  return "16:9";
+  return profileForPlatform(platform).aspectRatio;
 }
 
 export function buildRenderPlan(
   aspect: VideoAspectRatio,
   durationMs: number,
   preset: "preview" | "standard" = "preview",
+  platform?: VideoPlatformId,
 ): VideoRenderPlan {
-  const size = preset === "standard" ? STANDARD_SIZE[aspect] : PREVIEW_SIZE[aspect];
+  const profile = platform ? profileForPlatform(platform) : null;
+  const size = preset === "standard"
+    ? profile
+      ? { width: profile.width, height: profile.height }
+      : STANDARD_SIZE[aspect]
+    : PREVIEW_SIZE[aspect];
   return {
     width: size.width,
     height: size.height,
-    aspectRatio: aspect,
+    aspectRatio: profile?.aspectRatio ?? aspect,
     frameRate: 24,
     durationMs,
     videoCodec: "libx264",
     audioCodec: "none",
     outputFormat: "mp4",
     preset,
+    platform: profile?.id ?? platform,
     x264Preset: preset === "standard" ? "medium" : "veryfast",
     crf: preset === "standard" ? 23 : 28,
   };
+}
+
+export function buildRenderPlanForProfile(
+  profile: VideoPlatformProfile,
+  durationMs: number,
+  preset: "preview" | "standard" = "preview",
+): VideoRenderPlan {
+  return buildRenderPlan(profile.aspectRatio, durationMs, preset, profile.id);
 }
 
 export function mapCamera(scene: PlanScene): VideoCameraId {
@@ -130,8 +145,29 @@ function bottomLineForScene(scene: PlanScene): string {
   );
 }
 
-export function sceneTextLayers(scene: PlanScene, startMs: number, durationMs: number): VideoTextLayer[] {
+export function sceneTextLayers(
+  scene: PlanScene,
+  startMs: number,
+  durationMs: number,
+  commercial?: ConfirmedCommercial,
+): VideoTextLayer[] {
   const layers: VideoTextLayer[] = [];
+  const purpose = scene.purpose.toUpperCase();
+  if (/price|promo|offer/i.test(purpose) && commercial) {
+    const price = priceSceneCopy(commercial);
+    if (price.oldPrice) {
+      layers.push({ content: `WAS ${price.oldPrice}`.slice(0, 80), kind: "price_was", startMs, durationMs, position: "bottom" });
+    }
+    if (price.newPrice) {
+      layers.push({ content: `NOW ${price.newPrice}`.slice(0, 80), kind: "price", startMs, durationMs, position: "bottom" });
+    } else if (scene.copy?.priceOffer?.trim()) {
+      layers.push({ content: scene.copy.priceOffer.trim().slice(0, 80), kind: "price", startMs, durationMs, position: "bottom" });
+    }
+    if (price.saveLabel) {
+      layers.push({ content: price.saveLabel.slice(0, 80), kind: "price_save", startMs, durationMs, position: "bottom" });
+    }
+    if (layers.length) return layers.slice(0, 3);
+  }
   const headline = typeof scene.copy?.headline === "string"
     ? scene.copy.headline.trim()
     : typeof scene.text === "string"
@@ -157,7 +193,7 @@ export function sceneTextLayers(scene: PlanScene, startMs: number, durationMs: n
       position: "bottom",
     });
   }
-  return layers.slice(0, 2);
+  return layers.slice(0, 3);
 }
 
 export function originalAssetId(project: CreativeProject, preferred?: string): string | undefined {
@@ -173,6 +209,16 @@ export function buildTimelineFromPlan(
 ): VideoTimelineClip[] {
   const originals = project.productImages.filter(isOriginalProductImage);
   if (!originals.length) return [];
+  const commercial = buildConfirmedCommercial({
+    productName: project.productInformation?.name ?? project.productInformation?.title ?? project.name,
+    currentPrice: project.productInformation?.price ?? project.productInformation?.currentPrice,
+    originalPrice: project.productInformation?.originalPrice ?? project.productInformation?.oldPrice,
+    currency: project.productInformation?.currency,
+    website: project.productInformation?.website,
+    phone: project.productInformation?.phone ?? project.productInformation?.contact,
+    email: project.productInformation?.email,
+    cta: project.productInformation?.callToAction ?? project.productInformation?.cta,
+  });
   const scenes = [...plan.scenes].sort((a, b) => a.order - b.order);
   let cursor = 0;
   return scenes.map((scene, index) => {
@@ -192,7 +238,7 @@ export function buildTimelineFromPlan(
         view: scene.view ?? existing.view,
         startMs: cursor,
         durationMs,
-        text: existing.userEdited && existing.text.length ? existing.text : sceneTextLayers(scene, cursor, durationMs),
+        text: existing.userEdited && existing.text.length ? existing.text : sceneTextLayers(scene, cursor, durationMs, commercial),
       }
       : {
         id: scene.id,
@@ -211,7 +257,7 @@ export function buildTimelineFromPlan(
         background: "product still",
         transitionIn: mapTransition(scene.transition),
         transitionOut: index === scenes.length - 1 ? "fade" : mapTransition(scene.transition),
-        text: sceneTextLayers(scene, cursor, durationMs),
+        text: sceneTextLayers(scene, cursor, durationMs, commercial),
         audioDirection: plan.audioDirection || "No generated audio until an audio provider is configured.",
         userEdited: false,
       };

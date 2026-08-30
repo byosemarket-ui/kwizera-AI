@@ -2,20 +2,29 @@ import type {
   VideoAspectRatio,
   VideoCameraId,
   VideoMotionId,
+  VideoOutputDetails,
+  VideoPlatformId,
   VideoProject,
   VideoRenderJob,
+  VideoRenderValidation,
   VideoTransitionId,
 } from "../../ai/video-production/types";
+import { VIDEO_PLATFORM_OPTIONS } from "../../ai/video-production/platform-profiles.js";
 
 export type {
   VideoAspectRatio,
   VideoCameraId,
   VideoMotionId,
+  VideoOutputDetails,
+  VideoPlatformId,
   VideoProject,
   VideoRenderJob,
+  VideoRenderValidation,
   VideoTimelineClip,
   VideoTransitionId,
 } from "../../ai/video-production/types";
+
+export { VIDEO_PLATFORM_OPTIONS };
 
 async function readJson<T>(response: Response): Promise<T> {
   const body = await response.json() as T & { error?: string };
@@ -39,6 +48,7 @@ export async function createVideoProject(projectId: string): Promise<{ video: Vi
 
 export async function updateVideoProject(projectId: string, changes: {
   aspectRatio?: VideoAspectRatio;
+  platform?: VideoPlatformId;
   reorder?: string[];
   clip?: {
     id: string;
@@ -55,6 +65,19 @@ export async function updateVideoProject(projectId: string, changes: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "update", ...changes }),
   });
+  return readJson(response);
+}
+
+export async function validateVideoRender(
+  projectId: string,
+  preset: "preview" | "standard" = "standard",
+): Promise<{ validation: VideoRenderValidation }> {
+  const response = await fetch(`/api/video-production/projects/${projectId}/validate?preset=${preset}`);
+  return readJson(response);
+}
+
+export async function getVideoOutputDetails(projectId: string): Promise<{ output: VideoOutputDetails }> {
+  const response = await fetch(`/api/video-production/projects/${projectId}/output`);
   return readJson(response);
 }
 
