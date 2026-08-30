@@ -76,14 +76,25 @@ function fadeFilter(transition: VideoTransitionId, durationMs: number): string {
   return `fade=t=in:st=0:d=${fade},fade=t=out:st=${Math.max(0, seconds - fade)}:d=${fade}`;
 }
 
-function drawtextFilter(clip: VideoTimelineClip, fontFile?: string): string {
-  const layer = clip.text[0];
-  if (!layer?.content || !fontFile) return "";
-  const escaped = sanitizeRenderText(layer.content);
-  if (!escaped) return "";
-  const y = layer.position === "top" ? "h*0.08" : layer.position === "center" ? "(h-text_h)/2" : "h*0.86";
+function drawtextFilter(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile?: string): string {
+  if (!fontFile || !clip.text.length) return "";
   const font = fontFile.replace(/\\/g, "/").replace(/:/g, "\\:");
-  return `drawtext=fontfile='${font}':text='${escaped}':fontsize=22:fontcolor=white:borderw=1:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`;
+  const scale = Math.max(1, Math.round(Math.min(plan.width, plan.height) / 480));
+  const fontSize = 22 * scale;
+  const filters: string[] = [];
+  for (const layer of clip.text.slice(0, 2)) {
+    const escaped = sanitizeRenderText(layer.content);
+    if (!escaped) continue;
+    const y = layer.position === "top"
+      ? `h*${plan.aspectRatio === "9:16" ? "0.12" : "0.08"}`
+      : layer.position === "center"
+        ? "(h-text_h)/2"
+        : `h*${plan.aspectRatio === "9:16" ? "0.82" : "0.86"}`;
+    filters.push(
+      `drawtext=fontfile='${font}':text='${escaped}':fontsize=${fontSize}:fontcolor=white:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
+    );
+  }
+  return filters.join(",");
 }
 
 /** Normalize on-screen copy before FFmpeg drawtext. Never pass raw objects into a filter. */
@@ -150,7 +161,7 @@ export function stillFilter(
     if (fade) parts.push(fade);
   }
   if (options.text) {
-    const text = drawtextFilter(input.clip, options.fontFile);
+    const text = drawtextFilter(input.clip, plan, options.fontFile);
     if (text) parts.push(text);
   }
   return parts.join(",");
@@ -171,7 +182,9 @@ export async function renderStillClip(
   }
   await fs.access(input.imagePath);
   const seconds = Math.max(1, input.clip.durationMs / 1000);
-  const hasText = Boolean(input.clip.text[0]?.content?.trim());
+  const hasText = input.clip.text.some((layer) => layer.content?.trim());
+  const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "veryfast");
+  const crf = plan.crf ?? (plan.preset === "standard" ? 23 : 28);
   const encode = async (text: boolean) => {
     await runFfmpeg([
       "-y", "-loop", "1", "-i", input.imagePath,
@@ -181,8 +194,8 @@ export async function renderStillClip(
       "-an",
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
-      "-preset", "veryfast",
-      "-crf", "28",
+      "-preset", x264Preset,
+      "-crf", String(crf),
       "-movflags", "+faststart",
       outputPath,
     ], 5 * 60_000);
@@ -198,8 +211,8 @@ export async function renderStillClip(
       "-an",
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
-      "-preset", "veryfast",
-      "-crf", "28",
+      "-preset", x264Preset,
+      "-crf", String(crf),
       "-movflags", "+faststart",
       outputPath,
     ], 5 * 60_000);
@@ -236,7 +249,11 @@ export async function renderStillClip(
   }
 }
 
-export async function concatClips(clipPaths: string[], outputPath: string): Promise<void> {
+export async function concatClips(
+  clipPaths: string[],
+  outputPath: string,
+  encode?: { x264Preset?: string; crf?: number },
+): Promise<void> {
   if (!clipPaths.length) throw new Error("No clips to concatenate");
   const listPath = `${outputPath}.concat.txt`;
   const body = clipPaths.map((clip) => {
@@ -244,11 +261,13 @@ export async function concatClips(clipPaths: string[], outputPath: string): Prom
     return `file '${escaped}'`;
   }).join("\n");
   await fs.writeFile(listPath, `${body}\n`, "utf8");
+  const x264Preset = encode?.x264Preset ?? "veryfast";
+  const crf = encode?.crf ?? 28;
   try {
     await runFfmpeg([
       "-y", "-f", "concat", "-safe", "0", "-i", listPath,
       "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart",
-      "-preset", "veryfast", "-crf", "28",
+      "-preset", x264Preset, "-crf", String(crf),
       outputPath,
     ], 8 * 60_000);
   } finally {

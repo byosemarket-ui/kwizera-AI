@@ -58,6 +58,18 @@
 .vp-preview video { height: auto; max-height: 280px; border-radius: 10px; background: #111; }
 .err { color: var(--vp-err) !important; }
 .ok { color: var(--vp-ok) !important; }
+.vp-checkpoint {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.vp-checkpoint div { display: flex; flex-direction: column; gap: 2px; }
+.vp-checkpoint span { font-size: 0.72rem; color: var(--vp-muted); }
+.vp-checkpoint b { font-size: 0.86rem; }
+.vp-versions { margin-top: 12px; }
+.vp-versions h4 { margin: 0 0 6px; font-size: 0.85rem; }
+.vp-versions ul { margin: 0; padding-left: 18px; font-size: 0.78rem; color: var(--vp-muted); }
 @media (max-width: 860px) {
   .vp-editor { grid-template-columns: 1fr; }
   .vp-timeline { flex-direction: column; }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Clapperboard, Play, RefreshCw } from "lucide-react";
+import { Clapperboard, Film, Play, RefreshCw } from "lucide-react";
 import { useShell } from "../shell/ShellContext";
 import { resolveBoundProject } from "../product-creation/workflow";
 import type { CreativeProjectDto } from "../product-intake/api";
@@ -30,6 +30,20 @@ export function VideoProductionWorkspace() {
 
   const selected = video?.timeline.find((clip) => clip.id === selectedId) ?? video?.timeline[0];
   const assetUrl = (assetId?: string) => project?.productImages.find((image) => image.id === assetId)?.url;
+
+  const productInfo = project?.productInformation;
+  const checkpoint = useMemo(() => ({
+    name: productInfo?.name ?? productInfo?.title ?? project?.name ?? "—",
+    imageCount: (project?.productImages ?? []).filter((image) => !image.parentAssetId && image.assetType !== "video").length,
+    platform: project?.platform ?? "—",
+    price: productInfo?.price ?? productInfo?.currentPrice,
+    oldPrice: productInfo?.originalPrice ?? productInfo?.oldPrice,
+    discount: productInfo?.discountPercentage ?? productInfo?.discount,
+    website: productInfo?.website,
+    cta: productInfo?.callToAction ?? productInfo?.cta,
+    sceneCount: video?.timeline.length ?? 0,
+    aspect: video?.renderPlan.aspectRatio ?? "—",
+  }), [project, productInfo, video]);
 
   useEffect(() => {
     void hydrate();
@@ -77,7 +91,7 @@ export function VideoProductionWorkspace() {
     }
   }
 
-  const run = async (action: "create" | "render") => {
+  const run = async (action: "create" | "preview" | "final") => {
     if (!project) return;
     setBusy(true);
     setError(null);
@@ -86,12 +100,20 @@ export function VideoProductionWorkspace() {
         const result = await createVideoProject(project.id);
         setVideo(result.video);
         setSelectedId(result.video.timeline[0]?.id ?? null);
-        notify("success", "Video project ready", "Timeline generated from the Creative Plan.", "ai-suggestions");
+        notify("success", "Timeline ready", `${result.video.timeline.length} scenes from the approved Creative Plan.`, "ai-suggestions");
       } else {
-        const result = await startVideoRender(project.id, "preview");
+        const preset = action === "final" ? "standard" : "preview";
+        const result = await startVideoRender(project.id, preset);
         setVideo(result.video);
         setJob(result.job);
-        notify("info", "Render queued", "Preview render started. Health remains available while FFmpeg runs.", "updates");
+        notify(
+          "info",
+          preset === "standard" ? "Final render queued" : "Preview render queued",
+          preset === "standard"
+            ? `Rendering all ${video?.timeline.length ?? 0} scenes at production resolution.`
+            : "Quick preview: first 3 scenes at reduced resolution.",
+          "updates",
+        );
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Video production failed";
@@ -125,15 +147,15 @@ export function VideoProductionWorkspace() {
     <div className="vprod">
       <header className="vp-hero">
         <div>
-          <div className="vp-kicker">Step 8 · Video production</div>
+          <div className="vp-kicker">Step 4 · Professional video production</div>
           <h1>Video Production</h1>
           <p>
-            Creative Plan becomes a real timeline, then a preview MP4 via FFmpeg. AI video generation is reported unavailable until a provider is configured.
+            Approved Creative Plan becomes a full timeline, then a validated MP4 via FFmpeg. Preview uses 3 scenes at low resolution; final render uses the complete approved sequence at platform resolution.
           </p>
         </div>
         <div className="vp-stats">
           <div><b>{project?.name ?? "No project"}</b><span>Workspace project</span></div>
-          <div><b>{video?.timeline.length ?? 0} scenes</b><span>Bound to original assets</span></div>
+          <div><b>{video?.timeline.length ?? 0} scenes</b><span>Full approved timeline</span></div>
           <div><b>{video?.renderState ?? "idle"}</b><span>Render state</span></div>
         </div>
       </header>
@@ -142,15 +164,18 @@ export function VideoProductionWorkspace() {
         <div>
           <strong>{video ? "Timeline loaded" : "No video project yet"}</strong>
           <div className="vp-note">
-            {video?.videoGenerationProviderMessage ?? "Create a video project from the current Creative Plan."}
+            {video?.videoGenerationProviderMessage ?? "Generate the full timeline from the current Creative Plan."}
           </div>
         </div>
         <div className="vp-toolbar-actions">
           <button type="button" onClick={() => switchWorkspace("storyboard")}>Creative Plan</button>
           <button type="button" onClick={() => void hydrate()} disabled={busy}><RefreshCw size={14} /> Reload</button>
           <button type="button" onClick={() => void run("create")} disabled={busy || !project}>Generate timeline</button>
-          <button type="button" className="vp-primary" onClick={() => void run("render")} disabled={busy || !video?.timeline.length}>
+          <button type="button" onClick={() => void run("preview")} disabled={busy || !video?.timeline.length}>
             <Play size={14} /> Render preview
+          </button>
+          <button type="button" className="vp-primary" onClick={() => void run("final")} disabled={busy || !video?.timeline.length}>
+            <Film size={14} /> Render final video
           </button>
         </div>
       </div>
@@ -160,10 +185,27 @@ export function VideoProductionWorkspace() {
       {video ? (
         <>
           <div className="vp-panel">
+            <h3>Pre-render checkpoint</h3>
+            <div className="vp-checkpoint">
+              <div><span>Product</span><b>{checkpoint.name}</b></div>
+              <div><span>Images</span><b>{checkpoint.imageCount}</b></div>
+              <div><span>Platform</span><b>{checkpoint.platform}</b></div>
+              <div><span>Aspect</span><b>{checkpoint.aspect}</b></div>
+              <div><span>Scenes</span><b>{checkpoint.sceneCount}</b></div>
+              {checkpoint.price ? <div><span>Price</span><b>{String(checkpoint.price)}</b></div> : null}
+              {checkpoint.oldPrice ? <div><span>Was</span><b>{String(checkpoint.oldPrice)}</b></div> : null}
+              {checkpoint.discount ? <div><span>Discount</span><b>{String(checkpoint.discount)}%</b></div> : null}
+              {checkpoint.website ? <div><span>Website</span><b>{checkpoint.website}</b></div> : null}
+              {checkpoint.cta ? <div><span>CTA</span><b>{checkpoint.cta}</b></div> : null}
+            </div>
+          </div>
+
+          <div className="vp-panel">
             <div className="vp-note">Audio: {video.audioPlan.message}</div>
             <div className="vp-progress-bar"><i style={{ width: `${job?.progress ?? (video.renderState === "completed" ? 100 : 0)}%` }} /></div>
             <div className="vp-note">
               Job {job?.stage ?? job?.status ?? video.renderState}
+              {job?.preset ? ` · ${job.preset}` : ""}
               {typeof job?.progress === "number" ? ` · ${job.progress}%` : ""}
               {job?.error ? ` · ${job.error}` : ""}
             </div>
@@ -200,7 +242,10 @@ export function VideoProductionWorkspace() {
                       {assetUrl(clip.assetId) ? <img src={assetUrl(clip.assetId)} alt="" /> : <div style={{ height: 90 }} />}
                       <span className="vp-clip-meta">
                         <b>{clip.order}. {clip.purpose}</b>
-                        <span>{(clip.durationMs / 1000).toFixed(1)}s · {clip.camera} · {clip.motion}</span>
+                        <span>
+                          {(clip.durationMs / 1000).toFixed(1)}s · {clip.camera} · {clip.motion}
+                          {clip.imageRole || clip.view ? ` · ${clip.imageRole ?? clip.view}` : ""}
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -232,8 +277,8 @@ export function VideoProductionWorkspace() {
                   <label>Duration (ms)
                     <input
                       type="number"
-                      min={1000}
-                      max={4000}
+                      min={800}
+                      max={15000}
                       value={selected.durationMs}
                       onBlur={(event) => void persist({ clip: { id: selected.id, durationMs: Number(event.target.value) } })}
                       onChange={(event) => {
@@ -288,8 +333,20 @@ export function VideoProductionWorkspace() {
                 </div>
               </>
             ) : (
-              <p className="vp-note">No validated output yet. Render a preview to produce an MP4 asset.</p>
+              <p className="vp-note">No validated output yet. Render a preview or final video to produce an MP4 asset.</p>
             )}
+            {(video.versions?.length ?? 0) > 0 ? (
+              <div className="vp-versions">
+                <h4>Version history</h4>
+                <ul>
+                  {[...(video.versions ?? [])].reverse().map((version) => (
+                    <li key={version.versionId}>
+                      {version.preset} · {version.sceneCount} scenes · {version.aspectRatio} · {(version.durationMs / 1000).toFixed(1)}s · {new Date(version.createdAt).toLocaleString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </section>
         </>
       ) : (

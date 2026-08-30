@@ -1,7 +1,7 @@
-export const VIDEO_PRODUCTION_VERSION = "step8-v1";
+export const VIDEO_PRODUCTION_VERSION = "step4-v1";
 
 export type VideoRenderJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
-export type VideoRenderStage = "queued" | "processing" | "encoding" | "validating" | "registering" | "completed" | "failed";
+export type VideoRenderStage = "queued" | "preparing" | "processing" | "rendering" | "encoding" | "validating" | "registering" | "completed" | "failed";
 export type VideoTextOverlayStatus = "applied" | "skipped" | "unavailable" | "failed";
 export type VideoKnowledgeStatus = "linked" | "already-linked" | "created" | "unavailable" | "failed" | "empty" | "error";
 export type VideoAspectRatio = "16:9" | "9:16" | "1:1";
@@ -46,6 +46,8 @@ export interface VideoTimelineClip {
   order: number;
   purpose: string;
   assetId: string;
+  imageRole?: string;
+  view?: string;
   startMs: number;
   durationMs: number;
   layer: "video";
@@ -78,6 +80,22 @@ export interface VideoRenderPlan {
   audioCodec: "none";
   outputFormat: "mp4";
   preset: "preview" | "standard";
+  x264Preset?: "veryfast" | "medium";
+  crf?: number;
+}
+
+export interface VideoVersion {
+  versionId: string;
+  renderJobId: string;
+  preset: "preview" | "standard";
+  creativePlanId: string;
+  creativePlanVersion: number;
+  manifestId?: string;
+  aspectRatio: VideoAspectRatio;
+  sceneCount: number;
+  durationMs: number;
+  output: VideoOutputAsset;
+  createdAt: string;
 }
 
 export interface VideoOutputAsset {
@@ -109,6 +127,7 @@ export interface VideoRenderJob {
   outputPath?: string;
   outputAssetId?: string;
   textOverlay?: VideoTextOverlayStatus;
+  preset?: "preview" | "standard";
 }
 
 export interface VideoProject {
@@ -117,15 +136,18 @@ export interface VideoProject {
   productId: string;
   creativePlanId: string;
   creativePlanVersion: number;
+  manifestId?: string;
   createdAt: string;
   modifiedAt: string;
   version: number;
   timeline: VideoTimelineClip[];
+  timelineMode: "full";
   audioPlan: VideoAudioPlan;
   renderPlan: VideoRenderPlan;
   renderState: VideoRenderJobStatus | "idle";
   activeJobId?: string;
   output?: VideoOutputAsset;
+  versions?: VideoVersion[];
   videoGenerationProvider: "UNAVAILABLE";
   videoGenerationProviderMessage: string;
   userEdited?: boolean;

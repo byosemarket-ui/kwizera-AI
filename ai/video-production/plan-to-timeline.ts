@@ -11,10 +11,16 @@ import type {
   VideoTransitionId,
 } from "./types.js";
 
-const PREVIEW: Record<VideoAspectRatio, { width: number; height: number }> = {
+const PREVIEW_SIZE: Record<VideoAspectRatio, { width: number; height: number }> = {
   "16:9": { width: 640, height: 360 },
   "9:16": { width: 360, height: 640 },
   "1:1": { width: 480, height: 480 },
+};
+
+const STANDARD_SIZE: Record<VideoAspectRatio, { width: number; height: number }> = {
+  "16:9": { width: 1920, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+  "1:1": { width: 1080, height: 1080 },
 };
 
 export function aspectFromPlatform(platform?: string): VideoAspectRatio {
@@ -24,8 +30,12 @@ export function aspectFromPlatform(platform?: string): VideoAspectRatio {
   return "16:9";
 }
 
-export function buildRenderPlan(aspect: VideoAspectRatio, durationMs: number, preset: "preview" | "standard" = "preview"): VideoRenderPlan {
-  const size = PREVIEW[aspect];
+export function buildRenderPlan(
+  aspect: VideoAspectRatio,
+  durationMs: number,
+  preset: "preview" | "standard" = "preview",
+): VideoRenderPlan {
+  const size = preset === "standard" ? STANDARD_SIZE[aspect] : PREVIEW_SIZE[aspect];
   return {
     width: size.width,
     height: size.height,
@@ -36,21 +46,25 @@ export function buildRenderPlan(aspect: VideoAspectRatio, durationMs: number, pr
     audioCodec: "none",
     outputFormat: "mp4",
     preset,
+    x264Preset: preset === "standard" ? "medium" : "veryfast",
+    crf: preset === "standard" ? 23 : 28,
   };
 }
 
 export function mapCamera(scene: PlanScene): VideoCameraId {
-  const text = `${scene.cameraDirection ?? ""} ${scene.camera ?? ""} ${scene.purpose}`.toLowerCase();
+  const text = `${scene.cameraDirection ?? ""} ${scene.camera ?? ""} ${scene.purpose} ${scene.view ?? ""}`.toLowerCase();
   if (/macro|detail|close/.test(text)) return "macro";
-  if (/push-in|push in/.test(text)) return "push-in";
+  if (/push-in|push in|hero/.test(text)) return "push-in";
   if (/pull-out|pull out|zoom out/.test(text)) return "pull-out";
   if (/orbit/.test(text)) return "orbit";
-  if (/top-down|top down/.test(text)) return "top-down";
-  if (/side|reveal/.test(text)) return "side";
-  if (/wide|hero/.test(text)) return "hero";
+  if (/top-down|top down|top/.test(text)) return "top-down";
+  if (/side|left|right/.test(text)) return "side";
+  if (/rear|back/.test(text)) return "rear";
+  if (/wide|lifestyle/.test(text)) return "wide";
   if (/tilt/.test(text)) return "tilt";
   if (/pan/.test(text)) return "pan";
   if (/medium/.test(text)) return "medium";
+  if (/reveal/.test(text)) return "reveal";
   return "front";
 }
 
@@ -65,6 +79,7 @@ export function mapMotion(camera: VideoCameraId): VideoMotionId {
     case "hero":
       return "zoom-out";
     case "side":
+    case "rear":
     case "reveal":
       return "pan-left";
     case "orbit":
@@ -81,9 +96,13 @@ export function mapMotion(camera: VideoCameraId): VideoMotionId {
 export function mapSceneMotion(scene: PlanScene, camera: VideoCameraId): VideoMotionId {
   const motion = String(scene.motion ?? scene.animation ?? "").toUpperCase().replace(/[\s-]+/g, "_");
   if (motion === "HOLD" || motion === "STABLE_HOLD") return "hold";
-  if (motion.includes("PAN")) return "pan-left";
+  if (motion.includes("PAN_LEFT") || motion === "GENTLE_PAN") return "pan-left";
+  if (motion.includes("PAN_RIGHT")) return "pan-right";
+  if (motion.includes("PAN_UP")) return "pan-up";
+  if (motion.includes("PAN_DOWN")) return "pan-down";
   if (motion.includes("REVEAL")) return "image-reveal";
-  if (motion.includes("ZOOM") || motion.includes("PUSH")) return "slow-zoom";
+  if (motion.includes("ZOOM") || motion.includes("PUSH") || motion.includes("CLOSE")) return "slow-zoom";
+  if (motion.includes("PULL")) return "zoom-out";
   return mapMotion(camera);
 }
 
@@ -93,26 +112,51 @@ export function mapTransition(value?: string): VideoTransitionId {
   return "cut";
 }
 
+function bottomLineForScene(scene: PlanScene): string {
+  const purpose = scene.purpose.toUpperCase();
+  if (purpose.includes("PRICE") || purpose.includes("PROMO")) {
+    return scene.copy?.priceOffer?.trim() ?? "";
+  }
+  if (purpose.includes("CTA") || purpose.includes("CALL")) {
+    return scene.copy?.callToAction?.trim() ?? scene.copy?.supportingText?.trim() ?? "";
+  }
+  return (
+    scene.copy?.featureText?.trim()
+    || scene.copy?.benefitText?.trim()
+    || scene.copy?.supportingText?.trim()
+    || scene.copy?.priceOffer?.trim()
+    || scene.copy?.callToAction?.trim()
+    || ""
+  );
+}
+
 export function sceneTextLayers(scene: PlanScene, startMs: number, durationMs: number): VideoTextLayer[] {
   const layers: VideoTextLayer[] = [];
-  const add = (content: unknown, kind: VideoTextLayer["kind"], position: VideoTextLayer["position"]) => {
-    const value = typeof content === "string" ? content.trim() : "";
-    if (!value || value === "[object Object]") return;
-    if (kind === "price" && !scene.copy?.priceOffer) return;
+  const headline = typeof scene.copy?.headline === "string"
+    ? scene.copy.headline.trim()
+    : typeof scene.text === "string"
+      ? scene.text.trim()
+      : "";
+  if (headline && headline !== "[object Object]") {
     layers.push({
-      content: value.slice(0, 80),
+      content: headline.slice(0, 80),
+      kind: "headline",
+      startMs,
+      durationMs,
+      position: "top",
+    });
+  }
+  const bottom = bottomLineForScene(scene);
+  if (bottom && bottom !== "[object Object]") {
+    const kind = /price|promo/i.test(scene.purpose) ? "price" : /cta|call/i.test(scene.purpose) ? "cta" : "supporting";
+    layers.push({
+      content: bottom.slice(0, 80),
       kind,
       startMs,
       durationMs,
-      position,
+      position: "bottom",
     });
-  };
-  add(scene.copy?.headline || scene.text, "headline", "top");
-  add(scene.copy?.featureText, "feature", "bottom");
-  add(scene.copy?.benefitText, "benefit", "bottom");
-  add(scene.copy?.supportingText, "supporting", "bottom");
-  add(scene.copy?.priceOffer, "price", "bottom");
-  add(scene.copy?.callToAction, "cta", "bottom");
+  }
   return layers.slice(0, 2);
 }
 
@@ -125,18 +169,16 @@ export function originalAssetId(project: CreativeProject, preferred?: string): s
 export function buildTimelineFromPlan(
   project: CreativeProject,
   plan: CreativePlan,
-  options?: { preview?: boolean; existing?: VideoTimelineClip[] },
+  options?: { existing?: VideoTimelineClip[] },
 ): VideoTimelineClip[] {
   const originals = project.productImages.filter(isOriginalProductImage);
   if (!originals.length) return [];
   const scenes = [...plan.scenes].sort((a, b) => a.order - b.order);
-  const limited = options?.preview ? scenes.slice(0, Math.min(3, scenes.length)) : scenes;
   let cursor = 0;
-  return limited.map((scene, index) => {
-    const existing = options?.existing?.find((clip) => clip.userEdited && (clip.sceneId === scene.id || clip.order === index + 1));
+  return scenes.map((scene, index) => {
+    const existing = options?.existing?.find((clip) => clip.userEdited && clip.sceneId === scene.id);
     const plannedMs = Math.max(800, scene.durationMs ?? Math.round((scene.durationSeconds || 2) * 1000));
     const durationMs = existing?.durationMs ?? plannedMs;
-    const previewDuration = options?.preview ? Math.min(durationMs, 2000) : durationMs;
     const assetId = originalAssetId(project, existing?.assetId || scene.assetId) ?? originals[0]!.id;
     const camera = existing?.camera ?? mapCamera(scene);
     const motion = existing?.motion ?? mapSceneMotion(scene, camera);
@@ -144,9 +186,13 @@ export function buildTimelineFromPlan(
       ? {
         ...existing,
         order: index + 1,
+        purpose: scene.purpose,
         assetId,
+        imageRole: scene.imageRole ?? scene.view ?? existing.imageRole,
+        view: scene.view ?? existing.view,
         startMs: cursor,
-        durationMs: previewDuration,
+        durationMs,
+        text: existing.userEdited && existing.text.length ? existing.text : sceneTextLayers(scene, cursor, durationMs),
       }
       : {
         id: scene.id,
@@ -154,21 +200,39 @@ export function buildTimelineFromPlan(
         order: index + 1,
         purpose: scene.purpose,
         assetId,
+        imageRole: scene.imageRole ?? scene.view,
+        view: scene.view,
         startMs: cursor,
-        durationMs: previewDuration,
+        durationMs,
         layer: "video",
         camera,
         motion,
         lighting: scene.lighting || "Keep lighting consistent with the source photograph.",
         background: "product still",
         transitionIn: mapTransition(scene.transition),
-        transitionOut: index === limited.length - 1 ? "fade" : mapTransition(scene.transition),
-        text: sceneTextLayers(scene, cursor, previewDuration),
+        transitionOut: index === scenes.length - 1 ? "fade" : mapTransition(scene.transition),
+        text: sceneTextLayers(scene, cursor, durationMs),
         audioDirection: plan.audioDirection || "No generated audio until an audio provider is configured.",
         userEdited: false,
       };
     cursor += clip.durationMs;
     return clip;
+  });
+}
+
+/** Preview renders use a subset of the approved timeline without mutating stored clips. */
+export function sliceTimelineForRender(
+  clips: VideoTimelineClip[],
+  preset: "preview" | "standard",
+): VideoTimelineClip[] {
+  if (preset === "standard") return clips;
+  const limited = clips.slice(0, Math.min(3, clips.length));
+  let cursor = 0;
+  return limited.map((clip) => {
+    const durationMs = Math.min(clip.durationMs, 2000);
+    const next = { ...clip, startMs: cursor, durationMs };
+    cursor += durationMs;
+    return next;
   });
 }
 

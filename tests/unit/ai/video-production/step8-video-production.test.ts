@@ -36,20 +36,19 @@ describe("STEP 8 video production", () => {
     expect(mapTransition("wipe")).toBe("cut");
   });
 
-  it("builds a timeline from original assets only and preserves user edits", async () => {
+  it("builds a full timeline from original assets only and preserves user edits", async () => {
     const { workspace, planning, project } = await setupProject("STEP8-A");
     const plan = (await planning.createPlan(project, planning.validateForPlan(project))).plan!;
-    const timeline = buildTimelineFromPlan(project, plan, { preview: true });
+    const timeline = buildTimelineFromPlan(project, plan);
     expect(timeline.length).toBeGreaterThan(0);
-    expect(timeline.length).toBeLessThanOrEqual(3);
     expect(timeline.every((clip) => clip.assetId === project.productImages[0]!.id)).toBe(true);
     expect(timeline.every((clip) => Number.isInteger(clip.startMs) && Number.isInteger(clip.durationMs))).toBe(true);
 
     const edited = timeline.map((clip, index) => index === 0 ? { ...clip, durationMs: 1800, userEdited: true, camera: "hero" as const } : clip);
-    const rebuilt = buildTimelineFromPlan(project, plan, { preview: true, existing: edited });
+    const rebuilt = buildTimelineFromPlan(project, plan, { existing: edited });
     expect(rebuilt[0]?.userEdited).toBe(true);
     expect(rebuilt[0]?.camera).toBe("hero");
-    expect(rebuilt[0]?.durationMs).toBeLessThanOrEqual(2000);
+    expect(rebuilt[0]?.durationMs).toBe(1800);
   });
 
   it("creates an isolated video project, persists edits, and registers generated video separately from originals", async () => {

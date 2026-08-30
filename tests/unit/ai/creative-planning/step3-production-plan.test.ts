@@ -6,7 +6,7 @@ import { CreativePlanningManager } from "../../../../ai/creative-planning/creati
 import { buildConfirmedCommercial, priceSceneCopy } from "../../../../ai/creative-planning/commercial.js";
 import { planProductScenes } from "../../../../ai/creative-planning/scene-planner.js";
 import { planStoryBeats } from "../../../../ai/creative-planning/story-structure.js";
-import { buildTimelineFromPlan } from "../../../../ai/video-production/plan-to-timeline.js";
+import { buildTimelineFromPlan, sliceTimelineForRender } from "../../../../ai/video-production/plan-to-timeline.js";
 import { sanitizeRenderText } from "../../../../ai/video-production/ffmpeg-renderer.js";
 import type { CanonicalProduct } from "../../../../ai/product-record/types.js";
 import type { CanonicalViewKind } from "../../../../ai/product-record/view-kinds.js";
@@ -241,9 +241,9 @@ describe("STEP 3 scene plan and production manifest", () => {
       prompts: { image: "", video: "", audio: "" },
       workflow: [],
     };
-    const preview = buildTimelineFromPlan(project, plan, { preview: true });
-    expect(preview.every((clip) => clip.durationMs <= 2000)).toBe(true);
     const full = buildTimelineFromPlan(project, plan);
+    const preview = sliceTimelineForRender(full, "preview");
+    expect(preview.every((clip) => clip.durationMs <= 2000)).toBe(true);
     const planned = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? 0), 0);
     expect(full.reduce((sum, clip) => sum + clip.durationMs, 0)).toBe(planned);
     expect(full.some((clip) => clip.durationMs > 2000 || scenes.length <= 3)).toBe(true);

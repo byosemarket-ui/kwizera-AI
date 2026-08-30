@@ -17,6 +17,7 @@ import {
   aspectFromPlatform,
   buildRenderPlan,
   buildTimelineFromPlan,
+  sliceTimelineForRender,
   timelineDurationMs,
 } from "./plan-to-timeline.js";
 import {
@@ -30,6 +31,7 @@ import {
   type VideoTextOverlayStatus,
   type VideoTimelineClip,
   type VideoTransitionId,
+  type VideoVersion,
 } from "./types.js";
 import { isEquivalentKnowledgeMessage } from "../product-intelligence/normalize-profile.js";
 import { recordVideoProductionFoundation } from "./video-production-foundation.js";
@@ -98,6 +100,7 @@ export class VideoProductionManager {
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
     const plan = await this.planning!.getPlan(projectId);
     if (!plan) throw new VideoProductionError("MISSING_PLAN", "Generate a Creative Plan before creating a video project", 422);
+    const manifest = await this.planning!.getManifest(projectId);
     const originals = workspaceProject.productImages.filter(isOriginalProductImage);
     if (!originals.length) {
       throw new VideoProductionError("MISSING_ASSET", "At least one original product image is required", 422);
@@ -106,14 +109,11 @@ export class VideoProductionManager {
     const existing = await this.getVideoProject(projectId);
     const preserve = options?.preserveEdits !== false;
     const existingClips = preserve ? existing?.timeline.filter((clip) => clip.userEdited) : undefined;
-    const timeline = buildTimelineFromPlan(workspaceProject, plan, {
-      preview: true,
-      existing: existingClips,
-    });
+    const timeline = buildTimelineFromPlan(workspaceProject, plan, { existing: existingClips });
     if (!timeline.length) {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
-    const aspect = existing?.renderPlan.aspectRatio ?? aspectFromPlatform(workspaceProject.platform);
+    const aspect = resolveAspect(existing, manifest, workspaceProject.platform);
     const now = new Date().toISOString();
     const video: VideoProject = {
       id: existing?.id ?? randomUUID(),
@@ -121,10 +121,12 @@ export class VideoProductionManager {
       productId: plan.productId || projectId,
       creativePlanId: plan.id,
       creativePlanVersion: plan.version,
+      manifestId: manifest?.manifestId ?? plan.manifestId ?? existing?.manifestId,
       createdAt: existing?.createdAt ?? now,
       modifiedAt: now,
       version: (existing?.version ?? 0) + 1,
       timeline,
+      timelineMode: "full",
       audioPlan: {
         backgroundMusic: "none",
         voiceover: "none",
@@ -138,6 +140,7 @@ export class VideoProductionManager {
         : existing?.output ? "completed" : "idle",
       activeJobId: existing?.activeJobId,
       output: existing?.output,
+      versions: existing?.versions ?? [],
       videoGenerationProvider: "UNAVAILABLE",
       videoGenerationProviderMessage: PROVIDER_MESSAGE,
       userEdited: existing?.userEdited,
@@ -184,7 +187,7 @@ export class VideoProductionManager {
         if (clip.id !== changes.clip!.id && clip.sceneId !== changes.clip!.id) return clip;
         const next = { ...clip, userEdited: true };
         if (typeof changes.clip!.durationMs === "number") {
-          next.durationMs = Math.min(4000, Math.max(1000, Math.round(changes.clip!.durationMs)));
+          next.durationMs = Math.min(15000, Math.max(800, Math.round(changes.clip!.durationMs)));
         }
         if (changes.clip!.camera) next.camera = changes.clip!.camera;
         if (changes.clip!.motion) next.motion = changes.clip!.motion;
@@ -236,9 +239,13 @@ export class VideoProductionManager {
         throw new VideoProductionError("RENDER_IN_PROGRESS", "A render is already running for this project", 409);
       }
     }
+    if (preset === "standard" && !video.timeline.length) {
+      throw new VideoProductionError("MISSING_TIMELINE", "Generate a timeline before final render", 422);
+    }
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
-    for (const clip of video.timeline) {
+    const renderClips = sliceTimelineForRender(video.timeline, preset);
+    for (const clip of renderClips) {
       const source = await this.workspace!.getOriginalImagePath(projectId, clip.assetId);
       if (!source) {
         throw new VideoProductionError("MISSING_ASSET", `Scene ${clip.order} is missing original asset ${clip.assetId}`, 422);
@@ -254,10 +261,11 @@ export class VideoProductionManager {
       progress: 0,
       createdAt: now,
       updatedAt: now,
+      preset,
     };
     video = {
       ...video,
-      renderPlan: buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(video.timeline), preset),
+      renderPlan: buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(renderClips), preset),
       renderState: "queued",
       activeJobId: job.id,
       modifiedAt: now,
@@ -318,7 +326,7 @@ export class VideoProductionManager {
     const started: VideoRenderJob = {
       ...job,
       status: "processing",
-      stage: "processing",
+      stage: "preparing",
       progress: 5,
       startedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -332,42 +340,48 @@ export class VideoProductionManager {
     try {
       const video = await this.getVideoProject(job.projectId);
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
+      const preset = job.preset ?? video.renderPlan.preset ?? "preview";
+      const renderClips = sliceTimelineForRender(video.timeline, preset);
+      const renderPlan = buildRenderPlan(video.renderPlan.aspectRatio, timelineDurationMs(renderClips), preset);
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
-      await this.writeJob(job.id, { ...started, stage: "encoding", progress: 10 });
-      for (const [index, clip] of video.timeline.entries()) {
+      await this.writeJob(job.id, { ...started, stage: "rendering", progress: 10 });
+      for (const [index, clip] of renderClips.entries()) {
         await yieldLoop();
         const imagePath = await this.workspace!.getOriginalImagePath(job.projectId, clip.assetId);
         if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${clip.assetId} is not on disk`, 422);
         const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
-        const rendered = await renderStillClip({ clip, imagePath }, video.renderPlan, clipPath, fontFile);
+        const rendered = await renderStillClip({ clip, imagePath }, renderPlan, clipPath, fontFile);
         overlays.push(rendered.overlay);
         clipPaths.push(clipPath);
         await this.writeJob(job.id, {
           ...started,
-          stage: "encoding",
-          progress: Math.min(80, 10 + Math.round(((index + 1) / video.timeline.length) * 70)),
+          stage: "rendering",
+          progress: Math.min(80, 10 + Math.round(((index + 1) / renderClips.length) * 70)),
         });
       }
       await yieldLoop();
-      await this.writeJob(job.id, { ...started, stage: "encoding", progress: 82 });
+      await this.writeJob(job.id, { ...started, stage: "rendering", progress: 82 });
       const outputPath = path.join(tmpDir, "output.mp4");
       if (clipPaths.length === 1) {
         await fs.copyFile(clipPaths[0]!, outputPath);
       } else {
-        await concatClips(clipPaths, outputPath);
+        await concatClips(clipPaths, outputPath, {
+          x264Preset: renderPlan.x264Preset,
+          crf: renderPlan.crf,
+        });
       }
       await this.writeJob(job.id, { ...started, stage: "validating", progress: 88 });
       const probed = await probeVideo(outputPath);
-      if (probed.width !== video.renderPlan.width || probed.height !== video.renderPlan.height) {
+      if (probed.width !== renderPlan.width || probed.height !== renderPlan.height) {
         throw new VideoProductionError("INVALID_OUTPUT", "Output dimensions do not match the render plan", 500);
       }
       await this.writeJob(job.id, { ...started, stage: "registering", progress: 92 });
-      const parentAssetId = video.timeline[0]?.assetId;
+      const parentAssetId = renderClips[0]?.assetId;
       const registered = await this.workspace!.registerOutputAsset(job.projectId, {
         sourcePath: outputPath,
-        fileName: "product-video.mp4",
+        fileName: preset === "standard" ? "product-video-final.mp4" : "product-video-preview.mp4",
         mimeType: "video/mp4",
         width: probed.width,
         height: probed.height,
@@ -378,6 +392,30 @@ export class VideoProductionManager {
       });
       overlay = mergeOverlay(overlays);
       const completedAt = new Date().toISOString();
+      const output = {
+        assetId: registered.id,
+        mimeType: "video/mp4" as const,
+        durationMs: probed.durationMs,
+        width: probed.width,
+        height: probed.height,
+        sizeBytes: probed.sizeBytes,
+        url: registered.url,
+        renderJobId: job.id,
+        createdAt: completedAt,
+      };
+      const version: VideoVersion = {
+        versionId: randomUUID(),
+        renderJobId: job.id,
+        preset,
+        creativePlanId: video.creativePlanId,
+        creativePlanVersion: video.creativePlanVersion,
+        manifestId: video.manifestId,
+        aspectRatio: renderPlan.aspectRatio,
+        sceneCount: renderClips.length,
+        durationMs: probed.durationMs,
+        output,
+        createdAt: completedAt,
+      };
       const completed: VideoRenderJob = {
         ...started,
         status: "completed",
@@ -388,24 +426,17 @@ export class VideoProductionManager {
         outputPath: registered.url,
         outputAssetId: registered.id,
         textOverlay: overlay,
+        preset,
       };
       const updatedVideo: VideoProject = {
         ...video,
+        renderPlan,
         renderState: "completed",
         activeJobId: job.id,
         modifiedAt: completedAt,
         textOverlay: overlay,
-        output: {
-          assetId: registered.id,
-          mimeType: "video/mp4",
-          durationMs: probed.durationMs,
-          width: probed.width,
-          height: probed.height,
-          sizeBytes: probed.sizeBytes,
-          url: registered.url,
-          renderJobId: job.id,
-          createdAt: completedAt,
-        },
+        output,
+        versions: [...(video.versions ?? []), version],
       };
       await this.writeJson(this.jobFile(job.id), completed);
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
@@ -502,6 +533,16 @@ export class VideoProductionManager {
   private ensureInitialized(): void {
     if (!this.isInitialized()) throw new Error("Video Production Manager is not initialized");
   }
+}
+
+function resolveAspect(
+  existing: VideoProject | null,
+  manifest: { format?: { aspectRatio?: VideoAspectRatio } } | null,
+  platform?: string,
+): VideoAspectRatio {
+  if (manifest?.format?.aspectRatio) return manifest.format.aspectRatio;
+  if (existing?.renderPlan.aspectRatio) return existing.renderPlan.aspectRatio;
+  return aspectFromPlatform(platform);
 }
 
 function renderErrorCode(error: unknown): string {
