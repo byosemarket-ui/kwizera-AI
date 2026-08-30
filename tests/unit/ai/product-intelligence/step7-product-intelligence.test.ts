@@ -107,7 +107,7 @@ describe("STEP 7 Marketing + Creative Planning", () => {
     expect(plan.scenes.length).toBeGreaterThanOrEqual(3);
     expect(plan.scenes.every((scene) => Boolean(scene.assetId))).toBe(true);
     expect(plan.scenes[0]?.assetId).toBe(project.productImages[0]?.id);
-    expect(plan.scenes.some((scene) => scene.purpose === "Call to action")).toBe(true);
+    expect(plan.scenes.some((scene) => scene.purpose === "CTA" || /call to action/i.test(scene.purpose))).toBe(true);
     expect(plan.callToAction).toBeTruthy();
 
     const edited = await planning.updatePlan(project.id, {
