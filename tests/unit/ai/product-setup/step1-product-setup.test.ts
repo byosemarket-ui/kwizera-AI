@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { calculateDiscount, parsePriceInput } from "../../../desktop/product-setup/discount.ts";
+import { calculateDiscount, parsePriceInput } from "../../../../desktop/product-setup/discount.ts";
 import {
   buildImageCards,
   computeReadiness,
   deriveAnalysisStatus,
   suggestProductName,
-} from "../../../desktop/product-setup/readiness.ts";
-import type { IntakeSnapshot } from "../../../desktop/product-intake/types.ts";
-import type { OrganizationSnapshot } from "../../../desktop/image-organization/types.ts";
+} from "../../../../desktop/product-setup/readiness.ts";
+import type { IntakeSnapshot } from "../../../../desktop/product-intake/types.ts";
+import type { OrganizationSnapshot } from "../../../../desktop/image-organization/types.ts";
 
 const baseIntake = (overrides: Partial<IntakeSnapshot> = {}): IntakeSnapshot => ({
   version: 1,
@@ -77,7 +77,7 @@ const baseOrg = (overrides: Partial<OrganizationSnapshot> = {}): OrganizationSna
       aiVisionStatus: "OK",
     }],
     missingViews: ["BACK"],
-    recommendedViews: ["FRONT", "BACK", "SIDE"],
+    recommendedViews: ["FRONT", "BACK", "OTHER"],
     coverageScore: 66,
     warnings: [],
     consistencyOk: true,
