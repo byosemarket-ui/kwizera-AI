@@ -16,9 +16,14 @@ export interface MarketingHistoryEntry {
 }
 
 export interface AiRecommendation {
+  id?: string;
   field: string;
+  label?: string;
   value: string | string[];
   reason: string;
+  why?: string;
+  source?: "CONFIRMED" | "INFERRED" | "USER_DEFINED";
+  reasoningBasis?: string;
   confidence: number;
   status: AiRecStatus;
 }
@@ -44,6 +49,7 @@ export interface MarketingInputFields {
   audienceNotes: string;
   platforms: string[];
   customPlatform: string;
+  aspectRatio: string;
   contentFormat: string;
   customFormat: string;
   duration: DurationPreset;
@@ -74,6 +80,7 @@ export interface MarketingInputFields {
   brandColors: string;
   brandVoice: string;
   brandGuidelines: string;
+  lockedFields: string[];
 }
 
 export interface MarketingCompleteness {
@@ -117,6 +124,81 @@ export interface VideoConcept {
   createdAt: string;
 }
 
+export interface ProvenanceClaimView {
+  text: string;
+  source: "CONFIRMED" | "INFERRED" | "USER_DEFINED";
+  confidence: number;
+  reason?: string;
+}
+
+export interface AuthoritativeBriefView {
+  briefId: string;
+  productId: string;
+  projectId: string;
+  briefVersion: number;
+  activeVersion: number;
+  status: "DRAFT" | "INTELLIGENCE_READY" | "READY_FOR_SCRIPT";
+  campaign: {
+    objective: string;
+    platforms: string[];
+    cta: string;
+    tone: string;
+    lockedFields: string[];
+  };
+  output: {
+    aspectRatio: string;
+    duration: string;
+    contentFormat: string;
+  };
+  marketing: {
+    positioning: string;
+    angle: string;
+    mainSellingPoint: ProvenanceClaimView;
+    supportingPoints: ProvenanceClaimView[];
+    message: string;
+    cta: string;
+  };
+  creative: { tone: string; style: string };
+  productAssets: Record<string, string[]>;
+  intelligence: {
+    category?: ProvenanceClaimView;
+    positioning?: ProvenanceClaimView;
+    productStrengths?: ProvenanceClaimView[];
+    visualStrengths?: ProvenanceClaimView[];
+    detailsWorthShowing?: ProvenanceClaimView[];
+    mainSellingPoint?: ProvenanceClaimView;
+    supportingPoints?: ProvenanceClaimView[];
+    marketingAngle?: ProvenanceClaimView;
+    suggestedCta?: ProvenanceClaimView;
+    audienceHypotheses?: ProvenanceClaimView[];
+    platformStrategy?: ProvenanceClaimView;
+  } | null;
+  versions: Array<{ version: number; createdAt: string; reason: string }>;
+  recommendations?: Array<{
+    id: string;
+    field: string;
+    label?: string;
+    value: string | string[];
+    why?: string;
+    reason?: string;
+    source?: "CONFIRMED" | "INFERRED" | "USER_DEFINED";
+    reasoningBasis?: string;
+    confidence: number;
+    status: string;
+  }>;
+}
+
+export interface CanonicalProductSummary {
+  productId: string;
+  projectId: string;
+  identity: { name: string; brand: string; category: string; productType: string };
+  assetMap: Record<string, string[]>;
+  originalAssetIds: string[];
+  visualFeatures: string[];
+  sellingPoints: string[];
+  readiness: string;
+}
+
 export interface MarketingProductionBrief {
   version: 1;
   marketingBriefId: string;
@@ -139,6 +221,8 @@ export interface MarketingProductionBrief {
   marketingPlan: StructuredMarketingPlan | null;
   videoConcept: VideoConcept | null;
   production: ProductionRunState;
+  authoritative: AuthoritativeBriefView | null;
+  canonicalProduct: CanonicalProductSummary | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,12 +250,13 @@ export const MARKETING_HANDOFF_KEY = "kwizera.marketing-input.handoff.v1";
 
 export const OBJECTIVE_PRESETS = [
   "Product Awareness",
+  "Sales",
   "Product Launch",
-  "Direct Sales",
-  "Promotion",
-  "New Arrival",
   "Brand Awareness",
+  "Promotion",
   "Engagement",
+  "Direct Sales",
+  "New Arrival",
   "Traffic",
   "Lead Generation",
   "Seasonal Campaign",
@@ -200,6 +285,8 @@ export const FORMAT_PRESETS = [
   "Brand Video",
   "Custom Format",
 ] as const;
+
+export const ASPECT_RATIO_PRESETS = ["9:16", "1:1", "16:9"] as const;
 
 export const CTA_PRESETS = [
   "Buy Now",
@@ -252,6 +339,7 @@ export function emptyMarketingFields(): MarketingInputFields {
     audienceNotes: "",
     platforms: [],
     customPlatform: "",
+    aspectRatio: "",
     contentFormat: "",
     customFormat: "",
     duration: "automatic",
@@ -282,6 +370,7 @@ export function emptyMarketingFields(): MarketingInputFields {
     brandColors: "",
     brandVoice: "",
     brandGuidelines: "",
+    lockedFields: [],
   };
 }
 
@@ -318,4 +407,11 @@ export function resolvedLanguage(fields: MarketingInputFields): string {
 export function resolvedFormat(fields: MarketingInputFields): string {
   if (fields.contentFormat === "Custom Format") return fields.customFormat.trim() || "Custom Format";
   return fields.contentFormat;
+}
+
+export function sourceLabel(source?: string): string {
+  if (source === "CONFIRMED" || source === "user" || source === "user-provided") return "Product data";
+  if (source === "USER_DEFINED") return "Your setting";
+  if (source === "INFERRED" || source === "ai" || source === "ai-recommendation") return "AI inference";
+  return source ? source.replace(/_/g, " ") : "";
 }

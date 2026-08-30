@@ -51,6 +51,8 @@ import {
 
   getCanonicalProductManager,
 
+  getMarketingBriefManager,
+
   getImageIntelligenceManager,
 
   getProductAssetPreparationManager,
@@ -564,6 +566,15 @@ function requireCanonicalProduct(res: ServerResponse) {
   const manager = getCanonicalProductManager();
   if (!manager) {
     sendJson(res, 503, { error: "Product record is restoring. Try again shortly." });
+    return null;
+  }
+  return manager;
+}
+
+function requireMarketingBrief(res: ServerResponse) {
+  const manager = getMarketingBriefManager();
+  if (!manager) {
+    sendJson(res, 503, { error: "Marketing production brief is restoring. Try again shortly." });
     return null;
   }
   return manager;
@@ -2866,6 +2877,94 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       intelligence: product.intelligence,
       readiness: product.productionData,
     });
+    return;
+  }
+
+  const marketingBriefMatch = url.pathname.match(/^\/api\/marketing-brief\/projects\/([^/]+)$/);
+  if (marketingBriefMatch && req.method === "GET") {
+    const briefs = requireMarketingBrief(res);
+    if (!briefs) return;
+    const canonical = getCanonicalProductManager();
+    try {
+      const brief = await briefs.get(marketingBriefMatch[1]) ?? await briefs.getOrCreate(marketingBriefMatch[1]);
+      const product = await canonical?.get(marketingBriefMatch[1]) ?? null;
+      sendJson(res, 200, { brief, product });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to load marketing brief" });
+    }
+    return;
+  }
+  if (marketingBriefMatch && req.method === "PUT") {
+    const briefs = requireMarketingBrief(res);
+    if (!briefs) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        campaign?: Record<string, unknown>;
+        output?: Record<string, unknown>;
+        userDefined?: Record<string, unknown>;
+        lockFields?: string[];
+      };
+      const brief = await briefs.updateSettings(marketingBriefMatch[1], {
+        campaign: body.campaign as Parameters<typeof briefs.updateSettings>[1]["campaign"],
+        output: body.output as Parameters<typeof briefs.updateSettings>[1]["output"],
+        userDefined: body.userDefined,
+        lockFields: body.lockFields,
+      });
+      sendJson(res, 200, { brief });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to update marketing brief" });
+    }
+    return;
+  }
+
+  const marketingBriefAnalyzeMatch = url.pathname.match(/^\/api\/marketing-brief\/projects\/([^/]+)\/analyze$/);
+  if (marketingBriefAnalyzeMatch && req.method === "POST") {
+    const briefs = requireMarketingBrief(res);
+    if (!briefs) return;
+    try {
+      const brief = await briefs.analyze(marketingBriefAnalyzeMatch[1]);
+      const canonical = getCanonicalProductManager();
+      const product = await canonical?.get(marketingBriefAnalyzeMatch[1]) ?? null;
+      sendJson(res, 200, { brief, product, intelligence: brief.intelligence });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Marketing intelligence failed" });
+    }
+    return;
+  }
+
+  const marketingBriefFinalizeMatch = url.pathname.match(/^\/api\/marketing-brief\/projects\/([^/]+)\/finalize$/);
+  if (marketingBriefFinalizeMatch && req.method === "POST") {
+    const briefs = requireMarketingBrief(res);
+    if (!briefs) return;
+    try {
+      const brief = await briefs.finalize(marketingBriefFinalizeMatch[1]);
+      sendJson(res, 200, { brief });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to finalize marketing brief" });
+    }
+    return;
+  }
+
+  const marketingBriefRecMatch = url.pathname.match(
+    /^\/api\/marketing-brief\/projects\/([^/]+)\/recommendations\/([^/]+)\/(accept|reject|edit)$/,
+  );
+  if (marketingBriefRecMatch && req.method === "POST") {
+    const briefs = requireMarketingBrief(res);
+    if (!briefs) return;
+    try {
+      const [, projectId, recId, action] = marketingBriefRecMatch;
+      let brief;
+      if (action === "accept") brief = await briefs.acceptRecommendation(projectId, recId);
+      else if (action === "reject") brief = await briefs.rejectRecommendation(projectId, recId);
+      else {
+        const body = JSON.parse(await readBody(req)) as { value?: string | string[] };
+        if (body.value == null) { sendJson(res, 400, { error: "value is required" }); return; }
+        brief = await briefs.editRecommendation(projectId, recId, body.value);
+      }
+      sendJson(res, 200, { brief });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to update recommendation" });
+    }
     return;
   }
 

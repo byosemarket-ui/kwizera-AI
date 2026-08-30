@@ -85,6 +85,8 @@ export function buildVideoConcept(
 
 export function applyMarketingDefaults(fields: MarketingInputFields): MarketingInputFields {
   const next = { ...fields };
+  if (!Array.isArray(next.lockedFields)) next.lockedFields = [];
+  if (!next.aspectRatio) next.aspectRatio = "";
   if (!next.contentFormat.trim() || (next.contentFormat === "Custom Format" && !next.customFormat.trim())) {
     next.contentFormat = "Short Product Video";
   }

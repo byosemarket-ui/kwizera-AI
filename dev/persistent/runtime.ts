@@ -16,6 +16,7 @@ import { createGenerationOptimizationPlugin } from "../../ai/generation-optimiza
 import { ProductIntelligenceManager } from "../../ai/product-intelligence/product-intelligence-manager.js";
 import { createProductIntelligencePlugin } from "../../ai/product-intelligence/product-intelligence-plugin.js";
 import { CanonicalProductManager } from "../../ai/product-record/canonical-product-manager.js";
+import { MarketingBriefManager } from "../../ai/marketing-brief/marketing-brief-manager.js";
 import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-intelligence-manager.js";
 import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
 import { ProductAssetPreparationManager } from "../../ai/product-asset-preparation/product-asset-preparation-manager.js";
@@ -88,6 +89,7 @@ let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
 let productIntelligenceManager: ProductIntelligenceManager | null = null;
 let canonicalProductManager: CanonicalProductManager | null = null;
+let marketingBriefManager: MarketingBriefManager | null = null;
 let imageIntelligenceManager: ImageIntelligenceManager | null = null;
 let productAssetPreparationManager: ProductAssetPreparationManager | null = null;
 let productScenePlanningManager: ProductScenePlanningManager | null = null;
@@ -241,6 +243,10 @@ export function getCanonicalProductManager(): CanonicalProductManager | null {
   return canonicalProductManager;
 }
 
+export function getMarketingBriefManager(): MarketingBriefManager | null {
+  return marketingBriefManager;
+}
+
 export function getImageIntelligenceManager(): ImageIntelligenceManager | null {
   return imageIntelligenceManager;
 }
@@ -345,6 +351,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         await workspaceManager.initialize(storageRoot);
         canonicalProductManager = new CanonicalProductManager();
         await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
+        marketingBriefManager = new MarketingBriefManager();
+        await marketingBriefManager.initialize(storageRoot, { workspace: workspaceManager, canonical: canonicalProductManager });
         modelManager = new AiModelManager();
         await modelManager.initialize(storageRoot);
         // Image/video loopback adapters stay discoverable via API; they do not define Core readiness.
@@ -383,6 +391,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await workspaceManager.initialize(storageRoot, manager);
       canonicalProductManager = new CanonicalProductManager();
       await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
+      marketingBriefManager = new MarketingBriefManager();
+      await marketingBriefManager.initialize(storageRoot, { workspace: workspaceManager, canonical: canonicalProductManager });
       const backup = manager.memoryFoundation?.getMemoryBackupEngine();
       const desktop = manager.desktopIntegrationManager;
       workspaceSynchronizationManager = new WorkspaceSynchronizationManager({
@@ -730,6 +740,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await productPhotographyManager.initialize(storageRoot);
         marketingIntelligenceManager = new MarketingIntelligenceManager();
         await marketingIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager });
+        marketingBriefManager?.attachMarketingIntelligence(marketingIntelligenceManager);
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createMarketingIntelligencePlugin(marketingIntelligenceManager, manager));
         pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
         planningManager.attachMarketingIntelligence(marketingIntelligenceManager);
@@ -886,6 +897,8 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   enterpriseCollaborationManager = null;
   generationOptimizationManager = null;
   productIntelligenceManager = null;
+  canonicalProductManager = null;
+  marketingBriefManager = null;
   imageIntelligenceManager = null;
   productPhotographyManager = null;
   marketingIntelligenceManager = null;

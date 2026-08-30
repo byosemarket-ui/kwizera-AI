@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clapperboard, Save, Sparkles,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, FileCheck, Save, Sparkles,
 } from "lucide-react";
 import { useShell } from "../shell/ShellContext";
 import { workspaceIntegrationEngine } from "../shell/integration/integration-engine";
@@ -11,6 +11,7 @@ import { DisplayList, DisplayText } from "../shared/DisplayValue";
 import {
   CTA_PRESETS,
   FORMAT_PRESETS,
+  ASPECT_RATIO_PRESETS,
   LANGUAGE_PRESETS,
   OBJECTIVE_PRESETS,
   PLATFORM_PRESETS,
@@ -21,6 +22,7 @@ import {
   resolvedFormat,
   resolvedLanguage,
   resolvedPlatforms,
+  sourceLabel,
 } from "./types";
 import "./marketing-input.css";
 
@@ -54,7 +56,7 @@ export function MarketingInputWorkspace() {
     review: true,
   });
   const [busy, setBusy] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
   const [interestsText, setInterestsText] = useState("");
@@ -105,8 +107,8 @@ export function MarketingInputWorkspace() {
       await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
       notify(
         "success",
-        "Step 4 complete",
-        "Marketing Production Brief saved. Continue with Live Validation.",
+        "STEP 2 complete",
+        "Marketing Production Brief saved as READY_FOR_SCRIPT.",
         "production-complete",
       );
       switchWorkspace("product-validation");
@@ -120,24 +122,25 @@ export function MarketingInputWorkspace() {
   const onGeneratePlan = async () => {
     setPlanning(true);
     try {
+      await marketingInputEngine.generateMarketingIntelligence();
       await marketingInputEngine.generateMarketingPlan();
-      notify("success", "Marketing plan ready", "Structured plan generated from product profile and campaign inputs.", "updates");
+      notify("success", "Marketing intelligence ready", "Structured intelligence generated from the canonical product. Review, then accept or reject recommendations.", "updates");
     } catch (error) {
-      notify("error", "Plan failed", error instanceof Error ? error.message : "Unable to generate plan", "errors");
+      notify("error", "Intelligence failed", error instanceof Error ? error.message : "Unable to generate marketing intelligence", "errors");
     } finally {
       setPlanning(false);
     }
   };
 
-  const onGenerateVideo = async () => {
-    setGenerating(true);
+  const onApproveBrief = async () => {
+    setApproving(true);
     try {
-      await marketingInputEngine.startVideoProduction();
-      notify("info", "Video production started", "KWIZERA AI is running the creative pipeline.", "production-complete");
+      const brief = await marketingInputEngine.approveProductionBrief();
+      notify("success", "Production brief ready", `Brief ${brief.briefId} is READY_FOR_SCRIPT. Video is not started in this step.`, "production-complete");
     } catch (error) {
-      notify("error", "Cannot start production", error instanceof Error ? error.message : "Pipeline unavailable", "errors");
+      notify("error", "Cannot approve brief", error instanceof Error ? error.message : "Brief incomplete", "errors");
     } finally {
-      setGenerating(false);
+      setApproving(false);
     }
   };
 
@@ -146,7 +149,7 @@ export function MarketingInputWorkspace() {
       <div className="marketing-input">
         <header className="mi-hero">
           <div>
-            <span className="mi-kicker">Product Creation · Step 4</span>
+            <span className="mi-kicker">Product Creation · STEP 2</span>
             <h1>Marketing Input</h1>
             <p>{snap.recommendation}</p>
           </div>
@@ -168,10 +171,10 @@ export function MarketingInputWorkspace() {
     <div className="marketing-input">
       <header className="mi-hero">
         <div>
-          <span className="mi-kicker">Product Creation · Step 4</span>
-          <h1>Marketing Input & Production Brief</h1>
+          <span className="mi-kicker">Product Creation · STEP 2</span>
+          <h1>Marketing Intelligence & Production Brief</h1>
           <p>
-            Connect the verified Product Profile to campaign requirements. Product facts stay read-only — configure marketing only.
+            Canonical product intelligence stays the source of truth. Configure campaign settings, review AI suggestions with provenance, and approve one persistent brief. This step does not render video.
           </p>
         </div>
         <div className="mi-hero-stats">
@@ -196,16 +199,16 @@ export function MarketingInputWorkspace() {
             onClick={() => void onGeneratePlan()}
             title={brief.productionBlockedReason ?? "Generate structured marketing plan"}
           >
-            <Sparkles size={14} /> {planning ? "Planning…" : "Generate Plan"}
+            <Sparkles size={14} /> {planning ? "Analyzing…" : "Generate Intelligence"}
           </button>
           <button
             type="button"
             className="mi-primary"
-            disabled={generating || brief.production.status === "running" || !brief.canStartProduction}
-            onClick={() => void onGenerateVideo()}
-            title={brief.productionBlockedReason ?? "Start KWIZERA video production"}
+            disabled={approving || !brief.canStartProduction}
+            onClick={() => void onApproveBrief()}
+            title={brief.productionBlockedReason ?? "Save the authoritative Marketing Production Brief"}
           >
-            <Clapperboard size={15} /> {generating || brief.production.status === "running" ? "Starting…" : "Generate Video"}
+            <FileCheck size={15} /> {approving ? "Saving…" : "Approve Production Brief"}
           </button>
           <button
             type="button"
@@ -219,18 +222,20 @@ export function MarketingInputWorkspace() {
 
       <div className="mi-layout">
         <aside className="mi-product">
-          <h3>Product (from Step 3)</h3>
+          <h3>Product (from STEP 1)</h3>
           <div className="mi-product-card">
-            <div><span>Name</span><b>{pf.name || "—"}</b></div>
-            <div><span>Brand</span><b>{pf.brand || "—"}</b></div>
-            <div><span>Category</span><b>{pf.category || "—"}</b></div>
+            <div><span>Name</span><b><DisplayText value={pf.name || brief.canonicalProduct?.identity.name} /></b></div>
+            <div><span>Brand</span><b><DisplayText value={pf.brand || brief.canonicalProduct?.identity.brand} /></b></div>
+            <div><span>Category</span><b><DisplayText value={pf.category || brief.canonicalProduct?.identity.category} /></b></div>
             <div><span>Price</span><b>{priceLabel}</b></div>
-            <div><span>Colors</span><b>{pf.colors.join(" / ") || "—"}</b></div>
-            <div><span>Sizes</span><b>{pf.sizes.join(" / ") || "—"}</b></div>
-            <div><span>Images</span><b>{product.productImageSet?.images.length ?? 0}</b></div>
-            <div><span>Profile</span><b>{product.canContinue ? "Verified" : product.validationStatus}</b></div>
+            <div><span>Colors</span><b><DisplayList value={pf.colors} /></b></div>
+            <div><span>Sizes</span><b><DisplayList value={pf.sizes} /></b></div>
+            <div><span>Asset IDs</span><b>{brief.canonicalProduct?.originalAssetIds.length ?? product.productImageSet?.images.length ?? 0}</b></div>
+            <div><span>Readiness</span><b>{brief.canonicalProduct?.readiness || (product.canContinue ? "Verified" : product.validationStatus)}</b></div>
+            <div><span>Product ID</span><b>{brief.productId}</b></div>
+            <div><span>Brief</span><b>{brief.authoritative?.status ?? "DRAFT"}</b></div>
           </div>
-          <p className="mi-note">Read-only. Use Edit Product to change commerce data. Prices are never invented here.</p>
+          <p className="mi-note">Read-only canonical product. Same product and asset IDs as STEP 1. Prices are never invented here.</p>
           {product.productImageSet?.images[0]?.url && (
             <img className="mi-thumb" src={product.productImageSet.images.find((i) => i.roleInGroup === "primary")?.url
               ?? product.productImageSet.images[0].url} alt="" />
@@ -307,7 +312,8 @@ export function MarketingInputWorkspace() {
             </div>
           </Section>
 
-          <Section title="Platforms & Format" open={open.platform} onToggle={() => toggle("platform")}>
+          <Section title="Platforms" open={open.platform} onToggle={() => toggle("platform")}>
+            <p className="mi-note">Platform is not the video format. Select where the campaign will run, then set output ratio separately.</p>
             <div className="mi-chips">
               {PLATFORM_PRESETS.map((p) => (
                 <button
@@ -325,7 +331,24 @@ export function MarketingInputWorkspace() {
                 <input value={fields.customPlatform} onChange={(e) => marketingInputEngine.updateField("customPlatform", e.target.value)} />
               </label>
             )}
-            <h4 className="mi-sub">Content Format</h4>
+          </Section>
+
+          <Section title="Output format" open={open.format} onToggle={() => toggle("format")}>
+            <h4 className="mi-sub">Aspect ratio</h4>
+            <p className="mi-note">Independent of platform. Instagram can be 9:16; YouTube can be 16:9.</p>
+            <div className="mi-chips">
+              {ASPECT_RATIO_PRESETS.map((ratio) => (
+                <button
+                  key={ratio}
+                  type="button"
+                  className={fields.aspectRatio === ratio ? "active" : ""}
+                  onClick={() => marketingInputEngine.updateField("aspectRatio", ratio)}
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
+            <h4 className="mi-sub">Content format</h4>
             <div className="mi-chips">
               {FORMAT_PRESETS.map((f) => (
                 <button
@@ -517,25 +540,42 @@ export function MarketingInputWorkspace() {
           </Section>
 
           <Section title="AI Recommendations" open={open.ai} onToggle={() => toggle("ai")}>
-            <p className="mi-note"><Sparkles size={14} /> Separated from USER PROVIDED settings. Accept explicitly — never auto-applied.</p>
+            <p className="mi-note"><Sparkles size={14} /> Pending suggestions never control production. Accept applies them. Reject removes them. User settings always win.</p>
             <div className="mi-ai-list">
               {brief.recommendations.map((row) => (
-                <div key={row.field} className={`mi-ai-card status-${row.status}`}>
+                <div key={row.id || row.field} className={`mi-ai-card status-${row.status}`}>
                   <div>
-                    <span className="mi-ai-badge">AI Recommendation</span>
-                    <strong>{row.field}</strong>
-                    <p>{Array.isArray(row.value) ? row.value.join(", ") : String(row.value)}</p>
-                    <small>{row.reason} · {Math.round(row.confidence * 100)}% · {row.status}</small>
+                    <span className="mi-ai-badge">{row.status}</span>
+                    <strong>{row.label || row.field}</strong>
+                    <p><DisplayText value={Array.isArray(row.value) ? row.value.join(", ") : row.value} /></p>
+                    <small>
+                      Why: {row.why || row.reason}
+                      {row.reasoningBasis ? ` · Basis: ${row.reasoningBasis}` : ""}
+                      {" · "}
+                      {sourceLabel(row.source) || "AI inference"}
+                      {" · "}
+                      {Math.round(row.confidence * 100)}%
+                    </small>
                   </div>
                   {row.status === "pending" && (
                     <div className="mi-ai-actions">
                       <button type="button" onClick={() => marketingInputEngine.acceptRecommendation(row.field)}>Accept</button>
                       <button type="button" onClick={() => marketingInputEngine.rejectRecommendation(row.field)}>Reject</button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = window.prompt(`Edit ${row.label || row.field}`, Array.isArray(row.value) ? row.value.join(", ") : String(row.value));
+                          if (next == null) return;
+                          marketingInputEngine.editRecommendation(row.field, row.field === "platforms" ? next.split(",").map((s) => s.trim()).filter(Boolean) : next);
+                        }}
+                      >
+                        Edit
+                      </button>
                     </div>
                   )}
                 </div>
               ))}
-              {!brief.recommendations.length && <p className="mi-muted">No recommendations yet.</p>}
+              {!brief.recommendations.length && <p className="mi-muted">Generate marketing intelligence to see structured recommendations.</p>}
             </div>
           </Section>
 
@@ -565,6 +605,7 @@ export function MarketingInputWorkspace() {
               <div><span>Campaign</span><b>{fields.objective || "—"}</b></div>
               <div><span>Audience</span><b>{resolvedAudienceSummary(fields) || "—"}</b></div>
               <div><span>Platform</span><b>{resolvedPlatforms(fields).join(", ") || "—"}</b></div>
+              <div><span>Aspect ratio</span><b>{fields.aspectRatio || brief.authoritative?.output.aspectRatio || "—"}</b></div>
               <div><span>Format</span><b>{resolvedFormat(fields) || "—"}</b></div>
               <div><span>Duration</span><b>{fields.duration}{fields.duration === "custom" ? ` (${fields.customDurationSeconds}s)` : ""}</b></div>
               <div><span>Language</span><b>{resolvedLanguage(fields)}</b></div>
@@ -573,6 +614,8 @@ export function MarketingInputWorkspace() {
               <div><span>Promotion</span><b>{fields.promotionType === "None" ? "None" : `${fields.promotionType}: ${fields.promotionDetails || "—"}`}</b></div>
               <div><span>Completeness</span><b>{brief.completeness.overall}%</b></div>
               <div><span>Validation</span><b>{brief.validationStatus.toUpperCase()}</b></div>
+              <div><span>Brief status</span><b>{brief.authoritative?.status ?? "DRAFT"}</b></div>
+              <div><span>Brief version</span><b>{brief.authoritative ? `v${brief.authoritative.activeVersion}` : "—"}</b></div>
             </div>
             {brief.completeness.missingRecommended.length > 0 && (
               <p className="mi-warn"><AlertTriangle size={14} /> Missing recommended: {brief.completeness.missingRecommended.join(", ")}</p>
@@ -583,7 +626,10 @@ export function MarketingInputWorkspace() {
               </p>
             ))}
             {(brief.canContinue || brief.continueAnyway) && !brief.validations.some((v) => v.status === "error") && (
-              <p className="mi-ok"><CheckCircle2 size={14} /> Ready for Step 5 handoff.</p>
+              <p className="mi-ok"><CheckCircle2 size={14} /> Campaign settings are valid. Approve the Production Brief to mark READY_FOR_SCRIPT.</p>
+            )}
+            {brief.authoritative?.status === "READY_FOR_SCRIPT" && (
+              <p className="mi-ok"><CheckCircle2 size={14} /> READY_FOR_SCRIPT — {brief.authoritative.briefId} · product {brief.authoritative.productId}</p>
             )}
           </Section>
 
@@ -602,6 +648,14 @@ export function MarketingInputWorkspace() {
               {brief.marketingPlan.supportingPoints.length > 0 && (
                 <p className="mi-note">Supporting points: <DisplayList value={brief.marketingPlan.supportingPoints} /></p>
               )}
+              {brief.authoritative?.marketing.mainSellingPoint.source && (
+                <p className="mi-note">
+                  Main point source: {sourceLabel(brief.authoritative.marketing.mainSellingPoint.source)}
+                  {brief.authoritative.marketing.mainSellingPoint.confidence
+                    ? ` · ${Math.round(brief.authoritative.marketing.mainSellingPoint.confidence * 100)}%`
+                    : ""}
+                </p>
+              )}
               {brief.videoConcept && (
                 <p className="mi-note">
                   Video concept: {brief.videoConcept.purpose} · ~{brief.videoConcept.approximateDurationSec}s · {brief.videoConcept.sceneStrategy}
@@ -610,52 +664,50 @@ export function MarketingInputWorkspace() {
             </Section>
           )}
 
-          {(brief.production.status !== "idle" || brief.marketingPlan) && (
+          {brief.authoritative?.intelligence && (
+            <Section title="Marketing intelligence (facts vs inference)" open={true} onToggle={() => toggle("review")}>
+              <div className="mi-summary">
+                <div><span>Category</span><b><ClaimLine claim={brief.authoritative.intelligence.category} /></b></div>
+                <div><span>Positioning</span><b><ClaimLine claim={brief.authoritative.intelligence.positioning} /></b></div>
+                <div><span>Angle</span><b><ClaimLine claim={brief.authoritative.intelligence.marketingAngle} /></b></div>
+                <div><span>Suggested CTA</span><b><ClaimLine claim={brief.authoritative.intelligence.suggestedCta} /></b></div>
+                <div><span>Platform strategy</span><b><ClaimLine claim={brief.authoritative.intelligence.platformStrategy} /></b></div>
+              </div>
+              <p className="mi-note">Visual strengths: <DisplayList value={brief.authoritative.intelligence.visualStrengths} /></p>
+              <p className="mi-note">Details to show: <DisplayList value={brief.authoritative.intelligence.detailsWorthShowing} /></p>
+            </Section>
+          )}
+
+          {brief.authoritative?.status === "READY_FOR_SCRIPT" && (
             <section className="mi-panel mi-production">
-              {brief.production.status !== "idle" && (
-                <>
-                  <h3>Production Progress</h3>
-                  <div className="mi-progress-head">
-                    <strong>{brief.production.progress}%</strong>
-                    <span>{brief.production.status === "running" ? "In progress" : brief.production.status}</span>
-                  </div>
-                  <div className="mi-progress-bar">
-                    <div className="mi-progress-fill" style={{ width: `${brief.production.progress}%` }} />
-                  </div>
-                  <ul className="mi-stages">
-                    {brief.production.stages.map((stage) => (
-                      <li key={stage.id} className={stage.status}>
-                        {stage.status === "completed" ? "✓" : stage.status === "active" ? "▶" : "○"} {stage.label}
-                      </li>
-                    ))}
-                  </ul>
-                  {brief.production.error && (
-                    <p className="mi-err">
-                      {brief.production.errorStage ?? "ERROR"}: {brief.production.error}
-                      {brief.production.errorCode ? ` (${brief.production.errorCode})` : ""}
-                    </p>
-                  )}
-                  {brief.production.status === "completed" && brief.production.outputValidated && brief.production.outputUrl && (
-                    <div className="mi-video-ready">
-                      <p className="mi-ok"><CheckCircle2 size={14} /> VIDEO READY</p>
-                      <img src={brief.production.outputUrl} alt="Generated video preview" className="mi-output-preview" />
-                      {brief.production.outputVersion && (
-                        <p className="mi-note">Version {brief.production.outputVersion}
-                          {brief.production.outputQuality != null ? ` · Quality ${brief.production.outputQuality}/100` : ""}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {brief.production.status === "completed" && !brief.production.outputValidated && (
-                    <p className="mi-warn">Pipeline finished but output did not pass quality control.</p>
-                  )}
-                </>
-              )}
+              <h3>Authoritative Production Brief</h3>
+              <p className="mi-ok"><CheckCircle2 size={14} /> READY_FOR_SCRIPT — not rendering video in this step.</p>
+              <div className="mi-summary">
+                <div><span>Brief ID</span><b>{brief.authoritative.briefId}</b></div>
+                <div><span>Product ID</span><b>{brief.authoritative.productId}</b></div>
+                <div><span>Version</span><b>{brief.authoritative.activeVersion}</b></div>
+                <div><span>Platforms</span><b>{brief.authoritative.campaign.platforms.join(", ")}</b></div>
+                <div><span>Aspect</span><b>{brief.authoritative.output.aspectRatio}</b></div>
+                <div><span>Duration</span><b>{brief.authoritative.output.duration}</b></div>
+                <div><span>CTA</span><b><DisplayText value={brief.authoritative.marketing.cta} /></b></div>
+                <div><span>Message</span><b><DisplayText value={brief.authoritative.marketing.message} /></b></div>
+              </div>
             </section>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function ClaimLine({ claim }: { claim?: { text?: string; source?: string; confidence?: number } | string | null }) {
+  if (!claim) return <DisplayText value="" />;
+  const source = typeof claim === "object" ? claim.source : undefined;
+  return (
+    <>
+      <DisplayText value={claim} />
+      {source ? <small className="mi-source"> · {sourceLabel(source)}</small> : null}
+    </>
   );
 }
 

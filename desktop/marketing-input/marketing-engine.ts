@@ -9,7 +9,7 @@ import {
   resolveBoundProject,
   writeScopedHandoff,
 } from "../product-creation/workflow";
-import { ensureProjectOpen, fetchMarketingIntelligence, persistMarketingProject } from "./api";
+import { ensureProjectOpen, fetchMarketingIntelligence, persistMarketingProject, fetchCanonicalProduct, fetchMarketingBrief, analyzeMarketingBrief, persistMarketingBrief, mutateBriefRecommendation, finalizeMarketingBrief } from "./api";
 import {
   buildLocalRecommendations,
   computeMarketingCompleteness,
@@ -23,14 +23,6 @@ import {
 } from "./marketing-plan";
 import {
   emptyProductionState,
-  fetchProductionArtifacts,
-  loadProductionJob,
-  mapPipelineToProductionStages,
-  parsePipelineError,
-  persistProductionJob,
-  pollPipelineJob,
-  startPipeline,
-  validateProductionOutput,
 } from "../product-creation/production-orchestrator";
 import type {
   AiRecommendation,
@@ -41,6 +33,7 @@ import type {
   StructuredMarketingPlan,
   Step5HandoffPayload,
   VideoConcept,
+  AuthoritativeBriefView,
 } from "./types";
 import {
   emptyMarketingFields,
@@ -52,6 +45,7 @@ import {
   resolvedLanguage,
   resolvedPlatforms,
 } from "./types";
+import { applyBriefToFields, campaignPatchFromFields, recommendationsFromBrief } from "./brief-sync";
 
 type NotifyFn = (
   tone: "success" | "warning" | "error" | "info",
@@ -108,6 +102,8 @@ function enrich(brief: MarketingProductionBrief): MarketingProductionBrief {
     production: brief.production ?? emptyProductionState(),
     marketingPlan: brief.marketingPlan ?? null,
     videoConcept: brief.videoConcept ?? null,
+    authoritative: brief.authoritative ?? null,
+    canonicalProduct: brief.canonicalProduct ?? null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -171,9 +167,14 @@ function mergeIntelRecommendations(
   const ctas = Array.isArray(intel.ctas) ? intel.ctas.map(String) : [];
   if (ctas[0] && !out.some((r) => r.field === "cta")) {
     out.push({
+      id: "intel-cta",
       field: "cta",
+      label: "Call to action",
       value: ctas[0],
       reason: "Marketing intelligence CTA suggestion — review before accepting.",
+      why: "Marketing intelligence CTA suggestion — review before accepting.",
+      source: "INFERRED",
+      reasoningBasis: "Marketing intelligence profile",
       confidence: 0.7,
       status: "pending",
     });
@@ -181,18 +182,28 @@ function mergeIntelRecommendations(
   const platform = intel.platform as { name?: string; format?: string; recommendations?: string[] } | undefined;
   if (platform?.name && !out.some((r) => r.field === "platforms")) {
     out.push({
+      id: "intel-platforms",
       field: "platforms",
+      label: "Platforms",
       value: [platform.name],
       reason: "Marketing intelligence platform suggestion.",
+      why: "Marketing intelligence platform suggestion. Selecting a platform does not lock video size.",
+      source: "INFERRED",
+      reasoningBasis: "Marketing intelligence profile",
       confidence: 0.65,
       status: "pending",
     });
   }
   if (platform?.format && !out.some((r) => r.field === "contentFormat")) {
     out.push({
+      id: "intel-format",
       field: "contentFormat",
+      label: "Content format",
       value: platform.format,
       reason: "Marketing intelligence format suggestion.",
+      why: "Format suggestion from marketing intelligence. Format is not the same as platform.",
+      source: "INFERRED",
+      reasoningBasis: "Marketing intelligence profile",
       confidence: 0.62,
       status: "pending",
     });
@@ -200,14 +211,51 @@ function mergeIntelRecommendations(
   const strategy = String(intel.strategy ?? "");
   if (strategy && !out.some((r) => r.field === "style")) {
     out.push({
+      id: "intel-style",
       field: "style",
+      label: "Creative style",
       value: strategy.slice(0, 120),
       reason: "Strategy hint from marketing intelligence.",
+      why: "Strategy hint from marketing intelligence.",
+      source: "INFERRED",
+      reasoningBasis: "Marketing intelligence profile",
       confidence: 0.55,
       status: "pending",
     });
   }
   return out;
+}
+
+function mergeServerBrief(
+  brief: MarketingProductionBrief,
+  server: AuthoritativeBriefView | null,
+  canonical: Awaited<ReturnType<typeof fetchCanonicalProduct>>,
+): MarketingProductionBrief {
+  let fields = brief.fields;
+  let recs = brief.recommendations;
+  if (server) {
+    fields = applyBriefToFields(fields, server);
+    const fromServer = recommendationsFromBrief(server);
+    if (fromServer.length) recs = fromServer;
+  }
+  if (canonical?.identity.name && !brief.productProfile.fields.name) {
+    brief.productProfile.fields.name = canonical.identity.name;
+  }
+  if (canonical?.identity.category && !brief.productProfile.fields.category) {
+    brief.productProfile.fields.category = canonical.identity.category;
+  }
+  if (canonical?.identity.brand && !brief.productProfile.fields.brand) {
+    brief.productProfile.fields.brand = canonical.identity.brand;
+  }
+  return enrich({
+    ...brief,
+    marketingBriefId: server?.briefId ?? brief.marketingBriefId,
+    productId: server?.productId || canonical?.productId || brief.productId,
+    fields,
+    recommendations: recs,
+    authoritative: server,
+    canonicalProduct: canonical,
+  });
 }
 
 export class MarketingInputEngine {
@@ -304,7 +352,14 @@ export class MarketingInputEngine {
     if (!payload || payload.step !== "step-4-marketing-input") {
       const stored = pickStoreForProject(loadStored(), bound.projectId);
       if (stored && stored.projectId === bound.projectId) {
-        this.brief = enrich(stored);
+        this.brief = enrich({
+          ...stored,
+          authoritative: stored.authoritative ?? null,
+          canonicalProduct: stored.canonicalProduct ?? null,
+        });
+        const canonical = await fetchCanonicalProduct(bound.projectId).catch(() => null);
+        const server = await fetchMarketingBrief(bound.projectId).catch(() => null);
+        this.brief = mergeServerBrief(this.brief, server, canonical);
         this.recommendation = "Restored marketing brief for the active project.";
         this.emitEvent("MarketingInputStarted", { projectId: stored.projectId, restored: true });
         this.emitBus("marketing.started", { projectId: stored.projectId, restored: true });
@@ -366,17 +421,15 @@ export class MarketingInputEngine {
       marketingPlan: stored?.marketingPlan ?? null,
       videoConcept: stored?.videoConcept ?? null,
       production: stored?.production ?? emptyProductionState(),
+      authoritative: stored?.authoritative ?? null,
+      canonicalProduct: stored?.canonicalProduct ?? null,
       createdAt: stored?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
 
-    const serverJob = await loadProductionJob(payload.projectId);
-    if (serverJob && this.brief) {
-      this.brief = enrich({ ...this.brief, production: serverJob });
-      if (serverJob.status === "running" && serverJob.jobId) {
-        this.startProductionPolling(serverJob.jobId);
-      }
-    }
+    const canonical = await fetchCanonicalProduct(payload.projectId).catch(() => null);
+    const server = await fetchMarketingBrief(payload.projectId).catch(() => null);
+    this.brief = mergeServerBrief(this.brief, server, canonical);
 
     this.recommendation = this.brief.canContinue || this.brief.continueAnyway
       ? "Critical marketing settings valid — review the Production Brief, then continue."
@@ -416,7 +469,13 @@ export class MarketingInputEngine {
     this.brief = enrich({
       ...this.brief,
       continueAnyway: false,
-      fields: { ...this.brief.fields, [field]: value } as MarketingInputFields,
+      fields: {
+        ...this.brief.fields,
+        [field]: value,
+        lockedFields: source === "user"
+          ? Array.from(new Set([...(this.brief.fields.lockedFields ?? []), String(field)]))
+          : this.brief.fields.lockedFields,
+      } as MarketingInputFields,
       history: [
         {
           id: uid("hist"),
@@ -455,7 +514,9 @@ export class MarketingInputEngine {
 
   acceptRecommendation(field: string): void {
     if (!this.brief) return;
-    const rec = this.brief.recommendations.find((r) => r.field === field && r.status === "pending");
+    const rec = this.brief.recommendations.find((r) =>
+      (r.field === field || r.id === field) && (r.status === "pending" || r.status === "edited"),
+    );
     if (!rec) return;
 
     if (field === "platforms") {
@@ -465,7 +526,7 @@ export class MarketingInputEngine {
       this.updateField("duration", String(rec.value) as MarketingInputFields["duration"], "user");
     } else if (field === "cta") {
       this.updateField("cta", String(rec.value), "user");
-    } else if (field === "contentFormat" || field === "tone" || field === "style" || field === "audienceType") {
+    } else if (field === "contentFormat" || field === "tone" || field === "style" || field === "audienceType" || field === "aspectRatio") {
       this.updateField(field, String(rec.value), "user");
     }
 
@@ -491,6 +552,13 @@ export class MarketingInputEngine {
     this.markDirty();
     this.notify?.("success", "Recommendation accepted", `${field} updated from AI recommendation.`, "ai-suggestions");
     this.emit();
+    const recId = rec.id || rec.field;
+    void mutateBriefRecommendation(this.brief.projectId, recId, "accept").then((server) => {
+      if (!server || !this.brief) return;
+      this.brief = mergeServerBrief(this.brief, server, this.brief.canonicalProduct);
+      saveStored(this.brief);
+      this.emit();
+    });
   }
 
   rejectRecommendation(field: string): void {
@@ -516,6 +584,39 @@ export class MarketingInputEngine {
     this.schedulePersist();
     this.markDirty();
     this.emit();
+    const rec = this.brief.recommendations.find((r) => r.field === field);
+    void mutateBriefRecommendation(this.brief.projectId, rec?.id || field, "reject").then((server) => {
+      if (!server || !this.brief) return;
+      this.brief = mergeServerBrief(this.brief, server, this.brief.canonicalProduct);
+      saveStored(this.brief);
+      this.emit();
+    });
+  }
+
+  editRecommendation(field: string, value: string | string[]): void {
+    if (!this.brief) return;
+    const rec = this.brief.recommendations.find((r) => r.id === field || r.field === field);
+    if (rec) {
+      rec.value = value;
+      rec.status = "edited";
+    }
+    if (field === "platforms" || rec?.field === "platforms") {
+      const list = Array.isArray(value) ? value.map(String) : [String(value)];
+      this.updateField("platforms", list, "user");
+    } else {
+      this.updateField((rec?.field ?? field) as keyof MarketingInputFields, Array.isArray(value) ? value.join(", ") : value, "user");
+    }
+    if (rec) {
+      this.brief = enrich({
+        ...this.brief,
+        recommendations: this.brief.recommendations.map((r) =>
+          r.field === rec.field ? { ...r, status: "edited" as const, value } : r,
+        ),
+      });
+      saveStored(this.brief);
+      this.emit();
+    }
+    void mutateBriefRecommendation(this.brief.projectId, rec?.id || field, "edit", value);
   }
 
   async flushPersist(): Promise<void> {
@@ -565,9 +666,14 @@ export class MarketingInputEngine {
             marketingPlan: b.marketingPlan,
             videoConcept: b.videoConcept,
             version: b.history.length + 1,
+            authoritative: b.authoritative,
           },
         },
       });
+      const server = await persistMarketingBrief(b.projectId, campaignPatchFromFields(f));
+      if (server) {
+        this.brief = mergeServerBrief(this.brief ?? b, server, b.canonicalProduct);
+      }
       this.emitEvent("MarketingValidationCompleted", {
         projectId: b.projectId,
         validationStatus: b.validationStatus,
@@ -586,8 +692,27 @@ export class MarketingInputEngine {
       throw new Error(this.brief.productionBlockedReason ?? "Configure objective, audience, and platform first.");
     }
     await this.flushPersist();
+    const serverBrief = await analyzeMarketingBrief(this.brief.projectId).catch(() => null);
+    if (serverBrief) {
+      this.brief = mergeServerBrief(this.brief, serverBrief, this.brief.canonicalProduct);
+    }
     const intel = await fetchMarketingIntelligence(this.brief.projectId).catch(() => null);
-    const plan = buildStructuredMarketingPlan(this.brief.fields, this.brief.productProfile, intel);
+    const auth = this.brief.authoritative;
+    const plan = auth?.marketing
+      ? {
+        audience: this.brief.fields.audienceType || resolvedAudienceSummary(this.brief.fields) || auth.intelligence?.audienceHypotheses?.[0]?.text || "Product buyers",
+        angle: auth.marketing.angle,
+        mainSellingPoint: auth.marketing.mainSellingPoint.text,
+        supportingPoints: auth.marketing.supportingPoints.map((item) => item.text),
+        message: auth.marketing.message,
+        cta: auth.marketing.cta,
+        platformStrategy: auth.intelligence?.platformStrategy?.text
+          || `${resolvedPlatforms(this.brief.fields).join(", ")} · ${auth.output.aspectRatio}`,
+        tone: auth.creative.tone || this.brief.fields.tone,
+        videoObjective: this.brief.fields.objective,
+        analyzedAt: new Date().toISOString(),
+      }
+      : buildStructuredMarketingPlan(this.brief.fields, this.brief.productProfile, intel);
     const concept = buildVideoConcept(this.brief.fields, this.brief.productProfile, plan);
     this.brief = enrich({
       ...this.brief,
@@ -602,133 +727,48 @@ export class MarketingInputEngine {
     return plan;
   }
 
-  /** Start real KWIZERA creative pipeline production from Step 4. */
+  /** STEP 2 does not start video rendering. Approve the production brief instead. */
   async startVideoProduction(): Promise<void> {
-    if (!this.brief?.canStartProduction) {
-      throw new Error(this.brief?.productionBlockedReason ?? "Configure objective, audience, and platform first.");
-    }
-    if (this.brief.production.status === "running") {
-      throw new Error("Production already in progress.");
+    throw new Error("STEP 2 does not start video production. Approve the Marketing Production Brief first.");
+  }
+
+  async generateMarketingIntelligence(): Promise<AuthoritativeBriefView> {
+    if (!this.brief) throw new Error("No marketing brief");
+    await this.flushPersist();
+    const server = await analyzeMarketingBrief(this.brief.projectId);
+    if (!server) throw new Error("Unable to generate marketing intelligence from the canonical product.");
+    this.brief = mergeServerBrief(this.brief, server, this.brief.canonicalProduct);
+    saveStored(this.brief);
+    this.emit();
+    return server;
+  }
+
+  async approveProductionBrief(): Promise<AuthoritativeBriefView> {
+    if (!this.brief) throw new Error("No marketing brief");
+    if (!this.brief.canStartProduction) {
+      throw new Error(this.brief.productionBlockedReason ?? "Configure objective, audience, and platform first.");
     }
     if (!this.brief.marketingPlan) {
       await this.generateMarketingPlan();
     }
     await this.flushPersist();
-    await fetch(`/api/workspace/projects/${encodeURIComponent(this.brief!.projectId)}/production-defaults`, {
-      method: "POST",
-    }).catch(() => null);
-
-    const started = await startPipeline(this.brief!.projectId);
-    if (!started.jobId) {
-      throw new Error(started.error ?? "Unable to start video production — AI Core pipeline unavailable.");
-    }
-
-    this.brief = enrich({
-      ...this.brief!,
-      production: {
-        ...emptyProductionState(),
-        jobId: started.jobId,
-        status: "running",
-        startedAt: new Date().toISOString(),
-        stages: mapPipelineToProductionStages([], "validation", false),
-        currentStage: "validation",
-      },
-    });
+    const server = await finalizeMarketingBrief(this.brief.projectId);
+    if (!server) throw new Error("Unable to save the Marketing Production Brief.");
+    this.brief = mergeServerBrief(this.brief, server, this.brief.canonicalProduct);
     saveStored(this.brief);
-    await persistProductionJob(this.brief.projectId, { ...this.brief.production, jobId: started.jobId });
-    this.emitEvent("workflow.started", { projectId: this.brief.projectId, jobId: started.jobId, source: "step-4" });
-    this.emitBus("production.progress", { projectId: this.brief.projectId, progress: 0, status: "running" });
+    this.handoffReady = true;
+    this.recommendation = "Marketing Production Brief is READY_FOR_SCRIPT.";
+    this.emitEvent("MarketingBriefReady", {
+      projectId: this.brief.projectId,
+      status: server.status,
+      briefId: server.briefId,
+    });
     this.emit();
-    this.startProductionPolling(started.jobId);
-  }
-
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
-
-  private startProductionPolling(jobId: string): void {
-    if (this.pollTimer) clearInterval(this.pollTimer);
-    this.pollTimer = setInterval(() => {
-      void this.refreshProductionProgress(jobId);
-    }, 2000);
-    void this.refreshProductionProgress(jobId);
-  }
-
-  private async refreshProductionProgress(jobId: string): Promise<void> {
-    if (!this.brief) return;
-    try {
-      const snap = await pollPipelineJob(jobId);
-      const failed = snap.status === "failed";
-      const pipelineCompleted = snap.status === "completed";
-      const parsed = parsePipelineError(snap.error);
-      let production = {
-        ...this.brief.production,
-        progress: snap.progress,
-        currentStage: snap.stage,
-        stages: mapPipelineToProductionStages(snap.completedStages, snap.stage, failed),
-        status: failed ? "failed" as const : pipelineCompleted ? "completed" as const : "running" as const,
-        error: snap.error,
-        errorStage: parsed.stage,
-        errorCode: parsed.code,
-      };
-
-      if (pipelineCompleted) {
-        const validation = await validateProductionOutput(this.brief.projectId);
-        production = {
-          ...production,
-          outputUrl: validation.outputUrl,
-          outputVersion: validation.version,
-          outputQuality: validation.quality,
-          outputDurationSec: validation.durationSec,
-          outputValidated: validation.valid,
-          completedAt: new Date().toISOString(),
-          progress: validation.valid ? 100 : snap.progress,
-          status: validation.valid ? "completed" : "failed",
-          error: validation.valid ? null : (validation.issues[0] ?? "QUALITY_CONTROL_FAILED: output validation failed"),
-          errorCode: validation.valid ? null : "QUALITY_CONTROL_FAILED",
-        };
-        if (this.pollTimer) {
-          clearInterval(this.pollTimer);
-          this.pollTimer = null;
-        }
-        if (validation.valid) {
-          this.notify?.("success", "Video ready", "Production completed with a validated output.", "production-complete");
-        } else {
-          this.notify?.("error", "Quality control failed", production.error ?? "Output validation failed", "errors");
-        }
-      } else {
-        this.emitBus("production.progress", {
-          projectId: this.brief.projectId,
-          progress: snap.progress,
-          stage: snap.stage,
-          status: production.status,
-        });
-      }
-
-      this.brief = enrich({ ...this.brief, production });
-      saveStored(this.brief);
-      await persistProductionJob(this.brief.projectId, { ...this.brief.production, jobId });
-      this.emit();
-    } catch (error) {
-      if (this.pollTimer) {
-        clearInterval(this.pollTimer);
-        this.pollTimer = null;
-      }
-      this.brief = enrich({
-        ...this.brief,
-        production: {
-          ...this.brief.production,
-          status: "failed",
-          error: error instanceof Error ? error.message : String(error),
-          errorCode: "PIPELINE_ERROR",
-        },
-      });
-      saveStored(this.brief);
-      this.emit();
-    }
+    return server;
   }
 
   async fetchArtifactsSummary(): Promise<{ storyboard?: { sceneCount: number; scriptScore?: number }; scenePlan?: { sceneCount: number; flowScore?: number } }> {
-    if (!this.brief) return {};
-    return fetchProductionArtifacts(this.brief.projectId);
+    return {};
   }
 
   async continueToStep5(): Promise<Step5HandoffPayload> {
@@ -742,6 +782,9 @@ export class MarketingInputEngine {
     this._transitioning = true;
     try {
       await this.flushPersist();
+      await finalizeMarketingBrief(this.brief.projectId).then((server) => {
+        if (server && this.brief) this.brief = mergeServerBrief(this.brief, server, this.brief.canonicalProduct);
+      }).catch(() => null);
       const handoff: Step5HandoffPayload = {
         version: 1,
         step: "step-5-live-product-validation",
@@ -811,7 +854,7 @@ export class MarketingInputEngine {
     this.emitEvents?.("product.updated", { action, module: "marketing-input", ...payload });
   }
 
-  private emitBus(type: "marketing.started" | "marketing.completed", payload: Record<string, unknown>): void {
+  private emitBus(type: "marketing.started" | "marketing.completed" | "marketing.plan", payload: Record<string, unknown>): void {
     this.emitEvents?.(type, payload);
   }
 

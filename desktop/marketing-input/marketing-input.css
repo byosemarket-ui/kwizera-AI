@@ -285,6 +285,7 @@
 
 .mi-ai-card p { margin: 4px 0; }
 .mi-ai-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
+.mi-source { color: var(--mi-muted); font-weight: 500; }
 
 .mi-conflict {
   display: flex;
