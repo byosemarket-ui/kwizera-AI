@@ -10,7 +10,8 @@ import { CreativeEditingWorkspace } from "../creative-editor/CreativeEditingWork
 import { BusinessIntelligenceWorkspace } from "../business-intelligence/BusinessIntelligenceWorkspace";
 import { MarketingInputWorkspace } from "../marketing-input/MarketingInputWorkspace";
 import { HelpWorkspacePanel } from "./ux/HelpWorkspacePanel";
-import { ProductIntakeWorkspace } from "../product-intake/ProductIntakeWorkspace";
+import { ProductSetupWorkspace } from "../product-setup/ProductSetupWorkspace";
+import { VideoRequirementsWorkspace } from "../video-requirements/VideoRequirementsWorkspace";
 import { ImageOrganizationWorkspace } from "../image-organization/ImageOrganizationWorkspace";
 import { ProductInformationWorkspace } from "../product-profile/ProductInformationWorkspace";
 import { ProductValidationWorkspace } from "../product-validation/ProductValidationWorkspace";
@@ -64,6 +65,8 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
       return <ImageOrganizationWorkspace />;
     case "product-information":
       return <ProductInformationWorkspace />;
+    case "video-requirements":
+      return <VideoRequirementsWorkspace />;
     case "product-validation":
       return <ProductValidationWorkspace />;
     case "visual-analysis":
@@ -89,7 +92,7 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
     case "marketing":
       return <MarketingInputWorkspace />;
     case "new-project":
-      return <ProductIntakeWorkspace />;
+      return <ProductSetupWorkspace />;
     case "knowledge-center":
     case "knowledge-search":
       return <PersistentMemoryWorkspace />;

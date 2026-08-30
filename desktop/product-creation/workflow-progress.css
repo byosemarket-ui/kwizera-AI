@@ -1,0 +1,102 @@
+.kw-workflow-progress {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.kw-workflow-progress__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kw-workflow-progress__step-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #2f6f5e;
+}
+
+.kw-workflow-progress__project {
+  font-size: 0.82rem;
+  color: #64748b;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kw-workflow-progress__track {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kw-workflow-progress__node {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.kw-workflow-progress__node:last-child {
+  flex: 0;
+}
+
+.kw-workflow-progress__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.kw-workflow-progress__node.is-done .kw-workflow-progress__dot,
+.kw-workflow-progress__node.is-active .kw-workflow-progress__dot {
+  border-color: #2f6f5e;
+  background: #2f6f5e;
+}
+
+.kw-workflow-progress__line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 4px;
+}
+
+.kw-workflow-progress__node.is-done .kw-workflow-progress__line {
+  background: #2f6f5e;
+}
+
+.kw-workflow-progress__labels {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .kw-workflow-progress__labels {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    text-align: center;
+  }
+  .kw-workflow-progress__labels .is-active {
+    color: #2f6f5e;
+    font-weight: 700;
+  }
+  .kw-workflow-progress__labels .is-done {
+    color: #64748b;
+  }
+}
+
+@media (max-width: 640px) {
+  .kw-workflow-progress__project {
+    display: none;
+  }
+}

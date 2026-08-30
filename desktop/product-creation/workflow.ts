@@ -150,36 +150,51 @@ export function readProductImageSetFromProject(project: CreativeProjectDto): unk
 
 /**
  * Prerequisite gate for opening a step. Returns null if OK, else user-facing reason.
- * Soft checks based on durable project data (not mock).
+ * New 5-step model: 1=Product Setup, 2=Video Requirements, 3=Video Method, 4=Review, 5=Production.
+ * Legacy completedSteps 2+3 from old flow satisfy Step 1 requirements.
  */
 export function prerequisiteBlockReason(
   step: ProductCreationStep,
   project: CreativeProjectDto | null,
 ): string | null {
-  if (!project) return "Create or open a product project first (Step 1).";
+  if (!project) return "Create or open a product project first (Step 1 — Product Setup).";
   if (step <= 1) return null;
   if (!project.productImages?.length) {
-    return "Import at least one product image in Step 1 before continuing.";
+    return "Import at least one product image in Product Setup before continuing.";
   }
-  if (step <= 2) return null;
+
   const workflow = getWorkflowState(project);
   const hasImageSet = Boolean(project.workspaceSettings?.[IMAGE_SET_KEY]);
-  const step2Done = workflow?.completedSteps?.includes(2) || hasImageSet;
+  const productName = project.productInformation?.name?.trim();
+  const step1Done = workflow?.completedSteps?.includes(1)
+    || (workflow?.completedSteps?.includes(2) && workflow?.completedSteps?.includes(3))
+    || (Boolean(productName) && hasImageSet);
+
+  if (step >= 2 && !step1Done && !productName) {
+    return "Complete Product Setup (project name, images, product name) before Video Requirements.";
+  }
+  if (step <= 2) return null;
+
+  const step2Done = workflow?.completedSteps?.includes(2) || step1Done;
   if (step >= 3 && !step2Done) {
-    return "Complete Image Organization (Step 2) before Product Information.";
+    return "Complete Video Requirements (Step 2) before choosing a video method.";
   }
   if (step <= 3) return null;
-  const name = project.productInformation?.name?.trim();
-  const step3Done = workflow?.completedSteps?.includes(3) || Boolean(name);
-  if (step >= 4 && !step3Done) {
-    return "Complete Product Information (Step 3) before Marketing.";
+
+  if (step >= 4 && !workflow?.completedSteps?.includes(3)) {
+    const campaign = project.campaignInformation?.name?.trim() || project.campaignInformation?.objective?.trim();
+    const brief = project.workspaceSettings?.marketingInputBrief;
+    if (!campaign && !brief) {
+      return "Complete earlier workflow steps before Review & Generate.";
+    }
   }
   if (step <= 4) return null;
+
   const campaign = project.campaignInformation?.name?.trim() || project.campaignInformation?.objective?.trim();
   const brief = project.workspaceSettings?.marketingInputBrief;
   const step4Done = workflow?.completedSteps?.includes(4) || Boolean(campaign) || Boolean(brief);
   if (step >= 5 && !step4Done) {
-    return "Complete Marketing Input (Step 4) before Validation.";
+    return "Complete Review & Generate before Production.";
   }
   return null;
 }

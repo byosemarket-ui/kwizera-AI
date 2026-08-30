@@ -7,7 +7,8 @@ import { FUTURE_MODULE_SLOTS } from "./panel-engine";
 export const workspaceNav: WorkspaceNavItem[] = [
   { id: "home", label: "Home", group: "dashboard", groupLabel: "Dashboard", keywords: ["dashboard", "home", "overview"] },
 
-  { id: "new-project", label: "New Project", group: "projects", groupLabel: "Projects", keywords: ["new", "create", "project", "intake", "import", "images"], shortcut: "Ctrl+N" },
+  { id: "new-project", label: "Product Setup", group: "projects", groupLabel: "Projects", keywords: ["new", "create", "project", "intake", "import", "images", "product setup", "step 1"], shortcut: "Ctrl+N" },
+  { id: "video-requirements", label: "Video Requirements", group: "projects", groupLabel: "Projects", keywords: ["video requirements", "step 2", "platform", "duration"], inSidebar: false },
   { id: "open-project", label: "Open Project", group: "projects", groupLabel: "Projects", keywords: ["open", "projects", "files"], shortcut: "Ctrl+O" },
   { id: "recent-projects", label: "Recent Projects", group: "projects", groupLabel: "Projects", keywords: ["recent", "history", "projects"] },
 
@@ -27,8 +28,8 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "marketing-strategy", label: "Marketing Strategy", group: "creative", groupLabel: "Creative", keywords: ["strategy", "campaign", "positioning", "usp", "angle", "cta", "phase 4"] },
 
   { id: "asset-library", label: "Asset Library", group: "assets", groupLabel: "Assets", keywords: ["assets", "library", "media"] },
-  { id: "image-organization", label: "Image Organization", group: "assets", groupLabel: "Assets", keywords: ["organize", "views", "front", "classification", "product images"] },
-  { id: "product-information", label: "Product Information", group: "assets", groupLabel: "Assets", keywords: ["product", "profile", "price", "sku", "description", "specifications", "variants"] },
+  { id: "image-organization", label: "Image Organization", group: "assets", groupLabel: "Assets", keywords: ["organize", "views", "front", "classification", "product images"], inSidebar: false },
+  { id: "product-information", label: "Product Information", group: "assets", groupLabel: "Assets", keywords: ["product", "profile", "price", "sku", "description", "specifications", "variants"], inSidebar: false },
   { id: "product-validation", label: "Live Validation", group: "assets", groupLabel: "Assets", keywords: ["validation", "readiness", "review", "production package", "handoff"] },
   { id: "visual-analysis", label: "AI Visual Analysis", group: "assets", groupLabel: "Assets", keywords: ["analysis", "visual", "detection", "background", "color", "logo", "intelligence"] },
   { id: "deep-intelligence", label: "Product Intelligence", group: "assets", groupLabel: "Assets", keywords: ["intelligence", "cross-validation", "identity", "features", "consistency", "inference"] },
@@ -70,7 +71,7 @@ export const SIDEBAR_SECTIONS: Array<{ group: NavGroupId; label: string; ids: Wo
   {
     group: "assets",
     label: "Creative / Assets",
-    ids: ["product-information", "image-organization", "visual-analysis", "deep-intelligence", "storyboard", "generated-videos"],
+    ids: ["visual-analysis", "deep-intelligence", "storyboard", "generated-videos"],
   },
   {
     group: "production",
@@ -102,6 +103,7 @@ export type WorkspaceTier = "live" | "partial" | "placeholder";
 export const workspaceTiers: Record<WorkspaceId, WorkspaceTier> = {
   home: "live",
   "new-project": "live",
+  "video-requirements": "partial",
   "open-project": "live",
   "recent-projects": "partial",
   "knowledge-center": "live",
