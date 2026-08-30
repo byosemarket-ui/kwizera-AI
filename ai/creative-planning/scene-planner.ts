@@ -181,8 +181,8 @@ export function planProductScenes(
     used.add(pick.assetId);
     const camera = cameraFor(pick.view, beat);
     const sceneDuration = durations[index] ?? 2000;
-    const existingKeep = existing.find((item) => item.userEdited && (
-      item.id && generated.every((scene) => scene.id !== item.id) && (item.purpose === beatPurpose(beat) || item.order === index + 1)
+    const existingKeep = existing.find((item) => item.userEdited && generated.every((scene) => scene.id !== item.id) && (
+      item.beat === beat || item.purpose === beatPurpose(beat)
     ));
     if (existingKeep?.userEdited) {
       const durationMsKept = existingKeep.durationMs ?? Math.round((existingKeep.durationSeconds || 2) * 1000);

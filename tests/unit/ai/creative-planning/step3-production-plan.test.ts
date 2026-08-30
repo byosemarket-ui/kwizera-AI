@@ -141,6 +141,37 @@ describe("STEP 3 scene plan and production manifest", () => {
     expect(JSON.stringify(finalized.manifest)).not.toContain("[object Object]");
   });
 
+  it("does not keep legacy user-edited scenes that no longer match the story beat", () => {
+    const project = projectFixture("project-oxford", "Oxford", ["asset_front", "asset_left", "asset_detail"]);
+    const scenes = planProductScenes(project, null, [], [
+      {
+        id: "legacy-1",
+        order: 1,
+        durationSeconds: 3,
+        purpose: "Product introduction",
+        visual: "old",
+        narration: "old",
+        camera: "medium",
+        lighting: "",
+        composition: "",
+        animation: "",
+        assetId: "asset_front",
+        userEdited: true,
+      },
+    ], {
+      canonical: canonicalProduct("project-oxford", "Oxford", [
+        ["asset_front", "front.png", "front", "user"],
+        ["asset_left", "left.png", "left", "ai"],
+        ["asset_detail", "detail.png", "detail", "ai"],
+      ]),
+      brief: briefFixture("project-oxford", "brief_x", { duration: "15s", platforms: ["instagram"], name: "Oxford" }),
+    });
+    expect(scenes[0]?.purpose).toBe("HOOK");
+    expect(scenes[0]?.id).not.toBe("legacy-1");
+    expect(scenes.some((scene) => scene.purpose === "CTA")).toBe(true);
+    expect(new Set(scenes.map((scene) => scene.assetId)).size).toBeGreaterThan(1);
+  });
+
   it("keeps project A assets and commercial data out of project B", async () => {
     const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-step3-iso-"));
     roots.push(storageRoot);
