@@ -11,6 +11,7 @@ import {
   resolvedLanguage,
   resolvedPlatforms,
 } from "./types";
+import { humanizeList, humanizeValue } from "../shared/humanize";
 
 function durationSeconds(fields: MarketingInputFields): number {
   if (fields.duration === "short") return 15;
@@ -28,18 +29,18 @@ export function buildStructuredMarketingPlan(
   intel: Record<string, unknown> | null,
 ): StructuredMarketingPlan {
   const pf = product.fields;
-  const selling = pf.benefits.length ? pf.benefits : pf.features;
+  const selling = humanizeList(pf.benefits.length ? pf.benefits : pf.features);
   const structured = product.structuredProfile;
-  const aiSelling = structured?.commercial.sellingPoints ?? [];
-  const mainPoint = selling[0] || aiSelling[0] || pf.shortDescription || pf.name;
+  const aiSelling = humanizeList(structured?.commercial.sellingPoints);
+  const mainPoint = humanizeValue(selling[0] || aiSelling[0] || pf.shortDescription || pf.name);
   const supporting = [...new Set([...selling.slice(1, 4), ...aiSelling.slice(0, 3)])].filter(Boolean);
-  const audience = resolvedAudienceSummary(fields) || structured?.commercial.targetAudience || "Product buyers";
+  const audience = humanizeValue(resolvedAudienceSummary(fields) || structured?.commercial.targetAudience) || "Product buyers";
   const platforms = resolvedPlatforms(fields);
-  const strategy = String(intel?.strategy ?? "");
+  const strategy = humanizeValue(intel?.strategy);
   const platformIntel = intel?.platform as { recommendations?: string[]; format?: string } | undefined;
   const angle = strategy || `${fields.objective || "Showcase"} focused on ${mainPoint}`;
-  const messageParts = [pf.name, mainPoint, pf.description?.slice(0, 120)].filter(Boolean);
-  const ctas = Array.isArray(intel?.ctas) ? intel!.ctas.map(String) : [];
+  const messageParts = [humanizeValue(pf.name), mainPoint, humanizeValue(pf.description).slice(0, 120)].filter(Boolean);
+  const ctas = humanizeList(intel?.ctas);
   const cta = resolvedCta(fields) || ctas[0] || "Learn More";
 
   return {
@@ -49,8 +50,8 @@ export function buildStructuredMarketingPlan(
     supportingPoints: supporting,
     message: messageParts.join(" — "),
     cta,
-    platformStrategy: platforms.length
-      ? `${platforms.join(", ")}${platformIntel?.format ? ` · ${platformIntel.format}` : ""}${platformIntel?.recommendations?.length ? ` · ${platformIntel.recommendations[0]}` : ""}`
+      platformStrategy: platforms.length
+      ? `${platforms.join(", ")}${platformIntel?.format ? ` · ${humanizeValue(platformIntel.format)}` : ""}${platformIntel?.recommendations?.length ? ` · ${humanizeValue(platformIntel.recommendations[0])}` : ""}`
       : "Multi-platform short-form video",
     tone: fields.tone || "Professional",
     videoObjective: fields.objective || "Showcase product value",

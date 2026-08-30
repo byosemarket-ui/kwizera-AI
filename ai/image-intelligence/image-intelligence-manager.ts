@@ -130,7 +130,7 @@ export class ImageIntelligenceManager {
         sizeBytes: image.sizeBytes,
       });
       const previous = this.store.profiles.find((item) => item.imageId === image.id);
-      const profile = this.buildProfile(project, image, foundationKnowledgeIds, visual, previous?.id);
+      const profile = this.buildProfile(project, image, foundationKnowledgeIds, visual, previous);
       const ingest = await ensureThumbnailAsset(this.workspace!, project, image, bytes);
       profile.derivedThumbnailId = ingest.thumbnailId;
       const foundation = await recordImageAnalysisFoundation(
@@ -248,7 +248,7 @@ export class ImageIntelligenceManager {
     image: ProductImage,
     foundationKnowledgeIds: string[] = [],
     visual: VisualMetrics,
-    previousProfileId?: string,
+    previous?: ImageIntelligenceProfile,
   ): ImageIntelligenceProfile {
     const evidence = `${project.productInformation.name} ${project.productInformation.description} ${image.fileName} ${(project.productInformation.colors ?? []).join(" ")}`;
     const quality = this.quality.analyze(image, visual);
@@ -260,7 +260,9 @@ export class ImageIntelligenceManager {
     const background = this.background.analyze(evidence, visual);
     const objects = this.objects.detect(project, image);
     const detection = detectViewRoleDetailed(image.fileName);
-    const viewRole = detection.role;
+    const userCorrected = previous?.metadata?.userCorrected === 1 && Boolean(previous.viewRole);
+    const viewRole = userCorrected ? previous!.viewRole : detection.role;
+    const viewConfidence = userCorrected ? 100 : Math.round(detection.confidence * 100);
     const boundaries = this.boundary.detect(background, evidence, visual);
     const resolution = this.resolution.analyze(image, visual);
     const defects = this.defects.detect(image, quality, resolution);
@@ -287,7 +289,7 @@ export class ImageIntelligenceManager {
     const lighting = visual.pixelAnalysisAvailable && visual.lightingObserved
       ? `${visual.lightingObserved}; ${lightingHeuristic}`
       : lightingHeuristic;
-    const observations = this.collectObservations(project, image, visual, viewRole, detection.confidence, objects, colors);
+    const observations = this.collectObservations(project, image, visual, viewRole, userCorrected ? 1 : detection.confidence, objects, colors);
     const profile: ImageIntelligenceProfile = {
       id: randomUUID(),
       projectId: project.id,
@@ -319,7 +321,9 @@ export class ImageIntelligenceManager {
         ...this.metadata.create(image),
         originalImageUnmodified: 1,
         backgroundRemovalDeferred: 1,
-        viewConfidence: Math.round(detection.confidence * 100),
+        viewConfidence,
+        userCorrected: userCorrected ? 1 : 0,
+        previousViewRole: userCorrected ? String(previous?.metadata?.previousViewRole ?? "") : "",
         primaryColor: colors[0]?.name ?? "",
         logoPresent: logo.present ? 1 : 0,
         visibilityPercent: visibility.percent,
@@ -345,7 +349,7 @@ export class ImageIntelligenceManager {
         model: null,
         timestamp: new Date().toISOString(),
         originalChecksumSha256: image.checksumSha256,
-        previousProfileId,
+        previousProfileId: previous?.id,
       },
       observations,
     };

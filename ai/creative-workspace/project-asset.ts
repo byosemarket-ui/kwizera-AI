@@ -67,17 +67,51 @@ export function isSafeProjectId(projectId: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId);
 }
 
-/** Original uploaded product images only — never derived/generated representations. */
+/** Original uploaded product photographs only — never derived, generated, video, or final outputs. */
 export function isOriginalProductImage(image: {
   origin?: string;
   assetType?: string;
   parentAssetId?: string;
+  mimeType?: string;
+  fileName?: string;
+  sourceFileName?: string;
 }): boolean {
   if (image.parentAssetId) return false;
   if (image.origin === "derived" || image.origin === "generated") return false;
   if (image.assetType === "derived-image" || image.assetType === "generated-image") return false;
   if (image.assetType === "video" || image.assetType === "audio" || image.assetType === "rendered") return false;
+  const mime = (image.mimeType ?? "").toLowerCase();
+  if (mime.startsWith("video/") || mime.startsWith("audio/")) return false;
+  const names = `${image.fileName ?? ""} ${image.sourceFileName ?? ""}`.toLowerCase();
+  if (/\.(mp4|webm|mov|mkv|avi|mp3|wav)(\b|$)/.test(names)) return false;
+  if (/product-video/.test(names)) return false;
   return true;
+}
+
+export function listOriginalProductImages<T extends Parameters<typeof isOriginalProductImage>[0]>(images: T[]): T[] {
+  return images.filter(isOriginalProductImage);
+}
+
+export type AssetBucket = "original" | "processed" | "production" | "final";
+
+/** Separate source photographs from processed derivatives, production clips, and final video outputs. */
+export function classifyAssetBucket(image: Parameters<typeof isOriginalProductImage>[0] & {
+  derivedKind?: string;
+}): AssetBucket {
+  const mime = (image.mimeType ?? "").toLowerCase();
+  const names = `${image.fileName ?? ""} ${image.sourceFileName ?? ""}`.toLowerCase();
+  if (
+    image.assetType === "video"
+    || image.assetType === "rendered"
+    || mime.startsWith("video/")
+    || /\.(mp4|webm|mov|mkv)(\b|$)/.test(names)
+    || /product-video/.test(names)
+  ) {
+    return "final";
+  }
+  if (image.assetType === "audio" || mime.startsWith("audio/")) return "production";
+  if (!isOriginalProductImage(image)) return "processed";
+  return "original";
 }
 
 export class CreativeWorkspaceError extends Error {

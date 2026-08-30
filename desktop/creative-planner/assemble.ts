@@ -267,10 +267,10 @@ const BEAT_CAMERA: Record<StoryBeatId, { shot: string; move: string }> = {
 
 const BEAT_ASSET: Record<StoryBeatId, OrganizationViewType[]> = {
   HOOK: ["DETAIL", "FRONT", "LOGO"],
-  PROBLEM: ["FRONT", "45_DEGREE"],
-  PRODUCT_INTRO: ["FRONT", "45_DEGREE"],
+  PROBLEM: ["FRONT", "FRONT_LEFT"],
+  PRODUCT_INTRO: ["FRONT", "FRONT_LEFT"],
   FEATURES: ["DETAIL", "LEFT", "RIGHT"],
-  BENEFITS: ["FRONT", "45_DEGREE"],
+  BENEFITS: ["FRONT", "FRONT_LEFT"],
   PROOF: ["DETAIL", "BOTTOM", "LOGO"],
   LIFESTYLE: ["FRONT", "OTHER"],
   OFFER: ["PACKAGING", "FRONT"],

@@ -6,6 +6,8 @@ import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import { CreativeReviewManager, type ExportFormat } from "../creative-review/creative-review-manager.js";
 import { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import type { CanonicalProductManager } from "../product-record/canonical-product-manager.js";
 import type { GenerationOptimizationManager } from "../generation-optimization/generation-optimization-manager.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
 import type { ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
@@ -69,6 +71,7 @@ export class CreativePipelineManager {
   private productVideoGenerationRuntime: ProductVideoGenerationManager | null = null;
   private productAudioGenerationRuntime: ProductAudioGenerationManager | null = null;
   private productRenderingExportRuntime: ProductRenderingExportManager | null = null;
+  private canonicalProduct: CanonicalProductManager | null = null;
   private store: PipelineStore = { jobs: [], history: [] };
   private running = new Set<string>();
 
@@ -127,6 +130,7 @@ export class CreativePipelineManager {
   attachProductVideoGeneration(manager: ProductVideoGenerationManager): void { this.productVideoGenerationRuntime = manager; }
   attachProductAudioGeneration(manager: ProductAudioGenerationManager): void { this.productAudioGenerationRuntime = manager; }
   attachProductRenderingExport(manager: ProductRenderingExportManager): void { this.productRenderingExportRuntime = manager; }
+  attachCanonicalProduct(manager: CanonicalProductManager): void { this.canonicalProduct = manager; }
 
   async run(jobId: string): Promise<PipelineJob> {
     this.ensureReady();
@@ -228,13 +232,23 @@ export class CreativePipelineManager {
       if (!gate.valid) throw new Error(gate.errors.join(" "));
       return;
     }
-    if (stage === "analysis") { const imageProfiles = this.imageIntelligenceRuntime ? await this.imageIntelligenceRuntime.analyzeProject(project.id) : []; const profile = this.productIntelligenceRuntime ? await this.productIntelligenceRuntime.analyzeProductIntelligence(project.id) : null; const marketing = this.marketingIntelligenceRuntime ? await this.marketingIntelligenceRuntime.analyze(project.id) : null; this.note(job, "info", profile ? `Product Intelligence Step 1: ${imageProfiles.length} image(s) analyzed; profile ${profile.identifiedAs}; views ${profile.viewCount} (${profile.multiView.coverage}); missing angles ${profile.imageAnalysis.missingAngles.length}; ready=${profile.readyForCreativeGeneration}; originals unmodified.${marketing ? ` Marketing strategy ready at ${marketing.score}/100.` : ""}` : "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence."); return; }
+    if (stage === "analysis") {
+      const imageProfiles = this.imageIntelligenceRuntime ? await this.imageIntelligenceRuntime.analyzeProject(project.id) : [];
+      const profile = this.productIntelligenceRuntime ? await this.productIntelligenceRuntime.analyzeProductIntelligence(project.id) : null;
+      const marketing = this.marketingIntelligenceRuntime ? await this.marketingIntelligenceRuntime.analyze(project.id) : null;
+      const canonical = this.canonicalProduct?.isInitialized() ? await this.canonicalProduct.sync(project.id) : null;
+      this.note(job, "info", profile
+        ? `Product Intelligence Step 1: ${imageProfiles.length} original image(s) analyzed; profile ${profile.identifiedAs}; views ${profile.viewCount} (${profile.multiView.coverage}); missing angles ${profile.imageAnalysis.missingAngles.length}; ready=${profile.readyForCreativeGeneration}; originals unmodified.${canonical ? ` Canonical product ${canonical.productionData.readiness}.` : ""}${marketing ? ` Marketing strategy ready at ${marketing.score}/100.` : ""}`
+        : "Product, brand, campaign, audience, platform, and language inputs handed to planning intelligence.");
+      return;
+    }
     if (stage === "asset-preparation") {
       if (!this.productAssetPreparationRuntime?.isInitialized()) {
         this.note(job, "warning", "Product Asset Preparation runtime unavailable; skipping Step 2 cutouts.");
         return;
       }
       const prepared = await this.productAssetPreparationRuntime.prepareProductAssets(project.id);
+      if (this.canonicalProduct?.isInitialized()) await this.canonicalProduct.sync(project.id).catch(() => null);
       this.note(job, "info", `Product Asset Preparation Step 2: ${prepared.assets.length} transparent asset(s); BG pass ${prepared.qualitySummary.backgroundRemovalPassRate}; missing views ${prepared.missingViews.length}; originals unmodified.`);
       return;
     }
@@ -362,8 +376,8 @@ export class CreativePipelineManager {
     if (stage === "review") {
       const reviewState = await this.review!.getProjectState(project.id);
       if (!reviewState.assets.length) {
-        const images = await Promise.all(project.productImages.map(async (image) => {
-          const imagePath = await this.workspace!.getImagePath(project.id, image.url.split("/").pop() ?? "");
+        const images = await Promise.all(project.productImages.filter(isOriginalProductImage).map(async (image) => {
+          const imagePath = await this.workspace!.getOriginalImagePath(project.id, image.id);
           return imagePath ? { name: image.fileName, mimeType: image.mimeType, dataBase64: (await fs.readFile(imagePath)).toString("base64") } : null;
         }));
         await this.review!.bootstrapProductImages(project, images.filter((image): image is NonNullable<typeof image> => image !== null));

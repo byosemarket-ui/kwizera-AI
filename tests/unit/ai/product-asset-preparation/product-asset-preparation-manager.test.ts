@@ -8,6 +8,9 @@ import { ImageIntelligenceManager } from "../../../../ai/image-intelligence/imag
 import { ProductAssetPreparationManager } from "../../../../ai/product-asset-preparation/product-asset-preparation-manager.js";
 import { ProductIntelligenceManager } from "../../../../ai/product-intelligence/product-intelligence-manager.js";
 
+const PNG_1X1 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 const roots: string[] = [];
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => fs.rm(root, { recursive: true, force: true })));
@@ -33,12 +36,12 @@ async function setup() {
   await workspace.uploadImage(project.id, {
     fileName: "bottle-front-studio.png",
     mimeType: "image/png",
-    dataBase64: Buffer.alloc(1024, 11).toString("base64"),
+    dataBase64: PNG_1X1,
   });
   await workspace.uploadImage(project.id, {
     fileName: "bottle-detail-studio.png",
     mimeType: "image/png",
-    dataBase64: Buffer.alloc(1024, 13).toString("base64"),
+    dataBase64: PNG_1X1,
   });
   const images = new ImageIntelligenceManager();
   await images.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });

@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager, ProductImage } from "../creative-workspace/creative-workspace-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { BackgroundRemovalAnalyzer, type ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
 import type { ImageIntelligenceProfile } from "../image-intelligence/types.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
@@ -73,13 +74,14 @@ export class ProductAssetPreparationManager {
     this.ensureReady();
     const project = await this.workspace!.getProject(projectId);
     if (!project) throw new Error("Project not found");
-    if (!project.productImages.length) throw new Error("Upload at least one product image before asset preparation.");
+    const originals = project.productImages.filter(isOriginalProductImage);
+    if (!originals.length) throw new Error("Upload at least one original product image before asset preparation.");
 
     const productProfile = await this.products!.analyzeProductIntelligence(projectId);
     const imageProfiles = await this.images!.analyzeProject(projectId);
     const prepared: ProductAssetRecord[] = [];
 
-    for (const image of project.productImages) {
+    for (const image of originals) {
       const imageProfile = imageProfiles.find((item) => item.imageId === image.id);
       const viewType = (imageProfile?.viewRole as ProductAssetViewType | undefined) || "unknown";
       const fingerprint = this.library.fingerprint(project, productProfile, image, viewType);
@@ -93,7 +95,9 @@ export class ProductAssetPreparationManager {
       }
 
       const originalPath = await this.workspace!.getOriginalImagePath(projectId, image.id);
-      if (!originalPath) throw new Error(`Original image file missing for ${image.fileName}`);
+      if (!originalPath) {
+        throw new Error(`Original image file missing for asset ${image.id} (${image.fileName})`);
+      }
       const originalBytes = await fs.readFile(originalPath);
       const originalHash = createHash("sha256").update(originalBytes).digest("hex");
 

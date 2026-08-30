@@ -49,6 +49,8 @@ import {
 
   getProductIntelligenceManager,
 
+  getCanonicalProductManager,
+
   getImageIntelligenceManager,
 
   getProductAssetPreparationManager,
@@ -556,6 +558,15 @@ function requireProductIntelligence(res: ServerResponse) {
 
   return intelligence;
 
+}
+
+function requireCanonicalProduct(res: ServerResponse) {
+  const manager = getCanonicalProductManager();
+  if (!manager) {
+    sendJson(res, 503, { error: "Product record is restoring. Try again shortly." });
+    return null;
+  }
+  return manager;
 }
 
 function requireImageIntelligence(res: ServerResponse) {
@@ -2449,6 +2460,8 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
 
       const profiles = await intelligence.analyzeProject(imageAnalysisMatch[1]);
+      const canonical = getCanonicalProductManager();
+      if (canonical) await canonical.sync(imageAnalysisMatch[1]).catch(() => null);
 
       sendJson(res, 201, { profiles, dashboard: await intelligence.getDashboard(imageAnalysisMatch[1]) });
 
@@ -2487,8 +2500,12 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         typeof body.confidence === "number" ? body.confidence : 1,
 
       );
+      const canonical = getCanonicalProductManager();
+      const product = canonical
+        ? await canonical.correctView(imageOverrideMatch[1], imageOverrideMatch[2], body.viewRole).catch(() => null)
+        : null;
 
-      sendJson(res, 200, { profile, dashboard: await intelligence.getDashboard(imageOverrideMatch[1]) });
+      sendJson(res, 200, { profile, dashboard: await intelligence.getDashboard(imageOverrideMatch[1]), product });
 
     } catch (error) {
 
@@ -2768,8 +2785,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
 
       const profile = await intelligence.analyze(productAnalysisMatch[1]);
+      const canonical = getCanonicalProductManager();
+      const product = canonical ? await canonical.sync(productAnalysisMatch[1]).catch(() => null) : null;
 
-      sendJson(res, 201, { profile, analysisState: intelligence.getAnalysisState(productAnalysisMatch[1]), dashboard: await intelligence.getDashboard(productAnalysisMatch[1]) });
+      sendJson(res, 201, { profile, analysisState: intelligence.getAnalysisState(productAnalysisMatch[1]), dashboard: await intelligence.getDashboard(productAnalysisMatch[1]), product });
 
     } catch (error) {
 
@@ -2796,6 +2815,58 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  const productRecordMatch = url.pathname.match(/^\/api\/product-record\/projects\/([^/]+)$/);
+  if (productRecordMatch && req.method === "GET") {
+    const canonical = requireCanonicalProduct(res);
+    if (!canonical) return;
+    const product = await canonical.get(productRecordMatch[1]) ?? await canonical.sync(productRecordMatch[1]).catch(() => null);
+    if (!product) { sendJson(res, 404, { error: "Product record not found" }); return; }
+    sendJson(res, 200, { product });
+    return;
+  }
+  if (productRecordMatch && req.method === "POST") {
+    const canonical = requireCanonicalProduct(res);
+    if (!canonical) return;
+    try {
+      const product = await canonical.sync(productRecordMatch[1]);
+      sendJson(res, 200, { product });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to sync product record" });
+    }
+    return;
+  }
+
+  const productRecordViewMatch = url.pathname.match(/^\/api\/product-record\/projects\/([^/]+)\/assets\/([^/]+)\/view$/);
+  if (productRecordViewMatch && req.method === "POST") {
+    const canonical = requireCanonicalProduct(res);
+    if (!canonical) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as { view?: string };
+      if (!body.view) { sendJson(res, 400, { error: "view is required" }); return; }
+      const product = await canonical.correctView(productRecordViewMatch[1], productRecordViewMatch[2], body.view);
+      sendJson(res, 200, { product, assetMap: product.assetMap, intelligence: product.intelligence });
+    } catch (error) {
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to correct view" });
+    }
+    return;
+  }
+
+  const productRecordMapMatch = url.pathname.match(/^\/api\/product-record\/projects\/([^/]+)\/asset-map$/);
+  if (productRecordMapMatch && req.method === "GET") {
+    const canonical = requireCanonicalProduct(res);
+    if (!canonical) return;
+    const product = await canonical.get(productRecordMapMatch[1]) ?? await canonical.sync(productRecordMapMatch[1]).catch(() => null);
+    if (!product) { sendJson(res, 404, { error: "Product record not found" }); return; }
+    sendJson(res, 200, {
+      productId: product.productId,
+      assetMap: product.assetMap,
+      productViews: product.productViews,
+      intelligence: product.intelligence,
+      readiness: product.productionData,
+    });
+    return;
   }
 
   const marketingAnalysisMatch = url.pathname.match(/^\/api\/marketing-intelligence\/projects\/([^/]+)\/analyze$/);
@@ -3961,6 +4032,8 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         });
       }
 
+      const canonical = getCanonicalProductManager();
+      const productRecord = canonical ? await canonical.sync(uploadMatch[1]).catch(() => null) : null;
       const raw = await workspace.getProject(uploadMatch[1]);
       const project = raw ? await withFoundation(workspace, raw, "asset") : raw;
       sendJson(res, 201, {
@@ -3970,6 +4043,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         validation: workspace.validate(project),
         intake: workspace.validateIntake(project),
         ingestQueued: Boolean(intelligence?.isInitialized()),
+        product: productRecord,
       });
 
     } catch (error) {
@@ -3993,6 +4067,8 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
 
       const project = await workspace.removeImage(removeImageMatch[1], removeImageMatch[2]);
+      const canonical = getCanonicalProductManager();
+      if (canonical) await canonical.sync(removeImageMatch[1]).catch(() => null);
 
       sendJson(res, 200, { project, validation: workspace.validate(project), intake: workspace.validateIntake(project) });
 

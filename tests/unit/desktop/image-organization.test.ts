@@ -27,7 +27,9 @@ describe("View classification", () => {
     expect(classifyFileName("detail-texture.jpg").viewType).toBe("DETAIL");
     expect(classifyFileName("packaging-box.jpg").viewType).toBe("PACKAGING");
     expect(classifyFileName("brand-logo.png").viewType).toBe("LOGO");
-    expect(classifyFileName("hero-45-degree.jpg").viewType).toBe("45_DEGREE");
+    expect(classifyFileName("hero-45-degree.jpg").viewType).toBe("FRONT_LEFT");
+    expect(classifyFileName("front-left.jpg").viewType).toBe("FRONT_LEFT");
+    expect(classifyFileName("close-up-stitch.jpg").viewType).toBe("CLOSE_UP");
     expect(classifyFileName("side-profile.jpg").viewType).toBe("OTHER");
     expect(classifyFileName("random-shot.jpg").viewType).toBe("UNKNOWN");
     expect(classifyFileName("front.jpg").confidence).toBeGreaterThan(0.9);
@@ -35,8 +37,8 @@ describe("View classification", () => {
   });
 
   it("maps server roles bidirectionally", () => {
-    expect(mapServerRoleToView("close-up")).toBe("DETAIL");
-    expect(mapServerRoleToView("angle-45")).toBe("45_DEGREE");
+    expect(mapServerRoleToView("close-up")).toBe("CLOSE_UP");
+    expect(mapServerRoleToView("angle-45")).toBe("FRONT_LEFT");
     expect(mapViewToServerRole("PACKAGING")).toBe("packaging");
     expect(mapViewToServerRole("FRONT")).toBe("front");
   });

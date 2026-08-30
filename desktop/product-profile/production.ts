@@ -1,4 +1,5 @@
 import type { StructuredProductProfile } from "./types.js";
+import { humanizeList, humanizeValue } from "../shared/humanize";
 
 export {
   PRODUCTION_STAGE_MAP,
@@ -32,11 +33,10 @@ export function mergeStructuredProfile(
   },
 ): StructuredProductProfile {
   const uncertain: string[] = [];
-  const asList = (value: unknown): string[] =>
-    Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+  const asList = (value: unknown): string[] => humanizeList(value);
 
-  const aiBrand = String(intel.brand ?? "");
-  const aiCategory = String(intel.category ?? "");
+  const aiBrand = humanizeValue(intel.brand);
+  const aiCategory = humanizeValue(intel.category);
   const aiMaterials = asList(intel.materials);
   const aiColors = asList(intel.colours ?? intel.colors);
   const aiFeatures = asList(intel.features);
@@ -60,12 +60,12 @@ export function mergeStructuredProfile(
 
   return {
     identity: {
-      name: fields.name.trim() || String(intel.productName ?? "Product"),
+      name: fields.name.trim() || humanizeValue(intel.productName) || "Product",
       brand: fields.brand.trim() || (/unknown|requires|not determined/i.test(aiBrand) ? undefined : aiBrand || undefined),
       model: fields.model.trim() || undefined,
       sku: fields.sku.trim() || undefined,
-      category: fields.category.trim() || aiCategory || undefined,
-      productType: String(intel.productType ?? "") || undefined,
+      category: fields.category.trim() || humanizeValue(intel.category) || undefined,
+      productType: humanizeValue(intel.productType) || undefined,
       price: fields.price ?? undefined,
       currency: fields.currency.trim() || undefined,
     },
@@ -76,13 +76,13 @@ export function mergeStructuredProfile(
       textures: aiTextures,
       features: fields.features.length ? fields.features : aiFeatures,
       logos: aiLogos,
-      style: String(intel.style ?? "") || undefined,
+      style: humanizeValue(intel.style) || undefined,
     },
     commercial: {
       sellingPoints: aiSelling.length ? aiSelling : fields.benefits.slice(0, 5),
       marketingKeywords: aiKeywords,
-      targetAudience: String(intel.targetAudience ?? "") || undefined,
-      description: fields.description.trim() || fields.shortDescription.trim() || String(intel.description ?? "") || undefined,
+      targetAudience: humanizeValue(intel.targetAudience) || undefined,
+      description: fields.description.trim() || fields.shortDescription.trim() || humanizeValue(intel.description) || undefined,
     },
     coverage: {
       viewCount: Number(intel.viewCount ?? 0),

@@ -85,12 +85,24 @@ async function analyzeProductIntelligence(projectId: string): Promise<ProductInt
   return body.profile ?? null;
 }
 
+async function persistCanonicalProduct(projectId: string): Promise<void> {
+  await fetch(`/api/product-record/projects/${encodeURIComponent(projectId)}`, { method: "POST" }).catch(() => null);
+}
+
 async function overrideViewRoleApi(projectId: string, imageId: string, viewRole: string): Promise<void> {
   await fetch(`/api/image-intelligence/projects/${projectId}/images/${imageId}/view-role`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ viewRole, confidence: 1 }),
   });
+}
+
+async function correctCanonicalView(projectId: string, assetId: string, viewRole: string): Promise<void> {
+  await fetch(`/api/product-record/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}/view`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ view: viewRole }),
+  }).catch(() => null);
 }
 
 function loadStoredSets(): Record<string, ProductImageSet> {
@@ -260,7 +272,9 @@ export class ImageOrganizationEngine {
       );
       if (!this.intakeAssets.length && bound.project.productImages?.length) {
         this.intakeAssets = bound.project.productImages
-          .filter((img) => !img.parentAssetId && img.origin !== "derived" && img.assetType !== "derived-image")
+          .filter((img) => !img.parentAssetId && img.origin !== "derived" && img.origin !== "generated"
+            && img.assetType !== "derived-image" && img.assetType !== "video" && img.assetType !== "rendered"
+            && !String(img.mimeType).startsWith("video/") && !/product-video/i.test(img.fileName))
           .map((img) => ({
           assetId: img.id,
           projectId: bound.projectId,
@@ -533,6 +547,7 @@ export class ImageOrganizationEngine {
         missingViews,
       });
       this.notify?.("success", "Organization complete", `${organized.length} images analyzed. Coverage ${coverageScore}%.`, "production-complete");
+      await persistCanonicalProduct(this.projectId!);
       this.emit();
       return set;
     } catch (error) {
@@ -606,6 +621,7 @@ export class ImageOrganizationEngine {
     } catch {
       /* local correction still saved */
     }
+    await correctCanonicalView(this.projectId, assetId, mapViewToServerRole(viewType));
     this.markDirty();
     this.notify?.("info", "Classification updated", `${assetId.slice(0, 8)}… → ${viewType}`, "updates");
     this.emit();
@@ -651,6 +667,7 @@ export class ImageOrganizationEngine {
     try {
       saveStoredSet(snap.productImageSet);
       await persistProductImageSet(snap.projectId, snap.productImageSet);
+      await persistCanonicalProduct(snap.projectId);
       const handoff: Step3HandoffPayload = {
         version: 1,
         step: "step-3-product-information",

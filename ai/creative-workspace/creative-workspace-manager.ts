@@ -6,8 +6,10 @@ import { ProjectState } from "../state-manager/types.js";
 import { inspectImageBuffer } from "./image-inspect.js";
 import {
   CreativeWorkspaceError,
+  classifyAssetBucket,
   isOriginalProductImage,
   isSafeProjectId,
+  listOriginalProductImages,
   type AssetAnalysisState,
   type AssetOrigin,
   type AssetProcessingStatus,
@@ -19,8 +21,10 @@ import {
 } from "./project-asset.js";
 export {
   CreativeWorkspaceError,
+  classifyAssetBucket,
   isOriginalProductImage,
   isSafeProjectId,
+  listOriginalProductImages,
 } from "./project-asset.js";
 export type {
   AssetAnalysisState,
@@ -434,12 +438,17 @@ export class CreativeWorkspaceManager {
     }
   }
 
+  listOriginalImages(project: CreativeProject): ProductImage[] {
+    return listOriginalProductImages(project.productImages);
+  }
+
   /** Resolve the absolute path of an original uploaded product image. Never used for writes by asset prep. */
   async getOriginalImagePath(projectId: string, imageId: string): Promise<string | null> {
     const project = await this.getProject(projectId);
     const image = project?.productImages.find((item) => item.id === imageId);
-    if (!image) return null;
+    if (!image || !isOriginalProductImage(image) || classifyAssetBucket(image) !== "original") return null;
     const extension = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
+    if (!extension || extension === "mp4") return null;
     return this.getImagePath(projectId, `${imageId}.${extension}`);
   }
 
@@ -626,7 +635,7 @@ export class CreativeWorkspaceManager {
     if (!project) errors.push("Create or open a project before continuing.");
     if (!project) return { valid: false, errors };
     if (!project.name.trim()) errors.push("Project name is required.");
-    if (!project.productImages.length) errors.push("Upload at least one product image.");
+    if (!listOriginalProductImages(project.productImages).length) errors.push("Upload at least one product image.");
     if (!project.productInformation.name.trim()) errors.push("Product name is required.");
     if (!project.productInformation.category.trim()) errors.push("Product category is required.");
     if (!project.productInformation.description.trim()) errors.push("Product description is required.");
@@ -645,7 +654,7 @@ export class CreativeWorkspaceManager {
     if (!project) errors.push("Create or open a project before continuing.");
     if (!project) return { valid: false, errors };
     if (!project.name.trim()) errors.push("Project name is required.");
-    if (!project.productImages.length) errors.push("Import at least one valid product image.");
+    if (!listOriginalProductImages(project.productImages).length) errors.push("Import at least one valid product image.");
     return { valid: errors.length === 0, errors };
   }
 
@@ -659,7 +668,7 @@ export class CreativeWorkspaceManager {
     if (project.productInformation.price == null || !Number.isFinite(project.productInformation.price) || project.productInformation.price < 0) {
       errors.push("A valid selling price is required.");
     }
-    if (!project.productImages.length) errors.push("At least one product image is required.");
+    if (!listOriginalProductImages(project.productImages).length) errors.push("At least one original product image is required.");
     return { valid: errors.length === 0, errors };
   }
 

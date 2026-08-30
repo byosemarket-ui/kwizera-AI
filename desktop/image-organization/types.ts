@@ -5,10 +5,15 @@ export type OrganizationViewType =
   | "BACK"
   | "LEFT"
   | "RIGHT"
+  | "FRONT_LEFT"
+  | "FRONT_RIGHT"
+  | "BACK_LEFT"
+  | "BACK_RIGHT"
   | "TOP"
   | "BOTTOM"
-  | "45_DEGREE"
   | "DETAIL"
+  | "CLOSE_UP"
+  | "MATERIAL_DETAIL"
   | "PACKAGING"
   | "LOGO"
   | "OTHER"
@@ -128,6 +133,6 @@ export const ORG_HANDOFF_KEY = "kwizera.image-organization.handoff.v1";
 export const LOW_CONFIDENCE = 0.7;
 
 export const ALL_VIEW_TYPES: OrganizationViewType[] = [
-  "FRONT", "BACK", "LEFT", "RIGHT", "TOP", "BOTTOM", "45_DEGREE",
-  "DETAIL", "PACKAGING", "LOGO", "OTHER", "UNKNOWN",
+  "FRONT", "BACK", "LEFT", "RIGHT", "FRONT_LEFT", "FRONT_RIGHT", "BACK_LEFT", "BACK_RIGHT",
+  "TOP", "BOTTOM", "DETAIL", "CLOSE_UP", "MATERIAL_DETAIL", "PACKAGING", "LOGO", "OTHER", "UNKNOWN",
 ];

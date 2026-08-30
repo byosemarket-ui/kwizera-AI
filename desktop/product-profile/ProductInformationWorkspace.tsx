@@ -10,6 +10,7 @@ import { productProfileEngine } from "./profile-engine";
 import { categorySpecHints } from "./types";
 import type { ProfileSnapshot } from "./types";
 import { listToText, textToList } from "./validation";
+import { DisplayList, DisplayText } from "../shared/DisplayValue";
 import "./product-profile.css";
 
 type SectionId =
@@ -301,13 +302,13 @@ export function ProductInformationWorkspace() {
                 <div><span>Image views</span><b>{profile.structuredProfile.coverage.viewCount}</b></div>
                 <div><span>Colors</span><b>{profile.structuredProfile.visual.colors.join(" / ") || "—"}</b></div>
                 <div><span>Materials</span><b>{profile.structuredProfile.visual.materials.join(" / ") || "—"}</b></div>
-                <div className="span-2"><span>Selling points</span><b>{profile.structuredProfile.commercial.sellingPoints.slice(0, 4).join(" · ") || "—"}</b></div>
+                <div className="span-2"><span>Selling points</span><b><DisplayList value={profile.structuredProfile.commercial.sellingPoints.slice(0, 4)} /></b></div>
               </div>
               {profile.structuredProfile.uncertainFields.length > 0 && (
                 <p className="pp-warn">Review needed: {profile.structuredProfile.uncertainFields.join(", ")}</p>
               )}
               {profile.structuredProfile.missingInformation.length > 0 && (
-                <p className="pp-muted">Optional gaps: {profile.structuredProfile.missingInformation.slice(0, 5).join(", ")}</p>
+                <p className="pp-muted">Optional gaps: <DisplayList value={profile.structuredProfile.missingInformation.slice(0, 5)} separator=", " /></p>
               )}
             </div>
           )}

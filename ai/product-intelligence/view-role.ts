@@ -20,6 +20,11 @@ export function detectViewRole(fileName: string): ProductViewRole {
 export function detectViewRoleDetailed(fileName: string): ViewRoleDetection {
   const lower = fileName.toLowerCase();
   const rules: Array<{ role: ProductViewRole; pattern: RegExp; confidence: number }> = [
+    { role: "front_left", pattern: /front[-_ ]?left|left[-_ ]?front/, confidence: 0.94 },
+    { role: "front_right", pattern: /front[-_ ]?right|right[-_ ]?front/, confidence: 0.94 },
+    { role: "back_left", pattern: /back[-_ ]?left|left[-_ ]?back|rear[-_ ]?left/, confidence: 0.93 },
+    { role: "back_right", pattern: /back[-_ ]?right|right[-_ ]?back|rear[-_ ]?right/, confidence: 0.93 },
+    { role: "material_detail", pattern: /material[-_ ]?detail|sole[-_ ]?detail|texture[-_ ]?detail/, confidence: 0.9 },
     { role: "front", pattern: /(^|[^a-z])front([^a-z]|$)|frontal|face[-_ ]?on|_f\.|view[-_]?front/, confidence: 0.96 },
     { role: "back", pattern: /(^|[^a-z])back([^a-z]|$)|rear|reverse|_b\.|view[-_]?back/, confidence: 0.95 },
     { role: "left", pattern: /(^|[^a-z])left([^a-z]|$)|_l\.|view[-_]?left/, confidence: 0.94 },

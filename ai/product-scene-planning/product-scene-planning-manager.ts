@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { ProductAssetPreparationManager } from "../product-asset-preparation/product-asset-preparation-manager.js";
 import type { ProductAssetPreparationResult, ProductAssetRecord, ProductAssetViewType } from "../product-asset-preparation/types.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
@@ -104,7 +105,9 @@ export class ProductScenePlanningManager {
     this.ensureReady();
     const project = await this.workspace!.getProject(projectId);
     if (!project) throw new Error("Project not found");
-    if (!project.productImages.length) throw new Error("Upload product images before scene planning.");
+    if (!project.productImages.filter(isOriginalProductImage).length) {
+      throw new Error("Upload original product images before scene planning.");
+    }
 
     const product = await this.products!.analyzeProductIntelligence(projectId);
     const prepared = await this.assets!.prepareProductAssets(projectId);

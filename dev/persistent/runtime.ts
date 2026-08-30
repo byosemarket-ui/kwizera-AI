@@ -15,6 +15,7 @@ import { GenerationOptimizationManager } from "../../ai/generation-optimization/
 import { createGenerationOptimizationPlugin } from "../../ai/generation-optimization/generation-optimization-plugin.js";
 import { ProductIntelligenceManager } from "../../ai/product-intelligence/product-intelligence-manager.js";
 import { createProductIntelligencePlugin } from "../../ai/product-intelligence/product-intelligence-plugin.js";
+import { CanonicalProductManager } from "../../ai/product-record/canonical-product-manager.js";
 import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-intelligence-manager.js";
 import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
 import { ProductAssetPreparationManager } from "../../ai/product-asset-preparation/product-asset-preparation-manager.js";
@@ -86,6 +87,7 @@ let commercialVideoManager: CommercialVideoManager | null = null;
 let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
 let productIntelligenceManager: ProductIntelligenceManager | null = null;
+let canonicalProductManager: CanonicalProductManager | null = null;
 let imageIntelligenceManager: ImageIntelligenceManager | null = null;
 let productAssetPreparationManager: ProductAssetPreparationManager | null = null;
 let productScenePlanningManager: ProductScenePlanningManager | null = null;
@@ -235,6 +237,10 @@ export function getProductIntelligenceManager(): ProductIntelligenceManager | nu
   return productIntelligenceManager;
 }
 
+export function getCanonicalProductManager(): CanonicalProductManager | null {
+  return canonicalProductManager;
+}
+
 export function getImageIntelligenceManager(): ImageIntelligenceManager | null {
   return imageIntelligenceManager;
 }
@@ -337,6 +343,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         console.log("[KWIZERA] Lightweight mode — creative workspace only (KWIZERA AI Core deferred)");
         workspaceManager = new CreativeWorkspaceManager();
         await workspaceManager.initialize(storageRoot);
+        canonicalProductManager = new CanonicalProductManager();
+        await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
         modelManager = new AiModelManager();
         await modelManager.initialize(storageRoot);
         // Image/video loopback adapters stay discoverable via API; they do not define Core readiness.
@@ -373,6 +381,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       console.log("[KWIZERA] KWIZERA AI Core started");
       workspaceManager = new CreativeWorkspaceManager();
       await workspaceManager.initialize(storageRoot, manager);
+      canonicalProductManager = new CanonicalProductManager();
+      await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
       const backup = manager.memoryFoundation?.getMemoryBackupEngine();
       const desktop = manager.desktopIntegrationManager;
       workspaceSynchronizationManager = new WorkspaceSynchronizationManager({
@@ -502,6 +512,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createProductIntelligencePlugin(productIntelligenceManager, manager));
       pipelineManager.attachProductIntelligence(productIntelligenceManager);
       productIntelligenceManager.attachImageIntelligence(imageIntelligenceManager);
+      canonicalProductManager?.attachIntelligence(imageIntelligenceManager, productIntelligenceManager);
+      pipelineManager.attachCanonicalProduct(canonicalProductManager!);
       manager.conversationEngine?.setProductIntelligenceProvider({
         isInitialized: () => productIntelligenceManager!.isInitialized(),
         analyzeProductIntelligence: (projectId) => productIntelligenceManager!.analyzeProductIntelligence(projectId),

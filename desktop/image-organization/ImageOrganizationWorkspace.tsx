@@ -171,6 +171,26 @@ export function ImageOrganizationWorkspace() {
             )}
           </section>
 
+          <section className="org-asset-map">
+            <h3>Product Asset Map</h3>
+            <p>Later production stages use these stable asset IDs. Correct a view if the AI is wrong.</p>
+            <div className="org-asset-map-grid">
+              {set.groups.filter((g) => g.images.length > 0).map((group) => (
+                <div key={`map-${group.groupId}`} className="org-asset-map-row">
+                  <strong>{group.viewType}</strong>
+                  <span>
+                    {group.images.map((img) => (
+                      <em key={img.assetId} title={img.fileName}>
+                        {img.assetId.slice(0, 8)}… · {Math.round(img.confidence * 100)}%
+                        {img.userCorrected ? " · user" : ""}
+                      </em>
+                    ))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {set.warnings.length > 0 && (
             <section className="org-warnings">
               <h3>Warnings</h3>

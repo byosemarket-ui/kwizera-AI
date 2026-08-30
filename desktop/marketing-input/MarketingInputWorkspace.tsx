@@ -7,6 +7,7 @@ import { workspaceIntegrationEngine } from "../shell/integration/integration-eng
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
 import { marketingInputEngine } from "./marketing-engine";
 import type { MarketingSnapshot } from "./types";
+import { DisplayList, DisplayText } from "../shared/DisplayValue";
 import {
   CTA_PRESETS,
   FORMAT_PRESETS,
@@ -589,17 +590,17 @@ export function MarketingInputWorkspace() {
           {brief.marketingPlan && (
             <Section title="Marketing Plan" open={true} onToggle={() => toggle("review")}>
               <div className="mi-summary">
-                <div><span>Audience</span><b>{brief.marketingPlan.audience}</b></div>
-                <div><span>Angle</span><b>{brief.marketingPlan.angle}</b></div>
-                <div><span>Main selling point</span><b>{brief.marketingPlan.mainSellingPoint}</b></div>
-                <div><span>Message</span><b>{brief.marketingPlan.message}</b></div>
-                <div><span>CTA</span><b>{brief.marketingPlan.cta}</b></div>
-                <div><span>Platform strategy</span><b>{brief.marketingPlan.platformStrategy}</b></div>
-                <div><span>Tone</span><b>{brief.marketingPlan.tone}</b></div>
-                <div><span>Video objective</span><b>{brief.marketingPlan.videoObjective}</b></div>
+                <div><span>Audience</span><b><DisplayText value={brief.marketingPlan.audience} /></b></div>
+                <div><span>Angle</span><b><DisplayText value={brief.marketingPlan.angle} /></b></div>
+                <div><span>Main selling point</span><b><DisplayText value={brief.marketingPlan.mainSellingPoint} /></b></div>
+                <div><span>Message</span><b><DisplayText value={brief.marketingPlan.message} /></b></div>
+                <div><span>CTA</span><b><DisplayText value={brief.marketingPlan.cta} /></b></div>
+                <div><span>Platform strategy</span><b><DisplayText value={brief.marketingPlan.platformStrategy} /></b></div>
+                <div><span>Tone</span><b><DisplayText value={brief.marketingPlan.tone} /></b></div>
+                <div><span>Video objective</span><b><DisplayText value={brief.marketingPlan.videoObjective} /></b></div>
               </div>
               {brief.marketingPlan.supportingPoints.length > 0 && (
-                <p className="mi-note">Supporting points: {brief.marketingPlan.supportingPoints.join(" · ")}</p>
+                <p className="mi-note">Supporting points: <DisplayList value={brief.marketingPlan.supportingPoints} /></p>
               )}
               {brief.videoConcept && (
                 <p className="mi-note">
