@@ -76,7 +76,7 @@ export function ProductSetupWorkspace() {
     setBusy(true);
     try {
       await productSetupEngine.continueToStep2();
-      notify("success", "Product setup complete", "Opening Video Requirements.", "production-complete");
+      notify("success", "Product setup complete", "Opening Video Settings.", "production-complete");
       switchWorkspace("video-requirements");
     } catch (error) {
       notify(

@@ -143,6 +143,7 @@ export interface AuthoritativeBriefView {
     platforms: string[];
     cta: string;
     tone: string;
+    language?: string;
     lockedFields: string[];
   };
   output: {
@@ -186,6 +187,7 @@ export interface AuthoritativeBriefView {
     confidence: number;
     status: string;
   }>;
+  userDefined?: Record<string, unknown>;
 }
 
 export interface CanonicalProductSummary {

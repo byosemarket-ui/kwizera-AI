@@ -2,9 +2,9 @@
 
 const STEPS = [
   { n: 1, label: "Product Setup" },
-  { n: 2, label: "Video Requirements" },
-  { n: 3, label: "Video Method" },
-  { n: 4, label: "Review & Generate" },
+  { n: 2, label: "Video Settings" },
+  { n: 3, label: "Video Style" },
+  { n: 4, label: "Final Review" },
   { n: 5, label: "Production" },
 ] as const;
 

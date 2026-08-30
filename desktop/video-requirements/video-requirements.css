@@ -1,0 +1,276 @@
+@import "../product-creation/workflow-progress.css";
+
+.vr-page {
+  --vr-accent: #2c5f7a;
+  --vr-accent-soft: rgba(44, 95, 122, 0.1);
+  --vr-line: rgba(15, 23, 42, 0.1);
+  --vr-text: #0f172a;
+  --vr-muted: #64748b;
+  --vr-panel: #ffffff;
+  --vr-ok: #15803d;
+  --vr-warn: #b45309;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 24px 120px;
+  color: var(--vr-text);
+  font-family: "Segoe UI", "IBM Plex Sans", system-ui, sans-serif;
+}
+
+.vr-intro h1 {
+  margin: 8px 0 6px;
+  font-size: 1.6rem;
+  font-weight: 650;
+}
+
+.vr-intro p {
+  margin: 0;
+  color: var(--vr-muted);
+  max-width: 56ch;
+  line-height: 1.5;
+}
+
+.vr-section {
+  margin-top: 28px;
+  border: 1px solid var(--vr-line);
+  border-radius: 12px;
+  padding: 18px;
+  background: var(--vr-panel);
+}
+
+.vr-section h2 {
+  margin: 0 0 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vr-muted);
+}
+
+.vr-product-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.vr-product-thumb {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.vr-product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vr-product-meta b {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.vr-product-meta span {
+  color: var(--vr-muted);
+  font-size: 0.88rem;
+}
+
+.vr-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .vr-grid-2 { grid-template-columns: 1fr; }
+  .vr-page { padding: 16px 16px 100px; }
+}
+
+.vr-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.vr-field input,
+.vr-field select,
+.vr-field textarea {
+  border: 1px solid var(--vr-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.vr-field input:focus,
+.vr-field select:focus {
+  outline: 2px solid var(--vr-accent-soft);
+  border-color: var(--vr-accent);
+}
+
+.vr-discount {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--vr-accent-soft);
+  font-size: 0.85rem;
+}
+
+.vr-discount strong { color: var(--vr-accent); }
+
+.vr-platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.vr-platform-card {
+  border: 1.5px solid var(--vr-line);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: left;
+  background: var(--vr-panel);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.vr-platform-card.is-selected {
+  border-color: var(--vr-accent);
+  background: var(--vr-accent-soft);
+}
+
+.vr-platform-card b {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.vr-platform-card small {
+  display: block;
+  color: var(--vr-muted);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.vr-duration-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vr-chip {
+  border: 1px solid var(--vr-line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: var(--vr-panel);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.vr-chip.is-selected {
+  border-color: var(--vr-accent);
+  background: var(--vr-accent-soft);
+  color: var(--vr-accent);
+}
+
+.vr-intel ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  color: var(--vr-muted);
+}
+
+.vr-intel li.is-ok { color: var(--vr-text); }
+
+.vr-selling-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vr-selling-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--vr-line);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.vr-selling-item small {
+  display: block;
+  color: var(--vr-muted);
+  margin-top: 2px;
+}
+
+.vr-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--vr-line);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+.vr-footer button {
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vr-footer .vr-back {
+  border: 1px solid var(--vr-line);
+  background: transparent;
+}
+
+.vr-footer .vr-continue {
+  border: none;
+  background: var(--vr-accent);
+  color: #fff;
+}
+
+.vr-footer .vr-continue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vr-save {
+  font-size: 0.8rem;
+  color: var(--vr-muted);
+}
+
+.vr-save[data-state="saving"] { color: var(--vr-accent); }
+.vr-save[data-state="error"] { color: #b91c1c; }
+
+.vr-hint {
+  font-size: 0.78rem;
+  color: var(--vr-warn);
+  margin-top: 4px;
+}
+
+.vr-readiness {
+  font-size: 0.88rem;
+}
+
+.vr-readiness strong {
+  color: var(--vr-ok);
+}
+
+@keyframes vr-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vr-spin { animation: vr-spin 0.8s linear infinite; }

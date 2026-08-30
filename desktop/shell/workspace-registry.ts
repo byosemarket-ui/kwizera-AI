@@ -8,7 +8,8 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "home", label: "Home", group: "dashboard", groupLabel: "Dashboard", keywords: ["dashboard", "home", "overview"] },
 
   { id: "new-project", label: "Product Setup", group: "projects", groupLabel: "Projects", keywords: ["new", "create", "project", "intake", "import", "images", "product setup", "step 1"], shortcut: "Ctrl+N" },
-  { id: "video-requirements", label: "Video Requirements", group: "projects", groupLabel: "Projects", keywords: ["video requirements", "step 2", "platform", "duration"], inSidebar: false },
+  { id: "video-requirements", label: "Video Settings", group: "projects", groupLabel: "Projects", keywords: ["video settings", "step 2", "platform", "duration", "marketing brief"], inSidebar: false },
+  { id: "video-style", label: "Video Style", group: "projects", groupLabel: "Projects", keywords: ["video style", "step 3", "production review"], inSidebar: false },
   { id: "open-project", label: "Open Project", group: "projects", groupLabel: "Projects", keywords: ["open", "projects", "files"], shortcut: "Ctrl+O" },
   { id: "recent-projects", label: "Recent Projects", group: "projects", groupLabel: "Projects", keywords: ["recent", "history", "projects"] },
 
@@ -104,6 +105,7 @@ export const workspaceTiers: Record<WorkspaceId, WorkspaceTier> = {
   home: "live",
   "new-project": "live",
   "video-requirements": "partial",
+  "video-style": "partial",
   "open-project": "live",
   "recent-projects": "partial",
   "knowledge-center": "live",
