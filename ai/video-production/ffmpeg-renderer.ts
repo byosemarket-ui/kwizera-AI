@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { VideoMotionId, VideoRenderPlan, VideoTimelineClip, VideoTransitionId } from "./types.js";
+import type { VideoMotionId, VideoRenderPlan, VideoTextOverlayStatus, VideoTimelineClip, VideoTransitionId } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -30,6 +30,15 @@ export function ffprobeBinary(): string {
 export async function ffmpegAvailable(): Promise<boolean> {
   try {
     await execFileAsync(ffmpegBinary(), ["-version"], { timeout: 8000, windowsHide: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function ffprobeAvailable(): Promise<boolean> {
+  try {
+    await execFileAsync(ffprobeBinary(), ["-version"], { timeout: 8000, windowsHide: true });
     return true;
   } catch {
     return false;
@@ -93,7 +102,18 @@ export async function resolveFontFile(): Promise<string | undefined> {
   return undefined;
 }
 
-function stillFilter(
+export function classifyTextOverlay(input: {
+  hasText: boolean;
+  fontAvailable: boolean;
+  drawtextSucceeded?: boolean;
+}): VideoTextOverlayStatus {
+  if (!input.hasText) return "skipped";
+  if (!input.fontAvailable) return "unavailable";
+  if (input.drawtextSucceeded === false) return "failed";
+  return "applied";
+}
+
+export function stillFilter(
   input: RenderClipInput,
   plan: VideoRenderPlan,
   options: { motion: boolean; fade: boolean; text: boolean; fontFile?: string },
@@ -120,46 +140,84 @@ function stillFilter(
   return parts.join(",");
 }
 
+export interface RenderClipResult {
+  overlay: VideoTextOverlayStatus;
+}
+
 export async function renderStillClip(
   input: RenderClipInput,
   plan: VideoRenderPlan,
   outputPath: string,
   fontFile?: string,
-): Promise<void> {
+): Promise<RenderClipResult> {
   if (!path.isAbsolute(input.imagePath) || !path.isAbsolute(outputPath)) {
     throw new Error("FFmpeg paths must be absolute");
   }
   await fs.access(input.imagePath);
   const seconds = Math.max(1, input.clip.durationMs / 1000);
-  const attempts: Array<{ motion: boolean; fade: boolean; text: boolean }> = [
-    { motion: true, fade: true, text: Boolean(fontFile) },
-    { motion: true, fade: true, text: false },
-    { motion: false, fade: false, text: false },
-  ];
-  let lastError: Error | undefined;
-  for (const attempt of attempts) {
+  const hasText = Boolean(input.clip.text[0]?.content?.trim());
+  const encode = async (text: boolean) => {
+    await runFfmpeg([
+      "-y", "-loop", "1", "-i", input.imagePath,
+      "-vf", stillFilter(input, plan, { motion: true, fade: true, text, fontFile }),
+      "-t", String(seconds),
+      "-r", String(plan.frameRate),
+      "-an",
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-preset", "veryfast",
+      "-crf", "28",
+      "-movflags", "+faststart",
+      outputPath,
+    ], 5 * 60_000);
+    const stat = await fs.stat(outputPath).catch(() => null);
+    if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
+  };
+  const encodeBare = async () => {
+    await runFfmpeg([
+      "-y", "-loop", "1", "-i", input.imagePath,
+      "-vf", stillFilter(input, plan, { motion: false, fade: false, text: false, fontFile }),
+      "-t", String(seconds),
+      "-r", String(plan.frameRate),
+      "-an",
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-preset", "veryfast",
+      "-crf", "28",
+      "-movflags", "+faststart",
+      outputPath,
+    ], 5 * 60_000);
+    const stat = await fs.stat(outputPath).catch(() => null);
+    if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
+  };
+
+  if (!hasText) {
     try {
-      await runFfmpeg([
-        "-y", "-loop", "1", "-i", input.imagePath,
-        "-vf", stillFilter(input, plan, { ...attempt, fontFile }),
-        "-t", String(seconds),
-        "-r", String(plan.frameRate),
-        "-an",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-preset", "veryfast",
-        "-crf", "28",
-        "-movflags", "+faststart",
-        outputPath,
-      ], 5 * 60_000);
-      const stat = await fs.stat(outputPath).catch(() => null);
-      if (stat?.size) return;
-      lastError = new Error("FFmpeg did not produce a scene clip");
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+      await encode(false);
+    } catch {
+      await encodeBare();
     }
+    return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };
   }
-  throw lastError ?? new Error("FFmpeg did not produce a scene clip");
+  if (!fontFile) {
+    try {
+      await encode(false);
+    } catch {
+      await encodeBare();
+    }
+    return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: false }) };
+  }
+  try {
+    await encode(true);
+    return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true }) };
+  } catch {
+    try {
+      await encode(false);
+    } catch {
+      await encodeBare();
+    }
+    return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false }) };
+  }
 }
 
 export async function concatClips(clipPaths: string[], outputPath: string): Promise<void> {
@@ -185,6 +243,10 @@ export async function concatClips(clipPaths: string[], outputPath: string): Prom
 }
 
 export async function probeVideo(filePath: string): Promise<ProbedVideo> {
+  const available = await ffprobeAvailable();
+  if (!available) throw new Error("ffprobe is not available on this host");
+  const stat = await fs.stat(filePath).catch(() => null);
+  if (!stat?.size) throw new Error("Rendered output file is missing or empty");
   const { stdout } = await execFileAsync(ffprobeBinary(), [
     "-v", "error",
     "-show_entries", "format=duration,size:stream=width,height,codec_name,codec_type",
@@ -197,7 +259,7 @@ export async function probeVideo(filePath: string): Promise<ProbedVideo> {
   };
   const video = parsed.streams?.find((stream) => stream.codec_type === "video");
   const durationMs = Math.round(Number(parsed.format?.duration ?? 0) * 1000);
-  const sizeBytes = Number(parsed.format?.size ?? 0);
+  const sizeBytes = Number(parsed.format?.size ?? 0) || stat.size;
   if (!video?.width || !video.height || durationMs < 200 || sizeBytes < 100) {
     throw new Error("Rendered media is not a valid video");
   }
@@ -215,6 +277,9 @@ async function runFfmpeg(args: string[], timeout: number): Promise<void> {
     await execFileAsync(ffmpegBinary(), args, { timeout, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`FFmpeg failed: ${detail}`);
+    const wrapped = new Error(`FFmpeg failed: ${detail}`) as Error & { ffmpegExitCode?: number };
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "number") wrapped.ffmpegExitCode = code;
+    throw wrapped;
   }
 }

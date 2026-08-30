@@ -67,8 +67,8 @@ export async function startVideoRender(projectId: string, preset: "preview" | "s
   return readJson(response);
 }
 
-export async function getVideoJob(jobId: string): Promise<{ job: VideoRenderJob }> {
-  const response = await fetch(`/api/video-production/jobs/${jobId}`);
+export async function getVideoJob(projectId: string, jobId: string): Promise<{ job: VideoRenderJob }> {
+  const response = await fetch(`/api/video-production/projects/${projectId}/jobs/${jobId}`);
   return readJson(response);
 }
 

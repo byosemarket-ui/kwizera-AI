@@ -6,7 +6,7 @@ import { CreativePlanningManager } from "../../../../ai/creative-planning/creati
 import { CreativeWorkspaceManager } from "../../../../ai/creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../../../../ai/creative-workspace/project-asset.js";
 import { encodeRgbaPng } from "../../../../ai/creative-workspace/png-pixels.js";
-import { ffmpegAvailable, probeVideo } from "../../../../ai/video-production/ffmpeg-renderer.js";
+import { ffmpegAvailable, ffprobeAvailable, probeVideo } from "../../../../ai/video-production/ffmpeg-renderer.js";
 import {
   buildTimelineFromPlan,
   mapCamera,
@@ -117,12 +117,20 @@ describe("STEP 8 video production", () => {
       await expect(production.startRender(project.id, "preview")).rejects.toMatchObject({ code: "FFMPEG_UNAVAILABLE" });
       return;
     }
+    if (!(await ffprobeAvailable())) {
+      await expect(production.startRender(project.id, "preview")).rejects.toMatchObject({ code: "FFPROBE_UNAVAILABLE" });
+      return;
+    }
 
+    const original = (await workspace.getProject(project.id))!.productImages.find(isOriginalProductImage)!;
+    const checksumBefore = original.checksumSha256;
     const { job } = await production.startRender(project.id, "preview");
     expect(job.status).toBe("queued");
     const finished = await waitForJob(production, job.id);
     expect(finished.status).toBe("completed");
+    expect(finished.stage).toBe("completed");
     expect(finished.outputAssetId).toBeTruthy();
+    expect(["applied", "skipped", "unavailable", "failed"]).toContain(finished.textOverlay);
     const complete = await production.getVideoProject(project.id);
     expect(complete?.renderState).toBe("completed");
     expect(complete?.output?.sizeBytes).toBeGreaterThan(100);
@@ -133,9 +141,11 @@ describe("STEP 8 video production", () => {
     expect(probed.width).toBe(640);
     expect(probed.height).toBe(360);
     expect(probed.durationMs).toBeGreaterThan(500);
-    const asset = (await workspace.getProject(project.id))?.productImages.find((item) => item.id === complete?.output?.assetId);
+    const restored = await workspace.getProject(project.id);
+    const asset = restored?.productImages.find((item) => item.id === complete?.output?.assetId);
     expect(asset?.assetType).toBe("video");
     expect(isOriginalProductImage(asset!)).toBe(false);
+    expect(restored?.productImages.find((item) => item.id === original.id)?.checksumSha256).toBe(checksumBefore);
   }, 120_000);
 });
 

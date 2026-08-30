@@ -1,6 +1,9 @@
 export const VIDEO_PRODUCTION_VERSION = "step8-v1";
 
 export type VideoRenderJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
+export type VideoRenderStage = "queued" | "processing" | "encoding" | "validating" | "registering" | "completed" | "failed";
+export type VideoTextOverlayStatus = "applied" | "skipped" | "unavailable" | "failed";
+export type VideoKnowledgeStatus = "linked" | "already-linked" | "created" | "unavailable" | "failed" | "empty" | "error";
 export type VideoAspectRatio = "16:9" | "9:16" | "1:1";
 export type VideoMotionId =
   | "slow-zoom"
@@ -94,15 +97,18 @@ export interface VideoRenderJob {
   projectId: string;
   videoProjectId: string;
   status: VideoRenderJobStatus;
+  stage?: VideoRenderStage;
   progress: number;
   createdAt: string;
   updatedAt: string;
   startedAt?: string;
   completedAt?: string;
   error?: string;
+  errorCode?: string;
   ffmpegExitCode?: number;
   outputPath?: string;
   outputAssetId?: string;
+  textOverlay?: VideoTextOverlayStatus;
 }
 
 export interface VideoProject {
@@ -125,9 +131,10 @@ export interface VideoProject {
   userEdited?: boolean;
   memoryStatus?: "linked" | "unavailable" | "error";
   memoryMessage?: string;
-  knowledgeStatus?: "linked" | "already-linked" | "unavailable" | "error" | "empty";
+  knowledgeStatus?: VideoKnowledgeStatus;
   knowledgeMessage?: string;
   foundationKnowledgeIds?: string[];
+  textOverlay?: VideoTextOverlayStatus;
 }
 
 export class VideoProductionError extends Error {

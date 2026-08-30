@@ -8,6 +8,7 @@ import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import {
   concatClips,
   ffmpegAvailable,
+  ffprobeAvailable,
   probeVideo,
   renderStillClip,
   resolveFontFile,
@@ -26,9 +27,11 @@ import {
   type VideoMotionId,
   type VideoProject,
   type VideoRenderJob,
+  type VideoTextOverlayStatus,
   type VideoTimelineClip,
   type VideoTransitionId,
 } from "./types.js";
+import { isEquivalentKnowledgeMessage } from "../product-intelligence/normalize-profile.js";
 import { recordVideoProductionFoundation } from "./video-production-foundation.js";
 
 const PROVIDER_MESSAGE = "VIDEO GENERATION PROVIDER UNAVAILABLE. Deterministic FFmpeg still-to-video remains available.";
@@ -62,13 +65,31 @@ export class VideoProductionManager {
 
   async getVideoProject(projectId: string): Promise<VideoProject | null> {
     this.ensureInitialized();
-    return this.readJson<VideoProject | null>(this.projectFile(projectId), null);
+    const video = await this.readJson<VideoProject | null>(this.projectFile(projectId), null);
+    if (!video) return null;
+    const staleEquivalent =
+      (video.knowledgeStatus === "error" || video.knowledgeStatus === "failed") &&
+      isEquivalentKnowledgeMessage(video.knowledgeMessage);
+    if (!staleEquivalent) return video;
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) return video;
+    try {
+      const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
+      const repaired: VideoProject = { ...video, ...foundation, modifiedAt: new Date().toISOString() };
+      await this.writeJson(this.projectFile(projectId), repaired);
+      return repaired;
+    } catch {
+      return video;
+    }
   }
 
-  async getJob(jobId: string): Promise<VideoRenderJob | null> {
+  async getJob(jobId: string, projectId?: string): Promise<VideoRenderJob | null> {
     this.ensureInitialized();
     if (!jobId) return null;
-    return this.readJson<VideoRenderJob | null>(this.jobFile(jobId), null);
+    const job = await this.readJson<VideoRenderJob | null>(this.jobFile(jobId), null);
+    if (!job) return null;
+    if (projectId && job.projectId !== projectId) return null;
+    return job;
   }
 
   async createOrRefresh(projectId: string, options?: { preserveEdits?: boolean }): Promise<VideoProject> {
@@ -121,6 +142,7 @@ export class VideoProductionManager {
       videoGenerationProviderMessage: PROVIDER_MESSAGE,
       userEdited: existing?.userEdited,
       foundationKnowledgeIds: existing?.foundationKnowledgeIds,
+      textOverlay: existing?.textOverlay,
     };
     const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
     Object.assign(video, foundation);
@@ -203,6 +225,9 @@ export class VideoProductionManager {
     if (!(await ffmpegAvailable())) {
       throw new VideoProductionError("FFMPEG_UNAVAILABLE", "FFmpeg is not available on this host", 503);
     }
+    if (!(await ffprobeAvailable())) {
+      throw new VideoProductionError("FFPROBE_UNAVAILABLE", "ffprobe is not available on this host", 503);
+    }
     let video = await this.getVideoProject(projectId);
     if (!video) video = await this.createOrRefresh(projectId);
     if (video.activeJobId) {
@@ -225,6 +250,7 @@ export class VideoProductionManager {
       projectId,
       videoProjectId: video.id,
       status: "queued",
+      stage: "queued",
       progress: 0,
       createdAt: now,
       updatedAt: now,
@@ -292,6 +318,7 @@ export class VideoProductionManager {
     const started: VideoRenderJob = {
       ...job,
       status: "processing",
+      stage: "processing",
       progress: 5,
       startedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -301,32 +328,42 @@ export class VideoProductionManager {
 
     const tmpDir = path.join(this.root, "tmp", job.id);
     await fs.mkdir(tmpDir, { recursive: true });
+    let overlay: VideoTextOverlayStatus | undefined;
     try {
       const video = await this.getVideoProject(job.projectId);
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
       const fontFile = await resolveFontFile();
+      const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
+      await this.writeJob(job.id, { ...started, stage: "encoding", progress: 10 });
       for (const [index, clip] of video.timeline.entries()) {
         await yieldLoop();
         const imagePath = await this.workspace!.getOriginalImagePath(job.projectId, clip.assetId);
         if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${clip.assetId} is not on disk`, 422);
         const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
-        await renderStillClip({ clip, imagePath }, video.renderPlan, clipPath, fontFile);
+        const rendered = await renderStillClip({ clip, imagePath }, video.renderPlan, clipPath, fontFile);
+        overlays.push(rendered.overlay);
         clipPaths.push(clipPath);
-        await this.writeJson(this.jobFile(job.id), {
+        await this.writeJob(job.id, {
           ...started,
+          stage: "encoding",
           progress: Math.min(80, 10 + Math.round(((index + 1) / video.timeline.length) * 70)),
-          updatedAt: new Date().toISOString(),
         });
       }
       await yieldLoop();
+      await this.writeJob(job.id, { ...started, stage: "encoding", progress: 82 });
       const outputPath = path.join(tmpDir, "output.mp4");
       if (clipPaths.length === 1) {
         await fs.copyFile(clipPaths[0]!, outputPath);
       } else {
         await concatClips(clipPaths, outputPath);
       }
+      await this.writeJob(job.id, { ...started, stage: "validating", progress: 88 });
       const probed = await probeVideo(outputPath);
+      if (probed.width !== video.renderPlan.width || probed.height !== video.renderPlan.height) {
+        throw new VideoProductionError("INVALID_OUTPUT", "Output dimensions do not match the render plan", 500);
+      }
+      await this.writeJob(job.id, { ...started, stage: "registering", progress: 92 });
       const parentAssetId = video.timeline[0]?.assetId;
       const registered = await this.workspace!.registerOutputAsset(job.projectId, {
         sourcePath: outputPath,
@@ -339,22 +376,25 @@ export class VideoProductionManager {
         parentAssetId,
         renderJobId: job.id,
       });
+      overlay = mergeOverlay(overlays);
       const completedAt = new Date().toISOString();
       const completed: VideoRenderJob = {
         ...started,
         status: "completed",
+        stage: "completed",
         progress: 100,
         completedAt,
         updatedAt: completedAt,
         outputPath: registered.url,
         outputAssetId: registered.id,
+        textOverlay: overlay,
       };
-      const workspaceProject = await this.workspace!.getProject(job.projectId);
       const updatedVideo: VideoProject = {
         ...video,
         renderState: "completed",
         activeJobId: job.id,
         modifiedAt: completedAt,
+        textOverlay: overlay,
         output: {
           assetId: registered.id,
           mimeType: "video/mp4",
@@ -367,25 +407,42 @@ export class VideoProductionManager {
           createdAt: completedAt,
         },
       };
-      if (workspaceProject) {
-        Object.assign(updatedVideo, await recordVideoProductionFoundation(this.core, workspaceProject, updatedVideo));
-      }
       await this.writeJson(this.jobFile(job.id), completed);
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
+      const workspaceProject = await this.workspace!.getProject(job.projectId);
+      if (workspaceProject) {
+        try {
+          const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, updatedVideo);
+          await this.writeJson(this.projectFile(job.projectId), { ...updatedVideo, ...foundation, modifiedAt: new Date().toISOString() });
+        } catch (error) {
+          await this.patchVideo(job.projectId, {
+            knowledgeStatus: "failed",
+            knowledgeMessage: error instanceof Error ? error.message : "Knowledge integration failed",
+          });
+        }
+      }
     } catch (error) {
       const failed: VideoRenderJob = {
         ...started,
         status: "failed",
+        stage: "failed",
         progress: 0,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Render failed",
+        errorCode: renderErrorCode(error),
+        ffmpegExitCode: (error as { ffmpegExitCode?: number }).ffmpegExitCode,
+        textOverlay: overlay,
       };
       await this.writeJson(this.jobFile(job.id), failed);
       await this.patchVideo(job.projectId, { renderState: "failed", activeJobId: job.id });
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
+  }
+
+  private async writeJob(jobId: string, job: VideoRenderJob): Promise<void> {
+    await this.writeJson(this.jobFile(jobId), { ...job, updatedAt: new Date().toISOString() });
   }
 
   private async patchVideo(projectId: string, patch: Partial<VideoProject>): Promise<void> {
@@ -408,6 +465,7 @@ export class VideoProductionManager {
       const failed: VideoRenderJob = {
         ...job,
         status: "failed",
+        stage: "failed",
         error: "Studio restarted before render completed.",
         updatedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
@@ -444,6 +502,24 @@ export class VideoProductionManager {
   private ensureInitialized(): void {
     if (!this.isInitialized()) throw new Error("Video Production Manager is not initialized");
   }
+}
+
+function renderErrorCode(error: unknown): string {
+  if (error instanceof VideoProductionError) return error.code;
+  const message = error instanceof Error ? error.message : "";
+  if (/ffprobe is not available/i.test(message)) return "FFPROBE_UNAVAILABLE";
+  if (/missing or empty/i.test(message)) return "MISSING_OUTPUT";
+  if (/not a valid video|dimensions do not match/i.test(message)) return "INVALID_OUTPUT";
+  if (/FFmpeg failed|did not produce/i.test(message)) return "FFMPEG_FAILED";
+  if (/empty or unreadable|Video output/i.test(message)) return "REGISTRATION_FAILED";
+  return "RENDER_FAILED";
+}
+
+function mergeOverlay(statuses: VideoTextOverlayStatus[]): VideoTextOverlayStatus {
+  if (statuses.includes("applied")) return "applied";
+  if (statuses.includes("failed")) return "failed";
+  if (statuses.includes("unavailable")) return "unavailable";
+  return "skipped";
 }
 
 function recomputeStarts(clips: VideoTimelineClip[]): VideoTimelineClip[] {

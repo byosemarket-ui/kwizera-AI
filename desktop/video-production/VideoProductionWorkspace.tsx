@@ -46,7 +46,7 @@ export function VideoProductionWorkspace() {
     }
     const projectId = project.id;
     const timer = window.setInterval(() => {
-      void getVideoJob(jobId).then((result) => {
+      void getVideoJob(projectId, jobId).then((result) => {
         setJob(result.job);
         if (result.job.status === "completed" || result.job.status === "failed") {
           void getVideoProject(projectId).then((payload) => setVideo(payload.video));
@@ -69,7 +69,7 @@ export function VideoProductionWorkspace() {
     if (payload.video?.timeline[0]) setSelectedId(payload.video.timeline[0].id);
     if (payload.video?.activeJobId) {
       try {
-        const current = await getVideoJob(payload.video.activeJobId);
+        const current = await getVideoJob(bound.projectId, payload.video.activeJobId);
         setJob(current.job);
       } catch {
         setJob(null);
@@ -163,8 +163,15 @@ export function VideoProductionWorkspace() {
             <div className="vp-note">Audio: {video.audioPlan.message}</div>
             <div className="vp-progress-bar"><i style={{ width: `${job?.progress ?? (video.renderState === "completed" ? 100 : 0)}%` }} /></div>
             <div className="vp-note">
-              Job {job?.status ?? video.renderState}
+              Job {job?.stage ?? job?.status ?? video.renderState}
+              {typeof job?.progress === "number" ? ` · ${job.progress}%` : ""}
               {job?.error ? ` · ${job.error}` : ""}
+            </div>
+            <div className="vp-note">
+              Overlay {job?.textOverlay ?? video.textOverlay ?? "n/a"}
+              {" · "}Knowledge {video.knowledgeStatus ?? "n/a"}
+              {video.knowledgeMessage ? ` (${video.knowledgeMessage})` : ""}
+              {" · "}Memory {video.memoryStatus ?? "n/a"}
             </div>
             <label>
               Aspect

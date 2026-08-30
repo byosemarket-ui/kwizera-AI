@@ -3614,6 +3614,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  const videoProjectJobMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/jobs\/([^/]+)$/);
+  if (videoProjectJobMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    const job = await production.getJob(videoProjectJobMatch[2], videoProjectJobMatch[1]);
+    if (!job) { sendJson(res, 404, { error: "Render job not found" }); return; }
+    sendJson(res, 200, { job });
+    return;
+  }
+
   if (url.pathname === "/api/workspace/projects" && req.method === "POST") {
 
     const workspace = requireWorkspace(res);
