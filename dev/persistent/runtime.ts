@@ -353,6 +353,10 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
         marketingBriefManager = new MarketingBriefManager();
         await marketingBriefManager.initialize(storageRoot, { workspace: workspaceManager, canonical: canonicalProductManager });
+        planningManager = new CreativePlanningManager();
+        await planningManager.initialize(storageRoot);
+        planningManager.attachCanonicalProduct(canonicalProductManager);
+        planningManager.attachMarketingBrief(marketingBriefManager);
         modelManager = new AiModelManager();
         await modelManager.initialize(storageRoot);
         // Image/video loopback adapters stay discoverable via API; they do not define Core readiness.
@@ -435,6 +439,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       planningManager = new CreativePlanningManager();
       await planningManager.initialize(storageRoot, manager);
+      planningManager.attachCanonicalProduct(canonicalProductManager!);
+      planningManager.attachMarketingBrief(marketingBriefManager!);
       reviewManager = new CreativeReviewManager();
       await reviewManager.initialize(storageRoot, manager);
       enterpriseCollaborationManager = new EnterpriseCollaborationManager();
@@ -755,6 +761,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createDecisionIntelligencePlugin(decisionIntelligenceManager, manager));
         pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
         planningManager.attachDecisionIntelligence(decisionIntelligenceManager);
+        planningManager.attachCanonicalProduct(canonicalProductManager!);
+        planningManager.attachMarketingBrief(marketingBriefManager!);
         videoProductionManager = new VideoProductionManager();
         await videoProductionManager.initialize(storageRoot, {
           core: manager,

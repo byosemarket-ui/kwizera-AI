@@ -11,11 +11,20 @@ import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { ProjectState } from "../state-manager/types.js";
 import { planProductScenes } from "./scene-planner.js";
 import { appendProvenanceOnce, collapseRepeatedProvenanceMarkers } from "../product-intelligence/provenance-text.js";
+import type { CanonicalProductManager } from "../product-record/canonical-product-manager.js";
+import type { MarketingBriefManager } from "../marketing-brief/marketing-brief-manager.js";
+import { buildConfirmedCommercial, type ConfirmedCommercial } from "./commercial.js";
+import { buildProductionScript, type ProductionScript } from "./script-builder.js";
+import { purposeToBeat, type StoryBeatId } from "./story-structure.js";
+import { buildProductionManifest, type ProductionManifest } from "./production-manifest.js";
 
 export interface PlanScene {
   id: string;
   order: number;
   durationSeconds: number;
+  durationMs?: number;
+  startMs?: number;
+  beat?: StoryBeatId;
   purpose: string;
   visual: string;
   narration: string;
@@ -27,6 +36,8 @@ export interface PlanScene {
   imageRole?: string;
   visualPurpose?: string;
   cameraDirection?: string;
+  motion?: string;
+  view?: string;
   transition?: string;
   text?: string;
   copy?: {
@@ -37,6 +48,11 @@ export interface PlanScene {
     priceOffer?: string;
     callToAction?: string;
   };
+  selectedFor?: string;
+  selectionReason?: string;
+  priority?: number;
+  assetRole?: string;
+  fieldSources?: Record<string, "AI_RECOMMENDED" | "USER_DEFINED">;
   userEdited?: boolean;
 }
 
@@ -77,6 +93,17 @@ export interface CreativePlan {
   callToAction?: string;
   productStateHash?: string;
   userEdited?: boolean;
+  marketingBriefId?: string;
+  briefVersion?: number;
+  manifestId?: string;
+  storyBeats?: string[];
+  timelineDurationMs?: number;
+  aspectRatio?: "9:16" | "1:1" | "16:9";
+  platforms?: string[];
+  missing?: string[];
+  productionStatus?: "DRAFT" | "PARTIALLY_READY" | "READY_FOR_VIDEO_PRODUCTION";
+  commercial?: ConfirmedCommercial;
+  productionScript?: ProductionScript;
 }
 
 export interface PlanResult {
@@ -90,14 +117,18 @@ export interface PlanResult {
  */
 export class CreativePlanningManager {
   private root = "";
+  private projectsRoot = "";
   private core: AiCoreManager | null = null;
   private marketingIntelligence: MarketingIntelligenceManager | null = null;
   private decisionIntelligence: DecisionIntelligenceManager | null = null;
   private products: ProductIntelligenceManager | null = null;
   private images: ImageIntelligenceManager | null = null;
+  private canonical: CanonicalProductManager | null = null;
+  private briefs: MarketingBriefManager | null = null;
 
   async initialize(storageRoot: string, core?: AiCoreManager): Promise<void> {
     this.root = path.join(storageRoot, "creative-planning", "plans");
+    this.projectsRoot = path.join(storageRoot, "creative-workspace", "projects");
     this.core = core ?? null;
     await fs.mkdir(this.root, { recursive: true });
   }
@@ -110,6 +141,8 @@ export class CreativePlanningManager {
   attachDecisionIntelligence(manager: DecisionIntelligenceManager): void { this.decisionIntelligence = manager; }
   attachProductIntelligence(manager: ProductIntelligenceManager): void { this.products = manager; }
   attachImageIntelligence(manager: ImageIntelligenceManager): void { this.images = manager; }
+  attachCanonicalProduct(manager: CanonicalProductManager): void { this.canonical = manager; }
+  attachMarketingBrief(manager: MarketingBriefManager): void { this.briefs = manager; }
 
   validateForPlan(project: CreativeProject): ValidationResult {
     const errors = [
@@ -128,7 +161,7 @@ export class CreativePlanningManager {
     try {
       await this.decisionIntelligence?.decide(project.id, "pipeline");
     } catch {
-      // STEP 7 planning can proceed from product + images without a full campaign decision.
+      // Planning can proceed from product + images without a full campaign decision.
     }
     const product = this.products
       ? (await this.products.getProfile(project.id)) ?? await this.products.analyze(project.id).catch(() => null)
@@ -140,10 +173,15 @@ export class CreativePlanningManager {
     } catch {
       marketing = await this.marketingIntelligence?.getProfile(project.id) ?? undefined;
     }
-    const plan = this.buildPlan(project, existing, now, marketing, product, images);
+    const canonical = this.canonical
+      ? await this.canonical.get(project.id) ?? await this.canonical.sync(project.id).catch(() => null)
+      : null;
+    const brief = this.briefs ? await this.briefs.get(project.id) : null;
+    const plan = this.buildPlan(project, existing, now, marketing, product, images, canonical, brief);
     this.transition(project.id, ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
     await this.writeJson(this.planPath(project.id), plan);
+    await this.persistManifest(project, plan, canonical, brief);
     this.transition(project.id, ProjectState.Saved);
     return { plan, validation };
   }
@@ -152,18 +190,48 @@ export class CreativePlanningManager {
     const current = await this.getPlan(projectId);
     if (!current) throw new Error("Generate a creative plan before editing it");
     const scenes = Array.isArray(changes.scenes)
-      ? changes.scenes.map((scene, index) => ({
-        ...scene,
-        order: scene.order ?? index + 1,
-        userEdited: true,
-      }))
-      : current.scenes;
+      ? this.normalizeEditedScenes(current.scenes, changes.scenes)
+      : this.retime(current.scenes);
+    const commercial = changes.commercial
+      ? buildConfirmedCommercial({
+        productName: changes.commercial.productName || current.commercial?.productName,
+        currentPrice: changes.commercial.pricing?.currentPrice,
+        originalPrice: changes.commercial.pricing?.originalPrice,
+        currency: changes.commercial.pricing?.currency,
+        promotionMessage: changes.commercial.promotion?.message,
+        promotionEnabled: changes.commercial.promotion?.enabled,
+        website: changes.commercial.destination?.website,
+        phone: changes.commercial.destination?.phone,
+        email: changes.commercial.destination?.email,
+        socialHandle: changes.commercial.destination?.socialHandle,
+      })
+      : current.commercial;
+    if (changes.commercial && this.briefs) {
+      await this.briefs.updateSettings(projectId, {
+        userDefined: {
+          currentPrice: commercial?.pricing.currentPrice,
+          originalPrice: commercial?.pricing.originalPrice,
+          currency: commercial?.pricing.currency,
+          website: commercial?.destination.website,
+          promotionMessage: commercial?.promotion.message,
+          phone: commercial?.destination.phone,
+          email: commercial?.destination.email,
+          socialHandle: commercial?.destination.socialHandle,
+        },
+      }).catch(() => null);
+    }
     const plan: CreativePlan = {
       ...current,
       ...changes,
       analyses: { ...current.analyses, ...changes.analyses },
       prompts: { ...current.prompts, ...changes.prompts },
       scenes,
+      commercial,
+      timelineDurationMs: scenes.reduce((sum, scene) => sum + (scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000)), 0),
+      storyBeats: scenes.map((scene) => scene.purpose),
+      script: scenes.map((item) => `${item.order}. ${item.narration}`).join("\n"),
+      storyboard: scenes.map((item) => `Scene ${item.order}: ${item.purpose} - ${item.visual} (asset ${item.assetId ?? "unassigned"})`).join("\n"),
+      missing: commercial?.missing ?? current.missing,
       userEdited: true,
       modifiedAt: new Date().toISOString(),
       version: current.version + 1,
@@ -171,8 +239,30 @@ export class CreativePlanningManager {
     this.transition(projectId, ProjectState.Modified);
     this.transition(projectId, ProjectState.Saving);
     await this.writeJson(this.planPath(projectId), plan);
+    await this.rewriteManifestFromPlan(plan);
     this.transition(projectId, ProjectState.Saved);
     return plan;
+  }
+
+  async getManifest(projectId: string): Promise<ProductionManifest | null> {
+    this.ensureInitialized();
+    return this.readJson<ProductionManifest | null>(this.manifestPath(projectId), null);
+  }
+
+  async finalize(projectId: string): Promise<{ plan: CreativePlan; manifest: ProductionManifest }> {
+    const plan = await this.getPlan(projectId);
+    if (!plan) throw new Error("Generate a creative plan before finalizing");
+    if (!plan.scenes.length || plan.scenes.some((scene) => !scene.assetId)) {
+      throw new Error("Every scene must reference a real product asset before video production.");
+    }
+    const next: CreativePlan = {
+      ...plan,
+      productionStatus: "READY_FOR_VIDEO_PRODUCTION",
+      modifiedAt: new Date().toISOString(),
+    };
+    await this.writeJson(this.planPath(projectId), next);
+    const manifest = await this.rewriteManifestFromPlan(next, "READY_FOR_VIDEO_PRODUCTION");
+    return { plan: next, manifest };
   }
 
   getIntegrationStatus(): Record<string, boolean> {
@@ -186,6 +276,8 @@ export class CreativePlanningManager {
       productIntelligenceRuntime: Boolean(this.products?.isInitialized()),
       imageIntelligenceRuntime: Boolean(this.images?.isInitialized()),
       decisionIntelligenceRuntime: Boolean(this.decisionIntelligence?.isInitialized()),
+      canonicalProduct: Boolean(this.canonical?.isInitialized()),
+      marketingBrief: Boolean(this.briefs?.isInitialized()),
       videoIntelligence: Boolean(this.core?.videoIntelligenceFoundation),
       stateManager: Boolean(this.core?.stateManager),
     };
@@ -198,39 +290,60 @@ export class CreativePlanningManager {
     marketing?: { valueProposition: string; strategy: string; ctas: string[]; platform: { recommendations: string[] } },
     product?: Awaited<ReturnType<ProductIntelligenceManager["analyze"]>> | null,
     images: Awaited<ReturnType<ImageIntelligenceManager["getProfiles"]>> = [],
+    canonical?: Awaited<ReturnType<CanonicalProductManager["get"]>>,
+    brief?: Awaited<ReturnType<MarketingBriefManager["get"]>>,
   ): CreativePlan {
     const productInfo = project.productInformation;
     const brand = project.brandInformation;
     const campaign = project.campaignInformation;
-    const platform = platformGuidance(project.platform);
-    const angle = product?.creativeAngles?.[0];
-    const audienceRaw = product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
+    const platforms = brief?.campaign.platforms.length ? brief.campaign.platforms : (project.platform ? [project.platform] : ["instagram"]);
+    const platform = platformGuidance(platforms[0] || project.platform);
+    const angle = brief?.marketing.angle || product?.creativeAngles?.[0]?.name;
+    const audienceRaw = brief?.campaign.audience.general || product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
     const audience = product?.customerIntelligence?.label === "inferred"
       ? appendProvenanceOnce(audienceRaw, "inferred")
       : collapseRepeatedProvenanceMarkers(audienceRaw);
-    const message = product?.valueProposition?.customerBenefit || productInfo.description || productInfo.name;
+    const commercial = buildConfirmedCommercial({
+      productName: canonical?.identity.name || productInfo.name,
+      currentPrice: productInfo.price ?? (brief?.userDefined.currentPrice as number | undefined),
+      originalPrice: productInfo.originalPrice ?? (brief?.userDefined.originalPrice as number | undefined),
+      currency: productInfo.currency ?? brief?.userDefined.currency,
+      promotionMessage: campaign.promotionDetails || brief?.userDefined.promotionMessage,
+      promotionEnabled: Boolean(campaign.promotionType && campaign.promotionType !== "None"),
+      website: brief?.userDefined.website ?? project.brandInformation.website,
+      phone: brief?.userDefined.phone,
+      email: brief?.userDefined.email,
+      socialHandle: brief?.userDefined.socialHandle,
+    });
+    const message = brief?.marketing.message || product?.valueProposition?.customerBenefit || productInfo.description || productInfo.name;
     const visualDirection = product?.imageObservations?.find((item) => item.field === "lighting")?.value
       || "Keep lighting and colour consistent with the source product photographs.";
-    const scenes = planProductScenes(project, product, images, existing?.scenes ?? []);
-    const cta = campaign.callToAction || marketing?.ctas[0] || `Discover ${productInfo.name}`;
+    const scenes = planProductScenes(project, product, images, existing?.scenes ?? [], { canonical, brief, commercial });
+    const cta = brief?.marketing.cta || campaign.callToAction || marketing?.ctas[0] || `Discover ${productInfo.name}`;
+    const durationMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000)), 0);
+    const productionScript = buildProductionScript(project, scenes.map((scene) => purposeToBeat(scene.beat || scene.purpose)), {
+      product: canonical,
+      brief,
+      commercial,
+    });
     return {
       id: existing?.id ?? randomUUID(),
       projectId: project.id,
-      productId: product?.productId || project.id,
+      productId: canonical?.productId || product?.productId || project.id,
       createdAt: existing?.createdAt ?? now,
       modifiedAt: now,
       version: (existing?.version ?? 0) + 1,
       analyses: {
-        product: product?.valueProposition?.productSummary || `${productInfo.name} is a ${productInfo.category || product?.category || "product"}: ${productInfo.description}`,
+        product: product?.valueProposition?.productSummary || `${productInfo.name} is a ${productInfo.category || product?.category || canonical?.identity.category || "product"}: ${productInfo.description}`,
         brand: `${brand.name || "brand requires confirmation"}${brand.voice ? ` communicates with a ${brand.voice} voice` : ""}.`,
-        campaign: `${campaign.name || "campaign"} is focused on ${campaign.objective || "introducing the product"}.`,
+        campaign: `${brief?.campaign.objective || campaign.name || "campaign"} is focused on ${brief?.campaign.objective || campaign.objective || "introducing the product"}.`,
         audience: `Primary audience: ${audience}.`,
         platform: platform.analysis,
-        language: `Use ${languageName(project.language)} for all on-screen and spoken planning copy.`,
+        language: `Use ${languageName(brief?.campaign.language || project.language)} for all on-screen and spoken planning copy.`,
       },
-      creativeBrief: `Create a ${platform.tone} ${platform.format} for ${brand.name || productInfo.name} that introduces ${productInfo.name}${product?.valueProposition?.positioning ? `. ${product.valueProposition.positioning}` : ""}${marketing ? ` Marketing value: ${marketing.valueProposition}` : ""}`,
-      marketingStrategy: marketing?.strategy ?? `Lead with the product, demonstrate a recorded benefit, then close with ${cta}.`,
-      creativeStrategy: `${platform.pacing} Angle: ${angle?.name || "product hero"}. Keep ${productInfo.name} the visual priority. Tone stays consistent with ${brand.voice || "clear and confident"} direction.`,
+      creativeBrief: `Create a ${platform.tone} ${platform.format} for ${brand.name || productInfo.name} that introduces ${productInfo.name}${brief?.marketing.positioning ? `. ${brief.marketing.positioning}` : ""}${marketing ? ` Marketing value: ${marketing.valueProposition}` : ""}`,
+      marketingStrategy: brief?.marketing.message || marketing?.strategy || `Lead with the product, demonstrate a recorded benefit, then close with ${cta}.`,
+      creativeStrategy: `${platform.pacing} Angle: ${angle || "product hero"}. Keep ${productInfo.name} the visual priority. Tone stays consistent with ${brief?.campaign.tone || brand.voice || "clear and confident"} direction.`,
       storyboard: scenes.map((item) => `Scene ${item.order}: ${item.purpose} - ${item.visual} (asset ${item.assetId ?? "unassigned"})`).join("\n"),
       script: scenes.map((item) => `${item.order}. ${item.narration}`).join("\n"),
       scenes,
@@ -245,20 +358,145 @@ export class CreativePlanningManager {
         audio: `${languageName(project.language)} voice direction: ${brand.voice || "clear and confident"}. Pace: ${platform.pacing.toLowerCase()}. Script: ${scenes.map((item) => item.narration).join(" ")}`,
       },
       workflow: ["Confirm approved creative brief", "Prepare product image references", "Review storyboard and script", "Review camera, lighting, composition, colour, and animation plans", "Approve prompts for the later production pipeline"],
-      objective: campaign.objective || "Introduce the product clearly",
+      objective: brief?.campaign.objective || campaign.objective || "Introduce the product clearly",
       audience,
       message,
-      angle: angle?.name || "product hero",
+      angle: angle || "product hero",
       visualDirection,
-      audioDirection: `${languageName(project.language)}, ${brand.voice || "clear and confident"}`,
+      audioDirection: `${languageName(brief?.campaign.language || project.language)}, ${brief?.campaign.tone || brand.voice || "clear and confident"}`,
       callToAction: cta,
       productStateHash: createHash("sha256").update(JSON.stringify({
         product: project.productInformation,
         images: project.productImages.map((image) => [image.id, image.checksumSha256 ?? image.sizeBytes]),
+        briefId: brief?.briefId ?? "",
         planVersion: existing?.version ?? 0,
       })).digest("hex"),
       userEdited: existing?.userEdited ?? false,
+      marketingBriefId: brief?.briefId,
+      briefVersion: brief?.briefVersion,
+      storyBeats: scenes.map((scene) => scene.purpose),
+      timelineDurationMs: durationMs,
+      aspectRatio: (brief?.output.aspectRatio || undefined) as CreativePlan["aspectRatio"],
+      platforms,
+      missing: commercial.missing,
+      productionStatus: scenes.every((scene) => scene.assetId) ? (commercial.missing.length ? "PARTIALLY_READY" : "DRAFT") : "DRAFT",
+      commercial,
+      productionScript,
     };
+  }
+
+  private normalizeEditedScenes(previous: PlanScene[], next: PlanScene[]): PlanScene[] {
+    return this.retime(next.map((scene, index) => {
+      const prior = previous.find((item) => item.id === scene.id);
+      const durationMs = (() => {
+        if (prior && scene.durationSeconds != null && scene.durationSeconds !== prior.durationSeconds) {
+          return Math.round(scene.durationSeconds * 1000);
+        }
+        return scene.durationMs ?? Math.round((scene.durationSeconds || prior?.durationSeconds || 2) * 1000);
+      })();
+      const fieldSources = { ...(prior?.fieldSources ?? {}), ...(scene.fieldSources ?? {}) };
+      for (const key of ["assetId", "text", "camera", "motion", "durationMs", "narration"] as const) {
+        if (scene[key] != null && prior && scene[key] !== prior[key]) fieldSources[key] = "USER_DEFINED";
+      }
+      return {
+        ...prior,
+        ...scene,
+        order: scene.order ?? index + 1,
+        durationMs,
+        durationSeconds: durationMs / 1000,
+        fieldSources,
+        userEdited: true,
+      };
+    }));
+  }
+
+  private retime(scenes: PlanScene[]): PlanScene[] {
+    let cursor = 0;
+    return scenes.map((scene, index) => {
+      const durationMs = Math.max(800, scene.durationMs ?? Math.round((scene.durationSeconds || 2) * 1000));
+      const next = { ...scene, order: index + 1, startMs: cursor, durationMs, durationSeconds: durationMs / 1000 };
+      cursor += durationMs;
+      return next;
+    });
+  }
+
+  private async persistManifest(
+    project: CreativeProject,
+    plan: CreativePlan,
+    canonical: Awaited<ReturnType<CanonicalProductManager["get"]>>,
+    brief: Awaited<ReturnType<MarketingBriefManager["get"]>>,
+    status?: ProductionManifest["status"],
+  ): Promise<ProductionManifest> {
+    const commercial = buildConfirmedCommercial({
+      productName: canonical?.identity.name || project.productInformation.name,
+      currentPrice: project.productInformation.price ?? (brief?.userDefined.currentPrice as number | undefined),
+      originalPrice: project.productInformation.originalPrice ?? (brief?.userDefined.originalPrice as number | undefined),
+      currency: project.productInformation.currency ?? brief?.userDefined.currency,
+      promotionMessage: project.campaignInformation.promotionDetails || brief?.userDefined.promotionMessage,
+      website: brief?.userDefined.website ?? project.brandInformation.website,
+    });
+    const beats = plan.scenes.map((scene) => purposeToBeat(scene.beat || scene.purpose));
+    const script = plan.productionScript ?? buildProductionScript(project, beats, {
+      product: canonical,
+      brief,
+      commercial,
+    });
+    const previous = await this.getManifest(plan.projectId);
+    const manifest = buildProductionManifest({
+      plan,
+      commercial,
+      script,
+      missing: commercial.missing,
+      platforms: plan.platforms ?? brief?.campaign.platforms ?? [],
+      aspectRatio: plan.aspectRatio || brief?.output.aspectRatio || "",
+      marketingBriefId: brief?.briefId || plan.marketingBriefId,
+      briefVersion: brief?.briefVersion || plan.briefVersion,
+      previous,
+    });
+    if (status) manifest.status = status;
+    plan.manifestId = manifest.manifestId;
+    plan.productionStatus = manifest.status;
+    plan.commercial = commercial;
+    plan.productionScript = script;
+    await this.writeJson(this.planPath(plan.projectId), plan);
+    await this.writeJson(this.manifestPath(plan.projectId), manifest);
+    return manifest;
+  }
+
+  private async rewriteManifestFromPlan(plan: CreativePlan, status?: ProductionManifest["status"]): Promise<ProductionManifest> {
+    const previous = await this.getManifest(plan.projectId);
+    const commercial = plan.commercial ?? previous?.commercial ?? buildConfirmedCommercial({ productName: plan.analyses.product });
+    const script = plan.productionScript ?? previous?.script ?? {
+      headline: plan.callToAction || "",
+      hook: plan.message || "",
+      productName: "",
+      mainMessage: plan.message || "",
+      supportingPoints: [],
+      featureText: "",
+      cta: plan.callToAction || "",
+      narration: plan.scenes.map((scene) => scene.narration),
+    };
+    const manifest = buildProductionManifest({
+      plan,
+      commercial,
+      script,
+      missing: plan.missing ?? commercial.missing,
+      platforms: plan.platforms ?? [],
+      aspectRatio: plan.aspectRatio,
+      marketingBriefId: plan.marketingBriefId,
+      briefVersion: plan.briefVersion,
+      previous,
+    });
+    if (status) manifest.status = status;
+    plan.manifestId = manifest.manifestId;
+    plan.productionStatus = manifest.status;
+    await this.writeJson(this.manifestPath(plan.projectId), manifest);
+    await this.writeJson(this.planPath(plan.projectId), plan);
+    return manifest;
+  }
+
+  private manifestPath(projectId: string): string {
+    return path.join(this.projectsRoot, projectId, "production-manifest.json");
   }
 
   private transition(projectId: string, state: ProjectState): void {
@@ -274,6 +512,7 @@ export class CreativePlanningManager {
   }
 
   private async writeJson(filePath: string, value: unknown): Promise<void> {
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     const temporary = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
     await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
     await fs.rename(temporary, filePath);

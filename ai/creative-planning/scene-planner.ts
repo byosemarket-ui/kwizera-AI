@@ -1,13 +1,25 @@
 /**
  * Product-specific scene planning for Creative Planning.
- * References original asset IDs. Does not generate video.
+ * References original asset IDs only. Does not generate video.
  */
 import { randomUUID } from "node:crypto";
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { ImageIntelligenceProfile } from "../image-intelligence/types.js";
 import type { ProductIntelligenceProfile } from "../product-intelligence/types.js";
+import type { CanonicalProduct } from "../product-record/types.js";
+import type { CanonicalViewKind } from "../product-record/view-kinds.js";
+import type { AuthoritativeMarketingBrief } from "../marketing-brief/types.js";
 import type { PlanScene } from "./creative-planning-manager.js";
+import { priceSceneCopy, type ConfirmedCommercial } from "./commercial.js";
+import {
+  allocateDurations,
+  beatPurpose,
+  parseDurationMs,
+  planStoryBeats,
+  type StoryBeatId,
+} from "./story-structure.js";
+import { buildProductionScript } from "./script-builder.js";
 
 export type CameraDirection =
   | "close-up"
@@ -28,235 +40,237 @@ export interface SceneCopy {
   callToAction?: string;
 }
 
+export interface ScenePlannerContext {
+  project: CreativeProject;
+  product?: ProductIntelligenceProfile | null;
+  images?: ImageIntelligenceProfile[];
+  existing?: PlanScene[];
+  canonical?: CanonicalProduct | null;
+  brief?: AuthoritativeMarketingBrief | null;
+  commercial?: ConfirmedCommercial | null;
+}
+
+const VIEW_FOR_BEAT: Record<StoryBeatId, CanonicalViewKind[]> = {
+  HOOK: ["front", "front_left", "front_right"],
+  PRODUCT_REVEAL: ["front", "front_left", "front_right"],
+  FEATURE: ["left", "right", "front_left", "front_right"],
+  DETAIL: ["detail", "close-up", "material_detail"],
+  EXPLORATION: ["back", "left", "right", "top", "back_left", "back_right", "bottom", "material_detail"],
+  MESSAGE: ["front", "left", "right"],
+  PRICE: ["front", "front_left"],
+  CTA: ["front", "front_left", "front_right"],
+};
+
+function cameraFor(view: string, beat: StoryBeatId): { camera: CameraDirection; motion: string } {
+  if (beat === "CTA") return { camera: "medium-product", motion: "HOLD" };
+  if (beat === "HOOK") return { camera: "medium-product", motion: "SLOW_PUSH_IN" };
+  if (/detail|close-up|material/.test(view) || beat === "DETAIL") return { camera: "detail-macro", motion: "CLOSE_UP_ZOOM" };
+  if (/left|right|side/.test(view) || beat === "FEATURE") return { camera: "side-reveal", motion: "GENTLE_PAN" };
+  if (/back/.test(view)) return { camera: "orbit", motion: "SLOW_REVEAL" };
+  if (/top|bottom/.test(view)) return { camera: "top-down", motion: "SLOW_REVEAL" };
+  if (beat === "PRODUCT_REVEAL") return { camera: "wide-hero", motion: "SLOW_PUSH_IN" };
+  return { camera: "medium-product", motion: "SLOW_PUSH_IN" };
+}
+
+function originalsFrom(project: CreativeProject, canonical?: CanonicalProduct | null) {
+  if (canonical?.originalAssets.length) {
+    return canonical.originalAssets
+      .filter((asset) => asset.fileAccessible)
+      .map((asset) => ({
+        id: asset.assetId,
+        fileName: asset.originalFilename,
+        view: canonical.productViews.find((entry) => entry.assetId === asset.assetId)?.view ?? "unknown",
+        userView: canonical.productViews.find((entry) => entry.assetId === asset.assetId)?.source === "user",
+      }));
+  }
+  return project.productImages.filter(isOriginalProductImage).map((image) => ({
+    id: image.id,
+    fileName: image.fileName,
+    view: "unknown" as CanonicalViewKind | "unknown",
+    userView: false,
+  }));
+}
+
+function pickAsset(
+  originals: Array<{ id: string; fileName: string; view: string; userView: boolean }>,
+  preferred: CanonicalViewKind[],
+  used: Set<string>,
+  beat: StoryBeatId,
+): { assetId: string; view: string; reason: string; priority: number } {
+  const unused = originals.filter((item) => !used.has(item.id));
+  const pool = unused.length ? unused : originals;
+  for (const view of preferred) {
+    const match = pool.find((item) => item.view === view);
+    if (match) {
+      return {
+        assetId: match.id,
+        view: match.view,
+        reason: match.userView
+          ? `User-corrected ${view} view`
+          : `Highest-confidence ${view.replace(/_/g, " ")} product view for ${beat}`,
+        priority: 1,
+      };
+    }
+  }
+  const byName = pool.find((item) => preferred.some((view) => item.fileName.toLowerCase().includes(view.replace(/_/g, "-"))));
+  if (byName) {
+    return {
+      assetId: byName.id,
+      view: byName.view,
+      reason: `Filename indicates ${byName.fileName} for ${beat}`,
+      priority: 2,
+    };
+  }
+  const fallback = pool[0] ?? originals[0]!;
+  return {
+    assetId: fallback.id,
+    view: fallback.view,
+    reason: unused.length
+      ? `Next unused original asset for ${beat}`
+      : `Only available original asset for ${beat}`,
+    priority: 3,
+  };
+}
+
 export function planProductScenes(
   project: CreativeProject,
   product?: ProductIntelligenceProfile | null,
   imageProfiles: ImageIntelligenceProfile[] = [],
   existing: PlanScene[] = [],
+  extras?: {
+    canonical?: CanonicalProduct | null;
+    brief?: AuthoritativeMarketingBrief | null;
+    commercial?: ConfirmedCommercial | null;
+  },
 ): PlanScene[] {
-  const originals = project.productImages.filter(isOriginalProductImage);
+  const originals = originalsFrom(project, extras?.canonical);
   if (!originals.length) return [];
 
-  const pickAsset = (prefer: RegExp, fallbackIndex: number) => {
-    const match = originals.find((image) => {
-      const profile = imageProfiles.find((item) => item.imageId === image.id);
-      return prefer.test(`${image.fileName} ${profile?.viewRole ?? ""}`);
-    }) ?? originals[Math.min(fallbackIndex, originals.length - 1)]!;
-    const profile = imageProfiles.find((item) => item.imageId === match.id);
-    return { asset: match, profile };
-  };
-
-  const angles = product?.creativeAngles ?? [];
-  const wants = (id: string) => angles.some((item) => item.id === id);
-  const cta = project.campaignInformation.callToAction?.trim()
-    || (product?.userFacts?.some((item) => item.field === "call-to-action") ? product.userFacts.find((item) => item.field === "call-to-action")?.value : undefined);
-  const benefit = (project.productInformation.benefits ?? [])[0]
-    || product?.valueProposition?.customerBenefit
-    || "";
-  const feature = (project.productInformation.features ?? [])[0]
-    || product?.userFacts?.find((item) => item.field === "feature")?.value
-    || "";
-  const lightingFromImage = (profile?: ImageIntelligenceProfile) =>
-    profile?.visualMetrics?.lightingObserved
-    || profile?.lighting
-    || "Keep lighting consistent with the source product photograph.";
-
-  type Draft = {
-    purpose: string;
-    durationSeconds: number;
-    visual: string;
-    narration: string;
-    camera: CameraDirection;
-    lighting: string;
-    composition: string;
-    animation: string;
-    assetId: string;
-    imageRole: string;
-    visualPurpose: string;
-    cameraDirection: CameraDirection;
-    transition: string;
-    text: string;
-    copy: SceneCopy;
-  };
-
-  const drafts: Draft[] = [];
-  const hero = pickAsset(/front|hero/i, 0);
-  drafts.push({
-    purpose: "Product introduction",
-    durationSeconds: 3,
-    visual: `Introduce ${project.productInformation.name} using the real product still.`,
-    narration: `${project.productInformation.name}${project.productInformation.category ? `, a ${project.productInformation.category}` : ""}.`,
-    camera: "medium-product",
-    lighting: lightingFromImage(hero.profile),
-    composition: "Product centered with clean negative space",
-    animation: "Subtle hold, then slow push-in",
-    assetId: hero.asset.id,
-    imageRole: hero.profile?.viewRole || "front",
-    visualPurpose: "establish the product",
-    cameraDirection: "medium-product",
-    transition: "cut",
-    text: project.productInformation.name,
-    copy: { headline: project.productInformation.name },
+  const brief = extras?.brief;
+  const commercial = extras?.commercial;
+  const platform = brief?.campaign.platforms[0] || project.platform || "instagram";
+  const durationMs = parseDurationMs(brief?.output.duration, /tiktok|instagram/i.test(platform) ? 15_000 : 30_000);
+  const uniqueViews = new Set(originals.map((item) => item.view).filter((view) => view && view !== "unknown"));
+  const beats = planStoryBeats({
+    durationMs,
+    platform,
+    uniqueViewCount: Math.max(uniqueViews.size, originals.length),
+    hasPrice: Boolean(commercial?.pricing.currentPrice),
+    hasPromotion: Boolean(commercial?.promotion.enabled),
   });
-
-  if (wants("close-up-detail") || originals.length > 1) {
-    const detail = pickAsset(/detail|close|macro/i, originals.length > 1 ? 1 : 0);
-    drafts.push({
-      purpose: "Product detail",
-      durationSeconds: 3,
-      visual: "Move closer to visible surface, colour, or construction details from the source image.",
-      narration: product?.imageObservations?.find((item) => item.field === "visible-color")?.value
-        ? `Visible ${product.imageObservations.find((item) => item.field === "visible-color")?.value} finish.`
-        : `A closer look at ${project.productInformation.name}.`,
-      camera: "detail-macro",
-      lighting: lightingFromImage(detail.profile),
-      composition: "Fill the frame with a defining product surface",
-      animation: "Slow push-in",
-      assetId: detail.asset.id,
-      imageRole: detail.profile?.viewRole || "detail",
-      visualPurpose: "show visible material and colour",
-      cameraDirection: "close-up",
-      transition: "cut",
-      text: feature || "",
-      copy: { featureText: feature || undefined, supportingText: "Visible product detail from the source image." },
-    });
-  }
-
-  if (wants("feature-demonstration") && (feature || benefit)) {
-    const proof = pickAsset(/side|left|right|back/i, 0);
-    drafts.push({
-      purpose: "Feature / benefit",
-      durationSeconds: 4,
-      visual: `Demonstrate ${feature || benefit} using the real product asset.`,
-      narration: feature && benefit ? `${feature}. ${benefit}` : feature || benefit,
-      camera: "slow-push-in",
-      lighting: lightingFromImage(proof.profile),
-      composition: "Product-led with room for a short feature line",
-      animation: "Feature text resolves in",
-      assetId: proof.asset.id,
-      imageRole: proof.profile?.viewRole || "side",
-      visualPurpose: "connect a recorded attribute to the product",
-      cameraDirection: "slow-push-in",
-      transition: "dissolve",
-      text: feature || benefit,
-      copy: { featureText: feature || undefined, benefitText: benefit || undefined },
-    });
-  }
-
-  if (wants("lifestyle") || wants("premium-showcase")) {
-    const life = pickAsset(/lifestyle|wide/i, 0);
-    drafts.push({
-      purpose: wants("lifestyle") ? "Lifestyle use" : "Premium presentation",
-      durationSeconds: 4,
-      visual: wants("lifestyle")
-        ? "Place the product in a use context without inventing a setting the image does not support."
-        : "Present the product with restrained, premium pacing.",
-      narration: product?.valueProposition?.positioning || `Made for ${project.targetAudience || "everyday use"}.`,
-      camera: wants("lifestyle") ? "wide-hero" : "orbit",
-      lighting: lightingFromImage(life.profile),
-      composition: "Product remains the visual priority",
-      animation: "Gentle camera move",
-      assetId: life.asset.id,
-      imageRole: life.profile?.viewRole || "lifestyle",
-      visualPurpose: wants("lifestyle") ? "suggest use context" : "premium product emphasis",
-      cameraDirection: wants("lifestyle") ? "wide-hero" : "orbit",
-      transition: "cut",
-      text: "",
-      copy: { supportingText: product?.customerIntelligence?.useCase },
-    });
-  }
-
-  const close = pickAsset(/front|hero/i, 0);
-  drafts.push({
-    purpose: "Hero presentation",
-    durationSeconds: 3,
-    visual: `Return to a clear hero of ${project.productInformation.name}.`,
-    narration: product?.valueProposition?.customerBenefit || project.productInformation.description || project.productInformation.name,
-    camera: "wide-hero",
-    lighting: lightingFromImage(close.profile),
-    composition: "Hero product, logo-safe margins",
-    animation: "Hold, then resolve toward the close",
-    assetId: close.asset.id,
-    imageRole: close.profile?.viewRole || "front",
-    visualPurpose: "hero product close",
-    cameraDirection: "wide-hero",
-    transition: "cut",
-    text: project.productInformation.name,
-    copy: { headline: project.productInformation.name },
-  });
-
-  const userPrice = product?.userFacts?.find((item) => item.field === "price")?.value;
-  drafts.push({
-    purpose: "Call to action",
-    durationSeconds: 3,
-    visual: "End on the product with a clear next step. Do not invent offers.",
-    narration: cta || `Discover ${project.productInformation.name}.`,
-    camera: "medium-product",
-    lighting: lightingFromImage(close.profile),
-    composition: "Stable closing frame for CTA text",
-    animation: "CTA text resolves cleanly",
-    assetId: close.asset.id,
-    imageRole: close.profile?.viewRole || "front",
-    visualPurpose: "closing action",
-    cameraDirection: "medium-product",
-    transition: "fade",
-    text: cta || `Discover ${project.productInformation.name}`,
-    copy: {
-      callToAction: cta || `Discover ${project.productInformation.name}`,
-      priceOffer: userPrice,
+  const durations = allocateDurations(durationMs, beats, platform);
+  const script = buildProductionScript(project, beats, {
+    product: extras?.canonical,
+    brief,
+    commercial: commercial ?? {
+      productName: project.productInformation.name,
+      pricing: { currentPrice: null, originalPrice: null, currency: "", discountPercentage: null, discountAmount: null },
+      promotion: { enabled: false, message: "" },
+      destination: { website: "", phone: "", email: "", socialHandle: "" },
+      issues: [],
+      missing: [],
     },
   });
+  const prices = commercial ? priceSceneCopy(commercial) : {};
+  const used = new Set<string>();
+  let cursor = 0;
+  const generated: PlanScene[] = [];
 
-  const generated = drafts.map((draft, index) => {
-    const kept = existing.find((item) => item.userEdited && (item.order === index + 1 || item.purpose === draft.purpose));
-    if (kept?.userEdited) {
-      return {
-        ...kept,
+  beats.forEach((beat, index) => {
+    const pick = pickAsset(originals, VIEW_FOR_BEAT[beat], used, beat);
+    used.add(pick.assetId);
+    const camera = cameraFor(pick.view, beat);
+    const sceneDuration = durations[index] ?? 2000;
+    const existingKeep = existing.find((item) => item.userEdited && (
+      item.id && generated.every((scene) => scene.id !== item.id) && (item.purpose === beatPurpose(beat) || item.order === index + 1)
+    ));
+    if (existingKeep?.userEdited) {
+      const durationMsKept = existingKeep.durationMs ?? Math.round((existingKeep.durationSeconds || 2) * 1000);
+      generated.push({
+        ...existingKeep,
         order: index + 1,
-        assetId: kept.assetId && originals.some((image) => image.id === kept.assetId) ? kept.assetId : draft.assetId,
-      };
+        startMs: cursor,
+        durationMs: durationMsKept,
+        durationSeconds: durationMsKept / 1000,
+        assetId: originals.some((item) => item.id === existingKeep.assetId) ? existingKeep.assetId : pick.assetId,
+      });
+      cursor += durationMsKept;
+      return;
     }
-    return toScene(index + 1, draft);
+
+    const copy: SceneCopy = {};
+    let text = "";
+    let narration = script.narration[index] || "";
+    if (beat === "HOOK") {
+      copy.headline = script.hook;
+      text = script.hook;
+    } else if (beat === "PRODUCT_REVEAL") {
+      copy.headline = script.productName;
+      text = script.productName;
+    } else if (beat === "FEATURE") {
+      copy.featureText = script.featureText || script.mainMessage;
+      text = copy.featureText || "";
+    } else if (beat === "DETAIL" || beat === "EXPLORATION") {
+      copy.supportingText = script.supportingPoints[beat === "DETAIL" ? 0 : 1] || script.mainMessage;
+      text = copy.supportingText || "";
+    } else if (beat === "MESSAGE") {
+      copy.benefitText = script.mainMessage;
+      text = script.mainMessage;
+    } else if (beat === "PRICE") {
+      copy.priceOffer = prices.newPrice;
+      copy.supportingText = prices.oldPrice;
+      copy.headline = prices.saveLabel;
+      text = [prices.saveLabel, prices.newPrice].filter(Boolean).join(" · ");
+      narration = script.priceLine || narration;
+    } else {
+      copy.callToAction = script.cta;
+      copy.supportingText = beat === "CTA" ? script.website : undefined;
+      if (prices.newPrice && !beats.includes("PRICE")) {
+        copy.priceOffer = [prices.saveLabel, prices.newPrice].filter(Boolean).join(" · ");
+      }
+      text = script.website ? `${script.cta}` : script.cta;
+    }
+
+    const profile = imageProfiles.find((item) => item.imageId === pick.assetId);
+    generated.push({
+      id: randomUUID(),
+      order: index + 1,
+      durationSeconds: sceneDuration / 1000,
+      durationMs: sceneDuration,
+      startMs: cursor,
+      beat,
+      purpose: beatPurpose(beat),
+      visual: `Show the product using asset ${pick.assetId} (${pick.view}).`,
+      narration,
+      camera: camera.camera,
+      lighting: profile?.visualMetrics?.lightingObserved || profile?.lighting || "Keep lighting consistent with the source product photograph.",
+      composition: beat === "CTA" ? "Stable closing frame for CTA text" : "Product remains the visual priority",
+      animation: camera.motion.replace(/_/g, " ").toLowerCase(),
+      assetId: pick.assetId,
+      imageRole: pick.view,
+      visualPurpose: beatPurpose(beat),
+      cameraDirection: camera.camera,
+      motion: camera.motion,
+      view: pick.view,
+      transition: beat === "CTA" ? "fade" : beat === "HOOK" ? "cut" : "cut",
+      text,
+      copy,
+      selectedFor: beatPurpose(beat),
+      selectionReason: pick.reason,
+      priority: pick.priority,
+      assetRole: "PRIMARY_PRODUCT_IMAGE",
+      fieldSources: {
+        camera: "AI_RECOMMENDED",
+        motion: "AI_RECOMMENDED",
+        text: "AI_RECOMMENDED",
+        assetId: "AI_RECOMMENDED",
+        durationMs: "AI_RECOMMENDED",
+      },
+      userEdited: false,
+    });
+    cursor += sceneDuration;
   });
 
+  void product;
   return generated;
-}
-
-function toScene(order: number, draft: {
-  purpose: string;
-  durationSeconds: number;
-  visual: string;
-  narration: string;
-  camera: CameraDirection;
-  lighting: string;
-  composition: string;
-  animation: string;
-  assetId: string;
-  imageRole: string;
-  visualPurpose: string;
-  cameraDirection: CameraDirection;
-  transition: string;
-  text: string;
-  copy: SceneCopy;
-}): PlanScene {
-  return {
-    id: randomUUID(),
-    order,
-    durationSeconds: draft.durationSeconds,
-    purpose: draft.purpose,
-    visual: draft.visual,
-    narration: draft.narration,
-    camera: draft.camera,
-    lighting: draft.lighting,
-    composition: draft.composition,
-    animation: draft.animation,
-    assetId: draft.assetId,
-    imageRole: draft.imageRole,
-    visualPurpose: draft.visualPurpose,
-    cameraDirection: draft.cameraDirection,
-    transition: draft.transition,
-    text: draft.text,
-    copy: draft.copy,
-    userEdited: false,
-  };
 }

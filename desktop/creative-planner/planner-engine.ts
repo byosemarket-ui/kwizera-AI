@@ -1,10 +1,16 @@
 import { loadStep2CreativePlannerHandoff } from "../marketing-strategy/strategy-engine";
 import { resolveBoundProject } from "../product-creation/workflow";
 import {
+  finalizeCreativePlan,
   generateCreativePlan,
   getCreativePlan,
+  getProductionManifest,
+  updateCreativePlan,
   type CreativePlanDto,
+  type CreativePlanSceneDto,
+  type ProductionManifestDto,
 } from "../deep-intelligence/live-api";
+import { getProjectApi, updateProjectApi } from "../product-intake/api";
 import type { Step2CreativePlannerHandoffPayload } from "../marketing-strategy/types";
 import type { MasterMarketingStrategy } from "../marketing-strategy/types";
 import type { MasterProductIntelligence } from "../master-intelligence/types";
@@ -96,6 +102,8 @@ export class CreativePlannerEngine {
   private recommendation = "Confirm Marketing Strategy (Phase 4 Step 1), then compile the Creative Blueprint.";
   private resumeStageIndex = 0;
   private livePlan: CreativePlanDto | null = null;
+  private liveManifest: ProductionManifestDto | null = null;
+  private liveAssets: Array<{ id: string; fileName: string; url?: string }> = [];
   private projectId: string | null = null;
 
   setNotify(fn: NotifyFn | null): void { this.notify = fn; }
@@ -117,6 +125,8 @@ export class CreativePlannerEngine {
       reviewOpen: this.reviewOpen,
       updatedAt: new Date().toISOString(),
       livePlan: this.livePlan,
+      liveManifest: this.liveManifest,
+      liveAssets: this.liveAssets,
       projectId: this.projectId,
     };
   }
@@ -144,14 +154,90 @@ export class CreativePlannerEngine {
     if (!bound) return;
     this.projectId = bound.projectId;
     try {
-      this.livePlan = (await getCreativePlan(bound.projectId)).plan;
+      const [planRes, manifestRes, project] = await Promise.all([
+        getCreativePlan(bound.projectId),
+        getProductionManifest(bound.projectId).catch(() => ({ manifest: null })),
+        getProjectApi(bound.projectId).catch(() => null),
+      ]);
+      this.livePlan = planRes.plan;
+      this.liveManifest = manifestRes.manifest;
+      this.liveAssets = (project?.productImages ?? [])
+        .filter((image) => image.id && !/\.mp4$/i.test(image.fileName))
+        .map((image) => ({ id: image.id, fileName: image.fileName, url: image.url }));
       if (this.livePlan && (!this.strategy || !this.strategy.userConfirmed)) {
         this.recommendation = `Live Creative Plan v${this.livePlan.version} restored for “${bound.projectName}”.`;
-        this.emit();
       }
+      this.emit();
     } catch {
       this.livePlan = null;
     }
+  }
+
+  async saveLiveScenes(scenes: CreativePlanSceneDto[]): Promise<CreativePlanDto> {
+    const projectId = this.projectId || (await resolveBoundProject())?.projectId;
+    if (!projectId) throw new Error("Open a project before saving scenes");
+    this.projectId = projectId;
+    const result = await updateCreativePlan(projectId, { scenes });
+    this.livePlan = result.plan;
+    this.liveManifest = (await getProductionManifest(projectId).catch(() => ({ manifest: null }))).manifest;
+    this.recommendation = `Scene edits saved. Plan v${result.plan.version}.`;
+    this.emit();
+    return result.plan;
+  }
+
+  async saveLiveCommercial(input: {
+    currentPrice?: number | null;
+    originalPrice?: number | null;
+    currency?: string;
+    website?: string;
+    promotionMessage?: string;
+  }): Promise<CreativePlanDto> {
+    const projectId = this.projectId || (await resolveBoundProject())?.projectId;
+    if (!projectId) throw new Error("Open a project before saving commercial data");
+    this.projectId = projectId;
+    await updateProjectApi(projectId, {
+      productInformation: {
+        price: input.currentPrice ?? undefined,
+        originalPrice: input.originalPrice ?? undefined,
+        currency: input.currency || undefined,
+      },
+      brandInformation: input.website ? { website: input.website } : undefined,
+    }).catch(() => null);
+    const result = await updateCreativePlan(projectId, {
+      commercial: {
+        productName: this.livePlan?.productionScript?.productName || "",
+        pricing: {
+          currentPrice: input.currentPrice ?? null,
+          originalPrice: input.originalPrice ?? null,
+          currency: input.currency || "",
+          discountPercentage: null,
+          discountAmount: null,
+        },
+        promotion: { enabled: Boolean(input.promotionMessage), message: input.promotionMessage || "" },
+        destination: { website: input.website || "", phone: "", email: "", socialHandle: "" },
+        issues: [],
+        missing: [],
+      },
+    });
+    this.livePlan = result.plan;
+    this.liveManifest = (await getProductionManifest(projectId).catch(() => ({ manifest: null }))).manifest;
+    this.recommendation = "Commercial data saved. Price and website appear only when provided.";
+    this.emit();
+    return result.plan;
+  }
+
+  async finalizeLive(): Promise<ProductionManifestDto> {
+    const projectId = this.projectId || (await resolveBoundProject())?.projectId;
+    if (!projectId) throw new Error("Open a project before finalizing");
+    this.projectId = projectId;
+    const result = await finalizeCreativePlan(projectId);
+    this.livePlan = result.plan;
+    this.liveManifest = result.manifest;
+    this.recommendation = result.manifest.status === "READY_FOR_VIDEO_PRODUCTION"
+      ? "Production Manifest is ready for video production."
+      : `Manifest status: ${result.manifest.status}.`;
+    this.emit();
+    return result.manifest;
   }
 
   hydrate(): boolean {
@@ -199,6 +285,7 @@ export class CreativePlannerEngine {
         this.progress = { total: PLANNER_STAGES.length, completed: 1, percent: 20, currentLabel: "Generating live Creative Plan", currentStage: "loaded", running: true };
         this.emit();
         this.livePlan = (await generateCreativePlan(projectId)).plan;
+        this.liveManifest = (await getProductionManifest(projectId).catch(() => ({ manifest: null }))).manifest;
         this.progress = { total: PLANNER_STAGES.length, completed: PLANNER_STAGES.length, percent: 100, currentLabel: "Live plan saved", currentStage: "saved", running: false };
         this.recommendation = `Live Creative Plan v${this.livePlan.version} generated. No video was rendered.`;
         this.emit();

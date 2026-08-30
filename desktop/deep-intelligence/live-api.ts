@@ -81,6 +81,9 @@ export interface CreativePlanSceneDto {
   id: string;
   order: number;
   durationSeconds: number;
+  durationMs?: number;
+  startMs?: number;
+  beat?: string;
   purpose: string;
   visual: string;
   narration: string;
@@ -92,6 +95,8 @@ export interface CreativePlanSceneDto {
   imageRole?: string;
   visualPurpose?: string;
   cameraDirection?: string;
+  motion?: string;
+  view?: string;
   transition?: string;
   text?: string;
   copy?: {
@@ -102,7 +107,49 @@ export interface CreativePlanSceneDto {
     priceOffer?: string;
     callToAction?: string;
   };
+  selectedFor?: string;
+  selectionReason?: string;
+  priority?: number;
+  fieldSources?: Record<string, "AI_RECOMMENDED" | "USER_DEFINED">;
   userEdited?: boolean;
+}
+
+export interface ProductionManifestDto {
+  manifestId: string;
+  projectId: string;
+  productId: string;
+  marketingBriefId: string;
+  briefVersion: number;
+  version: number;
+  platform: string;
+  format: { aspectRatio: string; width: number; height: number };
+  timeline: { durationMs: number; scenes: CreativePlanSceneDto[] };
+  script: {
+    headline: string;
+    hook: string;
+    productName: string;
+    mainMessage: string;
+    supportingPoints: string[];
+    featureText: string;
+    cta: string;
+    narration: string[];
+    website?: string;
+    priceLine?: string;
+  };
+  commercial?: {
+    productName: string;
+    pricing: {
+      currentPrice: number | null;
+      originalPrice: number | null;
+      currency: string;
+      discountPercentage: number | null;
+    };
+    promotion: { enabled: boolean; message: string };
+    destination: { website: string; phone?: string; email?: string; socialHandle?: string };
+    missing: string[];
+  };
+  missing: string[];
+  status: "DRAFT" | "PARTIALLY_READY" | "READY_FOR_VIDEO_PRODUCTION";
 }
 
 export interface CreativePlanDto {
@@ -116,6 +163,7 @@ export interface CreativePlanDto {
   creativeStrategy: string;
   marketingStrategy: string;
   scenes: CreativePlanSceneDto[];
+  script?: string;
   objective?: string;
   audience?: string;
   message?: string;
@@ -124,6 +172,17 @@ export interface CreativePlanDto {
   audioDirection?: string;
   callToAction?: string;
   userEdited?: boolean;
+  marketingBriefId?: string;
+  briefVersion?: number;
+  manifestId?: string;
+  storyBeats?: string[];
+  timelineDurationMs?: number;
+  aspectRatio?: string;
+  platforms?: string[];
+  missing?: string[];
+  productionStatus?: "DRAFT" | "PARTIALLY_READY" | "READY_FOR_VIDEO_PRODUCTION";
+  commercial?: ProductionManifestDto["commercial"];
+  productionScript?: ProductionManifestDto["script"];
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -173,6 +232,16 @@ export async function updateCreativePlan(projectId: string, changes: Record<stri
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ changes }),
   });
+  return readJson(response);
+}
+
+export async function getProductionManifest(projectId: string): Promise<{ manifest: ProductionManifestDto | null }> {
+  const response = await fetch(`/api/workspace/projects/${projectId}/production-manifest`);
+  return readJson(response);
+}
+
+export async function finalizeCreativePlan(projectId: string): Promise<{ plan: CreativePlanDto; manifest: ProductionManifestDto }> {
+  const response = await fetch(`/api/workspace/projects/${projectId}/plan/finalize`, { method: "POST" });
   return readJson(response);
 }
 

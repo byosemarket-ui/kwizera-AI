@@ -298,6 +298,8 @@ export interface CreativePlannerSnapshot {
   reviewOpen: boolean;
   updatedAt: string;
   livePlan?: import("../deep-intelligence/live-api").CreativePlanDto | null;
+  liveManifest?: import("../deep-intelligence/live-api").ProductionManifestDto | null;
+  liveAssets?: Array<{ id: string; fileName: string; url?: string }>;
   projectId?: string | null;
 }
 

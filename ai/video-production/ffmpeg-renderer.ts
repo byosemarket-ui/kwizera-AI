@@ -79,10 +79,26 @@ function fadeFilter(transition: VideoTransitionId, durationMs: number): string {
 function drawtextFilter(clip: VideoTimelineClip, fontFile?: string): string {
   const layer = clip.text[0];
   if (!layer?.content || !fontFile) return "";
-  const escaped = layer.content.replace(/\\/g, "\\\\").replace(/'/g, "").replace(/:/g, "\\:").slice(0, 80);
+  const escaped = sanitizeRenderText(layer.content);
+  if (!escaped) return "";
   const y = layer.position === "top" ? "h*0.08" : layer.position === "center" ? "(h-text_h)/2" : "h*0.86";
   const font = fontFile.replace(/\\/g, "/").replace(/:/g, "\\:");
   return `drawtext=fontfile='${font}':text='${escaped}':fontsize=22:fontcolor=white:borderw=1:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`;
+}
+
+/** Normalize on-screen copy before FFmpeg drawtext. Never pass raw objects into a filter. */
+export function sanitizeRenderText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "object") return "";
+  return String(value)
+    .replace(/\[object Object\]/g, "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .replace(/\\/g, "")
+    .replace(/'/g, "\u2019")
+    .replace(/:/g, " ")
+    .replace(/[\r\n]+/g, " ")
+    .trim()
+    .slice(0, 80);
 }
 
 export async function resolveFontFile(): Promise<string | undefined> {

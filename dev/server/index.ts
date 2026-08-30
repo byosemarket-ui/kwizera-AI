@@ -3712,6 +3712,44 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  const productionManifestMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/production-manifest$/);
+
+  if (productionManifestMatch && req.method === "GET") {
+
+    const planning = requirePlanning(res);
+
+    if (!planning) return;
+
+    sendJson(res, 200, { manifest: await planning.getManifest(productionManifestMatch[1]) });
+
+    return;
+
+  }
+
+  const planFinalizeMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/plan\/finalize$/);
+
+  if (planFinalizeMatch && req.method === "POST") {
+
+    const planning = requirePlanning(res);
+
+    if (!planning) return;
+
+    try {
+
+      const result = await planning.finalize(planFinalizeMatch[1]);
+
+      sendJson(res, 200, result);
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to finalize production plan" });
+
+    }
+
+    return;
+
+  }
+
   const videoProjectMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)$/);
   if (videoProjectMatch && req.method === "GET") {
     const production = requireVideoProduction(res);

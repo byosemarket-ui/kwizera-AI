@@ -78,6 +78,15 @@ export function mapMotion(camera: VideoCameraId): VideoMotionId {
   }
 }
 
+export function mapSceneMotion(scene: PlanScene, camera: VideoCameraId): VideoMotionId {
+  const motion = String(scene.motion ?? scene.animation ?? "").toUpperCase().replace(/[\s-]+/g, "_");
+  if (motion === "HOLD" || motion === "STABLE_HOLD") return "hold";
+  if (motion.includes("PAN")) return "pan-left";
+  if (motion.includes("REVEAL")) return "image-reveal";
+  if (motion.includes("ZOOM") || motion.includes("PUSH")) return "slow-zoom";
+  return mapMotion(camera);
+}
+
 export function mapTransition(value?: string): VideoTransitionId {
   const text = (value ?? "cut").toLowerCase();
   if (/fade|dissolve/.test(text)) return "fade";
@@ -86,9 +95,9 @@ export function mapTransition(value?: string): VideoTransitionId {
 
 export function sceneTextLayers(scene: PlanScene, startMs: number, durationMs: number): VideoTextLayer[] {
   const layers: VideoTextLayer[] = [];
-  const add = (content: string | undefined, kind: VideoTextLayer["kind"], position: VideoTextLayer["position"]) => {
-    const value = content?.trim();
-    if (!value) return;
+  const add = (content: unknown, kind: VideoTextLayer["kind"], position: VideoTextLayer["position"]) => {
+    const value = typeof content === "string" ? content.trim() : "";
+    if (!value || value === "[object Object]") return;
     if (kind === "price" && !scene.copy?.priceOffer) return;
     layers.push({
       content: value.slice(0, 80),
@@ -125,11 +134,12 @@ export function buildTimelineFromPlan(
   let cursor = 0;
   return limited.map((scene, index) => {
     const existing = options?.existing?.find((clip) => clip.userEdited && (clip.sceneId === scene.id || clip.order === index + 1));
-    const seconds = Math.min(3, Math.max(1, scene.durationSeconds || 2));
-    const durationMs = existing?.durationMs ?? seconds * 1000;
+    const plannedMs = Math.max(800, scene.durationMs ?? Math.round((scene.durationSeconds || 2) * 1000));
+    const durationMs = existing?.durationMs ?? plannedMs;
     const previewDuration = options?.preview ? Math.min(durationMs, 2000) : durationMs;
     const assetId = originalAssetId(project, existing?.assetId || scene.assetId) ?? originals[0]!.id;
     const camera = existing?.camera ?? mapCamera(scene);
+    const motion = existing?.motion ?? mapSceneMotion(scene, camera);
     const clip: VideoTimelineClip = existing
       ? {
         ...existing,
@@ -148,7 +158,7 @@ export function buildTimelineFromPlan(
         durationMs: previewDuration,
         layer: "video",
         camera,
-        motion: mapMotion(camera),
+        motion,
         lighting: scene.lighting || "Keep lighting consistent with the source photograph.",
         background: "product still",
         transitionIn: mapTransition(scene.transition),

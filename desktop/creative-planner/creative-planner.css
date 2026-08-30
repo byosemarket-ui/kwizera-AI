@@ -57,4 +57,24 @@
 .cp-note, .cp-rec { color: var(--cp-muted); font-size: 0.88rem; }
 .cp-rec { color: var(--cp-accent); }
 .err { color: var(--cp-err) !important; }
-@media (max-width: 720px) { .cp-toolbar-actions { width: 100%; } }
+.cp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.cp-form-grid label, .cp-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--cp-muted);
+}
+.cp-form-grid input, .cp-row input, .cp-row select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--cp-line);
+  border-radius: 8px;
+  color: var(--cp-ink);
+}
+.cp-panel h4 { margin: 16px 0 8px; font-size: 0.92rem; }

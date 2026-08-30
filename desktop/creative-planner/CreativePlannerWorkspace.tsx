@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Clapperboard, Play, RefreshCw, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Clapperboard, Play, RefreshCw, Save, ShieldCheck } from "lucide-react";
 import { useShell } from "../shell/ShellContext";
 import { workspaceIntegrationEngine } from "../shell/integration/integration-engine";
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
 import { creativePlannerEngine } from "./planner-engine";
 import type { CreativePlannerSnapshot } from "./types";
 import { PLANNER_STAGES, PLANNER_STAGE_LABELS } from "./types";
+import type { CreativePlanSceneDto } from "../deep-intelligence/live-api";
+import { DisplayText } from "../shared/DisplayValue";
 import "./creative-planner.css";
 
 export function CreativePlannerWorkspace() {
@@ -63,6 +65,11 @@ export function CreativePlannerWorkspace() {
   const onConfirm = async () => {
     setBusy(true);
     try {
+      if (snap.livePlan && !pkg) {
+        await creativePlannerEngine.finalizeLive();
+        notify("success", "Production Manifest ready", "READY_FOR_VIDEO_PRODUCTION. Video production can consume this plan.", "production-complete");
+        return;
+      }
       creativePlannerEngine.confirm();
       await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
       notify(
@@ -83,7 +90,7 @@ export function CreativePlannerWorkspace() {
   const toggle = (id: string) => setOpen((p) => ({ ...p, [id]: !p[id] }));
   const hook = pkg?.hooks.find((h) => h.id === pkg.primaryHookId);
 
-  if (!pkg && !snap.livePlan && !snap.progress.running && snap.recommendation.includes("No confirmed")) {
+  if (!pkg && !snap.livePlan && !snap.progress.running && !snap.projectId && snap.recommendation.includes("No confirmed")) {
     return (
       <div className="cplan">
         <header className="cp-hero">
@@ -104,15 +111,15 @@ export function CreativePlannerWorkspace() {
     <div className="cplan">
       <header className="cp-hero">
         <div>
-          <span className="cp-kicker">Phase 4 · Step 2 · Story · Script · Scenes</span>
+          <span className="cp-kicker">STEP 3 · Story · Script · Scene Plan · Production Manifest</span>
           <h1>Creative Production Planner</h1>
-          <p>Blueprint only — no video, image, or audio files are generated here.</p>
+          <p>Product-specific story, script, and scene plan. Every scene references a real product asset ID.</p>
         </div>
         <div className="cp-hero-stats">
           <div><b>{pkg?.contentType || snap.livePlan?.angle || "—"}</b><span>CONTENT TYPE</span></div>
           <div><b>{hook?.kind || snap.livePlan?.angle || "—"}</b><span>HOOK</span></div>
-          <div><b>{pkg ? `${pkg.totalDurationSec}s` : snap.livePlan ? `${snap.livePlan.scenes.reduce((sum, scene) => sum + scene.durationSeconds, 0)}s` : "—"}</b><span>DURATION</span></div>
-          <div><b>{pkg ? `${pkg.validation.readinessPercent}%` : snap.livePlan ? `v${snap.livePlan.version}` : "—"}</b><span>READINESS</span></div>
+          <div><b>{pkg ? `${pkg.totalDurationSec}s` : snap.livePlan ? `${Math.round((snap.livePlan.timelineDurationMs ?? snap.livePlan.scenes.reduce((sum, scene) => sum + (scene.durationMs ?? scene.durationSeconds * 1000), 0)) / 1000)}s` : "—"}</b><span>DURATION</span></div>
+          <div><b>{pkg ? `${pkg.validation.readinessPercent}%` : snap.liveManifest?.status || snap.livePlan?.productionStatus || (snap.livePlan ? `v${snap.livePlan.version}` : "—")}</b><span>STATUS</span></div>
         </div>
       </header>
 
@@ -141,10 +148,10 @@ export function CreativePlannerWorkspace() {
             <button
               type="button"
               className="cp-primary"
-              disabled={busy || !pkg || !pkg.validation.canConfirm}
+              disabled={busy || (!pkg && !snap.livePlan) || Boolean(pkg && !pkg.validation.canConfirm)}
               onClick={() => void onConfirm()}
             >
-              <ShieldCheck size={15} /> Confirm Blueprint
+              <ShieldCheck size={15} /> {snap.livePlan && !pkg ? "Approve Manifest" : "Confirm Blueprint"}
             </button>
           )}
         </div>
@@ -168,19 +175,7 @@ export function CreativePlannerWorkspace() {
       )}
 
       {snap.livePlan && (
-        <section className="cp-panel">
-          <h3>Live Creative Plan v{snap.livePlan.version}</h3>
-          <p>{snap.livePlan.creativeStrategy}</p>
-          <p>Objective: {snap.livePlan.objective || "—"} · Audience: {snap.livePlan.audience || "—"} · CTA: {snap.livePlan.callToAction || "—"}</p>
-          {snap.livePlan.scenes.map((scene) => (
-            <article key={scene.id} className="cp-row">
-              <strong>SCENE {scene.order} {scene.purpose} · {scene.durationSeconds}s</strong>
-              <span>Asset {scene.assetId || "unassigned"} · {scene.cameraDirection || scene.camera}</span>
-              <span>{scene.visual}</span>
-              <span>{scene.text || scene.narration}</span>
-            </article>
-          ))}
-        </section>
+        <LiveProductionEditor snap={snap} busy={busy} onBusy={setBusy} notify={notify} />
       )}
 
       {pkg && (
@@ -302,6 +297,142 @@ export function CreativePlannerWorkspace() {
   );
 }
 
+function LiveProductionEditor({
+  snap, busy, onBusy, notify,
+}: {
+  snap: CreativePlannerSnapshot;
+  busy: boolean;
+  onBusy: (value: boolean) => void;
+  notify: (tone: "success" | "warning" | "error" | "info", title: string, detail: string, category?: string) => void;
+}) {
+  const plan = snap.livePlan!;
+  const [scenes, setScenes] = useState<CreativePlanSceneDto[]>(plan.scenes);
+  const [price, setPrice] = useState(String(plan.commercial?.pricing.currentPrice ?? ""));
+  const [original, setOriginal] = useState(String(plan.commercial?.pricing.originalPrice ?? ""));
+  const [currency, setCurrency] = useState(plan.commercial?.pricing.currency || "RWF");
+  const [website, setWebsite] = useState(plan.commercial?.destination.website || plan.productionScript?.website || "");
+  const [promo, setPromo] = useState(plan.commercial?.promotion.message || "");
+
+  useEffect(() => {
+    setScenes(plan.scenes);
+    setPrice(String(plan.commercial?.pricing.currentPrice ?? ""));
+    setOriginal(String(plan.commercial?.pricing.originalPrice ?? ""));
+    setCurrency(plan.commercial?.pricing.currency || "RWF");
+    setWebsite(plan.commercial?.destination.website || plan.productionScript?.website || "");
+    setPromo(plan.commercial?.promotion.message || "");
+  }, [plan]);
+
+  const patch = (index: number, changes: Partial<CreativePlanSceneDto>) => {
+    setScenes((current) => current.map((scene, i) => (i === index ? { ...scene, ...changes } : scene)));
+  };
+  const saveScenes = async () => {
+    onBusy(true);
+    try {
+      await creativePlannerEngine.saveLiveScenes(scenes);
+      notify("success", "Scenes saved", "User edits persisted on the production plan.", "updates");
+    } catch (error) {
+      notify("error", "Save failed", error instanceof Error ? error.message : "Unable to save scenes", "errors");
+    } finally {
+      onBusy(false);
+    }
+  };
+  const saveCommercial = async () => {
+    onBusy(true);
+    try {
+      await creativePlannerEngine.saveLiveCommercial({
+        currentPrice: price.trim() ? Number(price) : null,
+        originalPrice: original.trim() ? Number(original) : null,
+        currency,
+        website,
+        promotionMessage: promo,
+      });
+      notify("success", "Commercial data saved", "Price and website appear only when provided.", "updates");
+    } catch (error) {
+      notify("error", "Save failed", error instanceof Error ? error.message : "Unable to save commercial data", "errors");
+    } finally {
+      onBusy(false);
+    }
+  };
+  const totalMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000)), 0);
+  const script = plan.productionScript;
+  const manifest = snap.liveManifest;
+
+  return (
+    <section className="cp-panel">
+      <h3>Production Manifest {manifest ? `· ${manifest.status}` : `· v${plan.version}`}</h3>
+      <p>
+        <DisplayText value={plan.creativeStrategy} />
+      </p>
+      <p>
+        Objective: <DisplayText value={plan.objective} /> · Platform: <DisplayText value={plan.platforms?.join(", ") || manifest?.platform} /> ·
+        CTA: <DisplayText value={plan.callToAction} />
+      </p>
+      {(plan.missing?.length || manifest?.missing?.length) ? (
+        <p className="cp-note">Optional missing: {(plan.missing ?? manifest?.missing ?? []).join(" · ")}</p>
+      ) : null}
+
+      <h4>Story &amp; script</h4>
+      <p>Beats: {(plan.storyBeats ?? scenes.map((scene) => scene.purpose)).join(" → ")}</p>
+      {script && (
+        <>
+          <p>Hook: <DisplayText value={script.hook} /></p>
+          <p>Main message: <DisplayText value={script.mainMessage} /></p>
+          <p>CTA: <DisplayText value={script.cta} />{script.website ? <> · <DisplayText value={script.website} /></> : null}</p>
+          {script.priceLine ? <p>Price: <DisplayText value={script.priceLine} /></p> : <p>Price: not provided</p>}
+        </>
+      )}
+
+      <h4>Timeline · {totalMs} ms ({(totalMs / 1000).toFixed(1)}s)</h4>
+      {scenes.map((scene) => {
+        const start = scene.startMs ?? 0;
+        const duration = scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000);
+        return (
+          <p key={`tl-${scene.id}`}>
+            {fmtMs(start)}–{fmtMs(start + duration)} · {scene.purpose}
+          </p>
+        );
+      })}
+
+      <h4>Price, promotion &amp; website (optional)</h4>
+      <div className="cp-form-grid">
+        <label>Current price <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Leave empty to omit" /></label>
+        <label>Original price <input value={original} onChange={(e) => setOriginal(e.target.value)} /></label>
+        <label>Currency <input value={currency} onChange={(e) => setCurrency(e.target.value)} /></label>
+        <label>Website <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="CTA scene only" /></label>
+        <label>Promotion text <input value={promo} onChange={(e) => setPromo(e.target.value)} /></label>
+      </div>
+      <button type="button" disabled={busy} onClick={() => void saveCommercial()}><Save size={15} /> Save commercial data</button>
+
+      <h4>Editable scene plan</h4>
+      {scenes.map((scene, index) => (
+        <article key={scene.id} className="cp-row">
+          <strong>SCENE {scene.order} {scene.purpose} · {scene.durationMs ?? Math.round(scene.durationSeconds * 1000)} ms</strong>
+          <span>Selected for {scene.selectedFor || scene.purpose}: <DisplayText value={scene.selectionReason} /></span>
+          <span>Source: {scene.fieldSources?.assetId || "AI_RECOMMENDED"}{scene.userEdited ? " · user edited" : ""}</span>
+          <label>Asset
+            <select value={scene.assetId || ""} disabled={busy} onChange={(e) => patch(index, { assetId: e.target.value })}>
+              {(snap.liveAssets?.length ? snap.liveAssets : [{ id: scene.assetId || "", fileName: scene.assetId || "asset" }]).map((asset) => (
+                <option key={asset.id} value={asset.id}>{asset.fileName} ({asset.id})</option>
+              ))}
+            </select>
+          </label>
+          <label>Headline / text <input value={scene.text ?? ""} disabled={busy} onChange={(e) => patch(index, { text: e.target.value, narration: e.target.value })} /></label>
+          <label>Duration (ms) <input type="number" min={800} value={scene.durationMs ?? Math.round((scene.durationSeconds || 2) * 1000)} disabled={busy} onChange={(e) => {
+            const durationMs = Number(e.target.value) || 2000;
+            patch(index, { durationMs, durationSeconds: durationMs / 1000 });
+          }} /></label>
+          <label>Camera <input value={scene.cameraDirection || scene.camera} disabled={busy} onChange={(e) => patch(index, { camera: e.target.value, cameraDirection: e.target.value })} /></label>
+          <label>Motion <input value={scene.motion || scene.animation} disabled={busy} onChange={(e) => patch(index, { motion: e.target.value, animation: e.target.value })} /></label>
+          <label>Transition <input value={scene.transition ?? "cut"} disabled={busy} onChange={(e) => patch(index, { transition: e.target.value })} /></label>
+        </article>
+      ))}
+      <button type="button" className="cp-primary" disabled={busy} onClick={() => void saveScenes()}>
+        <Save size={15} /> Save scene edits
+      </button>
+    </section>
+  );
+}
+
 function Dash({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -325,6 +456,13 @@ function Panel({
       {open && <div className="cp-panel-body">{children}</div>}
     </section>
   );
+}
+
+function fmtMs(ms: number): string {
+  const total = Math.max(0, ms) / 1000;
+  const m = Math.floor(total / 60);
+  const s = (total % 60).toFixed(1);
+  return `${m}:${s.padStart(4, "0")}`;
 }
 
 function fmt(sec: number): string {
