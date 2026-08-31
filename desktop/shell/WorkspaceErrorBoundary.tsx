@@ -50,15 +50,29 @@ export class WorkspaceErrorBoundary extends Component<Props, State> {
             Home could not render completely ({this.state.error.message}).
             Your projects and saved data are still on this device.
           </p>
-          <button
-            type="button"
-            onClick={() => {
-              this.setState({ error: null, workspaceAtError: null });
-              window.location.reload();
-            }}
-          >
-            Reload application
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ error: null, workspaceAtError: null });
+                this.props.onRecover("home");
+              }}
+            >
+              Return to Home
+            </button>
+            <button
+              type="button"
+              onClick={() => this.setState({ error: null, workspaceAtError: null })}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              Reload application
+            </button>
+          </div>
         </section>
       );
     }

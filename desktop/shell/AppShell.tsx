@@ -36,6 +36,8 @@ import type { CertificationSnapshot } from "./certification/types";
 import type { RestoreReport } from "./workspace-state/types";
 import { deriveProjectStatus, resolveActiveProjectName } from "./project-context";
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
+import { resetPersistedNavigationInStorage } from "./startup-navigation";
+import { STARTUP_READY_TIMEOUT_MS } from "./bootstrap-recovery";
 import "./layout/layout-engine.css";
 import "./performance/performance.css";
 import "./ux/ux.css";
@@ -108,11 +110,13 @@ export function AppShell({
   const preferencesRef = useRef(preferences);
   const bootstrappingRef = useRef(true);
   const restoredOnceRef = useRef(false);
+  const appReadyRef = useRef(false);
 
   layoutRef.current = layout;
   navigationRef.current = navigation;
   layoutManagerRef.current = layoutManager;
   preferencesRef.current = preferences;
+  appReadyRef.current = appReady;
 
   useEffect(() => {
     workspaceStateEngine.setProviders({
@@ -128,35 +132,64 @@ export function AppShell({
       applyPreferences: (next) => setPreferences(next),
     });
 
+    const startupTimer = window.setTimeout(() => {
+      if (!appReadyRef.current) {
+        console.warn("[KWIZERA] Startup loader timed out — opening Home.");
+        bootstrappingRef.current = false;
+        setAppReady(true);
+      }
+    }, STARTUP_READY_TIMEOUT_MS);
+
     if (!restoredOnceRef.current) {
       restoredOnceRef.current = true;
-      const report = workspaceStateEngine.restoreOnStartup();
-      const prefsNow = preferencesRef.current;
-      workspaceStateEngine.autoSave.setEnabled(prefsNow.autoSavePreferences?.enabled !== false);
-      const applied = personalizationEngine.applySmartStartup(
-        prefsNow,
-        report,
-        layoutRef.current,
-        prefsNow.lastOpenedProject ?? null,
-      );
-      setLayoutState(applied.shell);
-      setPreferences(applied.preferences);
-      if (!report.restored && applied.preferences.sidebarPinnedDefault) {
-        setNavigationState((current) => ({ ...current, pinned: true }));
+      try {
+        const report = workspaceStateEngine.restoreOnStartup();
+        const prefsNow = preferencesRef.current;
+        workspaceStateEngine.autoSave.setEnabled(prefsNow.autoSavePreferences?.enabled !== false);
+        const applied = personalizationEngine.applySmartStartup(
+          prefsNow,
+          report,
+          layoutRef.current,
+          prefsNow.lastOpenedProject ?? null,
+        );
+        setLayoutState(applied.shell);
+        setPreferences(applied.preferences);
+        if (!report.restored && applied.preferences.sidebarPinnedDefault) {
+          setNavigationState((current) => ({ ...current, pinned: true }));
+        }
+        const combined: RestoreReport = {
+          ...report,
+          explanation: [report.explanation, applied.decision.explanation].filter(Boolean).join(" "),
+        };
+        setRestoreReport(combined);
+        notify(
+          report.recoveredFromCrash ? "warning" : report.restored || applied.decision.applied ? "success" : "info",
+          report.recoveredFromCrash ? "Crash recovery" : "Workspace ready",
+          combined.explanation,
+          report.recoveredFromCrash ? "warnings" : "production-complete",
+        );
+      } catch (error) {
+        console.error("[KWIZERA] Startup bootstrap failed:", error);
+        resetPersistedNavigationInStorage();
+        setLayoutState((current) => ({ ...current, workspace: "home" }));
+        setRestoreReport({
+          restored: false,
+          source: "fresh",
+          explanation: "Startup recovery applied. Your projects remain saved; Home is ready.",
+          snapshotId: null,
+          recoveredFromCrash: false,
+        });
+        notify(
+          "warning",
+          "Workspace recovery",
+          "Startup encountered invalid saved navigation state. Home is ready and your project data is preserved.",
+          "warnings",
+        );
+      } finally {
+        bootstrappingRef.current = false;
+        setAppReady(true);
+        window.clearTimeout(startupTimer);
       }
-      const combined: RestoreReport = {
-        ...report,
-        explanation: [report.explanation, applied.decision.explanation].filter(Boolean).join(" "),
-      };
-      setRestoreReport(combined);
-      notify(
-        report.recoveredFromCrash ? "warning" : report.restored || applied.decision.applied ? "success" : "info",
-        report.recoveredFromCrash ? "Crash recovery" : "Workspace ready",
-        combined.explanation,
-        report.recoveredFromCrash ? "warnings" : "production-complete",
-      );
-      bootstrappingRef.current = false;
-      setAppReady(true);
     }
 
     const uninstallCrash = workspaceStateEngine.crashProtection.install();
@@ -215,6 +248,7 @@ export function AppShell({
     }, 400);
 
     return () => {
+      window.clearTimeout(startupTimer);
       clearTimeout(certTimer);
       uninstallCrash();
       unsub();

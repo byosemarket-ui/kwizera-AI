@@ -16,6 +16,9 @@ import type {
 } from "./types";
 import {
   coldStartRestoreExplanation,
+  fallbackShellLayout,
+  markNavigationSchemaCurrent,
+  patchPreferencesForHomeStartup,
   resetPersistedNavigationInStorage,
   sanitizeSnapshotForColdStart,
 } from "../startup-navigation";
@@ -208,6 +211,41 @@ export class WorkspaceStateEngine {
     }
   }
 
+  private quarantineBrokenSnapshot(snapshot: WorkspaceStateSnapshot | null, reason: string): void {
+    try {
+      if (snapshot?.projectMemory) projectMemoryStore.save(snapshot.projectMemory);
+      if (snapshot?.dashboard) dashboardWidgetStore.save(snapshot.dashboard);
+      if (snapshot?.preferences) this.preferenceManager.save(patchPreferencesForHomeStartup(snapshot.preferences));
+    } catch (error) {
+      console.warn("[KWIZERA] Could not preserve data during snapshot quarantine:", error);
+    }
+    try {
+      shellLayoutManager.save(fallbackShellLayout());
+      localStorage.removeItem(SNAPSHOT_KEY);
+      localStorage.removeItem(EMERGENCY_KEY);
+    } catch (error) {
+      console.warn("[KWIZERA] Could not quarantine broken snapshot:", error);
+    }
+    console.warn("[KWIZERA] Quarantined broken workspace snapshot:", reason);
+    markNavigationSchemaCurrent();
+  }
+
+  private applySnapshotSafe(
+    snapshot: WorkspaceStateSnapshot,
+    options?: { applyToUi?: boolean },
+  ): { applied: boolean; sanitized: WorkspaceStateSnapshot } {
+    try {
+      const sanitized = sanitizeSnapshotForColdStart(snapshot);
+      this.applySnapshot(sanitized, options);
+      markNavigationSchemaCurrent();
+      return { applied: true, sanitized };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.quarantineBrokenSnapshot(snapshot, message);
+      return { applied: false, sanitized: sanitizeSnapshotForColdStart(snapshot) };
+    }
+  }
+
   restoreOnStartup(): RestoreReport {
     // Ensure persisted navigation keys never reopen the last screen on a fresh launch.
     resetPersistedNavigationInStorage();
@@ -224,41 +262,66 @@ export class WorkspaceStateEngine {
     const latest = this.loadLatestSnapshot();
 
     if (unclean && emergency) {
-      const sanitized = sanitizeSnapshotForColdStart(emergency);
-      this.applySnapshot(sanitized, { applyToUi: false });
+      const { applied, sanitized } = this.applySnapshotSafe(emergency, { applyToUi: false });
       this.crashProtection.clearFlag();
-      sessionStore.pushHistory("session", "Restored after unexpected shutdown", emergency.id);
+      if (applied) {
+        sessionStore.pushHistory("session", "Restored after unexpected shutdown", emergency.id);
+        return {
+          restored: true,
+          source: "emergency",
+          explanation: coldStartRestoreExplanation(
+            `Recovered emergency workspace data from ${new Date(emergency.savedAt).toLocaleString()}.`,
+            sanitized.projectMemory.projectName,
+          ),
+          snapshotId: emergency.id,
+          recoveredFromCrash: true,
+        };
+      }
+      this.ensureSession(fallbackShellLayout(), sanitized.projectMemory.projectName, sanitized.layoutManager.activeLayoutId);
       return {
-        restored: true,
-        source: "emergency",
+        restored: false,
+        source: "fresh",
         explanation: coldStartRestoreExplanation(
-          `Recovered emergency workspace data from ${new Date(emergency.savedAt).toLocaleString()}.`,
-          emergency.projectMemory.projectName,
+          "Emergency snapshot could not be applied safely; project data was preserved and Home is ready.",
+          sanitized.projectMemory.projectName,
         ),
-        snapshotId: emergency.id,
+        snapshotId: null,
         recoveredFromCrash: true,
       };
     }
 
     if (latest) {
-      const sanitized = sanitizeSnapshotForColdStart(latest);
-      this.applySnapshot(sanitized, { applyToUi: false });
+      const { applied, sanitized } = this.applySnapshotSafe(latest, { applyToUi: false });
       this.crashProtection.clearFlag();
-      this.ensureSession(sanitized.shell, sanitized.projectMemory.projectName, sanitized.layoutManager.activeLayoutId);
+      if (applied) {
+        this.ensureSession(sanitized.shell, sanitized.projectMemory.projectName, sanitized.layoutManager.activeLayoutId);
+        return {
+          restored: true,
+          source: unclean ? "emergency" : "session",
+          explanation: coldStartRestoreExplanation(
+            `Restored last session (${latest.session.id.slice(0, 12)}…).`,
+            sanitized.projectMemory.projectName,
+          ),
+          snapshotId: latest.id,
+          recoveredFromCrash: unclean,
+        };
+      }
+      this.ensureSession(fallbackShellLayout(), sanitized.projectMemory.projectName, sanitized.layoutManager.activeLayoutId);
       return {
-        restored: true,
-        source: unclean ? "emergency" : "session",
+        restored: false,
+        source: "fresh",
         explanation: coldStartRestoreExplanation(
-          `Restored last session (${latest.session.id.slice(0, 12)}…).`,
+          "Previous navigation snapshot was invalid; project data was preserved and Home is ready.",
           sanitized.projectMemory.projectName,
         ),
-        snapshotId: latest.id,
+        snapshotId: null,
         recoveredFromCrash: unclean,
       };
     }
 
     const shell = shellLayoutManager.load();
     this.ensureSession(shell, projectMemoryStore.load().projectName, workspaceLayoutManager.load().activeLayoutId);
+    markNavigationSchemaCurrent();
     return {
       restored: false,
       source: "fresh",

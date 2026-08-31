@@ -43,3 +43,9 @@ export function rejectCorrupt<T>(raw: unknown, fallback: T, validate: (value: un
   const result = validate(raw);
   return result.valid ? (raw as T) : fallback;
 }
+
+/** Recompute checksum after navigation-only patches so applySnapshot validation passes. */
+export function recomputeSnapshotChecksum(snapshot: WorkspaceStateSnapshot): WorkspaceStateSnapshot {
+  const { checksum: _ignored, ...base } = snapshot;
+  return { ...base, checksum: checksumPayload(base) };
+}

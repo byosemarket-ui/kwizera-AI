@@ -7,8 +7,12 @@ import type { ShellLayoutState, WorkspaceId } from "./types";
 import { shellLayoutManager, defaultShellLayout } from "./layout-store";
 import { DesktopPreferenceManager } from "../desktop-polish/preference-store";
 import type { WorkspaceStateSnapshot } from "./workspace-state/types";
+import { recomputeSnapshotChecksum } from "./workspace-state/state-validation";
 import { ALL_WORKSPACE_IDS } from "./types";
 import { mapLegacyWorkspace } from "./workspace-registry";
+
+export const PERSISTED_NAVIGATION_SCHEMA_VERSION = 2;
+export const PERSISTED_NAVIGATION_VERSION_KEY = "kwizera.desktop.navigation-schema.v1";
 
 export const STARTUP_HOME_WORKSPACE: WorkspaceId = "home";
 
@@ -27,7 +31,7 @@ export function patchPreferencesForHomeStartup(preferences: DesktopPreferences):
 
 /** Strip persisted route from a snapshot while keeping project/session data. */
 export function sanitizeSnapshotForColdStart(snapshot: WorkspaceStateSnapshot): WorkspaceStateSnapshot {
-  return {
+  const patched: WorkspaceStateSnapshot = {
     ...snapshot,
     shell: patchShellForHomeStartup(snapshot.shell),
     preferences: patchPreferencesForHomeStartup(snapshot.preferences),
@@ -35,6 +39,15 @@ export function sanitizeSnapshotForColdStart(snapshot: WorkspaceStateSnapshot): 
       ? { ...snapshot.session, workspace: STARTUP_HOME_WORKSPACE }
       : snapshot.session,
   };
+  return recomputeSnapshotChecksum(patched);
+}
+
+export function markNavigationSchemaCurrent(): void {
+  try {
+    localStorage.setItem(PERSISTED_NAVIGATION_VERSION_KEY, String(PERSISTED_NAVIGATION_SCHEMA_VERSION));
+  } catch {
+    /* best effort */
+  }
 }
 
 /**
@@ -53,6 +66,7 @@ export function resetPersistedNavigationInStorage(): void {
   } catch (error) {
     console.warn("[KWIZERA] Could not reset preference navigation key:", error);
   }
+  markNavigationSchemaCurrent();
 }
 
 export function fallbackShellLayout(): ShellLayoutState {

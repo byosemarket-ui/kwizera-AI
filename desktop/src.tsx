@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, Component, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ChevronRight, Command, Contrast, Download, MonitorCog, Palette, PanelsTopLeft,
-  RotateCcw, Settings, Upload, X,
+  RotateCcw, Settings, Upload, X, AlertTriangle,
 } from "lucide-react";
 import { DesktopNotificationManager, DesktopPreferenceManager } from "./desktop-polish/preference-store";
 import { workspaceProfiles } from "./desktop-polish/profiles";
@@ -17,12 +17,54 @@ import { navigationStore } from "./shell/navigation/navigation-store";
 import { buildAiMeWorkspaceContext, serializeAiMeContext } from "./shell/aime-awareness";
 import { NotificationCenter } from "./shell/navigation/NotificationCenter";
 import { mapLegacyWorkspace } from "./shell/workspace-registry";
+import { installBootstrapRecovery } from "./shell/bootstrap-recovery";
+import { resetPersistedNavigationInStorage } from "./shell/startup-navigation";
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
 import "./shell/shell.css";
 
 const preferenceManager = new DesktopPreferenceManager();
 const notificationManager = new DesktopNotificationManager();
+
+class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error("[KWIZERA] Root render failed:", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <main className="startup-recovery-panel" style={{ minHeight: "100vh", margin: 0, borderRadius: 0 }}>
+          <AlertTriangle size={32} />
+          <h2>KWIZERA AI STUDIO — recovery</h2>
+          <p>{this.state.error.message}</p>
+          <button
+            type="button"
+            onClick={() => {
+              resetPersistedNavigationInStorage();
+              window.location.reload();
+            }}
+          >
+            Reload application
+          </button>
+          <button
+            type="button"
+            onClick={() => this.setState({ error: null })}
+          >
+            Retry
+          </button>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   const [preferences, setPreferences] = useState<DesktopPreferences>(() => preferenceManager.load());
@@ -531,4 +573,9 @@ export function getWorkspaceContextForAiMe(layout: ShellLayoutState, core: CoreS
   return serializeAiMeContext(buildAiMeWorkspaceContext(layout, core));
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+installBootstrapRecovery();
+createRoot(document.getElementById("root")!).render(
+  <RootErrorBoundary>
+    <App />
+  </RootErrorBoundary>,
+);
