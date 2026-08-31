@@ -78,6 +78,17 @@ export async function fetchWorkspaceApi(): Promise<WorkspaceApiPayload | null> {
   }
 }
 
+/** Wait until creative workspace API accepts requests (boot can take minutes on cold start). */
+export async function waitForWorkspaceReady(maxMs = 180_000): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    const payload = await fetchWorkspaceApi();
+    if (payload) return;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new Error("Creative workspace is not ready yet. Wait a moment and try again.");
+}
+
 export async function createProjectApi(name: string): Promise<CreativeProjectDto> {
   const response = await fetch("/api/workspace/projects", {
     method: "POST",

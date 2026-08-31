@@ -67,6 +67,27 @@ try {
   await page.waitForTimeout(1500);
   record("App shell mounted", true);
 
+  for (let i = 0; i < 120; i += 1) {
+    const ready = await page.evaluate(async () => {
+      try {
+        const res = await fetch("/api/workspace");
+        return res.ok;
+      } catch {
+        return false;
+      }
+    });
+    if (ready) break;
+    await page.waitForTimeout(2000);
+  }
+  record("Creative workspace API ready", await page.evaluate(async () => {
+    try {
+      const res = await fetch("/api/workspace");
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }));
+
   await openProductSetup(page);
   await page.waitForSelector(".product-setup", { timeout: 30000 });
   record("Step 1 Product Setup visible", true);
@@ -110,8 +131,13 @@ try {
   record("Thumbnail has image src", Boolean(thumbSrc && thumbSrc.length > 4), thumbSrc?.slice(0, 80) ?? "none");
 
   await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#workspace-main", { timeout: 60000 });
+  await page.waitForTimeout(2000);
+  if ((await page.locator(".product-setup").count()) === 0) {
+    await openProductSetup(page);
+    await page.waitForTimeout(1500);
+  }
   await page.waitForSelector(".product-setup", { timeout: 30000 });
-  await page.waitForTimeout(2500);
 
   const afterRefresh = await page.locator(".product-setup__card").count();
   record("Images persist after browser refresh", afterRefresh >= cardsBefore + 1, String(afterRefresh));

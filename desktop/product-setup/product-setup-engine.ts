@@ -78,6 +78,7 @@ export class ProductSetupEngine {
   }
 
   subscribe(listener: Listener): () => void {
+    this.wireSubscriptions();
     this.listeners.add(listener);
     listener(this.snapshot());
     return () => this.listeners.delete(listener);

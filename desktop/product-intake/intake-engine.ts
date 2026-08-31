@@ -244,6 +244,8 @@ export class ProductIntakeEngine {
   async prepareImport(projectNameHint?: string): Promise<string> {
     const hint = (projectNameHint ?? this.projectName).trim();
     const name = hint || `Product ${new Date().toLocaleDateString()}`;
+    const { waitForWorkspaceReady } = await import("./api");
+    await waitForWorkspaceReady();
     return this.ensureProject(name);
   }
 
