@@ -6,7 +6,6 @@ import type {
 } from "./types";
 import { ShellProvider, useShell } from "./ShellContext";
 import { shellLayoutManager } from "./layout-store";
-import { mapLegacyWorkspace } from "./workspace-registry";
 import { navigationStore } from "./navigation/navigation-store";
 import { navigationEngine } from "./navigation/navigation-engine";
 import { workspaceLayoutManager } from "./layout/layout-manager";
@@ -36,6 +35,7 @@ import { workspaceCertificationEngine } from "./certification/certification-engi
 import type { CertificationSnapshot } from "./certification/types";
 import type { RestoreReport } from "./workspace-state/types";
 import { deriveProjectStatus, resolveActiveProjectName } from "./project-context";
+import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import "./layout/layout-engine.css";
 import "./performance/performance.css";
 import "./ux/ux.css";
@@ -95,6 +95,7 @@ export function AppShell({
   const [shortcutGuideOpen, setShortcutGuideOpen] = useState(false);
   const [integrationSnapshot, setIntegrationSnapshot] = useState<IntegrationSnapshot | null>(null);
   const [certificationSnapshot, setCertificationSnapshot] = useState<CertificationSnapshot | null>(null);
+  const [appReady, setAppReady] = useState(false);
   const projectStatus: ProjectStatus = deriveProjectStatus(
     resolveActiveProjectName(core?.activeProject),
     core?.runtimeMetrics?.activeJobs ?? 0,
@@ -155,6 +156,7 @@ export function AppShell({
         report.recoveredFromCrash ? "warnings" : "production-complete",
       );
       bootstrappingRef.current = false;
+      setAppReady(true);
     }
 
     const uninstallCrash = workspaceStateEngine.crashProtection.install();
@@ -290,17 +292,12 @@ export function AppShell({
   }, [layoutManager]);
 
   useEffect(() => {
-    if (restoredLayout) setLayoutState(restoredLayout);
+    if (restoredLayout) {
+      setLayoutState({ ...restoredLayout, workspace: "home" });
+    }
   }, [restoredLayout]);
 
-  useEffect(() => {
-    // Do not sync lastWorkspace → UI during bootstrap (avoids flashing last Step before Home).
-    if (bootstrappingRef.current) return;
-    const external = mapLegacyWorkspace(preferences.lastWorkspace);
-    if (external !== layout.workspace) {
-      setLayoutState((current) => ({ ...current, workspace: external }));
-    }
-  }, [preferences.lastWorkspace]);
+  // Profile switches navigate explicitly via kwizera:navigate-workspace — never auto-restore lastWorkspace on startup.
 
   useEffect(() => {
     if (navigation.pinned && layout.leftCollapsed) {
@@ -588,7 +585,14 @@ export function AppShell({
         <LeftSidebar onPreferencesOpen={onPreferencesOpen} onNewProject={onNewProject} />
 
         <ProductionWorkspace onOpenLayoutManager={() => setLayoutManagerOpen(true)}>
-          {children}
+          <WorkspaceErrorBoundary workspace={layout.workspace} onRecover={switchWorkspace}>
+            {appReady ? children : (
+              <section className="startup-loading-panel" role="status" aria-live="polite">
+                <strong>KWIZERA AI STUDIO</strong>
+                <span>Initializing workspace…</span>
+              </section>
+            )}
+          </WorkspaceErrorBoundary>
         </ProductionWorkspace>
 
         {layout.rightOpen && !layout.zen && (

@@ -29,7 +29,7 @@ export function WorkspaceHeader({
   onNotificationsToggle,
   notificationsOpen,
 }: WorkspaceHeaderProps) {
-  const { core, saveState, autoSave, notifications, layout, projectStatus, performanceSnapshot } = useShell();
+  const { core, saveState, autoSave, notifications, layout, projectStatus, performanceSnapshot, switchWorkspace } = useShell();
   const workspaceLabel = getNavItem(layout.workspace).label;
   const status = navigationEngine.buildWorkspaceStatus(core, projectStatus, layout.zen);
   const unread = notifications.filter((n) => !n.read).length;
@@ -40,11 +40,16 @@ export function WorkspaceHeader({
 
   return (
     <header className="topbar workspace-header nav-engine-header" role="banner">
-      <a className="brand" href="/" aria-label="KWIZERA AI Studio home">
+      <button
+        type="button"
+        className="brand"
+        aria-label="KWIZERA AI Studio home"
+        onClick={() => switchWorkspace("home")}
+      >
         <span className="brand-mark"><Sparkles size={17} /></span>
         <span>KWIZERA</span>
         <em>AI STUDIO</em>
-      </a>
+      </button>
 
       <div className="header-workspace-name" title="Current workspace">
         <span className="header-meta-label">Workspace</span>

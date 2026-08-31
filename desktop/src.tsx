@@ -101,12 +101,14 @@ function App() {
   const switchProfile = (profileId: WorkspaceProfileId) => {
     const profile = workspaceProfiles.find((item) => item.id === profileId);
     if (!profile) return;
+    const workspace = mapLegacyWorkspace(profile.workspace);
     setPreferences((current) => ({
       ...current,
       activeProfile: profileId,
-      lastWorkspace: mapLegacyWorkspace(profile.workspace),
+      lastWorkspace: workspace,
       defaultLayoutId: profile.layoutId ?? current.defaultLayoutId,
     }));
+    window.dispatchEvent(new CustomEvent("kwizera:navigate-workspace", { detail: { workspace } }));
     notify("info", `${profile.label} applied`, profile.detail, "updates");
   };
 
@@ -127,8 +129,8 @@ function App() {
       const snap = workspaceStateEngine.loadLatestSnapshot();
       if (snap) {
         setPreferences(snap.preferences);
-        setRestoredLayout(snap.shell);
-        setLayoutSnapshot(snap.shell);
+        setRestoredLayout({ ...snap.shell, workspace: "home" });
+        setLayoutSnapshot({ ...snap.shell, workspace: "home" });
       }
       notify("success", "Workspace restored", report.explanation, "production-complete");
       return;
@@ -136,8 +138,8 @@ function App() {
     const backup = preferenceManager.restore<{ layout: ShellLayoutState; preferences: DesktopPreferences }>();
     if (backup) {
       setPreferences(backup.preferences);
-      setRestoredLayout(backup.layout);
-      setLayoutSnapshot(backup.layout);
+      setRestoredLayout({ ...backup.layout, workspace: "home" });
+      setLayoutSnapshot({ ...backup.layout, workspace: "home" });
       notify("success", "Workspace restored", "Legacy desktop snapshot has been applied.", "production-complete");
     } else {
       notify("warning", "Nothing to restore", "No valid workspace snapshot is available.", "warnings");

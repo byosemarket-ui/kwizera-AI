@@ -14,6 +14,11 @@ import type {
   ProjectMemoryRecord, RestoreReport, SaveMode, WorkspaceSession,
   WorkspaceStateSnapshot, WorkspaceUiState,
 } from "./types";
+import {
+  coldStartRestoreExplanation,
+  resetPersistedNavigationInStorage,
+  sanitizeSnapshotForColdStart,
+} from "../startup-navigation";
 
 const SNAPSHOT_KEY = "kwizera.workspace-state.snapshot.v1";
 const EMERGENCY_KEY = "kwizera.workspace-state.emergency.v1";
@@ -204,6 +209,9 @@ export class WorkspaceStateEngine {
   }
 
   restoreOnStartup(): RestoreReport {
+    // Ensure persisted navigation keys never reopen the last screen on a fresh launch.
+    resetPersistedNavigationInStorage();
+
     const unclean = this.crashProtection.wasUncleanShutdown();
     const emergency = (() => {
       try {
@@ -216,26 +224,34 @@ export class WorkspaceStateEngine {
     const latest = this.loadLatestSnapshot();
 
     if (unclean && emergency) {
-      this.applySnapshot(emergency);
+      const sanitized = sanitizeSnapshotForColdStart(emergency);
+      this.applySnapshot(sanitized, { applyToUi: false });
       this.crashProtection.clearFlag();
       sessionStore.pushHistory("session", "Restored after unexpected shutdown", emergency.id);
       return {
         restored: true,
         source: "emergency",
-        explanation: `Recovered emergency workspace state from ${new Date(emergency.savedAt).toLocaleString()}. Project “${emergency.projectMemory.projectName ?? "none"}” and layout were preserved.`,
+        explanation: coldStartRestoreExplanation(
+          `Recovered emergency workspace data from ${new Date(emergency.savedAt).toLocaleString()}.`,
+          emergency.projectMemory.projectName,
+        ),
         snapshotId: emergency.id,
         recoveredFromCrash: true,
       };
     }
 
     if (latest) {
-      this.applySnapshot(latest);
+      const sanitized = sanitizeSnapshotForColdStart(latest);
+      this.applySnapshot(sanitized, { applyToUi: false });
       this.crashProtection.clearFlag();
-      this.ensureSession(latest.shell, latest.projectMemory.projectName, latest.layoutManager.activeLayoutId);
+      this.ensureSession(sanitized.shell, sanitized.projectMemory.projectName, sanitized.layoutManager.activeLayoutId);
       return {
         restored: true,
         source: unclean ? "emergency" : "session",
-        explanation: `Restored last session (${latest.session.id.slice(0, 12)}…) with workspace “${latest.shell.workspace}”${latest.projectMemory.projectName ? ` and project “${latest.projectMemory.projectName}”` : ""}.`,
+        explanation: coldStartRestoreExplanation(
+          `Restored last session (${latest.session.id.slice(0, 12)}…).`,
+          sanitized.projectMemory.projectName,
+        ),
         snapshotId: latest.id,
         recoveredFromCrash: unclean,
       };
@@ -252,7 +268,7 @@ export class WorkspaceStateEngine {
     };
   }
 
-  applySnapshot(snapshot: WorkspaceStateSnapshot): void {
+  applySnapshot(snapshot: WorkspaceStateSnapshot, options?: { applyToUi?: boolean }): void {
     const validation = validateSnapshot(snapshot);
     if (!validation.valid) throw new Error(`Cannot apply corrupt snapshot: ${validation.errors.join("; ")}`);
     shellLayoutManager.save(snapshot.shell);
@@ -262,8 +278,10 @@ export class WorkspaceStateEngine {
     if (snapshot.dashboard) dashboardWidgetStore.save(snapshot.dashboard);
     projectMemoryStore.save(snapshot.projectMemory);
     this.ui = snapshot.ui;
-    this.providers?.applyShell?.(snapshot.shell);
-    this.providers?.applyPreferences?.(snapshot.preferences);
+    if (options?.applyToUi !== false) {
+      this.providers?.applyShell?.(snapshot.shell);
+      this.providers?.applyPreferences?.(snapshot.preferences);
+    }
   }
 
   markCleanShutdown(clean: boolean): void {
