@@ -20,6 +20,7 @@ export function ProductSetupWorkspace() {
   const [snap, setSnap] = useState<ProductSetupSnapshot>(() => productSetupEngine.snapshot());
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [continuePhase, setContinuePhase] = useState<"idle" | "saving" | "opening">("idle");
   const [optionalOpen, setOptionalOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
@@ -73,9 +74,12 @@ export function ProductSetupWorkspace() {
   }, [notify, onFiles]);
 
   const onContinue = async () => {
+    if (busy) return;
     setBusy(true);
+    setContinuePhase("saving");
     try {
       await productSetupEngine.continueToStep2();
+      setContinuePhase("opening");
       notify("success", "Product setup complete", "Opening Video Plan.", "production-complete");
       switchWorkspace("video-requirements");
     } catch (error) {
@@ -87,6 +91,7 @@ export function ProductSetupWorkspace() {
       );
     } finally {
       setBusy(false);
+      setContinuePhase("idle");
     }
   };
 
@@ -433,7 +438,11 @@ export function ProductSetupWorkspace() {
           onClick={() => void onContinue()}
         >
           {busy ? <Loader2 size={15} className="spin" /> : null}
-          Continue to Video Plan →
+          {continuePhase === "saving"
+            ? "Saving…"
+            : continuePhase === "opening"
+              ? "Opening Video Plan…"
+              : "Continue to Video Plan →"}
         </button>
       </footer>
     </div>

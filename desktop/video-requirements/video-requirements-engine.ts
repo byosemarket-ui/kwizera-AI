@@ -160,7 +160,7 @@ export class VideoRequirementsEngine {
       currentPrice: typeof info.price === "number" ? info.price : handoff?.essentials.currentPrice ?? null,
       previousPrice: typeof info.originalPrice === "number" ? info.originalPrice : handoff?.essentials.previousPrice ?? null,
       currency: String(info.currency ?? handoff?.essentials.currency ?? "RWF"),
-      website: String((info.specifications as Record<string, string> | undefined)?.website ?? handoff?.optional.website ?? ""),
+      website: String((info.specifications as Record<string, string> | undefined)?.website ?? handoff?.optional?.website ?? ""),
       contact: String(info.additionalNotes?.match(/\+?\d[\d\s-]{6,}/)?.[0] ?? ""),
     };
 

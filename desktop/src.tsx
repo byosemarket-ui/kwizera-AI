@@ -34,7 +34,12 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("[KWIZERA] Root render failed:", error, info.componentStack);
+    const workspace = document.querySelector("#workspace-main")?.getAttribute("data-workspace") ?? "unknown";
+    console.error("[KWIZERA] Root render failed:", {
+      message: error.message,
+      workspace,
+      componentStack: info.componentStack,
+    });
   }
 
   render() {

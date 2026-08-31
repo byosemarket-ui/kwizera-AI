@@ -50,9 +50,9 @@ export function VideoRequirementsWorkspace() {
       <WorkflowProgress currentStep={2} projectName={snap.projectName || undefined} />
 
       <div className="vr-intro">
-        <span className="kw-workflow-progress__step-label">STEP 2 OF 5 · PRODUCT DETAILS & VIDEO SETTINGS</span>
-        <h1>Product Details &amp; Video Settings</h1>
-        <p>Add the key product and campaign details needed to create your marketing video.</p>
+        <span className="kw-workflow-progress__step-label">STEP 2 OF 3 · VIDEO PLAN</span>
+        <h1>Video Plan</h1>
+        <p>Set your video goal, audience, platform, duration, and language for this product video.</p>
       </div>
 
       {/* Section A — Product */}
@@ -273,10 +273,10 @@ export function VideoRequirementsWorkspace() {
         <section className="vr-section vr-intel">
           <h2>Product Intelligence</h2>
           <ul>
-            {snap.intelligence.lines.map((line) => (
+            {(snap.intelligence.lines ?? []).map((line) => (
               <li key={line} className="is-ok">✓ {line}</li>
             ))}
-            {snap.intelligence.viewsMissing.map((v) => (
+            {(snap.intelligence.viewsMissing ?? []).map((v) => (
               <li key={v}>○ {v} not detected</li>
             ))}
           </ul>
@@ -338,7 +338,7 @@ export function VideoRequirementsWorkspace() {
           <li>{snap.objective ? "✓" : "○"} Campaign objective</li>
           <li>{snap.language ? "✓" : "○"} Language</li>
         </ul>
-        <strong>{snap.readiness.statusLabel.replace(/_/g, " ")}</strong>
+        <strong>{(snap.readiness?.statusLabel ?? "NOT READY").replace(/_/g, " ")}</strong>
       </section>
 
       <footer className="vr-footer">

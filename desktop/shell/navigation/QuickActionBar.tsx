@@ -53,7 +53,7 @@ export function QuickActionBar() {
   const overflow = Array.isArray(filtered) ? [] : filtered.overflow;
 
   const renderButton = (action: (typeof QUICK_ACTIONS)[number], compact = false) => {
-    const Icon = actionIcons[action.id];
+    const Icon = actionIcons[action.id] ?? Save;
     const button = (
       <button
         key={action.id}

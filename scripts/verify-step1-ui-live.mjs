@@ -25,13 +25,19 @@ page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 await page.goto(BASE, { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForTimeout(1500);
 
-const productSetup = page.getByRole("button", { name: /product setup/i }).first();
-if (await productSetup.count()) await productSetup.click();
-await page.waitForTimeout(1200);
+let workspace = await page.locator("#workspace-main").getAttribute("data-workspace");
+if (workspace !== "new-project") {
+  const productSetup = page.locator(".nav-item").filter({ hasText: "Product Setup" }).first();
+  if (await productSetup.count()) {
+    await productSetup.click({ noWaitAfter: true });
+    await page.waitForTimeout(2000);
+    workspace = await page.locator("#workspace-main").getAttribute("data-workspace");
+  }
+}
 
 const project = page.getByText("Chestnut Oxford").first();
 if (await project.count()) {
-  await project.click();
+  await project.click({ noWaitAfter: true });
   await page.waitForTimeout(2000);
 }
 

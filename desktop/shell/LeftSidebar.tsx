@@ -1,50 +1,8 @@
-import {
-  Activity, BarChart3, BookOpen, Bot, ChevronDown, ChevronLeft, ChevronRight, Clapperboard,
-  Download, FileAudio, FileImage, FileVideo, FolderOpen, FolderPlus, Gauge, HeartPulse, HelpCircle, History,
-  Home, Layers, Library, ListOrdered, MoreHorizontal, Package, Pin, PinOff, Search, Settings,
-  ShieldCheck, Sparkles, Star, Tag, Workflow, Eye, Brain, Globe, FileText, Megaphone,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Pin, PinOff, Star } from "lucide-react";
 import type { WorkspaceId } from "./types";
 import { useShell } from "./ShellContext";
 import { getNavItem, getSidebarNavByGroup } from "./workspace-registry";
-
-const navIcons: Record<WorkspaceId, typeof Home> = {
-  home: Home,
-  "new-project": FolderPlus,
-  "open-project": FolderOpen,
-  "recent-projects": History,
-  "knowledge-center": BookOpen,
-  "knowledge-packs": Library,
-  "knowledge-search": Search,
-  "ai-me": Sparkles,
-  production: Bot,
-  pipeline: Workflow,
-  queue: ListOrdered,
-  "active-production": Activity,
-  "command-center": Gauge,
-  storyboard: Clapperboard,
-  marketing: Layers,
-  "marketing-strategy": Megaphone,
-  "asset-library": Package,
-  "image-organization": Layers,
-  "product-information": Tag,
-  "product-validation": ShieldCheck,
-  "visual-analysis": Eye,
-  "deep-intelligence": Brain,
-  "market-research": Globe,
-  "master-intelligence": FileText,
-  "generated-images": FileImage,
-  "generated-videos": FileVideo,
-  "generated-audio": FileAudio,
-  output: Download,
-  exports: Download,
-  "creative-review": Eye,
-  reports: BarChart3,
-  history: History,
-  settings: Settings,
-  "system-health": HeartPulse,
-  help: HelpCircle,
-};
+import { resolveNavIcon } from "./nav-icons";
 
 interface LeftSidebarProps {
   onPreferencesOpen: () => void;
@@ -103,7 +61,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
             <span className="nav-group">Favorites</span>
             {navigation.favorites.map((id) => {
               const item = getNavItem(id);
-              const Icon = navIcons[id];
+              const Icon = resolveNavIcon(id);
               return (
                 <button
                   key={`fav-${id}`}
@@ -124,7 +82,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
             <span className="nav-group">Frequent</span>
             {(navigation.quickAccess ?? []).slice(0, 4).map((id) => {
               const item = getNavItem(id);
-              const Icon = navIcons[id];
+              const Icon = resolveNavIcon(id);
               return (
                 <button
                   key={`freq-${id}`}
@@ -144,7 +102,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
             <span className="nav-group">Recently Used</span>
             {navigation.recent.slice(0, 4).map((id) => {
               const item = getNavItem(id);
-              const Icon = navIcons[id];
+              const Icon = resolveNavIcon(id);
               return (
                 <button
                   key={`recent-${id}`}
@@ -176,7 +134,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
                 {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
               </button>
               {!collapsed && items.map((item) => {
-                const Icon = navIcons[item.id];
+                const Icon = resolveNavIcon(item.id);
                 const fav = navigation.favorites.includes(item.id);
                 return (
                   <div key={item.id} className="nav-item-row">
