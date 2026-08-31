@@ -58,6 +58,7 @@ export function FinalReviewWorkspace() {
   const ctx = snap.context;
   const isReady = snap.uiStage === "completed" && Boolean(snap.outputUrl);
   const isFailed = snap.uiStage === "failed";
+  const isAwaitingOutput = snap.uiStage === "awaiting-output";
 
   const onRetry = useCallback(async () => {
     await finalReviewEngine.retryProduction();
@@ -135,6 +136,19 @@ export function FinalReviewWorkspace() {
                     </button>
                     <button type="button" className="fr-btn" onClick={() => switchWorkspace("video-style")}>
                       Back to Review
+                    </button>
+                  </div>
+                </div>
+              ) : isAwaitingOutput ? (
+                <div className="fr-error fr-error--info">
+                  <p>Render finished — verifying the final video file…</p>
+                  <p className="fr-error-detail">{snap.currentStageLabel}</p>
+                  <div className="fr-ready-actions">
+                    <button type="button" className="fr-btn fr-btn--primary" onClick={() => void finalReviewEngine.hydrate()}>
+                      <RefreshCw size={16} /> Check again
+                    </button>
+                    <button type="button" className="fr-btn" onClick={() => void onRetry()}>
+                      Re-render
                     </button>
                   </div>
                 </div>

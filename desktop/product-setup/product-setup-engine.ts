@@ -344,6 +344,7 @@ export class ProductSetupEngine {
       };
       writeScopedHandoff(SETUP_HANDOFF_KEY, handoff);
       await persistWorkflowStep(snap.projectId, 2, 1);
+      await openProjectApi(snap.projectId);
       await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
       console.info("[STEP_1_UNIFIED_COMPLETED]", { projectId: snap.projectId });
       this.emit();

@@ -10,6 +10,7 @@ import type { Step2HandoffPayload } from "../product-setup/types";
 import {
   persistWorkflowStep,
   readProductImageSetFromProject,
+  resolveBoundProject,
   writeScopedHandoff,
 } from "../product-creation/workflow";
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
@@ -17,7 +18,6 @@ import {
   analyzeMarketingBrief,
   fetchCanonicalProduct,
   fetchMarketingBrief,
-  fetchWorkspaceApi,
   finalizeMarketingBrief,
   openProjectApi,
   persistMarketingBrief,
@@ -141,16 +141,17 @@ export class VideoRequirementsEngine {
   }
 
   async hydrate(): Promise<void> {
-    const ws = await fetchWorkspaceApi();
-    const active = ws?.activeProject ?? null;
-    if (!active?.id) {
+    const step1Handoff = readScopedHandoff<Step2HandoffPayload>(SETUP_HANDOFF_KEY);
+    const bound = await resolveBoundProject({ handoffProjectId: step1Handoff?.projectId });
+    if (!bound) {
       this.emit();
       return;
     }
-    this.projectId = active.id;
-    this.projectName = active.name;
+    const active = bound.project;
+    this.projectId = bound.projectId;
+    this.projectName = bound.projectName;
 
-    const handoff = readScopedHandoff<Step2HandoffPayload>(SETUP_HANDOFF_KEY, active.id);
+    const handoff = readScopedHandoff<Step2HandoffPayload>(SETUP_HANDOFF_KEY, bound.projectId);
     const imageSet = (readProductImageSetFromProject(active) ?? handoff?.productImageSet ?? null) as ProductImageSet | null;
     this.productImageSet = imageSet;
 

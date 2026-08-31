@@ -317,10 +317,13 @@ export class VideoStyleEngine {
           : null,
         objective: this.handoff.objective,
         sceneCount: this.plan.scenes.length,
+        productName: this.summary?.productName ?? this.projectName,
         preparedAt: new Date().toISOString(),
       };
       writeScopedHandoff(STEP4_HANDOFF_KEY, handoff);
       await persistWorkflowStep(this.projectId, 4, 3);
+      const { workspaceStateEngine } = await import("../shell/workspace-state/workspace-state-engine");
+      await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
       this.saveState = "saved";
     } finally {
       this.transitioning = false;

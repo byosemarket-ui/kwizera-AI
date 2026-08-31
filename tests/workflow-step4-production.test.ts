@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { MODE_COPY } from "../ai/video-production/production-mode-types.js";
-import { PRODUCTION_STAGES, stageCompletion } from "../desktop/final-review/final-review-engine.js";
+import { PRODUCTION_STAGES, isProductionOutputReady, stageCompletion } from "../desktop/final-review/final-review-engine.js";
 import type { Step4HandoffPayload } from "../desktop/video-style/types.js";
 
 describe("Step 4 production workflow", () => {
@@ -52,5 +52,19 @@ describe("Step 4 production workflow", () => {
     expect(handoff.assetIds).toHaveLength(2);
     expect(handoff.priceLabel).toContain("RWF");
     expect(handoff.language).toBe("Kinyarwanda");
+  });
+
+  it("requires verified output URL and CURRENT status before ready", () => {
+    expect(isProductionOutputReady(null)).toBe(false);
+    expect(isProductionOutputReady({
+      output: { url: "/api/workspace/projects/p/videos/out.mp4" },
+      renderState: "completed",
+      outputStatus: "CURRENT",
+    } as never)).toBe(true);
+    expect(isProductionOutputReady({
+      output: { url: "/api/workspace/projects/p/videos/out.mp4" },
+      renderState: "completed",
+      outputStatus: "OUTDATED",
+    } as never)).toBe(false);
   });
 });

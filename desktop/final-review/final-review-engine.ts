@@ -4,7 +4,7 @@
 
 import { MODE_COPY } from "../../ai/video-production/production-mode-types.js";
 import { platformPreview } from "../video-requirements/platform-map.js";
-import { resolveBoundProject, readScopedHandoff } from "../product-creation/workflow";
+import { persistWorkflowStep, resolveBoundProject, readScopedHandoff } from "../product-creation/workflow";
 import {
   createVideoProject,
   getVideoJob,
@@ -25,6 +25,7 @@ export type ProductionUiStage =
   | "rendering"
   | "validating"
   | "registering"
+  | "awaiting-output"
   | "completed"
   | "failed";
 
@@ -83,9 +84,10 @@ function modeLabel(mode: Step4HandoffPayload["productionMode"]): string {
 
 function buildContext(handoff: Step4HandoffPayload): FinalProductionContext {
   const preview = platformPreview(handoff.platformId);
+  const productName = handoff.productName?.trim() || handoff.projectName;
   return {
     handoff,
-    productName: handoff.productName,
+    productName,
     styleLabel: handoff.styleLabel ?? modeLabel(handoff.productionMode),
     platformLabel: handoff.platformLabel ?? preview.label,
     formatLabel: handoff.formatLabel ?? `${preview.width} × ${preview.height}`,
@@ -100,12 +102,20 @@ function buildContext(handoff: Step4HandoffPayload): FinalProductionContext {
   };
 }
 
+function hasVerifiedOutput(video: VideoProject | null | undefined): boolean {
+  return Boolean(
+    video?.output?.url
+    && video.renderState === "completed"
+    && video.outputStatus === "CURRENT",
+  );
+}
+
 function stageFromJob(job: VideoRenderJob | null, busy: boolean, started: boolean): ProductionUiStage {
   if (!started && busy) return "initializing";
   if (!job) return started ? "idle" : "idle";
   if (job.status === "queued") return "queued";
   if (job.status === "failed") return "failed";
-  if (job.status === "completed") return "completed";
+  if (job.status === "completed") return "awaiting-output";
   switch (job.stage) {
     case "preparing": return "preparing";
     case "rendering":
@@ -120,6 +130,7 @@ function stageFromJob(job: VideoRenderJob | null, busy: boolean, started: boolea
 function stageLabel(job: VideoRenderJob | null, uiStage: ProductionUiStage, progress: number): string {
   if (uiStage === "initializing") return "Initializing production…";
   if (uiStage === "creating-timeline") return "Building timeline from approved plan…";
+  if (uiStage === "awaiting-output") return "Waiting for final video output…";
   if (uiStage === "completed") return "Video ready";
   if (uiStage === "failed") return job?.error ?? "Production failed";
   if (job?.stage) {
@@ -140,6 +151,7 @@ export class FinalReviewEngine {
   private busy = false;
   private started = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private outputFetchAttempts = 0;
   private listeners = new Set<Listener>();
 
   subscribe(listener: Listener): () => void {
@@ -149,15 +161,18 @@ export class FinalReviewEngine {
   }
 
   snapshot(): FinalReviewSnapshot {
-    const progress = this.job?.progress ?? (this.uiStage === "completed" ? 100 : this.progress);
+    const verified = hasVerifiedOutput(this.video);
+    const progress = verified
+      ? 100
+      : this.job?.progress ?? (this.uiStage === "completed" ? 100 : this.progress);
     return {
       context: this.context,
-      uiStage: this.uiStage,
+      uiStage: verified ? "completed" : this.uiStage,
       progress,
-      currentStageLabel: stageLabel(this.job, this.uiStage, progress),
+      currentStageLabel: stageLabel(this.job, verified ? "completed" : this.uiStage, progress),
       job: this.job,
       video: this.video,
-      outputUrl: this.video?.output?.url ?? null,
+      outputUrl: verified ? (this.video?.output?.url ?? null) : null,
       error: this.error,
       busy: this.busy,
       started: this.started,
@@ -165,28 +180,41 @@ export class FinalReviewEngine {
   }
 
   async hydrate(): Promise<void> {
-    const handoff = readScopedHandoff<Step4HandoffPayload>(STEP4_HANDOFF_KEY);
+    const bound = await resolveBoundProject();
+    const handoff = readScopedHandoff<Step4HandoffPayload>(
+      STEP4_HANDOFF_KEY,
+      bound?.projectId ?? null,
+    );
     if (!handoff?.projectId) {
       this.context = null;
       this.emit();
       return;
     }
+    if (bound && bound.projectId !== handoff.projectId) {
+      this.error = "Active project does not match Step 4 handoff. Open the correct project or return to Step 3.";
+      this.context = buildContext(handoff);
+      this.emit();
+      return;
+    }
     this.context = buildContext(handoff);
+    this.error = null;
     try {
       const payload = await getVideoProject(handoff.projectId);
       this.video = payload.video;
-      if (payload.video?.activeJobId) {
+      if (hasVerifiedOutput(this.video)) {
+        this.uiStage = "completed";
+        this.started = true;
+        this.progress = 100;
+      } else if (payload.video?.activeJobId) {
         const current = await getVideoJob(handoff.projectId, payload.video.activeJobId);
         this.job = current.job;
         this.uiStage = stageFromJob(this.job, false, true);
         this.started = true;
         if (this.job.status === "queued" || this.job.status === "processing") {
           this.startPolling(handoff.projectId);
+        } else if (this.job.status === "completed") {
+          await this.reconcileOutput(handoff.projectId, true);
         }
-      } else if (payload.video?.output?.url && payload.video.renderState === "completed") {
-        this.uiStage = "completed";
-        this.started = true;
-        this.progress = 100;
       }
     } catch (error) {
       this.error = error instanceof Error ? error.message : "Unable to load production state";
@@ -201,10 +229,11 @@ export class FinalReviewEngine {
     this.error = null;
     this.uiStage = "initializing";
     this.progress = 2;
+    this.outputFetchAttempts = 0;
     this.emit();
 
     try {
-      const bound = await resolveBoundProject();
+      const bound = await resolveBoundProject({ handoffProjectId: projectId });
       if (!bound || bound.projectId !== projectId) {
         throw new Error("Active project does not match the production handoff.");
       }
@@ -220,10 +249,11 @@ export class FinalReviewEngine {
         this.video = created.video;
       }
 
-      if (this.video?.output?.url && this.video.renderState === "completed" && this.video.outputStatus === "CURRENT") {
+      if (hasVerifiedOutput(this.video)) {
         this.uiStage = "completed";
         this.progress = 100;
         this.started = true;
+        await persistWorkflowStep(projectId, 5, 4).catch(() => null);
         return;
       }
 
@@ -237,11 +267,10 @@ export class FinalReviewEngine {
           this.startPolling(projectId);
           return;
         }
-        if (this.job.status === "completed" && this.video?.output?.url) {
-          this.uiStage = "completed";
-          this.progress = 100;
+        if (this.job.status === "completed") {
           this.started = true;
-          return;
+          const ok = await this.reconcileOutput(projectId, true);
+          if (ok) return;
         }
       }
 
@@ -268,6 +297,7 @@ export class FinalReviewEngine {
     this.uiStage = "idle";
     this.progress = 0;
     this.error = null;
+    this.outputFetchAttempts = 0;
     await this.startProduction();
   }
 
@@ -285,37 +315,80 @@ export class FinalReviewEngine {
     }, 1500);
   }
 
+  private async refreshVideoOutput(projectId: string): Promise<VideoProject | null> {
+    const payload = await getVideoProject(projectId);
+    this.video = payload.video;
+    if (hasVerifiedOutput(this.video)) return this.video;
+    try {
+      const details = await getVideoOutputDetails(projectId);
+      if (details.output?.url) {
+        const retry = await getVideoProject(projectId);
+        this.video = retry.video;
+      }
+    } catch {
+      /* output endpoint may lag */
+    }
+    return hasVerifiedOutput(this.video) ? this.video : null;
+  }
+
+  private async reconcileOutput(projectId: string, stopPollOnMissing: boolean): Promise<boolean> {
+    this.outputFetchAttempts += 1;
+    this.uiStage = "awaiting-output";
+    this.progress = Math.max(this.progress, 95);
+    const video = await this.refreshVideoOutput(projectId);
+    if (video?.output?.url) {
+      this.uiStage = "completed";
+      this.progress = 100;
+      this.error = null;
+      await persistWorkflowStep(projectId, 5, 4).catch(() => null);
+      this.emit();
+      return true;
+    }
+    if (this.outputFetchAttempts >= 12 && stopPollOnMissing) {
+      this.stopPolling();
+      this.uiStage = "failed";
+      this.error = "Production finished but the video file is not available yet. Retry or check server storage.";
+      this.emit();
+      return false;
+    }
+    this.emit();
+    return false;
+  }
+
   private async pollJob(projectId: string): Promise<void> {
     const jobId = this.job?.id ?? this.video?.activeJobId;
     if (!jobId) return;
     try {
       const result = await getVideoJob(projectId, jobId);
       this.job = result.job;
-      this.uiStage = stageFromJob(this.job, this.busy, this.started);
       this.progress = this.job.progress ?? this.progress;
 
-      if (this.job.status === "completed" || this.job.status === "failed") {
+      if (this.job.status === "failed") {
         this.stopPolling();
-        const payload = await getVideoProject(projectId);
-        this.video = payload.video;
-        if (this.job.status === "completed") {
-          this.uiStage = "completed";
-          this.progress = 100;
-          if (payload.video?.output) {
-            try {
-              await getVideoOutputDetails(projectId);
-            } catch {
-              // non-blocking
-            }
-          }
-        } else {
-          this.uiStage = "failed";
-          this.error = this.job.error ?? "Video production failed";
-        }
+        this.uiStage = "failed";
+        this.error = this.job.error ?? "Video production failed";
+        this.emit();
+        return;
       }
+
+      if (this.job.status === "completed") {
+        const ok = await this.reconcileOutput(projectId, false);
+        if (ok) {
+          this.stopPolling();
+        }
+        return;
+      }
+
+      this.uiStage = stageFromJob(this.job, this.busy, this.started);
       this.emit();
-    } catch {
-      // keep polling
+    } catch (error) {
+      this.outputFetchAttempts += 1;
+      if (this.outputFetchAttempts >= 20) {
+        this.stopPolling();
+        this.uiStage = "failed";
+        this.error = error instanceof Error ? error.message : "Lost connection to production status";
+        this.emit();
+      }
     }
   }
 
@@ -332,4 +405,9 @@ export function stageCompletion(progress: number, minProgress: number): "done" |
   if (progress >= minProgress + 8) return "done";
   if (progress >= minProgress) return "active";
   return "pending";
+}
+
+/** Exported for unit tests — output is only "ready" when URL exists and status is current. */
+export function isProductionOutputReady(video: VideoProject | null | undefined): boolean {
+  return hasVerifiedOutput(video);
 }

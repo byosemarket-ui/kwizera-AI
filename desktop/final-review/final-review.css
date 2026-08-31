@@ -250,6 +250,14 @@
   color: var(--fr-warn);
 }
 
+.fr-error--info {
+  color: var(--fr-text);
+}
+
+.fr-error--info .fr-error-detail {
+  color: var(--fr-muted);
+}
+
 .fr-error-detail {
   font-size: 0.88rem;
   color: var(--fr-muted);

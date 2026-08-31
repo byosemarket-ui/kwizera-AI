@@ -116,6 +116,8 @@ export interface Step4HandoffPayload {
   discountLabel?: string | null;
   objective?: string;
   sceneCount: number;
+  /** Display name for product in Step 4 UI and download filename */
+  productName?: string;
   preparedAt: string;
 }
 

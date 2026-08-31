@@ -540,8 +540,8 @@ export class VideoProductionManager {
         outputValidation: qc.checks,
         versions: [...(video.versions ?? []), version],
       });
-      await this.writeJson(this.jobFile(job.id), completed);
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
+      await this.writeJson(this.jobFile(job.id), completed);
       const workspaceProject = await this.workspace!.getProject(job.projectId);
       if (workspaceProject) {
         try {
