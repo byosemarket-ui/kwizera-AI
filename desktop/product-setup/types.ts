@@ -76,6 +76,8 @@ export interface ImageCardModel {
   severity: "critical" | "warning" | "info" | "ok";
   issueMessage: string | null;
   isDuplicate: boolean;
+  /** Live import state — visible before server save completes */
+  uploadStatus: "uploading" | "saved" | "failed";
 }
 
 export type SaveState = "saved" | "saving" | "unsaved" | "error";

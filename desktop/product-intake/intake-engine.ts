@@ -120,11 +120,21 @@ export class ProductIntakeEngine {
       this.emit();
       return;
     }
+    const inFlight = this.assets.filter((a) =>
+      a.processingStatus === "uploading"
+      || a.processingStatus === "failed"
+      || a.assetId.startsWith("temp-")
+      || a.assetId.startsWith("local-fail-"),
+    );
+    const queueBusy = this.pumping || this.queue.list().some((i) =>
+      i.status === "pending" || i.status === "validating" || i.status === "importing",
+    );
+
     this.projectId = active.id;
     this.projectName = active.name;
     const stored = loadProjectMeta(active.id);
     const byId = new Map(stored.map((a) => [a.assetId, a]));
-    this.assets = active.productImages.map((image) => {
+    const fromServer = active.productImages.map((image) => {
       const prev = byId.get(image.id);
       return {
         assetId: image.id,
@@ -140,7 +150,7 @@ export class ProductIntakeEngine {
         duplicateStatus: prev?.duplicateStatus ?? "none",
         duplicateOf: prev?.duplicateOf,
         duplicateOfName: prev?.duplicateOfName,
-        processingStatus: "saved",
+        processingStatus: "saved" as const,
         checksum: image.checksumSha256 ?? prev?.checksum ?? "",
         remoteUrl: image.url,
         thumbnailUrl: image.url,
@@ -148,6 +158,17 @@ export class ProductIntakeEngine {
         keepDespiteDuplicate: prev?.keepDespiteDuplicate ?? true,
       } satisfies IntakeAssetMeta;
     });
+
+    const serverIds = new Set(fromServer.map((a) => a.assetId));
+    const preservedInFlight = inFlight.filter((a) => !serverIds.has(a.assetId));
+    this.assets = queueBusy ? [...preservedInFlight, ...fromServer] : fromServer;
+    if (queueBusy && preservedInFlight.length) {
+      // Keep local previews while imports finish; server list may lag behind.
+      const mergedIds = new Set(this.assets.map((a) => a.assetId));
+      for (const local of inFlight) {
+        if (!mergedIds.has(local.assetId)) this.assets.unshift(local);
+      }
+    }
     this.persistMeta();
     this.emit();
   }
@@ -217,6 +238,13 @@ export class ProductIntakeEngine {
     }
     this.emit();
     void this.pump();
+  }
+
+  /** Resolve a display name and ensure project exists before importing. */
+  async prepareImport(projectNameHint?: string): Promise<string> {
+    const hint = (projectNameHint ?? this.projectName).trim();
+    const name = hint || `Product ${new Date().toLocaleDateString()}`;
+    return this.ensureProject(name);
   }
 
   pause(): void {

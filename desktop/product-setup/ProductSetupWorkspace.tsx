@@ -9,7 +9,7 @@ import type { ProductSetupSnapshot } from "./types";
 import { formatPrice, parsePriceInput } from "./discount";
 import { suggestProductName } from "./readiness";
 import { VIEW_PICKER_OPTIONS, confidenceLabel } from "./view-labels";
-import { ACCEPT_ATTR } from "../product-intake/formats";
+import { ACCEPT_ATTR, classifyFormat } from "../product-intake/formats";
 import { desktopPicksToFiles } from "../product-intake/desktop-import";
 import "./product-setup.css";
 
@@ -22,6 +22,7 @@ export function ProductSetupWorkspace() {
   const [busy, setBusy] = useState(false);
   const [continuePhase, setContinuePhase] = useState<"idle" | "saving" | "opening">("idle");
   const [optionalOpen, setOptionalOpen] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
 
@@ -37,21 +38,33 @@ export function ProductSetupWorkspace() {
 
   const onFiles = useCallback(async (files: FileList | File[] | null) => {
     if (!files?.length) return;
-    const name = snap.projectName.trim();
-    if (!name) {
-      notify("warning", "Project name required", "Enter a project name before uploading images.", "warnings");
+    const supported = [...files].filter((f) => classifyFormat(f) === "supported");
+    if (!supported.length) {
+      const msg = "No supported images found. Use JPG, PNG, WEBP, TIFF, or BMP.";
+      setUploadError(msg);
+      notify("error", "Unsupported files", msg, "errors");
       return;
     }
+    if (supported.length < files.length) {
+      notify(
+        "warning",
+        "Some files skipped",
+        `${files.length - supported.length} unsupported file(s) were not imported.`,
+        "warnings",
+      );
+    }
     setBusy(true);
+    setUploadError(null);
     try {
-      await productSetupEngine.ensureProject(name);
-      productSetupEngine.enqueueFiles([...files]);
+      await productSetupEngine.enqueueFiles(supported);
     } catch (error) {
-      notify("error", "Upload failed", error instanceof Error ? error.message : "Could not save project", "errors");
+      const msg = error instanceof Error ? error.message : "Could not import images";
+      setUploadError(msg);
+      notify("error", "Upload failed", msg, "errors");
     } finally {
       setBusy(false);
     }
-  }, [notify, snap.projectName]);
+  }, [notify]);
 
   const pickImages = useCallback(async () => {
     const bridge = window.kwizeraDesktop;
@@ -96,7 +109,9 @@ export function ProductSetupWorkspace() {
   };
 
   const savedCount = snap.intake.assets.filter((a) => a.processingStatus === "saved").length;
-  const hasImages = savedCount > 0;
+  const uploadingCount = snap.intake.assets.filter((a) => a.processingStatus === "uploading").length;
+  const importRunning = snap.intake.progress.running;
+  const hasImages = savedCount > 0 || uploadingCount > 0 || snap.imageCards.length > 0;
   const suggestedName = suggestProductName(snap.projectName);
   const analysisComplete = snap.analysisStatus === "COMPLETE" || snap.analysisStatus === "REVIEW_REQUIRED";
   const analysisActive = snap.analysisStatus === "ANALYZING" || snap.analysisStatus === "UPLOADING";
@@ -172,8 +187,24 @@ export function ProductSetupWorkspace() {
       <section className="product-setup__panel">
         <div className="product-setup__section-head">
           <h2>Product Images</h2>
-          {hasImages && <span className="product-setup__meta">{savedCount} imported</span>}
+          {hasImages && (
+            <span className="product-setup__meta">
+              {savedCount} uploaded{uploadingCount > 0 ? ` · ${uploadingCount} uploading` : ""}
+            </span>
+          )}
         </div>
+
+        {uploadError && (
+          <p className="product-setup__upload-error" role="alert">{uploadError}</p>
+        )}
+
+        {importRunning && (
+          <p className="product-setup__upload-progress" role="status">
+            <Loader2 size={14} className="spin" />
+            Importing {snap.intake.progress.completed}/{snap.intake.progress.total}
+            {snap.intake.progress.currentFile ? ` — ${snap.intake.progress.currentFile}` : ""}
+          </p>
+        )}
 
         <div
           className={`product-setup__dropzone ${hasImages ? "is-compact" : ""} ${dragging ? "is-dragging" : ""}`}
@@ -202,28 +233,37 @@ export function ProductSetupWorkspace() {
         {snap.imageCards.length > 0 && (
           <div className="product-setup__grid">
             {snap.imageCards.map((card) => (
-              <article key={card.assetId} className="product-setup__card">
+              <article key={card.assetId} className={`product-setup__card${card.uploadStatus === "uploading" ? " is-uploading" : ""}${card.uploadStatus === "failed" ? " is-failed" : ""}`}>
                 <div className="product-setup__card-thumb">
                   {card.url ? <img src={card.url} alt={card.fileName} loading="lazy" /> : <ImagePlus size={22} />}
-                  {card.issueMessage && (
+                  {card.uploadStatus === "uploading" && (
+                    <span className="product-setup__card-overlay"><Loader2 size={18} className="spin" /></span>
+                  )}
+                  {card.issueMessage && card.uploadStatus !== "uploading" && (
                     <span className="product-setup__card-badge" data-severity={card.severity} title={card.issueMessage}>!</span>
                   )}
                 </div>
                 <div className="product-setup__card-body">
                   <div className="product-setup__card-head">
-                    <strong>{card.displayLabel}</strong>
+                    <strong>{card.fileName}</strong>
                     <button
                       type="button"
                       className="product-setup__icon-btn"
                       aria-label={`Remove ${card.fileName}`}
+                      disabled={card.uploadStatus === "uploading"}
                       onClick={() => void productSetupEngine.removeImage(card.assetId)}
                     >
                       <Trash2 size={13} />
                     </button>
                   </div>
                   <span className="product-setup__card-meta">
-                    {card.needsReview ? "Needs review" : confidenceLabel(card.confidence)}
+                    {card.uploadStatus === "uploading"
+                      ? "Uploading…"
+                      : card.uploadStatus === "failed"
+                        ? (card.issueMessage ?? "Upload failed")
+                        : card.needsReview ? "Needs review" : confidenceLabel(card.confidence)}
                   </span>
+                  {card.uploadStatus === "saved" && (
                   <label className="product-setup__card-select">
                     <span>Change view</span>
                     <select
@@ -236,7 +276,13 @@ export function ProductSetupWorkspace() {
                       ))}
                     </select>
                   </label>
-                  {card.isDuplicate && (
+                  )}
+                  {card.uploadStatus === "failed" && (
+                    <button type="button" className="product-setup__link-btn" onClick={() => void productSetupEngine.retryFailedUploads()}>
+                      <RefreshCw size={14} /> Retry
+                    </button>
+                  )}
+                  {card.isDuplicate && card.uploadStatus === "saved" && (
                     <button type="button" className="product-setup__link-btn" onClick={() => productSetupEngine.keepDuplicate(card.assetId)}>
                       Keep duplicate
                     </button>
@@ -434,7 +480,7 @@ export function ProductSetupWorkspace() {
         <button
           type="button"
           className="product-setup__continue"
-          disabled={!snap.canContinue || busy}
+          disabled={!snap.canContinue || busy || importRunning}
           onClick={() => void onContinue()}
         >
           {busy ? <Loader2 size={15} className="spin" /> : null}

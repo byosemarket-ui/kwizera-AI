@@ -300,6 +300,53 @@
   object-fit: cover;
 }
 
+.product-setup__card.is-uploading {
+  border-color: var(--ps-accent-dim);
+  opacity: 0.92;
+}
+
+.product-setup__card.is-failed {
+  border-color: var(--ps-err);
+}
+
+.product-setup__card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--ps-accent);
+}
+
+.product-setup__upload-error {
+  margin: var(--ps-space-2) 0 0;
+  padding: var(--ps-space-2) var(--ps-space-3);
+  border-radius: 6px;
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: #ffb4ae;
+  font-size: 0.85rem;
+}
+
+.product-setup__upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--ps-space-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--ps-muted);
+}
+
+.product-setup__card-body strong {
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .product-setup__card-badge {
   position: absolute;
   top: 6px;

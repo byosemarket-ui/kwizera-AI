@@ -171,5 +171,26 @@ describe("STEP 1 Product Setup — analysis status", () => {
     expect(cards).toHaveLength(1);
     expect(cards[0]?.displayLabel).toBe("Front");
     expect(cards[0]?.finalViewType).toBe("FRONT");
+    expect(cards[0]?.uploadStatus).toBe("saved");
+  });
+
+  it("shows uploading images immediately before server save", () => {
+    const intake = baseIntake({
+      assets: [
+        ...baseIntake().assets,
+        {
+          ...baseIntake().assets[0]!,
+          assetId: "temp-q1",
+          originalFilename: "side.jpg",
+          processingStatus: "uploading",
+          remoteUrl: undefined,
+          thumbnailUrl: "blob:local",
+          localPreviewUrl: "blob:local",
+        },
+      ],
+    });
+    const cards = buildImageCards(intake, baseOrg());
+    expect(cards).toHaveLength(2);
+    expect(cards.find((c) => c.assetId === "temp-q1")?.uploadStatus).toBe("uploading");
   });
 });

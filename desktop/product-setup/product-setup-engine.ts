@@ -165,14 +165,31 @@ export class ProductSetupEngine {
     return id;
   }
 
-  enqueueFiles(files: FileList | File[]): void {
-    productIntakeEngine.enqueueFiles(files);
+  async enqueueFiles(files: FileList | File[]): Promise<void> {
+    const list = [...files];
+    if (!list.length) return;
+    const snap = this.snapshot();
+    const name = snap.projectName.trim()
+      || suggestProductName(snap.projectName)
+      || snap.essentials.productName.trim()
+      || `Product ${new Date().toLocaleDateString()}`;
+    if (!snap.projectName.trim()) {
+      productIntakeEngine.setProjectNameLocal(name);
+      this.essentials.productName = this.essentials.productName.trim() || suggestProductName(name) || name;
+    }
+    await productIntakeEngine.prepareImport(name);
+    productIntakeEngine.enqueueFiles(list);
     this.emit();
   }
 
   async removeImage(assetId: string): Promise<void> {
     await productIntakeEngine.removeAsset(assetId);
     void this.scheduleAutoAnalysis(true);
+    this.emit();
+  }
+
+  async retryFailedUploads(): Promise<void> {
+    await productIntakeEngine.retryFailed();
     this.emit();
   }
 

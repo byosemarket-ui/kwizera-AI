@@ -41,20 +41,35 @@ export function buildImageCards(
   org: OrganizationSnapshot,
 ): ImageCardModel[] {
   const set = org.productImageSet;
-  const saved = intake.assets.filter((a) => a.processingStatus === "saved");
-  return saved.map((asset) => {
+  /** Show saved, in-flight, and failed imports — not an empty UI during upload */
+  const visible = intake.assets.filter((a) =>
+    a.processingStatus === "saved"
+    || a.processingStatus === "uploading"
+    || a.processingStatus === "failed",
+  );
+  return visible.map((asset) => {
     const organized = set?.images.find((i) => i.assetId === asset.assetId);
     const finalView = organized?.viewType ?? "UNKNOWN";
     const confidence = organized?.confidence ?? 0;
-    const needsReview = organized?.needsReview ?? true;
+    const needsReview = organized?.needsReview ?? (asset.processingStatus === "saved");
     const userCorrected = organized?.userCorrected ?? false;
     const aiView = userCorrected && organized
       ? organized.viewType
       : finalView;
 
+    const uploadStatus: ImageCardModel["uploadStatus"] =
+      asset.processingStatus === "uploading"
+        ? "uploading"
+        : asset.processingStatus === "failed"
+          ? "failed"
+          : "saved";
+
     let severity: ImageCardModel["severity"] = "ok";
     let issueMessage: string | null = null;
-    if (asset.validationStatus === "invalid" || asset.processingStatus === "failed") {
+    if (uploadStatus === "uploading") {
+      severity = "info";
+      issueMessage = "Uploading…";
+    } else if (asset.validationStatus === "invalid" || asset.processingStatus === "failed") {
       severity = "critical";
       issueMessage = asset.error ?? "This image cannot be used.";
     } else if (organized?.visibilityStatus && organized.visibilityStatus !== "clear") {
@@ -84,6 +99,7 @@ export function buildImageCards(
       severity,
       issueMessage,
       isDuplicate: Boolean(organized?.duplicateOfAssetId || asset.validationStatus === "duplicate"),
+      uploadStatus,
     };
   });
 }
