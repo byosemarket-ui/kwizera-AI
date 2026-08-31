@@ -1,29 +1,32 @@
-/** Compact 3-phase product video workflow progress indicator. */
+/** Compact 4-step product video workflow progress indicator. */
 
 const MACRO_STEPS = [
   { n: 1, label: "Product" },
   { n: 2, label: "Video Plan" },
-  { n: 3, label: "Generate" },
+  { n: 3, label: "Style" },
+  { n: 4, label: "Produce" },
 ] as const;
 
 export type WorkflowInternalStep = 1 | 2 | 3 | 4 | 5;
 
 export interface WorkflowProgressProps {
-  /** Internal workspace step (1=Product Setup … 5=Production). Mapped to 3 user-facing phases. */
+  /** Internal workspace step (1=Product … 4=Production). Mapped to 4 user-facing phases. */
   currentStep: WorkflowInternalStep;
   projectName?: string;
 }
 
-function macroPhase(step: WorkflowInternalStep): 1 | 2 | 3 {
+function macroPhase(step: WorkflowInternalStep): 1 | 2 | 3 | 4 {
   if (step <= 1) return 1;
   if (step === 2) return 2;
-  return 3;
+  if (step === 3) return 3;
+  return 4;
 }
 
-const PHASE_LABELS: Record<1 | 2 | 3, string> = {
+const PHASE_LABELS: Record<1 | 2 | 3 | 4, string> = {
   1: "PRODUCT",
   2: "VIDEO PLAN",
-  3: "GENERATE & FINISH",
+  3: "STYLE & REVIEW",
+  4: "PRODUCTION",
 };
 
 export function WorkflowProgress({ currentStep, projectName }: WorkflowProgressProps) {
@@ -33,7 +36,7 @@ export function WorkflowProgress({ currentStep, projectName }: WorkflowProgressP
     <header className="kw-workflow-progress" aria-label="Product video workflow">
       <div className="kw-workflow-progress__top">
         <span className="kw-workflow-progress__step-label">
-          STEP {phase} OF 3 · {PHASE_LABELS[phase]}
+          STEP {phase} OF 4 · {PHASE_LABELS[phase]}
         </span>
         {projectName ? (
           <span className="kw-workflow-progress__project" title={projectName}>

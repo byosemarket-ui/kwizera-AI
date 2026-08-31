@@ -41,7 +41,7 @@ export function VideoStyleWorkspace() {
     setBusy(true);
     try {
       await videoStyleEngine.continueToStep4();
-      notify("success", "Step 3 complete", "Opening Final Video Review.", "production-complete");
+      notify("success", "Step 3 complete", "Starting video production.", "production-complete");
       switchWorkspace("final-video-review");
     } catch (error) {
       notify("error", "Cannot continue", error instanceof Error ? error.message : "Validation failed", "errors");
@@ -57,8 +57,8 @@ export function VideoStyleWorkspace() {
       <WorkflowProgress currentStep={3} projectName={snap.projectName || undefined} />
 
       <div className="vr-intro">
-        <span className="kw-workflow-progress__step-label">STEP 3 OF 5 · VIDEO STYLE &amp; PRODUCTION PLAN</span>
-        <h1>Video Style &amp; Production Plan</h1>
+        <span className="kw-workflow-progress__step-label">STEP 3 OF 4 · VIDEO STYLE &amp; REVIEW</span>
+        <h1>Video Style &amp; Final Review</h1>
         <p>Choose how your product should be transformed into a marketing video.</p>
       </div>
 
@@ -93,9 +93,13 @@ export function VideoStyleWorkspace() {
                 snap.selectedMode === mode.mode ? "is-selected" : "",
                 !mode.available ? "is-unavailable" : "",
               ].filter(Boolean).join(" ")}
-              disabled={!mode.available || snap.generating}
+              disabled={!mode.available}
+              aria-pressed={snap.selectedMode === mode.mode}
               onClick={() => void videoStyleEngine.selectMode(mode.mode as ProductionModeId)}
             >
+              {snap.selectedMode === mode.mode && snap.generating ? (
+                <Loader2 size={14} className="vr-spin vs-mode-loading" aria-hidden />
+              ) : null}
               {mode.recommended && mode.available ? (
                 <span className="vs-badge vs-badge--rec">Recommended</span>
               ) : null}
@@ -121,7 +125,7 @@ export function VideoStyleWorkspace() {
               key={tone}
               type="button"
               className={`vs-tone-chip${snap.creativeTone === tone ? " is-selected" : ""}`}
-              disabled={snap.generating}
+              aria-pressed={snap.creativeTone === tone}
               onClick={() => void videoStyleEngine.selectTone(tone as CreativeToneId)}
             >
               {tone}

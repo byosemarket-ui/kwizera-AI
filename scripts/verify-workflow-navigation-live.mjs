@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Live browser verification: Step 1 → Step 2 → Step 3 workflow navigation. */
+/** Live browser verification: Step 1 → Step 2 → Step 3 → Step 4 workflow navigation. */
 import { chromium } from "playwright";
 
 const BASE = process.argv[2] ?? "http://162.35.114.19:5173/";
@@ -98,7 +98,7 @@ try {
     record("No recovery screen after Step 1 → 2", !recovery);
     record("Workspace is video-requirements", ws === "video-requirements", ws ?? "missing");
     record("Step 2 page renders (.vr-page)", step2);
-    record("STEP 2 OF 3 visible", (await page.locator("text=STEP 2 OF 3").count()) > 0);
+    record("STEP 2 OF 4 visible", (await page.locator("text=STEP 2 OF 4").count()) > 0);
     record("VIDEO PLAN visible", (await page.locator("text=VIDEO PLAN").count()) > 0);
 
     if (step2) {
@@ -122,6 +122,50 @@ try {
         record("Step 2 → Step 3 without recovery", !(await page.locator("text=KWIZERA AI STUDIO — recovery").count()));
         record("Workspace is video-style", (await page.locator("#workspace-main").getAttribute("data-workspace")) === "video-style");
         record("Step 3 workspace renders", step3);
+
+        if (step3) {
+          const modeCard = page.locator(".vs-mode-card:not(.is-unavailable)").first();
+          if (await modeCard.count()) {
+            await modeCard.click();
+            await page.waitForTimeout(2000);
+            record("Step 3 style card selectable", await modeCard.evaluate((el) => el.classList.contains("is-selected")));
+          }
+
+          const step4Btn = page.locator(".vs-footer__right .primary");
+          for (let i = 0; i < 60 && (await step4Btn.isDisabled()); i += 1) {
+            await page.waitForTimeout(1000);
+          }
+          if (!(await step4Btn.isDisabled())) {
+            await step4Btn.click();
+            let step4 = false;
+            for (let i = 0; i < 45; i += 1) {
+              const ws4 = await page.locator("#workspace-main").getAttribute("data-workspace");
+              const recovery4 = await page.locator("text=KWIZERA AI STUDIO — recovery").count();
+              const fr = await page.locator(".fr-page").count();
+              if (recovery4 > 0) break;
+              if (ws4 === "final-video-review" && fr > 0) {
+                step4 = true;
+                break;
+              }
+              await page.waitForTimeout(1000);
+            }
+            record("Step 3 → Step 4 without recovery", !(await page.locator("text=KWIZERA AI STUDIO — recovery").count()));
+            record("Workspace is final-video-review", (await page.locator("#workspace-main").getAttribute("data-workspace")) === "final-video-review");
+            record("Step 4 production UI renders (.fr-page)", step4);
+            record("STEP 4 OF 4 or CREATING YOUR VIDEO visible",
+              (await page.locator("text=STEP 4 OF 4").count()) > 0
+              || (await page.locator("text=CREATING YOUR VIDEO").count()) > 0);
+            if (step4) {
+              await page.waitForTimeout(5000);
+              const hasProgress = (await page.locator(".fr-progress-pct").count()) > 0
+                || (await page.locator("text=Video ready").count()) > 0
+                || (await page.locator("text=Your Video Is Ready").count()) > 0;
+              record("Step 4 shows production progress or ready state", hasProgress);
+            }
+          } else {
+            record("Step 3 → Step 4 continue enabled", false, "plan prerequisites not met");
+          }
+        }
       } else {
         record("Step 2 → Step 3 continue enabled", false, "prerequisites not met");
       }

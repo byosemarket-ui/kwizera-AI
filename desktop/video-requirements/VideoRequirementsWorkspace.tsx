@@ -50,7 +50,7 @@ export function VideoRequirementsWorkspace() {
       <WorkflowProgress currentStep={2} projectName={snap.projectName || undefined} />
 
       <div className="vr-intro">
-        <span className="kw-workflow-progress__step-label">STEP 2 OF 3 · VIDEO PLAN</span>
+        <span className="kw-workflow-progress__step-label">STEP 2 OF 4 · VIDEO PLAN</span>
         <h1>Video Plan</h1>
         <p>Set your video goal, audience, platform, duration, and language for this product video.</p>
       </div>

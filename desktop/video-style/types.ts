@@ -102,10 +102,19 @@ export interface Step4HandoffPayload {
   planId: string;
   manifestId: string | null;
   assetIds: string[];
+  heroAssetId: string | null;
   productionMode: ProductionModeId;
+  /** Human-readable style label for Step 4 UI */
+  styleLabel?: string;
   creativeTone: CreativeToneId | null;
   platformId: VideoPlatformId;
+  platformLabel?: string;
+  formatLabel?: string;
   durationSeconds: number;
+  language?: string;
+  priceLabel?: string | null;
+  discountLabel?: string | null;
+  objective?: string;
   sceneCount: number;
   preparedAt: string;
 }

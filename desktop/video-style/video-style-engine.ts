@@ -3,7 +3,7 @@
  */
 
 import type { CreativeToneId, ProductionModeId } from "../../ai/video-production/production-mode-types.js";
-import { recommendCreativeTone } from "../../ai/video-production/production-mode-types.js";
+import { MODE_COPY, recommendCreativeTone } from "../../ai/video-production/production-mode-types.js";
 import { platformPreview } from "../video-requirements/platform-map.js";
 import { STEP3_HANDOFF_KEY, type Step3HandoffPayload } from "../video-requirements/types.js";
 import {
@@ -188,11 +188,14 @@ export class VideoStyleEngine {
     }
     if (this.selectedMode === mode) return;
     this.selectedMode = mode;
+    this.emit();
     await this.generatePlan(true);
   }
 
   async selectTone(tone: CreativeToneId): Promise<void> {
+    if (this.creativeTone === tone) return;
     this.creativeTone = tone;
+    this.emit();
     this.schedulePersistTone();
     if (this.plan) await this.generatePlan(true);
   }
@@ -276,10 +279,19 @@ export class VideoStyleEngine {
     this.saveState = "saving";
     this.emit();
     try {
+      if (this.plan.scenes.some((s) => !s.assetId) && this.handoff.assetIds.length) {
+        const fallback = this.handoff.assetIds[0]!;
+        const scenes = this.plan.scenes.map((scene) => (
+          scene.assetId ? scene : { ...scene, assetId: fallback, userEdited: true }
+        ));
+        this.plan = (await updateCreativePlan(this.projectId, { scenes })).plan;
+      }
       const result = await finalizeCreativePlan(this.projectId);
       this.plan = result.plan;
       this.manifest = result.manifest;
 
+      const preview = platformPreview(this.handoff.platformId);
+      const commercial = this.plan.commercial;
       const handoff: Step4HandoffPayload = {
         version: 1,
         step: "step-4-final-review",
@@ -290,10 +302,20 @@ export class VideoStyleEngine {
         planId: this.plan.id,
         manifestId: this.plan.manifestId ?? this.manifest?.manifestId ?? null,
         assetIds: [...this.handoff.assetIds],
+        heroAssetId: this.handoff.assetIds[0] ?? null,
         productionMode: this.selectedMode!,
+        styleLabel: MODE_COPY[this.selectedMode!]?.label,
         creativeTone: this.creativeTone,
         platformId: this.handoff.platformId,
+        platformLabel: preview.label,
+        formatLabel: `${preview.width} × ${preview.height}`,
         durationSeconds: this.handoff.durationSeconds,
+        language: this.handoff.language,
+        priceLabel: formatPriceLabel(commercial?.pricing.currentPrice, commercial?.pricing.currency),
+        discountLabel: commercial?.pricing.discountPercentage
+          ? `Save ${commercial.pricing.discountPercentage}%`
+          : null,
+        objective: this.handoff.objective,
         sceneCount: this.plan.scenes.length,
         preparedAt: new Date().toISOString(),
       };
