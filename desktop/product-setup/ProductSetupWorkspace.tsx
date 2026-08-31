@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CheckCircle2, ChevronDown, FolderOpen, ImagePlus, Loader2, RefreshCw, Trash2, Upload,
+  AlertTriangle, CheckCircle2, ChevronDown, FolderOpen, ImagePlus, Loader2, RefreshCw, Trash2, Upload,
 } from "lucide-react";
 import { WorkflowProgress } from "../product-creation/WorkflowProgress";
 import { useShell } from "../shell/ShellContext";
@@ -76,7 +76,7 @@ export function ProductSetupWorkspace() {
     setBusy(true);
     try {
       await productSetupEngine.continueToStep2();
-      notify("success", "Product setup complete", "Opening Video Settings.", "production-complete");
+      notify("success", "Product setup complete", "Opening Video Plan.", "production-complete");
       switchWorkspace("video-requirements");
     } catch (error) {
       notify(
@@ -93,44 +93,83 @@ export function ProductSetupWorkspace() {
   const savedCount = snap.intake.assets.filter((a) => a.processingStatus === "saved").length;
   const hasImages = savedCount > 0;
   const suggestedName = suggestProductName(snap.projectName);
+  const analysisComplete = snap.analysisStatus === "COMPLETE" || snap.analysisStatus === "REVIEW_REQUIRED";
+  const analysisActive = snap.analysisStatus === "ANALYZING" || snap.analysisStatus === "UPLOADING";
+  const analysisFailed = snap.analysisStatus === "FAILED";
+  const showAnalysis = snap.analysisStatus !== "NOT_STARTED" || snap.intake.progress.running;
 
-  const analysisSteps = buildAnalysisSteps(snap);
+  const readyItems = [
+    { ok: snap.readiness.summary.projectName, label: "Project name" },
+    { ok: snap.readiness.summary.validImages > 0, label: `Product images (${snap.readiness.summary.validImages})` },
+    { ok: analysisComplete, label: "AI analysis" },
+    { ok: snap.readiness.summary.productName, label: "Product name" },
+    { ok: snap.essentials.currentPrice != null, label: "Price" },
+    { ok: snap.discount.valid, label: "Discount calculated", optional: !snap.discount.valid },
+  ].filter((item) => item.ok || !item.optional);
+
+  const optionalItems = [
+    { ok: Boolean(snap.essentials.size), label: "Size" },
+    { ok: false, label: "Review image classifications", show: snap.readiness.warnings.some((w) => /classification|review/i.test(w)) },
+  ].filter((item) => item.show !== false);
+
+  const heroLabel = snap.aiSummary?.usefulViews[0] ?? "Not selected";
 
   return (
     <div className="product-setup">
       <WorkflowProgress currentStep={1} projectName={snap.projectName || undefined} />
 
-      <div className="product-setup__intro">
-        <span className="kw-workflow-progress__step-label">STEP 1 OF 5 · PRODUCT SETUP</span>
-        <h1>Create Your Product Video Project</h1>
-        <p>Add your product images and a few important details. KWIZERA AI will analyze and organize the product automatically.</p>
-      </div>
-
-      {/* Project name */}
-      <section className="product-setup__section">
-        <h2>Project Details</h2>
-        <div className="product-setup__field">
-          <label htmlFor="ps-project-name">
-            Project Name
-            <input
-              id="ps-project-name"
-              value={snap.projectName}
-              onChange={(e) => productSetupEngine.setProjectNameLocal(e.target.value)}
-              onBlur={() => {
-                if (snap.projectName.trim()) void productSetupEngine.ensureProject(snap.projectName).catch(() => undefined);
-              }}
-              placeholder="e.g. Chestnut Oxford Campaign"
-            />
-          </label>
+      <header className="product-setup__header">
+        <div>
+          <h1>Product Setup</h1>
+          <p>Add your product and the information needed to create the video.</p>
         </div>
         <p className="product-setup__save" data-state={snap.saveState}>
-          {snap.saveState === "saving" ? "Saving…" : snap.saveState === "error" ? "Unsaved changes" : snap.saveState === "unsaved" ? "Unsaved changes" : "Saved"}
+          {snap.saveState === "saving" ? "Saving…" : snap.saveState === "error" ? "Unsaved" : snap.saveState === "unsaved" ? "Unsaved" : "Saved automatically"}
         </p>
-      </section>
+      </header>
 
-      {/* Upload */}
-      <section className="product-setup__section">
-        <h2>Product Images</h2>
+      {showAnalysis && (
+        <section className="product-setup__panel product-setup__analysis" data-status={snap.analysisStatus.toLowerCase()}>
+          <div className="product-setup__analysis-head">
+            <h2>AI Analysis</h2>
+            <span className="product-setup__badge" data-tone={analysisFailed ? "warn" : analysisComplete ? "ok" : "active"}>
+              {analysisFailed ? "Needs attention" : analysisComplete ? "Complete" : analysisActive ? "Running" : "In progress"}
+            </span>
+          </div>
+          {analysisComplete ? (
+            <ul className="product-setup__analysis-summary">
+              <li><CheckCircle2 size={14} /> {savedCount} image{savedCount === 1 ? "" : "s"} analyzed</li>
+              <li><CheckCircle2 size={14} /> Product detected</li>
+              <li><CheckCircle2 size={14} /> Image quality checked</li>
+              <li><CheckCircle2 size={14} /> Best product angles selected</li>
+            </ul>
+          ) : (
+            <ul className="product-setup__analysis-steps">
+              {buildAnalysisSteps(snap).map((step) => (
+                <li key={step.label} className={step.done ? "is-done" : step.active ? "is-active" : ""}>
+                  {step.done ? <CheckCircle2 size={14} /> : step.active ? <Loader2 size={14} className="spin" /> : <span className="product-setup__step-dot" />}
+                  {step.label}
+                </li>
+              ))}
+            </ul>
+          )}
+          {snap.readiness.warnings.some((w) => /classification|review/i.test(w)) && (
+            <p className="product-setup__analysis-warn"><AlertTriangle size={14} /> Some image classifications need review</p>
+          )}
+          {analysisFailed && (
+            <button type="button" className="product-setup__link-btn" onClick={() => void productSetupEngine.retryAnalysis()}>
+              <RefreshCw size={14} /> Retry analysis
+            </button>
+          )}
+        </section>
+      )}
+
+      <section className="product-setup__panel">
+        <div className="product-setup__section-head">
+          <h2>Product Images</h2>
+          {hasImages && <span className="product-setup__meta">{savedCount} imported</span>}
+        </div>
+
         <div
           className={`product-setup__dropzone ${hasImages ? "is-compact" : ""} ${dragging ? "is-dragging" : ""}`}
           onDragEnter={(e) => { e.preventDefault(); setDragging(true); }}
@@ -138,18 +177,71 @@ export function ProductSetupWorkspace() {
           onDragLeave={() => setDragging(false)}
           onDrop={(e) => { e.preventDefault(); setDragging(false); void onFiles(e.dataTransfer.files); }}
         >
-          {!hasImages ? <ImagePlus size={32} strokeWidth={1.5} /> : null}
-          <h3>{hasImages ? `${savedCount} image${savedCount === 1 ? "" : "s"} imported` : "Drop images here"}</h3>
-          <p>{hasImages ? "Add more angles to improve AI coverage." : "Add clear photos of your product from different angles."}</p>
+          {!hasImages && <ImagePlus size={28} strokeWidth={1.5} />}
+          {!hasImages && (
+            <>
+              <p className="product-setup__drop-title">Drop product images here</p>
+              <p className="product-setup__drop-copy">Add clear photos from different angles for better AI coverage.</p>
+            </>
+          )}
           <div className="product-setup__drop-actions">
             <button type="button" disabled={busy} onClick={() => void pickImages()}>
-              <Upload size={15} /> Select Images
+              <Upload size={14} /> Select Images
             </button>
-            <button type="button" disabled={busy} onClick={() => folderRef.current?.click()}>
-              <FolderOpen size={15} /> Import Folder
+            <button type="button" className="is-secondary" disabled={busy} onClick={() => folderRef.current?.click()}>
+              <FolderOpen size={14} /> Import Folder
             </button>
           </div>
         </div>
+
+        {snap.imageCards.length > 0 && (
+          <div className="product-setup__grid">
+            {snap.imageCards.map((card) => (
+              <article key={card.assetId} className="product-setup__card">
+                <div className="product-setup__card-thumb">
+                  {card.url ? <img src={card.url} alt={card.fileName} loading="lazy" /> : <ImagePlus size={22} />}
+                  {card.issueMessage && (
+                    <span className="product-setup__card-badge" data-severity={card.severity} title={card.issueMessage}>!</span>
+                  )}
+                </div>
+                <div className="product-setup__card-body">
+                  <div className="product-setup__card-head">
+                    <strong>{card.displayLabel}</strong>
+                    <button
+                      type="button"
+                      className="product-setup__icon-btn"
+                      aria-label={`Remove ${card.fileName}`}
+                      onClick={() => void productSetupEngine.removeImage(card.assetId)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  <span className="product-setup__card-meta">
+                    {card.needsReview ? "Needs review" : confidenceLabel(card.confidence)}
+                  </span>
+                  <label className="product-setup__card-select">
+                    <span>Change view</span>
+                    <select
+                      aria-label={`View type for ${card.fileName}`}
+                      value={card.finalViewType}
+                      onChange={(e) => void productSetupEngine.reclassifyImage(card.assetId, e.target.value as never)}
+                    >
+                      {VIEW_PICKER_OPTIONS.map((opt, idx) => (
+                        <option key={`${opt.value}-${idx}`} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {card.isDuplicate && (
+                    <button type="button" className="product-setup__link-btn" onClick={() => productSetupEngine.keepDuplicate(card.assetId)}>
+                      Keep duplicate
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
         <input ref={fileRef} type="file" accept={ACCEPT_ATTR} multiple hidden onChange={(e) => { void onFiles(e.target.files); e.target.value = ""; }} />
         <input
           ref={folderRef}
@@ -163,256 +255,185 @@ export function ProductSetupWorkspace() {
         />
       </section>
 
-      {/* Analysis status */}
-      {(snap.analysisStatus !== "NOT_STARTED" || snap.intake.progress.running) && (
-        <section className="product-setup__section product-setup__analysis">
-          <h3>
-            {snap.analysisStatus === "ANALYZING" || snap.analysisStatus === "UPLOADING"
-              ? "AI is analyzing your product"
-              : snap.analysisStatus === "FAILED"
-                ? "Analysis needs attention"
-                : "AI analysis complete"}
-          </h3>
-          <ul className="product-setup__analysis-steps">
-            {analysisSteps.map((step) => (
-              <li key={step.label} className={step.done ? "is-done" : step.active ? "is-active" : ""}>
-                {step.done ? <CheckCircle2 size={14} /> : step.active ? <Loader2 size={14} className="spin" /> : <span>○</span>}
-                {step.label}
-              </li>
-            ))}
-          </ul>
-          {snap.analysisStatus === "FAILED" && (
-            <button type="button" className="product-setup__suggest" onClick={() => void productSetupEngine.retryAnalysis()}>
-              <RefreshCw size={14} /> Retry analysis
-            </button>
+      {snap.aiSummary && (
+        <section className="product-setup__panel product-setup__summary">
+          <h2>AI Product Summary</h2>
+          <dl className="product-setup__summary-grid">
+            <div><dt>Product</dt><dd>{snap.aiSummary.productLabel ?? "Not provided"}</dd></div>
+            <div><dt>Category</dt><dd>{snap.aiSummary.category ?? "Not provided"}</dd></div>
+            <div><dt>Images</dt><dd>{snap.aiSummary.imageCount} analyzed</dd></div>
+            <div><dt>Useful Views</dt><dd>{snap.aiSummary.usefulViews.join(" · ") || "Not provided"}</dd></div>
+            <div><dt>Hero Image</dt><dd>{snap.aiSummary.heroAssetId ? heroLabel : "Not provided"}</dd></div>
+            <div><dt>Quality</dt><dd>{snap.aiSummary.coverageLabel.replace(/_/g, " ")}</dd></div>
+          </dl>
+          {snap.aiSummary.coverageMessage && (
+            <p className="product-setup__summary-note">{snap.aiSummary.coverageMessage}</p>
           )}
         </section>
       )}
 
-      {/* Image grid */}
-      {snap.imageCards.length > 0 && (
-        <section className="product-setup__section">
-          <h2>Product Images</h2>
-          <div className="product-setup__grid">
-            {snap.imageCards.map((card) => (
-              <article key={card.assetId} className="product-setup__card">
-                <div className="product-setup__card-thumb">
-                  {card.url ? <img src={card.url} alt={card.fileName} loading="lazy" /> : <ImagePlus size={24} />}
-                  {card.issueMessage && (
-                    <span className="product-setup__card-badge" data-severity={card.severity} title={card.issueMessage}>
-                      !
-                    </span>
-                  )}
-                </div>
-                <div className="product-setup__card-body">
-                  <strong>{card.displayLabel.toUpperCase()}</strong>
-                  <span className="product-setup__card-meta">
-                    {card.needsReview ? "Needs review" : confidenceLabel(card.confidence)}
-                  </span>
-                  <select
-                    aria-label={`View type for ${card.fileName}`}
-                    value={card.finalViewType}
-                    onChange={(e) => void productSetupEngine.reclassifyImage(card.assetId, e.target.value as never)}
-                  >
-                    {VIEW_PICKER_OPTIONS.map((opt, idx) => (
-                      <option key={`${opt.value}-${idx}`} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <div className="product-setup__card-actions">
-                    {card.isDuplicate && (
-                      <button type="button" onClick={() => productSetupEngine.keepDuplicate(card.assetId)}>Keep</button>
-                    )}
-                    <button type="button" onClick={() => void productSetupEngine.removeImage(card.assetId)}>
-                      <Trash2 size={12} /> Remove
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* AI summary */}
-      {snap.aiSummary && (
-        <section className="product-setup__section product-setup__summary">
-          <h2>AI Product Summary</h2>
-          <dl>
-            <dt>Product</dt><dd>{snap.aiSummary.productLabel ?? "—"}</dd>
-            <dt>Category</dt><dd>{snap.aiSummary.category ?? "Estimating…"}</dd>
-            <dt>Images</dt><dd>{snap.aiSummary.imageCount} analyzed</dd>
-            <dt>Useful Views</dt><dd>{snap.aiSummary.usefulViews.join(" · ") || "—"}</dd>
-            <dt>Hero Image</dt><dd>{snap.aiSummary.heroAssetId ? "Selected automatically" : "—"}</dd>
-          </dl>
-          <div className="product-setup__coverage">
-            <strong>{snap.aiSummary.coverageLabel.replace(/_/g, " ")}</strong>
-            <p>{snap.aiSummary.coverageMessage}</p>
-            {snap.organization.productImageSet?.missingViews.length ? (
-              <ul>
-                {snap.organization.productImageSet.recommendedViews.map((view) => {
-                  const found = !snap.organization.productImageSet!.missingViews.includes(view);
-                  return (
-                    <li key={view} className={found ? "is-found" : ""}>
-                      {view.replace(/_/g, " ")} {found ? "found" : "not found"}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-          </div>
-        </section>
-      )}
-
-      {/* Product essentials */}
-      <section className="product-setup__section">
-        <h2>Product Essentials</h2>
+      <section className="product-setup__panel">
+        <h2>Product Details</h2>
         <div className="product-setup__essentials-grid">
+          <div className="product-setup__field product-setup__field--wide">
+            <label htmlFor="ps-project-name">Project Name</label>
+            <input
+              id="ps-project-name"
+              value={snap.projectName}
+              onChange={(e) => productSetupEngine.setProjectNameLocal(e.target.value)}
+              onBlur={() => {
+                if (snap.projectName.trim()) void productSetupEngine.ensureProject(snap.projectName).catch(() => undefined);
+              }}
+              placeholder="Chestnut Oxford Campaign"
+            />
+          </div>
           <div className="product-setup__field">
-            <label htmlFor="ps-product-name">
-              Product Name
-              <input
-                id="ps-product-name"
-                value={snap.essentials.productName}
-                onChange={(e) => productSetupEngine.setEssentialField("productName", e.target.value)}
-                placeholder="Chestnut Oxford"
-              />
-            </label>
+            <label htmlFor="ps-product-name">Product Name</label>
+            <input
+              id="ps-product-name"
+              value={snap.essentials.productName}
+              onChange={(e) => productSetupEngine.setEssentialField("productName", e.target.value)}
+              placeholder="Chestnut Oxford"
+            />
             {suggestedName && !snap.essentials.productName && (
-              <button type="button" className="product-setup__suggest" onClick={() => productSetupEngine.applySuggestedProductName()}>
+              <button type="button" className="product-setup__link-btn" onClick={() => productSetupEngine.applySuggestedProductName()}>
                 Use “{suggestedName}” from project name
               </button>
             )}
           </div>
           <div className="product-setup__field">
-            <label htmlFor="ps-size">
-              Size (optional)
-              <input
-                id="ps-size"
-                value={snap.essentials.size}
-                onChange={(e) => productSetupEngine.setEssentialField("size", e.target.value)}
-                placeholder="40 / 41 / 42"
-              />
-            </label>
+            <label htmlFor="ps-size">Size <span className="product-setup__optional">(optional)</span></label>
+            <input
+              id="ps-size"
+              value={snap.essentials.size}
+              onChange={(e) => productSetupEngine.setEssentialField("size", e.target.value)}
+              placeholder="40 / 41 / 42"
+            />
           </div>
           <div className="product-setup__field">
-            <label htmlFor="ps-current-price">
-              Current Price
-              <input
-                id="ps-current-price"
-                inputMode="decimal"
-                value={snap.essentials.currentPrice ?? ""}
-                onChange={(e) => productSetupEngine.setEssentialField("currentPrice", parsePriceInput(e.target.value))}
-                placeholder="20,000"
-              />
-            </label>
+            <label htmlFor="ps-current-price">Current Price</label>
+            <input
+              id="ps-current-price"
+              inputMode="decimal"
+              value={snap.essentials.currentPrice ?? ""}
+              onChange={(e) => productSetupEngine.setEssentialField("currentPrice", parsePriceInput(e.target.value))}
+              placeholder="20,000"
+            />
           </div>
           <div className="product-setup__field">
-            <label htmlFor="ps-currency">
-              Currency
-              <select
-                id="ps-currency"
-                value={snap.essentials.currency}
-                onChange={(e) => productSetupEngine.setEssentialField("currency", e.target.value)}
-              >
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
+            <label htmlFor="ps-currency">Currency</label>
+            <select
+              id="ps-currency"
+              value={snap.essentials.currency}
+              onChange={(e) => productSetupEngine.setEssentialField("currency", e.target.value)}
+            >
+              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
-          <div className="product-setup__field" style={{ gridColumn: "1 / -1" }}>
-            <label htmlFor="ps-previous-price">
-              Previous Price (optional)
-              <input
-                id="ps-previous-price"
-                inputMode="decimal"
-                value={snap.essentials.previousPrice ?? ""}
-                onChange={(e) => productSetupEngine.setEssentialField("previousPrice", parsePriceInput(e.target.value))}
-                placeholder="25,000"
-              />
-            </label>
+          <div className="product-setup__field product-setup__field--wide">
+            <label htmlFor="ps-previous-price">Previous Price <span className="product-setup__optional">(optional)</span></label>
+            <input
+              id="ps-previous-price"
+              inputMode="decimal"
+              value={snap.essentials.previousPrice ?? ""}
+              onChange={(e) => productSetupEngine.setEssentialField("previousPrice", parsePriceInput(e.target.value))}
+              placeholder="45,000"
+            />
             {snap.discount.valid && (
-              <span className="product-setup__discount">{snap.discount.label}</span>
+              <p className="product-setup__discount">
+                <strong>{snap.discount.label}</strong>
+                <span>Was {formatPrice(snap.essentials.previousPrice, snap.essentials.currency)} → Now {formatPrice(snap.essentials.currentPrice, snap.essentials.currency)}</span>
+              </p>
             )}
             {snap.essentials.previousPrice != null && snap.essentials.currentPrice != null
               && snap.essentials.previousPrice <= snap.essentials.currentPrice && (
-              <p className="product-setup__price-hint">Previous price must be higher than current price to create a discount.</p>
-            )}
-            {snap.essentials.currentPrice != null && snap.discount.valid && (
-              <p className="product-setup__card-meta">
-                WAS {formatPrice(snap.essentials.previousPrice, snap.essentials.currency)} · NOW {formatPrice(snap.essentials.currentPrice, snap.essentials.currency)}
-              </p>
+              <p className="product-setup__hint-warn">Previous price must be higher than current price to create a discount.</p>
             )}
           </div>
-          <div className="product-setup__field" style={{ gridColumn: "1 / -1" }}>
-            <label htmlFor="ps-description">
-              Short Description (optional)
-              <textarea
-                id="ps-description"
-                rows={2}
-                value={snap.essentials.shortDescription}
-                onChange={(e) => productSetupEngine.setEssentialField("shortDescription", e.target.value)}
-                placeholder="Premium brown oxford shoe for everyday wear"
-              />
-            </label>
+          <div className="product-setup__field product-setup__field--wide">
+            <label htmlFor="ps-description">Short Description <span className="product-setup__optional">(optional)</span></label>
+            <textarea
+              id="ps-description"
+              rows={2}
+              value={snap.essentials.shortDescription}
+              onChange={(e) => productSetupEngine.setEssentialField("shortDescription", e.target.value)}
+              placeholder="Premium brown oxford shoe for everyday wear"
+            />
           </div>
         </div>
-      </section>
 
-      {/* Optional details */}
-      <section className="product-setup__section">
         <button
           type="button"
           className="product-setup__details-toggle"
           onClick={() => setOptionalOpen((v) => !v)}
           aria-expanded={optionalOpen}
         >
-          {optionalOpen ? "−" : "+"} Add More Product Details <ChevronDown size={14} style={{ verticalAlign: "middle" }} />
+          <ChevronDown size={14} className={optionalOpen ? "is-open" : ""} />
+          Add more product details
         </button>
         {optionalOpen && (
-          <div className="product-setup__essentials-grid" style={{ marginTop: 16 }}>
+          <div className="product-setup__essentials-grid product-setup__optional-grid">
             {(["brand", "color", "material", "features", "website", "notes"] as const).map((field) => (
               <div key={field} className="product-setup__field">
-                <label htmlFor={`ps-opt-${field}`}>
-                  {field.charAt(0).toUpperCase() + field.slice(1)}
-                  <input
-                    id={`ps-opt-${field}`}
-                    value={snap.optional[field]}
-                    onChange={(e) => productSetupEngine.setOptionalField(field, e.target.value)}
-                  />
-                </label>
+                <label htmlFor={`ps-opt-${field}`}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
+                <input
+                  id={`ps-opt-${field}`}
+                  value={snap.optional[field]}
+                  onChange={(e) => productSetupEngine.setOptionalField(field, e.target.value)}
+                />
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Readiness */}
-      <section className="product-setup__section product-setup__readiness">
+      <section className="product-setup__panel product-setup__readiness">
         <h2>Project Readiness</h2>
-        <ul>
-          <li>{snap.readiness.summary.projectName ? "✓" : "○"} Project name</li>
-          <li>{snap.readiness.summary.validImages > 0 ? "✓" : "○"} Product images ({snap.readiness.summary.validImages})</li>
-          <li>{snap.analysisStatus === "COMPLETE" || snap.analysisStatus === "REVIEW_REQUIRED" ? "✓" : "○"} AI analysis</li>
-          <li>{snap.readiness.summary.productName ? "✓" : "○"} Product name</li>
-          {snap.essentials.currentPrice != null && <li>✓ Price available</li>}
-          {snap.discount.valid && <li>✓ Discount calculated</li>}
-          {!snap.essentials.size && <li>○ Size not provided (optional)</li>}
-        </ul>
+        <div className="product-setup__readiness-cols">
+          <div>
+            <h3>Ready to continue</h3>
+            <ul>
+              {readyItems.filter((i) => i.ok).map((item) => (
+                <li key={item.label} className="is-ok"><CheckCircle2 size={13} /> {item.label}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3>Optional information</h3>
+            <ul>
+              {optionalItems.map((item) => (
+                <li key={item.label} className={item.ok ? "is-ok" : "is-muted"}>
+                  {item.ok ? <CheckCircle2 size={13} /> : <span className="product-setup__step-dot" />}
+                  {item.label}{!item.ok ? " not provided" : ""}
+                </li>
+              ))}
+              {!snap.essentials.size && (
+                <li className="is-muted"><span className="product-setup__step-dot" /> Size not provided</li>
+              )}
+            </ul>
+          </div>
+        </div>
         {snap.readiness.warnings.length > 0 && (
-          <ul>{snap.readiness.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+          <ul className="product-setup__readiness-warn">
+            {snap.readiness.warnings.map((w) => <li key={w}><AlertTriangle size={13} /> {w}</li>)}
+          </ul>
         )}
         <p className="product-setup__readiness-status">{snap.readiness.statusLabel.replace(/_/g, " ")}</p>
       </section>
 
       <footer className="product-setup__footer">
-        <p>{snap.readiness.recommendations[0] ?? snap.readiness.blockingIssues[0] ?? "Complete the essentials above to continue."}</p>
+        <span className="product-setup__footer-meta">
+          {snap.saveState === "saved" ? "Saved automatically" : snap.saveState === "saving" ? "Saving…" : "Unsaved changes"}
+          <em>Step 1 of 3</em>
+        </span>
         <button
           type="button"
           className="product-setup__continue"
           disabled={!snap.canContinue || busy}
           onClick={() => void onContinue()}
         >
-          {busy ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
-          {snap.continueLabel}
+          {busy ? <Loader2 size={15} className="spin" /> : null}
+          Continue to Video Plan →
         </button>
       </footer>
     </div>

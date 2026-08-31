@@ -1,7 +1,12 @@
 .kw-workflow-progress {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  --wf-accent: #3d9b7a;
+  --wf-accent-dim: rgba(61, 155, 122, 0.35);
+  --wf-text: #f4f7f8;
+  --wf-muted: #6f7a84;
+  --wf-border: #24303b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--wf-border);
 }
 
 .kw-workflow-progress__top {
@@ -9,20 +14,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .kw-workflow-progress__step-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #2f6f5e;
+  letter-spacing: 0.1em;
+  color: var(--wf-accent);
 }
 
 .kw-workflow-progress__project {
-  font-size: 0.82rem;
-  color: #64748b;
-  max-width: 200px;
+  font-size: 0.78rem;
+  color: var(--wf-muted);
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -47,52 +52,49 @@
 }
 
 .kw-workflow-progress__dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid #cbd5e1;
-  background: #fff;
+  border: 2px solid var(--wf-border);
+  background: #111a22;
   flex-shrink: 0;
 }
 
 .kw-workflow-progress__node.is-done .kw-workflow-progress__dot,
 .kw-workflow-progress__node.is-active .kw-workflow-progress__dot {
-  border-color: #2f6f5e;
-  background: #2f6f5e;
+  border-color: var(--wf-accent);
+  background: var(--wf-accent);
+  box-shadow: 0 0 0 3px var(--wf-accent-dim);
 }
 
 .kw-workflow-progress__line {
   flex: 1;
   height: 2px;
-  background: #e2e8f0;
+  background: var(--wf-border);
   margin: 0 4px;
 }
 
 .kw-workflow-progress__node.is-done .kw-workflow-progress__line {
-  background: #2f6f5e;
+  background: var(--wf-accent);
 }
 
 .kw-workflow-progress__labels {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.68rem;
+  color: var(--wf-muted);
+  text-align: center;
 }
 
-@media (min-width: 900px) {
-  .kw-workflow-progress__labels {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
-    margin-top: 8px;
-    font-size: 0.68rem;
-    color: #94a3b8;
-    text-align: center;
-  }
-  .kw-workflow-progress__labels .is-active {
-    color: #2f6f5e;
-    font-weight: 700;
-  }
-  .kw-workflow-progress__labels .is-done {
-    color: #64748b;
-  }
+.kw-workflow-progress__labels .is-active {
+  color: var(--wf-text);
+  font-weight: 700;
+}
+
+.kw-workflow-progress__labels .is-done {
+  color: #a7b0b8;
 }
 
 @media (max-width: 640px) {

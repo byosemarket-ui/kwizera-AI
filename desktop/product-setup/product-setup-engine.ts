@@ -125,11 +125,11 @@ export class ProductSetupEngine {
     const aiSummary = buildAiSummary(org, this.essentials);
     const readiness = computeReadiness(intake, org, this.essentials, analysisStatus);
 
-    let continueLabel = "Continue to Video Settings →";
+    let continueLabel = "Continue to Video Plan →";
     if (this.saveState === "saving") continueLabel = "Saving…";
     else if (analysisStatus === "UPLOADING") continueLabel = "Uploading…";
     else if (analysisStatus === "ANALYZING") continueLabel = "Analyzing…";
-    else if (readiness.ready) continueLabel = "Continue to Video Settings →";
+    else if (readiness.ready) continueLabel = "Continue to Video Plan →";
 
     return {
       version: 1,
