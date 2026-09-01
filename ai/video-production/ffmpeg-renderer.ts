@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -320,13 +320,46 @@ export async function probeVideo(filePath: string): Promise<ProbedVideo> {
 }
 
 async function runFfmpeg(args: string[], timeout: number): Promise<void> {
-  try {
-    await execFileAsync(ffmpegBinary(), args, { timeout, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    const wrapped = new Error(`FFmpeg failed: ${detail}`) as Error & { ffmpegExitCode?: number };
-    const code = (error as { code?: unknown }).code;
-    if (typeof code === "number") wrapped.ffmpegExitCode = code;
-    throw wrapped;
-  }
+  const stderrTail: string[] = [];
+  const maxTailChars = 8192;
+  let tailLen = 0;
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(ffmpegBinary(), ["-hide_banner", "-loglevel", "error", ...args], {
+      windowsHide: true,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`FFmpeg timed out after ${timeout}ms`));
+    }, timeout);
+
+    child.stderr?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString("utf8");
+      stderrTail.push(text);
+      tailLen += text.length;
+      while (tailLen > maxTailChars && stderrTail.length) {
+        const removed = stderrTail.shift() ?? "";
+        tailLen -= removed.length;
+      }
+    });
+
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      const detail = stderrTail.join("").trim() || `exit code ${code ?? "unknown"}`;
+      const wrapped = new Error(`FFmpeg failed: ${detail}`) as Error & { ffmpegExitCode?: number };
+      if (typeof code === "number") wrapped.ffmpegExitCode = code;
+      reject(wrapped);
+    });
+  });
 }

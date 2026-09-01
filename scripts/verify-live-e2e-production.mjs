@@ -129,6 +129,22 @@ async function main() {
   });
   record("product + marketing saved", true);
 
+  const planGen = await json("POST", `/api/workspace/projects/${projectId}/plan`, {
+    action: "generate",
+    productionMode: "AI_PRODUCT_MOTION",
+    creativeTone: "PREMIUM",
+    regenerate: true,
+  });
+  const planScenes = planGen.body?.plan?.scenes?.length ?? 0;
+  record("creative plan generated", planGen.ok && planScenes > 0, `${planScenes} scenes`);
+
+  const finalized = await json("POST", `/api/workspace/projects/${projectId}/plan/finalize`, {});
+  record(
+    "creative plan finalized",
+    finalized.ok && finalized.body?.plan?.planStatus === "APPROVED_FOR_VIDEO",
+    finalized.body?.plan?.planStatus ?? finalized.body?.error ?? "",
+  );
+
   const timeline = await json("POST", `/api/video-production/projects/${projectId}`, { action: "create" });
   const clipCount = timeline.body?.video?.timeline?.length ?? 0;
   record("video timeline created", timeline.ok && clipCount > 0, `${clipCount} clips`);
