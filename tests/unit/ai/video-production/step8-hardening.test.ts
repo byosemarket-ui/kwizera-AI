@@ -277,9 +277,9 @@ describe("STEP 8 hardening: assets, jobs, overlay, probe", () => {
     expect(classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true })).toBe("applied");
     expect(classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false })).toBe("failed");
 
-    expect(buildRenderPlan("16:9", 1000, "preview")).toMatchObject({ width: 640, height: 360 });
-    expect(buildRenderPlan("9:16", 1000, "preview")).toMatchObject({ width: 360, height: 640 });
-    expect(buildRenderPlan("1:1", 1000, "preview")).toMatchObject({ width: 480, height: 480 });
+    expect(buildRenderPlan("16:9", 1000, "preview")).toMatchObject({ width: 426, height: 240 });
+    expect(buildRenderPlan("9:16", 1000, "preview")).toMatchObject({ width: 240, height: 426 });
+    expect(buildRenderPlan("1:1", 1000, "preview")).toMatchObject({ width: 320, height: 320 });
 
     const clip: VideoTimelineClip = {
       id: "c1",
