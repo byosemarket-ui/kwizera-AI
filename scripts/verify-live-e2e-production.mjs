@@ -172,7 +172,7 @@ async function main() {
       console.log(`\n  render failed: ${jobRes.body?.job?.error ?? "unknown"}`);
       return false;
     }
-    return status === "completed";
+    if (status === "completed") return true;
   }, Math.ceil(RENDER_TIMEOUT_MS / 2000), 2000);
   console.log("");
   record("render completed", renderDone);

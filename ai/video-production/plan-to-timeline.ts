@@ -15,9 +15,9 @@ import type {
 } from "./types.js";
 
 const PREVIEW_SIZE: Record<VideoAspectRatio, { width: number; height: number }> = {
-  "16:9": { width: 640, height: 360 },
-  "9:16": { width: 360, height: 640 },
-  "1:1": { width: 480, height: 480 },
+  "16:9": { width: 426, height: 240 },
+  "9:16": { width: 240, height: 426 },
+  "1:1": { width: 320, height: 320 },
 };
 
 const STANDARD_SIZE: Record<VideoAspectRatio, { width: number; height: number }> = {

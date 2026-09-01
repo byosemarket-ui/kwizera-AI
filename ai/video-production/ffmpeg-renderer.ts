@@ -199,19 +199,26 @@ export async function renderStillClip(
   const frameRate = plan.frameRate ?? (plan.preset === "standard" ? 24 : 15);
 
   if (plan.preset === "preview") {
-    await runFfmpeg([
-      "-y", "-loop", "1", "-i", input.imagePath,
+    const frameCount = Math.max(12, Math.round(frameRate * seconds));
+    const previewArgs = (codec: "libx264" | "mpeg4") => [
+      "-y", "-loop", "1", "-framerate", String(frameRate), "-i", input.imagePath,
       "-vf", `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase,crop=${plan.width}:${plan.height}`,
-      "-t", String(seconds),
-      "-r", String(frameRate),
+      "-frames:v", String(frameCount),
       "-an",
-      "-c:v", "libx264",
+      "-c:v", codec,
       "-pix_fmt", "yuv420p",
-      "-preset", x264Preset,
-      "-crf", String(crf),
+      ...(codec === "libx264"
+        ? ["-preset", x264Preset, "-tune", "stillimage", "-crf", String(crf)]
+        : ["-q:v", "5"]),
+      "-threads", "2",
       "-movflags", "+faststart",
       outputPath,
-    ], 120_000);
+    ];
+    try {
+      await runFfmpeg(previewArgs("libx264"), 180_000);
+    } catch {
+      await runFfmpeg(previewArgs("mpeg4"), 120_000);
+    }
     const stat = await fs.stat(outputPath).catch(() => null);
     if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
     return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };

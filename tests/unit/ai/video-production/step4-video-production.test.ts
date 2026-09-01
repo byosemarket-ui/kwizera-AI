@@ -42,9 +42,9 @@ describe("STEP 4 professional video production", () => {
     const preview169 = buildRenderPlan("16:9", 8000, "preview");
     const standard169 = buildRenderPlan("16:9", 8000, "standard");
 
-    expect(preview916).toMatchObject({ width: 360, height: 640, crf: 28, x264Preset: "ultrafast", frameRate: 15 });
+    expect(preview916).toMatchObject({ width: 240, height: 426, crf: 28, x264Preset: "ultrafast", frameRate: 15 });
     expect(standard916).toMatchObject({ width: 1080, height: 1920, crf: 23, x264Preset: "medium" });
-    expect(preview169).toMatchObject({ width: 640, height: 360 });
+    expect(preview169).toMatchObject({ width: 426, height: 240 });
     expect(standard169).toMatchObject({ width: 1920, height: 1080 });
   });
 
