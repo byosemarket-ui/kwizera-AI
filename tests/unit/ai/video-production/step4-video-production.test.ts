@@ -51,15 +51,33 @@ describe("STEP 4 professional video production", () => {
   });
 
   it("rebinds stale creative plan and timeline asset IDs to current project originals", async () => {
-    const { workspace, planning, project } = await setupMultiImageProject("STEP4-REBIND");
+    const { project, planning } = await setupMultiImageProject("STEP4-REBIND");
     const plan = (await planning.createPlan(project, planning.validateForPlan(project))).plan!;
     const staleId = "00000000-0000-4000-8000-000000000099";
-    const stalePlan = {
+    const staleTimeline = plan.scenes.map((scene, index) => ({
+      id: scene.id,
+      sceneId: scene.id,
+      order: index + 1,
+      purpose: scene.purpose,
+      assetId: staleId,
+      startMs: index * 1000,
+      durationMs: 1000,
+      layer: "video" as const,
+      camera: "front" as const,
+      motion: "hold" as const,
+      lighting: "consistent",
+      background: "product still",
+      transitionIn: "cut" as const,
+      transitionOut: "cut" as const,
+      text: [],
+      audioDirection: "none",
+      userEdited: false,
+    }));
+    expect(timelineUsesStaleAssets(project.productImages, staleTimeline)).toBe(true);
+    const rebound = rebindCreativePlanScenes(project, {
       ...plan,
-      scenes: plan.scenes.map((scene, index) => ({ ...scene, assetId: staleId })),
-    };
-    expect(timelineUsesStaleAssets(project.productImages, buildTimelineFromPlan(project, stalePlan))).toBe(true);
-    const rebound = rebindCreativePlanScenes(project, stalePlan);
+      scenes: plan.scenes.map((scene) => ({ ...scene, assetId: staleId })),
+    });
     const timeline = buildTimelineFromPlan(project, rebound);
     const originals = project.productImages.filter(isOriginalProductImage).map((image) => image.id);
     expect(timeline.every((clip) => originals.includes(clip.assetId))).toBe(true);
