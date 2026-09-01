@@ -29,7 +29,7 @@ describe("STEP 4 professional video production", () => {
     expect(timeline.every((clip) => project.productImages.some((image) => image.id === clip.assetId))).toBe(true);
 
     const preview = sliceTimelineForRender(timeline, "preview");
-    expect(preview.length).toBeLessThanOrEqual(3);
+    expect(preview.length).toBeLessThanOrEqual(2);
     expect(preview.every((clip) => clip.durationMs <= 2000)).toBe(true);
 
     const standard = sliceTimelineForRender(timeline, "standard");
@@ -42,7 +42,7 @@ describe("STEP 4 professional video production", () => {
     const preview169 = buildRenderPlan("16:9", 8000, "preview");
     const standard169 = buildRenderPlan("16:9", 8000, "standard");
 
-    expect(preview916).toMatchObject({ width: 360, height: 640, crf: 28, x264Preset: "veryfast" });
+    expect(preview916).toMatchObject({ width: 360, height: 640, crf: 28, x264Preset: "ultrafast", frameRate: 15 });
     expect(standard916).toMatchObject({ width: 1080, height: 1920, crf: 23, x264Preset: "medium" });
     expect(preview169).toMatchObject({ width: 640, height: 360 });
     expect(standard169).toMatchObject({ width: 1920, height: 1080 });
