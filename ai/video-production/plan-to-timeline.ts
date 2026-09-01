@@ -53,7 +53,7 @@ export function buildRenderPlan(
     outputFormat: "mp4",
     preset,
     platform: profile?.id ?? platform,
-    x264Preset: preset === "standard" ? "medium" : "veryfast",
+    x264Preset: preset === "standard" ? "medium" : "ultrafast",
     crf: preset === "standard" ? 23 : 28,
   };
 }
@@ -272,7 +272,7 @@ export function sliceTimelineForRender(
   preset: "preview" | "standard",
 ): VideoTimelineClip[] {
   if (preset === "standard") return clips;
-  const limited = clips.slice(0, Math.min(3, clips.length));
+  const limited = clips.slice(0, Math.min(2, clips.length));
   let cursor = 0;
   return limited.map((clip) => {
     const durationMs = Math.min(clip.durationMs, 2000);

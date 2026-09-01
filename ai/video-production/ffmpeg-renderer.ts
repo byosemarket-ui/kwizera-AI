@@ -194,9 +194,30 @@ export async function renderStillClip(
   }
   await fs.access(input.imagePath);
   const seconds = Math.max(1, input.clip.durationMs / 1000);
-  const hasText = input.clip.text.some((layer) => layer.content?.trim());
-  const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "veryfast");
+  const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "ultrafast");
   const crf = plan.crf ?? (plan.preset === "standard" ? 23 : 28);
+  const frameRate = plan.frameRate ?? (plan.preset === "standard" ? 24 : 15);
+
+  if (plan.preset === "preview") {
+    await runFfmpeg([
+      "-y", "-loop", "1", "-i", input.imagePath,
+      "-vf", `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase,crop=${plan.width}:${plan.height}`,
+      "-t", String(seconds),
+      "-r", String(frameRate),
+      "-an",
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-preset", x264Preset,
+      "-crf", String(crf),
+      "-movflags", "+faststart",
+      outputPath,
+    ], 120_000);
+    const stat = await fs.stat(outputPath).catch(() => null);
+    if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
+    return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };
+  }
+
+  const hasText = input.clip.text.some((layer) => layer.content?.trim());
   const useMotion = plan.preset === "standard";
   const useFade = plan.preset === "standard";
   const encode = async (text: boolean) => {
@@ -327,7 +348,7 @@ async function runFfmpeg(args: string[], timeout: number): Promise<void> {
   let tailLen = 0;
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(ffmpegBinary(), ["-hide_banner", "-loglevel", "error", ...args], {
+    const child = spawn(ffmpegBinary(), ["-nostdin", "-hide_banner", "-loglevel", "error", ...args], {
       windowsHide: true,
       stdio: ["ignore", "ignore", "pipe"],
     });
