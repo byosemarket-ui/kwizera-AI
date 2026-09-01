@@ -197,10 +197,12 @@ export async function renderStillClip(
   const hasText = input.clip.text.some((layer) => layer.content?.trim());
   const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "veryfast");
   const crf = plan.crf ?? (plan.preset === "standard" ? 23 : 28);
+  const useMotion = plan.preset === "standard";
+  const useFade = plan.preset === "standard";
   const encode = async (text: boolean) => {
     await runFfmpeg([
       "-y", "-loop", "1", "-i", input.imagePath,
-      "-vf", stillFilter(input, plan, { motion: true, fade: true, text, fontFile }),
+      "-vf", stillFilter(input, plan, { motion: useMotion, fade: useFade, text, fontFile }),
       "-t", String(seconds),
       "-r", String(plan.frameRate),
       "-an",

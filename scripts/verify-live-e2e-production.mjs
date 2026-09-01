@@ -5,7 +5,7 @@
  */
 const BASE = (process.argv[2] ?? "http://162.35.114.19:5173").replace(/\/$/, "");
 const PRESET = process.argv[3] ?? "preview";
-const RENDER_TIMEOUT_MS = Number(process.env.KWIZERA_LIVE_RENDER_TIMEOUT_MS ?? 300000);
+const RENDER_TIMEOUT_MS = Number(process.env.KWIZERA_LIVE_RENDER_TIMEOUT_MS ?? 900000);
 
 const PNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC";

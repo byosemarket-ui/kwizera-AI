@@ -46,7 +46,7 @@ export function buildRenderPlan(
     width: size.width,
     height: size.height,
     aspectRatio: profile?.aspectRatio ?? aspect,
-    frameRate: 24,
+    frameRate: preset === "standard" ? 24 : 15,
     durationMs,
     videoCodec: "libx264",
     audioCodec: "none",
