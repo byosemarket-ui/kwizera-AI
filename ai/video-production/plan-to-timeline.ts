@@ -196,10 +196,31 @@ export function sceneTextLayers(
   return layers.slice(0, 3);
 }
 
-export function originalAssetId(project: CreativeProject, preferred?: string): string | undefined {
+export function originalAssetId(project: CreativeProject, preferred?: string, sceneIndex = 0): string | undefined {
   const originals = project.productImages.filter(isOriginalProductImage);
+  if (!originals.length) return undefined;
   if (preferred && originals.some((image) => image.id === preferred)) return preferred;
-  return originals[0]?.id;
+  return originals[sceneIndex % originals.length]?.id;
+}
+
+/** Rebind creative plan scenes to current project originals when stored asset IDs are stale. */
+export function rebindCreativePlanScenes<T extends { scenes: Array<{ assetId?: string; order: number }> }>(
+  project: CreativeProject,
+  plan: T,
+): T {
+  const originals = project.productImages.filter(isOriginalProductImage);
+  if (!originals.length) return plan;
+  const originalIds = new Set(originals.map((image) => image.id));
+  let changed = false;
+  const scenes = [...plan.scenes]
+    .sort((a, b) => a.order - b.order)
+    .map((scene, index) => {
+      if (scene.assetId && originalIds.has(scene.assetId)) return scene;
+      const nextId = originals[index % originals.length]!.id;
+      if (scene.assetId !== nextId) changed = true;
+      return { ...scene, assetId: nextId };
+    });
+  return changed ? { ...plan, scenes } : plan;
 }
 
 export function buildTimelineFromPlan(
@@ -225,7 +246,7 @@ export function buildTimelineFromPlan(
     const existing = options?.existing?.find((clip) => clip.userEdited && clip.sceneId === scene.id);
     const plannedMs = Math.max(800, scene.durationMs ?? Math.round((scene.durationSeconds || 2) * 1000));
     const durationMs = existing?.durationMs ?? plannedMs;
-    const assetId = originalAssetId(project, existing?.assetId || scene.assetId) ?? originals[0]!.id;
+    const assetId = originalAssetId(project, existing?.assetId || scene.assetId, index) ?? originals[0]!.id;
     const camera = existing?.camera ?? mapCamera(scene);
     const motion = existing?.motion ?? mapSceneMotion(scene, camera);
     const clip: VideoTimelineClip = existing

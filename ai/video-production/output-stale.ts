@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { VideoOutputStatus, VideoProject, VideoTimelineClip } from "./types.js";
 
 export function timelineFingerprint(video: Pick<VideoProject, "timeline" | "renderPlan" | "creativePlanVersion" | "platform">): string {
@@ -29,4 +30,17 @@ export function computeOutputStatus(video: VideoProject, sourceFingerprint?: str
 
 export function uniqueAssetIds(clips: VideoTimelineClip[]): string[] {
   return [...new Set(clips.map((clip) => clip.assetId).filter(Boolean))];
+}
+
+export function listOriginalAssetIds(images: Array<Parameters<typeof isOriginalProductImage>[0] & { id: string }>): string[] {
+  return images.filter(isOriginalProductImage).map((image) => image.id);
+}
+
+export function timelineUsesStaleAssets(
+  images: Parameters<typeof listOriginalAssetIds>[0],
+  timeline: VideoTimelineClip[],
+): boolean {
+  const originalIds = new Set(listOriginalAssetIds(images));
+  if (!originalIds.size) return timeline.length > 0;
+  return timeline.some((clip) => !originalIds.has(clip.assetId));
 }

@@ -10,8 +10,10 @@ import { ffmpegAvailable, ffprobeAvailable, probeVideo } from "../../../../ai/vi
 import {
   buildRenderPlan,
   buildTimelineFromPlan,
+  rebindCreativePlanScenes,
   sliceTimelineForRender,
 } from "../../../../ai/video-production/plan-to-timeline.js";
+import { timelineUsesStaleAssets } from "../../../../ai/video-production/output-stale.js";
 import { VideoProductionManager } from "../../../../ai/video-production/video-production-manager.js";
 
 const roots: string[] = [];
@@ -46,6 +48,22 @@ describe("STEP 4 professional video production", () => {
     expect(standard916).toMatchObject({ width: 1080, height: 1920, crf: 23, x264Preset: "medium" });
     expect(preview169).toMatchObject({ width: 426, height: 240 });
     expect(standard169).toMatchObject({ width: 1920, height: 1080 });
+  });
+
+  it("rebinds stale creative plan and timeline asset IDs to current project originals", async () => {
+    const { workspace, planning, project } = await setupMultiImageProject("STEP4-REBIND");
+    const plan = (await planning.createPlan(project, planning.validateForPlan(project))).plan!;
+    const staleId = "00000000-0000-4000-8000-000000000099";
+    const stalePlan = {
+      ...plan,
+      scenes: plan.scenes.map((scene, index) => ({ ...scene, assetId: staleId })),
+    };
+    expect(timelineUsesStaleAssets(project.productImages, buildTimelineFromPlan(project, stalePlan))).toBe(true);
+    const rebound = rebindCreativePlanScenes(project, stalePlan);
+    const timeline = buildTimelineFromPlan(project, rebound);
+    const originals = project.productImages.filter(isOriginalProductImage).map((image) => image.id);
+    expect(timeline.every((clip) => originals.includes(clip.assetId))).toBe(true);
+    expect(timelineUsesStaleAssets(project.productImages, timeline)).toBe(false);
   });
 
   it("persists video versions without overwriting prior successful outputs", async () => {

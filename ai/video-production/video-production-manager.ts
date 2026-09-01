@@ -17,10 +17,11 @@ import {
   buildRenderPlan,
   buildRenderPlanForProfile,
   buildTimelineFromPlan,
+  rebindCreativePlanScenes,
   sliceTimelineForRender,
   timelineDurationMs,
 } from "./plan-to-timeline.js";
-import { computeOutputStatus, timelineFingerprint, uniqueAssetIds } from "./output-stale.js";
+import { computeOutputStatus, timelineFingerprint, timelineUsesStaleAssets, uniqueAssetIds } from "./output-stale.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
 import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
 import {
@@ -93,8 +94,7 @@ export class VideoProductionManager {
 
   async validateRender(projectId: string, preset: "preview" | "standard" = "standard"): Promise<VideoRenderValidation> {
     this.ensureInitialized();
-    let video = await this.getVideoProject(projectId);
-    if (!video) video = await this.createOrRefresh(projectId);
+    const video = await this.ensureFreshVideoProject(projectId);
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
     const profile = profileForPlatform(video.platform ?? workspaceProject.platform);
@@ -111,6 +111,19 @@ export class VideoProductionManager {
       renderClips,
       assetsAvailable: (assetId) => assetChecks.find((item) => item.assetId === assetId)?.available ?? false,
     });
+  }
+
+  /** Rebuild timeline and repair plan bindings when stored asset IDs no longer exist on the project. */
+  private async ensureFreshVideoProject(projectId: string): Promise<VideoProject> {
+    const workspaceProject = await this.workspace!.getProject(projectId);
+    if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
+    let video = await this.getVideoProject(projectId);
+    const stale = !video?.timeline?.length
+      || timelineUsesStaleAssets(workspaceProject.productImages, video.timeline);
+    if (!video || stale) {
+      video = await this.createOrRefresh(projectId, { preserveEdits: true });
+    }
+    return video;
   }
 
   async getOutputDetails(projectId: string): Promise<VideoOutputDetails | null> {
@@ -162,6 +175,10 @@ export class VideoProductionManager {
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
     const plan = await this.planning!.getPlan(projectId);
     if (!plan) throw new VideoProductionError("MISSING_PLAN", "Generate a Creative Plan before creating a video project", 422);
+    const repairedPlan = rebindCreativePlanScenes(workspaceProject, plan);
+    if (repairedPlan !== plan) {
+      await this.planning!.updatePlan(projectId, { scenes: repairedPlan.scenes });
+    }
     const manifest = await this.planning!.getManifest(projectId);
     const originals = workspaceProject.productImages.filter(isOriginalProductImage);
     if (!originals.length) {
@@ -171,7 +188,7 @@ export class VideoProductionManager {
     const existing = await this.getVideoProject(projectId);
     const preserve = options?.preserveEdits !== false;
     const existingClips = preserve ? existing?.timeline.filter((clip) => clip.userEdited) : undefined;
-    const timeline = buildTimelineFromPlan(workspaceProject, plan, { existing: existingClips });
+    const timeline = buildTimelineFromPlan(workspaceProject, repairedPlan, { existing: existingClips });
     if (!timeline.length) {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
@@ -181,10 +198,10 @@ export class VideoProductionManager {
     const video: VideoProject = {
       id: existing?.id ?? randomUUID(),
       projectId,
-      productId: plan.productId || projectId,
-      creativePlanId: plan.id,
-      creativePlanVersion: plan.version,
-      manifestId: manifest?.manifestId ?? plan.manifestId ?? existing?.manifestId,
+      productId: repairedPlan.productId || projectId,
+      creativePlanId: repairedPlan.id,
+      creativePlanVersion: repairedPlan.version,
+      manifestId: manifest?.manifestId ?? repairedPlan.manifestId ?? existing?.manifestId,
       platform: profile.id,
       createdAt: existing?.createdAt ?? now,
       modifiedAt: now,
@@ -308,8 +325,7 @@ export class VideoProductionManager {
     if (!(await ffprobeAvailable())) {
       throw new VideoProductionError("FFPROBE_UNAVAILABLE", "ffprobe is not available on this host", 503);
     }
-    let video = await this.getVideoProject(projectId);
-    if (!video) video = await this.createOrRefresh(projectId);
+    let video = await this.ensureFreshVideoProject(projectId);
     if (video.activeJobId) {
       const active = await this.getJob(video.activeJobId);
       if (active && (active.status === "queued" || active.status === "processing")) {
@@ -322,11 +338,12 @@ export class VideoProductionManager {
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
     const profile = profileForPlatform(video.platform ?? workspaceProject.platform);
-    const renderClips = sliceTimelineForRender(video.timeline, preset);
     const validation = await this.validateRender(projectId, preset);
     if (!validation.ready) {
       throw new VideoProductionError("VALIDATION_FAILED", validation.issues.join(" "), 422);
     }
+    video = await this.getVideoProject(projectId) ?? video;
+    const renderClips = sliceTimelineForRender(video.timeline, preset);
     for (const clip of renderClips) {
       const source = await this.workspace!.getOriginalImagePath(projectId, clip.assetId);
       if (!source) {

@@ -447,9 +447,19 @@ export class CreativeWorkspaceManager {
     const project = await this.getProject(projectId);
     const image = project?.productImages.find((item) => item.id === imageId);
     if (!image || !isOriginalProductImage(image) || classifyAssetBucket(image) !== "original") return null;
-    const extension = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
-    if (!extension || extension === "mp4") return null;
-    return this.getImagePath(projectId, `${imageId}.${extension}`);
+    const preferredExt = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
+    if (!preferredExt || preferredExt === "mp4") return null;
+    const preferredPath = await this.getImagePath(projectId, `${imageId}.${preferredExt}`);
+    if (preferredPath) return preferredPath;
+    const imageDir = path.join(this.projectPath(projectId), "images");
+    try {
+      const entries = await fs.readdir(imageDir);
+      const match = entries.find((entry) => entry.startsWith(`${imageId}.`));
+      if (!match) return null;
+      return this.getImagePath(projectId, match);
+    } catch {
+      return null;
+    }
   }
 
   async getVideoPath(projectId: string, videoFile: string): Promise<string | null> {

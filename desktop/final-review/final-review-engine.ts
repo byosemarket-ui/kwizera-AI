@@ -11,6 +11,7 @@ import {
   getVideoOutputDetails,
   getVideoProject,
   startVideoRender,
+  validateVideoRender,
   type VideoProject,
   type VideoRenderJob,
 } from "../video-production/api";
@@ -257,6 +258,18 @@ export class FinalReviewEngine {
         this.emit();
         const created = await createVideoProject(projectId);
         this.video = created.video;
+      } else {
+        this.uiStage = "validating";
+        this.progress = 6;
+        this.emit();
+        const validation = await validateVideoRender(projectId, "standard");
+        if (!validation.validation.ready) {
+          const created = await createVideoProject(projectId);
+          this.video = created.video;
+        } else {
+          const refreshed = await getVideoProject(projectId);
+          this.video = refreshed.video ?? this.video;
+        }
       }
 
       if (hasVerifiedOutput(this.video)) {
