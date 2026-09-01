@@ -249,34 +249,30 @@ function contentType(filePath: string): string {
 
 
 
-async function serveStatic(res: ServerResponse, filePath: string): Promise<void> {
-
+async function serveStatic(res: ServerResponse, filePath: string, method: string = "GET"): Promise<void> {
   try {
-
-    const data = await fs.promises.readFile(filePath);
-
-    res.writeHead(200, { "Content-Type": contentType(filePath) });
-
-    res.end(data);
-
-  } catch (error) {
-
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-
-      res.writeHead(404);
-
-      res.end("Not found");
-
+    const stat = await fs.promises.stat(filePath);
+    const headers = {
+      "Content-Type": contentType(filePath),
+      "Content-Length": String(stat.size),
+    };
+    if (method === "HEAD") {
+      res.writeHead(200, headers);
+      res.end();
       return;
-
     }
-
+    const data = await fs.promises.readFile(filePath);
+    res.writeHead(200, headers);
+    res.end(data);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
     res.writeHead(500);
-
     res.end("Unable to read file");
-
   }
-
 }
 
 function requireWorkspace(res: ServerResponse) {
@@ -4160,7 +4156,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   const imageMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images\/([^/]+)$/);
 
-  if (imageMatch && req.method === "GET") {
+  if (imageMatch && (req.method === "GET" || req.method === "HEAD")) {
 
     const workspace = requireWorkspace(res);
 
@@ -4170,19 +4166,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     if (!imagePath) { sendJson(res, 404, { error: "Product image not found" }); return; }
 
-    await serveStatic(res, imagePath);
+    await serveStatic(res, imagePath, req.method);
 
     return;
 
   }
 
   const videoFileMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/videos\/([^/]+)$/);
-  if (videoFileMatch && req.method === "GET") {
+  if (videoFileMatch && (req.method === "GET" || req.method === "HEAD")) {
     const workspace = requireWorkspace(res);
     if (!workspace) return;
     const videoPath = await workspace.getVideoPath(videoFileMatch[1], videoFileMatch[2]);
     if (!videoPath) { sendJson(res, 404, { error: "Video not found" }); return; }
-    await serveStatic(res, videoPath);
+    await serveStatic(res, videoPath, req.method);
     return;
   }
 

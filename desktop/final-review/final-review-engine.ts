@@ -152,6 +152,7 @@ export class FinalReviewEngine {
   private started = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private outputFetchAttempts = 0;
+  private outputReachable = false;
   private listeners = new Set<Listener>();
 
   subscribe(listener: Listener): () => void {
@@ -161,7 +162,8 @@ export class FinalReviewEngine {
   }
 
   snapshot(): FinalReviewSnapshot {
-    const verified = hasVerifiedOutput(this.video);
+    const metadataVerified = hasVerifiedOutput(this.video);
+    const verified = metadataVerified && this.outputReachable;
     const progress = verified
       ? 100
       : this.job?.progress ?? (this.uiStage === "completed" ? 100 : this.progress);
@@ -202,9 +204,17 @@ export class FinalReviewEngine {
       const payload = await getVideoProject(handoff.projectId);
       this.video = payload.video;
       if (hasVerifiedOutput(this.video)) {
-        this.uiStage = "completed";
-        this.started = true;
-        this.progress = 100;
+        const url = this.video?.output?.url;
+        if (url && await this.verifyOutputReachable(url)) {
+          this.outputReachable = true;
+          this.uiStage = "completed";
+          this.started = true;
+          this.progress = 100;
+        } else if (url) {
+          this.outputReachable = false;
+          this.uiStage = "awaiting-output";
+          this.error = "Previous video output is no longer available. Click Generate Video to create a new render.";
+        }
       } else if (payload.video?.activeJobId) {
         const current = await getVideoJob(handoff.projectId, payload.video.activeJobId);
         this.job = current.job;
@@ -250,11 +260,17 @@ export class FinalReviewEngine {
       }
 
       if (hasVerifiedOutput(this.video)) {
-        this.uiStage = "completed";
-        this.progress = 100;
-        this.started = true;
-        await persistWorkflowStep(projectId, 5, 4).catch(() => null);
-        return;
+        const url = this.video?.output?.url;
+        if (url && await this.verifyOutputReachable(url)) {
+          this.outputReachable = true;
+          this.uiStage = "completed";
+          this.progress = 100;
+          this.started = true;
+          await persistWorkflowStep(projectId, 5, 4).catch(() => null);
+          return;
+        }
+        this.outputReachable = false;
+        this.video = { ...this.video!, outputStatus: "OUTDATED", renderState: "idle" };
       }
 
       const activeId = this.video?.activeJobId;
@@ -318,17 +334,36 @@ export class FinalReviewEngine {
   private async refreshVideoOutput(projectId: string): Promise<VideoProject | null> {
     const payload = await getVideoProject(projectId);
     this.video = payload.video;
-    if (hasVerifiedOutput(this.video)) return this.video;
+    if (hasVerifiedOutput(this.video) && this.video?.output?.url) {
+      const reachable = await this.verifyOutputReachable(this.video.output.url);
+      this.outputReachable = reachable;
+      if (reachable) return this.video;
+    }
     try {
       const details = await getVideoOutputDetails(projectId);
       if (details.output?.url) {
         const retry = await getVideoProject(projectId);
         this.video = retry.video;
+        if (hasVerifiedOutput(this.video) && this.video?.output?.url) {
+          const reachable = await this.verifyOutputReachable(this.video.output.url);
+          this.outputReachable = reachable;
+          if (reachable) return this.video;
+        }
       }
     } catch {
       /* output endpoint may lag */
     }
-    return hasVerifiedOutput(this.video) ? this.video : null;
+    this.outputReachable = false;
+    return null;
+  }
+
+  private async verifyOutputReachable(outputUrl: string): Promise<boolean> {
+    try {
+      const res = await fetch(outputUrl, { method: "GET", headers: { Range: "bytes=0-0" } });
+      return res.ok || res.status === 206;
+    } catch {
+      return false;
+    }
   }
 
   private async reconcileOutput(projectId: string, stopPollOnMissing: boolean): Promise<boolean> {
@@ -337,6 +372,7 @@ export class FinalReviewEngine {
     this.progress = Math.max(this.progress, 95);
     const video = await this.refreshVideoOutput(projectId);
     if (video?.output?.url) {
+      this.outputReachable = true;
       this.uiStage = "completed";
       this.progress = 100;
       this.error = null;
