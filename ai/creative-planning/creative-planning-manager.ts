@@ -323,10 +323,12 @@ export class CreativePlanningManager {
     const platform = platformGuidance(platforms[0] || project.platform);
     const productionMode = opts?.productionMode ?? existing?.productionMode ?? "AI_PRODUCT_MOTION";
     const creativeTone = opts?.creativeTone ?? existing?.creativeTone;
+    const platformId = platforms[0] || project.platform || "instagram";
+    const socialDefaultSeconds = /tiktok|instagram/i.test(platformId) ? 15 : 30;
     const resolvedDurationSeconds = opts?.durationSeconds
       ?? (brief?.output.duration ? Math.round(parseDurationMs(brief.output.duration) / 1000) : null)
       ?? (existing?.timelineDurationMs ? Math.round(existing.timelineDurationMs / 1000) : null)
-      ?? 30;
+      ?? socialDefaultSeconds;
     const angle = brief?.marketing.angle || product?.creativeAngles?.[0]?.name;
     const audienceRaw = brief?.campaign.audience.general || product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
     const audience = product?.customerIntelligence?.label === "inferred"
@@ -355,7 +357,7 @@ export class CreativePlanningManager {
       videoSettings: {
         productionMode,
         creativeTone,
-        platform: platforms[0] || project.platform || "instagram",
+        platform: platformId,
         durationSeconds: resolvedDurationSeconds,
         language: languageName(brief?.campaign.language || project.language),
         objective: brief?.campaign.objective || campaign.objective || "Introduce the product clearly",
