@@ -11,9 +11,9 @@ import { ProductAssetPreparationManager } from "../../../../ai/product-asset-pre
 import { ImageIntelligenceManager } from "../../../../ai/image-intelligence/image-intelligence-manager.js";
 import { ProductIntelligenceManager } from "../../../../ai/product-intelligence/product-intelligence-manager.js";
 import type { AiCoreManager } from "../../../../ai/core/ai-core-manager.js";
+import { productOnWhitePngBase64 } from "../product-asset-preparation/fixtures.js";
 
-const PNG_1X1 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const PRODUCT_PNG = productOnWhitePngBase64(64, 64);
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -61,12 +61,12 @@ describe("CanonicalProductManager", () => {
     const front = await workspace.uploadImage(project.id, {
       fileName: "oxford-front.png",
       mimeType: "image/png",
-      dataBase64: PNG_1X1,
+      dataBase64: PRODUCT_PNG,
     });
     await workspace.uploadImage(project.id, {
       fileName: "oxford-left.png",
       mimeType: "image/png",
-      dataBase64: PNG_1X1,
+      dataBase64: PRODUCT_PNG,
     });
 
     const videoPath = path.join(root, "dummy-product-video.mp4");
