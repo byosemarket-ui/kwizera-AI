@@ -162,15 +162,13 @@ async function main() {
     assets.every((a) => a.originalPreserved === true),
     "",
   );
-  if (assets[0]?.preparationDecision) {
-    record(
-      "preparationDecision present",
-      ["KEEP_ORIGINAL", "REMOVE_BACKGROUND", "REPLACE_BACKGROUND_LATER", "ENHANCE_SOURCE", "REFRAME_PRODUCT", "REQUEST_USER_ATTENTION"].includes(assets[0].preparationDecision),
-      String(assets[0].preparationDecision),
-    );
-  } else {
-    record("preparationDecision present", true, "optional on older report shape");
-  }
+  record(
+    "preparationDecision present",
+    ["KEEP_ORIGINAL", "REMOVE_BACKGROUND", "REPLACE_BACKGROUND_LATER", "ENHANCE_SOURCE", "REFRAME_PRODUCT", "REQUEST_USER_ATTENTION"].includes(
+      assets[0]?.preparationDecision,
+    ),
+    String(assets[0]?.preparationDecision ?? "missing"),
+  );
 
   const after = await json("GET", `/api/workspace/projects/${projectId}`);
   const afterChecksums = (after.body?.project?.productImages ?? [])

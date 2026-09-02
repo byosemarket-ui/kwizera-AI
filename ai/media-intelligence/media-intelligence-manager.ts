@@ -161,6 +161,7 @@ export class MediaIntelligenceManager {
         (item) => item.parentAssetId === image.id && item.derivedKind === "mask",
       );
       const status = mapQualityToMediaStatus(profile, false);
+      const isolation = decideIsolation(profile);
       assets.push({
         assetId: image.id,
         projectId,
@@ -172,6 +173,7 @@ export class MediaIntelligenceManager {
         status,
         analysisState: profile?.analysisState ?? "unavailable",
         processingState: prepAsset ? "ready" : (profile?.processingState ?? "pending"),
+        preparationDecision: isolation.decision,
         view: profile ? { role: profile.viewRole, confidence: profile.boundaries.confidence } : undefined,
         background: profile ? {
           type: profile.background.type,

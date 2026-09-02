@@ -141,6 +141,7 @@ describe("Step 2 upload pipeline", () => {
     const report = await media.getReport(projectId);
     expect(report.summary.total).toBeGreaterThanOrEqual(1);
     expect(report.assets[0]?.originalPreserved).toBe(true);
+    expect(report.assets[0]?.preparationDecision).toBeTruthy();
 
     await fs.rm(storage, { recursive: true, force: true });
   });

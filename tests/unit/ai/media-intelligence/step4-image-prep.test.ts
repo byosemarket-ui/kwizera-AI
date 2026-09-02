@@ -2,14 +2,22 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { AiCoreManager } from "../../../../ai/core/ai-core-manager.js";
 import { CreativeWorkspaceManager } from "../../../../ai/creative-workspace/creative-workspace-manager.js";
+import { ImageIntelligenceManager } from "../../../../ai/image-intelligence/image-intelligence-manager.js";
+import { MediaIntelligenceManager } from "../../../../ai/media-intelligence/media-intelligence-manager.js";
 import { resolveProductionImagePath } from "../../../../ai/media-intelligence/asset-resolver.js";
+import { ProductAssetPreparationManager } from "../../../../ai/product-asset-preparation/product-asset-preparation-manager.js";
+import { ProductIntelligenceManager } from "../../../../ai/product-intelligence/product-intelligence-manager.js";
+import { CanonicalProductManager } from "../../../../ai/product-record/canonical-product-manager.js";
 import {
   buildNormalizedProductCutout,
   isProductionSafeDerivedForeground,
   PREPARATION_METHOD,
 } from "../../../../ai/product-asset-preparation/png-canvas.js";
 import { productOnWhitePngBase64 } from "../product-asset-preparation/fixtures.js";
+
+const CORE_STUB = undefined as unknown as AiCoreManager;
 
 describe("source-preserving cutout", () => {
   it("keeps product RGB close to the source product region", () => {
@@ -73,5 +81,50 @@ describe("production asset resolver safety", () => {
     expect(resolved?.source).toBe("original");
     expect(resolved?.assetId).toBe(original.id);
     await fs.rm(root, { recursive: true, force: true });
+  });
+});
+
+describe("media report preparationDecision", () => {
+  it("includes preparationDecision on getReport assets", async () => {
+    const storage = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-prep-decision-"));
+    const workspace = new CreativeWorkspaceManager();
+    await workspace.initialize(storage);
+    const images = new ImageIntelligenceManager();
+    await images.initialize(storage, { core: CORE_STUB, workspace });
+    const products = new ProductIntelligenceManager();
+    await products.initialize(storage, { core: CORE_STUB, workspace });
+    products.attachImageIntelligence(images);
+    const canonical = new CanonicalProductManager();
+    await canonical.initialize(storage, { workspace, images, products });
+    const assets = new ProductAssetPreparationManager();
+    await assets.initialize(storage, {
+      core: CORE_STUB,
+      workspace,
+      products,
+      images,
+    });
+    const media = new MediaIntelligenceManager();
+    await media.initialize({ workspace, images, products, canonical, assets });
+
+    const project = await workspace.createProject("Prep Decision");
+    await workspace.uploadImage(project.id, {
+      fileName: "product.png",
+      mimeType: "image/png",
+      dataBase64: productOnWhitePngBase64(64, 64),
+    });
+    await media.prepareProject(project.id);
+    const report = await media.getReport(project.id);
+    expect(report.pipelineVersion).toBe("step4-image-prep-v1");
+    expect(report.assets[0]?.preparationDecision).toBeTruthy();
+    expect([
+      "KEEP_ORIGINAL",
+      "REMOVE_BACKGROUND",
+      "REPLACE_BACKGROUND_LATER",
+      "ENHANCE_SOURCE",
+      "REFRAME_PRODUCT",
+      "REQUEST_USER_ATTENTION",
+    ]).toContain(report.assets[0]?.preparationDecision);
+
+    await fs.rm(storage, { recursive: true, force: true });
   });
 });
