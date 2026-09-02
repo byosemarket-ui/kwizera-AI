@@ -95,6 +95,11 @@ export async function getVideoJob(projectId: string, jobId: string): Promise<{ j
   return readJson(response);
 }
 
+export async function getVideoVersions(projectId: string): Promise<{ versions: import("../../ai/video-production/types.js").VideoVersion[] }> {
+  const response = await fetch(`/api/video-production/projects/${projectId}/versions`);
+  return readJson(response);
+}
+
 export const CAMERA_OPTIONS: VideoCameraId[] = [
   "close-up", "medium", "wide", "hero", "macro", "top-down", "side", "front", "rear",
   "orbit", "push-in", "pull-out", "pan", "tilt", "reveal",

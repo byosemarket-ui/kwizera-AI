@@ -37,6 +37,10 @@ export function validateBeforeRender(input: {
   const durationMs = timelineDurationMs(input.renderClips);
   const assetIds = uniqueAssetIds(input.renderClips);
 
+  if (!input.project.productInformation?.name?.trim() && !info.productName?.trim()) {
+    issues.push("Product name is required before video production.");
+  }
+  if (!input.video.creativePlanId) issues.push("Creative plan is missing from the video project.");
   if (!originals.length) issues.push("At least one original product image is required.");
   if (!input.renderClips.length) issues.push("Timeline has no scenes to render.");
   if (input.preset === "standard" && input.renderClips.length < 1) {

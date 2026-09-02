@@ -3974,6 +3974,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  const videoVersionsMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/versions$/);
+  if (videoVersionsMatch && req.method === "GET") {
+    const production = requireVideoProduction(res);
+    if (!production) return;
+    try {
+      const versions = await production.getVersions(videoVersionsMatch[1]);
+      sendJson(res, 200, { versions });
+    } catch (error) {
+      sendVideoProductionError(res, error);
+    }
+    return;
+  }
+
   const videoRenderMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)\/render$/);
   if (videoRenderMatch && req.method === "POST") {
     const production = requireVideoProduction(res);

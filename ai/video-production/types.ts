@@ -1,4 +1,6 @@
-export const VIDEO_PRODUCTION_VERSION = "step5-v1";
+import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
+
+export const VIDEO_PRODUCTION_VERSION = "step6-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
@@ -188,6 +190,9 @@ export interface VideoRenderJob {
   outputAssetId?: string;
   textOverlay?: VideoTextOverlayStatus;
   preset?: "preview" | "standard";
+  sceneIndex?: number;
+  sceneCount?: number;
+  stageMessage?: string;
 }
 
 export interface VideoProject {
@@ -221,6 +226,9 @@ export interface VideoProject {
   knowledgeMessage?: string;
   foundationKnowledgeIds?: string[];
   textOverlay?: VideoTextOverlayStatus;
+  productionMode?: ProductionModeId;
+  creativeTone?: CreativeToneId;
+  productionRenderLabel?: string;
 }
 
 export class VideoProductionError extends Error {

@@ -23,7 +23,9 @@ import {
   timelineDurationMs,
 } from "./plan-to-timeline.js";
 import { computeOutputStatus, timelineFingerprint, timelineUsesStaleAssets, uniqueAssetIds } from "./output-stale.js";
+import { verifyOutputFileOnDisk } from "./output-verify.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
+import { applyProductionModeToClip, resolveProductionRenderProfile } from "./production-render-profile.js";
 import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
 import {
   VIDEO_PRODUCTION_VERSION,
@@ -170,6 +172,11 @@ export class VideoProductionManager {
     return job;
   }
 
+  async getVersions(projectId: string): Promise<VideoVersion[]> {
+    const video = await this.getVideoProject(projectId);
+    return video?.versions ?? [];
+  }
+
   async createOrRefresh(projectId: string, options?: { preserveEdits?: boolean }): Promise<VideoProject> {
     this.ensureInitialized();
     const workspaceProject = await this.workspace!.getProject(projectId);
@@ -194,6 +201,7 @@ export class VideoProductionManager {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
     const profile = profileForPlatform(workspaceProject.platform);
+    const renderProfile = resolveProductionRenderProfile(repairedPlan.productionMode);
     const now = new Date().toISOString();
     const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
     const video: VideoProject = {
@@ -225,8 +233,11 @@ export class VideoProductionManager {
       outputSourceFingerprint: existing?.outputSourceFingerprint,
       outputValidation: existing?.outputValidation,
       versions: existing?.versions ?? [],
+      productionMode: repairedPlan.productionMode,
+      creativeTone: repairedPlan.creativeTone,
+      productionRenderLabel: renderProfile.providerHonestLabel,
       videoGenerationProvider: "UNAVAILABLE",
-      videoGenerationProviderMessage: PROVIDER_MESSAGE,
+      videoGenerationProviderMessage: renderProfile.providerHonestLabel,
       userEdited: existing?.userEdited,
       foundationKnowledgeIds: existing?.foundationKnowledgeIds,
       textOverlay: existing?.textOverlay,
@@ -443,30 +454,55 @@ export class VideoProductionManager {
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
       const preset = job.preset ?? video.renderPlan.preset ?? "preview";
       const renderClips = sliceTimelineForRender(video.timeline, preset);
+      const renderProfile = resolveProductionRenderProfile(video.productionMode);
       const profile = profileForPlatform(video.platform ?? "youtube");
       const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(renderClips), preset);
       const plannedDurationMs = timelineDurationMs(renderClips);
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
-      await this.writeJob(job.id, { ...started, stage: "rendering", progress: 10 });
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "rendering",
+        progress: 10,
+        sceneCount: renderClips.length,
+        stageMessage: "Validating product assets",
+      });
       for (const [index, clip] of renderClips.entries()) {
         await yieldLoop();
-        const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, clip.assetId);
+        const productionClip = applyProductionModeToClip(clip, renderProfile);
+        await this.writeJob(job.id, {
+          ...started,
+          stage: "rendering",
+          progress: Math.min(78, 12 + Math.round(((index) / renderClips.length) * 66)),
+          sceneIndex: index + 1,
+          sceneCount: renderClips.length,
+          stageMessage: `Preparing scene ${index + 1} of ${renderClips.length}`,
+        });
+        const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, productionClip.assetId);
         const imagePath = resolved?.path ?? null;
-        if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${clip.assetId} is not on disk`, 422);
+        if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${productionClip.assetId} is not on disk`, 422);
         const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
-        const rendered = await renderStillClip({ clip, imagePath }, renderPlan, clipPath, fontFile);
+        const rendered = await renderStillClip({ clip: productionClip, imagePath }, renderPlan, clipPath, fontFile);
         overlays.push(rendered.overlay);
         clipPaths.push(clipPath);
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
-          progress: Math.min(80, 10 + Math.round(((index + 1) / renderClips.length) * 70)),
+          progress: Math.min(80, 12 + Math.round(((index + 1) / renderClips.length) * 68)),
+          sceneIndex: index + 1,
+          sceneCount: renderClips.length,
+          stageMessage: `Rendered scene ${index + 1} of ${renderClips.length}`,
         });
       }
       await yieldLoop();
-      await this.writeJob(job.id, { ...started, stage: "rendering", progress: 82 });
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "encoding",
+        progress: 82,
+        sceneCount: renderClips.length,
+        stageMessage: "Encoding final video",
+      });
       const outputPath = path.join(tmpDir, "output.mp4");
       if (clipPaths.length === 1) {
         await fs.copyFile(clipPaths[0]!, outputPath);
@@ -476,7 +512,12 @@ export class VideoProductionManager {
           crf: renderPlan.crf,
         });
       }
-      await this.writeJob(job.id, { ...started, stage: "validating", progress: 88 });
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "validating",
+        progress: 88,
+        stageMessage: "Validating video file",
+      });
       const probed = await probeVideo(outputPath);
       const qc = validateRenderedOutput({
         probed,
@@ -489,7 +530,12 @@ export class VideoProductionManager {
       if (!qc.valid) {
         throw new VideoProductionError("INVALID_OUTPUT", qc.issues.join(" "), 500);
       }
-      await this.writeJob(job.id, { ...started, stage: "registering", progress: 92 });
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "registering",
+        progress: 92,
+        stageMessage: "Finalizing output",
+      });
       const parentAssetId = renderClips[0]?.assetId;
       const registered = await this.workspace!.registerOutputAsset(job.projectId, {
         sourcePath: outputPath,
@@ -502,6 +548,14 @@ export class VideoProductionManager {
         parentAssetId,
         renderJobId: job.id,
       });
+      const registeredPath = await this.workspace!.getVideoPath(job.projectId, `${registered.id}.mp4`);
+      if (!registeredPath) {
+        throw new VideoProductionError("REGISTRATION_FAILED", "Registered video path is unavailable", 500);
+      }
+      const diskCheck = await verifyOutputFileOnDisk(registeredPath);
+      if (!diskCheck.valid) {
+        throw new VideoProductionError("INVALID_OUTPUT", diskCheck.issues.join(" "), 500);
+      }
       overlay = mergeOverlay(overlays);
       const completedAt = new Date().toISOString();
       const sourceFingerprint = timelineFingerprint({ ...video, renderPlan });
@@ -539,6 +593,9 @@ export class VideoProductionManager {
         status: "completed",
         stage: "completed",
         progress: 100,
+        sceneCount: renderClips.length,
+        sceneIndex: renderClips.length,
+        stageMessage: "Video ready",
         completedAt,
         updatedAt: completedAt,
         outputPath: registered.url,
@@ -556,7 +613,11 @@ export class VideoProductionManager {
         textOverlay: overlay,
         output,
         outputSourceFingerprint: sourceFingerprint,
-        outputValidation: qc.checks,
+        outputValidation: {
+          ...qc.checks,
+          fileOnDisk: diskCheck.valid,
+          mimeLooksLikeMp4: diskCheck.mimeLooksLikeMp4,
+        },
         versions: [...(video.versions ?? []), version],
       });
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);

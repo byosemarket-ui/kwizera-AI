@@ -123,6 +123,23 @@ export function FinalReviewWorkspace() {
                   New Project
                 </button>
               </div>
+              {(snap.video?.versions?.length ?? 0) > 0 ? (
+                <div className="fr-versions">
+                  <h3>Version history</h3>
+                  <ul>
+                    {(snap.video?.versions ?? []).slice().reverse().map((version, index) => (
+                      <li key={version.versionId}>
+                        Version {(snap.video?.versions?.length ?? 0) - index}
+                        {" · "}
+                        {new Date(version.createdAt).toLocaleString()}
+                        {" · "}
+                        {Math.round(version.durationMs / 1000)}s
+                        {version.output.url === snap.outputUrl ? " (current)" : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </section>
           ) : (
             <section className="fr-panel">
@@ -159,6 +176,11 @@ export function FinalReviewWorkspace() {
                     <span className="fr-progress-stage">{snap.currentStageLabel}</span>
                     {snap.busy ? <Loader2 size={18} className="fr-spin" /> : null}
                   </div>
+                  {snap.job?.sceneIndex && snap.job?.sceneCount ? (
+                    <p className="fr-hint">
+                      Rendering scene {snap.job.sceneIndex} of {snap.job.sceneCount}
+                    </p>
+                  ) : null}
                   <div className="fr-progress-bar" aria-hidden="true">
                     <i style={{ width: `${progress}%` }} />
                   </div>

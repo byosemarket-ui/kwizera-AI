@@ -131,9 +131,10 @@ function stageFromJob(job: VideoRenderJob | null, busy: boolean, started: boolea
 function stageLabel(job: VideoRenderJob | null, uiStage: ProductionUiStage, progress: number): string {
   if (uiStage === "initializing") return "Initializing production…";
   if (uiStage === "creating-timeline") return "Building timeline from approved plan…";
-  if (uiStage === "awaiting-output") return "Waiting for final video output…";
+  if (uiStage === "awaiting-output") return "Verifying final video file…";
   if (uiStage === "completed") return "Video ready";
   if (uiStage === "failed") return job?.error ?? "Production failed";
+  if (job?.stageMessage) return job.stageMessage;
   if (job?.stage) {
     const match = PRODUCTION_STAGES.find((s) => s.minProgress <= (job.progress ?? progress));
     return match?.label ?? job.stage;
