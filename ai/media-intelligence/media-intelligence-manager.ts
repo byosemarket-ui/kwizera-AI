@@ -67,6 +67,19 @@ export class MediaIntelligenceManager {
           const project = await this.workspace!.getProject(projectId);
           const image = project?.productImages.find((item) => item.id === assetId);
           if (image) {
+            let imageBase64: string | undefined;
+            try {
+              const imagePath = await this.workspace!.getOriginalImagePath(projectId, assetId);
+              if (imagePath) {
+                const { readFile } = await import("node:fs/promises");
+                const bytes = await readFile(imagePath);
+                if (bytes.byteLength > 0 && bytes.byteLength <= 2_500_000) {
+                  imageBase64 = bytes.toString("base64");
+                }
+              }
+            } catch {
+              imageBase64 = undefined;
+            }
             await this.vision.analyzeImage({
               projectId,
               assetId,
@@ -74,6 +87,7 @@ export class MediaIntelligenceManager {
               fileName: image.fileName,
               userProductName: project?.productInformation?.name,
               userCategory: project?.productInformation?.category,
+              imageBase64,
             });
           }
         }

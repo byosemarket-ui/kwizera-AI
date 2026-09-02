@@ -110,6 +110,12 @@ export interface CreativePlan {
   productionMode?: ProductionModeId;
   creativeTone?: CreativeToneId;
   planStatus?: PlanStatus;
+  /** Step 5 — whether AI Creative Director or deterministic planner produced scenes */
+  planSource?: "ai" | "deterministic";
+  planWarnings?: string[];
+  aiModelId?: string | null;
+  creativeDirectionSummary?: string;
+  primarySellingPoint?: string;
 }
 
 export interface PlanResult {
@@ -433,6 +439,11 @@ export class CreativePlanningManager {
       productionMode,
       creativeTone,
       planStatus: scenes.length && scenes.every((s) => s.assetId) ? "READY_FOR_REVIEW" : "DRAFT",
+      planSource: sceneResult.source,
+      planWarnings: sceneResult.warnings,
+      aiModelId: sceneResult.modelId ?? null,
+      creativeDirectionSummary: sceneResult.creativeDirection,
+      primarySellingPoint: sceneResult.primarySellingPoint,
     };
   }
 

@@ -1,6 +1,6 @@
 /**
  * AI creative planning integration point.
- * Uses deterministic scene planning when no reasoning provider is configured.
+ * Uses deterministic scene planning when no reasoning provider is configured / available.
  */
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
 import type { ImageIntelligenceProfile } from "../image-intelligence/types.js";
@@ -35,12 +35,21 @@ export interface AiCreativePlannerResult {
   scenes: PlanScene[];
   source: "ai" | "deterministic";
   warnings: string[];
+  modelId?: string | null;
+  creativeDirection?: string;
+  primarySellingPoint?: string;
+  textStrategy?: {
+    headline?: string;
+    price?: string;
+    cta?: string;
+  };
 }
 
 export interface CreativeReasoningProvider {
   readonly id: string;
   isAvailable(): Promise<boolean>;
   planCreativeScenes(input: AiCreativePlannerInput): Promise<unknown>;
+  getLastModel?(): string | null;
 }
 
 class UnconfiguredCreativeReasoningProvider implements CreativeReasoningProvider {
@@ -51,6 +60,10 @@ class UnconfiguredCreativeReasoningProvider implements CreativeReasoningProvider
   }
 
   async planCreativeScenes(): Promise<unknown> {
+    return null;
+  }
+
+  getLastModel(): string | null {
     return null;
   }
 }
@@ -82,37 +95,73 @@ function buildDeterministicPlan(input: AiCreativePlannerInput): PlanScene[] {
   );
 }
 
+function allowedAssetIds(input: AiCreativePlannerInput): Set<string> {
+  return new Set(input.project.productImages.map((img) => img.id));
+}
+
 export async function generateCreativeScenes(input: AiCreativePlannerInput): Promise<AiCreativePlannerResult> {
   const warnings: string[] = [];
   try {
     if (await reasoningProvider.isAvailable()) {
       const raw = await reasoningProvider.planCreativeScenes(input);
-      const parsed = validateAiPlannerOutput(raw);
+      const parsed = validateAiPlannerOutput(raw, {
+        projectId: input.project.id,
+        allowedAssetIds: [...allowedAssetIds(input)],
+        targetDurationSeconds: input.videoSettings.durationSeconds,
+        productionMode: input.videoSettings.productionMode,
+      });
       if (parsed.valid) {
         const deterministic = buildDeterministicPlan(input);
+        const allowed = allowedAssetIds(input);
         const merged = deterministic.map((scene, index) => {
           const aiScene = parsed.scenes[index];
           if (!aiScene) return scene;
+          const assetId = aiScene.assetId && allowed.has(aiScene.assetId) ? aiScene.assetId : scene.assetId;
+          const durationSeconds = aiScene.duration && aiScene.duration >= 0.8
+            ? aiScene.duration
+            : scene.durationSeconds;
           return {
             ...scene,
             purpose: aiScene.purpose || scene.purpose,
-            assetId: aiScene.assetId && input.project.productImages.some((img) => img.id === aiScene.assetId)
-              ? aiScene.assetId
-              : scene.assetId,
-            durationSeconds: aiScene.duration && aiScene.duration >= 0.8 ? aiScene.duration : scene.durationSeconds,
-            durationMs: aiScene.duration && aiScene.duration >= 0.8
-              ? Math.round(aiScene.duration * 1000)
-              : scene.durationMs,
+            assetId,
+            durationSeconds,
+            durationMs: Math.round(durationSeconds * 1000),
+            camera: aiScene.camera || scene.camera,
+            cameraDirection: aiScene.camera || scene.cameraDirection,
+            motion: aiScene.motion || scene.motion,
+            animation: aiScene.motion || scene.animation,
+            narration: aiScene.narration || scene.narration,
+            visualPurpose: aiScene.purpose || scene.visualPurpose,
+            selectionReason: aiScene.backgroundStrategy
+              ? `AI background strategy: ${aiScene.backgroundStrategy}`
+              : scene.selectionReason,
           };
         });
-        return { scenes: merged, source: "ai", warnings };
+        return {
+          scenes: merged,
+          source: "ai",
+          warnings: parsed.warnings,
+          modelId: reasoningProvider.getLastModel?.() ?? null,
+          creativeDirection: parsed.creativeDirection,
+          primarySellingPoint: parsed.primarySellingPoint,
+          textStrategy: parsed.textStrategy,
+        };
       }
-      warnings.push("AI planner returned invalid output; using deterministic planning.");
+      warnings.push(
+        parsed.errors[0]
+          ? `AI_PLAN_VALIDATION_FAILED: ${parsed.errors[0]}`
+          : "AI planner returned invalid output; using deterministic planning.",
+      );
+    } else {
+      warnings.push("AI Creative Director unavailable — using deterministic planning.");
     }
   } catch (error) {
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : undefined;
     warnings.push(
       error instanceof Error
-        ? `AI planner unavailable: ${error.message}`
+        ? `${code ? `${code}: ` : "AI planner unavailable: "}${error.message}`
         : "AI planner unavailable; using deterministic planning.",
     );
   }
@@ -121,5 +170,6 @@ export async function generateCreativeScenes(input: AiCreativePlannerInput): Pro
     scenes: buildDeterministicPlan(input),
     source: "deterministic",
     warnings,
+    modelId: null,
   };
 }

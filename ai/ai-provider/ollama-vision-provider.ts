@@ -2,11 +2,8 @@
  * Optional local Ollama vision provider — only used when Ollama is installed and reachable.
  * Does not install models; fails safely when unavailable.
  */
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { VisionCapability, VisionAnalysisInput, VisionAnalysisResult, VisionProvider } from "./vision-capabilities.js";
-
-const execFileAsync = promisify(execFile);
+import { fetchOllamaTags, ollamaBaseUrl, ollamaGenerateJson, parseJsonObject } from "./ollama-client.js";
 
 const DEFAULT_MODEL = process.env.KWIZERA_OLLAMA_VISION_MODEL ?? "llava";
 
@@ -18,22 +15,15 @@ export class OllamaVisionProvider implements VisionProvider {
   private model: string;
 
   constructor(opts?: { baseUrl?: string; model?: string }) {
-    this.baseUrl = (opts?.baseUrl ?? process.env.OLLAMA_HOST ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+    this.baseUrl = ollamaBaseUrl(opts?.baseUrl);
     this.model = opts?.model ?? DEFAULT_MODEL;
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      if (process.platform === "win32") {
-        await execFileAsync("where", ["ollama"], { timeout: 3000 });
-      } else {
-        await execFileAsync("which", ["ollama"], { timeout: 3000 });
-      }
-      const res = await fetch(`${this.baseUrl}/api/tags`, { signal: AbortSignal.timeout(4000) });
-      return res.ok;
-    } catch {
-      return false;
-    }
+    const tags = await fetchOllamaTags({ baseUrl: this.baseUrl });
+    if (!tags.ok) return false;
+    return tags.models.some((m) => m.name === this.model || m.name.startsWith(`${this.model}:`))
+      || tags.models.length > 0;
   }
 
   async analyzeImage(input: VisionAnalysisInput): Promise<VisionAnalysisResult> {
@@ -61,21 +51,51 @@ export class OllamaVisionProvider implements VisionProvider {
         "}",
         input.userProductName ? `User product name: ${input.userProductName}` : "",
         input.userCategory ? `User category: ${input.userCategory}` : "",
+        input.imageBase64
+          ? "An image payload was provided — prioritize visual product cues."
+          : "Image bytes were not attached; reason from product metadata only and keep confidence low.",
       ].filter(Boolean).join("\n");
+
+      const body: Record<string, unknown> = {
+        model: this.model,
+        prompt,
+        stream: false,
+        format: "json",
+      };
+      if (input.imageBase64) {
+        body.images = [input.imageBase64];
+      }
 
       const res = await fetch(`${this.baseUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: AbortSignal.timeout(60_000),
-        body: JSON.stringify({
-          model: this.model,
-          prompt,
-          stream: false,
-          format: "json",
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
+        if (input.imageBase64) {
+          const textOnly = await ollamaGenerateJson({
+            baseUrl: this.baseUrl,
+            model: this.model,
+            prompt,
+            timeoutMs: 60_000,
+          });
+          if (!textOnly.ok) {
+            return {
+              provider: this.id,
+              model: this.model,
+              available: true,
+              notes: [`Ollama request failed (${res.status}) — using heuristics.`],
+            };
+          }
+          return toVisionResult(
+            this.id,
+            this.model,
+            parseVisionJson(textOnly.text),
+            ["Ollama text enrichment applied (vision payload rejected)."],
+          );
+        }
         return {
           provider: this.id,
           model: this.model,
@@ -84,22 +104,13 @@ export class OllamaVisionProvider implements VisionProvider {
         };
       }
 
-      const body = await res.json() as { response?: string };
-      const parsed = parseVisionJson(body.response ?? "");
-      return {
-        provider: this.id,
-        model: this.model,
-        available: true,
-        views: parsed.view ? [{ view: parsed.view, confidence: clamp(parsed.viewConfidence) }] : undefined,
-        dominantColors: parsed.dominantColors,
-        backgroundType: parsed.backgroundType
-          ? { type: parsed.backgroundType, confidence: clamp(parsed.backgroundConfidence) }
-          : undefined,
-        productCategory: parsed.category
-          ? { category: parsed.category, confidence: clamp(parsed.categoryConfidence) }
-          : undefined,
-        notes: ["Ollama vision enrichment applied."],
-      };
+      const responseBody = await res.json() as { response?: string };
+      return toVisionResult(
+        this.id,
+        this.model,
+        parseVisionJson(responseBody.response ?? ""),
+        [input.imageBase64 ? "Ollama vision enrichment applied." : "Ollama metadata enrichment applied (no image bytes)."],
+      );
     } catch (error) {
       return {
         provider: this.id,
@@ -111,6 +122,33 @@ export class OllamaVisionProvider implements VisionProvider {
   }
 }
 
+function toVisionResult(
+  provider: string,
+  model: string,
+  parsed: Record<string, unknown>,
+  notes: string[],
+): VisionAnalysisResult {
+  return {
+    provider,
+    model,
+    available: true,
+    views: parsed.view ? [{ view: String(parsed.view), confidence: clamp(parsed.viewConfidence) }] : undefined,
+    dominantColors: Array.isArray(parsed.dominantColors)
+      ? parsed.dominantColors
+          .filter((item): item is { name: string; confidence?: number } => Boolean(item) && typeof item === "object")
+          .map((item) => ({ name: String(item.name ?? ""), confidence: clamp(item.confidence) }))
+          .filter((item) => item.name)
+      : undefined,
+    backgroundType: parsed.backgroundType
+      ? { type: String(parsed.backgroundType), confidence: clamp(parsed.backgroundConfidence) }
+      : undefined,
+    productCategory: parsed.category
+      ? { category: String(parsed.category), confidence: clamp(parsed.categoryConfidence) }
+      : undefined,
+    notes,
+  };
+}
+
 function clamp(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return 0.5;
@@ -118,12 +156,5 @@ function clamp(value: unknown): number {
 }
 
 function parseVisionJson(text: string): Record<string, unknown> {
-  try {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start < 0 || end <= start) return {};
-    return JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
+  return parseJsonObject(text) ?? {};
 }

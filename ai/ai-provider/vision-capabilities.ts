@@ -17,6 +17,8 @@ export interface VisionAnalysisInput {
   fileName: string;
   userProductName?: string;
   userCategory?: string;
+  /** Optional raw image bytes as base64 (no data-URL prefix) for true vision models. */
+  imageBase64?: string;
 }
 
 export interface VisionViewGuess {

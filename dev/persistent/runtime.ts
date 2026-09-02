@@ -573,13 +573,28 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       });
       try {
         const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
+        const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
+        const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
+        const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+        const readiness = await assessOllamaReadiness();
         const ollamaVision = new OllamaVisionProvider();
         if (await ollamaVision.isAvailable()) {
           imageIntelligenceManager.setVisionProvider(ollamaVision);
           mediaIntelligenceManager.setVisionProvider(ollamaVision);
         }
+        // Register Creative Director only when a model is actually ready and host can support it.
+        if (readiness.ready && readiness.selectedModel) {
+          const director = new OllamaCreativeReasoningProvider({
+            model: readiness.selectedModel,
+          });
+          if (await director.isAvailable()) {
+            setCreativeReasoningProvider(director);
+          }
+        } else {
+          setCreativeReasoningProvider(null);
+        }
       } catch {
-        /* Ollama optional — heuristic intelligence remains authoritative */
+        /* Ollama optional — heuristic intelligence + deterministic planning remain authoritative */
       }
       productScenePlanningManager = new ProductScenePlanningManager();
       await productScenePlanningManager.initialize(storageRoot, {

@@ -89,18 +89,96 @@ export function validateCreativePlan(input: CreativePlanValidationInput): Creati
 
 export function validateAiPlannerOutput(
   output: unknown,
-): { valid: boolean; scenes: Array<{ id: string; purpose: string; assetId?: string; duration?: number }> } {
-  if (!output || typeof output !== "object") return { valid: false, scenes: [] };
-  const record = output as { scenes?: unknown };
-  if (!Array.isArray(record.scenes) || !record.scenes.length) return { valid: false, scenes: [] };
+  opts?: {
+    projectId?: string;
+    allowedAssetIds?: string[];
+    targetDurationSeconds?: number;
+    productionMode?: ProductionModeId;
+  },
+): {
+  valid: boolean;
+  scenes: Array<{
+    id: string;
+    purpose: string;
+    assetId?: string;
+    duration?: number;
+    camera?: string;
+    motion?: string;
+    backgroundStrategy?: string;
+    narration?: string;
+  }>;
+  errors: string[];
+  warnings: string[];
+  creativeDirection?: string;
+  primarySellingPoint?: string;
+  textStrategy?: { headline?: string; price?: string; cta?: string };
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (!output || typeof output !== "object") {
+    return { valid: false, scenes: [], errors: ["INVALID_AI_OUTPUT"], warnings };
+  }
+  const record = output as Record<string, unknown>;
+  if (opts?.projectId && typeof record.projectId === "string" && record.projectId && record.projectId !== opts.projectId) {
+    errors.push("AI output projectId does not match the active project.");
+  }
+  if (opts?.productionMode && typeof record.productionMode === "string" && record.productionMode
+    && record.productionMode !== opts.productionMode) {
+    warnings.push("AI productionMode differed from user selection — user selection is authoritative.");
+  }
+  if (!Array.isArray(record.scenes) || !record.scenes.length) {
+    return { valid: false, scenes: [], errors: ["AI output missing scenes"], warnings };
+  }
+
+  const allowed = new Set(opts?.allowedAssetIds ?? []);
   const scenes = record.scenes
     .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
-    .map((item) => ({
-      id: String(item.id ?? ""),
-      purpose: String(item.purpose ?? ""),
-      assetId: typeof item.assetId === "string" ? item.assetId : undefined,
-      duration: typeof item.duration === "number" ? item.duration : undefined,
-    }))
-    .filter((item) => item.id && item.purpose);
-  return { valid: scenes.length > 0, scenes };
+    .map((item, index) => {
+      const assetId = typeof item.assetId === "string" ? item.assetId : undefined;
+      if (assetId && allowed.size && !allowed.has(assetId)) {
+        errors.push(`Hallucinated asset reference rejected: ${assetId}`);
+      }
+      return {
+        id: String(item.id ?? `scene-${index + 1}`),
+        purpose: String(item.purpose ?? ""),
+        assetId: assetId && (!allowed.size || allowed.has(assetId)) ? assetId : undefined,
+        duration: typeof item.duration === "number" ? item.duration : undefined,
+        camera: typeof item.camera === "string" ? item.camera : undefined,
+        motion: typeof item.motion === "string" ? item.motion : undefined,
+        backgroundStrategy: typeof item.backgroundStrategy === "string" ? item.backgroundStrategy : undefined,
+        narration: typeof item.narration === "string" ? item.narration : undefined,
+      };
+    })
+    .filter((item) => item.purpose);
+
+  if (!scenes.length) errors.push("AI output scenes lacked required purpose fields.");
+
+  if (opts?.targetDurationSeconds && opts.targetDurationSeconds > 0) {
+    const total = scenes.reduce((sum, scene) => sum + (scene.duration ?? 0), 0);
+    if (total > 0 && Math.abs(total - opts.targetDurationSeconds) > 4) {
+      warnings.push(
+        `AI scene durations (${total.toFixed(1)}s) differ from target (${opts.targetDurationSeconds}s).`,
+      );
+    }
+  }
+
+  const textStrategyRaw = record.textStrategy && typeof record.textStrategy === "object"
+    ? record.textStrategy as Record<string, unknown>
+    : null;
+
+  return {
+    valid: errors.length === 0 && scenes.length > 0,
+    scenes,
+    errors,
+    warnings,
+    creativeDirection: typeof record.creativeDirection === "string" ? record.creativeDirection : undefined,
+    primarySellingPoint: typeof record.primarySellingPoint === "string" ? record.primarySellingPoint : undefined,
+    textStrategy: textStrategyRaw
+      ? {
+          headline: typeof textStrategyRaw.headline === "string" ? textStrategyRaw.headline : undefined,
+          price: typeof textStrategyRaw.price === "string" ? textStrategyRaw.price : undefined,
+          cta: typeof textStrategyRaw.cta === "string" ? textStrategyRaw.cta : undefined,
+        }
+      : undefined,
+  };
 }

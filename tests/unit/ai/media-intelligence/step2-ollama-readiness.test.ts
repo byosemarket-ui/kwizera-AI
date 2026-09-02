@@ -22,6 +22,8 @@ describe("Ollama readiness assessment", () => {
     const report = await assessOllamaReadiness();
     expect(report.cpuCores).toBeGreaterThan(0);
     expect(report.totalMemoryGb).toBeGreaterThan(0);
-    expect(["defer", "install-small-model", "insufficient-resources"]).toContain(report.recommendedAction);
+    expect(report.status).toBeTruthy();
+    expect(report.modelStrategy).toBeTruthy();
+    expect(["defer", "install-small-model", "insufficient-resources", "use-installed-model"]).toContain(report.recommendedAction);
   });
 });

@@ -64,9 +64,19 @@ describe("creative plan validator", () => {
     expect(result.errors.some((item) => item.includes("production mode"))).toBe(true);
   });
 
-  it("validates AI planner output structure", () => {
+  it("validates AI planner output structure and rejects hallucinated assets", () => {
     expect(validateAiPlannerOutput(null).valid).toBe(false);
-    expect(validateAiPlannerOutput({ scenes: [{ id: "1", purpose: "HOOK", assetId: "a1", duration: 2 }] }).valid).toBe(true);
-    expect(validateAiPlannerOutput({ scenes: [{ purpose: "HOOK" }] }).valid).toBe(false);
+    expect(validateAiPlannerOutput({
+      projectId: "p1",
+      scenes: [{ id: "1", purpose: "HOOK", assetId: "a1", duration: 2 }],
+    }, { projectId: "p1", allowedAssetIds: ["a1"] }).valid).toBe(true);
+    expect(validateAiPlannerOutput({
+      projectId: "other",
+      scenes: [{ id: "1", purpose: "HOOK", assetId: "a1", duration: 2 }],
+    }, { projectId: "p1", allowedAssetIds: ["a1"] }).valid).toBe(false);
+    expect(validateAiPlannerOutput({
+      scenes: [{ id: "1", purpose: "HOOK", assetId: "hallucinated", duration: 2 }],
+    }, { projectId: "p1", allowedAssetIds: ["a1"] }).valid).toBe(false);
+    expect(validateAiPlannerOutput({ scenes: [{ purpose: "" }] }).valid).toBe(false);
   });
 });

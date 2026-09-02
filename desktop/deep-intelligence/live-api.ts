@@ -186,6 +186,11 @@ export interface CreativePlanDto {
   productionMode?: string;
   creativeTone?: string;
   planStatus?: "DRAFT" | "GENERATING" | "READY_FOR_REVIEW" | "APPROVED_FOR_VIDEO";
+  planSource?: "ai" | "deterministic";
+  planWarnings?: string[];
+  aiModelId?: string | null;
+  creativeDirectionSummary?: string;
+  primarySellingPoint?: string;
 }
 
 async function readJson<T>(response: Response): Promise<T> {

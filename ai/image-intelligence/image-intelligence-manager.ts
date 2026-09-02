@@ -372,6 +372,19 @@ export class ImageIntelligenceManager {
   ): Promise<void> {
     try {
       if (!(await this.vision.isAvailable())) return;
+      let imageBase64: string | undefined;
+      try {
+        const imagePath = await this.workspace?.getOriginalImagePath(project.id, image.id);
+        if (imagePath) {
+          const bytes = await fs.readFile(imagePath);
+          // Cap payload size for local vision models on small hosts.
+          if (bytes.byteLength > 0 && bytes.byteLength <= 2_500_000) {
+            imageBase64 = bytes.toString("base64");
+          }
+        }
+      } catch {
+        imageBase64 = undefined;
+      }
       const vision = await this.vision.analyzeImage({
         projectId: project.id,
         assetId: image.id,
@@ -379,6 +392,7 @@ export class ImageIntelligenceManager {
         fileName: image.fileName,
         userProductName: project.productInformation?.name,
         userCategory: project.productInformation?.category,
+        imageBase64,
       });
       if (!vision.available) return;
 

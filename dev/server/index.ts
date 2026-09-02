@@ -2619,6 +2619,37 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  if (url.pathname === "/api/creative-director/status" && req.method === "GET") {
+    try {
+      const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+      const { getCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
+      const { getVideoGenerationProvider } = await import("../../ai/video-production/video-generation-provider.js");
+      const readiness = await assessOllamaReadiness();
+      const provider = getCreativeReasoningProvider();
+      const available = await provider.isAvailable().catch(() => false);
+      const videoProvider = getVideoGenerationProvider();
+      sendJson(res, 200, {
+        status: {
+          creativeDirector: {
+            providerId: provider.id,
+            available,
+            modelId: provider.getLastModel?.() ?? readiness.selectedModel,
+            mode: available ? "ai" : "deterministic-fallback",
+          },
+          ollama: readiness,
+          videoGenerationProvider: {
+            id: videoProvider.id,
+            status: videoProvider.status,
+            available: await videoProvider.isAvailable().catch(() => false),
+          },
+        },
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Creative director status failed" });
+    }
+    return;
+  }
+
   const productAssetPrepareMatch = url.pathname.match(/^\/api\/product-asset-preparation\/projects\/([^/]+)\/prepare$/);
 
   if (productAssetPrepareMatch && req.method === "POST") {

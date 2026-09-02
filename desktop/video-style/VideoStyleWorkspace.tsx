@@ -159,6 +159,14 @@ export function VideoStyleWorkspace() {
               {snap.planPreview.includesWebsite ? <span className="ok">Website included</span> : null}
               {snap.planPreview.includesCta ? <span className="ok">CTA included</span> : null}
             </div>
+            {snap.plan?.planSource ? (
+              <p className="vr-hint">
+                {snap.plan.planSource === "ai"
+                  ? `AI Creative Director prepared this plan${snap.plan.aiModelId ? ` (${snap.plan.aiModelId})` : ""}.`
+                  : "Deterministic production plan (AI Creative Director unavailable or unused)."}
+                {snap.plan.planWarnings?.length ? ` ${snap.plan.planWarnings[0]}` : ""}
+              </p>
+            ) : null}
           </>
         ) : (
           <p className="vr-hint">Select an available production mode to generate your plan.</p>
