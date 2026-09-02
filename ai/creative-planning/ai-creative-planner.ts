@@ -12,6 +12,8 @@ import type { ConfirmedCommercial } from "./commercial.js";
 import type { PlanScene } from "./creative-planning-manager.js";
 import { planProductScenes } from "./scene-planner.js";
 import { validateAiPlannerOutput } from "./plan-validator.js";
+import { buildDecisionTrace, buildPlanReview } from "../ai-director/decision-trace.js";
+import type { PlanReviewItem, ProductionDecisionTrace } from "../ai-director/ai-director-types.js";
 
 export interface AiCreativePlannerInput {
   project: CreativeProject;
@@ -43,6 +45,8 @@ export interface AiCreativePlannerResult {
     price?: string;
     cta?: string;
   };
+  planReview?: PlanReviewItem[];
+  decisionTrace?: ProductionDecisionTrace;
 }
 
 export interface CreativeReasoningProvider {
@@ -99,7 +103,22 @@ function allowedAssetIds(input: AiCreativePlannerInput): Set<string> {
   return new Set(input.project.productImages.map((img) => img.id));
 }
 
-export async function generateCreativeScenes(input: AiCreativePlannerInput): Promise<AiCreativePlannerResult> {
+function finalizePlannerResult(
+  input: AiCreativePlannerInput,
+  partial: Omit<AiCreativePlannerResult, "planReview" | "decisionTrace">,
+  planVersion: number,
+): AiCreativePlannerResult {
+  return {
+    ...partial,
+    planReview: buildPlanReview(partial.scenes),
+    decisionTrace: buildDecisionTrace(input, partial, planVersion),
+  };
+}
+
+export async function generateCreativeScenes(
+  input: AiCreativePlannerInput,
+  planVersion = 1,
+): Promise<AiCreativePlannerResult> {
   const warnings: string[] = [];
   try {
     if (await reasoningProvider.isAvailable()) {
@@ -137,7 +156,7 @@ export async function generateCreativeScenes(input: AiCreativePlannerInput): Pro
               : scene.selectionReason,
           };
         });
-        return {
+        return finalizePlannerResult(input, {
           scenes: merged,
           source: "ai",
           warnings: parsed.warnings,
@@ -145,7 +164,7 @@ export async function generateCreativeScenes(input: AiCreativePlannerInput): Pro
           creativeDirection: parsed.creativeDirection,
           primarySellingPoint: parsed.primarySellingPoint,
           textStrategy: parsed.textStrategy,
-        };
+        }, planVersion);
       }
       warnings.push(
         parsed.errors[0]
@@ -166,10 +185,10 @@ export async function generateCreativeScenes(input: AiCreativePlannerInput): Pro
     );
   }
 
-  return {
+  return finalizePlannerResult(input, {
     scenes: buildDeterministicPlan(input),
     source: "deterministic",
     warnings,
     modelId: null,
-  };
+  }, planVersion);
 }

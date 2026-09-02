@@ -2621,31 +2621,22 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (url.pathname === "/api/creative-director/status" && req.method === "GET") {
     try {
-      const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
-      const { getCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
-      const { getVideoGenerationProvider } = await import("../../ai/video-production/video-generation-provider.js");
-      const readiness = await assessOllamaReadiness();
-      const provider = getCreativeReasoningProvider();
-      const available = await provider.isAvailable().catch(() => false);
-      const videoProvider = getVideoGenerationProvider();
-      sendJson(res, 200, {
-        status: {
-          creativeDirector: {
-            providerId: provider.id,
-            available,
-            modelId: provider.getLastModel?.() ?? readiness.selectedModel,
-            mode: available ? "ai" : "deterministic-fallback",
-          },
-          ollama: readiness,
-          videoGenerationProvider: {
-            id: videoProvider.id,
-            status: videoProvider.status,
-            available: await videoProvider.isAvailable().catch(() => false),
-          },
-        },
-      });
+      const { getAiDirectorStatusSummary } = await import("../../ai/ai-director/ai-director-service.js");
+      const summary = await getAiDirectorStatusSummary();
+      sendJson(res, 200, { status: summary });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Creative director status failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/ai-director/diagnostics" && req.method === "GET") {
+    try {
+      const { getAiDirectorDiagnostics } = await import("../../ai/ai-director/ai-director-service.js");
+      const diagnostics = await getAiDirectorDiagnostics();
+      sendJson(res, 200, { diagnostics });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "AI director diagnostics failed" });
     }
     return;
   }

@@ -12,6 +12,7 @@ import {
   getVideoProject,
   startVideoRender,
   validateVideoRender,
+  type VideoOutputDetails,
   type VideoProject,
   type VideoRenderJob,
 } from "../video-production/api";
@@ -72,6 +73,7 @@ export interface FinalReviewSnapshot {
   job: VideoRenderJob | null;
   video: VideoProject | null;
   outputUrl: string | null;
+  qualityReview: VideoOutputDetails["qualityReview"] | null;
   error: string | null;
   busy: boolean;
   started: boolean;
@@ -155,6 +157,7 @@ export class FinalReviewEngine {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private outputFetchAttempts = 0;
   private outputReachable = false;
+  private qualityReview: VideoOutputDetails["qualityReview"] | null = null;
   private listeners = new Set<Listener>();
 
   subscribe(listener: Listener): () => void {
@@ -177,6 +180,7 @@ export class FinalReviewEngine {
       job: this.job,
       video: this.video,
       outputUrl: verified ? (this.video?.output?.url ?? null) : null,
+      qualityReview: this.qualityReview ?? this.video?.qualityReview ?? null,
       error: this.error,
       busy: this.busy,
       started: this.started,
@@ -355,6 +359,7 @@ export class FinalReviewEngine {
     }
     try {
       const details = await getVideoOutputDetails(projectId);
+      this.qualityReview = details.output?.qualityReview ?? null;
       if (details.output?.url) {
         const retry = await getVideoProject(projectId);
         this.video = retry.video;

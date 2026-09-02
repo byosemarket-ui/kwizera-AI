@@ -17,6 +17,8 @@ import { buildProductionScript, type ProductionScript } from "./script-builder.j
 import { purposeToBeat, parseDurationMs, type StoryBeatId } from "./story-structure.js";
 import { buildProductionManifest, type ProductionManifest } from "./production-manifest.js";
 import { generateCreativeScenes } from "./ai-creative-planner.js";
+import type { PlanReviewItem, ProductionDecisionTrace } from "../ai-director/ai-director-types.js";
+import { buildInputFingerprint } from "../ai-director/decision-trace.js";
 import type { CreativeToneId, ProductionModeId } from "../video-production/production-mode-types.js";
 
 export type PlanStatus = "DRAFT" | "GENERATING" | "READY_FOR_REVIEW" | "APPROVED_FOR_VIDEO";
@@ -116,6 +118,12 @@ export interface CreativePlan {
   aiModelId?: string | null;
   creativeDirectionSummary?: string;
   primarySellingPoint?: string;
+  /** Step 7 — concise scene list for UI plan review */
+  planReview?: PlanReviewItem[];
+  /** Step 7 — production decision trace (no chain-of-thought) */
+  decisionTrace?: ProductionDecisionTrace;
+  directorInputFingerprint?: string;
+  directorStale?: boolean;
 }
 
 export interface PlanResult {
@@ -371,7 +379,27 @@ export class CreativePlanningManager {
       canonical,
       commercial,
       existingScenes: opts?.existingScenes ?? existing?.scenes ?? [],
+    }, (existing?.version ?? 0) + 1);
+    const directorInputFingerprint = buildInputFingerprint({
+      project,
+      productIntelligence: product,
+      assets: images,
+      marketingSettings: brief,
+      videoSettings: {
+        productionMode,
+        creativeTone,
+        platform: platformId,
+        durationSeconds: resolvedDurationSeconds,
+        language: languageName(brief?.campaign.language || project.language),
+        objective: brief?.campaign.objective || campaign.objective || "Introduce the product clearly",
+      },
+      canonical,
+      commercial,
     });
+    const directorStale = Boolean(
+      existing?.directorInputFingerprint
+      && existing.directorInputFingerprint !== directorInputFingerprint,
+    );
     const scenes = sceneResult.scenes;
     const cta = brief?.marketing.cta || campaign.callToAction || marketing?.ctas[0] || `Discover ${productInfo.name}`;
     const durationMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000)), 0);
@@ -444,6 +472,10 @@ export class CreativePlanningManager {
       aiModelId: sceneResult.modelId ?? null,
       creativeDirectionSummary: sceneResult.creativeDirection,
       primarySellingPoint: sceneResult.primarySellingPoint,
+      planReview: sceneResult.planReview,
+      decisionTrace: sceneResult.decisionTrace,
+      directorInputFingerprint,
+      directorStale,
     };
   }
 

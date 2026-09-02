@@ -4,6 +4,7 @@
  */
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { AiCreativePlannerInput } from "./ai-creative-planner.js";
+import { buildVerifiedFactsContext, type VerifiedFactsContext } from "./verified-facts-context.js";
 
 export interface ProjectIntelligenceContext {
   projectId: string;
@@ -49,6 +50,7 @@ export interface ProjectIntelligenceContext {
     mustMatchDurationSeconds: number;
     mustUseLanguage: string;
   };
+  verifiedFacts: VerifiedFactsContext;
 }
 
 export function buildProjectIntelligenceContext(input: AiCreativePlannerInput): ProjectIntelligenceContext {
@@ -121,5 +123,6 @@ export function buildProjectIntelligenceContext(input: AiCreativePlannerInput): 
       mustMatchDurationSeconds: input.videoSettings.durationSeconds,
       mustUseLanguage: input.videoSettings.language,
     },
+    verifiedFacts: buildVerifiedFactsContext(input),
   };
 }

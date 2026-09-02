@@ -24,6 +24,7 @@ import {
 } from "./plan-to-timeline.js";
 import { computeOutputStatus, timelineFingerprint, timelineUsesStaleAssets, uniqueAssetIds } from "./output-stale.js";
 import { verifyOutputFileOnDisk } from "./output-verify.js";
+import { runFullQualityReview } from "./ai-quality-review.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
 import { applyProductionModeToClip, resolveProductionRenderProfile } from "./production-render-profile.js";
 import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
@@ -154,6 +155,8 @@ export class VideoProductionManager {
           ? "FAILED"
           : "NONE",
       validationChecks: video.outputValidation,
+      qualityGate: video.qualityGate,
+      qualityReview: video.qualityReview,
       creativePlanId: video.creativePlanId,
       creativePlanVersion: video.creativePlanVersion,
       manifestId: video.manifestId,
@@ -518,6 +521,7 @@ export class VideoProductionManager {
         progress: 88,
         stageMessage: "Validating video file",
       });
+      await this.patchVideo(job.projectId, { qualityGate: "TECHNICAL_VALIDATION" });
       const probed = await probeVideo(outputPath);
       const qc = validateRenderedOutput({
         probed,
@@ -556,6 +560,23 @@ export class VideoProductionManager {
       if (!diskCheck.valid) {
         throw new VideoProductionError("INVALID_OUTPUT", diskCheck.issues.join(" "), 500);
       }
+      await this.patchVideo(job.projectId, { qualityGate: "AI_QUALITY_REVIEW" });
+      const workspaceProject = await this.workspace!.getProject(job.projectId);
+      const creativePlan = await this.planning!.getPlan(job.projectId);
+      const technicalChecks = {
+        ...qc.checks,
+        fileOnDisk: diskCheck.valid,
+        mimeLooksLikeMp4: diskCheck.mimeLooksLikeMp4,
+      };
+      const qualityReview = workspaceProject
+        ? await runFullQualityReview({
+          video,
+          plan: creativePlan,
+          project: workspaceProject,
+          probed,
+          technicalChecks,
+        }).catch(() => null)
+        : null;
       overlay = mergeOverlay(overlays);
       const completedAt = new Date().toISOString();
       const sourceFingerprint = timelineFingerprint({ ...video, renderPlan });
@@ -613,16 +634,13 @@ export class VideoProductionManager {
         textOverlay: overlay,
         output,
         outputSourceFingerprint: sourceFingerprint,
-        outputValidation: {
-          ...qc.checks,
-          fileOnDisk: diskCheck.valid,
-          mimeLooksLikeMp4: diskCheck.mimeLooksLikeMp4,
-        },
+        outputValidation: technicalChecks,
+        qualityGate: "READY",
+        qualityReview: qualityReview ?? undefined,
         versions: [...(video.versions ?? []), version],
       });
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
       await this.writeJson(this.jobFile(job.id), completed);
-      const workspaceProject = await this.workspace!.getProject(job.projectId);
       if (workspaceProject) {
         try {
           const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, updatedVideo);

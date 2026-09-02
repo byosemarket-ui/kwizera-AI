@@ -140,6 +140,25 @@ export function FinalReviewWorkspace() {
                   </ul>
                 </div>
               ) : null}
+              {snap.qualityReview ? (
+                <div className="fr-quality">
+                  <h3>Quality review</h3>
+                  <p>
+                    Score: <strong>{snap.qualityReview.score}/100</strong>
+                    {" · "}
+                    {snap.qualityReview.source === "ai" ? "AI-assisted review" : "Technical review"}
+                  </p>
+                  {snap.qualityReview.suggestions.length ? (
+                    <ul>
+                      {snap.qualityReview.suggestions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="fr-hint">No improvement suggestions — video passed quality checks.</p>
+                  )}
+                </div>
+              ) : null}
             </section>
           ) : (
             <section className="fr-panel">

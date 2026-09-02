@@ -191,6 +191,23 @@ export interface CreativePlanDto {
   aiModelId?: string | null;
   creativeDirectionSummary?: string;
   primarySellingPoint?: string;
+  planReview?: Array<{ order: number; label: string; purpose: string; assetId?: string }>;
+  decisionTrace?: {
+    projectId: string;
+    planSource: "ai" | "deterministic";
+    modelId: string | null;
+    fallbackUsed: boolean;
+    heroAssetId: string | null;
+    sceneCount: number;
+    platform: string;
+    productionMode: string;
+    durationSeconds: number;
+    creativePlanVersion: number;
+    assetIds: string[];
+    inputFingerprint: string;
+    createdAt: string;
+  };
+  directorStale?: boolean;
 }
 
 async function readJson<T>(response: Response): Promise<T> {

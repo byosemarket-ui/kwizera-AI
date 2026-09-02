@@ -161,11 +161,25 @@ export function VideoStyleWorkspace() {
             </div>
             {snap.plan?.planSource ? (
               <p className="vr-hint">
-                {snap.plan.planSource === "ai"
-                  ? `AI Creative Director prepared this plan${snap.plan.aiModelId ? ` (${snap.plan.aiModelId})` : ""}.`
-                  : "Deterministic production plan (AI Creative Director unavailable or unused)."}
+                {snap.generating
+                  ? "AI Director: Analyzing your product and creating the best production plan..."
+                  : snap.plan.planSource === "ai"
+                    ? `AI plan ready${snap.plan.aiModelId ? ` (${snap.plan.aiModelId})` : ""}.`
+                    : "AI Director unavailable — using the standard production plan."}
                 {snap.plan.planWarnings?.length ? ` ${snap.plan.planWarnings[0]}` : ""}
               </p>
+            ) : null}
+            {snap.plan?.planReview?.length ? (
+              <div className="vs-plan-review">
+                <h4>Video Plan</h4>
+                <ol>
+                  {snap.plan.planReview.map((item) => (
+                    <li key={`${item.order}-${item.purpose}`}>
+                      {item.order}. {item.label}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ) : null}
           </>
         ) : (

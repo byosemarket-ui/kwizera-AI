@@ -1,6 +1,7 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
+import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step6-v1";
+export const VIDEO_PRODUCTION_VERSION = "step7-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
@@ -133,6 +134,8 @@ export interface VideoOutputDetails {
   outputStatus: VideoOutputStatus;
   validationStatus: "TECHNICALLY_VALIDATED" | "FAILED" | "NONE";
   validationChecks?: Record<string, boolean>;
+  qualityGate?: OutputQualityGate;
+  qualityReview?: QualityReviewResult;
   creativePlanId: string;
   creativePlanVersion: number;
   manifestId?: string;
@@ -229,6 +232,8 @@ export interface VideoProject {
   productionMode?: ProductionModeId;
   creativeTone?: CreativeToneId;
   productionRenderLabel?: string;
+  qualityGate?: OutputQualityGate;
+  qualityReview?: QualityReviewResult;
 }
 
 export class VideoProductionError extends Error {

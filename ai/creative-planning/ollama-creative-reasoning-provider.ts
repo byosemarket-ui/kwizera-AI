@@ -56,6 +56,9 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
     const prompt = [
       "You are the KWIZERA AI Creative Director for product marketing videos.",
       "Return JSON only. Do not invent asset IDs. Use only mustUseOnlyAssetIds.",
+      "Do NOT invent product facts. Use ONLY verifiedFacts.allowedFacts.",
+      "Do not claim anything listed in verifiedFacts.unknownFacts.",
+      "Do not add price, discount, features, materials, or certifications unless in allowedFacts.",
       "Respect productionMode, platform, duration, and language constraints.",
       "FFmpeg will render still-to-video motion — plan camera/motion that FFmpeg can approximate (zoom, pan, hold).",
       "Schema:",
