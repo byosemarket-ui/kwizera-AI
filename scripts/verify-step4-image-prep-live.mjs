@@ -104,8 +104,15 @@ async function waitFor(fn, attempts = 90, delayMs = 2000) {
 async function main() {
   console.log(`Live Step 4 image prep — ${BASE}`);
   const deploy = await json("GET", "/api/deployment");
-  const sha = deploy.body?.deployedCommit ?? "";
-  record("deployed Step 4 commit", String(sha).startsWith("0021688"), sha.slice(0, 12));
+  const sha = String(deploy.body?.deployedCommit ?? "");
+  const requested = String(deploy.body?.requestedCommit ?? "");
+  record(
+    "deployed Step 4 commit",
+    deploy.body?.verifiedLive === true
+      && sha.length >= 40
+      && requested === sha,
+    sha.slice(0, 12) || "missing",
+  );
 
   const stamp = `STEP4-IMG-${Date.now()}`;
   const created = await json("POST", "/api/workspace/projects", { name: stamp });
@@ -155,7 +162,13 @@ async function main() {
   );
 
   const report = await json("GET", `/api/media-intelligence/projects/${projectId}`);
-  const assets = report.body?.report?.assets ?? report.body?.assets ?? [];
+  const reportBody = report.body?.report ?? report.body ?? {};
+  const assets = reportBody.assets ?? [];
+  record(
+    "pipeline version step4-image-prep-v1",
+    reportBody.pipelineVersion === "step4-image-prep-v1",
+    String(reportBody.pipelineVersion ?? "missing"),
+  );
   record("media report has assets", assets.length >= 1, String(assets.length));
   record(
     "originals marked preserved",
