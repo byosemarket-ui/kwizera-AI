@@ -6,6 +6,7 @@ import { CreativePlanningManager } from "../../../../ai/creative-planning/creati
 import { buildConfirmedCommercial, priceSceneCopy } from "../../../../ai/creative-planning/commercial.js";
 import { planProductScenes } from "../../../../ai/creative-planning/scene-planner.js";
 import { planStoryBeats } from "../../../../ai/creative-planning/story-structure.js";
+import { durationMatchesTarget, sceneTotalDurationMs } from "../../../../ai/creative-planning/plan-validator.js";
 import { buildTimelineFromPlan, sliceTimelineForRender } from "../../../../ai/video-production/plan-to-timeline.js";
 import { sanitizeRenderText } from "../../../../ai/video-production/ffmpeg-renderer.js";
 import type { CanonicalProduct } from "../../../../ai/product-record/types.js";
@@ -31,6 +32,21 @@ describe("story beats adapt to duration, platform, and views", () => {
     expect(thirty).toContain("PRICE");
     expect(thirty.at(-1)).toBe("CTA");
     expect(thirty.length).toBeGreaterThan(4);
+  });
+
+  it("keeps scene totals within tolerance of a 30 second target", () => {
+    const project = projectFixture("project-oxford", "Oxford", ["asset_front", "asset_left", "asset_detail"]);
+    const scenes = planProductScenes(project, null, [], [], {
+      canonical: canonicalProduct("project-oxford", "Oxford", [
+        ["asset_front", "front.png", "front", "user"],
+        ["asset_left", "left.png", "left", "ai"],
+        ["asset_detail", "detail.png", "detail", "ai"],
+      ]),
+      brief: briefFixture("project-oxford", "brief_x", { duration: "30s", platforms: ["youtube"], name: "Oxford" }),
+      targetDurationMs: 30_000,
+    });
+    const total = sceneTotalDurationMs(scenes);
+    expect(durationMatchesTarget(total, 30)).toBe(true);
   });
 });
 

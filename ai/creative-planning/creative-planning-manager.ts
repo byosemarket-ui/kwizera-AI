@@ -9,14 +9,14 @@ import type { ProductIntelligenceManager } from "../product-intelligence/product
 import type { ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { ProjectState } from "../state-manager/types.js";
-import { planProductScenes } from "./scene-planner.js";
 import { appendProvenanceOnce, collapseRepeatedProvenanceMarkers } from "../product-intelligence/provenance-text.js";
 import type { CanonicalProductManager } from "../product-record/canonical-product-manager.js";
 import type { MarketingBriefManager } from "../marketing-brief/marketing-brief-manager.js";
 import { buildConfirmedCommercial, type ConfirmedCommercial } from "./commercial.js";
 import { buildProductionScript, type ProductionScript } from "./script-builder.js";
-import { purposeToBeat, type StoryBeatId } from "./story-structure.js";
+import { purposeToBeat, parseDurationMs, type StoryBeatId } from "./story-structure.js";
 import { buildProductionManifest, type ProductionManifest } from "./production-manifest.js";
+import { generateCreativeScenes } from "./ai-creative-planner.js";
 import type { CreativeToneId, ProductionModeId } from "../video-production/production-mode-types.js";
 
 export type PlanStatus = "DRAFT" | "GENERATING" | "READY_FOR_REVIEW" | "APPROVED_FOR_VIDEO";
@@ -161,7 +161,7 @@ export class CreativePlanningManager {
   async createPlan(
     project: CreativeProject,
     validation: ValidationResult,
-    opts?: { productionMode?: ProductionModeId; creativeTone?: CreativeToneId; regenerate?: boolean },
+    opts?: { productionMode?: ProductionModeId; creativeTone?: CreativeToneId; regenerate?: boolean; durationSeconds?: number },
   ): Promise<PlanResult> {
     this.ensureInitialized();
     if (!validation.valid) return { validation };
@@ -188,10 +188,11 @@ export class CreativePlanningManager {
       : null;
     const brief = this.briefs ? await this.briefs.get(project.id) : null;
     const preserveExisting = existing && !opts?.regenerate ? existing.scenes : [];
-    const plan = this.buildPlan(project, existing, now, marketing, product, images, canonical, brief, {
+    const plan = await this.buildPlan(project, existing, now, marketing, product, images, canonical, brief, {
       productionMode: opts?.productionMode ?? existing?.productionMode,
       creativeTone: opts?.creativeTone ?? existing?.creativeTone,
       existingScenes: preserveExisting,
+      durationSeconds: opts?.durationSeconds,
     });
     this.transition(project.id, ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
@@ -299,7 +300,7 @@ export class CreativePlanningManager {
     };
   }
 
-  private buildPlan(
+  private async buildPlan(
     project: CreativeProject,
     existing: CreativePlan | null,
     now: string,
@@ -312,13 +313,20 @@ export class CreativePlanningManager {
       productionMode?: ProductionModeId;
       creativeTone?: CreativeToneId;
       existingScenes?: PlanScene[];
+      durationSeconds?: number;
     },
-  ): CreativePlan {
+  ): Promise<CreativePlan> {
     const productInfo = project.productInformation;
     const brand = project.brandInformation;
     const campaign = project.campaignInformation;
     const platforms = brief?.campaign.platforms.length ? brief.campaign.platforms : (project.platform ? [project.platform] : ["instagram"]);
     const platform = platformGuidance(platforms[0] || project.platform);
+    const productionMode = opts?.productionMode ?? existing?.productionMode ?? "AI_PRODUCT_MOTION";
+    const creativeTone = opts?.creativeTone ?? existing?.creativeTone;
+    const resolvedDurationSeconds = opts?.durationSeconds
+      ?? (brief?.output.duration ? Math.round(parseDurationMs(brief.output.duration) / 1000) : null)
+      ?? (existing?.timelineDurationMs ? Math.round(existing.timelineDurationMs / 1000) : null)
+      ?? 30;
     const angle = brief?.marketing.angle || product?.creativeAngles?.[0]?.name;
     const audienceRaw = brief?.campaign.audience.general || product?.customerIntelligence?.customerType || project.targetAudience || "audience requires confirmation";
     const audience = product?.customerIntelligence?.label === "inferred"
@@ -339,13 +347,24 @@ export class CreativePlanningManager {
     const message = brief?.marketing.message || product?.valueProposition?.customerBenefit || productInfo.description || productInfo.name;
     const visualDirection = product?.imageObservations?.find((item) => item.field === "lighting")?.value
       || "Keep lighting and colour consistent with the source product photographs.";
-    const scenes = planProductScenes(project, product, images, opts?.existingScenes ?? existing?.scenes ?? [], {
+    const sceneResult = await generateCreativeScenes({
+      project,
+      productIntelligence: product,
+      assets: images,
+      marketingSettings: brief,
+      videoSettings: {
+        productionMode,
+        creativeTone,
+        platform: platforms[0] || project.platform || "instagram",
+        durationSeconds: resolvedDurationSeconds,
+        language: languageName(brief?.campaign.language || project.language),
+        objective: brief?.campaign.objective || campaign.objective || "Introduce the product clearly",
+      },
       canonical,
-      brief,
       commercial,
-      productionMode: opts?.productionMode ?? existing?.productionMode ?? "AI_PRODUCT_MOTION",
-      creativeTone: opts?.creativeTone ?? existing?.creativeTone,
+      existingScenes: opts?.existingScenes ?? existing?.scenes ?? [],
     });
+    const scenes = sceneResult.scenes;
     const cta = brief?.marketing.cta || campaign.callToAction || marketing?.ctas[0] || `Discover ${productInfo.name}`;
     const durationMs = scenes.reduce((sum, scene) => sum + (scene.durationMs ?? Math.round((scene.durationSeconds || 0) * 1000)), 0);
     const productionScript = buildProductionScript(project, scenes.map((scene) => purposeToBeat(scene.beat || scene.purpose)), {
@@ -409,8 +428,8 @@ export class CreativePlanningManager {
       productionStatus: scenes.every((scene) => scene.assetId) ? (commercial.missing.length ? "PARTIALLY_READY" : "DRAFT") : "DRAFT",
       commercial,
       productionScript,
-      productionMode: opts?.productionMode ?? existing?.productionMode ?? "AI_PRODUCT_MOTION",
-      creativeTone: opts?.creativeTone ?? existing?.creativeTone,
+      productionMode,
+      creativeTone,
       planStatus: scenes.length && scenes.every((s) => s.assetId) ? "READY_FOR_REVIEW" : "DRAFT",
     };
   }

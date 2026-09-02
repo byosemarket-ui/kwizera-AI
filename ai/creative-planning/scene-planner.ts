@@ -91,26 +91,64 @@ function originalsFrom(project: CreativeProject, canonical?: CanonicalProduct | 
   }));
 }
 
+function qualityScore(
+  assetId: string,
+  profiles: ImageIntelligenceProfile[],
+): number {
+  const profile = profiles.find((item) => item.imageId === assetId);
+  return profile?.quality?.score ?? 0;
+}
+
+function pickBestFromPool(
+  pool: Array<{ id: string; fileName: string; view: string; userView: boolean }>,
+  profiles: ImageIntelligenceProfile[],
+  beat: StoryBeatId,
+  view: CanonicalViewKind,
+): { assetId: string; view: string; reason: string; priority: number } | null {
+  const matches = pool.filter((item) => item.view === view);
+  if (!matches.length) return null;
+  const sorted = [...matches].sort((a, b) => {
+    const qualityDelta = qualityScore(b.id, profiles) - qualityScore(a.id, profiles);
+    if (qualityDelta !== 0) return qualityDelta;
+    if (a.userView !== b.userView) return a.userView ? -1 : 1;
+    return 0;
+  });
+  const match = sorted[0]!;
+  return {
+    assetId: match.id,
+    view: match.view,
+    reason: match.userView
+      ? `User-corrected ${view} view`
+      : beat === "HOOK" && qualityScore(match.id, profiles) > 0
+        ? `Strongest ${view.replace(/_/g, " ")} view (${qualityScore(match.id, profiles)}/100) for ${beat}`
+        : `Highest-confidence ${view.replace(/_/g, " ")} product view for ${beat}`,
+    priority: 1,
+  };
+}
+
 function pickAsset(
   originals: Array<{ id: string; fileName: string; view: string; userView: boolean }>,
   preferred: CanonicalViewKind[],
   used: Set<string>,
   beat: StoryBeatId,
+  profiles: ImageIntelligenceProfile[] = [],
 ): { assetId: string; view: string; reason: string; priority: number } {
   const unused = originals.filter((item) => !used.has(item.id));
   const pool = unused.length ? unused : originals;
-  for (const view of preferred) {
-    const match = pool.find((item) => item.view === view);
-    if (match) {
+  if (beat === "HOOK" && pool.length > 1) {
+    const strongest = [...pool].sort((a, b) => qualityScore(b.id, profiles) - qualityScore(a.id, profiles))[0];
+    if (strongest && qualityScore(strongest.id, profiles) >= 70) {
       return {
-        assetId: match.id,
-        view: match.view,
-        reason: match.userView
-          ? `User-corrected ${view} view`
-          : `Highest-confidence ${view.replace(/_/g, " ")} product view for ${beat}`,
+        assetId: strongest.id,
+        view: strongest.view,
+        reason: `Strongest visual asset (${qualityScore(strongest.id, profiles)}/100) for hook`,
         priority: 1,
       };
     }
+  }
+  for (const view of preferred) {
+    const match = pickBestFromPool(pool, profiles, beat, view);
+    if (match) return match;
   }
   const byName = pool.find((item) => preferred.some((view) => item.fileName.toLowerCase().includes(view.replace(/_/g, "-"))));
   if (byName) {
@@ -121,7 +159,8 @@ function pickAsset(
       priority: 2,
     };
   }
-  const fallback = pool[0] ?? originals[0]!;
+  const fallback = [...pool].sort((a, b) => qualityScore(b.id, profiles) - qualityScore(a.id, profiles))[0]
+    ?? originals[0]!;
   return {
     assetId: fallback.id,
     view: fallback.view,
@@ -167,6 +206,7 @@ export function planProductScenes(
     commercial?: ConfirmedCommercial | null;
     productionMode?: import("../video-production/production-mode-types.js").ProductionModeId;
     creativeTone?: import("../video-production/production-mode-types.js").CreativeToneId;
+    targetDurationMs?: number;
   },
 ): PlanScene[] {
   const originals = originalsFrom(project, extras?.canonical);
@@ -175,7 +215,10 @@ export function planProductScenes(
   const brief = extras?.brief;
   const commercial = extras?.commercial;
   const platform = brief?.campaign.platforms[0] || project.platform || "instagram";
-  const durationMs = parseDurationMs(brief?.output.duration, /tiktok|instagram/i.test(platform) ? 15_000 : 30_000);
+  const briefDurationMs = parseDurationMs(brief?.output.duration, /tiktok|instagram/i.test(platform) ? 15_000 : 30_000);
+  const durationMs = extras?.targetDurationMs && extras.targetDurationMs >= 4_000
+    ? extras.targetDurationMs
+    : briefDurationMs;
   const uniqueViews = new Set(originals.map((item) => item.view).filter((view) => view && view !== "unknown"));
   const beats = planStoryBeats({
     durationMs,
@@ -203,7 +246,7 @@ export function planProductScenes(
   const generated: PlanScene[] = [];
 
   beats.forEach((beat, index) => {
-    const pick = pickAsset(originals, VIEW_FOR_BEAT[beat], used, beat);
+    const pick = pickAsset(originals, VIEW_FOR_BEAT[beat], used, beat, imageProfiles);
     used.add(pick.assetId);
     const camera = cameraFor(pick.view, beat);
     const modeAdjusted = applyModeAndTone(

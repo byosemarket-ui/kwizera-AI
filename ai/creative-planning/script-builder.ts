@@ -24,6 +24,13 @@ function claimText(value: { text?: string } | string | undefined): string {
   return String(value.text ?? "").trim();
 }
 
+function localizedCta(language: string | undefined, productName: string): string {
+  const lang = String(language ?? "").toLowerCase();
+  if (lang.includes("kinyarwanda") || lang === "rw") return `Gura ${productName} ubu`;
+  if (lang.includes("french") || lang === "fr") return `Découvrez ${productName}`;
+  return `Discover ${productName}`;
+}
+
 export function buildProductionScript(
   project: CreativeProject,
   beats: StoryBeatId[],
@@ -40,7 +47,8 @@ export function buildProductionScript(
     .map((item) => claimText(item))
     .filter(Boolean)
     .slice(0, 3);
-  const cta = marketing?.cta || options.brief?.campaign.cta || project.campaignInformation.callToAction || `Discover ${name}`;
+  const cta = marketing?.cta || options.brief?.campaign.cta || project.campaignInformation.callToAction
+    || localizedCta(options.brief?.campaign.language || project.language, name);
   const hook = main.length > 48 ? `${name}` : main;
   const feature = supporting[0] || humanizeValue((project.productInformation.features ?? [])[0]) || "";
   const website = options.commercial.destination.website;

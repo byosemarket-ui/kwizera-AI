@@ -1,6 +1,23 @@
+import type { ProductionModeId } from "../../ai/video-production/production-capabilities.js";
 import type { CreativePlanDto, ProductionManifestDto } from "../deep-intelligence/live-api.js";
 import type { ProductionModeOption, PlanPreview, ReadinessResult, ScenePreview, VideoStyleSnapshot } from "./types.js";
-import type { ProductionModeId } from "../../ai/video-production/production-capabilities.js";
+
+export function resolveHandoffProductionMode(
+  plan: CreativePlanDto | null,
+  selectedMode: ProductionModeId | null,
+): ProductionModeId | null {
+  if (plan?.productionMode) return plan.productionMode as ProductionModeId;
+  return selectedMode;
+}
+
+export function productionModesMatch(
+  plan: CreativePlanDto | null,
+  selectedMode: ProductionModeId | null,
+): boolean {
+  if (!selectedMode) return false;
+  if (!plan?.productionMode) return true;
+  return plan.productionMode === selectedMode;
+}
 
 export function sceneTextPreview(scene: { text?: string; copy?: Record<string, string | undefined> }): string {
   if (scene.text?.trim()) return scene.text.trim();
@@ -68,7 +85,7 @@ export function buildScenePreviews(projectId: string, plan: CreativePlanDto | nu
 export function computeReadiness(
   snap: Pick<
     VideoStyleSnapshot,
-    "projectId" | "handoff" | "selectedMode" | "modes" | "plan" | "planPreview" | "generating"
+    "projectId" | "handoff" | "selectedMode" | "modes" | "plan" | "planPreview" | "generating" | "saveState"
   >,
 ): ReadinessResult {
   const blocking: string[] = [];
@@ -82,6 +99,12 @@ export function computeReadiness(
   if (snap.generating) blocking.push("Production plan is still generating.");
   if (!snap.plan?.scenes?.length) blocking.push("Generate a production plan before continuing.");
   if (snap.plan?.scenes.some((s) => !s.assetId)) blocking.push("Every scene must reference a valid original product image.");
+  if (snap.plan && snap.selectedMode && !productionModesMatch(snap.plan, snap.selectedMode)) {
+    blocking.push("Selected production mode has not been saved to the plan yet. Wait for save or regenerate.");
+  }
+  if (snap.saveState === "saving" || snap.saveState === "error") {
+    blocking.push(snap.saveState === "error" ? "Fix save errors before continuing." : "Wait for the plan to finish saving.");
+  }
   if (snap.planPreview && !snap.planPreview.ready) warnings.push("Some plan details may still be incomplete.");
 
   const ready = blocking.length === 0;

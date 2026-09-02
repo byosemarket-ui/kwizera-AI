@@ -36,11 +36,12 @@ export async function generatePlanWithMode(
   productionMode: import("../../ai/video-production/production-mode-types.js").ProductionModeId,
   creativeTone: import("../../ai/video-production/production-mode-types.js").CreativeToneId | null,
   regenerate = false,
+  durationSeconds?: number,
 ) {
   const response = await fetch(`/api/workspace/projects/${projectId}/plan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "generate", productionMode, creativeTone, regenerate }),
+    body: JSON.stringify({ action: "generate", productionMode, creativeTone, regenerate, durationSeconds }),
   });
   const body = await response.json() as { plan?: import("../deep-intelligence/live-api.js").CreativePlanDto; error?: string };
   if (!response.ok) throw new Error(body.error ?? `Plan generation failed (${response.status})`);

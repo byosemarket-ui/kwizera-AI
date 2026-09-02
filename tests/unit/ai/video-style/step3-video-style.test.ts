@@ -8,6 +8,8 @@ import {
   buildPlanPreview,
   buildScenePreviews,
   computeReadiness,
+  productionModesMatch,
+  resolveHandoffProductionMode,
   sceneTextPreview,
 } from "../../../../desktop/video-style/readiness.js";
 import type { CreativePlanDto } from "../../../../desktop/deep-intelligence/live-api.js";
@@ -138,6 +140,7 @@ describe("STEP 3 readiness", () => {
       plan: null,
       planPreview: null,
       generating: false,
+      saveState: "saved",
     });
     expect(r.ready).toBe(false);
     expect(r.blockingIssues.some((i) => i.includes("unavailable"))).toBe(true);
@@ -180,6 +183,7 @@ describe("STEP 3 readiness", () => {
         creativeBrief: "",
         creativeStrategy: "",
         marketingStrategy: "",
+        productionMode: "AI_PRODUCT_MOTION",
         scenes: [
           { id: "s1", order: 1, durationSeconds: 2, purpose: "HOOK", assetId: "a1", view: "front" },
         ],
@@ -197,8 +201,113 @@ describe("STEP 3 readiness", () => {
         statusLabel: "VIDEO PLAN READY",
       },
       generating: false,
+      saveState: "saved",
     });
     expect(r.ready).toBe(true);
+  });
+});
+
+describe("STEP 3 production mode persistence", () => {
+  it("prefers saved plan production mode for Step 4 handoff", () => {
+    const mode = resolveHandoffProductionMode({
+      id: "plan-1",
+      projectId: "p1",
+      version: 1,
+      createdAt: "",
+      modifiedAt: "",
+      creativeBrief: "",
+      creativeStrategy: "",
+      marketingStrategy: "",
+      productionMode: "CLASSIC_SHOWCASE",
+      scenes: [],
+    }, "AI_PRODUCT_MOTION");
+    expect(mode).toBe("CLASSIC_SHOWCASE");
+  });
+
+  it("detects UI vs saved production mode mismatch", () => {
+    expect(productionModesMatch({
+      id: "plan-1",
+      projectId: "p1",
+      version: 1,
+      createdAt: "",
+      modifiedAt: "",
+      creativeBrief: "",
+      creativeStrategy: "",
+      marketingStrategy: "",
+      productionMode: "AI_PRODUCT_MOTION",
+      scenes: [{ id: "s1", order: 1, durationSeconds: 2, purpose: "HOOK", assetId: "a1" }],
+    }, "CLASSIC_SHOWCASE")).toBe(false);
+    expect(productionModesMatch({
+      id: "plan-1",
+      projectId: "p1",
+      version: 1,
+      createdAt: "",
+      modifiedAt: "",
+      creativeBrief: "",
+      creativeStrategy: "",
+      marketingStrategy: "",
+      productionMode: "AI_PRODUCT_MOTION",
+      scenes: [{ id: "s1", order: 1, durationSeconds: 2, purpose: "HOOK", assetId: "a1" }],
+    }, "AI_PRODUCT_MOTION")).toBe(true);
+  });
+
+  it("blocks continue when selected mode is not saved on the plan", () => {
+    const r = computeReadiness({
+      projectId: "p1",
+      handoff: {
+        version: 1,
+        step: "step-3-video-style",
+        projectId: "p1",
+        projectName: "Test",
+        briefId: "b1",
+        productId: "prod",
+        assetIds: ["a1"],
+        platformId: "tiktok",
+        durationSeconds: 30,
+        objective: "Product Showcase",
+        language: "Kinyarwanda",
+        preparedAt: "",
+      },
+      selectedMode: "CLASSIC_SHOWCASE",
+      modes: [{
+        mode: "CLASSIC_SHOWCASE",
+        label: "Classic",
+        description: "",
+        available: true,
+        provider: "ffmpeg",
+        reason: "ok",
+        limitations: [],
+        recommended: false,
+      }],
+      plan: {
+        id: "plan-1",
+        projectId: "p1",
+        version: 1,
+        createdAt: "",
+        modifiedAt: "",
+        creativeBrief: "",
+        creativeStrategy: "",
+        marketingStrategy: "",
+        productionMode: "AI_PRODUCT_MOTION",
+        scenes: [{ id: "s1", order: 1, durationSeconds: 2, purpose: "HOOK", assetId: "a1", view: "front" }],
+      },
+      planPreview: {
+        ready: true,
+        headline: "30-second TikTok video",
+        sceneCount: 1,
+        uniqueViewCount: 1,
+        formatLabel: "1080 × 1920",
+        includesPrice: false,
+        includesDiscount: false,
+        includesWebsite: false,
+        includesCta: true,
+        statusLabel: "VIDEO PLAN READY",
+      },
+      generating: false,
+      saveState: "saved",
+    });
+    expect(r.ready).toBe(false);
+    expect(r.blockingIssues.some((item) => item.includes("production mode"))).toBe(true);
   });
 });
 

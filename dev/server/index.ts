@@ -3777,6 +3777,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         productionMode?: import("../../ai/video-production/production-mode-types.js").ProductionModeId;
         creativeTone?: import("../../ai/video-production/production-mode-types.js").CreativeToneId;
         regenerate?: boolean;
+        durationSeconds?: number;
       };
 
       if (body.action === "generate") {
@@ -3789,6 +3790,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
           productionMode: body.productionMode,
           creativeTone: body.creativeTone,
           regenerate: body.regenerate,
+          durationSeconds: body.durationSeconds,
         });
 
         if (!result.plan) { sendJson(res, 422, { error: "Complete required workspace inputs before planning.", validation: result.validation }); return; }

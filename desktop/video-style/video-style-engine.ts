@@ -27,6 +27,7 @@ import {
   formatPriceLabel,
   mapCapabilities,
   recommendedModeReason,
+  resolveHandoffProductionMode,
 } from "./readiness";
 import type {
   ScenePreview,
@@ -34,6 +35,7 @@ import type {
   VideoStyleSnapshot,
 } from "./types";
 import { STEP4_HANDOFF_KEY, TONE_OPTIONS } from "./types";
+import { validateCreativePlan } from "../../ai/creative-planning/plan-validator.js";
 
 type Listener = (snap: VideoStyleSnapshot) => void;
 type NotifyFn = (
@@ -173,8 +175,21 @@ export class VideoStyleEngine {
       );
     }
 
+    const targetDurationMs = (this.handoff.durationSeconds ?? 30) * 1000;
+    const planDurationMs = this.plan?.timelineDurationMs ?? 0;
+    const modeMismatch = Boolean(
+      this.plan?.productionMode
+      && this.selectedMode
+      && this.plan.productionMode !== this.selectedMode,
+    );
+    const durationMismatch = this.plan?.scenes?.length
+      ? Math.abs(planDurationMs - targetDurationMs) > 2_500
+      : false;
+
     if (!this.plan?.scenes?.length && this.selectedMode) {
       await this.generatePlan(false);
+    } else if (this.selectedMode && (modeMismatch || durationMismatch)) {
+      await this.generatePlan(true);
     }
 
     this.emit();
@@ -186,9 +201,10 @@ export class VideoStyleEngine {
       this.notify?.("warning", "Mode unavailable", cap?.reason ?? "This production mode cannot be used.", "warnings");
       return;
     }
-    if (this.selectedMode === mode) return;
+    if (this.selectedMode === mode && this.plan?.productionMode === mode) return;
     this.selectedMode = mode;
     this.emit();
+    await this.persistModeSelection();
     await this.generatePlan(true);
   }
 
@@ -211,7 +227,11 @@ export class VideoStyleEngine {
         this.selectedMode,
         this.creativeTone,
         regenerate,
+        this.handoff?.durationSeconds,
       );
+      if (this.plan.productionMode) {
+        this.selectedMode = this.plan.productionMode as ProductionModeId;
+      }
       this.manifest = (await getProductionManifest(this.projectId)).manifest;
       this.saveState = "saved";
     } catch (error) {
@@ -275,6 +295,22 @@ export class VideoStyleEngine {
     if (!snap.canContinue || !this.projectId || !this.handoff || !this.plan) {
       throw new Error(snap.continueBlockedReason ?? "Complete the production plan before continuing.");
     }
+
+    const validation = validateCreativePlan({
+      projectId: this.projectId,
+      productionMode: this.selectedMode,
+      planProductionMode: this.plan.productionMode as ProductionModeId | undefined,
+      platformId: this.handoff.platformId,
+      durationSeconds: this.handoff.durationSeconds,
+      language: this.handoff.language,
+      scenes: this.plan.scenes,
+      assetIds: this.handoff.assetIds,
+      productName: this.plan.commercial?.productName || snap.summary?.productName || this.projectName,
+    });
+    if (!validation.valid) {
+      throw new Error(validation.errors[0] ?? "Creative plan validation failed.");
+    }
+
     this.transitioning = true;
     this.saveState = "saving";
     this.emit();
@@ -292,6 +328,8 @@ export class VideoStyleEngine {
 
       const preview = platformPreview(this.handoff.platformId);
       const commercial = this.plan.commercial;
+      const productionMode = resolveHandoffProductionMode(this.plan, this.selectedMode);
+      if (!productionMode) throw new Error("Select a production mode before continuing.");
       const handoff: Step4HandoffPayload = {
         version: 1,
         step: "step-4-final-review",
@@ -303,8 +341,8 @@ export class VideoStyleEngine {
         manifestId: this.plan.manifestId ?? this.manifest?.manifestId ?? null,
         assetIds: [...this.handoff.assetIds],
         heroAssetId: this.handoff.assetIds[0] ?? null,
-        productionMode: this.selectedMode!,
-        styleLabel: MODE_COPY[this.selectedMode!]?.label,
+        productionMode,
+        styleLabel: MODE_COPY[productionMode]?.label,
         creativeTone: this.creativeTone,
         platformId: this.handoff.platformId,
         platformLabel: preview.label,
@@ -317,7 +355,7 @@ export class VideoStyleEngine {
           : null,
         objective: this.handoff.objective,
         sceneCount: this.plan.scenes.length,
-        productName: this.summary?.productName ?? this.projectName,
+        productName: commercial?.productName || snap.summary?.productName || this.projectName,
         preparedAt: new Date().toISOString(),
       };
       writeScopedHandoff(STEP4_HANDOFF_KEY, handoff);
@@ -325,8 +363,34 @@ export class VideoStyleEngine {
       const { workspaceStateEngine } = await import("../shell/workspace-state/workspace-state-engine");
       await workspaceStateEngine.autoSave.flush("manual").catch(() => null);
       this.saveState = "saved";
+    } catch (error) {
+      this.saveState = "error";
+      throw error;
     } finally {
       this.transitioning = false;
+      this.emit();
+    }
+  }
+
+  private async persistModeSelection(): Promise<void> {
+    if (!this.projectId || !this.selectedMode) return;
+    if (!this.plan) return;
+    try {
+      this.saveState = "saving";
+      this.emit();
+      this.plan = (await updateCreativePlan(this.projectId, {
+        productionMode: this.selectedMode,
+      })).plan;
+      this.saveState = "saved";
+    } catch (error) {
+      this.saveState = "error";
+      this.notify?.(
+        "warning",
+        "Mode save delayed",
+        error instanceof Error ? error.message : "Production mode will be saved when the plan regenerates.",
+        "warnings",
+      );
+    } finally {
       this.emit();
     }
   }
