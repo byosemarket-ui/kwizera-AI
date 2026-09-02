@@ -21,6 +21,13 @@ export interface MediaAssetEntry {
   status: MediaAssetStatus;
   analysisState: "pending" | "analyzing" | "ready" | "failed" | "unavailable";
   processingState: "pending" | "processing" | "ready" | "failed";
+  preparationDecision?:
+    | "KEEP_ORIGINAL"
+    | "REMOVE_BACKGROUND"
+    | "REPLACE_BACKGROUND_LATER"
+    | "ENHANCE_SOURCE"
+    | "REFRAME_PRODUCT"
+    | "REQUEST_USER_ATTENTION";
   view?: { role: string; confidence: number };
   background?: { type: string; removable: boolean; confidence: number; suitability?: string };
   quality?: { score: number; classification?: string; confidence: number };

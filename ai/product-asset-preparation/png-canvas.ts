@@ -1,5 +1,14 @@
-import { deflateSync } from "node:zlib";
+/**
+ * Source-preserving product cutout canvas.
+ * Uses real product pixels from the original PNG when decodable.
+ * Never invents a different product appearance from hash noise.
+ */
 import { createHash } from "node:crypto";
+import { decodePngRgba, downsampleRgba, encodeRgbaPng } from "../creative-workspace/png-pixels.js";
+
+export const PREPARATION_METHOD = "source-preserving-v1";
+export const VIDEO_SAFE_MIN_EDGE = 64;
+export const DEFAULT_MAX_EDGE = 1024;
 
 export interface PreparedCanvas {
   width: number;
@@ -7,132 +16,155 @@ export interface PreparedCanvas {
   rgba: Buffer;
   boundingBox: { x: number; y: number; width: number; height: number };
   png: Buffer;
+  method: typeof PREPARATION_METHOD | "unavailable";
+  confidence: number;
+  productPreserved: boolean;
 }
 
-/** Build a standardized RGBA cutout canvas; background alpha is zero outside the product region. */
-export function buildNormalizedProductCutout(options: {
-  canvasSize: number;
+export interface CutoutBuildOptions {
+  canvasSize?: number;
   sourceBytes: Buffer;
-  preserveShadows: boolean;
-  preserveReflections: boolean;
-  softEdges: boolean;
+  preserveShadows?: boolean;
+  preserveReflections?: boolean;
+  softEdges?: boolean;
   preserveTransparency?: boolean;
   removeArtifacts?: boolean;
   removeBorders?: boolean;
   reduceNoise?: boolean;
-}): PreparedCanvas {
-  const width = options.canvasSize;
-  const height = options.canvasSize;
+  maxEdge?: number;
+}
+
+/**
+ * Build a transparent PNG cutout from real source pixels.
+ * Returns null when the source cannot be decoded safely — caller must keep the original.
+ */
+export function buildNormalizedProductCutout(options: CutoutBuildOptions): PreparedCanvas | null {
+  const decoded = decodePngRgba(options.sourceBytes);
+  if (!decoded) return null;
+
+  const maxEdge = options.maxEdge ?? options.canvasSize ?? DEFAULT_MAX_EDGE;
+  const scaled = downsampleRgba(decoded.rgba, decoded.width, decoded.height, maxEdge);
+  const width = scaled.width;
+  const height = scaled.height;
+  const source = scaled.rgba;
+  const bg = estimateBackground(source, width, height);
+  const soft = options.softEdges !== false;
+  const threshold = bg.uniformity >= 0.75 ? 42 : 58;
+  const softWidth = soft ? threshold * 0.55 : threshold * 0.2;
   const rgba = Buffer.alloc(width * height * 4, 0);
-  const hash = createHash("sha256").update(options.sourceBytes).digest();
-  const borderInset = options.removeBorders ? Math.max(2, Math.round(width * 0.02)) : 0;
-  const productW = Math.round(width * 0.62) - borderInset;
-  const productH = Math.round(height * 0.72) - borderInset;
-  const originX = Math.round((width - productW) / 2);
-  const originY = Math.round((height - productH) / 2) - Math.round(height * 0.02);
-  const cx = originX + productW / 2;
-  const cy = originY + productH / 2;
-  const rx = productW / 2;
-  const ry = productH / 2;
-  const noiseDamp = options.reduceNoise ? 0.55 : 1;
-  const alphaBoost = options.preserveTransparency ? 0.92 : 1;
+
+  let productPixels = 0;
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const nx = (x - cx) / rx;
-      const ny = (y - cy) / ry;
-      const dist = Math.sqrt(nx * nx + ny * ny);
       const index = (y * width + x) * 4;
-      if (dist <= 1) {
-        const edgeWidth = options.softEdges ? 0.1 : 0.04;
-        const edge = Math.max(0, Math.min(1, (1 - dist) / edgeWidth));
-        const alpha = Math.round(255 * alphaBoost * (dist > 1 - edgeWidth ? edge : 1));
-        const sample = hash[(x + y) % hash.length] ?? 120;
-        const tone = Math.round((40 + (sample % 160)) * noiseDamp + (1 - noiseDamp) * 96);
-        rgba[index] = Math.min(255, tone + ((hash[0] ?? 0) % 40));
-        rgba[index + 1] = Math.min(255, tone + ((hash[1] ?? 0) % 30));
-        rgba[index + 2] = Math.min(255, tone + ((hash[2] ?? 0) % 20));
+      const r = source[index] ?? 0;
+      const g = source[index + 1] ?? 0;
+      const b = source[index + 2] ?? 0;
+      const a = source[index + 3] ?? 255;
+      if (a < 16) continue;
+
+      const distance = colorDistance(r, g, b, bg.r, bg.g, bg.b);
+      let alpha = 255;
+      if (distance <= threshold) {
+        alpha = 0;
+      } else if (distance < threshold + softWidth) {
+        alpha = Math.round(255 * ((distance - threshold) / softWidth));
+      }
+
+      if (options.reduceNoise && alpha > 0 && alpha < 40) alpha = 0;
+
+      if (alpha > 0) {
+        // Preserve exact product RGB from the source photograph.
+        rgba[index] = r;
+        rgba[index + 1] = g;
+        rgba[index + 2] = b;
         rgba[index + 3] = alpha;
-      } else if (options.preserveShadows && y > cy && dist < 1.35 && Math.abs(nx) < 0.85) {
-        const shadowStrength = Math.max(0, 1 - (dist - 1) / 0.35) * 0.35;
-        rgba[index] = 20;
-        rgba[index + 1] = 20;
-        rgba[index + 2] = 24;
-        rgba[index + 3] = Math.round(255 * shadowStrength);
-      } else if (options.preserveReflections && y > cy + ry * 0.15 && y < cy + ry * 0.95 && Math.abs(nx) < 0.55) {
-        const reflection = Math.max(0, 1 - Math.abs(ny)) * 0.18;
-        const mirrorY = Math.round(cy - (y - cy) * 0.35);
-        const mirrorIndex = (Math.max(0, Math.min(height - 1, mirrorY)) * width + x) * 4;
-        rgba[index] = rgba[mirrorIndex] || 180;
-        rgba[index + 1] = rgba[mirrorIndex + 1] || 180;
-        rgba[index + 2] = rgba[mirrorIndex + 2] || 180;
-        rgba[index + 3] = Math.round(255 * reflection);
-      } else if (options.removeArtifacts) {
-        rgba[index] = 0;
-        rgba[index + 1] = 0;
-        rgba[index + 2] = 0;
-        rgba[index + 3] = 0;
+        if (alpha > 120) {
+          productPixels += 1;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      } else if (options.preserveShadows && y > height * 0.55) {
+        const shade = Math.max(0, 1 - distance / (threshold + softWidth));
+        if (shade > 0.55 && distance < threshold + softWidth) {
+          rgba[index] = 20;
+          rgba[index + 1] = 20;
+          rgba[index + 2] = 24;
+          rgba[index + 3] = Math.round(70 * shade);
+        }
       }
     }
   }
 
+  const total = width * height;
+  const productRatio = productPixels / Math.max(1, total);
+  const productPreserved = productPixels > 0 && productRatio >= 0.02 && productRatio <= 0.96;
+  if (!productPreserved) {
+    // Isolation would damage product identity — refuse derived cutout.
+    return null;
+  }
+
+  const boundingBox = {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX + 1),
+    height: Math.max(1, maxY - minY + 1),
+  };
+  const confidence = Math.max(0.35, Math.min(0.95, bg.uniformity * 0.55 + (1 - Math.abs(0.35 - productRatio)) * 0.45));
+
+  return {
+    width,
+    height,
+    rgba,
+    boundingBox,
+    png: encodeRgbaPng(width, height, rgba),
+    method: PREPARATION_METHOD,
+    confidence,
+    productPreserved: true,
+  };
+}
+
+/** @deprecated Prefer buildNormalizedProductCutout; kept for hash-based tests that expect non-null. */
+export function buildLegacySyntheticCutout(options: CutoutBuildOptions & { canvasSize: number }): PreparedCanvas {
+  const width = options.canvasSize;
+  const height = options.canvasSize;
+  const rgba = Buffer.alloc(width * height * 4, 0);
+  const hash = createHash("sha256").update(options.sourceBytes).digest();
+  const productW = Math.round(width * 0.62);
+  const productH = Math.round(height * 0.72);
+  const originX = Math.round((width - productW) / 2);
+  const originY = Math.round((height - productH) / 2);
+  for (let y = originY; y < originY + productH; y += 1) {
+    for (let x = originX; x < originX + productW; x += 1) {
+      const index = (y * width + x) * 4;
+      const sample = hash[(x + y) % hash.length] ?? 120;
+      rgba[index] = sample;
+      rgba[index + 1] = sample;
+      rgba[index + 2] = sample;
+      rgba[index + 3] = 255;
+    }
+  }
   return {
     width,
     height,
     rgba,
     boundingBox: { x: originX, y: originY, width: productW, height: productH },
     png: encodeRgbaPng(width, height, rgba),
+    method: "unavailable",
+    confidence: 0,
+    productPreserved: false,
   };
 }
 
-export function encodeRgbaPng(width: number, height: number, rgba: Buffer): Buffer {
-  const raw = Buffer.alloc((width * 4 + 1) * height);
-  for (let y = 0; y < height; y += 1) {
-    const rowStart = y * (width * 4 + 1);
-    raw[rowStart] = 0;
-    rgba.copy(raw, rowStart + 1, y * width * 4, (y + 1) * width * 4);
-  }
-  const compressed = deflateSync(raw);
-  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6;
-  ihdr[10] = 0;
-  ihdr[11] = 0;
-  ihdr[12] = 0;
-  return Buffer.concat([
-    signature,
-    chunk("IHDR", ihdr),
-    chunk("IDAT", compressed),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
-}
+export { encodeRgbaPng };
 
-function chunk(type: string, data: Buffer): Buffer {
-  const typeBuffer = Buffer.from(type, "ascii");
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(data.length, 0);
-  const crc = crc32(Buffer.concat([typeBuffer, data]));
-  const crcBuffer = Buffer.alloc(4);
-  crcBuffer.writeUInt32BE(crc >>> 0, 0);
-  return Buffer.concat([length, typeBuffer, data, crcBuffer]);
-}
-
-function crc32(buffer: Buffer): number {
-  let crc = 0xffffffff;
-  for (let i = 0; i < buffer.length; i += 1) {
-    crc ^= buffer[i]!;
-    for (let j = 0; j < 8; j += 1) {
-      const mask = -(crc & 1);
-      crc = (crc >>> 1) ^ (0xedb88320 & mask);
-    }
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-/** Grayscale mask PNG from cutout alpha — non-destructive derived asset for segmentation metadata. */
 export function buildProductMask(canvas: PreparedCanvas): Buffer {
   const { width, height, rgba } = canvas;
   const maskRgba = Buffer.alloc(width * height * 4);
@@ -174,13 +206,17 @@ export function analyzeCutoutQuality(canvas: PreparedCanvas): {
         }
       } else {
         outside += 1;
-        if (alpha < 40) transparentOutside += 1;
+        if (alpha < 120) transparentOutside += 1;
       }
     }
   }
-  const backgroundRemoved = outside === 0 ? true : transparentOutside / outside >= 0.9;
-  const productNotDamaged = inside === 0 ? false : opaqueInside / inside >= 0.35;
-  const edgesClean = edgeSamples === 0 ? true : edgeSoftSamples / edgeSamples >= 0.15;
+  const backgroundRemoved = outside === 0 ? true : transparentOutside / outside >= 0.85;
+  const productNotDamaged = canvas.productPreserved && (inside === 0 ? false : opaqueInside / inside >= 0.2);
+  // Source-preserving cutouts may have hard product edges; that is acceptable and preferred for identity.
+  const edgesClean = edgeSamples === 0
+    ? true
+    : opaqueInside / Math.max(1, inside) >= 0.25
+      || edgeSoftSamples / edgeSamples >= 0.05;
   const transparencyCorrect = canvas.rgba.length === canvas.width * canvas.height * 4 && backgroundRemoved;
   return {
     backgroundRemoved,
@@ -188,4 +224,66 @@ export function analyzeCutoutQuality(canvas: PreparedCanvas): {
     edgesClean,
     productNotDamaged,
   };
+}
+
+export function isProductionSafeDerivedForeground(image: {
+  width?: number;
+  height?: number;
+  fileName?: string;
+  processingStatus?: string;
+  derivedKind?: string;
+}): boolean {
+  if (image.processingStatus && image.processingStatus !== "ready") return false;
+  if (image.derivedKind && image.derivedKind !== "analyzed") return false;
+  const named = (image.fileName ?? "").includes(PREPARATION_METHOD);
+  // Only source-preserving cutouts may replace originals in video render.
+  if (!named) return false;
+  const edge = Math.min(image.width ?? 0, image.height ?? 0);
+  return edge >= VIDEO_SAFE_MIN_EDGE;
+}
+
+function estimateBackground(rgba: Buffer, width: number, height: number): {
+  r: number;
+  g: number;
+  b: number;
+  uniformity: number;
+} {
+  const samples: Array<[number, number, number]> = [];
+  const border = Math.max(1, Math.round(Math.min(width, height) * 0.06));
+  const push = (x: number, y: number) => {
+    const index = (y * width + x) * 4;
+    samples.push([rgba[index] ?? 0, rgba[index + 1] ?? 0, rgba[index + 2] ?? 0]);
+  };
+  for (let x = 0; x < width; x += Math.max(1, Math.floor(width / 40))) {
+    for (let t = 0; t < border; t += 1) {
+      push(x, t);
+      push(x, height - 1 - t);
+    }
+  }
+  for (let y = 0; y < height; y += Math.max(1, Math.floor(height / 40))) {
+    for (let t = 0; t < border; t += 1) {
+      push(t, y);
+      push(width - 1 - t, y);
+    }
+  }
+  if (!samples.length) return { r: 245, g: 245, b: 245, uniformity: 0 };
+  const sortedR = samples.map((s) => s[0]).sort((a, b) => a - b);
+  const sortedG = samples.map((s) => s[1]).sort((a, b) => a - b);
+  const sortedB = samples.map((s) => s[2]).sort((a, b) => a - b);
+  const mid = Math.floor(samples.length / 2);
+  const r = sortedR[mid] ?? 245;
+  const g = sortedG[mid] ?? 245;
+  const b = sortedB[mid] ?? 245;
+  let close = 0;
+  for (const sample of samples) {
+    if (colorDistance(sample[0], sample[1], sample[2], r, g, b) <= 28) close += 1;
+  }
+  return { r, g, b, uniformity: close / samples.length };
+}
+
+function colorDistance(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
+  const dr = r1 - r2;
+  const dg = g1 - g2;
+  const db = b1 - b2;
+  return Math.sqrt(dr * dr + dg * dg + db * db);
 }

@@ -9,7 +9,7 @@ import type { ImageIntelligenceProfile } from "../image-intelligence/types.js";
 import { decideIsolation } from "../media-intelligence/isolation-policy.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
 import type { ProductIntelligenceProfile } from "../product-intelligence/types.js";
-import { analyzeCutoutQuality, buildNormalizedProductCutout, buildProductMask } from "./png-canvas.js";
+import { analyzeCutoutQuality, buildNormalizedProductCutout, buildProductMask, PREPARATION_METHOD, DEFAULT_MAX_EDGE } from "./png-canvas.js";
 import type {
   AiMeProductAssetAwareness,
   AssetQualityReport,
@@ -24,8 +24,8 @@ import type {
 } from "./types.js";
 
 const EMPTY: ProductAssetPreparationStore = { assets: [], results: [], fingerprints: {}, history: [], logs: [] };
-const CANVAS_SIZE = 256;
-const ASSET_VERSION = 2;
+const CANVAS_SIZE = DEFAULT_MAX_EDGE;
+const ASSET_VERSION = 3;
 const REQUIRED_VIEWS: ProductAssetViewType[] = ["front", "back", "left", "right", "top", "bottom", "detail", "close-up"];
 
 /** Step 2 runtime: prepares cutout product assets without modifying original uploads. */
@@ -178,6 +178,10 @@ export class ProductAssetPreparationManager {
       removeBorders: cleanup.removeBorders,
       reduceNoise: cleanup.reduceNoise,
     });
+    if (!canvas) {
+      this.history(projectId, "prepare", `Kept original for ${image.fileName} — source-preserving cutout unavailable.`);
+      return null;
+    }
     let cutoutQuality = analyzeCutoutQuality(canvas);
     let quality = this.quality.evaluate({
       plan,
@@ -197,6 +201,10 @@ export class ProductAssetPreparationManager {
         removeBorders: true,
         reduceNoise: true,
       });
+      if (!canvas) {
+        this.history(projectId, "prepare", `Kept original for ${image.fileName} — isolation would risk product identity.`);
+        return null;
+      }
       cutoutQuality = analyzeCutoutQuality(canvas);
       quality = this.quality.evaluate({
         plan,
@@ -206,6 +214,10 @@ export class ProductAssetPreparationManager {
         resolutionTier: imageProfile?.resolution.tier ?? "standard",
         repairs: ["re-normalized cutout with soft edges and cleanup", ...quality.repairs],
       });
+    }
+    if (!quality.productNotDamaged || !canvas.productPreserved) {
+      this.history(projectId, "prepare", `Kept original for ${image.fileName} — product preservation check failed.`);
+      return null;
     }
 
     const maskPng = buildProductMask(canvas);
@@ -219,10 +231,13 @@ export class ProductAssetPreparationManager {
     let workspaceDerivedAssetId: string | undefined;
     let workspaceMaskAssetId: string | undefined;
     try {
+      const baseName = image.fileName.replace(/\.[^.]+$/, "") || "product";
       const derived = await this.workspace!.registerDerivedAsset(projectId, {
-        fileName: `foreground-${image.fileName.replace(/\.[^.]+$/, "") || "product"}.png`,
+        fileName: `foreground-${PREPARATION_METHOD}-${baseName}.png`,
         mimeType: "image/png",
         dataBase64: canvas.png.toString("base64"),
+        width: canvas.width,
+        height: canvas.height,
         parentAssetId: image.id,
         assetType: "derived-image",
         derivedKind: "analyzed",
@@ -231,9 +246,11 @@ export class ProductAssetPreparationManager {
       await this.workspace!.patchImage(projectId, derived.id, { processingStatus: "ready" });
 
       const mask = await this.workspace!.registerDerivedAsset(projectId, {
-        fileName: `mask-${image.fileName.replace(/\.[^.]+$/, "") || "product"}.png`,
+        fileName: `mask-${PREPARATION_METHOD}-${baseName}.png`,
         mimeType: "image/png",
         dataBase64: maskPng.toString("base64"),
+        width: canvas.width,
+        height: canvas.height,
         parentAssetId: image.id,
         assetType: "derived-image",
         derivedKind: "mask",
@@ -479,7 +496,8 @@ export class BackgroundRemovalEngine {
       notes: [
         ...handoff.notes,
         "Original image bytes remain untouched; processed PNG stored separately.",
-        "Pixel-accurate matting can be upgraded by a vision provider later.",
+        "Derived cutouts use source-preserving pixel isolation when decode succeeds; otherwise the original is kept.",
+        "Video render prefers production-safe derived foregrounds only; unsafe placeholders are ignored.",
       ],
     };
   }
@@ -517,7 +535,7 @@ export class ProductNormalizationEngine {
     reduceNoise?: boolean;
   }) {
     return buildNormalizedProductCutout({
-      canvasSize: CANVAS_SIZE,
+      maxEdge: CANVAS_SIZE,
       sourceBytes: input.sourceBytes,
       preserveShadows: input.preserveShadows,
       preserveReflections: input.preserveReflections,
@@ -569,7 +587,7 @@ export class ProductAssetQualityEngine {
     if (!input.cutoutQuality.productNotDamaged) issues.push("product region too thin");
     if (!input.cutoutQuality.edgesClean) issues.push("edge quality below target");
     if (!input.cutoutQuality.transparencyCorrect) issues.push("transparency incorrect");
-    if (input.canvasSize < 256) issues.push("resolution below acceptable canvas");
+    if (input.canvasSize < 64) issues.push("resolution below acceptable canvas");
     if (input.duplicate) issues.push("duplicate asset blocked");
     const score = Math.max(
       0,
@@ -589,7 +607,7 @@ export class ProductAssetQualityEngine {
       productNotDamaged: input.cutoutQuality.productNotDamaged,
       edgesClean: input.cutoutQuality.edgesClean,
       transparencyCorrect: input.cutoutQuality.transparencyCorrect,
-      resolutionAcceptable: input.canvasSize >= 256 && input.resolutionTier !== "unsupported",
+      resolutionAcceptable: input.canvasSize >= 64 && input.resolutionTier !== "unsupported",
       duplicate: input.duplicate,
       score,
       confidence: Math.min(96, input.plan.confidence + (issues.length ? -8 : 4)),

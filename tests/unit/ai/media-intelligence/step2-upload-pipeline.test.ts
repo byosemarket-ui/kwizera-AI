@@ -12,12 +12,10 @@ import { ProductAssetPreparationManager } from "../../../../ai/product-asset-pre
 import { MediaIntelligenceManager } from "../../../../ai/media-intelligence/media-intelligence-manager.js";
 import { decideIsolation } from "../../../../ai/media-intelligence/isolation-policy.js";
 import type { ImageIntelligenceProfile } from "../../../../ai/image-intelligence/types.js";
+import { productOnWhitePngBase64 } from "../product-asset-preparation/fixtures.js";
 
 const CORE_STUB = undefined as unknown as AiCoreManager;
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
-);
+const PNG = Buffer.from(productOnWhitePngBase64(64, 64), "base64");
 
 function profile(overrides: Partial<ImageIntelligenceProfile> = {}): ImageIntelligenceProfile {
   return {
@@ -69,11 +67,13 @@ describe("isolation policy", () => {
       },
     }));
     expect(decision.isolate).toBe(false);
+    expect(decision.decision).toBe("KEEP_ORIGINAL");
   });
 
   it("isolates complex removable backgrounds", () => {
     const decision = decideIsolation(profile());
     expect(decision.isolate).toBe(true);
+    expect(decision.decision).toBe("REMOVE_BACKGROUND");
   });
 });
 

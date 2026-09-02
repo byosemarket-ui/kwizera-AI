@@ -15,7 +15,7 @@ import { decideIsolation } from "./isolation-policy.js";
 import { countUsableAssets, mapQualityToMediaStatus } from "./quality-status.js";
 import type { MediaAssetEntry, MediaIntelligenceReport, ProductIntelligenceSummary } from "./types.js";
 
-const PIPELINE_VERSION = "step2-v1";
+const PIPELINE_VERSION = "step4-image-prep-v1";
 
 export class MediaIntelligenceManager {
   private workspace: CreativeWorkspaceManager | null = null;
@@ -229,6 +229,10 @@ export class MediaIntelligenceManager {
     if (!image || !isOriginalProductImage(image)) return null;
     const profiles = await this.images!.getProfiles(projectId).catch(() => []);
     const profile = profiles.find((p) => p.imageId === assetId);
+    const isolation = decideIsolation(profile);
+    const children = project?.productImages.filter((item) => item.parentAssetId === assetId) ?? [];
+    const foreground = children.find((item) => item.derivedKind === "analyzed");
+    const mask = children.find((item) => item.derivedKind === "mask");
     return {
       assetId,
       projectId,
@@ -240,17 +244,21 @@ export class MediaIntelligenceManager {
       status: mapQualityToMediaStatus(profile, Boolean(error)),
       analysisState: profile?.analysisState ?? (error ? "failed" : "unavailable"),
       processingState: profile?.processingState ?? "pending",
+      preparationDecision: isolation.decision,
       view: profile ? { role: profile.viewRole, confidence: profile.boundaries.confidence } : undefined,
       background: profile ? {
         type: profile.background.type,
         removable: profile.background.removable,
         confidence: profile.background.confidence,
+        suitability: profile.background.removalSuitability,
       } : undefined,
       quality: profile ? {
         score: profile.quality.score,
         classification: profile.quality.classification,
         confidence: profile.quality.confidence,
       } : undefined,
+      derivedForegroundId: foreground?.id,
+      derivedMaskId: mask?.id,
       derivedThumbnailId: profile?.derivedThumbnailId,
       originalPreserved: true,
       errors: error ? [error] : [],

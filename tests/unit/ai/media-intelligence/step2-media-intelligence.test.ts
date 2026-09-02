@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mapQualityToMediaStatus, countUsableAssets } from "../../../../ai/media-intelligence/quality-status.js";
 import { resolveProductionImagePath } from "../../../../ai/media-intelligence/asset-resolver.js";
 import { CreativeWorkspaceManager } from "../../../../ai/creative-workspace/creative-workspace-manager.js";
+import { PREPARATION_METHOD } from "../../../../ai/product-asset-preparation/png-canvas.js";
+import { productOnWhitePngBase64 } from "../product-asset-preparation/fixtures.js";
 import type { ImageIntelligenceProfile } from "../../../../ai/image-intelligence/types.js";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -83,21 +85,20 @@ describe("resolveProductionImagePath", () => {
     await workspace.initialize(storage);
     const created = await workspace.createProject("Test Product");
     const projectId = created.id;
-    const png = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-      "base64",
-    );
+    const png = Buffer.from(productOnWhitePngBase64(96, 96), "base64");
     const original = await workspace.uploadImage(projectId, {
       fileName: "product.png",
       mimeType: "image/png",
       dataBase64: png.toString("base64"),
-      width: 1,
-      height: 1,
+      width: 96,
+      height: 96,
     });
     const derived = await workspace.registerDerivedAsset(projectId, {
-      fileName: "foreground-product.png",
+      fileName: `foreground-${PREPARATION_METHOD}-product.png`,
       mimeType: "image/png",
       dataBase64: png.toString("base64"),
+      width: 96,
+      height: 96,
       parentAssetId: original.id,
       derivedKind: "analyzed",
     });

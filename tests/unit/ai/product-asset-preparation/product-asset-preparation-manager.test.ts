@@ -7,9 +7,9 @@ import { CreativeWorkspaceManager } from "../../../../ai/creative-workspace/crea
 import { ImageIntelligenceManager } from "../../../../ai/image-intelligence/image-intelligence-manager.js";
 import { ProductAssetPreparationManager } from "../../../../ai/product-asset-preparation/product-asset-preparation-manager.js";
 import { ProductIntelligenceManager } from "../../../../ai/product-intelligence/product-intelligence-manager.js";
+import { productOnWhitePngBase64 } from "./fixtures.js";
 
-const PNG_1X1 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const PRODUCT_PNG = productOnWhitePngBase64(64, 64);
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -36,12 +36,12 @@ async function setup() {
   await workspace.uploadImage(project.id, {
     fileName: "bottle-front-studio.png",
     mimeType: "image/png",
-    dataBase64: PNG_1X1,
+    dataBase64: PRODUCT_PNG,
   });
   await workspace.uploadImage(project.id, {
     fileName: "bottle-detail-studio.png",
     mimeType: "image/png",
-    dataBase64: PNG_1X1,
+    dataBase64: PRODUCT_PNG,
   });
   const images = new ImageIntelligenceManager();
   await images.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });
@@ -99,7 +99,7 @@ describe("ProductAssetPreparationManager", () => {
     const prepared = await manager.prepareProductAssets(project.id);
     expect(prepared.creativePipelineStep).toBe(2);
     expect(prepared.multiView.views.front.length + prepared.multiView.views.detail.length).toBeGreaterThan(0);
-    expect(prepared.assets.every((asset) => asset.version === 2)).toBe(true);
+    expect(prepared.assets.every((asset) => asset.version === 3)).toBe(true);
     expect(prepared.assets.every((asset) => asset.metadata.normalizedPosition === "center")).toBe(true);
     expect(prepared.assets.every((asset) => asset.metadata.cleanupArtifactsRemoved === true)).toBe(true);
     expect(prepared.assets.every((asset) => asset.removalPlan.preserveEdges)).toBe(true);

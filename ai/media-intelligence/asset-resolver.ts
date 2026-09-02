@@ -1,18 +1,21 @@
 /**
- * Resolve production image paths — original preserved, derived foreground preferred when ready.
+ * Resolve production image paths — original preserved, source-preserving derived preferred only when safe.
  */
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import { isProductionSafeDerivedForeground } from "../product-asset-preparation/png-canvas.js";
 import type { ProductionImageResolution } from "./types.js";
 
 export interface ResolveProductionImageOptions {
-  /** When true, use isolated foreground derived asset if available and quality-ready. */
+  /** When true, use isolated foreground derived asset if available and production-safe. */
   preferDerivedForeground?: boolean;
 }
 
 /**
  * Timeline clips reference original asset IDs. This resolver maps an original assetId
  * to the best filesystem path for FFmpeg rendering without modifying originals.
+ *
+ * Synthetic / tiny placeholders are never preferred over the real original photograph.
  */
 export async function resolveProductionImagePath(
   workspace: CreativeWorkspaceManager,
@@ -32,7 +35,8 @@ export async function resolveProductionImagePath(
       (item) => item.parentAssetId === originalAssetId
         && item.origin === "derived"
         && item.derivedKind === "analyzed"
-        && item.processingStatus === "ready",
+        && item.processingStatus === "ready"
+        && isProductionSafeDerivedForeground(item),
     );
     if (foreground) {
       const derivedPath = await workspace.getImagePath(
