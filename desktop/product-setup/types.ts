@@ -82,6 +82,19 @@ export interface ImageCardModel {
 
 export type SaveState = "saved" | "saving" | "unsaved" | "error";
 
+export interface MediaPreparationUiSummary {
+  total: number;
+  ready: number;
+  needsReview: number;
+  lowQuality: number;
+  failed: number;
+  processing: number;
+  usableCount: number;
+  productAnalysisReady: boolean;
+  isolationReady: boolean;
+  statusLabel: string;
+}
+
 export interface ProductSetupSnapshot {
   version: 1;
   projectId: string | null;
@@ -99,6 +112,7 @@ export interface ProductSetupSnapshot {
   canContinue: boolean;
   continueBlockedReason: string | null;
   continueLabel: string;
+  mediaPreparation: MediaPreparationUiSummary | null;
   updatedAt: string;
 }
 

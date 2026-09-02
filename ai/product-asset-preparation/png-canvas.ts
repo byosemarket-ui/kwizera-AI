@@ -132,6 +132,20 @@ function crc32(buffer: Buffer): number {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
+/** Grayscale mask PNG from cutout alpha — non-destructive derived asset for segmentation metadata. */
+export function buildProductMask(canvas: PreparedCanvas): Buffer {
+  const { width, height, rgba } = canvas;
+  const maskRgba = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < width * height; i += 1) {
+    const alpha = rgba[i * 4 + 3] ?? 0;
+    maskRgba[i * 4] = alpha;
+    maskRgba[i * 4 + 1] = alpha;
+    maskRgba[i * 4 + 2] = alpha;
+    maskRgba[i * 4 + 3] = 255;
+  }
+  return encodeRgbaPng(width, height, maskRgba);
+}
+
 export function analyzeCutoutQuality(canvas: PreparedCanvas): {
   backgroundRemoved: boolean;
   transparencyCorrect: boolean;

@@ -85,6 +85,13 @@ export interface VideoRequirementsSnapshot {
   cta: string;
   sellingPoints: SellingPointEntry[];
   intelligence: IntelligenceSummary | null;
+  mediaPreparation: {
+    statusLabel: string;
+    ready: number;
+    total: number;
+    needsReview: number;
+    productAnalysisReady: boolean;
+  } | null;
   productImageSet: ProductImageSet | null;
   assetIds: string[];
   saveState: SaveState;

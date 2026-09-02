@@ -8,6 +8,8 @@ import { detectViewRole, detectViewRoleDetailed } from "../product-intelligence/
 import { recordImageAnalysisFoundation } from "./analysis-bridge.js";
 import { ensureThumbnailAsset } from "./image-ingest.js";
 import type { ImageIntelligenceProfile, ImageIntelligenceStore, ObservationKind, VisualObservation } from "./types.js";
+import type { VisionProvider } from "../ai-provider/vision-capabilities.js";
+import { UnconfiguredVisionProvider } from "../ai-provider/vision-capabilities.js";
 import { ANALYSIS_VERSION, computeVisualMetrics, type VisualMetrics } from "./visual-metrics.js";
 
 const EMPTY: ImageIntelligenceStore = { profiles: [], history: [], cache: {}, logs: [] };
@@ -18,6 +20,7 @@ export class ImageIntelligenceManager {
   private core: AiCoreManager | null = null;
   private workspace: CreativeWorkspaceManager | null = null;
   private store: ImageIntelligenceStore = structuredClone(EMPTY);
+  private vision: VisionProvider = new UnconfiguredVisionProvider();
 
   readonly analysis = new ImageAnalysisEngine();
   readonly quality = new ImageQualityAnalyzer();
@@ -58,6 +61,10 @@ export class ImageIntelligenceManager {
 
   isInitialized(): boolean {
     return Boolean(this.root);
+  }
+
+  setVisionProvider(provider: VisionProvider): void {
+    this.vision = provider;
   }
 
   async analyzeProject(projectId: string): Promise<ImageIntelligenceProfile[]> {
@@ -131,6 +138,7 @@ export class ImageIntelligenceManager {
       });
       const previous = this.store.profiles.find((item) => item.imageId === image.id);
       const profile = this.buildProfile(project, image, foundationKnowledgeIds, visual, previous);
+      await this.enrichWithVision(project, image, profile);
       const ingest = await ensureThumbnailAsset(this.workspace!, project, image, bytes);
       profile.derivedThumbnailId = ingest.thumbnailId;
       const foundation = await recordImageAnalysisFoundation(
@@ -355,6 +363,63 @@ export class ImageIntelligenceManager {
     };
     profile.enhancements = this.enhancement.recommend(profile);
     return this.analysis.finalize(profile);
+  }
+
+  private async enrichWithVision(
+    project: CreativeProject,
+    image: ProductImage,
+    profile: ImageIntelligenceProfile,
+  ): Promise<void> {
+    try {
+      if (!(await this.vision.isAvailable())) return;
+      const vision = await this.vision.analyzeImage({
+        projectId: project.id,
+        assetId: image.id,
+        mimeType: image.mimeType,
+        fileName: image.fileName,
+        userProductName: project.productInformation?.name,
+        userCategory: project.productInformation?.category,
+      });
+      if (!vision.available) return;
+
+      profile.aiVisionStatus = "completed";
+      profile.provenance = {
+        ...profile.provenance!,
+        provider: vision.provider,
+        model: vision.model,
+      };
+      profile.metadata = {
+        ...profile.metadata,
+        aiVisionStatus: "completed",
+        aiVisionProvider: vision.provider,
+      };
+
+      const viewGuess = vision.views?.[0];
+      if (viewGuess && viewGuess.confidence >= 0.55 && profile.metadata.userCorrected !== 1) {
+        profile.viewRole = viewGuess.view;
+        profile.metadata.viewConfidence = Math.round(viewGuess.confidence * 100);
+      }
+      if (vision.backgroundType && vision.backgroundType.confidence >= 0.5) {
+        profile.background = {
+          ...profile.background,
+          type: vision.backgroundType.type,
+          confidence: Math.max(profile.background.confidence, vision.backgroundType.confidence),
+        };
+      }
+      if (vision.dominantColors?.length) {
+        profile.colors = [
+          ...vision.dominantColors.map((color) => ({
+            name: color.name,
+            role: "primary" as const,
+            confidence: color.confidence,
+            kind: "observed-from-image" as ObservationKind,
+          })),
+          ...(profile.colors ?? []),
+        ].slice(0, 5);
+      }
+    } catch {
+      profile.aiVisionStatus = profile.aiVisionStatus ?? "IMAGE_ANALYSIS_UNAVAILABLE";
+    }
   }
 
   private collectObservations(

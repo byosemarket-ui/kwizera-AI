@@ -3,6 +3,7 @@
  * Reuses marketing-brief API and canonical product; no duplicate storage.
  */
 
+import { fetchMediaIntelligence, formatMediaStatusLabel, prepareMediaIntelligence } from "../media-intelligence/api";
 import type { VideoPlatformId } from "../../ai/video-production/platform-profiles.js";
 import { VIDEO_PLATFORM_PROFILES } from "../../ai/video-production/platform-profiles.js";
 import type { ProductImageSet } from "../image-organization/types";
@@ -90,6 +91,7 @@ export class VideoRequirementsEngine {
   private cta = "";
   private sellingPoints: SellingPointEntry[] = [];
   private intelligence: IntelligenceSummary | null = null;
+  private mediaPreparation: VideoRequirementsSnapshot["mediaPreparation"] = null;
   private saveState: SaveState = "saved";
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
@@ -126,6 +128,7 @@ export class VideoRequirementsEngine {
       cta: this.cta,
       sellingPoints: [...this.sellingPoints],
       intelligence: this.intelligence,
+      mediaPreparation: this.mediaPreparation,
       productImageSet: this.productImageSet,
       assetIds: [...this.assetIds],
       saveState: this.saveState,
@@ -190,6 +193,18 @@ export class VideoRequirementsEngine {
     }
 
     this.buildIntelligenceSummary(canonical, imageSet);
+
+    const mediaReport = await fetchMediaIntelligence(active.id)
+      ?? await prepareMediaIntelligence(active.id);
+    if (mediaReport?.summary) {
+      this.mediaPreparation = {
+        statusLabel: formatMediaStatusLabel(mediaReport.summary),
+        ready: mediaReport.summary.ready,
+        total: mediaReport.summary.total,
+        needsReview: mediaReport.summary.needsReview + mediaReport.summary.lowQuality,
+        productAnalysisReady: mediaReport.summary.productAnalysisReady,
+      };
+    }
 
     const brief = await fetchMarketingBrief(active.id);
     if (brief) {

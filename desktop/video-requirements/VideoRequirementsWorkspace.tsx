@@ -55,6 +55,17 @@ export function VideoRequirementsWorkspace() {
         <p>Set your video goal, audience, platform, duration, and language for this product video.</p>
       </div>
 
+      {/* Media preparation status */}
+      {snap.mediaPreparation ? (
+        <section className="vr-section vr-section--media">
+          <h2>Image Preparation</h2>
+          <p className="vr-media-status">{snap.mediaPreparation.statusLabel}</p>
+          {snap.mediaPreparation.needsReview > 0 ? (
+            <p className="vr-hint">Some images may need review, but you can continue when the video plan is complete.</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {/* Section A — Product */}
       <section className="vr-section">
         <h2>Product</h2>

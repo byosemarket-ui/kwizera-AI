@@ -12,6 +12,7 @@ import {
   persistWorkflowStep,
   writeScopedHandoff,
 } from "../product-creation/workflow";
+import { fetchMediaIntelligence, formatMediaStatusLabel } from "../media-intelligence/api";
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
 import { calculateDiscount } from "./discount";
 import {
@@ -68,6 +69,7 @@ export class ProductSetupEngine {
   private autoAnalysisQueued = false;
   private lastUploadRunning = false;
   private transitioning = false;
+  private mediaPreparation: import("./types").MediaPreparationUiSummary | null = null;
   private unsubIntake: (() => void) | null = null;
   private unsubOrg: (() => void) | null = null;
 
@@ -96,6 +98,7 @@ export class ProductSetupEngine {
       } catch {
         /* keep local defaults */
       }
+      await this.refreshMediaSummary(intake.projectId);
     }
     this.wireSubscriptions();
     this.emit();
@@ -149,8 +152,25 @@ export class ProductSetupEngine {
       canContinue: readiness.ready && !this.transitioning,
       continueBlockedReason: readiness.blockingIssues[0] ?? null,
       continueLabel,
+      mediaPreparation: this.mediaPreparation,
       updatedAt: new Date().toISOString(),
     };
+  }
+
+  private async refreshMediaSummary(projectId: string): Promise<void> {
+    try {
+      const report = await fetchMediaIntelligence(projectId);
+      if (!report?.summary) {
+        this.mediaPreparation = null;
+        return;
+      }
+      this.mediaPreparation = {
+        ...report.summary,
+        statusLabel: formatMediaStatusLabel(report.summary),
+      };
+    } catch {
+      this.mediaPreparation = null;
+    }
   }
 
   setProjectNameLocal(name: string): void {
@@ -253,6 +273,10 @@ export class ProductSetupEngine {
     try {
       await imageOrganizationEngine.runAnalysis();
       this.analysisFailed = false;
+      const intake = productIntakeEngine.snapshot();
+      if (intake.projectId) {
+        await this.refreshMediaSummary(intake.projectId);
+      }
     } catch {
       this.analysisFailed = true;
     }

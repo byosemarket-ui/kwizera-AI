@@ -57,6 +57,8 @@ import {
 
   getProductAssetPreparationManager,
 
+  getMediaIntelligenceManager,
+
   getProductScenePlanningManager,
 
   getProductStoryboardManager,
@@ -605,6 +607,22 @@ function requireProductAssetPreparation(res: ServerResponse) {
   }
 
   return preparation;
+
+}
+
+function requireMediaIntelligence(res: ServerResponse) {
+
+  const media = getMediaIntelligenceManager();
+
+  if (!media) {
+
+    sendJson(res, 503, { error: "Media intelligence is restoring. Try again shortly." });
+
+    return null;
+
+  }
+
+  return media;
 
 }
 
@@ -1764,6 +1782,17 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/foundation-health" && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    try {
+      const { buildFoundationHealth } = await import("./foundation-health.js");
+      sendJson(res, 200, await buildFoundationHealth(workspace));
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Foundation health check failed" });
+    }
+    return;
+  }
+
   if (url.pathname === "/api/workspace/persistence-backup" && req.method === "POST") {
     const workspace = requireWorkspace(res);
     if (!workspace) return;
@@ -2517,6 +2546,72 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
 
       sendJson(res, 400, { error: error instanceof Error ? error.message : "Unable to override view role" });
+
+    }
+
+    return;
+
+  }
+
+  const mediaIntelligenceMatch = url.pathname.match(/^\/api\/media-intelligence\/projects\/([^/]+)$/);
+
+  if (mediaIntelligenceMatch && req.method === "GET") {
+
+    const media = requireMediaIntelligence(res);
+
+    if (!media) return;
+
+    try {
+
+      const report = await media.getReport(mediaIntelligenceMatch[1]);
+
+      sendJson(res, 200, { report });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Media intelligence report failed" });
+
+    }
+
+    return;
+
+  }
+
+  const mediaPrepareMatch = url.pathname.match(/^\/api\/media-intelligence\/projects\/([^/]+)\/prepare$/);
+
+  if (mediaPrepareMatch && req.method === "POST") {
+
+    const media = requireMediaIntelligence(res);
+
+    if (!media) return;
+
+    try {
+
+      const report = await media.prepareProject(mediaPrepareMatch[1]);
+
+      sendJson(res, 201, { report });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Media intelligence preparation failed" });
+
+    }
+
+    return;
+
+  }
+
+  if (url.pathname === "/api/media-intelligence/ollama-readiness" && req.method === "GET") {
+
+    try {
+
+      const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+
+      sendJson(res, 200, { readiness: await assessOllamaReadiness() });
+
+    } catch (error) {
+
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Ollama readiness check failed" });
 
     }
 
@@ -4211,9 +4306,12 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       });
 
       const intelligence = getImageIntelligenceManager();
+      const media = getMediaIntelligenceManager();
       if (intelligence?.isInitialized()) {
         setImmediate(() => {
-          void ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id).catch(() => undefined);
+          void ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id)
+            .then(() => media?.processAsset(uploadMatch[1], image.id).catch(() => undefined))
+            .catch(() => undefined);
         });
       }
 

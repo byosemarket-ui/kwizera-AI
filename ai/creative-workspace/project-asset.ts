@@ -21,7 +21,7 @@ export type AssetAnalysisState =
   | "failed"
   | "unavailable"
   | "not-applicable";
-export type DerivedImageKind = "thumbnail" | "preview" | "optimized" | "analyzed" | "enhanced" | "generated";
+export type DerivedImageKind = "thumbnail" | "preview" | "optimized" | "analyzed" | "mask" | "enhanced" | "generated";
 export type AssetRole =
   | "primary"
   | "secondary"

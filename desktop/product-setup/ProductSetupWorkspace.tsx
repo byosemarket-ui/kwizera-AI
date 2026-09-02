@@ -162,6 +162,9 @@ export function ProductSetupWorkspace() {
               <li><CheckCircle2 size={14} /> Product detected</li>
               <li><CheckCircle2 size={14} /> Image quality checked</li>
               <li><CheckCircle2 size={14} /> Best product angles selected</li>
+              {snap.mediaPreparation ? (
+                <li><CheckCircle2 size={14} /> {snap.mediaPreparation.statusLabel}</li>
+              ) : null}
             </ul>
           ) : (
             <ul className="product-setup__analysis-steps">

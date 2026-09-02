@@ -21,6 +21,7 @@ import { ImageIntelligenceManager } from "../../ai/image-intelligence/image-inte
 import { createImageIntelligencePlugin } from "../../ai/image-intelligence/image-intelligence-plugin.js";
 import { ProductAssetPreparationManager } from "../../ai/product-asset-preparation/product-asset-preparation-manager.js";
 import { createProductAssetPreparationPlugin } from "../../ai/product-asset-preparation/product-asset-preparation-plugin.js";
+import { MediaIntelligenceManager } from "../../ai/media-intelligence/media-intelligence-manager.js";
 import { ProductScenePlanningManager } from "../../ai/product-scene-planning/product-scene-planning-manager.js";
 import { createProductScenePlanningPlugin } from "../../ai/product-scene-planning/product-scene-planning-plugin.js";
 import { ProductStoryboardManager } from "../../ai/product-storyboard/product-storyboard-manager.js";
@@ -92,6 +93,7 @@ let canonicalProductManager: CanonicalProductManager | null = null;
 let marketingBriefManager: MarketingBriefManager | null = null;
 let imageIntelligenceManager: ImageIntelligenceManager | null = null;
 let productAssetPreparationManager: ProductAssetPreparationManager | null = null;
+let mediaIntelligenceManager: MediaIntelligenceManager | null = null;
 let productScenePlanningManager: ProductScenePlanningManager | null = null;
 let productStoryboardManager: ProductStoryboardManager | null = null;
 let productPromptOrchestrationManager: ProductPromptOrchestrationManager | null = null;
@@ -253,6 +255,10 @@ export function getImageIntelligenceManager(): ImageIntelligenceManager | null {
 
 export function getProductAssetPreparationManager(): ProductAssetPreparationManager | null {
   return productAssetPreparationManager;
+}
+
+export function getMediaIntelligenceManager(): MediaIntelligenceManager | null {
+  return mediaIntelligenceManager;
 }
 
 export function getProductScenePlanningManager(): ProductScenePlanningManager | null {
@@ -557,6 +563,24 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         getAiMeProductAssetAwareness: () => productAssetPreparationManager!.getAiMeProductAssetAwareness(),
       });
       pipelineManager.attachProductAssetPreparation(productAssetPreparationManager);
+      mediaIntelligenceManager = new MediaIntelligenceManager();
+      await mediaIntelligenceManager.initialize({
+        workspace: workspaceManager,
+        images: imageIntelligenceManager,
+        products: productIntelligenceManager,
+        canonical: canonicalProductManager!,
+        assets: productAssetPreparationManager,
+      });
+      try {
+        const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
+        const ollamaVision = new OllamaVisionProvider();
+        if (await ollamaVision.isAvailable()) {
+          imageIntelligenceManager.setVisionProvider(ollamaVision);
+          mediaIntelligenceManager.setVisionProvider(ollamaVision);
+        }
+      } catch {
+        /* Ollama optional — heuristic intelligence remains authoritative */
+      }
       productScenePlanningManager = new ProductScenePlanningManager();
       await productScenePlanningManager.initialize(storageRoot, {
         core: manager,

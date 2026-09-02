@@ -6,9 +6,10 @@ import type { CreativeProject, CreativeWorkspaceManager, ProductImage } from "..
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { BackgroundRemovalAnalyzer, type ImageIntelligenceManager } from "../image-intelligence/image-intelligence-manager.js";
 import type { ImageIntelligenceProfile } from "../image-intelligence/types.js";
+import { decideIsolation } from "../media-intelligence/isolation-policy.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
 import type { ProductIntelligenceProfile } from "../product-intelligence/types.js";
-import { analyzeCutoutQuality, buildNormalizedProductCutout } from "./png-canvas.js";
+import { analyzeCutoutQuality, buildNormalizedProductCutout, buildProductMask } from "./png-canvas.js";
 import type {
   AiMeProductAssetAwareness,
   AssetQualityReport,
@@ -83,124 +84,8 @@ export class ProductAssetPreparationManager {
 
     for (const image of originals) {
       const imageProfile = imageProfiles.find((item) => item.imageId === image.id);
-      const viewType = (imageProfile?.viewRole as ProductAssetViewType | undefined) || "unknown";
-      const fingerprint = this.library.fingerprint(project, productProfile, image, viewType);
-      const existingId = this.store.fingerprints[fingerprint];
-      if (existingId) {
-        const existing = this.store.assets.find((asset) => asset.assetId === existingId);
-        if (existing) {
-          prepared.push({ ...existing, quality: { ...existing.quality, duplicate: false, issues: existing.quality.issues.filter((issue) => issue !== "duplicate asset blocked") } });
-          continue;
-        }
-      }
-
-      const originalPath = await this.workspace!.getOriginalImagePath(projectId, image.id);
-      if (!originalPath) {
-        throw new Error(`Original image file missing for asset ${image.id} (${image.fileName})`);
-      }
-      const originalBytes = await fs.readFile(originalPath);
-      const originalHash = createHash("sha256").update(originalBytes).digest("hex");
-
-      const plan = this.removal.plan(image, imageProfile, productProfile, this.images?.backgroundRemoval);
-      const cleanup = this.cleanup.apply(plan, imageProfile);
-      let canvas = this.normalization.normalize({
-        sourceBytes: originalBytes,
-        preserveShadows: plan.preserveShadows,
-        preserveReflections: plan.preserveReflections,
-        softEdges: cleanup.improveEdges,
-        preserveTransparency: plan.preserveTransparency,
-        removeArtifacts: cleanup.removeArtifacts,
-        removeBorders: cleanup.removeBorders,
-        reduceNoise: cleanup.reduceNoise,
-      });
-      let cutoutQuality = analyzeCutoutQuality(canvas);
-      let quality = this.quality.evaluate({
-        plan,
-        cutoutQuality,
-        canvasSize: canvas.width,
-        duplicate: false,
-        resolutionTier: imageProfile?.resolution.tier ?? "standard",
-      });
-      if (!quality.backgroundRemoved || !quality.edgesClean || !quality.transparencyCorrect || !quality.productNotDamaged) {
-        canvas = this.normalization.normalize({
-          sourceBytes: originalBytes,
-          preserveShadows: plan.preserveShadows,
-          preserveReflections: false,
-          softEdges: true,
-          preserveTransparency: true,
-          removeArtifacts: true,
-          removeBorders: true,
-          reduceNoise: true,
-        });
-        cutoutQuality = analyzeCutoutQuality(canvas);
-        quality = this.quality.evaluate({
-          plan,
-          cutoutQuality,
-          canvasSize: canvas.width,
-          duplicate: false,
-          resolutionTier: imageProfile?.resolution.tier ?? "standard",
-          repairs: ["re-normalized cutout with soft edges and cleanup", ...quality.repairs],
-        });
-      }
-
-      const assetId = randomUUID();
-      const fileName = `${assetId}.png`;
-      const relativePath = path.join(projectId, fileName);
-      const absolutePath = path.join(this.assetsRoot, relativePath);
-      await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-      await fs.writeFile(absolutePath, canvas.png);
-
-      const afterOriginal = await fs.readFile(originalPath);
-      if (createHash("sha256").update(afterOriginal).digest("hex") !== originalHash) {
-        throw new Error("Original product image was modified unexpectedly; aborting asset preparation.");
-      }
-
-      const now = new Date().toISOString();
-      const asset: ProductAssetRecord = {
-        assetId,
-        productId: productProfile.id,
-        projectId,
-        sourceImageId: image.id,
-        viewType,
-        fileName,
-        relativePath: relativePath.replace(/\\/g, "/"),
-        mimeType: "image/png",
-        resolution: { width: canvas.width, height: canvas.height },
-        transparency: true,
-        boundingBox: canvas.boundingBox,
-        version: ASSET_VERSION,
-        fingerprint,
-        originalPreserved: true,
-        quality,
-        removalPlan: plan,
-        metadata: {
-          sourceFileName: image.fileName,
-          originalSha256: originalHash,
-          cleanupArtifactsRemoved: cleanup.removeArtifacts,
-          cleanupBordersRemoved: cleanup.removeBorders,
-          cleanupNoiseReduced: cleanup.reduceNoise,
-          cleanupEdgesImproved: cleanup.improveEdges,
-          cleanupMaskImproved: cleanup.improveMask,
-          cleanupTransparencyImproved: cleanup.improveTransparency,
-          normalizedPosition: "center",
-          normalizedOrientation: "upright",
-          normalizedScale: "fit-product-region",
-          normalizedRotation: 0,
-          normalizedCanvas: canvas.width,
-          normalizedTransparency: true,
-          provider: "local-product-asset-preparation",
-          creativePipelineStep: 2,
-          scenePlanningDeferred: true,
-          videoGenerationDeferred: true,
-          canvasSize: canvas.width,
-        },
-        createdAt: now,
-        updatedAt: now,
-      };
-      this.store.assets = this.store.assets.filter((item) => !(item.projectId === projectId && item.sourceImageId === image.id && item.version === ASSET_VERSION));
-      this.store.assets.unshift(asset);
-      this.store.fingerprints[fingerprint] = assetId;
-      prepared.push(asset);
+      const record = await this.prepareSingleAsset(project, image, productProfile, imageProfile, { force: true });
+      if (record) prepared.push(record);
     }
 
     const multiView = this.multiView.organize(projectId, productProfile, prepared);
@@ -226,6 +111,196 @@ export class ProductAssetPreparationManager {
     this.log("info", `Product assets prepared for ${project.name}.`);
     await this.persist();
     return structuredClone(result);
+  }
+
+  /**
+   * Prepare one original image — skips isolation when background policy says original is sufficient.
+   * Never modifies the original file bytes.
+   */
+  async prepareSingleAsset(
+    project: CreativeProject,
+    image: ProductImage,
+    productProfile: ProductIntelligenceProfile,
+    imageProfile: ImageIntelligenceProfile | undefined,
+    opts?: { force?: boolean },
+  ): Promise<ProductAssetRecord | null> {
+    this.ensureReady();
+    const projectId = project.id;
+    const decision = decideIsolation(imageProfile);
+    if (!opts?.force && !decision.isolate) {
+      return null;
+    }
+
+    const viewType = (imageProfile?.viewRole as ProductAssetViewType | undefined) || "unknown";
+    const fingerprint = this.library.fingerprint(project, productProfile, image, viewType);
+    const existingId = this.store.fingerprints[fingerprint];
+    if (existingId) {
+      const existing = this.store.assets.find((asset) => asset.assetId === existingId);
+      if (existing) {
+        return {
+          ...existing,
+          quality: {
+            ...existing.quality,
+            duplicate: false,
+            issues: existing.quality.issues.filter((issue) => issue !== "duplicate asset blocked"),
+          },
+        };
+      }
+    }
+
+    const originalPath = await this.workspace!.getOriginalImagePath(projectId, image.id);
+    if (!originalPath) {
+      throw new Error(`Original image file missing for asset ${image.id} (${image.fileName})`);
+    }
+    const originalBytes = await fs.readFile(originalPath);
+    const originalHash = createHash("sha256").update(originalBytes).digest("hex");
+
+    const refreshed = await this.workspace!.getProject(projectId);
+    if (refreshed) {
+      const staleDerived = refreshed.productImages.filter(
+        (item) => item.parentAssetId === image.id
+          && (item.derivedKind === "analyzed" || item.derivedKind === "mask"),
+      );
+      for (const stale of staleDerived) {
+        await this.workspace!.removeImage(projectId, stale.id).catch(() => undefined);
+      }
+    }
+
+    const plan = this.removal.plan(image, imageProfile, productProfile, this.images?.backgroundRemoval);
+    const cleanup = this.cleanup.apply(plan, imageProfile);
+    let canvas = this.normalization.normalize({
+      sourceBytes: originalBytes,
+      preserveShadows: plan.preserveShadows,
+      preserveReflections: plan.preserveReflections,
+      softEdges: cleanup.improveEdges,
+      preserveTransparency: plan.preserveTransparency,
+      removeArtifacts: cleanup.removeArtifacts,
+      removeBorders: cleanup.removeBorders,
+      reduceNoise: cleanup.reduceNoise,
+    });
+    let cutoutQuality = analyzeCutoutQuality(canvas);
+    let quality = this.quality.evaluate({
+      plan,
+      cutoutQuality,
+      canvasSize: canvas.width,
+      duplicate: false,
+      resolutionTier: imageProfile?.resolution.tier ?? "standard",
+    });
+    if (!quality.backgroundRemoved || !quality.edgesClean || !quality.transparencyCorrect || !quality.productNotDamaged) {
+      canvas = this.normalization.normalize({
+        sourceBytes: originalBytes,
+        preserveShadows: plan.preserveShadows,
+        preserveReflections: false,
+        softEdges: true,
+        preserveTransparency: true,
+        removeArtifacts: true,
+        removeBorders: true,
+        reduceNoise: true,
+      });
+      cutoutQuality = analyzeCutoutQuality(canvas);
+      quality = this.quality.evaluate({
+        plan,
+        cutoutQuality,
+        canvasSize: canvas.width,
+        duplicate: false,
+        resolutionTier: imageProfile?.resolution.tier ?? "standard",
+        repairs: ["re-normalized cutout with soft edges and cleanup", ...quality.repairs],
+      });
+    }
+
+    const maskPng = buildProductMask(canvas);
+    const assetId = randomUUID();
+    const fileName = `${assetId}.png`;
+    const relativePath = path.join(projectId, fileName);
+    const absolutePath = path.join(this.assetsRoot, relativePath);
+    await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+    await fs.writeFile(absolutePath, canvas.png);
+
+    let workspaceDerivedAssetId: string | undefined;
+    let workspaceMaskAssetId: string | undefined;
+    try {
+      const derived = await this.workspace!.registerDerivedAsset(projectId, {
+        fileName: `foreground-${image.fileName.replace(/\.[^.]+$/, "") || "product"}.png`,
+        mimeType: "image/png",
+        dataBase64: canvas.png.toString("base64"),
+        parentAssetId: image.id,
+        assetType: "derived-image",
+        derivedKind: "analyzed",
+      });
+      workspaceDerivedAssetId = derived.id;
+      await this.workspace!.patchImage(projectId, derived.id, { processingStatus: "ready" });
+
+      const mask = await this.workspace!.registerDerivedAsset(projectId, {
+        fileName: `mask-${image.fileName.replace(/\.[^.]+$/, "") || "product"}.png`,
+        mimeType: "image/png",
+        dataBase64: maskPng.toString("base64"),
+        parentAssetId: image.id,
+        assetType: "derived-image",
+        derivedKind: "mask",
+      });
+      workspaceMaskAssetId = mask.id;
+      await this.workspace!.patchImage(projectId, mask.id, { processingStatus: "ready" });
+    } catch {
+      /* runtime file remains; original still usable */
+    }
+
+    const afterOriginal = await fs.readFile(originalPath);
+    if (createHash("sha256").update(afterOriginal).digest("hex") !== originalHash) {
+      throw new Error("Original product image was modified unexpectedly; aborting asset preparation.");
+    }
+
+    const now = new Date().toISOString();
+    const asset: ProductAssetRecord = {
+      assetId,
+      productId: productProfile.id,
+      projectId,
+      sourceImageId: image.id,
+      viewType,
+      fileName,
+      relativePath: relativePath.replace(/\\/g, "/"),
+      mimeType: "image/png",
+      resolution: { width: canvas.width, height: canvas.height },
+      transparency: true,
+      boundingBox: canvas.boundingBox,
+      version: ASSET_VERSION,
+      fingerprint,
+      originalPreserved: true,
+      quality,
+      removalPlan: plan,
+      metadata: {
+        sourceFileName: image.fileName,
+        originalSha256: originalHash,
+        isolationReason: decision.reason,
+        cleanupArtifactsRemoved: cleanup.removeArtifacts,
+        cleanupBordersRemoved: cleanup.removeBorders,
+        cleanupNoiseReduced: cleanup.reduceNoise,
+        cleanupEdgesImproved: cleanup.improveEdges,
+        cleanupMaskImproved: cleanup.improveMask,
+        cleanupTransparencyImproved: cleanup.improveTransparency,
+        normalizedPosition: "center",
+        normalizedOrientation: "upright",
+        normalizedScale: "fit-product-region",
+        normalizedRotation: 0,
+        normalizedCanvas: canvas.width,
+        normalizedTransparency: true,
+        provider: "local-product-asset-preparation",
+        workspaceDerivedAssetId: workspaceDerivedAssetId ?? "",
+        workspaceMaskAssetId: workspaceMaskAssetId ?? "",
+        creativePipelineStep: 2,
+        scenePlanningDeferred: true,
+        videoGenerationDeferred: true,
+        canvasSize: canvas.width,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.store.assets = this.store.assets.filter(
+      (item) => !(item.projectId === projectId && item.sourceImageId === image.id && item.version === ASSET_VERSION),
+    );
+    this.store.assets.unshift(asset);
+    this.store.fingerprints[fingerprint] = assetId;
+    await this.persist();
+    return asset;
   }
 
   async getResult(projectId: string): Promise<ProductAssetPreparationResult | null> {

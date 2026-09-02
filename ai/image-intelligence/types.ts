@@ -107,6 +107,8 @@ export interface ImageIntelligenceProfile {
   provenance?: ImageAnalysisProvenance;
   observations?: VisualObservation[];
   derivedThumbnailId?: string;
+  derivedForegroundId?: string;
+  derivedMaskId?: string;
   memoryStatus?: "linked" | "unavailable" | "error";
   memoryMessage?: string;
   knowledgeStatus?: "linked" | "unavailable" | "empty" | "error";

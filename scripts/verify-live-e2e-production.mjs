@@ -3,12 +3,65 @@
  * Live production E2E: project create → image upload → video timeline → render → playable output.
  * Uses API against the real deployment (no local server).
  */
+import { deflateSync } from "node:zlib";
+
 const BASE = (process.argv[2] ?? "http://162.35.114.19:5173").replace(/\/$/, "");
 const PRESET = process.argv[3] ?? "preview";
 const RENDER_TIMEOUT_MS = Number(process.env.KWIZERA_LIVE_RENDER_TIMEOUT_MS ?? 900000);
 
-const PNG =
-  "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC";
+function pngChunk(type, data) {
+  const typeBuffer = Buffer.from(type, "ascii");
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  let crc = 0xffffffff;
+  const crcInput = Buffer.concat([typeBuffer, data]);
+  for (let i = 0; i < crcInput.length; i += 1) {
+    crc ^= crcInput[i];
+    for (let j = 0; j < 8; j += 1) {
+      const mask = -(crc & 1);
+      crc = (crc >>> 1) ^ (0xedb88320 & mask);
+    }
+  }
+  const crcBuffer = Buffer.alloc(4);
+  crcBuffer.writeUInt32BE((crc ^ 0xffffffff) >>> 0, 0);
+  return Buffer.concat([length, typeBuffer, data, crcBuffer]);
+}
+
+function encodeRgbaPng(width, height, rgba) {
+  const raw = Buffer.alloc((width * 4 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const rowStart = y * (width * 4 + 1);
+    raw[rowStart] = 0;
+    rgba.copy(raw, rowStart + 1, y * width * 4, (y + 1) * width * 4);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+function testPngBase64(width, height, r, g, b) {
+  const rgba = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < width * height; i += 1) {
+    rgba[i * 4] = r;
+    rgba[i * 4 + 1] = g;
+    rgba[i * 4 + 2] = b;
+    rgba[i * 4 + 3] = 255;
+  }
+  return encodeRgbaPng(width, height, rgba).toString("base64");
+}
+
+const TEST_IMAGES = [
+  { fileName: "live-1.png", width: 320, height: 240, dataBase64: testPngBase64(320, 240, 210, 80, 60) },
+  { fileName: "live-2.png", width: 320, height: 240, dataBase64: testPngBase64(320, 240, 60, 120, 210) },
+];
 
 const checks = [];
 
@@ -44,7 +97,9 @@ async function json(method, path, body, timeoutMs = 60000) {
 
 async function waitFor(fn, attempts = 120, delayMs = 2000) {
   for (let i = 0; i < attempts; i += 1) {
-    if (await fn()) return true;
+    const result = await fn();
+    if (result === true) return true;
+    if (result === "failed") return false;
     await new Promise((r) => setTimeout(r, delayMs));
   }
   return false;
@@ -82,13 +137,13 @@ async function main() {
   await json("POST", `/api/workspace/projects/${projectId}`, { action: "open" });
 
   const imageIds = [];
-  for (let i = 0; i < 2; i += 1) {
+  for (const image of TEST_IMAGES) {
     const up = await json("POST", `/api/workspace/projects/${projectId}/images`, {
-      fileName: `live-${i + 1}.png`,
+      fileName: image.fileName,
       mimeType: "image/png",
-      dataBase64: PNG,
-      width: 10,
-      height: 10,
+      dataBase64: image.dataBase64,
+      width: image.width,
+      height: image.height,
     });
     if (up.body?.image?.id) imageIds.push(up.body.image.id);
   }
@@ -160,6 +215,7 @@ async function main() {
   const jobId = renderStart.body?.job?.id;
   record("render started", renderStart.ok && Boolean(jobId), jobId ?? renderStart.body?.error ?? "");
 
+  let renderError = "";
   const renderDone = await waitFor(async () => {
     if (!jobId) return false;
     const jobRes = await json("GET", `/api/video-production/projects/${projectId}/jobs/${jobId}`);
@@ -169,13 +225,15 @@ async function main() {
       process.stdout.write(`\r  render progress: ${progress ?? "?"}% (${status})   `);
     }
     if (status === "failed") {
-      console.log(`\n  render failed: ${jobRes.body?.job?.error ?? "unknown"}`);
-      return false;
+      renderError = jobRes.body?.job?.error ?? "unknown";
+      console.log(`\n  render failed: ${renderError}`);
+      return "failed";
     }
     if (status === "completed") return true;
+    return false;
   }, Math.ceil(RENDER_TIMEOUT_MS / 2000), 2000);
   console.log("");
-  record("render completed", renderDone);
+  record("render completed", renderDone === true, renderError);
 
   const videoProject = await json("GET", `/api/video-production/projects/${projectId}`);
   const outputUrl = videoProject.body?.video?.output?.url;

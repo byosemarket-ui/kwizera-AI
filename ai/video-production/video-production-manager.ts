@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { resolveProductionImagePath } from "../media-intelligence/asset-resolver.js";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
@@ -101,7 +102,7 @@ export class VideoProductionManager {
     const renderClips = sliceTimelineForRender(video.timeline, preset);
     const assetChecks = await Promise.all(renderClips.map(async (clip) => ({
       assetId: clip.assetId,
-      available: Boolean(await this.workspace!.getOriginalImagePath(projectId, clip.assetId)),
+      available: Boolean(await resolveProductionImagePath(this.workspace!, projectId, clip.assetId)),
     })));
     return validateBeforeRender({
       video,
@@ -345,8 +346,8 @@ export class VideoProductionManager {
     video = await this.getVideoProject(projectId) ?? video;
     const renderClips = sliceTimelineForRender(video.timeline, preset);
     for (const clip of renderClips) {
-      const source = await this.workspace!.getOriginalImagePath(projectId, clip.assetId);
-      if (!source) {
+      const resolved = await resolveProductionImagePath(this.workspace!, projectId, clip.assetId);
+      if (!resolved?.path) {
         throw new VideoProductionError("MISSING_ASSET", `Scene ${clip.order} is missing original asset ${clip.assetId}`, 422);
       }
     }
@@ -451,7 +452,8 @@ export class VideoProductionManager {
       await this.writeJob(job.id, { ...started, stage: "rendering", progress: 10 });
       for (const [index, clip] of renderClips.entries()) {
         await yieldLoop();
-        const imagePath = await this.workspace!.getOriginalImagePath(job.projectId, clip.assetId);
+        const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, clip.assetId);
+        const imagePath = resolved?.path ?? null;
         if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${clip.assetId} is not on disk`, 422);
         const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
         const rendered = await renderStillClip({ clip, imagePath }, renderPlan, clipPath, fontFile);

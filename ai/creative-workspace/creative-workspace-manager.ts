@@ -408,15 +408,23 @@ export class CreativeWorkspaceManager {
     const project = await this.requireProject(projectId);
     const image = project.productImages.find((item) => item.id === imageId);
     if (!image) throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Image not found", 404);
-    const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1] ?? "bin";
-    const storedName = `${image.id}.${extension}`;
-    const filePath = path.join(this.projectPath(projectId), "images", storedName);
-    try {
-      await fs.unlink(filePath);
-    } catch {
-      /* file may already be missing — still drop metadata */
+    const toRemove = new Set<string>([imageId]);
+    for (const child of project.productImages.filter((item) => item.parentAssetId === imageId)) {
+      toRemove.add(child.id);
     }
-    project.productImages = project.productImages.filter((item) => item.id !== imageId);
+    for (const id of toRemove) {
+      const entry = project.productImages.find((item) => item.id === id);
+      if (!entry) continue;
+      const extension = EXT_BY_MIME[entry.mimeType] ?? entry.mimeType.split("/")[1] ?? "bin";
+      const storedName = `${entry.id}.${extension}`;
+      const filePath = path.join(this.projectPath(projectId), "images", storedName);
+      try {
+        await fs.unlink(filePath);
+      } catch {
+        /* file may already be missing — still drop metadata */
+      }
+    }
+    project.productImages = project.productImages.filter((item) => !toRemove.has(item.id));
     project.modifiedAt = new Date().toISOString();
     await this.persist(project);
     return project;
