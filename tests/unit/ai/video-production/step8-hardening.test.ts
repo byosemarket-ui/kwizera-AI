@@ -191,7 +191,7 @@ describe("STEP 8 hardening: Video Knowledge isolation", () => {
     expect(content).toContain("out-1");
     expect(content).toContain("video-knowledge");
     expect(content).toContain("Project-scoped only");
-    expect(content).toContain("step5-v1");
+    expect(content).toContain("step6-v1");
   });
 });
 
