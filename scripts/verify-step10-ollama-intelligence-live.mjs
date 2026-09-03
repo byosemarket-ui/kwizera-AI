@@ -212,14 +212,24 @@ async function main() {
 
   const b = await createFilledProject(`STEP10-B-${Date.now()}`);
   record("project B created", Boolean(b.projectId) && b.projectId !== a.projectId, b.projectId ?? "");
-  const planB = await json("POST", `/api/workspace/projects/${b.projectId}/plan`, {
+  await new Promise((r) => setTimeout(r, 3000));
+  let planB = await json("POST", `/api/workspace/projects/${b.projectId}/plan`, {
     action: "generate",
     productionMode: "CLASSIC_SHOWCASE",
     regenerate: true,
     durationSeconds: 12,
   }, 300000);
+  if (planB.status === 503 || !planB.body?.plan) {
+    await new Promise((r) => setTimeout(r, 5000));
+    planB = await json("POST", `/api/workspace/projects/${b.projectId}/plan`, {
+      action: "generate",
+      productionMode: "CLASSIC_SHOWCASE",
+      regenerate: true,
+      durationSeconds: 12,
+    }, 300000);
+  }
   const planBBody = planB.body?.plan ?? {};
-  record("project B isolation", planBBody.projectId === b.projectId && planBBody.projectId !== a.projectId, planBBody.projectId ?? "");
+  record("project B isolation", planBBody.projectId === b.projectId && planBBody.projectId !== a.projectId, `${planB.status}:${planBBody.projectId ?? ""}:${planBBody.planSource ?? ""}`);
   record("project B does not use A image", !(planBBody.scenes ?? []).some((s) => s.assetId === a.imageId), "");
 
   await json("POST", `/api/workspace/projects/${a.projectId}/plan/finalize`, {});
