@@ -1,5 +1,5 @@
 /**
- * Step 7 — AI Director orchestration (status, diagnostics, plan review helpers).
+ * Step 7/8 — AI Director orchestration (status, diagnostics, plan review helpers).
  * Reuses existing Ollama client + CreativeReasoningProvider — no duplicate AI stack.
  */
 import {
@@ -7,20 +7,26 @@ import {
   ollamaBaseUrl,
   type OllamaServiceStatus,
 } from "../ai-provider/ollama-client.js";
-import { assessOllamaReadiness } from "../media-intelligence/ollama-readiness.js";
+import {
+  assessOllamaReadiness,
+  toPublicOllamaReadiness,
+  type PublicOllamaReadiness,
+} from "../media-intelligence/ollama-readiness.js";
 import { getCreativeReasoningProvider } from "../creative-planning/ai-creative-planner.js";
 import { getVideoGenerationProvider } from "../video-production/video-generation-provider.js";
 import type { AiDirectorProviderStatus } from "./ai-director-types.js";
+import { describeIntelligencePipeline, type IntelligencePipelineDescription } from "./intelligence-pipeline.js";
 
 export interface AiDirectorDiagnostics {
   ollama: {
     status: OllamaServiceStatus;
-    baseUrl: string;
+    configured: boolean;
     reachable: boolean;
-    installedModels: string[];
+    installedModelCount: number;
     selectedModel: string | null;
     latencyMs: number | null;
     recommendedAction: string;
+    autoInstallDisabled: true;
   };
   creativeDirector: {
     providerId: string;
@@ -34,6 +40,7 @@ export interface AiDirectorDiagnostics {
     status: string;
     available: boolean;
   };
+  pipeline: IntelligencePipelineDescription;
 }
 
 function mapProviderStatus(
@@ -48,9 +55,8 @@ function mapProviderStatus(
 }
 
 export async function getAiDirectorDiagnostics(): Promise<AiDirectorDiagnostics> {
-  const baseUrl = ollamaBaseUrl();
   const started = Date.now();
-  const tags = await fetchOllamaTags({ baseUrl });
+  const tags = await fetchOllamaTags({ baseUrl: ollamaBaseUrl() });
   const latencyMs = tags.ok ? Date.now() - started : null;
   const readiness = await assessOllamaReadiness();
   const provider = getCreativeReasoningProvider();
@@ -60,12 +66,13 @@ export async function getAiDirectorDiagnostics(): Promise<AiDirectorDiagnostics>
   return {
     ollama: {
       status: tags.status,
-      baseUrl,
+      configured: true,
       reachable: tags.ok,
-      installedModels: tags.models.map((m) => m.name),
+      installedModelCount: tags.models.length,
       selectedModel: readiness.selectedModel,
       latencyMs,
       recommendedAction: readiness.recommendedAction,
+      autoInstallDisabled: true,
     },
     creativeDirector: {
       providerId: provider.id,
@@ -79,6 +86,7 @@ export async function getAiDirectorDiagnostics(): Promise<AiDirectorDiagnostics>
       status: videoProvider.status,
       available: await videoProvider.isAvailable().catch(() => false),
     },
+    pipeline: describeIntelligencePipeline(),
   };
 }
 
@@ -86,16 +94,18 @@ export async function getAiDirectorStatusSummary(): Promise<{
   creativeDirector: AiDirectorDiagnostics["creativeDirector"];
   ollamaReady: boolean;
   ollamaNote: string;
-  ollama: Awaited<ReturnType<typeof assessOllamaReadiness>>;
+  ollama: PublicOllamaReadiness;
   videoGenerationProvider: AiDirectorDiagnostics["videoGenerationProvider"];
+  pipeline: IntelligencePipelineDescription;
 }> {
   const diagnostics = await getAiDirectorDiagnostics();
   const readiness = await assessOllamaReadiness();
   return {
     creativeDirector: diagnostics.creativeDirector,
     ollamaReady: readiness.ready,
-    ollamaNote: readiness.notes.join(" "),
-    ollama: readiness,
+    ollamaNote: readiness.notes[0] ?? readiness.recommendedAction,
+    ollama: toPublicOllamaReadiness(readiness),
     videoGenerationProvider: diagnostics.videoGenerationProvider,
+    pipeline: diagnostics.pipeline,
   };
 }

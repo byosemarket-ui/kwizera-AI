@@ -169,3 +169,38 @@ function buildModelStrategy(input: {
     safeToInstall: true,
   };
 }
+
+/** Public API payload — omits host URLs, RAM, CPU, and load averages. */
+export interface PublicOllamaReadiness {
+  ready: boolean;
+  status: OllamaServiceStatus;
+  ollamaInstalled: boolean;
+  ollamaReachable: boolean;
+  installedModelCount: number;
+  selectedModel: string | null;
+  recommendedAction: OllamaReadinessReport["recommendedAction"];
+  modelStrategy: Pick<OllamaModelStrategy, "tier" | "safeToInstall" | "selectedInstalledModel" | "reason" | "recommendedModelIds">;
+  autoInstallDisabled: true;
+  notes: string[];
+}
+
+export function toPublicOllamaReadiness(report: OllamaReadinessReport): PublicOllamaReadiness {
+  return {
+    ready: report.ready,
+    status: report.status,
+    ollamaInstalled: report.ollamaInstalled,
+    ollamaReachable: report.ollamaReachable,
+    installedModelCount: report.installedModels.length,
+    selectedModel: report.selectedModel,
+    recommendedAction: report.recommendedAction,
+    modelStrategy: {
+      tier: report.modelStrategy.tier,
+      safeToInstall: report.modelStrategy.safeToInstall,
+      selectedInstalledModel: report.modelStrategy.selectedInstalledModel,
+      reason: report.modelStrategy.reason,
+      recommendedModelIds: report.modelStrategy.recommendedModelIds,
+    },
+    autoInstallDisabled: true,
+    notes: report.notes,
+  };
+}

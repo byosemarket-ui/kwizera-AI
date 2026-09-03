@@ -666,7 +666,11 @@ export class VideoProductionManager {
         textOverlay: overlay,
       };
       await this.writeJson(this.jobFile(job.id), failed);
-      await this.patchVideo(job.projectId, { renderState: "failed", activeJobId: job.id });
+      await this.patchVideo(job.projectId, {
+        renderState: "failed",
+        activeJobId: job.id,
+        qualityGate: "FAILED",
+      });
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
@@ -702,7 +706,7 @@ export class VideoProductionManager {
         completedAt: new Date().toISOString(),
       };
       await this.writeJson(this.jobFile(job.id), failed);
-      await this.patchVideo(job.projectId, { renderState: "failed" });
+      await this.patchVideo(job.projectId, { renderState: "failed", qualityGate: "FAILED" });
     }
   }
 

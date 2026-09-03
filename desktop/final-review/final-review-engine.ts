@@ -39,15 +39,13 @@ export interface ProductionStageItem {
 
 export const PRODUCTION_STAGES: ProductionStageItem[] = [
   { id: "preparing-project", label: "Preparing project", minProgress: 0 },
-  { id: "validating-data", label: "Validating product data", minProgress: 5 },
-  { id: "preparing-images", label: "Preparing selected images", minProgress: 10 },
-  { id: "building-plan", label: "Building scene plan", minProgress: 14 },
-  { id: "creating-scenes", label: "Creating scenes", minProgress: 25 },
-  { id: "generating-motion", label: "Generating product motion", minProgress: 45 },
-  { id: "composing", label: "Composing video", minProgress: 65 },
-  { id: "adding-text", label: "Adding text & commercial info", minProgress: 75 },
-  { id: "rendering", label: "Rendering final video", minProgress: 82 },
-  { id: "validating-output", label: "Validating final output", minProgress: 92 },
+  { id: "checking-assets", label: "Checking product assets", minProgress: 10 },
+  { id: "creative-plan", label: "Preparing creative plan", minProgress: 14 },
+  { id: "building-timeline", label: "Building timeline", minProgress: 20 },
+  { id: "preparing-scenes", label: "Preparing scenes", minProgress: 25 },
+  { id: "rendering", label: "Rendering", minProgress: 45 },
+  { id: "verifying-output", label: "Verifying output", minProgress: 85 },
+  { id: "finalizing", label: "Finalizing", minProgress: 92 },
   { id: "complete", label: "Video ready", minProgress: 100 },
 ];
 
@@ -109,8 +107,25 @@ function hasVerifiedOutput(video: VideoProject | null | undefined): boolean {
   return Boolean(
     video?.output?.url
     && video.renderState === "completed"
-    && video.outputStatus === "CURRENT",
+    && video.outputStatus === "CURRENT"
+    && video.output.validationStatus !== "FAILED",
   );
+}
+
+/** Progress is 100 only after the playable output is verified. */
+export function displayProductionProgress(input: {
+  verified: boolean;
+  uiStage: ProductionUiStage;
+  jobProgress?: number | null;
+  localProgress: number;
+}): number {
+  if (input.verified) return 100;
+  const raw = input.jobProgress ?? input.localProgress;
+  if (input.uiStage === "failed") return Math.min(95, Math.max(0, raw || 0));
+  if (input.uiStage === "awaiting-output") {
+    return Math.min(95, Math.max(85, raw || 85));
+  }
+  return Math.min(99, Math.max(0, raw || 0));
 }
 
 function stageFromJob(job: VideoRenderJob | null, busy: boolean, started: boolean): ProductionUiStage {
@@ -169,14 +184,18 @@ export class FinalReviewEngine {
   snapshot(): FinalReviewSnapshot {
     const metadataVerified = hasVerifiedOutput(this.video);
     const verified = metadataVerified && this.outputReachable;
-    const progress = verified
-      ? 100
-      : this.job?.progress ?? (this.uiStage === "completed" ? 100 : this.progress);
+    const uiStage = verified ? "completed" : this.uiStage;
+    const progress = displayProductionProgress({
+      verified,
+      uiStage,
+      jobProgress: this.job?.progress,
+      localProgress: this.progress,
+    });
     return {
       context: this.context,
-      uiStage: verified ? "completed" : this.uiStage,
+      uiStage,
       progress,
-      currentStageLabel: stageLabel(this.job, verified ? "completed" : this.uiStage, progress),
+      currentStageLabel: stageLabel(this.job, uiStage, progress),
       job: this.job,
       video: this.video,
       outputUrl: verified ? (this.video?.output?.url ?? null) : null,
@@ -378,8 +397,25 @@ export class FinalReviewEngine {
 
   private async verifyOutputReachable(outputUrl: string): Promise<boolean> {
     try {
-      const res = await fetch(outputUrl, { method: "GET", headers: { Range: "bytes=0-0" } });
-      return res.ok || res.status === 206;
+      const res = await fetch(outputUrl, { method: "GET", headers: { Range: "bytes=0-11" } });
+      if (!(res.ok || res.status === 206)) return false;
+      const range = res.headers.get("content-range");
+      const total = range?.split("/")[1];
+      const size = total && total !== "*"
+        ? Number(total)
+        : Number(res.headers.get("content-length") ?? 0);
+      if (Number.isFinite(size) && size > 0 && size < 1000) return false;
+      try {
+        const buf = new Uint8Array(await res.arrayBuffer());
+        if (buf.length >= 8) {
+          const brand = String.fromCharCode(buf[4]!, buf[5]!, buf[6]!, buf[7]!);
+          if (brand === "ftyp") return true;
+        }
+      } catch {
+        /* header inspect optional */
+      }
+      const type = res.headers.get("content-type") ?? "";
+      return /video\/mp4|application\/octet-stream/i.test(type) || res.status === 206;
     } catch {
       return false;
     }

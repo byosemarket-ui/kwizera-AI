@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { MODE_COPY } from "../ai/video-production/production-mode-types.js";
-import { PRODUCTION_STAGES, isProductionOutputReady, stageCompletion } from "../desktop/final-review/final-review-engine.js";
+import { PRODUCTION_STAGES, displayProductionProgress, isProductionOutputReady, stageCompletion } from "../desktop/final-review/final-review-engine.js";
 import type { Step4HandoffPayload } from "../desktop/video-style/types.js";
 
 describe("Step 4 production workflow", () => {
@@ -19,6 +19,27 @@ describe("Step 4 production workflow", () => {
     expect(stageCompletion(100, 0)).toBe("done");
     expect(stageCompletion(30, 25)).toBe("active");
     expect(stageCompletion(10, 45)).toBe("pending");
+  });
+
+  it("never reports 100% until playable output is verified", () => {
+    expect(displayProductionProgress({
+      verified: false,
+      uiStage: "awaiting-output",
+      jobProgress: 100,
+      localProgress: 100,
+    })).toBe(95);
+    expect(displayProductionProgress({
+      verified: false,
+      uiStage: "rendering",
+      jobProgress: 100,
+      localProgress: 80,
+    })).toBe(99);
+    expect(displayProductionProgress({
+      verified: true,
+      uiStage: "completed",
+      jobProgress: 100,
+      localProgress: 95,
+    })).toBe(100);
   });
 
   it("preserves video style label in Step 4 handoff contract", () => {
@@ -61,6 +82,11 @@ describe("Step 4 production workflow", () => {
       renderState: "completed",
       outputStatus: "CURRENT",
     } as never)).toBe(true);
+    expect(isProductionOutputReady({
+      output: { url: "/api/workspace/projects/p/videos/out.mp4", validationStatus: "FAILED" },
+      renderState: "completed",
+      outputStatus: "CURRENT",
+    } as never)).toBe(false);
     expect(isProductionOutputReady({
       output: { url: "/api/workspace/projects/p/videos/out.mp4" },
       renderState: "completed",

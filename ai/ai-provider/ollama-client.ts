@@ -26,7 +26,15 @@ export interface OllamaTagsResult {
 }
 
 export function ollamaBaseUrl(override?: string): string {
-  return (override ?? process.env.OLLAMA_HOST ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+  return (override
+    ?? process.env.OLLAMA_HOST
+    ?? process.env.OLLAMA_BASE_URL
+    ?? "http://127.0.0.1:11434").replace(/\/$/, "");
+}
+
+export function ollamaTimeoutMs(fallback = 90_000): number {
+  const raw = Number(process.env.OLLAMA_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
 }
 
 export async function fetchOllamaTags(opts?: {
@@ -88,7 +96,7 @@ export async function ollamaGenerateJson(opts: {
     const res = await fetch(`${baseUrl}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? ollamaTimeoutMs()),
       body: JSON.stringify({
         model: opts.model,
         prompt: opts.prompt,

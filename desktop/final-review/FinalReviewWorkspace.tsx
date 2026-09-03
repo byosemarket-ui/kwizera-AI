@@ -171,7 +171,13 @@ export function FinalReviewWorkspace() {
                       <RefreshCw size={16} /> Retry
                     </button>
                     <button type="button" className="fr-btn" onClick={() => switchWorkspace("video-style")}>
-                      Back to Review
+                      Regenerate plan
+                    </button>
+                    <button type="button" className="fr-btn" onClick={() => switchWorkspace("new-project")}>
+                      Edit images
+                    </button>
+                    <button type="button" className="fr-btn" onClick={() => switchWorkspace("home")}>
+                      Return Home
                     </button>
                   </div>
                 </div>

@@ -1784,6 +1784,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (url.pathname === "/api/foundation-health" && req.method === "GET") {
     const workspace = requireWorkspace(res);
+    if (!workspace) return;
     try {
       const { buildFoundationHealth } = await import("./foundation-health.js");
       sendJson(res, 200, await buildFoundationHealth(workspace));
@@ -2605,9 +2606,9 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+      const { assessOllamaReadiness, toPublicOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
 
-      sendJson(res, 200, { readiness: await assessOllamaReadiness() });
+      sendJson(res, 200, { readiness: toPublicOllamaReadiness(await assessOllamaReadiness()) });
 
     } catch (error) {
 
