@@ -141,7 +141,7 @@ describe("Step 5 Creative Director foundations", () => {
     expect(report.status).toBeTruthy();
     expect(report.modelStrategy.tier).toBeTruthy();
     expect(Array.isArray(report.installedModels)).toBe(true);
-    expect(["defer", "install-small-model", "insufficient-resources", "use-installed-model"]).toContain(
+    expect(["defer", "install-small-model", "insufficient-resources", "use-installed-model", "disabled"]).toContain(
       report.recommendedAction,
     );
   });

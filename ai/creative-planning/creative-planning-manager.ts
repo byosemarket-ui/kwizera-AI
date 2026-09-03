@@ -145,6 +145,14 @@ export class CreativePlanningManager {
   private images: ImageIntelligenceManager | null = null;
   private canonical: CanonicalProductManager | null = null;
   private briefs: MarketingBriefManager | null = null;
+  private planLocks = new Map<string, Promise<unknown>>();
+
+  private enqueuePlan<T>(projectId: string, work: () => Promise<T>): Promise<T> {
+    const prior = this.planLocks.get(projectId) ?? Promise.resolve();
+    const next = prior.then(work, work);
+    this.planLocks.set(projectId, next.then(() => undefined, () => undefined));
+    return next;
+  }
 
   async initialize(storageRoot: string, core?: AiCoreManager): Promise<void> {
     this.root = path.join(storageRoot, "creative-planning", "plans");
@@ -180,6 +188,7 @@ export class CreativePlanningManager {
     this.ensureInitialized();
     if (!validation.valid) return { validation };
 
+    return this.enqueuePlan(project.id, async () => {
     const existing = await this.getPlan(project.id);
     const now = new Date().toISOString();
     try {
@@ -214,6 +223,7 @@ export class CreativePlanningManager {
     await this.persistManifest(project, plan, canonical, brief);
     this.transition(project.id, ProjectState.Saved);
     return { plan, validation };
+    });
   }
 
   async updatePlan(projectId: string, changes: Partial<Omit<CreativePlan, "id" | "projectId" | "createdAt" | "modifiedAt" | "version">>): Promise<CreativePlan> {

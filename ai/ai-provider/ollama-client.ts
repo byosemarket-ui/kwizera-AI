@@ -40,6 +40,16 @@ export function ollamaMaxConcurrent(): number {
   return Math.min(2, Math.floor(raw));
 }
 
+export function ollamaInFlightCount(): number {
+  return ollamaInFlight;
+}
+
+export function ollamaMaxResponseBytes(): number {
+  const raw = Number(process.env.KWIZERA_OLLAMA_MAX_RESPONSE_BYTES ?? 48_000);
+  if (!Number.isFinite(raw) || raw < 4_000) return 48_000;
+  return Math.min(120_000, Math.floor(raw));
+}
+
 export async function withOllamaSlot<T>(work: () => Promise<T>): Promise<T> {
   const limit = ollamaMaxConcurrent();
   if (ollamaInFlight >= limit) {
@@ -163,7 +173,11 @@ export async function ollamaGenerateJson(opts: {
         return { ok: false, error: `Ollama generate failed (${res.status})`, code };
       }
       const body = await res.json() as { response?: string };
-      return { ok: true, text: body.response ?? "" };
+      const text = body.response ?? "";
+      if (Buffer.byteLength(text, "utf8") > ollamaMaxResponseBytes()) {
+        return { ok: false, error: "Ollama response exceeded the safe size limit", code: "INVALID_AI_OUTPUT" };
+      }
+      return { ok: true, text };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Ollama generate failed";
       const code = /abort|timeout/i.test(message) ? "MODEL_TIMEOUT" : "OLLAMA_ERROR";
