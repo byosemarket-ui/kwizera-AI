@@ -3,34 +3,32 @@
  * Live STEP 2 typography acceptance against production.
  * Uses existing workspace / planning / video-production APIs only.
  */
-import { encodeRgbaPng } from "../ai/creative-workspace/png-pixels.js";
 
 const BASE = (process.env.KWIZERA_LIVE_URL || "http://162.35.114.19:5173").replace(/\/$/, "");
 
-async function api(pathname, { method = "GET", body } = {}) {
-  const res = await fetch(`${BASE}${pathname}`, {
-    method,
-    headers: body ? { "content-type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let json = null;
-  try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
-  if (!res.ok) {
-    throw new Error(`${method} ${pathname} -> ${res.status}: ${text.slice(0, 500)}`);
-  }
-  return json;
-}
+/** 1x1 PNG — upload path only needs a valid image. */
+const TINY_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
-function solidPng(r, g, b) {
-  const rgba = Buffer.alloc(96 * 128 * 4);
-  for (let i = 0; i < 96 * 128; i += 1) {
-    rgba[i * 4] = r;
-    rgba[i * 4 + 1] = g;
-    rgba[i * 4 + 2] = b;
-    rgba[i * 4 + 3] = 255;
+async function api(pathname, { method = "GET", body, retries = 8 } = {}) {
+  let lastError = null;
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    const res = await fetch(`${BASE}${pathname}`, {
+      method,
+      headers: body ? { "content-type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+    if (res.ok) return json;
+    lastError = new Error(`${method} ${pathname} -> ${res.status}: ${text.slice(0, 500)}`);
+    if (res.status === 503 || res.status === 429) {
+      await new Promise((r) => setTimeout(r, 3000 + attempt * 2000));
+      continue;
+    }
+    throw lastError;
   }
-  return encodeRgbaPng(96, 128, rgba).toString("base64");
+  throw lastError ?? new Error(`${method} ${pathname} failed`);
 }
 
 async function waitJob(projectId, jobId) {
@@ -94,7 +92,7 @@ async function main() {
     body: {
       fileName: "product.png",
       mimeType: "image/png",
-      dataBase64: solidPng(35, 90, 160),
+      dataBase64: TINY_PNG_BASE64,
     },
   });
   pass("upload-image", "png uploaded");
