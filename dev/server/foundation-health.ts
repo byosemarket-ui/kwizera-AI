@@ -70,6 +70,24 @@ export async function buildFoundationHealth(
       : "Ollama optional — deterministic Creative Director fallback is active",
   });
 
+  try {
+    const { getTypographyDiagnostics } = await import("../../ai/typography/diagnostics.js");
+    const typography = await getTypographyDiagnostics();
+    checks.push({
+      name: "typography-foundation",
+      ok: typography.deterministicFallback,
+      detail: typography.ready
+        ? `${typography.verifiedFontCount} verified fonts, fallback=${typography.fallbackFamily ?? "yes"}`
+        : typography.lastError ?? "Typography fallback is available without verified fonts",
+    });
+  } catch (error) {
+    checks.push({
+      name: "typography-foundation",
+      ok: true,
+      detail: error instanceof Error ? error.message : "Typography diagnostics unavailable — deterministic video text remains",
+    });
+  }
+
   const ok = checks.filter((check) => check.name !== "ollama-readiness").every((check) => check.ok);
   return { ok, checkedAt, checks };
 }

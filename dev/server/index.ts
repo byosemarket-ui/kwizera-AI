@@ -1794,6 +1794,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/typography/diagnostics" && req.method === "GET") {
+    try {
+      const { getTypographyDiagnostics } = await import("../../ai/typography/diagnostics.js");
+      sendJson(res, 200, await getTypographyDiagnostics());
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Typography diagnostics failed" });
+    }
+    return;
+  }
+
   if (url.pathname === "/api/workspace/persistence-backup" && req.method === "POST") {
     const workspace = requireWorkspace(res);
     if (!workspace) return;

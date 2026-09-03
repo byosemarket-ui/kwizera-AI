@@ -50,6 +50,9 @@ export interface VideoTextLayer {
   startMs: number;
   durationMs: number;
   position: "top" | "bottom" | "center";
+  /** Step 1 typography metadata — existing FFmpeg still uses `position`. */
+  typographyRole?: string;
+  typographyRegion?: string;
 }
 
 export interface VideoTimelineClip {
@@ -234,6 +237,8 @@ export interface VideoProject {
   productionRenderLabel?: string;
   qualityGate?: OutputQualityGate;
   qualityReview?: QualityReviewResult;
+  /** Validated typography plan (font file paths omitted). */
+  typographyPlan?: import("../typography/types.js").TypographyDecision;
 }
 
 export class VideoProductionError extends Error {

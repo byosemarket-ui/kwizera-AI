@@ -199,7 +199,7 @@ export class VideoProductionManager {
     const existing = await this.getVideoProject(projectId);
     const preserve = options?.preserveEdits !== false;
     const existingClips = preserve ? existing?.timeline.filter((clip) => clip.userEdited) : undefined;
-    const timeline = buildTimelineFromPlan(workspaceProject, repairedPlan, { existing: existingClips });
+    let timeline = buildTimelineFromPlan(workspaceProject, repairedPlan, { existing: existingClips });
     if (!timeline.length) {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
@@ -245,6 +245,26 @@ export class VideoProductionManager {
       foundationKnowledgeIds: existing?.foundationKnowledgeIds,
       textOverlay: existing?.textOverlay,
     };
+    try {
+      const { composeTypographyDecision } = await import("../typography/typography-engine.js");
+      const { composeInputFromProject } = await import("../typography/from-plan.js");
+      const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
+      const decision = await composeTypographyDecision(composeInputFromProject({
+        project: workspaceProject,
+        plan: repairedPlan,
+        width: renderPlan.width,
+        height: renderPlan.height,
+        aspectRatio: renderPlan.aspectRatio,
+        platform: profile.id,
+      }));
+      if (decision.projectId === projectId && decision.scenes.length) {
+        timeline = applyTypographyDecisionToTimeline(timeline, decision);
+        video.timeline = timeline;
+        video.typographyPlan = publicTypographyDecision(decision);
+      }
+    } catch {
+      /* Deterministic sceneTextLayers already on the timeline. */
+    }
     const foundation = await recordVideoProductionFoundation(this.core, workspaceProject, video);
     Object.assign(video, foundation);
     const decorated = this.decorateVideo(video);

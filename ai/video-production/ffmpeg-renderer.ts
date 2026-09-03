@@ -125,6 +125,9 @@ export function sanitizeRenderText(value: unknown): string {
 }
 
 export async function resolveFontFile(): Promise<string | undefined> {
+  const { resolveVerifiedFontFile } = await import("../typography/font-registry.js");
+  const discovered = await resolveVerifiedFontFile();
+  if (discovered) return discovered;
   const candidates = [
     process.env.KWIZERA_FONT_FILE,
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
