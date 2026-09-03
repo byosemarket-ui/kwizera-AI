@@ -12,6 +12,7 @@ import type { ConfirmedCommercial } from "./commercial.js";
 import type { PlanScene } from "./creative-planning-manager.js";
 import { planProductScenes } from "./scene-planner.js";
 import { validateAiPlannerOutput } from "./plan-validator.js";
+import { buildVerifiedFactsContext } from "./verified-facts-context.js";
 import { buildDecisionTrace, buildPlanReview } from "../ai-director/decision-trace.js";
 import type { PlanReviewItem, ProductionDecisionTrace } from "../ai-director/ai-director-types.js";
 
@@ -123,11 +124,13 @@ export async function generateCreativeScenes(
   try {
     if (await reasoningProvider.isAvailable()) {
       const raw = await reasoningProvider.planCreativeScenes(input);
+      const verifiedFacts = buildVerifiedFactsContext(input);
       const parsed = validateAiPlannerOutput(raw, {
         projectId: input.project.id,
         allowedAssetIds: [...allowedAssetIds(input)],
         targetDurationSeconds: input.videoSettings.durationSeconds,
         productionMode: input.videoSettings.productionMode,
+        verifiedFacts,
       });
       if (parsed.valid) {
         const deterministic = buildDeterministicPlan(input);

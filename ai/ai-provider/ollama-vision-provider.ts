@@ -1,41 +1,57 @@
 /**
- * Optional local Ollama vision provider — only used when Ollama is installed and reachable.
+ * Optional local Ollama vision provider — only used when a vision-capable model is installed.
  * Does not install models; fails safely when unavailable.
  */
 import type { VisionCapability, VisionAnalysisInput, VisionAnalysisResult, VisionProvider } from "./vision-capabilities.js";
-import { fetchOllamaTags, ollamaBaseUrl, ollamaGenerateJson, parseJsonObject } from "./ollama-client.js";
-
-const DEFAULT_MODEL = process.env.KWIZERA_OLLAMA_VISION_MODEL ?? "llava";
+import {
+  fetchOllamaTags,
+  isOllamaDisabled,
+  ollamaBaseUrl,
+  ollamaGenerateJson,
+  ollamaTimeoutMs,
+  parseJsonObject,
+  preferredVisionModelId,
+  selectPreferredVisionModel,
+  withOllamaSlot,
+} from "./ollama-client.js";
 
 export class OllamaVisionProvider implements VisionProvider {
   readonly id = "ollama";
   readonly capabilities: VisionCapability[] = ["image-understanding", "structured-json", "product-reasoning"];
 
   private baseUrl: string;
-  private model: string;
+  private preferredModel: string;
+  private lastModel: string | null = null;
 
   constructor(opts?: { baseUrl?: string; model?: string }) {
     this.baseUrl = ollamaBaseUrl(opts?.baseUrl);
-    this.model = opts?.model ?? DEFAULT_MODEL;
+    this.preferredModel = opts?.model ?? preferredVisionModelId();
+  }
+
+  getLastModel(): string | null {
+    return this.lastModel;
   }
 
   async isAvailable(): Promise<boolean> {
+    if (isOllamaDisabled()) return false;
     const tags = await fetchOllamaTags({ baseUrl: this.baseUrl });
     if (!tags.ok) return false;
-    return tags.models.some((m) => m.name === this.model || m.name.startsWith(`${this.model}:`))
-      || tags.models.length > 0;
+    const model = selectPreferredVisionModel(tags.models, this.preferredModel);
+    this.lastModel = model;
+    return Boolean(model);
   }
 
   async analyzeImage(input: VisionAnalysisInput): Promise<VisionAnalysisResult> {
     const available = await this.isAvailable();
-    if (!available) {
+    if (!available || !this.lastModel) {
       return {
         provider: this.id,
-        model: this.model,
+        model: this.preferredModel,
         available: false,
-        notes: ["Ollama is not reachable — deterministic image intelligence remains authoritative."],
+        notes: ["No vision-capable Ollama model is installed — deterministic image intelligence remains authoritative."],
       };
     }
+    const model = this.lastModel;
 
     try {
       const prompt = [
@@ -57,7 +73,7 @@ export class OllamaVisionProvider implements VisionProvider {
       ].filter(Boolean).join("\n");
 
       const body: Record<string, unknown> = {
-        model: this.model,
+        model,
         prompt,
         stream: false,
         format: "json",
@@ -66,39 +82,40 @@ export class OllamaVisionProvider implements VisionProvider {
         body.images = [input.imageBase64];
       }
 
-      const res = await fetch(`${this.baseUrl}/api/generate`, {
+      const timeoutMs = Math.min(ollamaTimeoutMs(), 60_000);
+      const res = await withOllamaSlot(async () => fetch(`${this.baseUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(timeoutMs),
         body: JSON.stringify(body),
-      });
+      }));
 
       if (!res.ok) {
         if (input.imageBase64) {
           const textOnly = await ollamaGenerateJson({
             baseUrl: this.baseUrl,
-            model: this.model,
+            model,
             prompt,
-            timeoutMs: 60_000,
+            timeoutMs,
           });
           if (!textOnly.ok) {
             return {
               provider: this.id,
-              model: this.model,
+              model,
               available: true,
               notes: [`Ollama request failed (${res.status}) — using heuristics.`],
             };
           }
           return toVisionResult(
             this.id,
-            this.model,
+            model,
             parseVisionJson(textOnly.text),
             ["Ollama text enrichment applied (vision payload rejected)."],
           );
         }
         return {
           provider: this.id,
-          model: this.model,
+          model,
           available: true,
           notes: [`Ollama request failed (${res.status}) — using heuristics.`],
         };
@@ -107,14 +124,14 @@ export class OllamaVisionProvider implements VisionProvider {
       const responseBody = await res.json() as { response?: string };
       return toVisionResult(
         this.id,
-        this.model,
+        model,
         parseVisionJson(responseBody.response ?? ""),
         [input.imageBase64 ? "Ollama vision enrichment applied." : "Ollama metadata enrichment applied (no image bytes)."],
       );
     } catch (error) {
       return {
         provider: this.id,
-        model: this.model,
+        model,
         available: true,
         notes: [error instanceof Error ? error.message : "Ollama vision failed — heuristics remain authoritative."],
       };

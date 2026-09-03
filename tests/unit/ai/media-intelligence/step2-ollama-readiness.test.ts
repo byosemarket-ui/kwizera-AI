@@ -24,6 +24,9 @@ describe("Ollama readiness assessment", () => {
     expect(report.totalMemoryGb).toBeGreaterThan(0);
     expect(report.status).toBeTruthy();
     expect(report.modelStrategy).toBeTruthy();
-    expect(["defer", "install-small-model", "insufficient-resources", "use-installed-model"]).toContain(report.recommendedAction);
+    expect(["defer", "install-small-model", "insufficient-resources", "use-installed-model", "disabled"]).toContain(report.recommendedAction);
+    expect(report.installationStatus).toBeTruthy();
+    expect(typeof report.fallbackActive).toBe("boolean");
+    expect(report.modelStrategy.maxConcurrent).toBeGreaterThanOrEqual(1);
   });
 });

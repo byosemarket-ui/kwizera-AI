@@ -32,8 +32,10 @@ describe("Step 8 production hardening", () => {
     const publicReport = toPublicOllamaReadiness({
       ready: false,
       status: "UNAVAILABLE",
+      installationStatus: "NOT_INSTALLED",
       ollamaInstalled: false,
       ollamaReachable: false,
+      disabled: false,
       baseUrl: "http://127.0.0.1:11434",
       installedModels: [],
       selectedModel: null,
@@ -44,14 +46,18 @@ describe("Step 8 production hardening", () => {
         selectedInstalledModel: null,
         reason: "test",
         safeToInstall: false,
+        maxConcurrent: 1,
       },
       cpuCores: 8,
       totalMemoryGb: 3.3,
       freeMemoryGb: 1.1,
       loadAverage: [4, 3, 2],
       notes: ["Ollama not installed"],
+      fallbackActive: true,
     });
     expect(publicReport.autoInstallDisabled).toBe(true);
+    expect(publicReport.fallbackActive).toBe(true);
+    expect(publicReport.installationStatus).toBe("NOT_INSTALLED");
     expect(JSON.stringify(publicReport)).not.toContain("127.0.0.1");
     expect(JSON.stringify(publicReport)).not.toContain("cpuCores");
     expect(JSON.stringify(publicReport)).not.toContain("3.3");

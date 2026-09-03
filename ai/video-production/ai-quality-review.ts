@@ -6,7 +6,9 @@ import {
   fetchOllamaTags,
   ollamaBaseUrl,
   ollamaGenerateJson,
+  ollamaTimeoutMs,
   parseJsonObject,
+  preferredReasoningModelId,
   selectPreferredReasoningModel,
 } from "../ai-provider/ollama-client.js";
 import type { CreativePlan } from "../creative-planning/creative-planning-manager.js";
@@ -14,10 +16,6 @@ import type { CreativeProject } from "../creative-workspace/creative-workspace-m
 import type { QualityReviewResult } from "../ai-director/ai-director-types.js";
 import type { ProbedVideo } from "./ffmpeg-renderer.js";
 import type { VideoProject } from "./types.js";
-
-const DIRECTOR_MODEL = process.env.KWIZERA_OLLAMA_REASONING_MODEL
-  ?? process.env.OLLAMA_DIRECTOR_MODEL
-  ?? "llama3.2:1b";
 
 export function runDeterministicQualityReview(input: {
   video: VideoProject;
@@ -82,7 +80,7 @@ export async function runOptionalAiQualityReview(input: {
 }): Promise<QualityReviewResult | null> {
   const tags = await fetchOllamaTags({ baseUrl: ollamaBaseUrl() });
   if (!tags.ok) return null;
-  const model = selectPreferredReasoningModel(tags.models, DIRECTOR_MODEL);
+  const model = selectPreferredReasoningModel(tags.models, preferredReasoningModelId());
   if (!model) return null;
 
   const prompt = [
@@ -106,7 +104,7 @@ export async function runOptionalAiQualityReview(input: {
   const generated = await ollamaGenerateJson({
     model,
     prompt,
-    timeoutMs: 45_000,
+    timeoutMs: Math.min(ollamaTimeoutMs(), 45_000),
   });
   if (!generated.ok) return null;
 

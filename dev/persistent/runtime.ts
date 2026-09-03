@@ -578,6 +578,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
         const readiness = await assessOllamaReadiness();
         const ollamaVision = new OllamaVisionProvider();
+        // Vision only when a vision-capable model is actually installed (isAvailable enforces this).
         if (await ollamaVision.isAvailable()) {
           imageIntelligenceManager.setVisionProvider(ollamaVision);
           mediaIntelligenceManager.setVisionProvider(ollamaVision);

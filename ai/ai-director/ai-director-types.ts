@@ -46,4 +46,6 @@ export type AiDirectorProviderStatus =
   | "UNAVAILABLE"
   | "LOADING"
   | "ERROR"
-  | "MODEL_NOT_INSTALLED";
+  | "MODEL_NOT_INSTALLED"
+  | "DISABLED"
+  | "FALLBACK_ACTIVE";

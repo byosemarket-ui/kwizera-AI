@@ -94,6 +94,12 @@ export function validateAiPlannerOutput(
     allowedAssetIds?: string[];
     targetDurationSeconds?: number;
     productionMode?: ProductionModeId;
+    verifiedFacts?: {
+      priceAllowed?: boolean;
+      discountAllowed?: boolean;
+      ctaAllowed?: string | null;
+      allowedFacts?: string[];
+    };
   },
 ): {
   valid: boolean;
@@ -166,19 +172,68 @@ export function validateAiPlannerOutput(
     ? record.textStrategy as Record<string, unknown>
     : null;
 
+  let textStrategy = textStrategyRaw
+    ? {
+        headline: typeof textStrategyRaw.headline === "string" ? textStrategyRaw.headline : undefined,
+        price: typeof textStrategyRaw.price === "string" ? textStrategyRaw.price : undefined,
+        cta: typeof textStrategyRaw.cta === "string" ? textStrategyRaw.cta : undefined,
+      }
+    : undefined;
+
+  let primarySellingPoint = typeof record.primarySellingPoint === "string"
+    ? record.primarySellingPoint
+    : undefined;
+
+  const facts = opts?.verifiedFacts;
+  if (facts) {
+    const allowedBlob = (facts.allowedFacts ?? []).join("\n").toLowerCase();
+    if (textStrategy?.price && facts.priceAllowed === false) {
+      warnings.push("Invented price claim stripped — price is not a verified fact.");
+      textStrategy = { ...textStrategy, price: undefined };
+    }
+    if (textStrategy?.price && facts.priceAllowed && !looksLikeSupportedPrice(textStrategy.price, allowedBlob)) {
+      warnings.push("AI price text did not match verified pricing — stripped.");
+      textStrategy = { ...textStrategy, price: undefined };
+    }
+    if (primarySellingPoint && containsUnsupportedProductClaim(primarySellingPoint, allowedBlob)) {
+      warnings.push("Unsupported product claim removed from primarySellingPoint.");
+      primarySellingPoint = sanitizeUnsupportedClaims(primarySellingPoint, allowedBlob);
+    }
+    for (const scene of scenes) {
+      if (scene.narration && containsUnsupportedProductClaim(scene.narration, allowedBlob)) {
+        warnings.push(`Unsupported product claim removed from ${scene.id} narration.`);
+        scene.narration = sanitizeUnsupportedClaims(scene.narration, allowedBlob);
+      }
+    }
+  }
+
   return {
     valid: errors.length === 0 && scenes.length > 0,
     scenes,
     errors,
     warnings,
     creativeDirection: typeof record.creativeDirection === "string" ? record.creativeDirection : undefined,
-    primarySellingPoint: typeof record.primarySellingPoint === "string" ? record.primarySellingPoint : undefined,
-    textStrategy: textStrategyRaw
-      ? {
-          headline: typeof textStrategyRaw.headline === "string" ? textStrategyRaw.headline : undefined,
-          price: typeof textStrategyRaw.price === "string" ? textStrategyRaw.price : undefined,
-          cta: typeof textStrategyRaw.cta === "string" ? textStrategyRaw.cta : undefined,
-        }
-      : undefined,
+    primarySellingPoint,
+    textStrategy,
   };
+}
+
+const UNSUPPORTED_CLAIM = /\b(italian\s+leather|genuine\s+leather|certified|warranty|handmade\s+in\s+[a-z]+|organic\s+cotton|24k\s+gold)\b/gi;
+
+function looksLikeSupportedPrice(priceText: string, allowedBlob: string): boolean {
+  const digits = priceText.replace(/[^\d.]/g, "");
+  if (!digits) return false;
+  return allowedBlob.includes(digits) || /\d/.test(allowedBlob);
+}
+
+function containsUnsupportedProductClaim(text: string, allowedBlob: string): boolean {
+  const match = text.match(UNSUPPORTED_CLAIM);
+  if (!match) return false;
+  return !allowedBlob.includes(match[0].toLowerCase());
+}
+
+function sanitizeUnsupportedClaims(text: string, allowedBlob: string): string {
+  return text.replace(UNSUPPORTED_CLAIM, (claim) => (
+    allowedBlob.includes(claim.toLowerCase()) ? claim : ""
+  )).replace(/\s{2,}/g, " ").trim();
 }

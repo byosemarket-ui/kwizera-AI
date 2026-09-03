@@ -9,7 +9,8 @@ export type OllamaServiceStatus =
   | "STARTING"
   | "LOADING_MODEL"
   | "READY"
-  | "ERROR";
+  | "ERROR"
+  | "DISABLED";
 
 export interface OllamaModelInfo {
   name: string;
@@ -25,6 +26,37 @@ export interface OllamaTagsResult {
   error?: string;
 }
 
+let ollamaInFlight = 0;
+let ollamaWaitQueue: Array<() => void> = [];
+
+export function isOllamaDisabled(): boolean {
+  const raw = (process.env.KWIZERA_OLLAMA_DISABLED ?? process.env.OLLAMA_DISABLED ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+export function ollamaMaxConcurrent(): number {
+  const raw = Number(process.env.KWIZERA_OLLAMA_MAX_CONCURRENT ?? process.env.OLLAMA_MAX_CONCURRENT ?? 1);
+  if (!Number.isFinite(raw) || raw < 1) return 1;
+  return Math.min(2, Math.floor(raw));
+}
+
+export async function withOllamaSlot<T>(work: () => Promise<T>): Promise<T> {
+  const limit = ollamaMaxConcurrent();
+  if (ollamaInFlight >= limit) {
+    await new Promise<void>((resolve) => {
+      ollamaWaitQueue.push(resolve);
+    });
+  }
+  ollamaInFlight += 1;
+  try {
+    return await work();
+  } finally {
+    ollamaInFlight -= 1;
+    const next = ollamaWaitQueue.shift();
+    if (next) next();
+  }
+}
+
 export function ollamaBaseUrl(override?: string): string {
   return (override
     ?? process.env.OLLAMA_HOST
@@ -37,10 +69,28 @@ export function ollamaTimeoutMs(fallback = 90_000): number {
   return Number.isFinite(raw) && raw > 0 ? raw : fallback;
 }
 
+export function preferredReasoningModelId(): string {
+  return process.env.KWIZERA_OLLAMA_REASONING_MODEL
+    ?? process.env.OLLAMA_DIRECTOR_MODEL
+    ?? "llama3.2:1b";
+}
+
+export function preferredVisionModelId(): string {
+  return process.env.KWIZERA_OLLAMA_VISION_MODEL ?? "llava";
+}
+
 export async function fetchOllamaTags(opts?: {
   baseUrl?: string;
   timeoutMs?: number;
 }): Promise<OllamaTagsResult> {
+  if (isOllamaDisabled()) {
+    return {
+      ok: false,
+      status: "DISABLED",
+      models: [],
+      error: "Ollama disabled via KWIZERA_OLLAMA_DISABLED",
+    };
+  }
   const baseUrl = ollamaBaseUrl(opts?.baseUrl);
   const timeoutMs = opts?.timeoutMs ?? 4000;
   try {
@@ -91,30 +141,35 @@ export async function ollamaGenerateJson(opts: {
   prompt: string;
   timeoutMs?: number;
 }): Promise<{ ok: true; text: string } | { ok: false; error: string; code: string }> {
-  const baseUrl = ollamaBaseUrl(opts.baseUrl);
-  try {
-    const res = await fetch(`${baseUrl}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(opts.timeoutMs ?? ollamaTimeoutMs()),
-      body: JSON.stringify({
-        model: opts.model,
-        prompt: opts.prompt,
-        stream: false,
-        format: "json",
-      }),
-    });
-    if (!res.ok) {
-      const code = res.status === 404 ? "MODEL_NOT_FOUND" : "OLLAMA_ERROR";
-      return { ok: false, error: `Ollama generate failed (${res.status})`, code };
-    }
-    const body = await res.json() as { response?: string };
-    return { ok: true, text: body.response ?? "" };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Ollama generate failed";
-    const code = /abort|timeout/i.test(message) ? "MODEL_TIMEOUT" : "OLLAMA_ERROR";
-    return { ok: false, error: message, code };
+  if (isOllamaDisabled()) {
+    return { ok: false, error: "Ollama disabled", code: "OLLAMA_DISABLED" };
   }
+  const baseUrl = ollamaBaseUrl(opts.baseUrl);
+  return withOllamaSlot(async () => {
+    try {
+      const res = await fetch(`${baseUrl}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(opts.timeoutMs ?? ollamaTimeoutMs()),
+        body: JSON.stringify({
+          model: opts.model,
+          prompt: opts.prompt,
+          stream: false,
+          format: "json",
+        }),
+      });
+      if (!res.ok) {
+        const code = res.status === 404 ? "MODEL_NOT_FOUND" : "OLLAMA_ERROR";
+        return { ok: false, error: `Ollama generate failed (${res.status})`, code };
+      }
+      const body = await res.json() as { response?: string };
+      return { ok: true, text: body.response ?? "" };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Ollama generate failed";
+      const code = /abort|timeout/i.test(message) ? "MODEL_TIMEOUT" : "OLLAMA_ERROR";
+      return { ok: false, error: message, code };
+    }
+  });
 }
 
 export function parseJsonObject(text: string): Record<string, unknown> | null {
@@ -128,6 +183,15 @@ export function parseJsonObject(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+export function isSmallReasoningModel(name: string): boolean {
+  return /(?:^|[:\-_/])(0\.5b|1b|1\.5b|2b|3b|3\.8b|tinyllama|phi3(?::mini)?|gemma2:2b)(?:$|[:\-_/])/i.test(name)
+    || /tinyllama|phi3:mini|qwen2\.5:0\.5b|qwen2\.5:1\.5b|llama3\.2:1b|llama3\.2:3b|gemma2:2b/i.test(name);
+}
+
+export function isVisionCapableModel(name: string): boolean {
+  return /llava|bakllava|moondream|minicpm-v|qwen2(?:\.5)?-vl|llama3\.2-vision|gemma3:.*vision|vision/i.test(name);
 }
 
 /** Prefer small VPS-friendly models already present; never invent installed names. */
@@ -152,8 +216,34 @@ export function selectPreferredReasoningModel(
     /llama3/i,
   ];
   for (const pattern of preferredPatterns) {
-    const hit = installed.find((m) => pattern.test(m.name));
+    const hit = installed.find((m) => pattern.test(m.name) && !isVisionCapableModel(m.name));
     if (hit) return hit.name;
   }
-  return installed[0]?.name ?? null;
+  const nonVision = installed.find((m) => !isVisionCapableModel(m.name));
+  return nonVision?.name ?? installed[0]?.name ?? null;
+}
+
+/** Only select models that can accept image payloads. Never fall back to text-only models. */
+export function selectPreferredVisionModel(
+  installed: OllamaModelInfo[],
+  preferred?: string,
+): string | null {
+  const visionModels = installed.filter((m) => isVisionCapableModel(m.name));
+  if (!visionModels.length) return null;
+  const want = preferred ?? preferredVisionModelId();
+  const exact = visionModels.find((m) => m.name === want || m.name.startsWith(`${want}:`));
+  if (exact) return exact.name;
+  const preferredPatterns = [
+    /moondream/i,
+    /llava:7b/i,
+    /llava/i,
+    /minicpm-v/i,
+    /qwen2(?:\.5)?-vl/i,
+    /llama3\.2-vision/i,
+  ];
+  for (const pattern of preferredPatterns) {
+    const hit = visionModels.find((m) => pattern.test(m.name));
+    if (hit) return hit.name;
+  }
+  return visionModels[0]?.name ?? null;
 }

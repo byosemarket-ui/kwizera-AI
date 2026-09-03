@@ -4,15 +4,16 @@
  */
 import {
   fetchOllamaTags,
+  isOllamaDisabled,
   ollamaBaseUrl,
   ollamaGenerateJson,
+  ollamaTimeoutMs,
   parseJsonObject,
+  preferredReasoningModelId,
   selectPreferredReasoningModel,
 } from "../ai-provider/ollama-client.js";
 import type { AiCreativePlannerInput, CreativeReasoningProvider } from "./ai-creative-planner.js";
 import { buildProjectIntelligenceContext } from "./project-intelligence-context.js";
-
-const DEFAULT_REASONING_MODEL = process.env.KWIZERA_OLLAMA_REASONING_MODEL ?? "llama3.2:1b";
 
 export class OllamaCreativeReasoningProvider implements CreativeReasoningProvider {
   readonly id = "ollama-creative-director";
@@ -22,7 +23,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
 
   constructor(opts?: { baseUrl?: string; model?: string }) {
     this.baseUrl = ollamaBaseUrl(opts?.baseUrl);
-    this.preferredModel = opts?.model ?? DEFAULT_REASONING_MODEL;
+    this.preferredModel = opts?.model ?? preferredReasoningModelId();
   }
 
   getLastModel(): string | null {
@@ -30,6 +31,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
   }
 
   async isAvailable(): Promise<boolean> {
+    if (isOllamaDisabled()) return false;
     const tags = await fetchOllamaTags({ baseUrl: this.baseUrl });
     if (!tags.ok) return false;
     const model = selectPreferredReasoningModel(tags.models, this.preferredModel);
@@ -87,7 +89,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
       baseUrl: this.baseUrl,
       model,
       prompt,
-      timeoutMs: 90_000,
+      timeoutMs: ollamaTimeoutMs(),
     });
     if (!generated.ok) {
       throw Object.assign(new Error(generated.error), { code: generated.code });
