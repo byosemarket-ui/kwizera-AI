@@ -40,22 +40,22 @@ async function main() {
   record("public readiness hides RAM figures", !/\b\d+(\.\d+)?\b/.test(JSON.stringify(r?.totalMemoryGb ?? "")) && !JSON.stringify(r ?? {}).includes("totalMemoryGb"), "");
 
   const status = await json("/api/creative-director/status");
-  record("creative director status", status.ok, status.body?.creativeDirector?.mode ?? "");
+  const statusBody = status.body?.status ?? status.body;
+  record("creative director status", status.ok, statusBody?.creativeDirector?.mode ?? "");
   record(
     "deterministic fallback while ollama absent",
-    status.body?.creativeDirector?.mode === "deterministic-fallback"
-      || status.body?.creativeDirector?.available === false,
-    status.body?.creativeDirector?.mode ?? "",
+    statusBody?.creativeDirector?.mode === "deterministic-fallback"
+      || statusBody?.creativeDirector?.available === false,
+    statusBody?.creativeDirector?.mode ?? "",
   );
-  record("pipeline forbids install now", status.body?.pipeline?.installOllamaNow === false, "");
-  record("pipeline forbids auto download", status.body?.pipeline?.autoDownloadModels === false, "");
+  record("pipeline forbids install now", statusBody?.pipeline?.installOllamaNow === false, "");
+  record("pipeline forbids auto download", statusBody?.pipeline?.autoDownloadModels === false, "");
 
   const diagnostics = await json("/api/ai-director/diagnostics");
-  record("ai director diagnostics", diagnostics.ok, diagnostics.body?.diagnostics?.ollama?.installationStatus
-    ?? diagnostics.body?.ollama?.installationStatus
-    ?? diagnostics.body?.diagnostics?.ollama?.status
-    ?? "");
   const diag = diagnostics.body?.diagnostics ?? diagnostics.body;
+  record("ai director diagnostics", diagnostics.ok, diag?.ollama?.installationStatus
+    ?? diag?.ollama?.status
+    ?? "");
   record("diagnostics hide private base URL", !JSON.stringify(diag ?? {}).includes("http://127.0.0.1"), "");
   record("diagnostics auto install disabled", diag?.ollama?.autoInstallDisabled === true, "");
   // While Ollama is not installed, READY must not be claimed.
