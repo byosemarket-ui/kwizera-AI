@@ -4343,28 +4343,37 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
       });
 
+      // Respond as soon as the original is persisted. Foundation sync + ingest must not
+      // delay or fail the upload response (transient foundation errors were hiding success).
       const intelligence = getImageIntelligenceManager();
       const media = getMediaIntelligenceManager();
-      if (intelligence?.isInitialized()) {
-        setImmediate(() => {
-          void ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id)
-            .then(() => media?.processAsset(uploadMatch[1], image.id).catch(() => undefined))
-            .catch(() => undefined);
-        });
-      }
-
-      const canonical = getCanonicalProductManager();
-      const productRecord = canonical ? await canonical.sync(uploadMatch[1]).catch(() => null) : null;
+      const ingestQueued = Boolean(intelligence?.isInitialized());
       const raw = await workspace.getProject(uploadMatch[1]);
-      const project = raw ? await withFoundation(workspace, raw, "asset") : raw;
       sendJson(res, 201, {
         image,
-        project,
-        asset: project ? workspace.getAsset(project, image.id) : null,
-        validation: workspace.validate(project),
-        intake: workspace.validateIntake(project),
-        ingestQueued: Boolean(intelligence?.isInitialized()),
-        product: productRecord,
+        project: raw,
+        asset: raw ? workspace.getAsset(raw, image.id) : null,
+        validation: workspace.validate(raw),
+        intake: workspace.validateIntake(raw),
+        ingestQueued,
+        product: null,
+      });
+
+      setImmediate(() => {
+        void (async () => {
+          try {
+            if (intelligence?.isInitialized()) {
+              await ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id);
+              await media?.processAsset(uploadMatch[1], image.id).catch(() => undefined);
+            }
+            const canonical = getCanonicalProductManager();
+            await canonical?.sync(uploadMatch[1]).catch(() => null);
+            const latest = await workspace.getProject(uploadMatch[1]);
+            if (latest) await withFoundation(workspace, latest, "asset");
+          } catch {
+            /* background post-upload work must never undo a successful store */
+          }
+        })();
       });
 
     } catch (error) {

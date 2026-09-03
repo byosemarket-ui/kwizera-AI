@@ -184,14 +184,33 @@ async function main() {
   ];
   const imageIds = [];
   for (const variant of variants) {
-    const up = await json("POST", `/api/workspace/projects/${projectId}/images`, {
-      fileName: variant.fileName,
-      mimeType: "image/png",
-      dataBase64: variant.data,
-      width: variant.width,
-      height: variant.height,
-    });
-    if (up.body?.image?.id) imageIds.push(up.body.image.id);
+    let uploadedId = null;
+    let lastDetail = "";
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const up = await json("POST", `/api/workspace/projects/${projectId}/images`, {
+        fileName: variant.fileName,
+        mimeType: "image/png",
+        dataBase64: variant.data,
+        width: variant.width,
+        height: variant.height,
+      });
+      if (up.body?.image?.id) {
+        uploadedId = up.body.image.id;
+        break;
+      }
+      lastDetail = `${up.status}:${up.body?.error ?? up.body?.code ?? "no-image"}`;
+      await new Promise((r) => setTimeout(r, 750 * attempt));
+    }
+    if (uploadedId) imageIds.push(uploadedId);
+    else console.log(`  upload failed ${variant.fileName} — ${lastDetail}`);
+  }
+  // Confirm persistence even if one response was lost (authoritative project record).
+  const afterUpload = await json("GET", `/api/workspace/projects/${projectId}`);
+  const persistedOriginals = originalsOf(afterUpload.body?.project);
+  if (persistedOriginals.length > imageIds.length) {
+    for (const img of persistedOriginals) {
+      if (!imageIds.includes(img.id)) imageIds.push(img.id);
+    }
   }
   record("upload product images", imageIds.length === variants.length, `${imageIds.length}/${variants.length}`);
 

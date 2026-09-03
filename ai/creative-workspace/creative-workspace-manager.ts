@@ -364,7 +364,14 @@ export class CreativeWorkspaceManager {
   }
 
   async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
-    return this.enqueueProject(projectId, async () => {
+    return this.enqueueProject(projectId, async () => this.uploadImageLocked(projectId, image));
+  }
+
+  /**
+   * Must only run inside enqueueProject for projectId.
+   * Re-reads the project so concurrent mutations never clobber productImages.
+   */
+  private async uploadImageLocked(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
     const project = await this.requireProject(projectId);
     if (FUTURE_IMAGE_TYPES.has(image.mimeType)) {
       throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", `Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
@@ -417,7 +424,6 @@ export class CreativeWorkspaceManager {
     project.modifiedAt = uploaded.uploadedAt;
     await this.writeProjectRecord(project);
     return uploaded;
-    });
   }
 
   async removeImage(projectId: string, imageId: string): Promise<CreativeProject> {
@@ -584,19 +590,22 @@ export class CreativeWorkspaceManager {
 
   /**
    * Store a derived representation next to the original. Never overwrites the parent file.
+   * Parent check + write share one project lock so uploads cannot race the parent lookup.
    */
   async registerDerivedAsset(projectId: string, input: UploadedImageInput & { parentAssetId: string; assetType?: ProjectAssetType }): Promise<ProductImage> {
-    const project = await this.requireProject(projectId);
-    if (!project.productImages.some((item) => item.id === input.parentAssetId)) {
-      throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Parent asset not found", 404);
-    }
-    return this.uploadImage(projectId, {
-      ...input,
-      assetType: input.assetType ?? "derived-image",
-      origin: "derived",
-      parentAssetId: input.parentAssetId,
-      analysisState: "not-applicable",
-      derivedKind: input.derivedKind ?? "preview",
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      if (!project.productImages.some((item) => item.id === input.parentAssetId)) {
+        throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Parent asset not found", 404);
+      }
+      return this.uploadImageLocked(projectId, {
+        ...input,
+        assetType: input.assetType ?? "derived-image",
+        origin: "derived",
+        parentAssetId: input.parentAssetId,
+        analysisState: "not-applicable",
+        derivedKind: input.derivedKind ?? "preview",
+      });
     });
   }
 
