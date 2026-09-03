@@ -109,6 +109,11 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
       model,
       prompt,
       timeoutMs: ollamaPlanTimeoutMs(),
+      options: {
+        temperature: 0.1,
+        num_ctx: 1536,
+        num_predict: 320,
+      },
     });
     if (!generated.ok) {
       throw Object.assign(new Error(generated.error), { code: generated.code });

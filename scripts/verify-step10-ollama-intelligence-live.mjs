@@ -181,12 +181,22 @@ async function main() {
   record("step1 previous price", a.project?.productInformation?.originalPrice === 60000, String(a.project?.productInformation?.originalPrice));
   record("step1 image", Boolean(a.imageId) || originalsOf(a.project).length >= 1, a.imageId ?? String(originalsOf(a.project).length));
 
-  const planA = await json("POST", `/api/workspace/projects/${a.projectId}/plan`, {
+  // Retry plan once if gateway/worker returns 503 during long inference.
+  let planA = await json("POST", `/api/workspace/projects/${a.projectId}/plan`, {
     action: "generate",
     productionMode: "AI_PRODUCT_MOTION",
     regenerate: true,
     durationSeconds: 15,
   }, 300000);
+  if (planA.status === 503 || !planA.body?.plan) {
+    await new Promise((r) => setTimeout(r, 5000));
+    planA = await json("POST", `/api/workspace/projects/${a.projectId}/plan`, {
+      action: "generate",
+      productionMode: "AI_PRODUCT_MOTION",
+      regenerate: true,
+      durationSeconds: 15,
+    }, 300000);
+  }
   const planBody = planA.body?.plan ?? {};
   record("real plan generated via existing API", planA.ok && (planBody.scenes?.length ?? 0) > 0, `${planA.status}:${planBody.planSource ?? ""}`);
   record("plan A project identity", planBody.projectId === a.projectId, planBody.projectId ?? "");

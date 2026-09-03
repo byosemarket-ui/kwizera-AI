@@ -150,6 +150,7 @@ export async function ollamaGenerateJson(opts: {
   model: string;
   prompt: string;
   timeoutMs?: number;
+  options?: Record<string, number | string | boolean>;
 }): Promise<{ ok: true; text: string } | { ok: false; error: string; code: string }> {
   if (isOllamaDisabled()) {
     return { ok: false, error: "Ollama disabled", code: "OLLAMA_DISABLED" };
@@ -166,6 +167,13 @@ export async function ollamaGenerateJson(opts: {
           prompt: opts.prompt,
           stream: false,
           format: "json",
+          keep_alive: "2m",
+          options: {
+            temperature: 0.2,
+            num_ctx: 2048,
+            num_predict: 384,
+            ...opts.options,
+          },
         }),
       });
       if (!res.ok) {
