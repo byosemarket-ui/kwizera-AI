@@ -331,6 +331,8 @@ describe("STEP 1 typography foundation", () => {
     expect(published.scenes[0]!.items[0]!.font.filePath).toBeUndefined();
     const diagnostics = await getTypographyDiagnostics();
     expect(diagnostics.deterministicFallback).toBe(true);
+    expect(diagnostics.textMeasurementReady).toBe(true);
+    expect(diagnostics.placementValidationReady).toBe(true);
     expect(JSON.stringify(diagnostics)).not.toMatch(/C:\\Windows\\Fonts|\/usr\/share\/fonts/);
   });
 });

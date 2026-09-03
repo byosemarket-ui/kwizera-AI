@@ -3,6 +3,9 @@ import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { VideoMotionId, VideoRenderPlan, VideoTextOverlayStatus, VideoTimelineClip, VideoTransitionId } from "./types.js";
+import { sanitizeRenderText } from "./ffmpeg-sanitize.js";
+
+export { sanitizeRenderText } from "./ffmpeg-sanitize.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -76,7 +79,7 @@ function fadeFilter(transition: VideoTransitionId, durationMs: number): string {
   return `fade=t=in:st=0:d=${fade},fade=t=out:st=${Math.max(0, seconds - fade)}:d=${fade}`;
 }
 
-function drawtextFilter(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile?: string): string {
+function drawtextFilterLegacy(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile?: string): string {
   if (!fontFile || !clip.text.length) return "";
   const font = fontFile.replace(/\\/g, "/").replace(/:/g, "\\:");
   const scale = Math.max(1, Math.round(Math.min(plan.width, plan.height) / 480));
@@ -109,19 +112,19 @@ function drawtextFilter(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile
   return filters.join(",");
 }
 
-/** Normalize on-screen copy before FFmpeg drawtext. Never pass raw objects into a filter. */
-export function sanitizeRenderText(value: unknown): string {
-  if (value == null) return "";
-  if (typeof value === "object") return "";
-  return String(value)
-    .replace(/\[object Object\]/g, "")
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
-    .replace(/\\/g, "")
-    .replace(/'/g, "\u2019")
-    .replace(/:/g, " ")
-    .replace(/[\r\n]+/g, " ")
-    .trim()
-    .slice(0, 80);
+/** Prefer validated typography; fall back to legacy drawtext stacking. */
+export async function drawtextFilter(
+  clip: VideoTimelineClip,
+  plan: VideoRenderPlan,
+  fontFile?: string,
+): Promise<string> {
+  const hasTypography = clip.text.some((layer) => layer.typography?.fontId || layer.typography?.lines?.length);
+  if (hasTypography) {
+    const { buildDrawtextFilter } = await import("../typography/drawtext-integration.js");
+    const built = await buildDrawtextFilter(clip, plan, fontFile);
+    if (built.filter) return built.filter;
+  }
+  return drawtextFilterLegacy(clip, plan, fontFile);
 }
 
 export async function resolveFontFile(): Promise<string | undefined> {
@@ -155,11 +158,11 @@ export function classifyTextOverlay(input: {
   return "applied";
 }
 
-export function stillFilter(
+export async function stillFilter(
   input: RenderClipInput,
   plan: VideoRenderPlan,
   options: { motion: boolean; fade: boolean; text: boolean; fontFile?: string },
-): string {
+): Promise<string> {
   const frames = Math.max(24, Math.round(plan.frameRate * input.clip.durationMs / 1000));
   const parts = [
     `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase`,
@@ -176,7 +179,7 @@ export function stillFilter(
     if (fade) parts.push(fade);
   }
   if (options.text) {
-    const text = drawtextFilter(input.clip, plan, options.fontFile);
+    const text = await drawtextFilter(input.clip, plan, options.fontFile);
     if (text) parts.push(text);
   }
   return parts.join(",");
@@ -200,59 +203,52 @@ export async function renderStillClip(
   const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "ultrafast");
   const crf = plan.crf ?? (plan.preset === "standard" ? 23 : 28);
   const frameRate = plan.frameRate ?? (plan.preset === "standard" ? 24 : 15);
-
-  if (plan.preset === "preview") {
-    const frameCount = Math.max(12, Math.round(frameRate * seconds));
-    const previewArgs = (codec: "libx264" | "mpeg4") => [
-      "-y", "-loop", "1", "-framerate", String(frameRate), "-i", input.imagePath,
-      "-vf", `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase,crop=${plan.width}:${plan.height}`,
-      "-frames:v", String(frameCount),
-      "-an",
-      "-c:v", codec,
-      "-pix_fmt", "yuv420p",
-      ...(codec === "libx264"
-        ? ["-preset", x264Preset, "-tune", "stillimage", "-crf", String(crf)]
-        : ["-q:v", "5"]),
-      "-threads", "2",
-      "-movflags", "+faststart",
-      outputPath,
-    ];
-    try {
-      await runFfmpeg(previewArgs("libx264"), 180_000);
-    } catch {
-      await runFfmpeg(previewArgs("mpeg4"), 120_000);
-    }
-    const stat = await fs.stat(outputPath).catch(() => null);
-    if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
-    return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };
-  }
-
-  const hasText = input.clip.text.some((layer) => layer.content?.trim());
+  const hasText = input.clip.text.some((layer) => layer.content?.trim() || layer.typography?.lines?.length);
   const useMotion = plan.preset === "standard";
   const useFade = plan.preset === "standard";
-  const encode = async (text: boolean) => {
-    await runFfmpeg([
-      "-y", "-loop", "1", "-i", input.imagePath,
-      "-vf", stillFilter(input, plan, { motion: useMotion, fade: useFade, text, fontFile }),
-      "-t", String(seconds),
-      "-r", String(plan.frameRate),
-      "-an",
-      "-c:v", "libx264",
-      "-pix_fmt", "yuv420p",
-      "-preset", x264Preset,
-      "-crf", String(crf),
-      "-movflags", "+faststart",
-      outputPath,
-    ], 5 * 60_000);
+
+  const encode = async (text: boolean, motion = useMotion, fade = useFade) => {
+    const vf = await stillFilter(input, plan, { motion, fade, text, fontFile });
+    const args = plan.preset === "preview"
+      ? [
+        "-y", "-loop", "1", "-framerate", String(frameRate), "-i", input.imagePath,
+        "-vf", vf,
+        "-frames:v", String(Math.max(12, Math.round(frameRate * seconds))),
+        "-an",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-preset", x264Preset,
+        "-tune", "stillimage",
+        "-crf", String(crf),
+        "-threads", "2",
+        "-movflags", "+faststart",
+        outputPath,
+      ]
+      : [
+        "-y", "-loop", "1", "-i", input.imagePath,
+        "-vf", vf,
+        "-t", String(seconds),
+        "-r", String(plan.frameRate),
+        "-an",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-preset", x264Preset,
+        "-crf", String(crf),
+        "-movflags", "+faststart",
+        outputPath,
+      ];
+    await runFfmpeg(args, plan.preset === "preview" ? 180_000 : 5 * 60_000);
     const stat = await fs.stat(outputPath).catch(() => null);
     if (!stat?.size) throw new Error("FFmpeg did not produce a scene clip");
   };
+
   const encodeBare = async () => {
+    const vf = await stillFilter(input, plan, { motion: false, fade: false, text: false, fontFile });
     await runFfmpeg([
       "-y", "-loop", "1", "-i", input.imagePath,
-      "-vf", stillFilter(input, plan, { motion: false, fade: false, text: false, fontFile }),
+      "-vf", vf,
       "-t", String(seconds),
-      "-r", String(plan.frameRate),
+      "-r", String(frameRate),
       "-an",
       "-c:v", "libx264",
       "-pix_fmt", "yuv420p",
@@ -267,30 +263,44 @@ export async function renderStillClip(
 
   if (!hasText) {
     try {
-      await encode(false);
+      await encode(false, plan.preset === "standard", plan.preset === "standard");
     } catch {
-      await encodeBare();
+      if (plan.preset === "preview") {
+        try {
+          await encode(false, false, false);
+        } catch {
+          await encodeBare();
+        }
+      } else {
+        await encodeBare();
+      }
     }
     return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };
   }
   if (!fontFile) {
     try {
-      await encode(false);
+      await encode(false, false, false);
     } catch {
       await encodeBare();
     }
     return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: false }) };
   }
   try {
-    await encode(true);
+    await encode(true, useMotion, useFade);
     return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true }) };
   } catch {
     try {
-      await encode(false);
+      // Retry with typography but without motion/fade (safer drawtext path).
+      await encode(true, false, false);
+      return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true }) };
     } catch {
-      await encodeBare();
+      try {
+        await encode(false, false, false);
+      } catch {
+        await encodeBare();
+      }
+      return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false }) };
     }
-    return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false }) };
   }
 }
 

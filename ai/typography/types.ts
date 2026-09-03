@@ -177,5 +177,8 @@ export interface PublicTypographyDiagnostics {
   discoveryOk: boolean;
   ollamaAssistAvailable: boolean;
   deterministicFallback: true;
+  textMeasurementReady: true;
+  placementValidationReady: true;
+  rendererFontResolutionReady: boolean;
   lastError: string | null;
 }

@@ -44,15 +44,31 @@ export type VideoCameraId =
   | "reveal";
 export type VideoTransitionId = "cut" | "fade";
 
+/** Renderer-facing typography payload carried on timeline text layers. */
+export interface VideoTextTypography {
+  fontId: string;
+  family: string;
+  fontSizePx: number;
+  normalizedX: number;
+  normalizedY: number;
+  alignment: "left" | "center" | "right";
+  region?: string;
+  color: string;
+  contrastStrategy: "outline" | "shadow" | "panel" | "none";
+  lines: string[];
+  hierarchy: number;
+}
+
 export interface VideoTextLayer {
   content: string;
   kind: "headline" | "supporting" | "feature" | "benefit" | "cta" | "price" | "price_was" | "price_save";
   startMs: number;
   durationMs: number;
   position: "top" | "bottom" | "center";
-  /** Step 1 typography metadata — existing FFmpeg still uses `position`. */
   typographyRole?: string;
   typographyRegion?: string;
+  /** Validated STEP 1/2 typography — consumed by existing FFmpeg drawtext. */
+  typography?: VideoTextTypography;
 }
 
 export interface VideoTimelineClip {

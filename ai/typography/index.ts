@@ -9,3 +9,4 @@ export * from "./typography-engine.js";
 export * from "./to-video-layers.js";
 export * from "./diagnostics.js";
 export * from "./from-plan.js";
+export * from "./drawtext-integration.js";

@@ -1,6 +1,7 @@
-import type { VideoTextLayer, VideoTimelineClip } from "../video-production/types.js";
+import type { VideoTextLayer, VideoTextTypography } from "../video-production/types.js";
 import { toLegacyPosition } from "./placement.js";
 import type { TextRole, TypographyDecision, TypographyItem } from "./types.js";
+import type { VideoTimelineClip } from "../video-production/types.js";
 
 function kindFromRole(role: TextRole): VideoTextLayer["kind"] {
   if (role === "price") return "price";
@@ -13,19 +14,37 @@ function kindFromRole(role: TextRole): VideoTextLayer["kind"] {
   return "supporting";
 }
 
+export function typographyItemToRenderPayload(item: TypographyItem): VideoTextTypography {
+  return {
+    fontId: item.font.id,
+    family: item.font.family,
+    fontSizePx: item.size.fontSizePx,
+    normalizedX: item.layout.normalizedX,
+    normalizedY: item.layout.normalizedY,
+    alignment: item.layout.alignment,
+    region: item.layout.region,
+    color: item.visual.color === "white" ? "white" : item.visual.color,
+    contrastStrategy: item.visual.contrastStrategy,
+    lines: item.lines.length ? item.lines : [item.text].filter(Boolean),
+    hierarchy: item.hierarchy,
+  };
+}
+
 export function typographyItemToLayer(
   item: TypographyItem,
   startMs: number,
   durationMs: number,
 ): VideoTextLayer {
+  const lines = item.lines.length ? item.lines : [item.text];
   return {
-    content: item.lines.join(" ").slice(0, 80),
+    content: lines.join(" ").slice(0, 120),
     kind: kindFromRole(item.role),
     startMs,
     durationMs,
     position: toLegacyPosition(item.layout.region),
     typographyRole: item.role,
     typographyRegion: item.layout.region,
+    typography: typographyItemToRenderPayload(item),
   };
 }
 
@@ -33,9 +52,7 @@ export function applyTypographyDecisionToTimeline(
   clips: VideoTimelineClip[],
   decision: TypographyDecision,
 ): VideoTimelineClip[] {
-  if (decision.projectId && clips.some((clip) => clip.sceneId) && !decision.scenes.length) {
-    return clips;
-  }
+  if (!decision.scenes.length) return clips;
   return clips.map((clip) => {
     if (clip.userEdited && clip.text.length) return clip;
     const mapped = typographySceneToLayers(decision, clip.sceneId, clip.startMs, clip.durationMs);
@@ -43,6 +60,7 @@ export function applyTypographyDecisionToTimeline(
   });
 }
 
+/** Strip absolute font paths from persisted/API typography plans. */
 export function publicTypographyDecision(decision: TypographyDecision): TypographyDecision {
   return {
     ...decision,

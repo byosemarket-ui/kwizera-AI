@@ -484,23 +484,61 @@ export class VideoProductionManager {
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
+      let typedClips = renderClips;
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "preparing",
+        progress: 8,
+        sceneCount: renderClips.length,
+        stageMessage: "Preparing typography",
+      });
+      try {
+        const workspaceProject = await this.workspace!.getProject(job.projectId);
+        const creativePlan = await this.planning!.getPlan(job.projectId);
+        if (workspaceProject && creativePlan) {
+          const { composeTypographyDecision } = await import("../typography/typography-engine.js");
+          const { composeInputFromProject } = await import("../typography/from-plan.js");
+          const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
+          const decision = await composeTypographyDecision(composeInputFromProject({
+            project: workspaceProject,
+            plan: creativePlan,
+            width: renderPlan.width,
+            height: renderPlan.height,
+            aspectRatio: renderPlan.aspectRatio,
+            platform: profile.id,
+          }));
+          if (decision.projectId === job.projectId && decision.scenes.length) {
+            typedClips = applyTypographyDecisionToTimeline(renderClips, decision);
+            await this.patchVideo(job.projectId, {
+              typographyPlan: publicTypographyDecision(decision),
+              timeline: video.timeline.map((clip) => {
+                const typed = typedClips.find((item) => item.sceneId === clip.sceneId);
+                if (!typed || (clip.userEdited && clip.text.length)) return clip;
+                return { ...clip, text: typed.text };
+              }),
+            });
+          }
+        }
+      } catch {
+        /* Keep existing timeline text / sceneTextLayers. */
+      }
       await this.writeJob(job.id, {
         ...started,
         stage: "rendering",
         progress: 10,
-        sceneCount: renderClips.length,
-        stageMessage: "Validating product assets",
+        sceneCount: typedClips.length,
+        stageMessage: "Validating text layout",
       });
-      for (const [index, clip] of renderClips.entries()) {
+      for (const [index, clip] of typedClips.entries()) {
         await yieldLoop();
         const productionClip = applyProductionModeToClip(clip, renderProfile);
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
-          progress: Math.min(78, 12 + Math.round(((index) / renderClips.length) * 66)),
+          progress: Math.min(78, 12 + Math.round(((index) / typedClips.length) * 66)),
           sceneIndex: index + 1,
-          sceneCount: renderClips.length,
-          stageMessage: `Preparing scene ${index + 1} of ${renderClips.length}`,
+          sceneCount: typedClips.length,
+          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length}`,
         });
         const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, productionClip.assetId);
         const imagePath = resolved?.path ?? null;
@@ -512,10 +550,10 @@ export class VideoProductionManager {
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
-          progress: Math.min(80, 12 + Math.round(((index + 1) / renderClips.length) * 68)),
+          progress: Math.min(80, 12 + Math.round(((index + 1) / typedClips.length) * 68)),
           sceneIndex: index + 1,
-          sceneCount: renderClips.length,
-          stageMessage: `Rendered scene ${index + 1} of ${renderClips.length}`,
+          sceneCount: typedClips.length,
+          stageMessage: `Rendered scene ${index + 1} of ${typedClips.length}`,
         });
       }
       await yieldLoop();
