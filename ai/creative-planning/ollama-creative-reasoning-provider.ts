@@ -1,6 +1,8 @@
 /**
  * Ollama-backed CreativeReasoningProvider for Step 5 AI Creative Director.
  * Optional — when Ollama/model is unavailable, generateCreativeScenes falls back deterministically.
+ *
+ * Prompt is intentionally compact for tiny CPU models (llama3.2:1b on low-RAM VPS).
  */
 import {
   fetchOllamaTags,
@@ -14,6 +16,43 @@ import {
 } from "../ai-provider/ollama-client.js";
 import type { AiCreativePlannerInput, CreativeReasoningProvider } from "./ai-creative-planner.js";
 import { buildProjectIntelligenceContext } from "./project-intelligence-context.js";
+
+/** Creative-plan inference may need longer than generic generate on 1-vCPU hosts. */
+export function ollamaPlanTimeoutMs(): number {
+  const raw = Number(process.env.KWIZERA_OLLAMA_PLAN_TIMEOUT_MS);
+  if (Number.isFinite(raw) && raw > 0) return raw;
+  return Math.max(ollamaTimeoutMs(), 180_000);
+}
+
+function compactContext(input: AiCreativePlannerInput): Record<string, unknown> {
+  const full = buildProjectIntelligenceContext(input);
+  return {
+    projectId: full.projectId,
+    product: {
+      name: full.product.name,
+      category: full.product.category,
+      description: (full.product.description || "").slice(0, 160),
+      price: full.product.price,
+      originalPrice: full.product.originalPrice,
+      currency: full.product.currency,
+    },
+    marketing: {
+      goal: full.marketing.goal,
+      audience: full.marketing.audience,
+      platform: full.marketing.platform,
+      durationSeconds: full.marketing.durationSeconds,
+      language: full.marketing.language,
+      cta: full.marketing.cta,
+    },
+    style: full.style,
+    assetIds: full.constraints.mustUseOnlyAssetIds.slice(0, 6),
+    verifiedFacts: {
+      allowedFacts: full.verifiedFacts.allowedFacts.slice(0, 10),
+      unknownFacts: full.verifiedFacts.unknownFacts.slice(0, 6),
+      priceAllowed: full.verifiedFacts.priceAllowed,
+    },
+  };
+}
 
 export class OllamaCreativeReasoningProvider implements CreativeReasoningProvider {
   readonly id = "ollama-creative-director";
@@ -50,38 +89,18 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
     }
     this.lastModel = model;
 
-    const context = buildProjectIntelligenceContext(input);
-    if (!context.projectId || context.constraints.mustUseOnlyAssetIds.length === 0) {
+    const context = compactContext(input);
+    const assetIds = Array.isArray(context.assetIds) ? context.assetIds as string[] : [];
+    if (!context.projectId || assetIds.length === 0) {
       throw Object.assign(new Error("PROJECT_CONTEXT_MISSING"), { code: "PROJECT_CONTEXT_MISSING" });
     }
 
     const prompt = [
-      "You are the KWIZERA AI Creative Director for product marketing videos.",
-      "Return JSON only. Do not invent asset IDs. Use only mustUseOnlyAssetIds.",
-      "Do NOT invent product facts. Use ONLY verifiedFacts.allowedFacts.",
-      "Do not claim anything listed in verifiedFacts.unknownFacts.",
-      "Do not add price, discount, features, materials, or certifications unless in allowedFacts.",
-      "Respect productionMode, platform, duration, and language constraints.",
-      "FFmpeg will render still-to-video motion — plan camera/motion that FFmpeg can approximate (zoom, pan, hold).",
-      "Schema:",
-      JSON.stringify({
-        projectId: "must match input projectId",
-        creativeDirection: "string",
-        videoGoal: "string",
-        primarySellingPoint: "string",
-        textStrategy: { headline: "string", price: "string", cta: "string" },
-        scenes: [{
-          id: "scene-1",
-          purpose: "HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA",
-          assetId: "existing-asset-id",
-          duration: 3,
-          camera: "string",
-          motion: "string",
-          backgroundStrategy: "KEEP_ORIGINAL|REMOVE_BACKGROUND|REPLACE_BACKGROUND_LATER",
-          narration: "string",
-        }],
-      }),
-      "Project Intelligence Context:",
+      "KWIZERA Creative Director. Return JSON only.",
+      "Rules: use only assetIds listed; use only verifiedFacts.allowedFacts; no invented materials/prices.",
+      "Plan short still-to-video scenes (zoom/pan/hold).",
+      `Schema:{"projectId":"${context.projectId}","creativeDirection":"string","primarySellingPoint":"string","textStrategy":{"headline":"string","price":"string","cta":"string"},"scenes":[{"id":"scene-1","purpose":"HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA","assetId":"${assetIds[0]}","duration":3,"camera":"string","motion":"string","narration":"string"}]}`,
+      "Context:",
       JSON.stringify(context),
     ].join("\n");
 
@@ -89,7 +108,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
       baseUrl: this.baseUrl,
       model,
       prompt,
-      timeoutMs: ollamaTimeoutMs(),
+      timeoutMs: ollamaPlanTimeoutMs(),
     });
     if (!generated.ok) {
       throw Object.assign(new Error(generated.error), { code: generated.code });
@@ -100,7 +119,6 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
       throw Object.assign(new Error("INVALID_AI_OUTPUT"), { code: "INVALID_AI_OUTPUT" });
     }
 
-    // Force projectId binding — reject hallucinated project references upstream via validator.
     if (typeof parsed.projectId === "string" && parsed.projectId && parsed.projectId !== context.projectId) {
       throw Object.assign(
         new Error(`AI plan projectId mismatch: ${parsed.projectId}`),

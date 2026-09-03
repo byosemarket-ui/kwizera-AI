@@ -153,4 +153,9 @@ describe("Step 5 Creative Director foundations", () => {
     });
     expect(await provider.isAvailable()).toBe(false);
   });
+
+  it("uses an extended plan timeout suitable for tiny CPU models", async () => {
+    const { ollamaPlanTimeoutMs } = await import("../../../../ai/creative-planning/ollama-creative-reasoning-provider.js");
+    expect(ollamaPlanTimeoutMs()).toBeGreaterThanOrEqual(90_000);
+  });
 });

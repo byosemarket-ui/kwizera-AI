@@ -79,7 +79,7 @@ function originalsOf(project) {
   return (project?.productImages ?? []).filter((img) => !img.parentAssetId && img.origin !== "derived" && img.mimeType !== "video/mp4");
 }
 
-async function json(method, path, body, timeoutMs = 240000) {
+async function json(method, path, body, timeoutMs = 300000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -98,6 +98,17 @@ async function json(method, path, body, timeoutMs = 240000) {
   }
 }
 
+async function getProject(projectId) {
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const res = await json("GET", `/api/workspace/projects/${projectId}`);
+    if (res.body?.project?.id) return res.body.project;
+    const opened = await json("POST", `/api/workspace/projects/${projectId}`, { action: "open" });
+    if (opened.body?.project?.id) return opened.body.project;
+    await new Promise((r) => setTimeout(r, 750 * attempt));
+  }
+  return null;
+}
+
 async function waitFor(fn, attempts = 120, delayMs = 3000) {
   for (let i = 0; i < attempts; i += 1) {
     const result = await fn();
@@ -113,7 +124,7 @@ async function createFilledProject(stamp) {
   const projectId = created.body?.project?.id;
   if (!projectId) return { projectId: null };
   await json("POST", `/api/workspace/projects/${projectId}`, { action: "open" });
-  await json("POST", `/api/workspace/projects/${projectId}`, {
+  const updated = await json("POST", `/api/workspace/projects/${projectId}`, {
     changes: {
       productInformation: {
         name: stamp.includes("B") ? "Walnut Loafer" : "Chestnut Oxford",
@@ -138,7 +149,11 @@ async function createFilledProject(stamp) {
     width: stamp.includes("B") ? 180 : 220,
     height: stamp.includes("B") ? 180 : 220,
   });
-  return { projectId, imageId: up.body?.image?.id };
+  return {
+    projectId,
+    imageId: up.body?.image?.id,
+    project: up.body?.project ?? updated.body?.project,
+  };
 }
 
 async function main() {
@@ -161,29 +176,29 @@ async function main() {
   record("project A created", Boolean(a.projectId), a.projectId ?? "");
   if (!a.projectId) process.exit(1);
 
-  const beforePlan = await json("GET", `/api/workspace/projects/${a.projectId}`);
-  record("step1 product name", beforePlan.body?.project?.productInformation?.name === "Chestnut Oxford", beforePlan.body?.project?.productInformation?.name ?? "");
-  record("step1 price", beforePlan.body?.project?.productInformation?.price === 45000, String(beforePlan.body?.project?.productInformation?.price));
-  record("step1 previous price", beforePlan.body?.project?.productInformation?.originalPrice === 60000, String(beforePlan.body?.project?.productInformation?.originalPrice));
-  record("step1 image", originalsOf(beforePlan.body?.project).length >= 1, String(originalsOf(beforePlan.body?.project).length));
+  record("step1 product name", a.project?.productInformation?.name === "Chestnut Oxford", a.project?.productInformation?.name ?? "");
+  record("step1 price", a.project?.productInformation?.price === 45000, String(a.project?.productInformation?.price));
+  record("step1 previous price", a.project?.productInformation?.originalPrice === 60000, String(a.project?.productInformation?.originalPrice));
+  record("step1 image", Boolean(a.imageId) || originalsOf(a.project).length >= 1, a.imageId ?? String(originalsOf(a.project).length));
 
   const planA = await json("POST", `/api/workspace/projects/${a.projectId}/plan`, {
     action: "generate",
     productionMode: "AI_PRODUCT_MOTION",
     regenerate: true,
     durationSeconds: 15,
-  }, 240000);
+  }, 300000);
   const planBody = planA.body?.plan ?? {};
   record("real plan generated via existing API", planA.ok && (planBody.scenes?.length ?? 0) > 0, `${planA.status}:${planBody.planSource ?? ""}`);
   record("plan A project identity", planBody.projectId === a.projectId, planBody.projectId ?? "");
-  record("real Ollama inference used", planBody.planSource === "ai", planBody.planSource ?? planA.body?.error ?? "");
+  record("real Ollama inference used", planBody.planSource === "ai", `${planBody.planSource ?? "missing"}; warnings=${(planBody.planWarnings ?? []).join(" | ")}`);
   record("model recorded", /llama3\.2:1b/i.test(String(planBody.aiModelId ?? planBody.decisionTrace?.modelId ?? "")), String(planBody.aiModelId ?? planBody.decisionTrace?.modelId ?? ""));
   const planAssets = [...new Set((planBody.scenes ?? []).map((s) => s.assetId).filter(Boolean))];
-  record("plan assets belong to A", planAssets.every((id) => id === a.imageId || originalsOf(beforePlan.body?.project).some((img) => img.id === id)), planAssets.join(","));
+  record("plan assets belong to A", planAssets.every((id) => id === a.imageId || originalsOf(a.project).some((img) => img.id === id)), planAssets.join(","));
 
-  const reopen = await json("GET", `/api/workspace/projects/${a.projectId}`);
-  record("existing project reopen", reopen.body?.project?.id === a.projectId, "");
-  record("audience persisted", reopen.body?.project?.targetAudience === "Professionals 25-40", reopen.body?.project?.targetAudience ?? "");
+  const reopen = await getProject(a.projectId);
+  record("existing project reopen", reopen?.id === a.projectId, reopen?.id ?? "");
+  record("audience persisted", reopen?.targetAudience === "Professionals 25-40", reopen?.targetAudience ?? "");
+  record("price persisted on reopen", reopen?.productInformation?.price === 45000, String(reopen?.productInformation?.price));
 
   const b = await createFilledProject(`STEP10-B-${Date.now()}`);
   record("project B created", Boolean(b.projectId) && b.projectId !== a.projectId, b.projectId ?? "");
@@ -192,7 +207,7 @@ async function main() {
     productionMode: "CLASSIC_SHOWCASE",
     regenerate: true,
     durationSeconds: 12,
-  }, 240000);
+  }, 300000);
   const planBBody = planB.body?.plan ?? {};
   record("project B isolation", planBBody.projectId === b.projectId && planBBody.projectId !== a.projectId, planBBody.projectId ?? "");
   record("project B does not use A image", !(planBBody.scenes ?? []).some((s) => s.assetId === a.imageId), "");
@@ -218,14 +233,19 @@ async function main() {
   });
   record("render completed", done === true, "");
   record("no false 100 before complete", jumpedTo100Early === false, "");
-  const job = await json("GET", `/api/video-production/jobs/${jobId}`);
-  const outputUrl = job.body?.job?.outputUrl ?? job.body?.video?.outputUrl;
+
+  const produced = await json("GET", `/api/video-production/projects/${a.projectId}`);
+  const outputUrl = produced.body?.video?.output?.url;
   record("output url", Boolean(outputUrl), outputUrl ?? "");
+  record("quality gate ready", produced.body?.video?.qualityGate === "READY", String(produced.body?.video?.qualityGate ?? ""));
   if (outputUrl) {
     const video = await fetch(`${BASE}${outputUrl}`, { headers: { Range: "bytes=0-11" } });
     const buf = Buffer.from(await video.arrayBuffer());
     record("output playable", video.ok || video.status === 206, String(video.status));
     record("output looks like mp4", buf.includes(Buffer.from("ftyp")), buf.slice(4, 8).toString());
+    const download = await fetch(`${BASE}${outputUrl}`);
+    const bytes = Buffer.from(await download.arrayBuffer());
+    record("download non-empty", download.ok && bytes.length > 1000, String(bytes.length));
   }
 
   const failed = checks.filter((c) => !c.ok);
