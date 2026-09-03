@@ -213,7 +213,7 @@ async function main() {
     "",
   );
   for (const id of imageIds) {
-    const img = await fetch(`${BASE}/api/workspace/projects/${projectId}/images/${id}`, { headers: { Range: "bytes=0-7" } });
+    const img = await fetch(`${BASE}/api/workspace/projects/${projectId}/images/${id}.png`, { headers: { Range: "bytes=0-7" } });
     record(`original reachable ${id.slice(0, 8)}`, img.ok || img.status === 206, String(img.status));
   }
 

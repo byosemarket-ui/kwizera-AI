@@ -247,6 +247,14 @@ export class CreativeWorkspaceManager {
   private core: AiCoreManager | null = null;
   private root = "";
   private index: WorkspaceIndex = { projectIds: [], activeProjectId: null, updatedAt: "" };
+  private projectLocks = new Map<string, Promise<unknown>>();
+
+  private enqueueProject<T>(projectId: string, work: () => Promise<T>): Promise<T> {
+    const prior = this.projectLocks.get(projectId) ?? Promise.resolve();
+    const next = prior.then(work, work);
+    this.projectLocks.set(projectId, next.then(() => undefined, () => undefined));
+    return next;
+  }
 
   async initialize(storageRoot: string, core?: AiCoreManager): Promise<void> {
     this.core = core ?? null;
@@ -284,7 +292,7 @@ export class CreativeWorkspaceManager {
     await fs.mkdir(this.projectPath(project.id), { recursive: true });
     this.index.projectIds.unshift(project.id);
     this.index.activeProjectId = project.id;
-    await this.persist(project, true);
+    await this.writeProjectRecord(project, true);
     return project;
   }
 
@@ -307,20 +315,23 @@ export class CreativeWorkspaceManager {
   }
 
   async openProject(projectId: string): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
     const project = await this.requireProject(projectId);
     this.index.activeProjectId = project.id;
     project.status = "open";
     project.modifiedAt = new Date().toISOString();
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     await this.saveIndex();
     this.transition(project.id, ProjectState.Open);
     return this.hydrateProject(project);
+    });
   }
 
   async closeProject(projectId?: string): Promise<CreativeProject | null> {
     this.ensureInitialized();
     const target = projectId ?? this.index.activeProjectId;
     if (!target) return null;
+    return this.enqueueProject(target, async () => {
     const project = await this.getProject(target);
     if (this.index.activeProjectId === target) {
       this.index.activeProjectId = null;
@@ -329,27 +340,31 @@ export class CreativeWorkspaceManager {
     if (!project) return null;
     project.status = "closed";
     project.modifiedAt = new Date().toISOString();
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     return this.hydrateProject(project);
+    });
   }
 
   async updateProject(projectId: string, changes: Partial<Omit<CreativeProject, "id" | "createdAt" | "modifiedAt" | "productImages">>): Promise<CreativeProject> {
-    const project = await this.requireProject(projectId);
-    const updated: CreativeProject = {
-      ...project,
-      ...changes,
-      name: changes.name?.trim() ?? project.name,
-      productInformation: { ...project.productInformation, ...changes.productInformation },
-      brandInformation: { ...project.brandInformation, ...changes.brandInformation },
-      campaignInformation: { ...project.campaignInformation, ...changes.campaignInformation },
-      workspaceSettings: { ...project.workspaceSettings, ...changes.workspaceSettings },
-      modifiedAt: new Date().toISOString(),
-    };
-    await this.persist(updated);
-    return updated;
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      const updated: CreativeProject = {
+        ...project,
+        ...changes,
+        name: changes.name?.trim() ?? project.name,
+        productInformation: { ...project.productInformation, ...changes.productInformation },
+        brandInformation: { ...project.brandInformation, ...changes.brandInformation },
+        campaignInformation: { ...project.campaignInformation, ...changes.campaignInformation },
+        workspaceSettings: { ...project.workspaceSettings, ...changes.workspaceSettings },
+        modifiedAt: new Date().toISOString(),
+      };
+      await this.writeProjectRecord(updated);
+      return updated;
+    });
   }
 
   async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
+    return this.enqueueProject(projectId, async () => {
     const project = await this.requireProject(projectId);
     if (FUTURE_IMAGE_TYPES.has(image.mimeType)) {
       throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", `Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
@@ -400,11 +415,13 @@ export class CreativeWorkspaceManager {
     };
     project.productImages.push(uploaded);
     project.modifiedAt = uploaded.uploadedAt;
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     return uploaded;
+    });
   }
 
   async removeImage(projectId: string, imageId: string): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
     const project = await this.requireProject(projectId);
     const image = project.productImages.find((item) => item.id === imageId);
     if (!image) throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Image not found", 404);
@@ -426,12 +443,20 @@ export class CreativeWorkspaceManager {
     }
     project.productImages = project.productImages.filter((item) => !toRemove.has(item.id));
     project.modifiedAt = new Date().toISOString();
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     return project;
+    });
   }
 
   async getImagePath(projectId: string, imageFile: string): Promise<string | null> {
     if (!isSafeProjectId(projectId)) return null;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imageFile)) {
+      const project = await this.getProject(projectId);
+      const image = project?.productImages.find((item) => item.id === imageFile);
+      if (!image) return null;
+      const extension = EXT_BY_MIME[image.mimeType] ?? image.mimeType.split("/")[1] ?? "png";
+      return this.getImagePath(projectId, `${imageFile}.${extension}`);
+    }
     if (!/^[a-f0-9-]+\.(jpe?g|png|webp|tiff?|bmp)$/i.test(imageFile)) return null;
     const project = await this.getProject(projectId);
     if (!project) return null;
@@ -502,6 +527,7 @@ export class CreativeWorkspaceManager {
     parentAssetId?: string;
     renderJobId?: string;
   }): Promise<ProductImage> {
+    return this.enqueueProject(projectId, async () => {
     const project = await this.requireProject(projectId);
     if (!path.isAbsolute(input.sourcePath)) {
       throw new CreativeWorkspaceError("INVALID_IMAGE", "Video output path must be absolute", 400);
@@ -542,8 +568,9 @@ export class CreativeWorkspaceManager {
     };
     project.productImages.push(uploaded);
     project.modifiedAt = uploaded.uploadedAt;
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     return uploaded;
+    });
   }
 
   listProjectAssets(project: CreativeProject): ProjectAssetRef[] {
@@ -581,6 +608,7 @@ export class CreativeWorkspaceManager {
     imageId: string,
     patch: Partial<Pick<ProductImage, "processingStatus" | "analysisState" | "derivedKind" | "assetRole">>,
   ): Promise<ProductImage> {
+    return this.enqueueProject(projectId, async () => {
     const project = await this.requireProject(projectId);
     const index = project.productImages.findIndex((item) => item.id === imageId);
     if (index < 0) throw new CreativeWorkspaceError("ASSET_NOT_FOUND", "Image not found", 404);
@@ -588,8 +616,9 @@ export class CreativeWorkspaceManager {
     const updated: ProductImage = { ...current, ...patch };
     project.productImages[index] = updated;
     project.modifiedAt = new Date().toISOString();
-    await this.persist(project);
+    await this.writeProjectRecord(project);
     return this.normalizeImage(projectId, updated);
+    });
   }
 
   private toAssetRef(projectId: string, image: ProductImage): ProjectAssetRef {
@@ -999,7 +1028,7 @@ export class CreativeWorkspaceManager {
     }
   }
 
-  private async persist(project: CreativeProject, isNew = false): Promise<void> {
+  private async writeProjectRecord(project: CreativeProject, isNew = false): Promise<void> {
     this.transition(project.id, isNew ? ProjectState.Open : ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
     await this.writeJson(this.projectFile(project.id), project);
