@@ -271,7 +271,7 @@ describe("STEP 8 hardening: assets, jobs, overlay, probe", () => {
     }
   }, 120_000);
 
-  it("records truthful overlay status and preserves aspect without stretching", () => {
+  it("records truthful overlay status and preserves aspect without stretching", async () => {
     expect(classifyTextOverlay({ hasText: false, fontAvailable: false })).toBe("skipped");
     expect(classifyTextOverlay({ hasText: true, fontAvailable: false })).toBe("unavailable");
     expect(classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true })).toBe("applied");
@@ -301,7 +301,7 @@ describe("STEP 8 hardening: assets, jobs, overlay, probe", () => {
     };
     for (const aspect of ["16:9", "9:16", "1:1"] as const) {
       const plan = buildRenderPlan(aspect, 1000, "preview");
-      const filter = stillFilter({ clip, imagePath: "/tmp/in.png" }, plan, { motion: false, fade: false, text: false });
+      const filter = await stillFilter({ clip, imagePath: "/tmp/in.png" }, plan, { motion: false, fade: false, text: false });
       expect(filter).toContain("force_original_aspect_ratio=increase");
       expect(filter).toContain(`crop=${plan.width}:${plan.height}`);
       expect(filter).not.toContain(`scale=${plan.width}:${plan.height}:flags`);
