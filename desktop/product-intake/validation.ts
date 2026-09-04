@@ -1,5 +1,5 @@
 import { classifyFormat, formatRejectionMessage, resolveMimeType } from "./formats";
-import { fingerprintFile, readImageDimensions } from "./hash";
+import { fingerprintFile, isSha256Hex, readImageDimensions, sha256File } from "./hash";
 import type { IntakeAssetMeta, IntakeWarning, ValidationStatus } from "./types";
 import { LARGE_FILE_WARN_BYTES, LOW_RES_MIN, MAX_FILE_BYTES } from "./types";
 
@@ -10,10 +10,13 @@ export interface ClientValidationResult {
   mimeType: string;
   width: number | null;
   height: number | null;
+  /** Prefer real SHA-256; may fall back to FNV fingerprint. */
   checksum: string;
   warnings: IntakeWarning[];
   error?: string;
   localPreviewUrl?: string;
+  /** Existing project asset this file duplicates (when status is duplicate). */
+  duplicateOf?: IntakeAssetMeta;
 }
 
 export async function validateLocalFile(
@@ -75,7 +78,10 @@ export async function validateLocalFile(
 
   let checksum = "";
   try {
-    checksum = await fingerprintFile(file);
+    checksum = await sha256File(file);
+    if (!isSha256Hex(checksum)) {
+      checksum = await fingerprintFile(file);
+    }
   } catch {
     return {
       ok: false,
@@ -113,11 +119,13 @@ export async function validateLocalFile(
   }
 
   const duplicate = existing.find((asset) =>
-    asset.checksum === checksum
-    || (asset.originalFilename.toLowerCase() === file.name.toLowerCase()
-      && asset.fileSize === file.size
-      && asset.width === dimensions.width
-      && asset.height === dimensions.height),
+    Boolean(asset.checksum)
+    && (asset.checksum === checksum
+      || (asset.originalFilename.toLowerCase() === file.name.toLowerCase()
+        && asset.fileSize === file.size
+        && asset.width === dimensions.width
+        && asset.height === dimensions.height
+        && asset.processingStatus !== "failed")),
   );
 
   let status: ValidationStatus = warnings.length ? "warning" : "valid";
@@ -125,7 +133,7 @@ export async function validateLocalFile(
     status = "duplicate";
     warnings.push({
       code: "duplicate",
-      message: `Possible duplicate of ${duplicate.originalFilename}`,
+      message: `Already in this project as ${duplicate.originalFilename}`,
     });
   }
 
@@ -141,6 +149,7 @@ export async function validateLocalFile(
     checksum,
     warnings,
     localPreviewUrl,
+    duplicateOf: duplicate,
   };
 }
 

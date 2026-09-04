@@ -44,6 +44,7 @@ export function buildImageCards(
   /** Show saved, in-flight, and failed imports — not an empty UI during upload */
   const visible = intake.assets.filter((a) =>
     a.processingStatus === "saved"
+    || a.processingStatus === "queued"
     || a.processingStatus === "uploading"
     || a.processingStatus === "failed",
   );
@@ -58,7 +59,7 @@ export function buildImageCards(
       : finalView;
 
     const uploadStatus: ImageCardModel["uploadStatus"] =
-      asset.processingStatus === "uploading"
+      asset.processingStatus === "uploading" || asset.processingStatus === "queued"
         ? "uploading"
         : asset.processingStatus === "failed"
           ? "failed"
@@ -68,7 +69,7 @@ export function buildImageCards(
     let issueMessage: string | null = null;
     if (uploadStatus === "uploading") {
       severity = "info";
-      issueMessage = "Uploading…";
+      issueMessage = asset.processingStatus === "queued" ? "Queued…" : "Uploading…";
     } else if (asset.validationStatus === "invalid" || asset.processingStatus === "failed") {
       severity = "critical";
       issueMessage = asset.error ?? "This image cannot be used.";

@@ -4,8 +4,8 @@ import {
   createProjectApi, fetchWorkspaceApi, loadProjectMeta, openProjectApi, removeImageApi,
   saveHandoff, saveProjectMeta, updateProjectProductName, uploadImageApi, verifyProjectExists,
 } from "./api";
-import { fileToBase64 } from "./hash";
-import { IntakeImportQueue } from "./queue";
+import { fileToBase64, isSha256Hex } from "./hash";
+import { INTAKE_UPLOAD_CONCURRENCY, IntakeImportQueue } from "./queue";
 import type { IntakeAssetMeta, IntakeHandoffPayload, IntakeSnapshot } from "./types";
 import { validateLocalFile } from "./validation";
 
@@ -121,7 +121,8 @@ export class ProductIntakeEngine {
       return;
     }
     const inFlight = this.assets.filter((a) =>
-      a.processingStatus === "uploading"
+      a.processingStatus === "queued"
+      || a.processingStatus === "uploading"
       || a.processingStatus === "failed"
       || a.assetId.startsWith("temp-")
       || a.assetId.startsWith("local-fail-"),
@@ -229,12 +230,77 @@ export class ProductIntakeEngine {
     this.emit();
   }
 
+  /**
+   * Stage files immediately (local preview cards) then upload in the background.
+   * Does not wait for server confirmation before showing previews.
+   */
   enqueueFiles(files: FileList | File[]): void {
+    void this.stageAndEnqueue(files);
+  }
+
+  async stageAndEnqueue(files: FileList | File[]): Promise<void> {
     const list = [...files];
     if (!list.length) return;
     for (const file of list) {
-      const item = this.queue.enqueue(file.name, file.size, file.type || "application/octet-stream");
+      const validation = await validateLocalFile(file, this.assets);
+      if (!validation.ok || validation.critical) {
+        const failedMeta: IntakeAssetMeta = {
+          assetId: `local-fail-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          projectId: this.projectId ?? "pending",
+          originalFilename: file.name,
+          fileType: validation.mimeType || file.type,
+          width: validation.width,
+          height: validation.height,
+          fileSize: file.size,
+          importDate: new Date().toISOString(),
+          sourceReference: "local-rejected",
+          validationStatus: "invalid",
+          duplicateStatus: "none",
+          processingStatus: "failed",
+          checksum: validation.checksum,
+          warnings: validation.warnings,
+          error: validation.error,
+          localPreviewUrl: validation.localPreviewUrl,
+        };
+        this.assets = [failedMeta, ...this.assets];
+        this.notify?.("error", "Validation failed", validation.error ?? file.name, "errors");
+        continue;
+      }
+
+      if (validation.status === "duplicate" && validation.duplicateOf) {
+        if (validation.localPreviewUrl) URL.revokeObjectURL(validation.localPreviewUrl);
+        this.notify?.(
+          "warning",
+          "Duplicate skipped",
+          `${file.name} is already in this project as ${validation.duplicateOf.originalFilename}.`,
+          "warnings",
+        );
+        continue;
+      }
+
+      const item = this.queue.enqueue(file.name, file.size, validation.mimeType || file.type || "application/octet-stream");
       this.fileMap.set(item.id, file);
+      const tempId = `temp-${item.id}`;
+      const pendingMeta: IntakeAssetMeta = {
+        assetId: tempId,
+        projectId: this.projectId ?? "pending",
+        originalFilename: file.name,
+        fileType: validation.mimeType,
+        width: validation.width,
+        height: validation.height,
+        fileSize: file.size,
+        importDate: new Date().toISOString(),
+        sourceReference: "local-import",
+        validationStatus: validation.status,
+        duplicateStatus: "none",
+        processingStatus: "queued",
+        checksum: validation.checksum,
+        warnings: validation.warnings,
+        localPreviewUrl: validation.localPreviewUrl,
+        thumbnailUrl: validation.localPreviewUrl,
+        keepDespiteDuplicate: false,
+      };
+      this.assets = [pendingMeta, ...this.assets];
     }
     this.emit();
     void this.pump();
@@ -363,17 +429,20 @@ export class ProductIntakeEngine {
     if (this.pumping) return;
     this.pumping = true;
     try {
-      while (true) {
-        if (this.queue.isPaused()) break;
-        const next = this.queue.nextPending();
-        if (!next) break;
-        const file = this.fileMap.get(next.id);
-        if (!file) {
-          this.queue.update(next.id, { status: "failed", error: "File handle lost", finishedAt: new Date().toISOString() });
-          continue;
+      const workers = Array.from({ length: INTAKE_UPLOAD_CONCURRENCY }, async () => {
+        while (!this.queue.isPaused()) {
+          const next = this.queue.claimNext();
+          if (!next) break;
+          const file = this.fileMap.get(next.id);
+          if (!file) {
+            this.queue.update(next.id, { status: "failed", error: "File handle lost", finishedAt: new Date().toISOString() });
+            continue;
+          }
+          this.currentFile = file.name;
+          await this.processOne(next.id, file);
         }
-        await this.processOne(next.id, file);
-      }
+      });
+      await Promise.all(workers);
     } finally {
       this.pumping = false;
       this.currentFile = null;
@@ -383,93 +452,62 @@ export class ProductIntakeEngine {
 
   private async processOne(queueId: string, file: File): Promise<void> {
     this.currentFile = file.name;
-    this.queue.update(queueId, { status: "validating", progress: 10, startedAt: new Date().toISOString() });
+    this.queue.update(queueId, { status: "importing", progress: 20 });
+    const tempId = `temp-${queueId}`;
+    this.assets = this.assets.map((a) =>
+      a.assetId === tempId ? { ...a, processingStatus: "uploading", projectId: this.projectId ?? a.projectId } : a,
+    );
     this.emit();
 
     if (!this.projectId) {
       try {
         await this.ensureProject(this.projectName.trim() || "Untitled Product");
+        this.assets = this.assets.map((a) =>
+          a.projectId === "pending" || a.assetId === tempId ? { ...a, projectId: this.projectId! } : a,
+        );
       } catch (error) {
         this.queue.update(queueId, {
           status: "failed",
           error: error instanceof Error ? error.message : "No project",
           finishedAt: new Date().toISOString(),
         });
+        this.assets = this.assets.map((a) =>
+          a.assetId === tempId
+            ? { ...a, processingStatus: "failed", error: error instanceof Error ? error.message : "No project" }
+            : a,
+        );
         this.notify?.("error", "Import failed", String(error), "errors");
         this.emit();
         return;
       }
     }
 
-    const validation = await validateLocalFile(file, this.assets);
-    this.queue.update(queueId, { status: "importing", progress: 40 });
-    this.emit();
+    const staged = this.assets.find((a) => a.assetId === tempId);
+    const mimeType = staged?.fileType || file.type || "application/octet-stream";
+    const checksum = staged?.checksum ?? "";
 
-    if (!validation.ok || validation.critical) {
-      const failedMeta: IntakeAssetMeta = {
-        assetId: `local-fail-${queueId}`,
-        projectId: this.projectId!,
-        originalFilename: file.name,
-        fileType: validation.mimeType || file.type,
-        width: validation.width,
-        height: validation.height,
-        fileSize: file.size,
-        importDate: new Date().toISOString(),
-        sourceReference: "local-rejected",
-        validationStatus: "invalid",
-        duplicateStatus: "none",
-        processingStatus: "failed",
-        checksum: validation.checksum,
-        warnings: validation.warnings,
-        error: validation.error,
-        localPreviewUrl: validation.localPreviewUrl,
-      };
-      this.assets = [failedMeta, ...this.assets];
+    // Re-check duplicates against assets that finished while this was queued.
+    const dup = this.assets.find((a) =>
+      a.assetId !== tempId
+      && a.processingStatus === "saved"
+      && a.checksum
+      && checksum
+      && a.checksum === checksum,
+    );
+    if (dup) {
+      const localUrl = staged?.localPreviewUrl;
+      if (localUrl) URL.revokeObjectURL(localUrl);
+      this.assets = this.assets.filter((a) => a.assetId !== tempId);
       this.queue.update(queueId, {
-        status: "failed",
-        error: validation.error,
-        finishedAt: new Date().toISOString(),
+        status: "completed",
         progress: 100,
+        assetId: dup.assetId,
+        finishedAt: new Date().toISOString(),
       });
-      this.notify?.("error", "Validation failed", validation.error ?? file.name, "errors");
-      this.persistMeta();
+      this.fileMap.delete(queueId);
+      this.notify?.("warning", "Duplicate skipped", `${file.name} already saved as ${dup.originalFilename}.`, "warnings");
       this.emit();
       return;
-    }
-
-    const tempId = `temp-${queueId}`;
-    const duplicateOf = validation.status === "duplicate"
-      ? this.assets.find((a) => a.checksum === validation.checksum)
-      : undefined;
-
-    const pendingMeta: IntakeAssetMeta = {
-      assetId: tempId,
-      projectId: this.projectId!,
-      originalFilename: file.name,
-      fileType: validation.mimeType,
-      width: validation.width,
-      height: validation.height,
-      fileSize: file.size,
-      importDate: new Date().toISOString(),
-      sourceReference: "local-import",
-      validationStatus: validation.status,
-      duplicateStatus: duplicateOf ? "possible" : "none",
-      duplicateOf: duplicateOf?.assetId,
-      duplicateOfName: duplicateOf?.originalFilename,
-      processingStatus: "uploading",
-      checksum: validation.checksum,
-      warnings: validation.warnings,
-      localPreviewUrl: validation.localPreviewUrl,
-      thumbnailUrl: validation.localPreviewUrl,
-      keepDespiteDuplicate: false,
-    };
-    this.assets = [pendingMeta, ...this.assets];
-    this.emit();
-
-    if (validation.status === "duplicate") {
-      this.notify?.("warning", "Possible duplicate", `${file.name} looks similar to ${duplicateOf?.originalFilename ?? "an existing asset"}.`, "warnings");
-    } else if (validation.warnings.length) {
-      this.notify?.("warning", "Quality warning", validation.warnings[0]!.message, "warnings");
     }
 
     try {
@@ -478,29 +516,47 @@ export class ProductIntakeEngine {
       this.queue.update(queueId, { progress: 70 });
       this.emit();
 
-      const { image } = await uploadImageApi(this.projectId!, {
+      const { image, reused } = await uploadImageApi(this.projectId!, {
         fileName: file.name,
-        mimeType: validation.mimeType,
+        mimeType,
         dataBase64,
-        width: validation.width ?? undefined,
-        height: validation.height ?? undefined,
-        checksumSha256: validation.checksum,
+        width: staged?.width ?? undefined,
+        height: staged?.height ?? undefined,
+        checksumSha256: isSha256Hex(checksum) ? checksum : undefined,
       });
+
+      const prior = this.assets.find((a) => a.assetId === tempId);
+      if (prior?.localPreviewUrl) URL.revokeObjectURL(prior.localPreviewUrl);
 
       this.assets = this.assets.map((a) =>
         a.assetId === tempId
           ? {
             ...a,
             assetId: image.id,
+            projectId: this.projectId!,
             processingStatus: "saved",
             remoteUrl: image.url,
             thumbnailUrl: image.url,
+            localPreviewUrl: undefined,
+            checksum: image.checksumSha256 ?? a.checksum,
             sourceReference: `creative-workspace/projects/${this.projectId}/images`,
-            // duplicates stay as duplicate until user keeps/removes
-            keepDespiteDuplicate: a.validationStatus !== "duplicate",
+            keepDespiteDuplicate: true,
+            validationStatus: a.validationStatus === "warning" ? "warning" : "valid",
           }
           : a,
       );
+      // If server reused an existing id already in the gallery, drop the duplicate card.
+      const sameIdCount = this.assets.filter((a) => a.assetId === image.id).length;
+      if (sameIdCount > 1) {
+        let seen = false;
+        this.assets = this.assets.filter((a) => {
+          if (a.assetId !== image.id) return true;
+          if (seen) return false;
+          seen = true;
+          return true;
+        });
+      }
+
       this.queue.update(queueId, {
         status: "completed",
         progress: 100,
@@ -519,16 +575,24 @@ export class ProductIntakeEngine {
           images: [{ id: image.id, name: image.fileName }],
           projectId: this.projectId,
           count: 1,
+          reused: Boolean(reused),
         },
         priority: "normal",
       });
 
-      this.notify?.("success", "Import successful", `${file.name} saved to the project (original Windows file untouched).`, "production-complete");
+      this.notify?.(
+        "success",
+        reused ? "Image already saved" : "Import successful",
+        reused
+          ? `${file.name} matched an existing project asset (no duplicate created).`
+          : `${file.name} saved to the project (original Windows file untouched).`,
+        "production-complete",
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Upload failed";
       this.assets = this.assets.map((a) =>
         a.assetId === tempId
-          ? { ...a, processingStatus: "failed", error: message, validationStatus: "invalid" }
+          ? { ...a, processingStatus: "failed", error: message }
           : a,
       );
       this.queue.update(queueId, {

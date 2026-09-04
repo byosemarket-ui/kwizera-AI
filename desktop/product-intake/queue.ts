@@ -1,5 +1,8 @@
 import type { IntakeProgress, IntakeQueueItem, IntakeQueueStatus } from "./types";
 
+/** Soft concurrency for VPS-safe parallel uploads (not unlimited). */
+export const INTAKE_UPLOAD_CONCURRENCY = 2;
+
 export class IntakeImportQueue {
   private items: IntakeQueueItem[] = [];
   private paused = false;
@@ -30,6 +33,17 @@ export class IntakeImportQueue {
 
   update(id: string, patch: Partial<IntakeQueueItem>): void {
     this.items = this.items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+  }
+
+  /** Atomically claim the next pending item so parallel workers do not race. */
+  claimNext(): IntakeQueueItem | null {
+    if (this.paused || this.cancelled) return null;
+    const item = this.items.find((entry) => entry.status === "pending");
+    if (!item) return null;
+    item.status = "validating";
+    item.startedAt = new Date().toISOString();
+    item.progress = Math.max(item.progress, 5);
+    return { ...item };
   }
 
   pause(): void {
@@ -75,8 +89,7 @@ export class IntakeImportQueue {
   }
 
   nextPending(): IntakeQueueItem | null {
-    if (this.paused || this.cancelled) return null;
-    return this.items.find((item) => item.status === "pending") ?? null;
+    return this.claimNext();
   }
 
   progress(bytesPerSecond = 0, currentFile: string | null = null): IntakeProgress {

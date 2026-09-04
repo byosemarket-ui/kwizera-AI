@@ -363,15 +363,16 @@ export class CreativeWorkspaceManager {
     });
   }
 
-  async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
+  async uploadImage(projectId: string, image: UploadedImageInput): Promise<ProductImage & { reused?: boolean }> {
     return this.enqueueProject(projectId, async () => this.uploadImageLocked(projectId, image));
   }
 
   /**
    * Must only run inside enqueueProject for projectId.
    * Re-reads the project so concurrent mutations never clobber productImages.
+   * Same content SHA-256 in the same project reuses the existing original (idempotent).
    */
-  private async uploadImageLocked(projectId: string, image: UploadedImageInput): Promise<ProductImage> {
+  private async uploadImageLocked(projectId: string, image: UploadedImageInput): Promise<ProductImage & { reused?: boolean }> {
     const project = await this.requireProject(projectId);
     if (FUTURE_IMAGE_TYPES.has(image.mimeType)) {
       throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", `Format ${image.mimeType} is reserved for a future release and is not enabled yet`);
@@ -388,6 +389,21 @@ export class CreativeWorkspaceManager {
       throw new CreativeWorkspaceError(inspected.code, inspected.message);
     }
 
+    const checksumSha256 = createHash("sha256").update(data).digest("hex");
+    const isDerived = image.origin === "derived"
+      || image.assetType === "derived-image"
+      || Boolean(image.parentAssetId);
+
+    if (!isDerived) {
+      const existing = project.productImages.find((entry) =>
+        entry.checksumSha256 === checksumSha256
+        && isOriginalProductImage(entry),
+      );
+      if (existing) {
+        return { ...existing, reused: true };
+      }
+    }
+
     const extension = EXT_BY_MIME[inspected.mimeType] ?? inspected.mimeType.split("/")[1]?.replace("x-ms-", "") ?? "bin";
     const id = randomUUID();
     const safeName = path.basename(image.fileName).replace(/[^a-zA-Z0-9._-]/g, "_") || `product.${extension}`;
@@ -398,7 +414,6 @@ export class CreativeWorkspaceManager {
     // Atomic write: temp → rename (avoids half-written files on crash).
     await this.writeBinaryAtomic(path.join(imageDirectory, storedName), data);
 
-    const checksumSha256 = image.checksumSha256 ?? createHash("sha256").update(data).digest("hex");
     const uploaded: ProductImage = {
       id,
       fileName: safeName,

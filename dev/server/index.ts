@@ -4335,57 +4335,51 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      const body = JSON.parse(await readBody(req)) as { fileName?: string; mimeType?: string; dataBase64?: string };
-
+      const body = JSON.parse(await readBody(req)) as { fileName?: string; mimeType?: string; dataBase64?: string; width?: number; height?: number; checksumSha256?: string };
       const image = await workspace.uploadImage(uploadMatch[1], {
-
         fileName: body.fileName ?? "product-image",
-
         mimeType: body.mimeType ?? "",
-
         dataBase64: body.dataBase64 ?? "",
-
         width: typeof body.width === "number" ? body.width : undefined,
-
         height: typeof body.height === "number" ? body.height : undefined,
-
         checksumSha256: typeof body.checksumSha256 === "string" ? body.checksumSha256 : undefined,
-
       });
-
+      const reused = Boolean((image as { reused?: boolean }).reused);
       // Respond as soon as the original is persisted. Foundation sync + ingest must not
       // delay or fail the upload response (transient foundation errors were hiding success).
       const intelligence = getImageIntelligenceManager();
       const media = getMediaIntelligenceManager();
-      const ingestQueued = Boolean(intelligence?.isInitialized());
+      const ingestQueued = Boolean(intelligence?.isInitialized()) && !reused;
       const raw = await workspace.getProject(uploadMatch[1]);
-      sendJson(res, 201, {
+      sendJson(res, reused ? 200 : 201, {
         image,
         project: raw,
         asset: raw ? workspace.getAsset(raw, image.id) : null,
         validation: workspace.validate(raw),
         intake: workspace.validateIntake(raw),
         ingestQueued,
+        reused,
         product: null,
       });
 
-      setImmediate(() => {
-        void (async () => {
-          try {
-            if (intelligence?.isInitialized()) {
-              await ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id);
-              await media?.processAsset(uploadMatch[1], image.id).catch(() => undefined);
+      if (!reused) {
+        setImmediate(() => {
+          void (async () => {
+            try {
+              if (intelligence?.isInitialized()) {
+                await ingestUploadedImage(workspace, intelligence, uploadMatch[1], image.id);
+                await media?.processAsset(uploadMatch[1], image.id).catch(() => undefined);
+              }
+              const canonical = getCanonicalProductManager();
+              await canonical?.sync(uploadMatch[1]).catch(() => null);
+              const latest = await workspace.getProject(uploadMatch[1]);
+              if (latest) await withFoundation(workspace, latest, "asset");
+            } catch {
+              /* background post-upload work must never undo a successful store */
             }
-            const canonical = getCanonicalProductManager();
-            await canonical?.sync(uploadMatch[1]).catch(() => null);
-            const latest = await workspace.getProject(uploadMatch[1]);
-            if (latest) await withFoundation(workspace, latest, "asset");
-          } catch {
-            /* background post-upload work must never undo a successful store */
-          }
-        })();
-      });
-
+          })();
+        });
+      }
     } catch (error) {
 
       sendWorkspaceError(res, error);

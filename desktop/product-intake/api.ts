@@ -159,7 +159,7 @@ export async function uploadImageApi(projectId: string, input: {
   width?: number;
   height?: number;
   checksumSha256?: string;
-}): Promise<{ image: CreativeProjectDto["productImages"][number]; project: CreativeProjectDto }> {
+}): Promise<{ image: CreativeProjectDto["productImages"][number]; project: CreativeProjectDto; reused: boolean }> {
   const response = await fetch(`/api/workspace/projects/${projectId}/images`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -168,10 +168,11 @@ export async function uploadImageApi(projectId: string, input: {
   const body = await response.json() as {
     image?: CreativeProjectDto["productImages"][number];
     project?: CreativeProjectDto;
+    reused?: boolean;
     error?: string;
   };
   if (!response.ok || !body.image || !body.project) throw new Error(body.error ?? "Upload failed");
-  return { image: body.image, project: body.project };
+  return { image: body.image, project: body.project, reused: Boolean(body.reused) };
 }
 
 export async function removeImageApi(projectId: string, imageId: string): Promise<CreativeProjectDto> {

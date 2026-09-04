@@ -1,5 +1,6 @@
-/** Lightweight content fingerprint for duplicate detection (offline, no crypto dependency). */
+/** Content fingerprints for duplicate detection and server checksum identity. */
 
+/** Fast local fingerprint (name + size + head/tail). Not a cryptographic hash. */
 export async function fingerprintFile(file: File): Promise<string> {
   const sliceSize = Math.min(file.size, 64 * 1024);
   const head = await file.slice(0, sliceSize).arrayBuffer();
@@ -21,6 +22,20 @@ export async function fingerprintFile(file: File): Promise<string> {
     hash = Math.imul(hash, 16777619);
   }
   return `fnv1a-${(hash >>> 0).toString(16)}-${file.size}`;
+}
+
+/** Real SHA-256 of full file bytes — used as checksumSha256 for server idempotency. */
+export async function sha256File(file: File): Promise<string> {
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const buf = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  return fingerprintFile(file);
+}
+
+export function isSha256Hex(value: string | undefined | null): boolean {
+  return Boolean(value && /^[a-f0-9]{64}$/i.test(value));
 }
 
 export function fileToBase64(file: File): Promise<string> {

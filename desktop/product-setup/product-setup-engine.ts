@@ -198,8 +198,11 @@ export class ProductSetupEngine {
       productIntakeEngine.setProjectNameLocal(name);
       this.essentials.productName = this.essentials.productName.trim() || suggestProductName(name) || name;
     }
-    await productIntakeEngine.prepareImport(name);
-    productIntakeEngine.enqueueFiles(list);
+    // Stage previews immediately; prepare project in parallel so UI is not blocked.
+    void productIntakeEngine.stageAndEnqueue(list);
+    void productIntakeEngine.prepareImport(name).catch((error) => {
+      this.notify?.("error", "Project not ready", error instanceof Error ? error.message : String(error), "errors");
+    });
     this.emit();
   }
 
