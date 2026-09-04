@@ -253,6 +253,10 @@ export interface VideoRenderJob {
   sceneIndex?: number;
   sceneCount?: number;
   stageMessage?: string;
+  /** STEP 8 — which production engine mode actually ran this job. */
+  productionMode?: ProductionModeId;
+  /** Honest render label from production-render-profile. */
+  engineLabel?: string;
 }
 
 export interface VideoProject {

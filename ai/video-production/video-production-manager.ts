@@ -428,6 +428,7 @@ export class VideoProductionManager {
         throw new VideoProductionError("MISSING_ASSET", `Scene ${clip.order} is missing original asset ${clip.assetId}`, 422);
       }
     }
+    const renderProfile = resolveProductionRenderProfile(video.productionMode);
     const now = new Date().toISOString();
     const job: VideoRenderJob = {
       id: randomUUID(),
@@ -439,6 +440,8 @@ export class VideoProductionManager {
       createdAt: now,
       updatedAt: now,
       preset,
+      productionMode: video.productionMode ?? renderProfile.mode,
+      engineLabel: renderProfile.providerHonestLabel,
     };
     video = {
       ...video,
@@ -501,6 +504,8 @@ export class VideoProductionManager {
   }
 
   private async processJob(job: VideoRenderJob): Promise<void> {
+    const videoEarly = await this.getVideoProject(job.projectId);
+    const renderProfileEarly = resolveProductionRenderProfile(videoEarly?.productionMode ?? job.productionMode);
     const started: VideoRenderJob = {
       ...job,
       status: "processing",
@@ -508,6 +513,8 @@ export class VideoProductionManager {
       progress: 5,
       startedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      productionMode: job.productionMode ?? videoEarly?.productionMode ?? renderProfileEarly.mode,
+      engineLabel: job.engineLabel ?? renderProfileEarly.providerHonestLabel,
     };
     await this.writeJson(this.jobFile(job.id), started);
     await this.patchVideo(job.projectId, { renderState: "processing", activeJobId: job.id });
@@ -516,7 +523,7 @@ export class VideoProductionManager {
     await fs.mkdir(tmpDir, { recursive: true });
     let overlay: VideoTextOverlayStatus | undefined;
     try {
-      const video = await this.getVideoProject(job.projectId);
+      const video = videoEarly ?? await this.getVideoProject(job.projectId);
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
       const preset = job.preset ?? video.renderPlan.preset ?? "preview";
       const renderClips = sliceTimelineForRender(video.timeline, preset);
@@ -772,6 +779,8 @@ export class VideoProductionManager {
         outputAssetId: registered.id,
         textOverlay: overlay,
         preset,
+        productionMode: started.productionMode ?? video.productionMode ?? renderProfile.mode,
+        engineLabel: started.engineLabel ?? renderProfile.providerHonestLabel,
       };
       const updatedVideo = this.decorateVideo({
         ...video,
