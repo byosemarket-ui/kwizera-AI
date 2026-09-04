@@ -160,9 +160,10 @@ function extractFrames(mp4Path) {
     { name: "mid", ss: "6" },
     { name: "ending", ss: "12" },
   ];
+  const ffmpeg = process.env.KWIZERA_FFMPEG_PATH || "ffmpeg";
   for (const t of targets) {
     const out = path.join(OUT_DIR, `${t.name}.jpg`);
-    const r = spawnSync("ffmpeg", ["-y", "-ss", t.ss, "-i", mp4Path, "-frames:v", "1", "-q:v", "3", out], {
+    const r = spawnSync(ffmpeg, ["-y", "-ss", t.ss, "-i", mp4Path, "-frames:v", "1", "-q:v", "3", out], {
       encoding: "utf8",
       windowsHide: true,
     });
@@ -322,6 +323,11 @@ async function main() {
   } else {
     const types = [...new Set(directedFinal.map((c) => c.motionPlan?.directedType).filter(Boolean))];
     pass("motion-persisted", `n=${directedFinal.length} types=${types.join("|")}`);
+    if (types.length === 1 && types[0] === "STABLE_HOLD" && directedFinal.length > 2) {
+      fail("motion-variety", "all scenes STABLE_HOLD — ENGINE 1 motion collapsed");
+    } else {
+      pass("motion-variety", types.join("|"));
+    }
     // opening should not be empty hold-only if multiple clips — allow STABLE_HOLD for tight crops
     const opening = directedFinal.find((c) => c.order === 1) || directedFinal[0];
     pass("opening-direction", opening?.motionPlan?.directedType || opening?.motion || "unknown");

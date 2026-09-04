@@ -65,19 +65,40 @@ describe("STEP 7 motion direction", () => {
     const framing = buildFramingInspection({
       width: 800,
       height: 800,
-      productBox: { x: 10, y: 10, width: 780, height: 780 },
+      productBox: { x: 2, y: 2, width: 796, height: 796 },
       visibilityCutoff: true,
+      framingNote: "Too close to edge / cut-off risk",
     });
+    const plan = framing.formats["1:1"];
+    expect(plan.maxSafeEnlargement).toBeLessThanOrEqual(1.08);
     const chosen = chooseDirectedMotion({
       purpose: "HERO",
       role: "HERO_PRODUCT",
-      framing: framing.formats["1:1"],
+      framing: { ...plan, maxSafeEnlargement: 1.02, preferSafeComposition: true },
       tone: toneMotionPolicy("Modern"),
       profile: resolveProductionRenderProfile("AI_PRODUCT_MOTION"),
       order: 1,
       isLast: false,
     });
-    expect(chosen.directed === "STABLE_HOLD" || chosen.directed === "SUBTLE_PUSH_IN").toBe(true);
+    expect(chosen.directed).toBe("STABLE_HOLD");
+  });
+
+  it("TEST hero opening uses reveal or subtle push when crop is safe", () => {
+    const framing = buildFramingInspection({
+      width: 1080,
+      height: 1350,
+      productBox: { x: 220, y: 280, width: 640, height: 800 },
+    });
+    const chosen = chooseDirectedMotion({
+      purpose: "HOOK",
+      role: "HERO_PRODUCT",
+      framing: framing.formats["9:16"],
+      tone: toneMotionPolicy("Modern"),
+      profile: resolveProductionRenderProfile("AI_PRODUCT_MOTION"),
+      order: 1,
+      isLast: false,
+    });
+    expect(["HERO_REVEAL", "SUBTLE_PUSH_IN", "STABLE_HOLD"]).toContain(chosen.directed);
   });
 
   it("TEST centered vs off-center influences pan choice", () => {

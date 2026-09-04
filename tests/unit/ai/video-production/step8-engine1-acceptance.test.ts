@@ -60,6 +60,39 @@ describe("STEP 8 ENGINE 1 acceptance foundations", () => {
       projectId: "p1",
     });
     expect(directed.clips.every((c) => c.motionPlan && c.motionParams)).toBe(true);
+    expect(directed.clips[0]!.motionPlan?.directedType).not.toBe("STABLE_HOLD");
     expect(directed.clips[1]!.motion).toBe("hold");
+  });
+
+  it("Premium middle scenes are not forced into static hold", () => {
+    const profile = resolveProductionRenderProfile("AI_PRODUCT_MOTION");
+    const clips: VideoTimelineClip[] = [
+      {
+        id: "1", sceneId: "1", order: 1, purpose: "HOOK", assetId: "a",
+        startMs: 0, durationMs: 2500, layer: "video", camera: "front", motion: "hold",
+        lighting: "", background: "", transitionIn: "cut", transitionOut: "cut", text: [], audioDirection: "",
+      },
+      {
+        id: "2", sceneId: "2", order: 2, purpose: "FEATURE", assetId: "a",
+        startMs: 2500, durationMs: 2500, layer: "video", camera: "front", motion: "hold",
+        lighting: "", background: "", transitionIn: "cut", transitionOut: "cut", text: [], audioDirection: "",
+      },
+      {
+        id: "3", sceneId: "3", order: 3, purpose: "CTA", assetId: "a",
+        startMs: 5000, durationMs: 2500, layer: "video", camera: "front", motion: "slow-zoom",
+        lighting: "", background: "", transitionIn: "cut", transitionOut: "cut", text: [], audioDirection: "",
+      },
+    ];
+    const directed = applyMotionDirectionToTimeline({
+      clips,
+      profile,
+      creativeTone: "Premium",
+      aspectRatio: "9:16",
+      projectId: "p-premium",
+    });
+    expect(directed.clips[0]!.motionPlan?.directedType).not.toBe("STABLE_HOLD");
+    expect(directed.clips[1]!.motionPlan?.directedType).not.toBe("STABLE_HOLD");
+    expect(directed.clips[2]!.motion).toBe("hold");
+    expect(directed.clips[0]!.motionParams!.maxZoom).toBeGreaterThan(1);
   });
 });

@@ -141,44 +141,66 @@ export function chooseDirectedMotion(input: {
   const role = String(input.role ?? "").toUpperCase();
   const nearEdge = Boolean(input.framing?.preferSafeComposition);
   const maxSafe = input.framing?.maxSafeEnlargement ?? 1.12;
-  const tightlyCropped = maxSafe <= 1.06 || nearEdge;
+  // Only freeze motion when enlargement would truly clip the product.
+  const tightlyCropped = maxSafe <= 1.035 || (nearEdge && maxSafe <= 1.05);
   let fallbackUsed = !input.framing;
 
   if (input.isLast || /CTA|BRAND|CLOSE|END|COMPANY|CONTACT/.test(purpose)) {
     return { directed: "STABLE_HOLD", reason: "Closing/CTA scene prefers stable hold.", fallbackUsed };
   }
 
-  if (tightlyCropped || input.tone.preferStable) {
+  // Tight crop / edge risk: never destroy the product with aggressive moves.
+  if (tightlyCropped) {
     if (/HOOK|REVEAL|INTRO|HERO/.test(purpose) || role === "HERO_PRODUCT") {
       return {
-        directed: tightlyCropped ? "STABLE_HOLD" : "SUBTLE_PUSH_IN",
-        reason: tightlyCropped
-          ? "Tight crop / edge risk — stable hold to protect product."
-          : "Stable tone with subtle push for hero/hook.",
+        directed: "STABLE_HOLD",
+        reason: "Tight crop / edge risk — stable hold to protect product on opening.",
         fallbackUsed,
       };
     }
     return {
       directed: "STABLE_HOLD",
-      reason: tightlyCropped ? "Product tightly framed — avoid aggressive zoom/pan." : "Tone prefers stable camera.",
+      reason: "Product tightly framed — avoid aggressive zoom/pan.",
       fallbackUsed,
     };
   }
 
   if (role === "DETAIL_CLOSE_UP" || /DETAIL|FEATURE|MACRO|CLOSE/.test(purpose)) {
-    return { directed: "DETAIL_PUSH", reason: "Detail/feature scene uses controlled detail push.", fallbackUsed };
+    return {
+      directed: input.tone.preferStable ? "SUBTLE_PUSH_IN" : "DETAIL_PUSH",
+      reason: input.tone.preferStable
+        ? "Detail scene with restrained tone — subtle push."
+        : "Detail/feature scene uses controlled detail push.",
+      fallbackUsed,
+    };
   }
 
   if (role === "HERO_PRODUCT" || role === "MAIN_REVEAL" || /HOOK|REVEAL|INTRO|HERO/.test(purpose)) {
     return {
-      directed: input.order <= 1 ? "HERO_REVEAL" : "SUBTLE_PUSH_IN",
-      reason: input.order <= 1 ? "Opening hero reveal for retention." : "Hero/main reveal push-in.",
+      directed: input.order <= 1
+        ? (input.tone.preferStable ? "SUBTLE_PUSH_IN" : "HERO_REVEAL")
+        : "SUBTLE_PUSH_IN",
+      reason: input.order <= 1
+        ? "Opening hero with product-safe push/reveal for retention."
+        : "Hero/main reveal push-in.",
       fallbackUsed,
     };
   }
 
   if (role === "WIDE_PRODUCT_VIEW" || /WIDE|LIFESTYLE|CONTEXT/.test(purpose)) {
-    return { directed: "SUBTLE_PULL_BACK", reason: "Wide/context view uses subtle pull-back.", fallbackUsed };
+    return {
+      directed: input.tone.preferStable ? "SUBTLE_PUSH_IN" : "SUBTLE_PULL_BACK",
+      reason: "Wide/context view — restrained pull-back or subtle push.",
+      fallbackUsed,
+    };
+  }
+
+  if (input.tone.preferStable) {
+    return {
+      directed: "SUBTLE_PUSH_IN",
+      reason: "Stable tone prefers subtle product-focused push rather than static hold.",
+      fallbackUsed,
+    };
   }
 
   if (input.tone.allowPan && input.profile.motionStyle === "dynamic") {
