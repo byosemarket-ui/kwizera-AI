@@ -62,11 +62,13 @@ describe("CanonicalProductManager", () => {
       fileName: "oxford-front.png",
       mimeType: "image/png",
       dataBase64: PRODUCT_PNG,
+      allowDuplicateContent: true,
     });
     await workspace.uploadImage(project.id, {
       fileName: "oxford-left.png",
       mimeType: "image/png",
       dataBase64: PRODUCT_PNG,
+      allowDuplicateContent: true,
     });
 
     const videoPath = path.join(root, "dummy-product-video.mp4");

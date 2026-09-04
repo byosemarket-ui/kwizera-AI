@@ -15,7 +15,8 @@ describe("ImageIntelligenceManager", () => {
   it("builds persisted per-image profiles with quality, background, view, object, scene, and enhancement intelligence", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-image-intelligence-")); roots.push(root);
     const workspace = new CreativeWorkspaceManager(); await workspace.initialize(root); const project = await workspace.createProject("Bottle Launch"); await workspace.updateProject(project.id, { productInformation: { name: "Studio Bottle", category: "Beverage", description: "Black insulated steel bottle in a studio" }, brandInformation: { name: "KWIZERA" }, campaignInformation: { name: "Launch", objective: "Awareness" }, targetAudience: "Urban professionals" });
-    await workspace.uploadImage(project.id, { fileName: "black-steel-bottle-front-studio.png", mimeType: "image/png", dataBase64: PNG_1X1 }); await workspace.uploadImage(project.id, { fileName: "black-steel-bottle-side-studio.png", mimeType: "image/png", dataBase64: PNG_1X1 });
+    await workspace.uploadImage(project.id, { fileName: "black-steel-bottle-front-studio.png", mimeType: "image/png", dataBase64: PNG_1X1, allowDuplicateContent: true });
+    await workspace.uploadImage(project.id, { fileName: "black-steel-bottle-side-studio.png", mimeType: "image/png", dataBase64: PNG_1X1, allowDuplicateContent: true });
     const manager = new ImageIntelligenceManager(); await manager.initialize(root, { core: undefined as unknown as AiCoreManager, workspace }); const profiles = await manager.analyzeProject(project.id);
     expect(profiles).toHaveLength(2);
     expect(profiles[0].background.type).toBe("White Studio");
@@ -36,8 +37,8 @@ describe("ImageIntelligenceManager", () => {
   it("detects duplicate uploads without modifying original image bytes", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-image-intelligence-dup-")); roots.push(root);
     const workspace = new CreativeWorkspaceManager(); await workspace.initialize(root); const project = await workspace.createProject("Dup Check"); await workspace.updateProject(project.id, { productInformation: { name: "Studio Bottle", category: "Beverage", description: "Black insulated steel bottle in a studio" }, brandInformation: { name: "KWIZERA" }, campaignInformation: { name: "Launch", objective: "Awareness" }, targetAudience: "Urban professionals" });
-    await workspace.uploadImage(project.id, { fileName: "bottle-front.png", mimeType: "image/png", dataBase64: PNG_1X1 });
-    await workspace.uploadImage(project.id, { fileName: "bottle-front-copy.png", mimeType: "image/png", dataBase64: PNG_1X1 });
+    await workspace.uploadImage(project.id, { fileName: "bottle-front.png", mimeType: "image/png", dataBase64: PNG_1X1, allowDuplicateContent: true });
+    await workspace.uploadImage(project.id, { fileName: "bottle-front-copy.png", mimeType: "image/png", dataBase64: PNG_1X1, allowDuplicateContent: true });
     const manager = new ImageIntelligenceManager(); await manager.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });
     const profiles = await manager.analyzeProject(project.id);
     expect(profiles.some((profile) => profile.duplicateOfImageId)).toBe(true);

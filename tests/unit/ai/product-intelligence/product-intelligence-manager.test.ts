@@ -37,11 +37,13 @@ describe("ProductIntelligenceManager", () => {
       fileName: "black-steel-bottle-front.png",
       mimeType: "image/png",
       dataBase64: PNG_1X1,
+      allowDuplicateContent: true,
     });
     await workspace.uploadImage(project.id, {
       fileName: "black-steel-bottle-side.png",
       mimeType: "image/png",
       dataBase64: PNG_1X1,
+      allowDuplicateContent: true,
     });
     const manager = new ProductIntelligenceManager();
     await manager.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });
@@ -87,11 +89,13 @@ describe("ProductIntelligenceManager", () => {
       fileName: "bottle-front.png",
       mimeType: "image/png",
       dataBase64: PNG_1X1,
+      allowDuplicateContent: true,
     });
     await workspace.uploadImage(project.id, {
       fileName: "bottle-front-copy.png",
       mimeType: "image/png",
       dataBase64: PNG_1X1,
+      allowDuplicateContent: true,
     });
     const images = new ImageIntelligenceManager();
     await images.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });

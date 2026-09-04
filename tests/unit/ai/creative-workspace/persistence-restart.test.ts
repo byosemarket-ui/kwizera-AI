@@ -34,6 +34,7 @@ describe("Creative workspace persistence (Step 3)", () => {
         dataBase64: PNG_1X1,
         width: 1,
         height: 1,
+        allowDuplicateContent: true,
       });
     }
 

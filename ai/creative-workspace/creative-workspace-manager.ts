@@ -163,6 +163,11 @@ export interface UploadedImageInput {
   width?: number;
   height?: number;
   checksumSha256?: string;
+  /**
+   * When true, skip content-hash reuse (test fixtures / rare intentional copies).
+   * Production Product Setup never sets this — duplicates are reused.
+   */
+  allowDuplicateContent?: boolean;
   assetType?: ProjectAssetType;
   origin?: AssetOrigin;
   parentAssetId?: string;
@@ -394,7 +399,7 @@ export class CreativeWorkspaceManager {
       || image.assetType === "derived-image"
       || Boolean(image.parentAssetId);
 
-    if (!isDerived) {
+    if (!isDerived && !image.allowDuplicateContent) {
       const existing = project.productImages.find((entry) =>
         entry.checksumSha256 === checksumSha256
         && isOriginalProductImage(entry),

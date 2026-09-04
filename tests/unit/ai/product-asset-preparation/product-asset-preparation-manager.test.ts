@@ -37,11 +37,13 @@ async function setup() {
     fileName: "bottle-front-studio.png",
     mimeType: "image/png",
     dataBase64: PRODUCT_PNG,
+    allowDuplicateContent: true,
   });
   await workspace.uploadImage(project.id, {
     fileName: "bottle-detail-studio.png",
     mimeType: "image/png",
     dataBase64: PRODUCT_PNG,
+    allowDuplicateContent: true,
   });
   const images = new ImageIntelligenceManager();
   await images.initialize(root, { core: undefined as unknown as AiCoreManager, workspace });
