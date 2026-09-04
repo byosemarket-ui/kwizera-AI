@@ -56,6 +56,7 @@ describe("CreativeWorkspaceManager", () => {
         fileName: `race-${index + 1}.png`,
         mimeType: "image/png",
         dataBase64: png,
+        allowDuplicateContent: true,
       })),
     );
     await Promise.all(uploads.map((image) => workspace.registerDerivedAsset(project.id, {
