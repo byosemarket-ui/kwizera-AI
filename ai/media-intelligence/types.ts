@@ -28,6 +28,12 @@ export interface MediaAssetEntry {
     | "ENHANCE_SOURCE"
     | "REFRAME_PRODUCT"
     | "REQUEST_USER_ATTENTION";
+  /** STEP 6 production role for later motion stages. */
+  productionRole?: string;
+  productionRoleConfidence?: number;
+  suitableForProduction?: boolean;
+  readyForLaterMotionStages?: boolean;
+  backgroundPrepDecision?: string;
   view?: { role: string; confidence: number };
   background?: { type: string; removable: boolean; confidence: number; suitability?: string };
   quality?: { score: number; classification?: string; confidence: number };

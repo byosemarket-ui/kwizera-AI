@@ -808,7 +808,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           core: manager,
           workspace: workspaceManager,
           planning: planningManager,
+          assets: productAssetPreparationManager ?? undefined,
         });
+        if (productAssetPreparationManager) {
+          videoProductionManager.attachProductAssetPreparation(productAssetPreparationManager);
+        }
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
         console.log("[KWIZERA] Initializing learning intelligence runtime");

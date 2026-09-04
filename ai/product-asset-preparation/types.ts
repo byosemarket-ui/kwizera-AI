@@ -1,6 +1,8 @@
 import type { ProductViewRole } from "../product-intelligence/types.js";
+import type { PreparedAssetDecision } from "./prepared-asset-contract.js";
 
 export type ProductAssetViewType = ProductViewRole;
+export type { PreparedAssetDecision };
 
 export interface BoundingBox {
   x: number;
@@ -71,6 +73,8 @@ export interface ProductAssetPreparationResult {
   productId: string;
   productName: string;
   assets: ProductAssetRecord[];
+  /** STEP 6 — one decision per original product image (includes KEEP_ORIGINAL). */
+  preparedDecisions: PreparedAssetDecision[];
   multiView: MultiViewProductAssetSet;
   missingViews: ProductAssetViewType[];
   photoRecommendations: Array<{ view: ProductAssetViewType; reason: string; priority: "high" | "medium" | "low" }>;
@@ -85,6 +89,7 @@ export interface ProductAssetPreparationResult {
   creativePipelineStep: 2;
   scenePlanningDeferred: true;
   videoGenerationDeferred: true;
+  step6ContractVersion?: string;
 }
 
 export interface AiMeProductAssetAwareness {
@@ -122,6 +127,8 @@ export interface ProductAssetHealthReport {
 export interface ProductAssetPreparationStore {
   assets: ProductAssetRecord[];
   results: ProductAssetPreparationResult[];
+  /** Latest STEP 6 decisions keyed for quick project restore. */
+  preparedDecisions: PreparedAssetDecision[];
   fingerprints: Record<string, string>;
   history: Array<{ id: string; at: string; projectId: string; event: string; detail: string }>;
   logs: Array<{ at: string; level: "info" | "warning" | "error"; message: string }>;

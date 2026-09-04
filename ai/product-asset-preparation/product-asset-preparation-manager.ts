@@ -10,11 +10,15 @@ import { decideIsolation } from "../media-intelligence/isolation-policy.js";
 import type { ProductIntelligenceManager } from "../product-intelligence/product-intelligence-manager.js";
 import type { ProductIntelligenceProfile } from "../product-intelligence/types.js";
 import { analyzeCutoutQuality, buildNormalizedProductCutout, buildProductMask, PREPARATION_METHOD, DEFAULT_MAX_EDGE } from "./png-canvas.js";
+import { buildPreparedAssetDecision } from "./build-prepared-decision.js";
+import { PREPARED_ASSET_CONTRACT_VERSION } from "./prepared-asset-contract.js";
+import { resolveUniqueHeroRoles } from "./production-roles.js";
 import type {
   AiMeProductAssetAwareness,
   AssetQualityReport,
   BackgroundRemovalPlan,
   MultiViewProductAssetSet,
+  PreparedAssetDecision,
   ProductAssetExplainResult,
   ProductAssetHealthReport,
   ProductAssetPreparationResult,
@@ -23,7 +27,14 @@ import type {
   ProductAssetViewType,
 } from "./types.js";
 
-const EMPTY: ProductAssetPreparationStore = { assets: [], results: [], fingerprints: {}, history: [], logs: [] };
+const EMPTY: ProductAssetPreparationStore = {
+  assets: [],
+  results: [],
+  preparedDecisions: [],
+  fingerprints: {},
+  history: [],
+  logs: [],
+};
 const CANVAS_SIZE = DEFAULT_MAX_EDGE;
 const ASSET_VERSION = 3;
 const REQUIRED_VIEWS: ProductAssetViewType[] = ["front", "back", "left", "right", "top", "bottom", "detail", "close-up"];
@@ -81,11 +92,52 @@ export class ProductAssetPreparationManager {
     const productProfile = await this.products!.analyzeProductIntelligence(projectId);
     const imageProfiles = await this.images!.analyzeProject(projectId);
     const prepared: ProductAssetRecord[] = [];
+    const decisions: PreparedAssetDecision[] = [];
 
-    for (const image of originals) {
+    for (let index = 0; index < originals.length; index += 1) {
+      const image = originals[index]!;
       const imageProfile = imageProfiles.find((item) => item.imageId === image.id);
-      const record = await this.prepareSingleAsset(project, image, productProfile, imageProfile, { force: true });
-      if (record) prepared.push(record);
+      let fileMissing = false;
+      const originalPath = await this.workspace!.getOriginalImagePath(projectId, image.id);
+      if (!originalPath) fileMissing = true;
+
+      let record: ProductAssetRecord | null = null;
+      if (!fileMissing) {
+        try {
+          record = await this.prepareSingleAsset(project, image, productProfile, imageProfile, { force: true });
+          if (record) prepared.push(record);
+        } catch (error) {
+          this.history(
+            projectId,
+            "prepare",
+            `Asset ${image.id} preparation error: ${error instanceof Error ? error.message : "unknown"}`,
+          );
+        }
+      }
+
+      const refreshed = await this.workspace!.getProject(projectId);
+      const derivedForeground = refreshed?.productImages.find(
+        (item) => item.parentAssetId === image.id && item.derivedKind === "analyzed",
+      );
+      const derivedMask = refreshed?.productImages.find(
+        (item) => item.parentAssetId === image.id && item.derivedKind === "mask",
+      );
+
+      decisions.push(buildPreparedAssetDecision({
+        projectId,
+        image,
+        profile: imageProfile,
+        orderHint: index,
+        fileMissing,
+        preparedRecord: record,
+        derivedForegroundId: derivedForeground?.id,
+        derivedMaskId: derivedMask?.id,
+      }));
+    }
+
+    const roles = resolveUniqueHeroRoles(decisions.map((d) => d.role));
+    for (let i = 0; i < decisions.length; i += 1) {
+      decisions[i] = { ...decisions[i]!, role: roles[i]! };
     }
 
     const multiView = this.multiView.organize(projectId, productProfile, prepared);
@@ -96,6 +148,7 @@ export class ProductAssetPreparationManager {
       productId: productProfile.id,
       productName: productProfile.productName,
       assets: prepared,
+      preparedDecisions: decisions,
       multiView,
       missingViews: multiView.missingViews,
       photoRecommendations,
@@ -104,11 +157,20 @@ export class ProductAssetPreparationManager {
       creativePipelineStep: 2,
       scenePlanningDeferred: true,
       videoGenerationDeferred: true,
+      step6ContractVersion: PREPARED_ASSET_CONTRACT_VERSION,
     };
     this.store.results = this.store.results.filter((item) => item.projectId !== projectId);
     this.store.results.unshift(result);
-    this.history(projectId, "prepare", `Prepared ${prepared.length} product asset(s); missing views: ${multiView.missingViews.join(", ") || "none"}.`);
-    this.log("info", `Product assets prepared for ${project.name}.`);
+    this.store.preparedDecisions = [
+      ...decisions,
+      ...this.store.preparedDecisions.filter((item) => item.projectId !== projectId),
+    ];
+    this.history(
+      projectId,
+      "prepare",
+      `Prepared ${prepared.length} cutout(s) and ${decisions.length} STEP 6 decision(s); missing views: ${multiView.missingViews.join(", ") || "none"}.`,
+    );
+    this.log("info", `Product assets prepared for ${project.name} (STEP 6 decisions=${decisions.length}).`);
     await this.persist();
     return structuredClone(result);
   }
@@ -324,6 +386,17 @@ export class ProductAssetPreparationManager {
     return this.store.results.find((item) => item.projectId === projectId) ?? null;
   }
 
+  async getPreparedDecisions(projectId: string): Promise<PreparedAssetDecision[]> {
+    const fromResult = this.store.results.find((item) => item.projectId === projectId)?.preparedDecisions;
+    if (fromResult?.length) return structuredClone(fromResult);
+    return structuredClone(this.store.preparedDecisions.filter((item) => item.projectId === projectId));
+  }
+
+  async getPreparedDecision(projectId: string, assetId: string): Promise<PreparedAssetDecision | null> {
+    const list = await this.getPreparedDecisions(projectId);
+    return list.find((item) => item.assetId === assetId) ?? null;
+  }
+
   async getLibrary(projectId?: string): Promise<ProductAssetRecord[]> {
     return this.store.assets
       .filter((asset) => !projectId || asset.projectId === projectId)
@@ -399,6 +472,7 @@ export class ProductAssetPreparationManager {
   async getDashboard(projectId?: string): Promise<{
     assets: ProductAssetRecord[];
     results: ProductAssetPreparationResult[];
+    preparedDecisions: PreparedAssetDecision[];
     history: ProductAssetPreparationStore["history"];
     logs: ProductAssetPreparationStore["logs"];
     awareness: AiMeProductAssetAwareness;
@@ -406,9 +480,11 @@ export class ProductAssetPreparationManager {
   }> {
     const assets = this.store.assets.filter((asset) => !projectId || asset.projectId === projectId);
     const results = this.store.results.filter((result) => !projectId || result.projectId === projectId);
+    const preparedDecisions = this.store.preparedDecisions.filter((item) => !projectId || item.projectId === projectId);
     return {
       assets: structuredClone(assets),
       results: structuredClone(results),
+      preparedDecisions: structuredClone(preparedDecisions),
       history: this.store.history.filter((item) => !projectId || item.projectId === projectId),
       logs: [...this.store.logs],
       awareness: this.getAiMeProductAssetAwareness(),
@@ -418,6 +494,8 @@ export class ProductAssetPreparationManager {
         averageQuality: assets.length ? Math.round(assets.reduce((sum, asset) => sum + asset.quality.score, 0) / assets.length) : 0,
         transparentAssets: assets.filter((asset) => asset.transparency).length,
         fingerprints: Object.keys(this.store.fingerprints).length,
+        preparedDecisions: preparedDecisions.length,
+        readyForMotion: preparedDecisions.filter((d) => d.readyForLaterMotionStages).length,
       },
     };
   }
@@ -444,7 +522,11 @@ export class ProductAssetPreparationManager {
         ...structuredClone(EMPTY),
         ...value,
         assets: value.assets ?? [],
-        results: value.results ?? [],
+        results: (value.results ?? []).map((result) => ({
+          ...result,
+          preparedDecisions: result.preparedDecisions ?? [],
+        })),
+        preparedDecisions: value.preparedDecisions ?? [],
         fingerprints: value.fingerprints ?? {},
         history: value.history ?? [],
         logs: value.logs ?? [],

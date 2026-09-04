@@ -68,7 +68,8 @@ async function buildItem(input: {
   });
   const weighted = mapWeightToInstalled(weightPref, baseFont, input.fonts);
   const productCentered = productLikelyCentered(input.scene.image);
-  let region = input.aiHint?.region && !regionOverlapsProduct(input.aiHint.region, productCentered)
+  const productOccupiedRegion = input.scene.image?.productOccupiedRegion;
+  let region = input.aiHint?.region && !regionOverlapsProduct(input.aiHint.region, productCentered, productOccupiedRegion)
     ? input.aiHint.region
     : choosePlacement({
       role: input.roleText.role,
@@ -76,13 +77,15 @@ async function buildItem(input: {
       backgroundComplexity: input.scene.image?.backgroundComplexity,
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
+      productOccupiedRegion,
     });
-  if (regionOverlapsProduct(region, productCentered)) {
+  if (regionOverlapsProduct(region, productCentered, productOccupiedRegion)) {
     region = choosePlacement({
       role: input.roleText.role,
       productCentered: true,
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
+      productOccupiedRegion,
     });
   }
   const zone = platformSafeZone(input.project.platform, input.project.aspectRatio);

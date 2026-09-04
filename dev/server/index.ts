@@ -2676,6 +2676,34 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   }
 
+  const productAssetDecisionsMatch = url.pathname.match(/^\/api\/product-asset-preparation\/projects\/([^/]+)\/decisions$/);
+
+  if (productAssetDecisionsMatch && req.method === "GET") {
+
+    const preparation = requireProductAssetPreparation(res);
+
+    if (!preparation) return;
+
+    try {
+
+      const decisions = await preparation.getPreparedDecisions(productAssetDecisionsMatch[1]);
+
+      sendJson(res, 200, {
+        projectId: productAssetDecisionsMatch[1],
+        contractVersion: "step6-asset-prep-v1",
+        decisions,
+      });
+
+    } catch (error) {
+
+      sendJson(res, 400, { error: error instanceof Error ? error.message : "Prepared asset decisions failed" });
+
+    }
+
+    return;
+
+  }
+
   const productScenePlanMatch = url.pathname.match(/^\/api\/product-scene-planning\/projects\/([^/]+)\/plan$/);
 
   if (productScenePlanMatch && req.method === "POST") {

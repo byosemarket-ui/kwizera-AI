@@ -225,6 +225,8 @@ export interface TypographyComposeInput {
       /** 0–1 or 0–255 — normalized in region analysis. */
       meanLuminance?: number;
       productLikelyCentered?: boolean;
+      /** Normalized 0–1 product occupied region from STEP 6 prep (when available). */
+      productOccupiedRegion?: { x: number; y: number; width: number; height: number };
       logoPresent?: boolean;
       /** Local path for STEP 4 region sampling — never persisted publicly. */
       imagePath?: string;

@@ -36,6 +36,19 @@ export function decideIsolation(profile: ImageIntelligenceProfile | null | undef
     };
   }
 
+  const framing = profile.visibility?.framing ?? "";
+  const cutoff = Boolean(profile.visibility?.cutoff);
+  const smallInFrame = /small in frame/i.test(framing);
+  if (cutoff || smallInFrame || profile.visibility?.status === "needs-review") {
+    return {
+      isolate: false,
+      reason: cutoff
+        ? "Product near edge / cut-off risk — prepare reframe metadata; keep original pixels."
+        : "Product framing needs adjustment — prepare reframe metadata without isolating.",
+      decision: "REFRAME_PRODUCT",
+    };
+  }
+
   if (!profile.background.removable) {
     return {
       isolate: false,

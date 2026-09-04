@@ -114,7 +114,7 @@ describe("media report preparationDecision", () => {
     });
     await media.prepareProject(project.id);
     const report = await media.getReport(project.id);
-    expect(report.pipelineVersion).toBe("step4-image-prep-v1");
+    expect(report.pipelineVersion).toBe("step6-asset-prep-v1");
     expect(report.assets[0]?.preparationDecision).toBeTruthy();
     expect([
       "KEEP_ORIGINAL",

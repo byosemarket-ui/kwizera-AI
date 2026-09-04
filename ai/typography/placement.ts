@@ -34,9 +34,22 @@ export const REGION_COORDS: Record<PlacementRegion, { x: number; y: number; alig
 
 const PRODUCT_CENTER_BOX = { x0: 0.28, y0: 0.28, x1: 0.72, y1: 0.72 };
 
-export function regionOverlapsProduct(region: PlacementRegion, productCentered: boolean): boolean {
-  if (!productCentered) return region === "center";
+export function regionOverlapsProduct(
+  region: PlacementRegion,
+  productCentered: boolean,
+  productOccupiedRegion?: { x: number; y: number; width: number; height: number } | null,
+): boolean {
   const point = REGION_COORDS[region];
+  if (productOccupiedRegion
+    && productOccupiedRegion.width > 0
+    && productOccupiedRegion.height > 0) {
+    const x0 = productOccupiedRegion.x;
+    const y0 = productOccupiedRegion.y;
+    const x1 = productOccupiedRegion.x + productOccupiedRegion.width;
+    const y1 = productOccupiedRegion.y + productOccupiedRegion.height;
+    return point.x >= x0 && point.x <= x1 && point.y >= y0 && point.y <= y1;
+  }
+  if (!productCentered) return region === "center";
   return point.x >= PRODUCT_CENTER_BOX.x0
     && point.x <= PRODUCT_CENTER_BOX.x1
     && point.y >= PRODUCT_CENTER_BOX.y0
@@ -58,6 +71,7 @@ export function choosePlacement(input: {
   backgroundComplexity?: string;
   occupiedRegions?: PlacementRegion[];
   hierarchy: number;
+  productOccupiedRegion?: { x: number; y: number; width: number; height: number } | null;
 }): PlacementRegion {
   const occupied = new Set(input.occupiedRegions ?? []);
   const preferTop = input.productCentered || input.hierarchy <= 2;
@@ -71,7 +85,7 @@ export function choosePlacement(input: {
 
   for (const region of candidates) {
     if (occupied.has(region)) continue;
-    if (regionOverlapsProduct(region, input.productCentered)) continue;
+    if (regionOverlapsProduct(region, input.productCentered, input.productOccupiedRegion)) continue;
     return region;
   }
   return input.productCentered ? "top-center" : "bottom-center";

@@ -15,7 +15,7 @@ import { decideIsolation } from "./isolation-policy.js";
 import { countUsableAssets, mapQualityToMediaStatus } from "./quality-status.js";
 import type { MediaAssetEntry, MediaIntelligenceReport, ProductIntelligenceSummary } from "./types.js";
 
-const PIPELINE_VERSION = "step4-image-prep-v1";
+const PIPELINE_VERSION = "step6-asset-prep-v1";
 
 export class MediaIntelligenceManager {
   private workspace: CreativeWorkspaceManager | null = null;
@@ -168,6 +168,7 @@ export class MediaIntelligenceManager {
     for (const image of originals) {
       const profile = imageProfiles.find((p) => p.imageId === image.id);
       const prepAsset = prepResult?.assets.find((a) => a.sourceImageId === image.id);
+      const step6 = prepResult?.preparedDecisions?.find((d) => d.assetId === image.id);
       const derivedForeground = project.productImages.find(
         (item) => item.parentAssetId === image.id && item.derivedKind === "analyzed",
       );
@@ -186,8 +187,13 @@ export class MediaIntelligenceManager {
         height: image.height,
         status,
         analysisState: profile?.analysisState ?? "unavailable",
-        processingState: prepAsset ? "ready" : (profile?.processingState ?? "pending"),
-        preparationDecision: isolation.decision,
+        processingState: prepAsset || step6 ? "ready" : (profile?.processingState ?? "pending"),
+        preparationDecision: step6?.preparationDecision ?? isolation.decision,
+        productionRole: step6?.role.role,
+        productionRoleConfidence: step6?.role.confidence,
+        suitableForProduction: step6 ? step6.role.safeToUse && step6.valid : undefined,
+        readyForLaterMotionStages: step6?.readyForLaterMotionStages,
+        backgroundPrepDecision: step6?.background.decision,
         view: profile ? { role: profile.viewRole, confidence: profile.boundaries.confidence } : undefined,
         background: profile ? {
           type: profile.background.type,
@@ -204,7 +210,7 @@ export class MediaIntelligenceManager {
         derivedMaskId: derivedMask?.id ?? prepAsset?.metadata?.workspaceMaskAssetId as string | undefined,
         derivedThumbnailId: profile?.derivedThumbnailId,
         originalPreserved: true,
-        errors: [],
+        errors: step6 && !step6.valid ? step6.warnings.slice(0, 3) : [],
       });
     }
 
@@ -249,6 +255,7 @@ export class MediaIntelligenceManager {
     const children = project?.productImages.filter((item) => item.parentAssetId === assetId) ?? [];
     const foreground = children.find((item) => item.derivedKind === "analyzed");
     const mask = children.find((item) => item.derivedKind === "mask");
+    const step6 = await this.assets!.getPreparedDecision(projectId, assetId).catch(() => null);
     return {
       assetId,
       projectId,
@@ -260,7 +267,12 @@ export class MediaIntelligenceManager {
       status: mapQualityToMediaStatus(profile, Boolean(error)),
       analysisState: profile?.analysisState ?? (error ? "failed" : "unavailable"),
       processingState: profile?.processingState ?? "pending",
-      preparationDecision: isolation.decision,
+      preparationDecision: step6?.preparationDecision ?? isolation.decision,
+      productionRole: step6?.role.role,
+      productionRoleConfidence: step6?.role.confidence,
+      suitableForProduction: step6 ? step6.role.safeToUse && step6.valid : undefined,
+      readyForLaterMotionStages: step6?.readyForLaterMotionStages,
+      backgroundPrepDecision: step6?.background.decision,
       view: profile ? { role: profile.viewRole, confidence: profile.boundaries.confidence } : undefined,
       background: profile ? {
         type: profile.background.type,

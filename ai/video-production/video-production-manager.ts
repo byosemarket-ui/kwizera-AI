@@ -6,6 +6,8 @@ import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
+import type { ProductAssetPreparationManager } from "../product-asset-preparation/product-asset-preparation-manager.js";
+import { buildFramingInspection } from "../product-asset-preparation/framing.js";
 import {
   concatClips,
   ffmpegAvailable,
@@ -55,21 +57,32 @@ export class VideoProductionManager {
   private core: AiCoreManager | null = null;
   private workspace: CreativeWorkspaceManager | null = null;
   private planning: CreativePlanningManager | null = null;
+  private assets: ProductAssetPreparationManager | null = null;
   private rendering = false;
   private draining = false;
 
   async initialize(
     storageRoot: string,
-    deps: { core?: AiCoreManager; workspace: CreativeWorkspaceManager; planning: CreativePlanningManager },
+    deps: {
+      core?: AiCoreManager;
+      workspace: CreativeWorkspaceManager;
+      planning: CreativePlanningManager;
+      assets?: ProductAssetPreparationManager;
+    },
   ): Promise<void> {
     this.root = path.join(storageRoot, "video-production");
     this.core = deps.core ?? null;
     this.workspace = deps.workspace;
     this.planning = deps.planning;
+    this.assets = deps.assets ?? null;
     await fs.mkdir(path.join(this.root, "projects"), { recursive: true });
     await fs.mkdir(path.join(this.root, "jobs"), { recursive: true });
     await fs.mkdir(path.join(this.root, "tmp"), { recursive: true });
     await this.failInterruptedJobs();
+  }
+
+  attachProductAssetPreparation(assets: ProductAssetPreparationManager): void {
+    this.assets = assets;
   }
 
   isInitialized(): boolean {
@@ -255,9 +268,12 @@ export class VideoProductionManager {
         const resolved = scene.assetId
           ? await resolveProductionImagePath(this.workspace!, projectId, scene.assetId)
           : null;
+        const occupied = await this.resolveProductOccupiedRegion(projectId, scene.assetId);
         return buildTypographyImageHint({
           imagePath: resolved?.path,
           composition: scene.composition,
+          productOccupiedRegion: occupied?.region,
+          productLikelyCentered: occupied?.centered,
           brandColors: typeof workspaceProject.brandInformation?.colors === "string"
             ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
             : undefined,
@@ -520,9 +536,12 @@ export class VideoProductionManager {
             const resolved = scene.assetId
               ? await resolveProductionImagePath(this.workspace!, job.projectId, scene.assetId)
               : null;
+            const occupied = await this.resolveProductOccupiedRegion(job.projectId, scene.assetId);
             return buildTypographyImageHint({
               imagePath: resolved?.path,
               composition: scene.composition,
+              productOccupiedRegion: occupied?.region,
+              productLikelyCentered: occupied?.centered,
               brandColors: typeof workspaceProject.brandInformation?.colors === "string"
                 ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
                 : undefined,
@@ -820,6 +839,35 @@ export class VideoProductionManager {
     const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
     await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
     await fs.rename(temporaryPath, filePath);
+  }
+
+  private async resolveProductOccupiedRegion(
+    projectId: string,
+    assetId?: string | null,
+  ): Promise<{ region: { x: number; y: number; width: number; height: number }; centered: boolean } | null> {
+    if (!assetId || !this.workspace) return null;
+    try {
+      const decision = this.assets
+        ? await this.assets.getPreparedDecision(projectId, assetId).catch(() => null)
+        : null;
+      if (decision?.framing?.productBounds) {
+        return {
+          region: decision.framing.productBounds,
+          centered: decision.framing.productCentered,
+        };
+      }
+      const project = await this.workspace.getProject(projectId);
+      const image = project?.productImages.find((item) => item.id === assetId);
+      if (!image?.width || !image?.height) return null;
+      const framing = buildFramingInspection({
+        width: image.width,
+        height: image.height,
+        productBox: decision?.protectedProductBox,
+      });
+      return { region: framing.productBounds, centered: framing.productCentered };
+    } catch {
+      return null;
+    }
   }
 
   private decorateVideo(video: VideoProject): VideoProject {
