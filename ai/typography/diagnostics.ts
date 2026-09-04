@@ -22,6 +22,11 @@ export async function getTypographyDiagnostics(): Promise<PublicTypographyDiagno
       textMeasurementReady: true,
       placementValidationReady: true,
       rendererFontResolutionReady: Boolean(fallback),
+      hierarchyEngineReady: true,
+      adaptiveSizingReady: true,
+      emphasisEngineReady: true,
+      contrastEngineReady: true,
+      regionAnalysisReady: true,
       lastError: fallback
         ? (ffmpeg ? null : "FFmpeg unavailable")
         : "No verified fonts found",
@@ -38,6 +43,11 @@ export async function getTypographyDiagnostics(): Promise<PublicTypographyDiagno
       textMeasurementReady: true,
       placementValidationReady: true,
       rendererFontResolutionReady: false,
+      hierarchyEngineReady: true,
+      adaptiveSizingReady: true,
+      emphasisEngineReady: true,
+      contrastEngineReady: true,
+      regionAnalysisReady: true,
       lastError: error instanceof Error ? error.message : "Typography diagnostics failed",
     };
   }

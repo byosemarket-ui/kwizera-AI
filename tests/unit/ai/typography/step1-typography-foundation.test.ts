@@ -239,12 +239,17 @@ describe("STEP 1 typography foundation", () => {
         filePath: "/no/such/font.ttf",
         style: "regular",
         weight: 400,
+        weightName: "regular",
         personality: "script",
       },
       layout: { region: "center" as TypographyItem["layout"]["region"], normalizedX: 9, normalizedY: -2, alignment: "center" },
-      size: { fontSizePx: 999, maxLines: 2 },
+      size: { fontSizePx: 999, maxLines: 2, maxWidthPx: 800 },
       visual: { color: "white", contrastStrategy: "outline" },
       hierarchy: 1,
+      hierarchyLevel: "PRIMARY",
+      importanceScore: 0.2,
+      emphasis: [],
+      boundingArea: { x: 0.2, y: 0.1, width: 0.4, height: 0.08 },
       confidence: 0.2,
     };
     const unsafe: TypographyDecision = {
@@ -333,6 +338,9 @@ describe("STEP 1 typography foundation", () => {
     expect(diagnostics.deterministicFallback).toBe(true);
     expect(diagnostics.textMeasurementReady).toBe(true);
     expect(diagnostics.placementValidationReady).toBe(true);
+    expect(diagnostics.hierarchyEngineReady).toBe(true);
+    expect(diagnostics.adaptiveSizingReady).toBe(true);
+    expect(diagnostics.emphasisEngineReady).toBe(true);
     expect(JSON.stringify(diagnostics)).not.toMatch(/C:\\Windows\\Fonts|\/usr\/share\/fonts/);
   });
 });

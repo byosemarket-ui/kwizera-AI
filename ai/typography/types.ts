@@ -17,12 +17,53 @@ export const TEXT_ROLES = [
   "promotion",
   "cta",
   "brand",
+  "website",
+  "phone",
   "sceneCaption",
   "closingMessage",
   "supporting",
 ] as const;
 
 export type TextRole = (typeof TEXT_ROLES)[number];
+
+/** STEP 3 semantic hierarchy — complements numeric hierarchy rank. */
+export const HIERARCHY_LEVELS = [
+  "PRIMARY",
+  "SECONDARY",
+  "SUPPORTING",
+  "MINOR",
+  "CRITICAL_ACTION",
+] as const;
+
+export type HierarchyLevel = (typeof HIERARCHY_LEVELS)[number];
+
+export const FONT_WEIGHT_NAMES = [
+  "thin",
+  "light",
+  "regular",
+  "medium",
+  "semibold",
+  "bold",
+  "extrabold",
+] as const;
+
+export type FontWeightName = (typeof FONT_WEIGHT_NAMES)[number];
+
+export interface EmphasisSpan {
+  text: string;
+  start: number;
+  end: number;
+  kind: "full" | "phrase" | "number" | "currency_amount" | "discount" | "cta";
+  strength: "strong" | "medium" | "subtle";
+}
+
+/** Bounding region for STEP 4 contrast/background work (normalized 0–1). */
+export interface TextBoundingArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export const PLACEMENT_REGIONS = [
   "top-center",
@@ -100,6 +141,7 @@ export interface TypographyItem {
     filePath?: string;
     style: string;
     weight: 400 | 700 | "unknown";
+    weightName: FontWeightName;
     personality: FontPersonality;
   };
   layout: {
@@ -111,19 +153,38 @@ export interface TypographyItem {
   size: {
     fontSizePx: number;
     maxLines: number;
+    maxWidthPx: number;
   };
   visual: {
     color: string;
     contrastStrategy: ContrastStrategy;
+    /** Panel fill when contrastStrategy is panel. */
+    panelColor?: "black" | "white";
+    /** Measured/estimated WCAG-style contrast ratio after treatment. */
+    contrastRatio?: number;
+    readabilityPassed?: boolean;
   };
+  /** Numeric rank (1 = strongest). Kept for STEP 1/2 compatibility. */
   hierarchy: number;
+  hierarchyLevel: HierarchyLevel;
+  importanceScore: number;
+  emphasis: EmphasisSpan[];
+  /** Normalized text box estimate for STEP 4. */
+  boundingArea: TextBoundingArea;
   confidence: number;
 }
 
 export interface TypographyScenePlan {
   sceneId: string;
   assetId?: string;
+  purpose?: string;
   items: TypographyItem[];
+  density?: {
+    itemCount: number;
+    totalWords: number;
+    trimmed: boolean;
+    warnings: string[];
+  };
 }
 
 export interface TypographyDecision {
@@ -161,11 +222,17 @@ export interface TypographyComposeInput {
       composition?: string;
       backgroundComplexity?: string;
       backgroundType?: string;
+      /** 0–1 or 0–255 — normalized in region analysis. */
       meanLuminance?: number;
       productLikelyCentered?: boolean;
       logoPresent?: boolean;
+      /** Local path for STEP 4 region sampling — never persisted publicly. */
+      imagePath?: string;
+      brandColors?: string[];
+      dominantColors?: string[];
     };
   }>;
+  brandColors?: string[];
   useOllama?: boolean;
 }
 
@@ -180,5 +247,10 @@ export interface PublicTypographyDiagnostics {
   textMeasurementReady: true;
   placementValidationReady: true;
   rendererFontResolutionReady: boolean;
+  hierarchyEngineReady: true;
+  adaptiveSizingReady: true;
+  emphasisEngineReady: true;
+  contrastEngineReady: true;
+  regionAnalysisReady: true;
   lastError: string | null;
 }

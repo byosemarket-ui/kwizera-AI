@@ -23,10 +23,23 @@ export function typographyItemToRenderPayload(item: TypographyItem): VideoTextTy
     normalizedY: item.layout.normalizedY,
     alignment: item.layout.alignment,
     region: item.layout.region,
-    color: item.visual.color === "white" ? "white" : item.visual.color,
+    color: item.visual.color,
     contrastStrategy: item.visual.contrastStrategy,
+    panelColor: item.visual.panelColor,
+    contrastRatio: item.visual.contrastRatio,
+    readabilityPassed: item.visual.readabilityPassed,
     lines: item.lines.length ? item.lines : [item.text].filter(Boolean),
     hierarchy: item.hierarchy,
+    hierarchyLevel: item.hierarchyLevel,
+    importanceScore: item.importanceScore,
+    weightName: item.font.weightName,
+    maxWidthPx: item.size.maxWidthPx,
+    emphasis: item.emphasis.map((span) => ({
+      text: span.text,
+      kind: span.kind,
+      strength: span.strength,
+    })),
+    boundingArea: item.boundingArea,
   };
 }
 
@@ -60,7 +73,7 @@ export function applyTypographyDecisionToTimeline(
   });
 }
 
-/** Strip absolute font paths from persisted/API typography plans. */
+/** Strip absolute font paths and local image paths from persisted/API typography plans. */
 export function publicTypographyDecision(decision: TypographyDecision): TypographyDecision {
   return {
     ...decision,
@@ -73,6 +86,7 @@ export function publicTypographyDecision(decision: TypographyDecision): Typograp
           family: item.font.family,
           style: item.font.style,
           weight: item.font.weight,
+          weightName: item.font.weightName,
           personality: item.font.personality,
         },
       })),

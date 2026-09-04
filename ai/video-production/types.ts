@@ -55,8 +55,17 @@ export interface VideoTextTypography {
   region?: string;
   color: string;
   contrastStrategy: "outline" | "shadow" | "panel" | "none";
+  panelColor?: "black" | "white";
+  contrastRatio?: number;
+  readabilityPassed?: boolean;
   lines: string[];
   hierarchy: number;
+  hierarchyLevel?: string;
+  importanceScore?: number;
+  weightName?: string;
+  maxWidthPx?: number;
+  emphasis?: Array<{ text: string; kind: string; strength: string }>;
+  boundingArea?: { x: number; y: number; width: number; height: number };
 }
 
 export interface VideoTextLayer {

@@ -19,10 +19,16 @@ export function drawtextX(alignment: "left" | "center" | "right", normalizedX: n
   return `w*${nx.toFixed(4)}-(text_w/2)`;
 }
 
-export function contrastDrawtextExtras(strategy: ContrastStrategy, scale: number): string {
+export function contrastDrawtextExtras(
+  strategy: ContrastStrategy,
+  scale: number,
+  panelColor: "black" | "white" = "black",
+): string {
   const border = Math.max(1, scale);
   if (strategy === "panel") {
-    return `box=1:boxcolor=black@0.55:boxborderw=${Math.max(6, border * 4)}:borderw=${border}:bordercolor=black@0.35`;
+    const fill = panelColor === "white" ? "white@0.55" : "black@0.55";
+    const borderCol = panelColor === "white" ? "white@0.35" : "black@0.35";
+    return `box=1:boxcolor=${fill}:boxborderw=${Math.max(6, border * 4)}:borderw=${border}:bordercolor=${borderCol}`;
   }
   if (strategy === "shadow") {
     return `shadowx=${border}:shadowy=${border}:shadowcolor=black@0.75:borderw=${border}:bordercolor=black@0.35`;
@@ -83,14 +89,16 @@ function layerFontSize(layer: VideoTextLayer, plan: VideoRenderPlan): number {
 }
 
 function layerColor(layer: VideoTextLayer): string {
-  if (layer.kind === "price_save") return "0xFFD966";
   if (layer.typography?.color && /^#[0-9a-f]{6}$/i.test(layer.typography.color)) {
     return `0x${layer.typography.color.slice(1)}`;
   }
   if (layer.typography?.color && /^0x[0-9a-f]+$/i.test(layer.typography.color)) {
     return layer.typography.color;
   }
-  return layer.typography?.color === "black" ? "black" : "white";
+  if (layer.typography?.color === "black" || layer.typography?.color === "near-black") return "black";
+  if (layer.typography?.color === "white" || layer.typography?.color === "near-white") return "white";
+  if (layer.kind === "price_save") return "0xFFD966";
+  return "white";
 }
 
 function legacyY(layer: VideoTextLayer, plan: VideoRenderPlan, bottomIndex: number): string {
@@ -139,7 +147,11 @@ export async function buildDrawtextFilter(
     const nx = layer.typography?.normalizedX ?? 0.5;
     const ny = layer.typography?.normalizedY
       ?? (layer.position === "bottom" ? 0.86 : layer.position === "center" ? 0.5 : 0.12);
-    const contrast = contrastDrawtextExtras(layer.typography?.contrastStrategy ?? "outline", scale);
+    const contrast = contrastDrawtextExtras(
+      layer.typography?.contrastStrategy ?? "outline",
+      scale,
+      layer.typography?.panelColor ?? "black",
+    );
     const xExpr = hasTypography ? drawtextX(alignment, nx) : "(w-text_w)/2";
     const lineGap = Math.max(2, Math.round(fontSize * 1.22));
 

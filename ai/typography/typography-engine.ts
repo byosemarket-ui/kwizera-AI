@@ -1,13 +1,22 @@
 /**
- * Deterministic typography engine. Optional Ollama hints are validated before use.
+ * Deterministic typography engine.
+ * STEP 3: hierarchy, adaptive size, weight, emphasis.
+ * STEP 4: region contrast, color, readability, collision.
  */
 import { randomUUID } from "node:crypto";
-import { contrastForBackground } from "./contrast.js";
-import { personalityForContext, roleHierarchy, selectFontForRole } from "./font-selection.js";
+import { adaptiveFitText, estimateBoundingArea } from "./adaptive-sizing.js";
+import { resolveTextCollisions } from "./collision.js";
+import { resolveTextAppearance } from "./contrast.js";
+import { controlSceneDensity } from "./density.js";
+import { findEmphasisSpans } from "./emphasis.js";
+import { personalityForContext, selectFontForRole } from "./font-selection.js";
 import { getVerifiedFonts, pickFallbackFont } from "./font-registry.js";
-import { fitText } from "./fitting.js";
+import { classifyTextImportance } from "./hierarchy.js";
 import { choosePlacement, clampToSafeZone, platformSafeZone, regionOverlapsProduct } from "./placement.js";
+import { keepCurrencyWithAmount } from "./price-typography.js";
+import { analyzeRegionFromImagePath, regionFromHints } from "./region-analysis.js";
 import { suggestTypographyHints } from "./ollama-typography.js";
+import { mapWeightToInstalled, preferredWeightName } from "./weight-selection.js";
 import type {
   FontPersonality,
   PlacementRegion,
@@ -34,9 +43,16 @@ async function buildItem(input: {
   scene: TypographyComposeInput["scenes"][number];
   roleText: { role: TypographyItem["role"]; text: string };
   occupied: PlacementRegion[];
+  itemCountInScene: number;
   aiHint?: { personality?: TypographyItem["font"]["personality"]; region?: PlacementRegion };
 }): Promise<TypographyItem> {
-  const hierarchy = roleHierarchy(input.roleText.role);
+  const text = keepCurrencyWithAmount(input.roleText.text);
+  const importance = classifyTextImportance({
+    role: input.roleText.role,
+    text,
+    purpose: input.scene.purpose,
+    productName: input.project.productName,
+  });
   const personality = input.aiHint?.personality && isFontPersonality(input.aiHint.personality)
     ? input.aiHint.personality
     : personalityForContext({
@@ -45,7 +61,12 @@ async function buildItem(input: {
       tone: input.project.creativeTone,
       role: input.roleText.role,
     });
-  const font = selectFontForRole(input.fonts, input.roleText.role, input.roleText.text, personality);
+  const baseFont = selectFontForRole(input.fonts, input.roleText.role, text, personality);
+  const weightPref = preferredWeightName({
+    hierarchyLevel: importance.hierarchyLevel,
+    role: input.roleText.role,
+  });
+  const weighted = mapWeightToInstalled(weightPref, baseFont, input.fonts);
   const productCentered = productLikelyCentered(input.scene.image);
   let region = input.aiHint?.region && !regionOverlapsProduct(input.aiHint.region, productCentered)
     ? input.aiHint.region
@@ -54,41 +75,72 @@ async function buildItem(input: {
       productCentered,
       backgroundComplexity: input.scene.image?.backgroundComplexity,
       occupiedRegions: input.occupied,
-      hierarchy,
+      hierarchy: importance.hierarchy,
     });
   if (regionOverlapsProduct(region, productCentered)) {
     region = choosePlacement({
       role: input.roleText.role,
       productCentered: true,
       occupiedRegions: input.occupied,
-      hierarchy,
+      hierarchy: importance.hierarchy,
     });
   }
   const zone = platformSafeZone(input.project.platform, input.project.aspectRatio);
   const layout = clampToSafeZone(region, zone);
-  const fitted = fitText({
-    text: input.roleText.text,
+  const fitted = adaptiveFitText({
+    text,
+    role: input.roleText.role,
+    hierarchyLevel: importance.hierarchyLevel,
     width: input.project.width,
     height: input.project.height,
-    hierarchy,
-    roleMaxLines: input.roleText.role === "cta" || input.roleText.role === "price" ? 2 : undefined,
+    aspectRatio: input.project.aspectRatio,
+    region,
+    alignment: layout.alignment,
+    productCentered,
+    itemCountInScene: input.itemCountInScene,
   });
-  const visual = contrastForBackground({
+  const boundingArea = estimateBoundingArea({
+    lines: fitted.lines,
+    fontSizePx: fitted.fontSizePx,
+    maxWidthPx: fitted.maxWidthPx,
+    normalizedX: layout.x,
+    normalizedY: layout.y,
+    alignment: layout.alignment,
+    frameWidth: input.project.width,
+    frameHeight: input.project.height,
+  });
+
+  let regionStats = regionFromHints({
     meanLuminance: input.scene.image?.meanLuminance,
     backgroundType: input.scene.image?.backgroundType,
     complexity: input.scene.image?.backgroundComplexity,
+    dominantHex: input.scene.image?.dominantColors?.[0],
   });
+  if (input.scene.image?.imagePath) {
+    const sampled = await analyzeRegionFromImagePath(input.scene.image.imagePath, boundingArea);
+    if (sampled) regionStats = sampled;
+  }
+  const appearance = resolveTextAppearance({
+    region: regionStats,
+    role: input.roleText.role,
+    hierarchyLevel: importance.hierarchyLevel,
+    brandColors: input.scene.image?.brandColors ?? input.project.brandColors,
+    category: input.project.productCategory,
+    tone: input.project.creativeTone,
+  });
+
   return {
     id: randomUUID(),
     role: input.roleText.role,
-    text: input.roleText.text,
+    text,
     lines: fitted.lines,
     font: {
-      id: font.id,
-      family: font.family,
-      filePath: font.filePath,
-      style: font.style,
-      weight: font.weight,
+      id: weighted.font.id,
+      family: weighted.font.family,
+      filePath: weighted.font.filePath,
+      style: weighted.font.style,
+      weight: weighted.weight,
+      weightName: weighted.weightName,
       personality,
     },
     layout: {
@@ -100,10 +152,21 @@ async function buildItem(input: {
     size: {
       fontSizePx: fitted.fontSizePx,
       maxLines: fitted.maxLines,
+      maxWidthPx: fitted.maxWidthPx,
     },
-    visual,
-    hierarchy,
-    confidence: input.aiHint ? 0.72 : 0.9,
+    visual: {
+      color: appearance.color,
+      contrastStrategy: appearance.contrastStrategy,
+      panelColor: appearance.panelColor,
+      contrastRatio: appearance.contrastRatio,
+      readabilityPassed: appearance.readabilityPassed,
+    },
+    hierarchy: importance.hierarchy,
+    hierarchyLevel: importance.hierarchyLevel,
+    importanceScore: importance.importanceScore,
+    emphasis: findEmphasisSpans({ text, role: input.roleText.role }),
+    boundingArea,
+    confidence: input.aiHint ? 0.72 : 0.92,
   };
 }
 
@@ -147,24 +210,41 @@ export async function composeTypographyDecision(
       warnings.push("Ollama typography hint skipped — using deterministic selection.");
     }
   }
+
   const scenes: TypographyScenePlan[] = [];
   for (const scene of input.scenes) {
     const occupied: PlacementRegion[] = [];
-    const items: TypographyItem[] = [];
-    for (const roleText of scene.texts) {
-      if (!roleText.text.trim()) continue;
+    const draft: TypographyItem[] = [];
+    const candidates = scene.texts.filter((item) => item.text.trim());
+    for (const roleText of candidates) {
       const item = await buildItem({
         fonts: verified,
         project: input,
         scene,
         roleText,
         occupied,
+        itemCountInScene: candidates.length,
         aiHint: sharedHint,
       });
       occupied.push(item.layout.region);
-      items.push(item);
+      draft.push(item);
     }
-    scenes.push({ sceneId: scene.sceneId, assetId: scene.assetId, items });
+    const densified = controlSceneDensity(draft, /cta|call|closing|end|final|contact/i.test(scene.purpose ?? "") ? 4 : 3);
+    warnings.push(...densified.warnings);
+    const collided = resolveTextCollisions(densified.items);
+    warnings.push(...collided.warnings);
+    scenes.push({
+      sceneId: scene.sceneId,
+      assetId: scene.assetId,
+      purpose: scene.purpose,
+      items: collided.items,
+      density: {
+        itemCount: collided.items.length,
+        totalWords: collided.items.reduce((sum, item) => sum + item.text.trim().split(/\s+/).filter(Boolean).length, 0),
+        trimmed: densified.trimmed,
+        warnings: densified.warnings,
+      },
+    });
   }
 
   const decision: TypographyDecision = {
@@ -215,6 +295,7 @@ export function applyInvalidAiSafely(
           filePath: fallback.filePath,
           style: fallback.style,
           weight: fallback.weight,
+          weightName: "regular" as const,
           personality: "clean-sans" as const,
         },
         confidence: Math.min(item.confidence, 0.4),

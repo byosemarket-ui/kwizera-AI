@@ -17,6 +17,19 @@ export function sceneRoleTexts(
     if (price.saveLabel) items.push({ role: "discount", text: price.saveLabel });
     if (items.length) return items.slice(0, 3);
   }
+
+  const isClosing = /cta|call|closing|end|final|contact/i.test(purpose);
+  if (isClosing) {
+    if (scene.copy?.callToAction?.trim()) items.push({ role: "cta", text: scene.copy.callToAction.trim() });
+    if (commercial?.productName) items.push({ role: "brand", text: commercial.productName });
+    else if (typeof scene.copy?.headline === "string" && scene.copy.headline.trim()) {
+      items.push({ role: "brand", text: scene.copy.headline.trim() });
+    }
+    if (commercial?.destination.website) items.push({ role: "website", text: commercial.destination.website });
+    if (commercial?.destination.phone) items.push({ role: "phone", text: commercial.destination.phone });
+    if (items.length) return items.slice(0, 4);
+  }
+
   const headline = typeof scene.copy?.headline === "string"
     ? scene.copy.headline.trim()
     : typeof scene.text === "string"
@@ -49,12 +62,23 @@ export function composeInputFromProject(input: {
   useOllama?: boolean;
   images?: TypographyComposeInput["scenes"][number]["image"][];
 }): TypographyComposeInput {
+  const brandColors = typeof input.project.brandInformation?.colors === "string"
+    ? input.project.brandInformation.colors
+      .split(/[,;\s]+/)
+      .map((c) => c.trim())
+      .filter((c) => /^#?[0-9a-f]{6}$/i.test(c))
+      .map((c) => (c.startsWith("#") ? c : `#${c}`))
+    : Array.isArray(input.project.productInformation?.colors)
+      ? input.project.productInformation.colors.filter((c): c is string => typeof c === "string" && /^#?[0-9a-f]{6}$/i.test(c))
+      : undefined;
   const commercial = buildConfirmedCommercial({
     productName: input.project.productInformation.name || input.project.name,
     currentPrice: input.project.productInformation.price,
     originalPrice: input.project.productInformation.originalPrice,
     currency: input.project.productInformation.currency,
     website: input.project.brandInformation.website,
+    phone: (input.project.productInformation as { phone?: string }).phone
+      ?? (input.project.brandInformation as { phone?: string }).phone,
     cta: input.project.campaignInformation.callToAction,
   });
   const scenes = [...input.plan.scenes].sort((a, b) => a.order - b.order).map((scene, index) => ({
@@ -62,9 +86,11 @@ export function composeInputFromProject(input: {
     purpose: scene.purpose,
     assetId: scene.assetId,
     texts: sceneRoleTexts(scene, commercial),
-    image: input.images?.[index] ?? {
+    image: {
       composition: scene.composition,
       productLikelyCentered: !/edge|left|right/i.test(scene.composition ?? ""),
+      brandColors,
+      ...(input.images?.[index] ?? {}),
     },
   }));
   return {
@@ -81,6 +107,7 @@ export function composeInputFromProject(input: {
     height: input.height,
     aspectRatio: input.aspectRatio,
     scenes,
+    brandColors,
     useOllama: input.useOllama ?? process.env.KWIZERA_TYPOGRAPHY_OLLAMA === "1",
   };
 }

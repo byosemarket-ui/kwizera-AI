@@ -17,6 +17,8 @@ const ROLE_HIERARCHY: Record<TextRole, number> = {
   sceneCaption: 4,
   supporting: 4,
   brand: 4,
+  website: 4,
+  phone: 4,
   closingMessage: 2,
 };
 

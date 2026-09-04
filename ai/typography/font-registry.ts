@@ -77,7 +77,7 @@ function classify(filePath: string): Pick<VerifiedFont, "family" | "style" | "we
       ? ["title", "headline", "productName", "brand", "sceneCaption"]
       : category === "display"
         ? ["hook", "promotion", "discount", "cta", "price"]
-        : ["title", "headline", "hook", "subtitle", "productName", "productFeature", "benefit", "price", "previousPrice", "discount", "promotion", "cta", "brand", "sceneCaption", "closingMessage", "supporting"];
+        : ["title", "headline", "hook", "subtitle", "productName", "productFeature", "benefit", "price", "previousPrice", "discount", "promotion", "cta", "brand", "website", "phone", "sceneCaption", "closingMessage", "supporting"];
 
   const latinExtended = /dejavu|noto|arial|liberation|free|roboto|source|ubuntu|segoe/i.test(lower);
   return {

@@ -249,6 +249,20 @@ export class VideoProductionManager {
       const { composeTypographyDecision } = await import("../typography/typography-engine.js");
       const { composeInputFromProject } = await import("../typography/from-plan.js");
       const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
+      const { buildTypographyImageHint } = await import("../typography/image-hints.js");
+      const sortedScenes = [...repairedPlan.scenes].sort((a, b) => a.order - b.order);
+      const images = await Promise.all(sortedScenes.map(async (scene) => {
+        const resolved = scene.assetId
+          ? await resolveProductionImagePath(this.workspace!, projectId, scene.assetId)
+          : null;
+        return buildTypographyImageHint({
+          imagePath: resolved?.path,
+          composition: scene.composition,
+          brandColors: typeof workspaceProject.brandInformation?.colors === "string"
+            ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
+            : undefined,
+        });
+      }));
       const decision = await composeTypographyDecision(composeInputFromProject({
         project: workspaceProject,
         plan: repairedPlan,
@@ -256,6 +270,7 @@ export class VideoProductionManager {
         height: renderPlan.height,
         aspectRatio: renderPlan.aspectRatio,
         platform: profile.id,
+        images,
       }));
       if (decision.projectId === projectId && decision.scenes.length) {
         timeline = applyTypographyDecisionToTimeline(timeline, decision);
@@ -499,6 +514,20 @@ export class VideoProductionManager {
           const { composeTypographyDecision } = await import("../typography/typography-engine.js");
           const { composeInputFromProject } = await import("../typography/from-plan.js");
           const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
+          const { buildTypographyImageHint } = await import("../typography/image-hints.js");
+          const sortedScenes = [...creativePlan.scenes].sort((a, b) => a.order - b.order);
+          const images = await Promise.all(sortedScenes.map(async (scene) => {
+            const resolved = scene.assetId
+              ? await resolveProductionImagePath(this.workspace!, job.projectId, scene.assetId)
+              : null;
+            return buildTypographyImageHint({
+              imagePath: resolved?.path,
+              composition: scene.composition,
+              brandColors: typeof workspaceProject.brandInformation?.colors === "string"
+                ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
+                : undefined,
+            });
+          }));
           const decision = await composeTypographyDecision(composeInputFromProject({
             project: workspaceProject,
             plan: creativePlan,
@@ -506,6 +535,7 @@ export class VideoProductionManager {
             height: renderPlan.height,
             aspectRatio: renderPlan.aspectRatio,
             platform: profile.id,
+            images,
           }));
           if (decision.projectId === job.projectId && decision.scenes.length) {
             typedClips = applyTypographyDecisionToTimeline(renderClips, decision);
