@@ -56,7 +56,7 @@ export function ProductSetupWorkspace() {
     setBusy(true);
     setUploadError(null);
     try {
-      // Fire-and-forget staging — previews appear immediately; uploads continue in background.
+      // Staging returns once local previews are queued — uploads continue in background.
       await productSetupEngine.enqueueFiles(supported);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Could not import images";

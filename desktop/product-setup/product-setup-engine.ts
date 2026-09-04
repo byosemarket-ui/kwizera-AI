@@ -198,11 +198,10 @@ export class ProductSetupEngine {
       productIntakeEngine.setProjectNameLocal(name);
       this.essentials.productName = this.essentials.productName.trim() || suggestProductName(name) || name;
     }
-    // Stage previews immediately; prepare project in parallel so UI is not blocked.
-    void productIntakeEngine.stageAndEnqueue(list);
-    void productIntakeEngine.prepareImport(name).catch((error) => {
-      this.notify?.("error", "Project not ready", error instanceof Error ? error.message : String(error), "errors");
-    });
+    // Create/bind project first so uploads never attach to a stale active project.
+    // Local preview cards are still staged before network upload work begins.
+    await productIntakeEngine.prepareImport(name);
+    await productIntakeEngine.stageAndEnqueue(list);
     this.emit();
   }
 

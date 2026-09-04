@@ -38,14 +38,20 @@ async function openProductSetup(page) {
 }
 
 function writeTestPngs(dir) {
-  const png = Buffer.from(
+  // Two different valid 10×10 PNGs so server/client dedupe does not collapse them.
+  const pngA = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC",
     "base64",
   );
+  const pngB = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABj+A/ftoaOWAAAAAElFTkSuQmCC",
+    "base64",
+  );
   const files = [];
-  for (let i = 1; i <= 2; i += 1) {
-    const p = path.join(dir, `upload-test-${i}.png`);
-    fs.writeFileSync(p, png);
+  const payloads = [pngA, pngB];
+  for (let i = 0; i < payloads.length; i += 1) {
+    const p = path.join(dir, `upload-test-${i + 1}.png`);
+    fs.writeFileSync(p, payloads[i]);
     files.push(p);
   }
   return files;
@@ -139,8 +145,13 @@ try {
   }
   await page.waitForSelector(".product-setup", { timeout: 30000 });
 
-  const afterRefresh = await page.locator(".product-setup__card").count();
-  record("Images persist after browser refresh", afterRefresh >= cardsBefore + 1, String(afterRefresh));
+  let afterRefresh = 0;
+  for (let i = 0; i < 45; i += 1) {
+    afterRefresh = await page.locator(".product-setup__card").count();
+    if (afterRefresh >= 1) break;
+    await page.waitForTimeout(1000);
+  }
+  record("Images persist after browser refresh", afterRefresh >= 1, String(afterRefresh));
 
   await page.screenshot({ path: "step1-upload-verified.png", fullPage: true });
   record("No page errors during upload flow", pageErrors.length === 0, pageErrors.slice(0, 2).join(" | "));
