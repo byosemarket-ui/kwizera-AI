@@ -48,28 +48,56 @@ export async function ffprobeAvailable(): Promise<boolean> {
   }
 }
 
-function zoompan(motion: VideoMotionId, frames: number, width: number, height: number): string {
+function zoompan(
+  motion: VideoMotionId,
+  frames: number,
+  width: number,
+  height: number,
+  params?: {
+    maxZoom?: number;
+    focusX?: number;
+    focusY?: number;
+    intensity?: number;
+  },
+): string {
   const d = Math.max(24, frames);
   const s = `${width}x${height}`;
+  const maxZ = Math.max(1, Math.min(1.2, params?.maxZoom ?? 1.08));
+  const intensity = Math.max(0.35, Math.min(1, params?.intensity ?? 0.6));
+  const fx = clamp01(params?.focusX ?? 0.5);
+  const fy = clamp01(params?.focusY ?? 0.5);
+  // Keep focus inside the zoomed viewport.
+  const xExpr = `(iw-iw/zoom)*${fx.toFixed(3)}`;
+  const yExpr = `(ih-ih/zoom)*${fy.toFixed(3)}`;
+  const ramp = Number(((maxZ - 1) * intensity).toFixed(4));
+  const startReveal = Number((1 + Math.min(0.04, ramp * 0.4)).toFixed(3));
+
   switch (motion) {
-    case "zoom-out":
-      return `zoompan=z='1.12-0.12*on/${d}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+    case "zoom-out": {
+      const start = Math.max(maxZ, 1.04).toFixed(3);
+      return `zoompan=z='${start}-(${start}-1)*on/${d}':x='${xExpr}':y='${yExpr}':d=${d}:s=${s}:fps=24`;
+    }
     case "pan-left":
-      return `zoompan=z='1.08':x='(iw-iw/zoom)*on/${d}':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='${maxZ.toFixed(3)}':x='(iw-iw/zoom)*on/${d}':y='${yExpr}':d=${d}:s=${s}:fps=24`;
     case "pan-right":
-      return `zoompan=z='1.08':x='(iw-iw/zoom)*(1-on/${d})':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='${maxZ.toFixed(3)}':x='(iw-iw/zoom)*(1-on/${d})':y='${yExpr}':d=${d}:s=${s}:fps=24`;
     case "pan-up":
-      return `zoompan=z='1.08':x='iw/2-(iw/zoom/2)':y='(ih-ih/zoom)*on/${d}':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='${maxZ.toFixed(3)}':x='${xExpr}':y='(ih-ih/zoom)*on/${d}':d=${d}:s=${s}:fps=24`;
     case "pan-down":
-      return `zoompan=z='1.08':x='iw/2-(iw/zoom/2)':y='(ih-ih/zoom)*(1-on/${d})':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='${maxZ.toFixed(3)}':x='${xExpr}':y='(ih-ih/zoom)*(1-on/${d})':d=${d}:s=${s}:fps=24`;
     case "image-reveal":
-      return `zoompan=z='min(1.04+0.001*on,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='min(${startReveal}+${(ramp / Math.max(d, 1)).toFixed(6)}*on,${maxZ.toFixed(3)})':x='${xExpr}':y='${yExpr}':d=${d}:s=${s}:fps=24`;
     case "hold":
-      return `zoompan=z='1':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='1':x='${xExpr}':y='${yExpr}':d=${d}:s=${s}:fps=24`;
     case "slow-zoom":
     default:
-      return `zoompan=z='min(1.0+0.08*on/${d},1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${d}:s=${s}:fps=24`;
+      return `zoompan=z='min(1.0+${ramp.toFixed(4)}*on/${d},${maxZ.toFixed(3)})':x='${xExpr}':y='${yExpr}':d=${d}:s=${s}:fps=24`;
   }
+}
+
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0.5;
+  return Math.max(0, Math.min(1, n));
 }
 
 function fadeFilter(transition: VideoTransitionId, durationMs: number): string {
@@ -169,7 +197,7 @@ export async function stillFilter(
     `crop=${plan.width}:${plan.height}`,
   ];
   if (options.motion) {
-    parts.push(zoompan(input.clip.motion, frames, plan.width, plan.height));
+    parts.push(zoompan(input.clip.motion, frames, plan.width, plan.height, input.clip.motionParams));
   }
   if (options.fade) {
     const fade = fadeFilter(
@@ -183,6 +211,17 @@ export async function stillFilter(
     if (text) parts.push(text);
   }
   return parts.join(",");
+}
+
+/** Exported for STEP 7 unit tests — builds the zoompan expression with safety params. */
+export function buildZoompanFilter(
+  motion: VideoMotionId,
+  frames: number,
+  width: number,
+  height: number,
+  params?: { maxZoom?: number; focusX?: number; focusY?: number; intensity?: number },
+): string {
+  return zoompan(motion, frames, width, height, params);
 }
 
 export interface RenderClipResult {

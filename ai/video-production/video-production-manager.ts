@@ -29,6 +29,10 @@ import { verifyOutputFileOnDisk } from "./output-verify.js";
 import { runFullQualityReview } from "./ai-quality-review.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
 import { applyProductionModeToClip, resolveProductionRenderProfile } from "./production-render-profile.js";
+import { applyMotionDirectionToTimeline, directClipMotion } from "./motion-direction.js";
+import type { CreativeToneId } from "./production-mode-types.js";
+import type { FramingInspection } from "../product-asset-preparation/framing.js";
+import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
 import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
 import {
   VIDEO_PRODUCTION_VERSION,
@@ -218,6 +222,14 @@ export class VideoProductionManager {
     }
     const profile = profileForPlatform(workspaceProject.platform);
     const renderProfile = resolveProductionRenderProfile(repairedPlan.productionMode);
+    const directed = await this.applyStep7MotionDirection({
+      projectId,
+      clips: timeline,
+      profile: renderProfile,
+      creativeTone: repairedPlan.creativeTone as CreativeToneId | undefined,
+      aspectRatio: profile.aspectRatio,
+    });
+    timeline = directed.clips;
     const now = new Date().toISOString();
     const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
     const video: VideoProject = {
@@ -580,14 +592,26 @@ export class VideoProductionManager {
       });
       for (const [index, clip] of typedClips.entries()) {
         await yieldLoop();
-        const productionClip = applyProductionModeToClip(clip, renderProfile);
+        const modeClip = applyProductionModeToClip(clip, renderProfile);
+        const directed = directClipMotion({
+          clip: modeClip,
+          profile: renderProfile,
+          creativeTone: (video.creativeTone as CreativeToneId | undefined) ?? null,
+          aspectRatio: renderPlan.aspectRatio,
+          framingInspection: await this.loadFramingForAsset(job.projectId, modeClip.assetId),
+          role: await this.loadRoleForAsset(job.projectId, modeClip.assetId),
+          previousMotion: index > 0 ? typedClips[index - 1]?.motionPlan?.motionId ?? typedClips[index - 1]?.motion : null,
+          projectId: job.projectId,
+          isLast: index === typedClips.length - 1,
+        });
+        const productionClip = directed.clip;
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
           progress: Math.min(78, 12 + Math.round(((index) / typedClips.length) * 66)),
           sceneIndex: index + 1,
           sceneCount: typedClips.length,
-          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length}`,
+          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length} (${directed.diagnostics.directedType})`,
         });
         const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, productionClip.assetId);
         const imagePath = resolved?.path ?? null;
@@ -596,6 +620,8 @@ export class VideoProductionManager {
         const rendered = await renderStillClip({ clip: productionClip, imagePath }, renderPlan, clipPath, fontFile);
         overlays.push(rendered.overlay);
         clipPaths.push(clipPath);
+        // Keep directed motion on the in-memory clip list for continuity of subsequent scenes.
+        typedClips[index] = productionClip;
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
@@ -603,6 +629,22 @@ export class VideoProductionManager {
           sceneIndex: index + 1,
           sceneCount: typedClips.length,
           stageMessage: `Rendered scene ${index + 1} of ${typedClips.length}`,
+        });
+      }
+      // Persist STEP 7 motion diagnostics onto the stored timeline (standard renders).
+      if (preset === "standard") {
+        await this.patchVideo(job.projectId, {
+          timeline: video.timeline.map((clip) => {
+            const directed = typedClips.find((item) => item.sceneId === clip.sceneId);
+            if (!directed?.motionPlan) return clip;
+            return {
+              ...clip,
+              motion: directed.motion,
+              transitionOut: directed.transitionOut,
+              motionPlan: directed.motionPlan,
+              motionParams: directed.motionParams,
+            };
+          }),
         });
       }
       await yieldLoop();
@@ -839,6 +881,61 @@ export class VideoProductionManager {
     const temporaryPath = `${filePath}.${createHash("sha1").update(randomUUID()).digest("hex")}.tmp`;
     await fs.writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
     await fs.rename(temporaryPath, filePath);
+  }
+
+  private async applyStep7MotionDirection(input: {
+    projectId: string;
+    clips: import("./types.js").VideoTimelineClip[];
+    profile: ReturnType<typeof resolveProductionRenderProfile>;
+    creativeTone?: CreativeToneId | null;
+    aspectRatio: import("./types.js").VideoAspectRatio;
+  }) {
+    const framingByAssetId = new Map<string, FramingInspection | null | undefined>();
+    const roleByAssetId = new Map<string, ProductionRoleDecision | null | undefined>();
+    const assetIds = [...new Set(input.clips.map((c) => c.assetId))];
+    for (const assetId of assetIds) {
+      framingByAssetId.set(assetId, await this.loadFramingForAsset(input.projectId, assetId));
+      roleByAssetId.set(assetId, await this.loadRoleForAsset(input.projectId, assetId));
+    }
+    return applyMotionDirectionToTimeline({
+      clips: input.clips,
+      profile: input.profile,
+      creativeTone: input.creativeTone,
+      aspectRatio: input.aspectRatio,
+      projectId: input.projectId,
+      framingByAssetId,
+      roleByAssetId,
+    });
+  }
+
+  private async loadFramingForAsset(projectId: string, assetId: string): Promise<FramingInspection | null> {
+    try {
+      const decision = this.assets
+        ? await this.assets.getPreparedDecision(projectId, assetId).catch(() => null)
+        : null;
+      if (decision?.framing) return decision.framing;
+      const project = await this.workspace?.getProject(projectId);
+      const image = project?.productImages.find((item) => item.id === assetId);
+      if (!image?.width || !image?.height) return null;
+      return buildFramingInspection({
+        width: image.width,
+        height: image.height,
+        productBox: decision?.protectedProductBox,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadRoleForAsset(projectId: string, assetId: string): Promise<ProductionRoleDecision | null> {
+    try {
+      const decision = this.assets
+        ? await this.assets.getPreparedDecision(projectId, assetId).catch(() => null)
+        : null;
+      return decision?.role ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private async resolveProductOccupiedRegion(

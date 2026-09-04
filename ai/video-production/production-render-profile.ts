@@ -65,8 +65,8 @@ export function applyProductionModeToClip(
     return { ...clip, motion, transitionOut };
   }
 
-  // Dynamic motion — upgrade static holds for commercial pacing.
-  if (motion === "hold") {
+  // Dynamic motion — upgrade static holds for commercial pacing when STEP 7 has not directed yet.
+  if (!clip.motionPlan && motion === "hold") {
     const purpose = clip.purpose.toUpperCase();
     if (/HOOK|REVEAL|INTRO/.test(purpose)) motion = "image-reveal";
     else if (/DETAIL|FEATURE|MACRO|CLOSE/.test(purpose)) motion = "slow-zoom";

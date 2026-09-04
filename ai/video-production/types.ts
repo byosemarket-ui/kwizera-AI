@@ -1,7 +1,7 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step7-v1";
+export const VIDEO_PRODUCTION_VERSION = "step7-motion-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
@@ -100,6 +100,35 @@ export interface VideoTimelineClip {
   text: VideoTextLayer[];
   audioDirection: string;
   userEdited?: boolean;
+  /** STEP 7 — intelligent motion diagnostics (not user-facing). */
+  motionPlan?: {
+    sceneId: string;
+    projectId?: string;
+    assetId: string;
+    directedType: string;
+    motionId: VideoMotionId;
+    maxZoom: number;
+    focusX: number;
+    focusY: number;
+    intensity: number;
+    transitionOut: VideoTransitionId;
+    framingBasis: string;
+    safetyAdjusted: boolean;
+    fallbackUsed: boolean;
+    reason: string;
+    previousMotion?: VideoMotionId;
+  };
+  /** STEP 7 — render params consumed by FFmpeg zoompan. */
+  motionParams?: {
+    maxZoom: number;
+    focusX: number;
+    focusY: number;
+    intensity: number;
+    directedType: string;
+    framingBasis: string;
+    safetyAdjusted: boolean;
+    fallbackUsed: boolean;
+  };
 }
 
 export interface VideoAudioPlan {
