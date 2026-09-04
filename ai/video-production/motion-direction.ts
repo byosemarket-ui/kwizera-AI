@@ -139,33 +139,39 @@ export function chooseDirectedMotion(input: {
 }): { directed: DirectedMotionType; reason: string; fallbackUsed: boolean } {
   const purpose = input.purpose.toUpperCase();
   const role = String(input.role ?? "").toUpperCase();
-  const nearEdge = Boolean(input.framing?.preferSafeComposition);
+  const preferSafe = Boolean(input.framing?.preferSafeComposition);
   const maxSafe = input.framing?.maxSafeEnlargement ?? 1.12;
-  // Only freeze motion when enlargement would truly clip the product.
-  const tightlyCropped = maxSafe <= 1.035 || (nearEdge && maxSafe <= 1.05);
+  // STEP 6 often sets preferSafeComposition + maxSafe 1.05 for full-frame cutouts.
+  // That still leaves room for a micro push — only freeze when enlargement is essentially 1.0.
+  const noZoomRoom = maxSafe < 1.02;
   let fallbackUsed = !input.framing;
 
-  if (input.isLast || /CTA|BRAND|CLOSE|END|COMPANY|CONTACT/.test(purpose)) {
+  if (
+    input.isLast
+    || /^(CTA|BRAND|COMPANY|CONTACT)(_|$)/.test(purpose)
+    || /\b(END_CARD|CLOSING|FINAL_SCENE)\b/.test(purpose)
+  ) {
     return { directed: "STABLE_HOLD", reason: "Closing/CTA scene prefers stable hold.", fallbackUsed };
   }
 
-  // Tight crop / edge risk: never destroy the product with aggressive moves.
-  if (tightlyCropped) {
-    if (/HOOK|REVEAL|INTRO|HERO/.test(purpose) || role === "HERO_PRODUCT") {
-      return {
-        directed: "STABLE_HOLD",
-        reason: "Tight crop / edge risk — stable hold to protect product on opening.",
-        fallbackUsed,
-      };
-    }
+  // Truly no safe enlargement: hold. Otherwise clamp zoom later — do not collapse variety.
+  if (noZoomRoom) {
     return {
       directed: "STABLE_HOLD",
-      reason: "Product tightly framed — avoid aggressive zoom/pan.",
+      reason: "No safe enlargement room — stable hold to protect product edges.",
       fallbackUsed,
     };
   }
 
-  if (role === "DETAIL_CLOSE_UP" || /DETAIL|FEATURE|MACRO|CLOSE/.test(purpose)) {
+  if (role === "DETAIL_CLOSE_UP" || /DETAIL|FEATURE|MACRO/.test(purpose)) {
+    // Prefer-safe frames: use subtle push (clamped) instead of stronger detail push.
+    if (preferSafe && maxSafe <= 1.08) {
+      return {
+        directed: "SUBTLE_PUSH_IN",
+        reason: "Safe-composition detail — subtle push within maxSafeEnlargement.",
+        fallbackUsed,
+      };
+    }
     return {
       directed: input.tone.preferStable ? "SUBTLE_PUSH_IN" : "DETAIL_PUSH",
       reason: input.tone.preferStable
@@ -176,6 +182,14 @@ export function chooseDirectedMotion(input: {
   }
 
   if (role === "HERO_PRODUCT" || role === "MAIN_REVEAL" || /HOOK|REVEAL|INTRO|HERO/.test(purpose)) {
+    // Full-frame / prefer-safe openings: micro push, not freeze and not aggressive reveal zoom.
+    if (preferSafe && maxSafe <= 1.08) {
+      return {
+        directed: "SUBTLE_PUSH_IN",
+        reason: "Safe-composition opening — micro push clamped to framing safety.",
+        fallbackUsed,
+      };
+    }
     return {
       directed: input.order <= 1
         ? (input.tone.preferStable ? "SUBTLE_PUSH_IN" : "HERO_REVEAL")
@@ -203,7 +217,7 @@ export function chooseDirectedMotion(input: {
     };
   }
 
-  if (input.tone.allowPan && input.profile.motionStyle === "dynamic") {
+  if (input.tone.allowPan && input.profile.motionStyle === "dynamic" && !preferSafe) {
     const pan = choosePanWithContinuity(input.previousMotion, input.framing);
     if (pan) {
       return { directed: pan.directed, reason: pan.reason, fallbackUsed };
@@ -267,14 +281,19 @@ export function computeSafeMotionParams(input: {
     maxZoom = 1;
     safetyAdjusted = safetyAdjusted || preferred > 1;
   } else if (input.directed === "SUBTLE_PUSH_IN" || input.directed === "PRODUCT_FOCUS") {
-    maxZoom = Math.min(maxZoom, 1 + (maxZoom - 1) * 0.7);
-  } else if (input.directed === "DETAIL_PUSH" || input.directed === "PUSH_IN") {
+    // Even when safe enlargement is tiny (e.g. STEP 6 maxSafe=1.05), keep a perceptible micro-push.
+    const floor = Math.min(1.035, Math.max(1.015, safeMax > 1 ? Math.min(1.03, safeMax) : 1));
+    maxZoom = Math.max(floor, Math.min(maxZoom, 1 + (maxZoom - 1) * 0.7));
     maxZoom = Math.min(maxZoom, safeMax);
+  } else if (input.directed === "DETAIL_PUSH" || input.directed === "PUSH_IN") {
+    const floor = Math.min(1.04, safeMax);
+    maxZoom = Math.max(floor, Math.min(maxZoom, safeMax));
   } else if (input.directed.startsWith("PAN_") || input.directed === "DIAGONAL_DRIFT") {
     // Pans use a fixed zoom plate — keep within safe enlargement.
-    maxZoom = Math.min(Math.max(1.04, maxZoom), safeMax, 1.1);
+    maxZoom = Math.min(Math.max(1.02, Math.min(maxZoom, 1.06)), safeMax, 1.1);
   } else if (input.directed === "HERO_REVEAL") {
-    maxZoom = Math.min(Math.max(1.04, maxZoom), safeMax);
+    const floor = Math.min(1.04, safeMax);
+    maxZoom = Math.max(floor, Math.min(Math.max(1.02, maxZoom), safeMax));
   } else if (input.directed === "SUBTLE_PULL_BACK") {
     maxZoom = Math.min(1.12, safeMax);
   }

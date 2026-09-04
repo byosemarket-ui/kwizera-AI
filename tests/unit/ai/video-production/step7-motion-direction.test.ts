@@ -61,7 +61,7 @@ describe("STEP 7 motion direction", () => {
     expect(portrait.formats["9:16"].protectedProductArea.width).toBeGreaterThan(0);
   });
 
-  it("TEST tightly cropped product forces stable hold", () => {
+  it("TEST truly no-room crop forces stable hold", () => {
     const framing = buildFramingInspection({
       width: 800,
       height: 800,
@@ -70,17 +70,62 @@ describe("STEP 7 motion direction", () => {
       framingNote: "Too close to edge / cut-off risk",
     });
     const plan = framing.formats["1:1"];
-    expect(plan.maxSafeEnlargement).toBeLessThanOrEqual(1.08);
     const chosen = chooseDirectedMotion({
       purpose: "HERO",
       role: "HERO_PRODUCT",
-      framing: { ...plan, maxSafeEnlargement: 1.02, preferSafeComposition: true },
+      framing: { ...plan, maxSafeEnlargement: 1.01, preferSafeComposition: true },
       tone: toneMotionPolicy("Modern"),
       profile: resolveProductionRenderProfile("AI_PRODUCT_MOTION"),
       order: 1,
       isLast: false,
     });
     expect(chosen.directed).toBe("STABLE_HOLD");
+  });
+
+  it("TEST STEP6 safe-composition (maxSafe 1.05) still gets micro push, not all-hold", () => {
+    const framing = buildFramingInspection({
+      width: 800,
+      height: 800,
+      productBox: { x: 40, y: 40, width: 720, height: 720 },
+      visibilityCutoff: true,
+    });
+    const plan = { ...framing.formats["1:1"], maxSafeEnlargement: 1.05, preferSafeComposition: true };
+    const hook = chooseDirectedMotion({
+      purpose: "HOOK",
+      role: "HERO_PRODUCT",
+      framing: plan,
+      tone: toneMotionPolicy("Premium"),
+      profile: resolveProductionRenderProfile("AI_PRODUCT_MOTION"),
+      order: 1,
+      isLast: false,
+    });
+    expect(hook.directed).toBe("SUBTLE_PUSH_IN");
+    const params = computeSafeMotionParams({
+      directed: hook.directed,
+      tone: toneMotionPolicy("Premium"),
+      framing: plan,
+      durationMs: 2500,
+    });
+    expect(params.maxZoom).toBeGreaterThan(1);
+    expect(params.maxZoom).toBeLessThanOrEqual(1.05);
+  });
+
+  it("TEST full-frame product still gets subtle push when edges are safe", () => {
+    const framing = buildFramingInspection({
+      width: 800,
+      height: 800,
+      productBox: { x: 80, y: 80, width: 640, height: 640 },
+    });
+    const chosen = chooseDirectedMotion({
+      purpose: "FEATURE",
+      role: "SUPPORTING_VIEW",
+      framing: { ...framing.formats["1:1"], maxSafeEnlargement: 1.04, preferSafeComposition: false },
+      tone: toneMotionPolicy("Premium"),
+      profile: resolveProductionRenderProfile("AI_PRODUCT_MOTION"),
+      order: 2,
+      isLast: false,
+    });
+    expect(chosen.directed).not.toBe("STABLE_HOLD");
   });
 
   it("TEST hero opening uses reveal or subtle push when crop is safe", () => {

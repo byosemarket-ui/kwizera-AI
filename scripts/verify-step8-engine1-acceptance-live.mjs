@@ -242,7 +242,13 @@ async function main() {
   const directedCreate = clipsA.filter((c) => c.motionPlan || c.motionParams);
   if (directedCreate.length) {
     const types = [...new Set(directedCreate.map((c) => c.motionPlan?.directedType).filter(Boolean))];
-    pass("motion-at-create", types.join("|"));
+    const reasons = directedCreate.map((c) => `${c.purpose}:${c.motionPlan?.directedType}:${c.motionPlan?.reason || "?"}`).join(" | ");
+    process.stdout.write(`  motion plans: ${reasons}\n`);
+    if (types.length === 1 && types[0] === "STABLE_HOLD" && directedCreate.length > 2) {
+      fail("motion-at-create", `all STABLE_HOLD — ${reasons}`);
+    } else {
+      pass("motion-at-create", types.join("|"));
+    }
     const zooms = directedCreate.map((c) => c.motionParams?.maxZoom).filter((z) => typeof z === "number");
     if (zooms.some((z) => z > 1.15)) fail("safe-zoom-create", zooms.join(","));
     else pass("safe-zoom-create", zooms.join(",") || "ok");
