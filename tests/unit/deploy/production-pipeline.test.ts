@@ -58,6 +58,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(sh).toContain("/var/lib/kwizera-ai-studio");
     expect(sh).not.toMatch(/\brm\s+-rf\s+.*kwizera-ai-studio/);
     expect(sh).toContain("runtimeReady");
+    expect(sh).toContain('HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-360}"');
     expect(sh).toContain("verify-live-http.mjs");
     expect(sh).toContain("record-status.mjs");
   });

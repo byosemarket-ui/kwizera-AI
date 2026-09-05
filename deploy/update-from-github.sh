@@ -11,7 +11,9 @@ SERVICE_USER="${SERVICE_USER:-kwizera}"
 SERVICE="${SERVICE:-kwizera-ai}"
 LOCK_FILE="${KWIZERA_DEPLOY_LOCK:-/var/lock/kwizera-ai-deploy.lock}"
 HEALTH_URL="${KWIZERA_HEALTH_URL:-http://127.0.0.1:5173/api/health}"
-HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-180}"
+# Persistent AI Core cold-start commonly needs ~2.5–4 minutes on the VPS.
+# STEP 9 verified healthy at ~165s; 180s is too tight and caused false rollbacks.
+HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-360}"
 STORAGE_ROOT="${KWIZERA_STORAGE_ROOT:-/var/lib/kwizera-ai-studio}"
 REQUESTED="${KWIZERA_DEPLOY_SHA:-${1:-}}"
 
@@ -96,13 +98,19 @@ build_production() {
 
 wait_healthy() {
   local i
+  local body=""
   for i in $(seq 1 "$HEALTH_WAIT_SECONDS"); do
     if systemctl is-active --quiet "$SERVICE"; then
-      if curl -fsS -m 5 "$HEALTH_URL" | grep -q '"runtimeReady":true' \
-        && curl -fsS -m 5 "$HEALTH_URL" | grep -q '"ok":true' \
-        && curl -fsS -m 5 "$HEALTH_URL" | grep -q '"status":"healthy"'; then
+      body="$(curl -fsS -m 5 "$HEALTH_URL" 2>/dev/null || true)"
+      if printf '%s' "$body" | grep -q '"runtimeReady":true' \
+        && printf '%s' "$body" | grep -q '"ok":true' \
+        && printf '%s' "$body" | grep -q '"status":"healthy"'; then
+        echo "[KWIZERA] healthy after ${i}s"
         return 0
       fi
+    fi
+    if (( i % 30 == 0 )); then
+      echo "[KWIZERA] waiting for runtimeReady… ${i}/${HEALTH_WAIT_SECONDS}s status=$(printf '%s' "$body" | tr '\n' ' ' | head -c 220)"
     fi
     sleep 1
   done
