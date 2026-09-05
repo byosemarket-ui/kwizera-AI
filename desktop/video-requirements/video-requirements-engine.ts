@@ -1,11 +1,13 @@
 /**
  * STEP 2 engine — consumes STEP 1 output and persists AuthoritativeMarketingBrief.
  * Reuses marketing-brief API and canonical product; no duplicate storage.
+ * STEP 2A — brand identity (name, website, phone, CTA, logo) is project-authoritative.
  */
 
 import { fetchMediaIntelligence, formatMediaStatusLabel, prepareMediaIntelligence } from "../media-intelligence/api";
 import type { VideoPlatformId } from "../../ai/video-production/platform-profiles.js";
 import { VIDEO_PLATFORM_PROFILES } from "../../ai/video-production/platform-profiles.js";
+import { normalizeWebsiteUrl } from "../../ai/creative-workspace/brand-identity.js";
 import type { ProductImageSet } from "../image-organization/types";
 import type { Step2HandoffPayload } from "../product-setup/types";
 import {
@@ -20,7 +22,6 @@ import {
   fetchCanonicalProduct,
   fetchMarketingBrief,
   finalizeMarketingBrief,
-  openProjectApi,
   persistMarketingBrief,
   readScopedHandoff,
   SETUP_HANDOFF_KEY,
@@ -35,6 +36,7 @@ import {
 } from "./platform-map";
 import { calculateDiscount, computeReadiness } from "./readiness";
 import type {
+  BrandLogoState,
   CampaignObjectiveOption,
   CommercialFields,
   DurationOption,
@@ -62,10 +64,14 @@ const OBJECTIVES: CampaignObjectiveOption[] = [
   "Drive Orders",
 ];
 
-const CTA_OPTIONS = ["Shop Now", "Order Now", "Learn More", "Contact Us", "Visit Website"];
+const CTA_OPTIONS = ["Shop Now", "Order Now", "Learn More", "Contact Us", "Visit Website", "Get Yours"];
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function emptyLogo(): BrandLogoState {
+  return { assetId: null, url: null, fileName: null, status: "idle", error: null };
 }
 
 export class VideoRequirementsEngine {
@@ -80,9 +86,11 @@ export class VideoRequirementsEngine {
     currentPrice: null,
     previousPrice: null,
     currency: "RWF",
+    brandName: "",
     website: "",
     contact: "",
   };
+  private brandLogo: BrandLogoState = emptyLogo();
   private platformId: VideoPlatformId = "tiktok";
   private duration: DurationOption = "30s";
   private customDurationSeconds: number | null = null;
@@ -96,6 +104,7 @@ export class VideoRequirementsEngine {
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
   private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private persistGeneration = 0;
   private transitioning = false;
   private analyzed = false;
 
@@ -118,6 +127,7 @@ export class VideoRequirementsEngine {
       briefId: this.briefId,
       product: this.product,
       commercial: { ...this.commercial },
+      brandLogo: { ...this.brandLogo },
       discount,
       platformId: this.platformId,
       platformPreview: platformPreview(this.platformId),
@@ -159,14 +169,29 @@ export class VideoRequirementsEngine {
     this.productImageSet = imageSet;
 
     const info = active.productInformation ?? {};
+    const brand = active.brandInformation ?? { name: "" };
+    const specs = (info.specifications ?? {}) as Record<string, string>;
     this.commercial = {
       productName: String(info.name ?? handoff?.essentials.productName ?? ""),
       currentPrice: typeof info.price === "number" ? info.price : handoff?.essentials.currentPrice ?? null,
       previousPrice: typeof info.originalPrice === "number" ? info.originalPrice : handoff?.essentials.previousPrice ?? null,
       currency: String(info.currency ?? handoff?.essentials.currency ?? "RWF"),
-      website: String((info.specifications as Record<string, string> | undefined)?.website ?? handoff?.optional?.website ?? ""),
-      contact: String(info.additionalNotes?.match(/\+?\d[\d\s-]{6,}/)?.[0] ?? ""),
+      brandName: String(brand.name || info.brand || ""),
+      website: String(brand.website || info.website || specs.website || handoff?.optional?.website || ""),
+      contact: String(brand.phone || info.phone || info.contact || ""),
     };
+
+    const logoId = brand.logoAssetId?.trim() || "";
+    const logoAsset = logoId ? active.productImages.find((img) => img.id === logoId) : null;
+    this.brandLogo = logoAsset
+      ? {
+        assetId: logoAsset.id,
+        url: logoAsset.url,
+        fileName: logoAsset.fileName,
+        status: "ready",
+        error: null,
+      }
+      : emptyLogo();
 
     const canonical = await fetchCanonicalProduct(active.id);
     const heroId = imageSet?.images.find((i) => i.roleInGroup === "primary")?.assetId
@@ -176,7 +201,9 @@ export class VideoRequirementsEngine {
 
     this.assetIds = canonical?.originalAssetIds.length
       ? canonical.originalAssetIds
-      : (imageSet?.images.map((i) => i.assetId) ?? active.productImages.map((i) => i.id));
+      : (imageSet?.images.map((i) => i.assetId) ?? active.productImages
+        .filter((img) => img.assetRole !== "brand-logo" && img.assetType !== "document")
+        .map((i) => i.id));
 
     this.product = {
       productId: canonical?.productId ?? active.id,
@@ -217,17 +244,22 @@ export class VideoRequirementsEngine {
       this.customDurationSeconds = parsed.custom;
       this.objective = this.objectiveFromBrief(brief.campaign.objective);
       this.language = brief.campaign.language || active.language || "English";
-      this.cta = brief.campaign.cta || "";
+      this.cta = brief.campaign.cta || active.campaignInformation?.callToAction || "";
       this.loadSellingPointsFromBrief(brief.userDefined ?? {});
       const commercial = (brief.userDefined?.commercial ?? {}) as Record<string, unknown>;
       if (commercial.productName) this.commercial.productName = String(commercial.productName);
       if (typeof commercial.currentPrice === "number") this.commercial.currentPrice = commercial.currentPrice;
       if (typeof commercial.previousPrice === "number") this.commercial.previousPrice = commercial.previousPrice;
       if (commercial.currency) this.commercial.currency = String(commercial.currency);
+      if (commercial.brandName) this.commercial.brandName = String(commercial.brandName);
       if (commercial.website) this.commercial.website = String(commercial.website);
       if (commercial.contact) this.commercial.contact = String(commercial.contact);
     } else if (active.platform) {
       this.platformId = resolvePlatformId(active.platform);
+    }
+
+    if (!this.cta && active.campaignInformation?.callToAction) {
+      this.cta = active.campaignInformation.callToAction;
     }
 
     if (!this.analyzed && !brief?.intelligence) {
@@ -296,21 +328,12 @@ export class VideoRequirementsEngine {
 
     const map = canonical?.assetMap ?? {};
     const viewLabels: Record<string, string> = {
-      front: "Front",
-      back: "Back",
-      left: "Left side",
-      right: "Right side",
-      top: "Top",
-      bottom: "Sole",
-      detail: "Detail",
-      packaging: "Packaging",
-      side: "Side views",
-      details: "Detail shots",
+      front: "Front", back: "Back", left: "Left side", right: "Right side",
+      top: "Top", bottom: "Sole", detail: "Detail", packaging: "Packaging",
+      side: "Side views", details: "Detail shots",
     };
     for (const [key, ids] of Object.entries(map)) {
-      if (Array.isArray(ids) && ids.length) {
-        viewsDetected.push(viewLabels[key] ?? key);
-      }
+      if (Array.isArray(ids) && ids.length) viewsDetected.push(viewLabels[key] ?? key);
     }
 
     if (imageSet?.images.length) {
@@ -321,10 +344,7 @@ export class VideoRequirementsEngine {
       }
     }
 
-    if (viewsDetected.length) {
-      lines.push(`${viewsDetected.join(", ")} detected`);
-    }
-
+    if (viewsDetected.length) lines.push(`${viewsDetected.join(", ")} detected`);
     this.intelligence = { lines, viewsDetected, viewsMissing };
   }
 
@@ -413,19 +433,91 @@ export class VideoRequirementsEngine {
     this.emit();
   }
 
+  async uploadBrandLogo(file: File): Promise<void> {
+    if (!this.projectId) throw new Error("No project open");
+    const localUrl = URL.createObjectURL(file);
+    this.brandLogo = {
+      assetId: null,
+      url: localUrl,
+      fileName: file.name,
+      status: "uploading",
+      error: null,
+    };
+    this.emit();
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]!);
+      const dataBase64 = btoa(binary);
+      const res = await fetch(`/api/workspace/projects/${this.projectId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          purpose: "brand-logo",
+          fileName: file.name,
+          mimeType: file.type || "image/png",
+          dataBase64,
+        }),
+      });
+      const body = await res.json() as {
+        error?: string;
+        logo?: { id: string; url: string; fileName: string };
+        image?: { id: string; url: string; fileName: string };
+      };
+      if (!res.ok) throw new Error(body.error ?? `Logo upload failed (${res.status})`);
+      const logo = body.logo ?? body.image;
+      if (!logo?.id) throw new Error("Logo upload returned no asset id");
+      URL.revokeObjectURL(localUrl);
+      this.brandLogo = {
+        assetId: logo.id,
+        url: logo.url,
+        fileName: logo.fileName,
+        status: "ready",
+        error: null,
+      };
+      this.saveState = "saved";
+      workspaceStateEngine.autoSave.markDirty();
+      this.emit();
+    } catch (error) {
+      this.brandLogo = {
+        ...this.brandLogo,
+        status: "error",
+        error: error instanceof Error ? error.message : "Logo upload failed",
+      };
+      this.emit();
+      throw error;
+    }
+  }
+
+  async removeBrandLogo(): Promise<void> {
+    if (!this.projectId) return;
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/brand-logo`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(body.error ?? "Unable to remove logo");
+    }
+    if (this.brandLogo.url?.startsWith("blob:")) URL.revokeObjectURL(this.brandLogo.url);
+    this.brandLogo = emptyLogo();
+    this.saveState = "saved";
+    this.emit();
+  }
+
   private schedulePersist(): void {
     if (this.persistTimer) clearTimeout(this.persistTimer);
     this.saveState = "unsaved";
+    const generation = ++this.persistGeneration;
     this.persistTimer = setTimeout(() => {
-      void this.flushPersist().catch(() => {
+      void this.flushPersist(generation).catch(() => {
         this.saveState = "error";
         this.emit();
       });
     }, 700);
   }
 
-  async flushPersist(): Promise<void> {
+  async flushPersist(expectedGeneration?: number): Promise<void> {
     if (!this.projectId) return;
+    const generation = expectedGeneration ?? ++this.persistGeneration;
     this.saveState = "saving";
     this.emit();
 
@@ -434,6 +526,9 @@ export class VideoRequirementsEngine {
     const durationStr = this.duration === "custom"
       ? `${durationToSeconds("custom", this.customDurationSeconds)}s`
       : this.duration;
+    const website = normalizeWebsiteUrl(this.commercial.website);
+    const brandName = this.commercial.brandName.trim();
+    const contact = this.commercial.contact.trim();
 
     await persistMarketingBrief(this.projectId, {
       campaign: {
@@ -451,42 +546,59 @@ export class VideoRequirementsEngine {
       userDefined: {
         videoPlatformId: this.platformId,
         customDurationSeconds: this.customDurationSeconds,
+        website: website || null,
+        phone: contact || null,
         commercial: {
           productName: this.commercial.productName.trim(),
           currentPrice: this.commercial.currentPrice,
           previousPrice: this.commercial.previousPrice,
           discountPercentage: discount.valid ? discount.percent : null,
           currency: this.commercial.currency,
-          website: this.commercial.website.trim() || null,
-          contact: this.commercial.contact.trim() || null,
+          brandName: brandName || null,
+          website: website || null,
+          contact: contact || null,
         },
         sellingPoints: this.sellingPoints,
       },
     });
 
+    if (generation !== this.persistGeneration) return;
+
     await updateProjectApi(this.projectId, {
       name: this.projectName,
       platform: this.platformId,
       language: this.language,
+      brandInformation: {
+        name: brandName,
+        website: website || undefined,
+        phone: contact || undefined,
+        logoAssetId: this.brandLogo.assetId || undefined,
+      },
       productInformation: {
         name: this.commercial.productName.trim(),
         price: this.commercial.currentPrice ?? undefined,
         originalPrice: this.commercial.previousPrice ?? undefined,
         discount: discount.valid ? discount.percent ?? undefined : undefined,
         currency: this.commercial.currency,
-        specifications: this.commercial.website.trim()
-          ? { website: this.commercial.website.trim() }
-          : undefined,
+        website: website || undefined,
+        phone: contact || undefined,
+        contact: contact || undefined,
+        callToAction: this.cta || undefined,
+        specifications: {
+          ...(website ? { website } : {}),
+        },
       },
       campaignInformation: {
         name: this.projectName,
         objective: this.objective,
-        callToAction: this.cta || undefined,
+        callToAction: this.cta,
         duration: this.duration,
         customDurationSeconds: this.customDurationSeconds ?? undefined,
         platforms: [platformLabelForBrief(this.platformId)],
       },
     });
+
+    if (generation !== this.persistGeneration) return;
 
     const brief = await fetchMarketingBrief(this.projectId);
     if (brief) this.briefId = brief.briefId;

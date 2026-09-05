@@ -149,13 +149,24 @@ export function VideoRequirementsWorkspace() {
         )}
       </section>
 
-      {/* Optional website / contact / CTA */}
+      {/* STEP 2A — Brand & Contact */}
       <section className="vr-section">
-        <h2>Website &amp; Contact (optional)</h2>
+        <h2>Brand &amp; Contact</h2>
         <div className="vr-grid-2">
           <div className="vr-field">
+            <label htmlFor="vr-brand-name">
+              Brand / Website Name
+              <input
+                id="vr-brand-name"
+                value={snap.commercial.brandName}
+                onChange={(e) => videoRequirementsEngine.setCommercialField("brandName", e.target.value)}
+                placeholder="BYOSE MARKET"
+              />
+            </label>
+          </div>
+          <div className="vr-field">
             <label htmlFor="vr-website">
-              Website
+              Website URL
               <input
                 id="vr-website"
                 value={snap.commercial.website}
@@ -171,6 +182,7 @@ export function VideoRequirementsWorkspace() {
                 id="vr-contact"
                 value={snap.commercial.contact}
                 onChange={(e) => videoRequirementsEngine.setCommercialField("contact", e.target.value)}
+                placeholder="+250 780 000 000"
               />
             </label>
           </div>
@@ -198,6 +210,54 @@ export function VideoRequirementsWorkspace() {
                 {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
             </label>
+          </div>
+        </div>
+
+        <div className="vr-logo-block">
+          <h3>Brand Logo</h3>
+          <div className="vr-logo-row">
+            <div className={`vr-logo-preview ${snap.brandLogo.url ? "has-image" : ""}`}>
+              {snap.brandLogo.url ? (
+                <img src={snap.brandLogo.url} alt="Brand logo preview" />
+              ) : (
+                <span>No logo</span>
+              )}
+            </div>
+            <div className="vr-logo-actions">
+              <label className="vr-logo-upload">
+                <input
+                  type="file"
+                  accept="image/png,image/webp,image/jpeg"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    void videoRequirementsEngine.uploadBrandLogo(file).catch((err) => {
+                      notify("error", "Logo upload failed", err instanceof Error ? err.message : "Upload failed");
+                    });
+                  }}
+                />
+                {snap.brandLogo.assetId ? "Replace Logo" : "Upload Logo"}
+              </label>
+              {snap.brandLogo.assetId || snap.brandLogo.url ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void videoRequirementsEngine.removeBrandLogo().catch((err) => {
+                      notify("error", "Remove logo failed", err instanceof Error ? err.message : "Remove failed");
+                    });
+                  }}
+                >
+                  Remove Logo
+                </button>
+              ) : null}
+              {snap.brandLogo.status === "uploading" && <span className="vr-hint">Uploading…</span>}
+              {snap.brandLogo.status === "ready" && <span className="vr-hint">Logo ready</span>}
+              {snap.brandLogo.status === "error" && (
+                <span className="vr-hint" style={{ color: "#c45" }}>{snap.brandLogo.error ?? "Logo upload failed"}</span>
+              )}
+            </div>
           </div>
         </div>
       </section>

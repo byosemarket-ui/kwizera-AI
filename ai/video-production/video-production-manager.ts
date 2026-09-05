@@ -39,6 +39,7 @@ import { validateBeforeRender, validateRenderedOutput, validateEngine1FinalPlan 
 import {
   buildEndCardClip,
   buildEndCardPlan,
+  composeEndCardBackground,
   validateEndCardPlan,
   writeEndCardBackground,
 } from "./end-card.js";
@@ -791,13 +792,18 @@ export class VideoProductionManager {
         });
       }
 
-      // STEP 11 — professional end card for ENGINE 1 standard renders before concat.
+      // STEP 11 / 2A — professional end card for ENGINE 1 standard renders before concat.
       const workspaceForEnd = await this.workspace!.getProject(job.projectId);
       if (workspaceForEnd && selectedEngine === "AI_PRODUCT_MOTION" && preset === "standard") {
+        const logoAssetId = workspaceForEnd.brandInformation?.logoAssetId?.trim() || "";
+        const logoPath = logoAssetId
+          ? await this.workspace!.getAssetImagePath(job.projectId, logoAssetId)
+          : null;
         const endPlan = buildEndCardPlan({
           project: workspaceForEnd,
           preset,
           productionMode: selectedEngine,
+          logoFileExists: Boolean(logoPath),
         });
         const endCheck = validateEndCardPlan(endPlan);
         if (!endCheck.valid) {
@@ -811,11 +817,23 @@ export class VideoProductionManager {
           stageMessage: "Rendering professional end card",
         });
         const bgPath = path.join(tmpDir, "end-card-bg.png");
+        const composedPath = path.join(tmpDir, "end-card-composed.png");
         await writeEndCardBackground(bgPath, renderPlan.width, renderPlan.height);
-        const endClip = buildEndCardClip(endPlan, renderPlan);
+        const composed = await composeEndCardBackground({
+          backgroundPath: bgPath,
+          outputPath: composedPath,
+          logoPath: endPlan.hasLogo ? logoPath : null,
+          width: renderPlan.width,
+          height: renderPlan.height,
+        });
+        const endClip = buildEndCardClip({
+          ...endPlan,
+          hasLogo: composed.logoComposited,
+          logoAssetId: composed.logoComposited ? endPlan.logoAssetId : undefined,
+        }, renderPlan);
         const endClipPath = path.join(tmpDir, "clip-end-card.mp4");
         const endRendered = await renderStillClip(
-          { clip: endClip, imagePath: bgPath },
+          { clip: endClip, imagePath: composed.path },
           renderPlan,
           endClipPath,
           fontFile,
@@ -833,7 +851,7 @@ export class VideoProductionManager {
           website: endPlan.website,
           phone: endPlan.phone,
           cta: endPlan.cta,
-          hasLogo: endPlan.hasLogo,
+          hasLogo: composed.logoComposited,
           required: endPlan.required,
           lines: endPlan.lines,
           warnings: endPlan.warnings,

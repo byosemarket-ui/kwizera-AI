@@ -76,11 +76,21 @@ export interface ProductInformation {
   stock?: string;
   countryOfOrigin?: string;
   additionalNotes?: string;
+  /** STEP 2A — commercial contact fields (optional; prefer brandInformation for website/phone) */
+  website?: string;
+  phone?: string;
+  contact?: string;
+  email?: string;
+  callToAction?: string;
+  cta?: string;
 }
 
 export interface BrandInformation {
   name: string;
   website?: string;
+  /** STEP 2A — contact phone for end card / overlays */
+  phone?: string;
+  whatsapp?: string;
   voice?: string;
   guidelines?: string;
   /** Step 4 project-specific brand prefs — do not replace global brand DB */
@@ -373,6 +383,54 @@ export class CreativeWorkspaceManager {
   }
 
   /**
+   * STEP 2A — upload brand logo (not a product photograph).
+   * Stores as document + brand-logo role and sets brandInformation.logoAssetId.
+   */
+  async uploadBrandLogo(projectId: string, image: UploadedImageInput): Promise<{
+    logo: ProductImage;
+    project: CreativeProject;
+  }> {
+    return this.enqueueProject(projectId, async () => {
+      const allowed = new Set(["image/png", "image/webp", "image/jpeg", "image/jpg"]);
+      const mime = (image.mimeType || "").toLowerCase();
+      if (!allowed.has(mime)) {
+        throw new CreativeWorkspaceError(
+          "UNSUPPORTED_FORMAT",
+          "Brand logo must be PNG, WEBP, or JPEG",
+        );
+      }
+      const uploaded = await this.uploadImageLocked(projectId, {
+        ...image,
+        assetType: "document",
+        origin: "upload",
+        assetRole: "brand-logo",
+        analysisState: "not-applicable",
+        allowDuplicateContent: true,
+      });
+      const project = await this.requireProject(projectId);
+      project.brandInformation = {
+        ...project.brandInformation,
+        logoAssetId: uploaded.id,
+      };
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      return { logo: uploaded, project: this.hydrateProject(project) };
+    });
+  }
+
+  async clearBrandLogo(projectId: string): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
+      const current = await this.requireProject(projectId);
+      const nextBrand = { ...current.brandInformation };
+      delete nextBrand.logoAssetId;
+      current.brandInformation = nextBrand;
+      current.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(current);
+      return this.hydrateProject(current);
+    });
+  }
+
+  /**
    * Must only run inside enqueueProject for projectId.
    * Re-reads the project so concurrent mutations never clobber productImages.
    * Same content SHA-256 in the same project reuses the existing original (idempotent).
@@ -506,14 +564,33 @@ export class CreativeWorkspaceManager {
     const project = await this.getProject(projectId);
     const image = project?.productImages.find((item) => item.id === imageId);
     if (!image || !isOriginalProductImage(image) || classifyAssetBucket(image) !== "original") return null;
+    return this.resolveStoredImagePath(projectId, image);
+  }
+
+  /**
+   * Resolve any project image file path (product photos OR brand logos).
+   * Does not invent assets — id must exist on the project.
+   */
+  async getAssetImagePath(projectId: string, imageId: string): Promise<string | null> {
+    const project = await this.getProject(projectId);
+    const image = project?.productImages.find((item) => item.id === imageId);
+    if (!image) return null;
+    if (image.assetType === "video" || image.assetType === "audio" || image.assetType === "rendered") return null;
+    return this.resolveStoredImagePath(projectId, image);
+  }
+
+  private async resolveStoredImagePath(
+    projectId: string,
+    image: ProductImage,
+  ): Promise<string | null> {
     const preferredExt = EXT_BY_MIME[image.mimeType] ?? (image.mimeType === "image/jpeg" ? "jpeg" : image.mimeType.split("/")[1]);
     if (!preferredExt || preferredExt === "mp4") return null;
-    const preferredPath = await this.getImagePath(projectId, `${imageId}.${preferredExt}`);
+    const preferredPath = await this.getImagePath(projectId, `${image.id}.${preferredExt}`);
     if (preferredPath) return preferredPath;
     const imageDir = path.join(this.projectPath(projectId), "images");
     try {
       const entries = await fs.readdir(imageDir);
-      const match = entries.find((entry) => entry.startsWith(`${imageId}.`));
+      const match = entries.find((entry) => entry.startsWith(`${image.id}.`));
       if (!match) return null;
       return this.getImagePath(projectId, match);
     } catch {

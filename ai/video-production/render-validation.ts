@@ -1,4 +1,5 @@
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
+import { extractBrandIdentity } from "../creative-workspace/brand-identity.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import { buildConfirmedCommercial } from "../creative-planning/commercial.js";
 import type { VideoPlatformProfile } from "./platform-profiles.js";
@@ -9,15 +10,16 @@ import { uniqueAssetIds } from "./output-stale.js";
 
 export function buildCommercialFromProject(project: CreativeProject) {
   const info = project.productInformation ?? {};
+  const brand = extractBrandIdentity(project);
   return buildConfirmedCommercial({
     productName: info.name ?? info.title ?? project.name,
     currentPrice: info.price ?? info.currentPrice,
     originalPrice: info.originalPrice ?? info.oldPrice,
     currency: info.currency,
-    website: info.website,
-    phone: info.phone ?? info.contact,
-    email: info.email,
-    cta: info.callToAction ?? info.cta,
+    website: brand.websiteUrl || info.website,
+    phone: brand.phone || info.phone || info.contact,
+    email: brand.email || info.email,
+    cta: brand.cta || info.callToAction || info.cta,
     promotionMessage: info.promotionMessage ?? info.promotion,
   });
 }

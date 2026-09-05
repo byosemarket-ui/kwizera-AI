@@ -115,6 +115,17 @@ export function FinalReviewWorkspace() {
             ) : (
               <p className="fr-hint">Complete Video Style (Step 3) to start production.</p>
             )}
+            {ctx && (ctx.brandName || ctx.website || ctx.phone || ctx.cta || ctx.logoUrl) ? (
+              <div className="fr-brand-identity">
+                {ctx.logoUrl ? <img className="fr-brand-logo" src={ctx.logoUrl} alt="" /> : null}
+                <div>
+                  {ctx.brandName ? <div><strong>{ctx.brandName}</strong></div> : null}
+                  {ctx.cta ? <div>{ctx.cta}</div> : null}
+                  {ctx.website ? <div>{ctx.website.replace(/^https?:\/\//i, "")}</div> : null}
+                  {ctx.phone ? <div>{ctx.phone}</div> : null}
+                </div>
+              </div>
+            ) : null}
           </header>
 
           {!ctx ? (

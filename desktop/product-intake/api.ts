@@ -36,6 +36,8 @@ export interface CreativeProjectDto {
   brandInformation?: {
     name: string;
     website?: string;
+    phone?: string;
+    whatsapp?: string;
     voice?: string;
     guidelines?: string;
     style?: string;

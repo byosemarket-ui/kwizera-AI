@@ -17,8 +17,18 @@ export interface CommercialFields {
   currentPrice: number | null;
   previousPrice: number | null;
   currency: string;
+  /** STEP 2A brand identity fields */
+  brandName: string;
   website: string;
   contact: string;
+}
+
+export interface BrandLogoState {
+  assetId: string | null;
+  url: string | null;
+  fileName: string | null;
+  status: "idle" | "uploading" | "ready" | "error";
+  error: string | null;
 }
 
 export interface DiscountPreview {
@@ -75,6 +85,7 @@ export interface VideoRequirementsSnapshot {
   briefId: string | null;
   product: ProductSummary | null;
   commercial: CommercialFields;
+  brandLogo: BrandLogoState;
   discount: DiscountPreview;
   platformId: VideoPlatformId;
   platformPreview: PlatformPreview;

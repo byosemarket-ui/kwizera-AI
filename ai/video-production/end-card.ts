@@ -2,15 +2,24 @@
  * STEP 11 — Professional end card for ENGINE 1 (AI Product Motion).
  * Builds a ~5s closing clip from existing project/brand/commercial data.
  * Does not hard-code company contacts. Reuses timeline text + FFmpeg drawtext.
+ * STEP 2A — optional brand logo overlay when logoAssetId resolves.
  */
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { encodeRgbaPng } from "../creative-workspace/png-pixels.js";
 import type { CreativeProject } from "../creative-workspace/creative-workspace-manager.js";
-import { buildCommercialFromProject } from "./render-validation.js";
+import {
+  extractBrandIdentity,
+  validateBrandIdentityForEndCard,
+} from "../creative-workspace/brand-identity.js";
+import { ffmpegBinary } from "./ffmpeg-renderer.js";
 import type { VideoRenderPlan, VideoTextLayer, VideoTimelineClip } from "./types.js";
 
-export const END_CARD_VERSION = "step11-end-card-v1";
+const execFileAsync = promisify(execFile);
+
+export const END_CARD_VERSION = "step2a-end-card-v1";
 export const END_CARD_DURATION_MS = 5000;
 export const END_CARD_SCENE_ID = "__engine1-end-card__";
 
@@ -35,44 +44,50 @@ function asText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** Prefer brand settings, then product commercial fields. Never invent contacts. */
+/** Prefer brand identity, then product commercial fields. Never invent contacts. */
 export function buildEndCardPlan(input: {
   project: CreativeProject;
   preset: "preview" | "standard";
   productionMode?: string | null;
+  logoFileExists?: boolean;
 }): EndCardPlan {
   const project = input.project;
-  const commercial = buildCommercialFromProject(project);
-  const brand = project.brandInformation ?? { name: "" };
-  const campaign = project.campaignInformation;
-  const companyName = asText(brand.name)
-    || asText(project.productInformation?.brand)
-    || asText(commercial.productName);
-  const website = asText(brand.website) || asText(commercial.destination.website);
-  const phone = asText(commercial.destination.phone);
-  const cta = asText(campaign?.callToAction)
+  const identity = extractBrandIdentity(project);
+  const logoCheck = validateBrandIdentityForEndCard(
+    identity,
+    input.logoFileExists !== false || !identity.logoAssetId,
+  );
+
+  const companyName = identity.brandName || asText(project.productInformation?.name);
+  const website = identity.websiteUrl;
+  const phone = identity.phone;
+  // Empty CTA ("None") must stay empty — do not invent fallback CTAs when user cleared it.
+  const ctaExplicit = asText(project.campaignInformation?.callToAction)
     || asText(project.productInformation?.callToAction)
-    || asText(project.productInformation?.cta)
-    || (website ? "Visit Our Website" : phone ? "Contact Us" : companyName ? "Discover More" : "");
+    || asText(project.productInformation?.cta);
+  const cta = ctaExplicit;
 
   const lines: EndCardPlan["lines"] = [];
+  // Hierarchy: brand → CTA → website → phone (logo is visual, not a text line)
   if (companyName) lines.push({ role: "brand", content: companyName });
+  if (cta) lines.push({ role: "cta", content: cta });
   if (website) lines.push({ role: "website", content: website.replace(/^https?:\/\//i, "") });
   if (phone) lines.push({ role: "phone", content: phone });
-  if (cta) lines.push({ role: "cta", content: cta });
 
-  const warnings: string[] = [];
-  const issues: string[] = [];
+  const warnings: string[] = [...logoCheck.warnings];
+  const issues: string[] = [...logoCheck.issues];
   if (!companyName && !website && !phone && !cta) {
     warnings.push("End card has no brand or contact lines — using minimal brand hold.");
   }
   const required = input.preset === "standard"
     && (input.productionMode == null || input.productionMode === "AI_PRODUCT_MOTION");
   if (required && lines.length === 0) {
-    // Still render a professional dark hold so the ending is not an abrupt cut to black failure.
     lines.push({ role: "brand", content: asText(project.name) || "Thank you" });
     warnings.push("End card fell back to project name / thank-you line.");
   }
+
+  const logoAssetId = identity.logoAssetId || undefined;
+  const hasLogo = Boolean(logoAssetId) && input.logoFileExists !== false;
 
   return {
     projectId: project.id,
@@ -82,8 +97,8 @@ export function buildEndCardPlan(input: {
     website,
     phone,
     cta,
-    hasLogo: Boolean(asText(brand.logoAssetId)),
-    logoAssetId: asText(brand.logoAssetId) || undefined,
+    hasLogo,
+    logoAssetId: hasLogo ? logoAssetId : undefined,
     background: "dark-brand",
     required,
     lines,
@@ -126,6 +141,60 @@ export async function writeEndCardBackground(outputPath: string, width: number, 
   return outputPath;
 }
 
+/**
+ * Composite brand logo onto end-card background (preserve aspect ratio + alpha).
+ * Falls back to background-only if logo is missing/unreadable.
+ */
+export async function composeEndCardBackground(input: {
+  backgroundPath: string;
+  outputPath: string;
+  logoPath?: string | null;
+  width: number;
+  height: number;
+}): Promise<{ path: string; logoComposited: boolean }> {
+  if (!input.logoPath) {
+    if (input.backgroundPath !== input.outputPath) {
+      await fs.copyFile(input.backgroundPath, input.outputPath);
+    }
+    return { path: input.outputPath, logoComposited: false };
+  }
+  try {
+    await fs.access(input.logoPath);
+  } catch {
+    if (input.backgroundPath !== input.outputPath) {
+      await fs.copyFile(input.backgroundPath, input.outputPath);
+    }
+    return { path: input.outputPath, logoComposited: false };
+  }
+
+  const maxLogoW = Math.max(48, Math.round(input.width * 0.28));
+  const maxLogoH = Math.max(48, Math.round(input.height * 0.16));
+  const y = Math.round(input.height * 0.08);
+  const filter = [
+    `[1:v]scale=${maxLogoW}:${maxLogoH}:force_original_aspect_ratio=decrease,format=rgba[logo]`,
+    `[0:v][logo]overlay=(main_w-overlay_w)/2:${y}:format=auto`,
+  ].join(";");
+
+  try {
+    await execFileAsync(ffmpegBinary(), [
+      "-y",
+      "-i", input.backgroundPath,
+      "-i", input.logoPath,
+      "-filter_complex", filter,
+      "-frames:v", "1",
+      input.outputPath,
+    ], { timeout: 60_000, windowsHide: true });
+    const stat = await fs.stat(input.outputPath).catch(() => null);
+    if (!stat?.size) throw new Error("empty composed background");
+    return { path: input.outputPath, logoComposited: true };
+  } catch {
+    if (input.backgroundPath !== input.outputPath) {
+      await fs.copyFile(input.backgroundPath, input.outputPath);
+    }
+    return { path: input.outputPath, logoComposited: false };
+  }
+}
+
 function textLayer(content: string, kind: VideoTextLayer["kind"], position: VideoTextLayer["position"], durationMs: number, role?: string): VideoTextLayer {
   return {
     content,
@@ -141,9 +210,11 @@ function textLayer(content: string, kind: VideoTextLayer["kind"], position: Vide
 export function buildEndCardClip(plan: EndCardPlan, renderPlan: VideoRenderPlan): VideoTimelineClip {
   const durationMs = plan.durationMs;
   const text: VideoTextLayer[] = [];
+  // With logo: brand lower; without: brand centered. CTA/website/phone stay bottom.
+  const brandPosition: VideoTextLayer["position"] = plan.hasLogo ? "bottom" : "center";
   for (const line of plan.lines) {
     if (line.role === "brand") {
-      text.push(textLayer(line.content, "headline", "center", durationMs, "brand"));
+      text.push(textLayer(line.content, "headline", brandPosition, durationMs, "brand"));
     } else if (line.role === "cta") {
       text.push(textLayer(line.content, "cta", "bottom", durationMs, "cta"));
     } else if (line.role === "website") {
@@ -152,7 +223,6 @@ export function buildEndCardClip(plan: EndCardPlan, renderPlan: VideoRenderPlan)
       text.push(textLayer(line.content, "supporting", "bottom", durationMs, "phone"));
     }
   }
-  // Stable synthetic asset id — background is generated, not a product photo.
   const assetId = `end-card-bg:${plan.projectId}`;
   return {
     id: `clip-end-card-${plan.projectId.slice(0, 8)}`,
@@ -234,8 +304,8 @@ export function getEndCardDiagnostics(input?: {
     lastDurationMs: input?.durationMs,
     companyDataDriven: true,
     notes: [
-      "STEP 11 appends a professional dark brand end card from project/brand settings.",
-      "Company name, website, phone and CTA come from existing project data — never hard-coded.",
+      "STEP 11/2A appends a professional dark brand end card from project brand identity.",
+      "Company name, website, phone, CTA, and logo come from existing project data — never hard-coded.",
       "Rendered via the existing FFmpeg still-clip + drawtext path before concat.",
     ],
   };

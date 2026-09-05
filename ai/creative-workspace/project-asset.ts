@@ -30,6 +30,7 @@ export type AssetRole =
   | "lifestyle"
   | "generated"
   | "reference"
+  | "brand-logo"
   | "unassigned";
 
 export interface ProjectAssetRef {
@@ -71,6 +72,7 @@ export function isSafeProjectId(projectId: string): boolean {
 export function isOriginalProductImage(image: {
   origin?: string;
   assetType?: string;
+  assetRole?: string;
   parentAssetId?: string;
   mimeType?: string;
   fileName?: string;
@@ -80,6 +82,8 @@ export function isOriginalProductImage(image: {
   if (image.origin === "derived" || image.origin === "generated") return false;
   if (image.assetType === "derived-image" || image.assetType === "generated-image") return false;
   if (image.assetType === "video" || image.assetType === "audio" || image.assetType === "rendered") return false;
+  if (image.assetType === "document") return false;
+  if (image.assetRole === "brand-logo") return false;
   const mime = (image.mimeType ?? "").toLowerCase();
   if (mime.startsWith("video/") || mime.startsWith("audio/")) return false;
   const names = `${image.fileName ?? ""} ${image.sourceFileName ?? ""}`.toLowerCase();

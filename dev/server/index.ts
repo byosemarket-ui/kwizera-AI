@@ -4465,7 +4465,34 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     try {
 
-      const body = JSON.parse(await readBody(req)) as { fileName?: string; mimeType?: string; dataBase64?: string; width?: number; height?: number; checksumSha256?: string };
+      const body = JSON.parse(await readBody(req)) as {
+        fileName?: string;
+        mimeType?: string;
+        dataBase64?: string;
+        width?: number;
+        height?: number;
+        checksumSha256?: string;
+        purpose?: string;
+      };
+
+      if (body.purpose === "brand-logo") {
+        const result = await workspace.uploadBrandLogo(uploadMatch[1], {
+          fileName: body.fileName ?? "brand-logo",
+          mimeType: body.mimeType ?? "",
+          dataBase64: body.dataBase64 ?? "",
+          width: typeof body.width === "number" ? body.width : undefined,
+          height: typeof body.height === "number" ? body.height : undefined,
+          checksumSha256: typeof body.checksumSha256 === "string" ? body.checksumSha256 : undefined,
+        });
+        sendJson(res, 201, {
+          image: result.logo,
+          logo: result.logo,
+          project: result.project,
+          purpose: "brand-logo",
+        });
+        return;
+      }
+
       const image = await workspace.uploadImage(uploadMatch[1], {
         fileName: body.fileName ?? "product-image",
         mimeType: body.mimeType ?? "",
@@ -4518,6 +4545,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
     return;
 
+  }
+
+  const brandLogoClearMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/brand-logo$/);
+  if (brandLogoClearMatch && req.method === "DELETE") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const project = await workspace.clearBrandLogo(brandLogoClearMatch[1]);
+      sendJson(res, 200, { project, logoAssetId: null });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
   }
 
   const removeImageMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/images\/([^/]+)$/);

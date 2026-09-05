@@ -81,6 +81,12 @@ export interface FinalProductionContext {
   discountLabel: string | null;
   heroUrl: string | null;
   sceneCount: number;
+  /** STEP 2A — authoritative brand identity for Final Review */
+  brandName: string | null;
+  website: string | null;
+  phone: string | null;
+  cta: string | null;
+  logoUrl: string | null;
 }
 
 export interface FinalReviewSnapshot {
@@ -103,9 +109,21 @@ function modeLabel(mode: Step4HandoffPayload["productionMode"]): string {
   return MODE_COPY[mode]?.label ?? mode.replace(/_/g, " ");
 }
 
-function buildContext(handoff: Step4HandoffPayload): FinalProductionContext {
+function buildContext(
+  handoff: Step4HandoffPayload,
+  project?: {
+    brandInformation?: { name?: string; website?: string; phone?: string; logoAssetId?: string };
+    campaignInformation?: { callToAction?: string };
+    productInformation?: { website?: string; phone?: string; contact?: string; brand?: string };
+    productImages?: Array<{ id: string; url: string }>;
+  } | null,
+): FinalProductionContext {
   const preview = platformPreview(handoff.platformId);
   const productName = handoff.productName?.trim() || handoff.projectName;
+  const brand = project?.brandInformation;
+  const info = project?.productInformation;
+  const logoId = brand?.logoAssetId?.trim();
+  const logo = logoId ? project?.productImages?.find((img) => img.id === logoId) : null;
   return {
     handoff,
     productName,
@@ -120,6 +138,11 @@ function buildContext(handoff: Step4HandoffPayload): FinalProductionContext {
       ? `/api/workspace/projects/${handoff.projectId}/images/${handoff.heroAssetId}`
       : null,
     sceneCount: handoff.sceneCount,
+    brandName: brand?.name?.trim() || info?.brand?.trim() || null,
+    website: brand?.website?.trim() || info?.website?.trim() || null,
+    phone: brand?.phone?.trim() || info?.phone?.trim() || info?.contact?.trim() || null,
+    cta: project?.campaignInformation?.callToAction?.trim() || null,
+    logoUrl: logo?.url ?? (logoId ? `/api/workspace/projects/${handoff.projectId}/images/${logoId}` : null),
   };
 }
 
@@ -237,11 +260,11 @@ export class FinalReviewEngine {
     }
     if (bound && bound.projectId !== handoff.projectId) {
       this.error = "Active project does not match Step 4 handoff. Open the correct project or return to Step 3.";
-      this.context = buildContext(handoff);
+      this.context = buildContext(handoff, bound.project);
       this.emit();
       return;
     }
-    this.context = buildContext(handoff);
+    this.context = buildContext(handoff, bound?.project);
     this.error = null;
     try {
       const payload = await getVideoProject(handoff.projectId);
