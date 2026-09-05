@@ -78,6 +78,7 @@ async function buildItem(input: {
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
       productOccupiedRegion,
+      preferredTextSides: input.scene.image?.preferredTextSides,
     });
   if (regionOverlapsProduct(region, productCentered, productOccupiedRegion)) {
     region = choosePlacement({
@@ -86,6 +87,7 @@ async function buildItem(input: {
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
       productOccupiedRegion,
+      preferredTextSides: input.scene.image?.preferredTextSides,
     });
   }
   const zone = platformSafeZone(input.project.platform, input.project.aspectRatio);

@@ -27,6 +27,7 @@ export async function getTypographyDiagnostics(): Promise<PublicTypographyDiagno
       emphasisEngineReady: true,
       contrastEngineReady: true,
       regionAnalysisReady: true,
+      compositionIntegrationReady: true,
       lastError: fallback
         ? (ffmpeg ? null : "FFmpeg unavailable")
         : "No verified fonts found",
@@ -48,6 +49,7 @@ export async function getTypographyDiagnostics(): Promise<PublicTypographyDiagno
       emphasisEngineReady: true,
       contrastEngineReady: true,
       regionAnalysisReady: true,
+      compositionIntegrationReady: true,
       lastError: error instanceof Error ? error.message : "Typography diagnostics failed",
     };
   }

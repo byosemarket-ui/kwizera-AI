@@ -7,6 +7,7 @@ import {
   MODE_COPY,
   type ProductionModeCapability,
 } from "./production-mode-types.js";
+import { getCompositionDiagnostics } from "./scene-composition.js";
 
 export type { CreativeToneId, ProductionModeCapability, ProductionModeId } from "./production-mode-types.js";
 export { recommendCreativeTone, recommendProductionMode } from "./production-mode-types.js";
@@ -87,4 +88,12 @@ export function getSmartCameraDiagnostics(input?: {
       "Uses STEP 6 framing bounds when available; otherwise deterministic full-product fallback.",
     ],
   };
+}
+
+/** STEP 10 — composition diagnostics (handoff to typography + timeline). */
+export function getSceneCompositionDiagnostics(input?: {
+  sceneCount?: number;
+  invalidCount?: number;
+}) {
+  return getCompositionDiagnostics(input);
 }

@@ -23,12 +23,14 @@ export async function buildTypographyImageHint(input: {
   brandColors?: string[];
   productOccupiedRegion?: { x: number; y: number; width: number; height: number } | null;
   productLikelyCentered?: boolean;
+  preferredTextSides?: Array<"left" | "right" | "top" | "bottom">;
 }): Promise<TypographyImageHint> {
   const base: TypographyImageHint = {
     composition: input.composition,
     productLikelyCentered: input.productLikelyCentered
       ?? !/edge|left|right/i.test(input.composition ?? ""),
     productOccupiedRegion: input.productOccupiedRegion ?? undefined,
+    preferredTextSides: input.preferredTextSides,
     brandColors: input.brandColors,
     imagePath: input.imagePath ?? undefined,
   };

@@ -57,7 +57,7 @@ export function composeInputFromProject(input: {
   plan: CreativePlan;
   width: number;
   height: number;
-  aspectRatio: "16:9" | "9:16" | "1:1";
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:5";
   platform?: string;
   useOllama?: boolean;
   images?: TypographyComposeInput["scenes"][number]["image"][];

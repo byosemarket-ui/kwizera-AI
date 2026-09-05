@@ -31,6 +31,7 @@ import { profileForPlatform, type VideoPlatformProfile } from "./platform-profil
 import { applyProductionModeToClip, resolveProductionRenderProfile } from "./production-render-profile.js";
 import { applyMotionDirectionToTimeline, directClipMotion } from "./motion-direction.js";
 import { applySmartCameraToTimeline, buildSmartCameraPlan, type SmartCameraPlan } from "./smart-camera.js";
+import { applyCompositionToTimeline, compositionHintForTypography, preferredTextSidesForBias } from "./scene-composition.js";
 import type { CreativeToneId } from "./production-mode-types.js";
 import type { FramingInspection } from "../product-asset-preparation/framing.js";
 import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
@@ -277,16 +278,25 @@ export class VideoProductionManager {
       const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
       const { buildTypographyImageHint } = await import("../typography/image-hints.js");
       const sortedScenes = [...repairedPlan.scenes].sort((a, b) => a.order - b.order);
-      const images = await Promise.all(sortedScenes.map(async (scene) => {
+      const images = await Promise.all(sortedScenes.map(async (scene, index) => {
         const resolved = scene.assetId
           ? await resolveProductionImagePath(this.workspace!, projectId, scene.assetId)
           : null;
         const occupied = await this.resolveProductOccupiedRegion(projectId, scene.assetId);
+        const clip = timeline.find((c) => c.sceneId === scene.id) ?? timeline[index];
+        const hint = compositionHintForTypography({
+          cameraPlan: clip?.cameraPlan,
+          sourceOccupied: occupied?.region ?? null,
+          motionMaxZoom: clip?.motionParams?.maxZoom,
+          cropFocusX: clip?.motionParams?.cropFocusX,
+          cropFocusY: clip?.motionParams?.cropFocusY,
+        });
         return buildTypographyImageHint({
           imagePath: resolved?.path,
           composition: scene.composition,
-          productOccupiedRegion: occupied?.region,
-          productLikelyCentered: occupied?.centered,
+          productOccupiedRegion: hint.productOccupiedRegion,
+          productLikelyCentered: hint.productLikelyCentered,
+          preferredTextSides: preferredTextSidesForBias(hint.compositionBias, scene.purpose ?? "FEATURE"),
           brandColors: typeof workspaceProject.brandInformation?.colors === "string"
             ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
             : undefined,
@@ -303,6 +313,19 @@ export class VideoProductionManager {
       }));
       if (decision.projectId === projectId && decision.scenes.length) {
         timeline = applyTypographyDecisionToTimeline(timeline, decision);
+        const occupiedMap = new Map<string, { x: number; y: number; width: number; height: number } | null>();
+        for (const clip of timeline) {
+          const occupied = await this.resolveProductOccupiedRegion(projectId, clip.assetId);
+          occupiedMap.set(clip.assetId, occupied?.region ?? null);
+        }
+        const composed = applyCompositionToTimeline({
+          projectId,
+          clips: timeline,
+          format: renderPlan.aspectRatio,
+          typography: decision,
+          sourceOccupiedByAssetId: occupiedMap,
+        });
+        timeline = composed.clips;
         video.timeline = timeline;
         video.typographyPlan = publicTypographyDecision(decision);
       }
@@ -552,16 +575,25 @@ export class VideoProductionManager {
           const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
           const { buildTypographyImageHint } = await import("../typography/image-hints.js");
           const sortedScenes = [...creativePlan.scenes].sort((a, b) => a.order - b.order);
-          const images = await Promise.all(sortedScenes.map(async (scene) => {
+          const images = await Promise.all(sortedScenes.map(async (scene, index) => {
             const resolved = scene.assetId
               ? await resolveProductionImagePath(this.workspace!, job.projectId, scene.assetId)
               : null;
             const occupied = await this.resolveProductOccupiedRegion(job.projectId, scene.assetId);
+            const clip = renderClips.find((c) => c.sceneId === scene.id) ?? renderClips[index];
+            const hint = compositionHintForTypography({
+              cameraPlan: clip?.cameraPlan,
+              sourceOccupied: occupied?.region ?? null,
+              motionMaxZoom: clip?.motionParams?.maxZoom,
+              cropFocusX: clip?.motionParams?.cropFocusX,
+              cropFocusY: clip?.motionParams?.cropFocusY,
+            });
             return buildTypographyImageHint({
               imagePath: resolved?.path,
               composition: scene.composition,
-              productOccupiedRegion: occupied?.region,
-              productLikelyCentered: occupied?.centered,
+              productOccupiedRegion: hint.productOccupiedRegion,
+              productLikelyCentered: hint.productLikelyCentered,
+              preferredTextSides: preferredTextSidesForBias(hint.compositionBias, scene.purpose ?? "FEATURE"),
               brandColors: typeof workspaceProject.brandInformation?.colors === "string"
                 ? workspaceProject.brandInformation.colors.split(/[,;\s]+/).map((c) => c.trim()).filter((c) => /^#?[0-9a-f]{6}$/i.test(c)).map((c) => (c.startsWith("#") ? c : `#${c}`))
                 : undefined,
@@ -667,12 +699,25 @@ export class VideoProductionManager {
           stageMessage: `Rendered scene ${index + 1} of ${typedClips.length}`,
         });
       }
-      // Persist STEP 7–9 motion/camera diagnostics onto the stored timeline (standard renders).
+      // Persist STEP 7–10 motion/camera/composition diagnostics onto the stored timeline (standard renders).
       if (preset === "standard") {
+        const occupiedMap = new Map<string, { x: number; y: number; width: number; height: number } | null>();
+        for (const clip of typedClips) {
+          const occupied = await this.resolveProductOccupiedRegion(job.projectId, clip.assetId);
+          occupiedMap.set(clip.assetId, occupied?.region ?? null);
+        }
+        const composed = applyCompositionToTimeline({
+          projectId: job.projectId,
+          clips: typedClips,
+          format: renderPlan.aspectRatio,
+          typography: (await this.getVideoProject(job.projectId))?.typographyPlan ?? null,
+          sourceOccupiedByAssetId: occupiedMap,
+        });
+        typedClips = composed.clips;
         await this.patchVideo(job.projectId, {
           timeline: video.timeline.map((clip) => {
             const directed = typedClips.find((item) => item.sceneId === clip.sceneId);
-            if (!directed?.motionPlan && !directed?.cameraPlan) return clip;
+            if (!directed?.motionPlan && !directed?.cameraPlan && !directed?.compositionPlan) return clip;
             return {
               ...clip,
               motion: directed.motion,
@@ -680,6 +725,8 @@ export class VideoProductionManager {
               motionPlan: directed.motionPlan,
               motionParams: directed.motionParams,
               cameraPlan: directed.cameraPlan,
+              compositionPlan: directed.compositionPlan,
+              text: directed.text?.length ? directed.text : clip.text,
             };
           }),
         });

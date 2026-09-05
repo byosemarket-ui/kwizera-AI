@@ -1,7 +1,7 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step9-smart-camera-v1";
+export const VIDEO_PRODUCTION_VERSION = "step10-composition-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
@@ -150,6 +150,34 @@ export interface VideoTimelineClip {
     validationStatus: string;
     fallbackUsed: boolean;
     reason: string;
+  };
+  /** STEP 10 — validated scene layout integrating product + typography. */
+  compositionPlan?: {
+    projectId: string;
+    sceneId: string;
+    assetId: string;
+    format: string;
+    purpose: string;
+    product: {
+      assetId: string;
+      frameProtected: { x: number; y: number; width: number; height: number };
+      frameCenter: { x: number; y: number };
+      bias: string;
+      cameraMode?: string;
+      motionDirected?: string;
+    };
+    preferredTextSides: string[];
+    elements: Array<{
+      id: string;
+      role: string;
+      importance: string;
+      region: string;
+      overlapsProduct: boolean;
+    }>;
+    compositionValid: boolean;
+    issues: string[];
+    warnings: string[];
+    version: string;
   };
 }
 

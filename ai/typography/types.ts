@@ -191,7 +191,7 @@ export interface TypographyDecision {
   projectId: string;
   width: number;
   height: number;
-  aspectRatio: "16:9" | "9:16" | "1:1";
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:5";
   platform?: string;
   source: "deterministic" | "ai-validated";
   fallbackUsed: boolean;
@@ -212,7 +212,7 @@ export interface TypographyComposeInput {
   productionMode?: string;
   width: number;
   height: number;
-  aspectRatio: "16:9" | "9:16" | "1:1";
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:5";
   scenes: Array<{
     sceneId: string;
     purpose?: string;
@@ -225,8 +225,10 @@ export interface TypographyComposeInput {
       /** 0–1 or 0–255 — normalized in region analysis. */
       meanLuminance?: number;
       productLikelyCentered?: boolean;
-      /** Normalized 0–1 product occupied region from STEP 6 prep (when available). */
+      /** Normalized 0–1 product occupied region from STEP 6/9/10 (frame space when available). */
       productOccupiedRegion?: { x: number; y: number; width: number; height: number };
+      /** STEP 10 composition bias sides for placement. */
+      preferredTextSides?: Array<"left" | "right" | "top" | "bottom">;
       logoPresent?: boolean;
       /** Local path for STEP 4 region sampling — never persisted publicly. */
       imagePath?: string;
@@ -254,5 +256,6 @@ export interface PublicTypographyDiagnostics {
   emphasisEngineReady: true;
   contrastEngineReady: true;
   regionAnalysisReady: true;
+  compositionIntegrationReady?: true;
   lastError: string | null;
 }
