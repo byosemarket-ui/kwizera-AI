@@ -125,6 +125,7 @@ export class ProductIntakeEngine {
     const payload = await fetchWorkspaceApi();
     const active = payload?.activeProject ?? null;
     if (!active) {
+      // Do not wipe in-memory gallery when workspace is temporarily unavailable.
       this.emit();
       return;
     }
@@ -148,6 +149,21 @@ export class ProductIntakeEngine {
 
     // Critical: only original uploads become gallery cards — derived thumbnails inflate the list.
     const originals = active.productImages.filter(isOriginalProductImage);
+    if (
+      originals.length === 0
+      && this.assets.some((a) => a.projectId === active.id && a.processingStatus === "saved")
+      && inFlight.length === 0
+    ) {
+      // Empty server list while we still have durable local saves for this project — keep them
+      // until a subsequent hydrate returns the real asset list (avoids blank gallery after refresh races).
+      intakeLog("hydrate_keep_local", {
+        projectId: active.id,
+        localSaved: this.assets.filter((a) => a.processingStatus === "saved").length,
+      });
+      this.emit();
+      return;
+    }
+
     const thumbByParent = new Map<string, string>();
     for (const image of active.productImages) {
       if (!image.parentAssetId) continue;
@@ -192,14 +208,6 @@ export class ProductIntakeEngine {
     const serverChecksums = new Set(fromServer.map((a) => a.checksum).filter(Boolean));
     const preservedInFlight = inFlight.filter((a) => {
       if (serverIds.has(a.assetId)) return false;
-      // Temp card whose content already landed on the server — drop to avoid duplicate cards.
-      if (
-        a.checksum
-        && serverChecksums.has(a.checksum)
-        && (a.processingStatus === "queued" || a.processingStatus === "uploading")
-      ) {
-        return true; // still uploading; processOne will collapse same-id
-      }
       if (
         a.checksum
         && serverChecksums.has(a.checksum)

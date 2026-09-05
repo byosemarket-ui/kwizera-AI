@@ -161,19 +161,38 @@ export async function uploadImageApi(projectId: string, input: {
   height?: number;
   checksumSha256?: string;
 }): Promise<{ image: CreativeProjectDto["productImages"][number]; project: CreativeProjectDto; reused: boolean }> {
-  const response = await fetch(`/api/workspace/projects/${projectId}/images`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  const body = await response.json() as {
-    image?: CreativeProjectDto["productImages"][number];
-    project?: CreativeProjectDto;
-    reused?: boolean;
-    error?: string;
-  };
-  if (!response.ok || !body.image || !body.project) throw new Error(body.error ?? "Upload failed");
-  return { image: body.image, project: body.project, reused: Boolean(body.reused) };
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    try {
+      const response = await fetch(`/api/workspace/projects/${projectId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const body = await response.json() as {
+        image?: CreativeProjectDto["productImages"][number];
+        project?: CreativeProjectDto;
+        reused?: boolean;
+        error?: string;
+        status?: string;
+      };
+      if (response.status === 503 || body.status === "starting") {
+        lastError = new Error(body.error ?? "Creative workspace is still starting.");
+        await new Promise((r) => setTimeout(r, 1500 + attempt * 750));
+        continue;
+      }
+      if (!response.ok || !body.image || !body.project) {
+        throw new Error(body.error ?? "Upload failed");
+      }
+      return { image: body.image, project: body.project, reused: Boolean(body.reused) };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const transient = /starting|not ready|unavailable|Failed to fetch|NetworkError|503/i.test(lastError.message);
+      if (!transient || attempt >= 11) throw lastError;
+      await new Promise((r) => setTimeout(r, 1500 + attempt * 750));
+    }
+  }
+  throw lastError ?? new Error("Upload failed");
 }
 
 export async function removeImageApi(projectId: string, imageId: string): Promise<CreativeProjectDto> {

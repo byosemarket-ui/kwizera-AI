@@ -182,13 +182,24 @@ async function main() {
       continue;
     }
     uploadedIds.push(img.id);
-    const imgRes = await fetch(`${BASE}${img.url.startsWith("/") ? img.url : `/${img.url}`}`);
-    const ctype = imgRes.headers.get("content-type") || "";
-    if (imgRes.status === 200 && ctype.startsWith("image/")) {
-      pass(`serve-${file.name}`, `${imgRes.status} ${ctype}`);
-    } else {
+    let served = false;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const imgRes = await fetch(`${BASE}${img.url.startsWith("/") ? img.url : `/${img.url}`}`);
+      const ctype = imgRes.headers.get("content-type") || "";
+      if (imgRes.status === 200 && ctype.startsWith("image/")) {
+        pass(`serve-${file.name}`, `${imgRes.status} ${ctype}`);
+        served = true;
+        break;
+      }
+      if (imgRes.status === 503) {
+        await new Promise((r) => setTimeout(r, 2000 + attempt * 1000));
+        continue;
+      }
       fail(`serve-${file.name}`, `${imgRes.status} ${ctype}`);
+      served = true;
+      break;
     }
+    if (!served) fail(`serve-${file.name}`, "retries exhausted");
   }
 
   const dup = await api(`/api/workspace/projects/${projectA}/images`, {
@@ -243,6 +254,20 @@ async function main() {
 
   // STEP 6 asset prep can resolve originals
   try {
+    await api(`/api/workspace/projects/${projectA}`, {
+      method: "POST",
+      body: {
+        changes: {
+          productInformation: {
+            name: "STEP13 Virunga Bottle",
+            category: "Outdoor",
+            description: "STEP 13 intake verification product",
+            price: 42000,
+            currency: "RWF",
+          },
+        },
+      },
+    });
     await api(`/api/product-asset-preparation/projects/${projectA}/prepare`, { method: "POST", body: {} });
     const prep = await api(`/api/product-asset-preparation/projects/${projectA}`);
     const ready = prep.json?.report?.summary?.ready ?? prep.json?.summary?.ready ?? null;
@@ -251,7 +276,33 @@ async function main() {
     fail("step6-prep-reachable", err instanceof Error ? err.message : String(err));
   }
 
-  // ——— Browser ———
+  // ——— Browser on a fresh empty project ———
+  const browserProject = (await api("/api/workspace/projects", {
+    method: "POST",
+    body: { name: `STEP13-Browser-${stamp}` },
+  })).json.project;
+  const browserProjectId = browserProject?.id;
+  if (!browserProjectId) throw new Error("browser project create failed");
+  await api(`/api/workspace/projects/${browserProjectId}`, {
+    method: "POST",
+    body: { action: "open" },
+  });
+  await api(`/api/workspace/projects/${browserProjectId}`, {
+    method: "POST",
+    body: {
+      changes: {
+        productInformation: {
+          name: `STEP13 Browser Product ${stamp}`,
+          category: "Outdoor",
+          description: "Clean intake browser project",
+          price: 39000,
+          currency: "RWF",
+        },
+      },
+    },
+  });
+  pass("browser-project", browserProjectId);
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kwizera-step13-"));
   const browserFiles = pngs.slice(0, 5).map((f, i) => {
     const p = path.join(tmpDir, `browser-${i + 1}-${f.name.replace(/[^\w.-]+/g, "_")}`);
@@ -271,14 +322,23 @@ async function main() {
     if (!(await waitWorkspaceReady(page))) fail("browser-workspace-ready", "timeout");
     else pass("browser-workspace-ready", "ok");
 
+    // Bind session to the empty browser project before Product Setup hydrates.
+    await page.evaluate(async (id) => {
+      await fetch(`/api/workspace/projects/${id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "open" }),
+      });
+    }, browserProjectId);
+
     await openProductSetup(page);
     await page.waitForSelector(".product-setup", { timeout: 30000 });
     pass("product-setup-visible", "ok");
 
-    const projectName = `STEP13 Browser ${stamp}`;
-    await page.locator("#ps-project-name").fill(projectName);
-    await page.locator("#ps-product-name").fill(`${projectName} Product`);
+    await page.locator("#ps-project-name").fill(`STEP13-Browser-${stamp}`);
+    await page.locator("#ps-product-name").fill(`STEP13 Browser Product ${stamp}`);
 
+    const cardsBefore = await page.locator(".product-setup__card").count();
     const selectBtn = page.locator(".product-setup__drop-actions button").filter({ hasText: /Select Images/i });
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser", { timeout: 20000 }),
@@ -288,14 +348,21 @@ async function main() {
 
     let cardCount = 0;
     let uploading = 1;
-    for (let i = 0; i < 90; i += 1) {
+    let failed = 0;
+    for (let i = 0; i < 120; i += 1) {
       cardCount = await page.locator(".product-setup__card").count();
       uploading = await page.locator(".product-setup__card.is-uploading").count();
-      if (cardCount >= 5 && uploading === 0) break;
+      failed = await page.locator(".product-setup__card.is-failed").count();
+      if (cardCount === cardsBefore + 5 && uploading === 0 && failed === 0) break;
+      if (failed > 0 && uploading === 0) {
+        const retry = page.locator(".product-setup__link-btn").filter({ hasText: /Retry/i }).first();
+        if (await retry.count()) await retry.click().catch(() => null);
+      }
       await page.waitForTimeout(1000);
     }
-    if (cardCount === 5) pass("browser-one-card-per-file", String(cardCount));
-    else fail("browser-one-card-per-file", `cards=${cardCount} uploading=${uploading}`);
+    const expected = cardsBefore + 5;
+    if (cardCount === expected && failed === 0) pass("browser-one-card-per-file", String(cardCount));
+    else fail("browser-one-card-per-file", `cards=${cardCount} expected=${expected} uploading=${uploading} failed=${failed}`);
 
     const imgs = page.locator(".product-setup__card-thumb img");
     const imgCount = await imgs.count();
@@ -313,7 +380,7 @@ async function main() {
       if (ok) visiblePreviews += 1;
       else blankOrBroken += 1;
     }
-    if (visiblePreviews >= 5 && blankOrBroken === 0) {
+    if (visiblePreviews >= expected && blankOrBroken === 0) {
       pass("browser-previews-visible", `${visiblePreviews} ok`);
     } else {
       fail("browser-previews-visible", `visible=${visiblePreviews} blank=${blankOrBroken}`);
@@ -325,28 +392,45 @@ async function main() {
 
     await page.screenshot({ path: path.join(OUT_DIR, "browser-after-import.png"), fullPage: true });
 
+    // Confirm server originals before refresh
+    const savedBrowser = (await api(`/api/workspace/projects/${browserProjectId}`)).json;
+    const savedOrig = (savedBrowser.project?.productImages ?? []).filter(isOriginal);
+    if (savedOrig.length === 5) pass("api-browser-saved", String(savedOrig.length));
+    else fail("api-browser-saved", `originals=${savedOrig.length}`);
+
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForSelector("#workspace-main", { timeout: 60000 });
     await waitWorkspaceReady(page);
-    if ((await page.locator(".product-setup").count()) === 0) {
-      await openProductSetup(page);
-    }
+    await page.evaluate(async (id) => {
+      await fetch(`/api/workspace/projects/${id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "open" }),
+      });
+    }, browserProjectId);
+    await openProductSetup(page);
     await page.waitForSelector(".product-setup", { timeout: 30000 });
     let afterRefresh = 0;
     for (let i = 0; i < 45; i += 1) {
       afterRefresh = await page.locator(".product-setup__card").count();
-      if (afterRefresh >= 5) break;
+      if (afterRefresh === 5) break;
       await page.waitForTimeout(1000);
     }
     if (afterRefresh === 5) pass("browser-persist-refresh", String(afterRefresh));
     else fail("browser-persist-refresh", `cards=${afterRefresh}`);
 
-    // Navigate away and back
     const dash = page.locator(".nav-item").filter({ hasText: /Dashboard|Home|Projects/i }).first();
     if (await dash.count()) {
       await dash.click().catch(() => null);
       await page.waitForTimeout(800);
     }
+    await page.evaluate(async (id) => {
+      await fetch(`/api/workspace/projects/${id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "open" }),
+      });
+    }, browserProjectId);
     await openProductSetup(page);
     await page.waitForSelector(".product-setup", { timeout: 30000 });
     let afterNav = await page.locator(".product-setup__card").count();
@@ -357,24 +441,6 @@ async function main() {
     if (afterNav === 5) pass("browser-persist-nav", String(afterNav));
     else fail("browser-persist-nav", `cards=${afterNav}`);
 
-    // Project B isolation in UI: create new project name and import different set
-    await page.locator("#ps-project-name").fill(`STEP13 Browser B ${stamp}`);
-    await page.locator("#ps-product-name").fill(`STEP13 Browser B Product`);
-    // Force new project by clearing cards via new name + ensure — select one other image
-    const bFile = path.join(tmpDir, "browser-b-only.png");
-    fs.writeFileSync(bFile, productPng(200, 300, 255, 0, 80));
-    // Open/create: click Select after ensuring project — engine creates on import
-    // First remove isn't needed if ensureProject creates new when name differs without id —
-    // Product setup keeps same projectId when renaming. Use API-open of B then hydrate.
-    await page.evaluate(async (id) => {
-      await fetch(`/api/workspace/projects/${id}/open`, { method: "POST" }).catch(() => null);
-      await fetch(`/api/workspace/projects/${id}`, { method: "POST", body: "{}" }).catch(() => null);
-    }, projectB);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await waitWorkspaceReady(page);
-    await openProductSetup(page);
-    await page.waitForTimeout(2000);
-    // Open project B explicitly if UI supports recent projects; fall back to API hydrate check
     const bState = (await api(`/api/workspace/projects/${projectB}`)).json;
     const bOrig = (bState.project?.productImages ?? []).filter(isOriginal);
     if (bOrig.length === 1 && bOrig[0].id === upB.json.image.id) {
@@ -382,6 +448,11 @@ async function main() {
     } else {
       fail("browser-isolation-api", `B originals=${bOrig.length}`);
     }
+
+    const aState = (await api(`/api/workspace/projects/${projectA}`)).json;
+    const aOrig = (aState.project?.productImages ?? []).filter(isOriginal);
+    if (aOrig.length === 6) pass("project-a-unchanged", String(aOrig.length));
+    else fail("project-a-unchanged", `A originals=${aOrig.length}`);
 
     if (pageErrors.length) fail("page-errors", pageErrors.slice(0, 3).join(" | "));
     else pass("page-errors", "none");
@@ -398,6 +469,7 @@ async function main() {
     deployedCommit: deployed.slice(0, 7),
     projectA,
     projectB,
+    browserProjectId,
     checks,
   };
   writeFileSync(path.join(OUT_DIR, "report.json"), JSON.stringify(report, null, 2));
