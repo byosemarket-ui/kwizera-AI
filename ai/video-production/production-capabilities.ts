@@ -125,3 +125,22 @@ export function getEngine1FinalDiagnostics(input?: {
     ],
   };
 }
+
+/** STEP 12 — workspace integration diagnostics (progress, READY gate, player handoff). */
+export function getWorkspaceIntegrationDiagnostics() {
+  return {
+    workspaceIntegrationAvailable: true,
+    version: "step12-workspace-final-v1",
+    progressModel: "job-stage-backed",
+    readyGate: "metadata+reachable+validated",
+    duplicateRenderProtection: "RENDER_IN_PROGRESS-409",
+    playerHandoff: "cache-busted-output-url",
+    rangeServing: true,
+    concurrency: "single-flight-global",
+    notes: [
+      "STEP 12 integrates STEP 6–11 into the STEP 4 Final Review workspace.",
+      "Progress reaches 100% only after output validation and reachable player URL.",
+      "ENGINE 2 and ENGINE 3 remain future work.",
+    ],
+  };
+}

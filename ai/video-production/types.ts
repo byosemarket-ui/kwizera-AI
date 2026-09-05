@@ -1,7 +1,7 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step11-engine1-final-v1";
+export const VIDEO_PRODUCTION_VERSION = "step12-workspace-final-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =

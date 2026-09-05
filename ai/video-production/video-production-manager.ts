@@ -614,7 +614,12 @@ export class VideoProductionManager {
       try {
         const workspaceProject = await this.workspace!.getProject(job.projectId);
         const creativePlan = await this.planning!.getPlan(job.projectId);
-        if (workspaceProject && creativePlan) {
+        const hasExistingTypography = Boolean(
+          video.typographyPlan
+          && video.typographyPlan.projectId === job.projectId
+          && renderClips.some((clip) => clip.text.some((layer) => layer.typography?.fontId || layer.typography?.lines?.length)),
+        );
+        if (workspaceProject && creativePlan && !hasExistingTypography) {
           const { composeTypographyDecision } = await import("../typography/typography-engine.js");
           const { composeInputFromProject } = await import("../typography/from-plan.js");
           const { applyTypographyDecisionToTimeline, publicTypographyDecision } = await import("../typography/to-video-layers.js");
@@ -664,6 +669,15 @@ export class VideoProductionManager {
               }),
             });
           }
+        } else if (hasExistingTypography) {
+          typedClips = renderClips;
+          await this.writeJob(job.id, {
+            ...started,
+            stage: "preparing",
+            progress: 9,
+            sceneCount: renderClips.length,
+            stageMessage: "Reusing validated typography",
+          });
         }
       } catch {
         /* Keep existing timeline text / sceneTextLayers. */

@@ -12,6 +12,7 @@ import {
   getVideoProject,
   startVideoRender,
   validateVideoRender,
+  VideoProductionApiError,
   type VideoOutputDetails,
   type VideoProject,
   type VideoRenderJob,
@@ -39,10 +40,10 @@ export interface ProductionStageItem {
 
 export const PRODUCTION_STAGES: ProductionStageItem[] = [
   { id: "preparing-project", label: "Preparing project", minProgress: 0 },
-  { id: "checking-assets", label: "Checking product assets", minProgress: 5 },
-  { id: "creative-plan", label: "Preparing creative plan", minProgress: 10 },
-  { id: "building-timeline", label: "Building timeline", minProgress: 14 },
-  { id: "preparing-scenes", label: "Preparing scenes", minProgress: 20 },
+  { id: "checking-assets", label: "Validating production plan", minProgress: 5 },
+  { id: "preparing-typography", label: "Preparing typography", minProgress: 8 },
+  { id: "building-timeline", label: "Building timeline", minProgress: 10 },
+  { id: "preparing-scenes", label: "Preparing scenes", minProgress: 12 },
   { id: "rendering", label: "Rendering scenes", minProgress: 25 },
   { id: "end-card", label: "Professional end card", minProgress: 80 },
   { id: "encoding", label: "Final encoding", minProgress: 82 },
@@ -50,6 +51,23 @@ export const PRODUCTION_STAGES: ProductionStageItem[] = [
   { id: "finalizing", label: "Finalizing", minProgress: 92 },
   { id: "complete", label: "Video ready", minProgress: 100 },
 ];
+
+/** Prefer the highest matching stage threshold (not the first minProgress=0 match). */
+export function resolveStageByProgress(progress: number): ProductionStageItem {
+  let match = PRODUCTION_STAGES[0]!;
+  for (const stage of PRODUCTION_STAGES) {
+    if (progress >= stage.minProgress) match = stage;
+  }
+  return match;
+}
+
+export function withOutputCacheBust(
+  url: string,
+  output?: { assetId?: string; createdAt?: string; renderJobId?: string } | null,
+): string {
+  const token = encodeURIComponent(output?.assetId ?? output?.renderJobId ?? output?.createdAt ?? "1");
+  return url.includes("?") ? `${url}&v=${token}` : `${url}?v=${token}`;
+}
 
 export interface FinalProductionContext {
   handoff: Step4HandoffPayload;
@@ -154,12 +172,7 @@ function stageLabel(job: VideoRenderJob | null, uiStage: ProductionUiStage, prog
   if (uiStage === "completed") return "Video ready";
   if (uiStage === "failed") return job?.error ?? "Production failed";
   if (job?.stageMessage) return job.stageMessage;
-  if (job?.stage) {
-    const match = PRODUCTION_STAGES.find((s) => s.minProgress <= (job.progress ?? progress));
-    return match?.label ?? job.stage;
-  }
-  const match = PRODUCTION_STAGES.find((s) => s.minProgress <= progress);
-  return match?.label ?? "Preparing…";
+  return resolveStageByProgress(job?.progress ?? progress).label;
 }
 
 export class FinalReviewEngine {
@@ -176,6 +189,8 @@ export class FinalReviewEngine {
   private outputReachable = false;
   private qualityReview: VideoOutputDetails["qualityReview"] | null = null;
   private listeners = new Set<Listener>();
+  /** When true, startProduction must not short-circuit on an existing CURRENT output. */
+  private forceRerender = false;
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -193,6 +208,7 @@ export class FinalReviewEngine {
       jobProgress: this.job?.progress,
       localProgress: this.progress,
     });
+    const rawUrl = verified ? (this.video?.output?.url ?? null) : null;
     return {
       context: this.context,
       uiStage,
@@ -200,7 +216,7 @@ export class FinalReviewEngine {
       currentStageLabel: stageLabel(this.job, uiStage, progress),
       job: this.job,
       video: this.video,
-      outputUrl: verified ? (this.video?.output?.url ?? null) : null,
+      outputUrl: rawUrl ? withOutputCacheBust(rawUrl, this.video?.output) : null,
       qualityReview: this.qualityReview ?? this.video?.qualityReview ?? null,
       error: this.error,
       busy: this.busy,
@@ -298,7 +314,7 @@ export class FinalReviewEngine {
         }
       }
 
-      if (hasVerifiedOutput(this.video)) {
+      if (hasVerifiedOutput(this.video) && !this.forceRerender) {
         const url = this.video?.output?.url;
         if (url && await this.verifyOutputReachable(url)) {
           this.outputReachable = true;
@@ -310,10 +326,13 @@ export class FinalReviewEngine {
         }
         this.outputReachable = false;
         this.video = { ...this.video!, outputStatus: "OUTDATED", renderState: "idle" };
+      } else if (this.forceRerender && this.video) {
+        this.outputReachable = false;
+        this.video = { ...this.video, outputStatus: "OUTDATED" };
       }
 
       const activeId = this.video?.activeJobId;
-      if (activeId) {
+      if (activeId && !this.forceRerender) {
         const current = await getVideoJob(projectId, activeId);
         this.job = current.job;
         if (this.job.status === "queued" || this.job.status === "processing") {
@@ -332,12 +351,35 @@ export class FinalReviewEngine {
       this.uiStage = "queued";
       this.progress = 12;
       this.emit();
-      const result = await startVideoRender(projectId, "standard");
-      this.video = result.video;
-      this.job = result.job;
-      this.started = true;
-      this.uiStage = stageFromJob(this.job, false, true);
-      this.startPolling(projectId);
+      try {
+        const result = await startVideoRender(projectId, "standard");
+        this.video = result.video;
+        this.job = result.job;
+        this.started = true;
+        this.forceRerender = false;
+        this.uiStage = stageFromJob(this.job, false, true);
+        this.startPolling(projectId);
+      } catch (error) {
+        if (
+          error instanceof VideoProductionApiError
+          && (error.status === 409 || error.code === "RENDER_IN_PROGRESS")
+        ) {
+          const payload = await getVideoProject(projectId);
+          this.video = payload.video;
+          const jobId = this.video?.activeJobId;
+          if (jobId) {
+            const current = await getVideoJob(projectId, jobId);
+            this.job = current.job;
+            this.started = true;
+            this.forceRerender = false;
+            this.uiStage = stageFromJob(this.job, false, true);
+            this.error = null;
+            this.startPolling(projectId);
+            return;
+          }
+        }
+        throw error;
+      }
     } catch (error) {
       this.error = error instanceof Error ? error.message : "Video production failed to start";
       this.uiStage = "failed";
@@ -353,6 +395,8 @@ export class FinalReviewEngine {
     this.progress = 0;
     this.error = null;
     this.outputFetchAttempts = 0;
+    this.outputReachable = false;
+    this.forceRerender = true;
     await this.startProduction();
   }
 
@@ -399,6 +443,31 @@ export class FinalReviewEngine {
 
   private async verifyOutputReachable(outputUrl: string): Promise<boolean> {
     try {
+      // Prefer HEAD — cheap existence/size check (STEP 12).
+      const head = await fetch(outputUrl, { method: "HEAD" });
+      if (head.ok) {
+        const size = Number(head.headers.get("content-length") ?? 0);
+        if (Number.isFinite(size) && size > 0 && size < 1000) return false;
+        if (Number.isFinite(size) && size >= 1000) {
+          // Confirm MP4 brand with a tiny ranged GET when supported.
+          const ranged = await fetch(outputUrl, { method: "GET", headers: { Range: "bytes=0-11" } });
+          if (ranged.status === 206 || ranged.ok) {
+            try {
+              const buf = new Uint8Array(await ranged.arrayBuffer());
+              if (buf.length >= 8) {
+                const brand = String.fromCharCode(buf[4]!, buf[5]!, buf[6]!, buf[7]!);
+                if (brand === "ftyp") return true;
+              }
+            } catch {
+              /* header optional */
+            }
+            const type = ranged.headers.get("content-type") ?? head.headers.get("content-type") ?? "";
+            return /video\/mp4|application\/octet-stream/i.test(type);
+          }
+          return true;
+        }
+      }
+
       const res = await fetch(outputUrl, { method: "GET", headers: { Range: "bytes=0-11" } });
       if (!(res.ok || res.status === 206)) return false;
       const range = res.headers.get("content-range");

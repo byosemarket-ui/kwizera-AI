@@ -39,7 +39,9 @@ export function FinalReviewWorkspace() {
   const [snap, setSnap] = useState<FinalReviewSnapshot>(() => finalReviewEngine.snapshot());
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const startedRef = useRef(false);
+  const lastAutoplayUrl = useRef<string | null>(null);
 
   useEffect(() => {
     const unsub = finalReviewEngine.subscribe(setSnap);
@@ -59,17 +61,34 @@ export function FinalReviewWorkspace() {
   const isReady = snap.uiStage === "completed" && Boolean(snap.outputUrl);
   const isFailed = snap.uiStage === "failed";
   const isAwaitingOutput = snap.uiStage === "awaiting-output";
+  const inFlight = snap.busy
+    || ["queued", "preparing", "rendering", "validating", "registering", "awaiting-output", "initializing", "creating-timeline"].includes(snap.uiStage);
+
+  useEffect(() => {
+    if (!isReady || !snap.outputUrl) return;
+    if (lastAutoplayUrl.current === snap.outputUrl) return;
+    lastAutoplayUrl.current = snap.outputUrl;
+    const el = videoRef.current;
+    if (!el) return;
+    el.load();
+    void el.play().catch(() => undefined);
+  }, [isReady, snap.outputUrl]);
 
   const onRetry = useCallback(async () => {
+    if (inFlight && snap.uiStage !== "failed" && snap.uiStage !== "completed" && snap.uiStage !== "awaiting-output") {
+      notify("info", "Render in progress", "A production job is already running for this project.", "updates");
+      return;
+    }
     await finalReviewEngine.retryProduction();
     notify("info", "Retrying production", "Restarting video render.", "updates");
-  }, [notify]);
+  }, [notify, inFlight, snap.uiStage]);
 
   const onDownload = useCallback(() => {
     if (!snap.outputUrl || !ctx) return;
     const link = document.createElement("a");
     link.href = snap.outputUrl;
     link.download = `${ctx.productName.replace(/\s+/g, "-")}-video.mp4`;
+    link.rel = "noopener";
     link.click();
   }, [snap.outputUrl, ctx]);
 
@@ -107,7 +126,15 @@ export function FinalReviewWorkspace() {
           ) : isReady ? (
             <section className="fr-panel fr-ready">
               <div className="fr-player-wrap">
-                <video key={snap.outputUrl!} src={snap.outputUrl!} controls playsInline className="fr-player" />
+                <video
+                  ref={videoRef}
+                  key={snap.outputUrl!}
+                  src={snap.outputUrl!}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="fr-player"
+                />
               </div>
               <div className="fr-ready-actions">
                 <button type="button" className="fr-btn fr-btn--primary" onClick={onDownload}>
@@ -116,7 +143,7 @@ export function FinalReviewWorkspace() {
                 <button type="button" className="fr-btn" onClick={() => switchWorkspace("video-style")}>
                   Edit &amp; Re-render
                 </button>
-                <button type="button" className="fr-btn" onClick={() => void onRetry()}>
+                <button type="button" className="fr-btn" disabled={inFlight && snap.uiStage !== "completed"} onClick={() => void onRetry()}>
                   Create New Version
                 </button>
                 <button type="button" className="fr-btn fr-btn--ghost" onClick={() => switchWorkspace("new-project")}>

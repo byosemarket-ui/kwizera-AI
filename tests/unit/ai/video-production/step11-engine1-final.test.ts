@@ -73,7 +73,7 @@ async function seedProject(workspace: CreativeWorkspaceManager, name: string) {
 
 describe("STEP 11 ENGINE 1 end card + final validation", () => {
   it("bumps production version to step11", () => {
-    expect(VIDEO_PRODUCTION_VERSION).toBe("step11-engine1-final-v1");
+    expect(VIDEO_PRODUCTION_VERSION).toBe("step12-workspace-final-v1");
     expect(getEngine1FinalDiagnostics().engine1FinalAvailable).toBe(true);
     expect(getEngine1FinalDiagnostics().endCard.companyDataDriven).toBe(true);
   });

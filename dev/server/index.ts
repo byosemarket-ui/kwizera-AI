@@ -251,19 +251,66 @@ function contentType(filePath: string): string {
 
 
 
-async function serveStatic(res: ServerResponse, filePath: string, method: string = "GET"): Promise<void> {
+async function serveStatic(
+  res: ServerResponse,
+  filePath: string,
+  method: string = "GET",
+  rangeHeader?: string | null,
+): Promise<void> {
   try {
     const stat = await fs.promises.stat(filePath);
-    const headers = {
-      "Content-Type": contentType(filePath),
-      "Content-Length": String(stat.size),
+    const type = contentType(filePath);
+    const isMedia = /^(video|audio)\//i.test(type) || /\.(mp4|webm|mov|m4a)$/i.test(filePath);
+    const headers: Record<string, string> = {
+      "Content-Type": type,
     };
+    if (isMedia) {
+      headers["Accept-Ranges"] = "bytes";
+      headers["Cache-Control"] = "private, max-age=0, must-revalidate";
+    }
     if (method === "HEAD") {
+      headers["Content-Length"] = String(stat.size);
       res.writeHead(200, headers);
       res.end();
       return;
     }
+
+    const rangeMatch = typeof rangeHeader === "string"
+      ? /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim())
+      : null;
+    if (rangeMatch && isMedia && stat.size > 0) {
+      const size = stat.size;
+      let start = rangeMatch[1] ? Number(rangeMatch[1]) : 0;
+      let end = rangeMatch[2] ? Number(rangeMatch[2]) : size - 1;
+      if (!Number.isFinite(start) || start < 0) start = 0;
+      if (!Number.isFinite(end) || end >= size) end = size - 1;
+      if (start > end || start >= size) {
+        res.writeHead(416, {
+          "Content-Range": `bytes */${size}`,
+          "Accept-Ranges": "bytes",
+        });
+        res.end();
+        return;
+      }
+      const chunkSize = end - start + 1;
+      const handle = await fs.promises.open(filePath, "r");
+      try {
+        const buf = Buffer.alloc(chunkSize);
+        await handle.read(buf, 0, chunkSize, start);
+        res.writeHead(206, {
+          ...headers,
+          "Content-Length": String(chunkSize),
+          "Content-Range": `bytes ${start}-${end}/${size}`,
+        });
+        res.end(buf);
+      } finally {
+        await handle.close();
+      }
+      return;
+    }
+
     const data = await fs.promises.readFile(filePath);
+    headers["Content-Length"] = String(stat.size);
     res.writeHead(200, headers);
     res.end(data);
   } catch (error) {
@@ -3917,13 +3964,14 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   const videoCapabilitiesMatch = url.pathname === "/api/video-production/capabilities";
   if (videoCapabilitiesMatch && req.method === "GET") {
     try {
-      const { getProductionCapabilities, getSmartCameraDiagnostics, getSceneCompositionDiagnostics, getEngine1FinalDiagnostics } = await import("../../ai/video-production/production-capabilities.js");
+      const { getProductionCapabilities, getSmartCameraDiagnostics, getSceneCompositionDiagnostics, getEngine1FinalDiagnostics, getWorkspaceIntegrationDiagnostics } = await import("../../ai/video-production/production-capabilities.js");
       const uniqueViewCount = Number(url.searchParams.get("views") ?? "0") || 0;
       sendJson(res, 200, {
         capabilities: await getProductionCapabilities({ uniqueViewCount }),
         smartCamera: getSmartCameraDiagnostics(),
         sceneComposition: getSceneCompositionDiagnostics(),
         engine1Final: getEngine1FinalDiagnostics(),
+        workspaceIntegration: getWorkspaceIntegrationDiagnostics(),
       });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Unable to read production capabilities" });
@@ -4354,7 +4402,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     if (!workspace) return;
     const videoPath = await workspace.getVideoPath(videoFileMatch[1], videoFileMatch[2]);
     if (!videoPath) { sendJson(res, 404, { error: "Video not found" }); return; }
-    await serveStatic(res, videoPath, req.method);
+    await serveStatic(res, videoPath, req.method, req.headers.range);
     return;
   }
 

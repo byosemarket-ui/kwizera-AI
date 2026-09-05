@@ -27,9 +27,26 @@ export type {
 export { VIDEO_PLATFORM_OPTIONS };
 
 async function readJson<T>(response: Response): Promise<T> {
-  const body = await response.json() as T & { error?: string };
-  if (!response.ok) throw new Error((body as { error?: string }).error ?? `Request failed (${response.status})`);
+  const body = await response.json() as T & { error?: string; code?: string };
+  if (!response.ok) {
+    throw new VideoProductionApiError(
+      (body as { error?: string }).error ?? `Request failed (${response.status})`,
+      response.status,
+      (body as { code?: string }).code,
+    );
+  }
   return body;
+}
+
+export class VideoProductionApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = "VideoProductionApiError";
+  }
 }
 
 export async function getVideoProject(projectId: string): Promise<{ video: VideoProject | null }> {
