@@ -18,12 +18,14 @@ const PREVIEW_SIZE: Record<VideoAspectRatio, { width: number; height: number }> 
   "16:9": { width: 426, height: 240 },
   "9:16": { width: 240, height: 426 },
   "1:1": { width: 320, height: 320 },
+  "4:5": { width: 288, height: 360 },
 };
 
 const STANDARD_SIZE: Record<VideoAspectRatio, { width: number; height: number }> = {
   "16:9": { width: 1920, height: 1080 },
   "9:16": { width: 1080, height: 1920 },
   "1:1": { width: 1080, height: 1080 },
+  "4:5": { width: 1080, height: 1350 },
 };
 
 export function aspectFromPlatform(platform?: string): VideoAspectRatio {

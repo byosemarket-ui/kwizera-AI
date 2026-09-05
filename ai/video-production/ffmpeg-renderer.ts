@@ -192,9 +192,20 @@ export async function stillFilter(
   options: { motion: boolean; fade: boolean; text: boolean; fontFile?: string },
 ): Promise<string> {
   const frames = Math.max(24, Math.round(plan.frameRate * input.clip.durationMs / 1000));
+  const cropFocusX = clamp01(
+    input.clip.motionParams?.cropFocusX
+      ?? input.clip.cameraPlan?.cropFocusX
+      ?? 0.5,
+  );
+  const cropFocusY = clamp01(
+    input.clip.motionParams?.cropFocusY
+      ?? input.clip.cameraPlan?.cropFocusY
+      ?? 0.5,
+  );
+  // STEP 9 — subject-aware cover crop (not fixed center).
   const parts = [
     `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase`,
-    `crop=${plan.width}:${plan.height}`,
+    `crop=${plan.width}:${plan.height}:(iw-ow)*${cropFocusX.toFixed(3)}:(ih-oh)*${cropFocusY.toFixed(3)}`,
   ];
   if (options.motion) {
     parts.push(zoompan(input.clip.motion, frames, plan.width, plan.height, input.clip.motionParams));

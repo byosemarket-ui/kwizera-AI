@@ -1,13 +1,14 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step8-acceptance-v1";
+export const VIDEO_PRODUCTION_VERSION = "step9-smart-camera-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
   | "tiktok"
   | "instagram_reels"
   | "instagram_feed"
+  | "instagram_portrait"
   | "youtube_shorts"
   | "youtube"
   | "facebook_feed";
@@ -16,7 +17,7 @@ export type VideoRenderJobStatus = "queued" | "processing" | "completed" | "fail
 export type VideoRenderStage = "queued" | "preparing" | "processing" | "rendering" | "encoding" | "validating" | "registering" | "completed" | "failed";
 export type VideoTextOverlayStatus = "applied" | "skipped" | "unavailable" | "failed";
 export type VideoKnowledgeStatus = "linked" | "already-linked" | "created" | "unavailable" | "failed" | "empty" | "error";
-export type VideoAspectRatio = "16:9" | "9:16" | "1:1";
+export type VideoAspectRatio = "16:9" | "9:16" | "1:1" | "4:5";
 export type VideoMotionId =
   | "slow-zoom"
   | "zoom-out"
@@ -128,6 +129,27 @@ export interface VideoTimelineClip {
     framingBasis: string;
     safetyAdjusted: boolean;
     fallbackUsed: boolean;
+    /** STEP 9 — subject-aware cover-crop slide (0–1). */
+    cropFocusX?: number;
+    cropFocusY?: number;
+  };
+  /** STEP 9 — semantic smart camera plan (format-specific composition). */
+  cameraPlan?: {
+    projectId?: string;
+    sceneId: string;
+    assetId: string;
+    mode: string;
+    targetFormat: string;
+    cropFocusX: number;
+    cropFocusY: number;
+    zoomStart: number;
+    zoomEnd: number;
+    focusPoint: { x: number; y: number };
+    productVisibilityRequired: boolean;
+    occupancyTarget: number;
+    validationStatus: string;
+    fallbackUsed: boolean;
+    reason: string;
   };
 }
 

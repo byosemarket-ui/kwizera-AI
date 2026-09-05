@@ -3917,9 +3917,12 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   const videoCapabilitiesMatch = url.pathname === "/api/video-production/capabilities";
   if (videoCapabilitiesMatch && req.method === "GET") {
     try {
-      const { getProductionCapabilities } = await import("../../ai/video-production/production-capabilities.js");
+      const { getProductionCapabilities, getSmartCameraDiagnostics } = await import("../../ai/video-production/production-capabilities.js");
       const uniqueViewCount = Number(url.searchParams.get("views") ?? "0") || 0;
-      sendJson(res, 200, { capabilities: await getProductionCapabilities({ uniqueViewCount }) });
+      sendJson(res, 200, {
+        capabilities: await getProductionCapabilities({ uniqueViewCount }),
+        smartCamera: getSmartCameraDiagnostics(),
+      });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Unable to read production capabilities" });
     }

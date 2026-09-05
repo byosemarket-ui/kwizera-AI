@@ -30,6 +30,7 @@ import { runFullQualityReview } from "./ai-quality-review.js";
 import { profileForPlatform, type VideoPlatformProfile } from "./platform-profiles.js";
 import { applyProductionModeToClip, resolveProductionRenderProfile } from "./production-render-profile.js";
 import { applyMotionDirectionToTimeline, directClipMotion } from "./motion-direction.js";
+import { applySmartCameraToTimeline, buildSmartCameraPlan, type SmartCameraPlan } from "./smart-camera.js";
 import type { CreativeToneId } from "./production-mode-types.js";
 import type { FramingInspection } from "../product-asset-preparation/framing.js";
 import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
@@ -597,28 +598,56 @@ export class VideoProductionManager {
         sceneCount: typedClips.length,
         stageMessage: "Validating text layout",
       });
+      let previousCameraPlan: SmartCameraPlan | null = null;
       for (const [index, clip] of typedClips.entries()) {
         await yieldLoop();
         const modeClip = applyProductionModeToClip(clip, renderProfile);
+        const framingInspection = await this.loadFramingForAsset(job.projectId, modeClip.assetId);
+        const role = await this.loadRoleForAsset(job.projectId, modeClip.assetId);
         const directed = directClipMotion({
           clip: modeClip,
           profile: renderProfile,
           creativeTone: (video.creativeTone as CreativeToneId | undefined) ?? null,
           aspectRatio: renderPlan.aspectRatio,
-          framingInspection: await this.loadFramingForAsset(job.projectId, modeClip.assetId),
-          role: await this.loadRoleForAsset(job.projectId, modeClip.assetId),
+          framingInspection,
+          role,
           previousMotion: index > 0 ? typedClips[index - 1]?.motionPlan?.motionId ?? typedClips[index - 1]?.motion : null,
           projectId: job.projectId,
           isLast: index === typedClips.length - 1,
         });
-        const productionClip = directed.clip;
+        const cameraPlan = buildSmartCameraPlan({
+          projectId: job.projectId,
+          clip: directed.clip,
+          aspectRatio: renderPlan.aspectRatio,
+          framingInspection,
+          role,
+          motionParams: directed.clip.motionParams,
+          directedType: directed.diagnostics.directedType,
+          isLast: index === typedClips.length - 1,
+          previousPlan: previousCameraPlan,
+        });
+        previousCameraPlan = cameraPlan;
+        const productionClip = {
+          ...directed.clip,
+          cameraPlan,
+          motionParams: {
+            ...directed.clip.motionParams!,
+            maxZoom: cameraPlan.renderParams.maxZoom,
+            focusX: cameraPlan.renderParams.focusX,
+            focusY: cameraPlan.renderParams.focusY,
+            cropFocusX: cameraPlan.cropFocusX,
+            cropFocusY: cameraPlan.cropFocusY,
+            safetyAdjusted: cameraPlan.safetyAdjusted || directed.clip.motionParams?.safetyAdjusted,
+            fallbackUsed: cameraPlan.fallbackUsed || directed.clip.motionParams?.fallbackUsed,
+          },
+        };
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
           progress: Math.min(78, 12 + Math.round(((index) / typedClips.length) * 66)),
           sceneIndex: index + 1,
           sceneCount: typedClips.length,
-          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length} (${directed.diagnostics.directedType})`,
+          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length} (${directed.diagnostics.directedType}/${cameraPlan.mode})`,
         });
         const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, productionClip.assetId);
         const imagePath = resolved?.path ?? null;
@@ -638,18 +667,19 @@ export class VideoProductionManager {
           stageMessage: `Rendered scene ${index + 1} of ${typedClips.length}`,
         });
       }
-      // Persist STEP 7 motion diagnostics onto the stored timeline (standard renders).
+      // Persist STEP 7–9 motion/camera diagnostics onto the stored timeline (standard renders).
       if (preset === "standard") {
         await this.patchVideo(job.projectId, {
           timeline: video.timeline.map((clip) => {
             const directed = typedClips.find((item) => item.sceneId === clip.sceneId);
-            if (!directed?.motionPlan) return clip;
+            if (!directed?.motionPlan && !directed?.cameraPlan) return clip;
             return {
               ...clip,
               motion: directed.motion,
               transitionOut: directed.transitionOut,
               motionPlan: directed.motionPlan,
               motionParams: directed.motionParams,
+              cameraPlan: directed.cameraPlan,
             };
           }),
         });
@@ -906,7 +936,7 @@ export class VideoProductionManager {
       framingByAssetId.set(assetId, await this.loadFramingForAsset(input.projectId, assetId));
       roleByAssetId.set(assetId, await this.loadRoleForAsset(input.projectId, assetId));
     }
-    return applyMotionDirectionToTimeline({
+    const directed = applyMotionDirectionToTimeline({
       clips: input.clips,
       profile: input.profile,
       creativeTone: input.creativeTone,
@@ -915,6 +945,14 @@ export class VideoProductionManager {
       framingByAssetId,
       roleByAssetId,
     });
+    const camera = applySmartCameraToTimeline({
+      clips: directed.clips,
+      profileAspectRatio: input.aspectRatio,
+      projectId: input.projectId,
+      framingByAssetId,
+      roleByAssetId,
+    });
+    return { clips: camera.clips, diagnostics: directed.diagnostics, cameraPlans: camera.plans };
   }
 
   private async loadFramingForAsset(projectId: string, assetId: string): Promise<FramingInspection | null> {

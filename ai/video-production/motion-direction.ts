@@ -80,6 +80,7 @@ const ASPECT_KEY: Record<VideoAspectRatio, "9:16" | "16:9" | "1:1" | "4:5"> = {
   "9:16": "9:16",
   "16:9": "16:9",
   "1:1": "1:1",
+  "4:5": "4:5",
 };
 
 export function toneMotionPolicy(tone?: CreativeToneId | null): MotionTonePolicy {

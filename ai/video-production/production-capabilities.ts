@@ -29,7 +29,7 @@ export async function getProductionCapabilities(opts?: {
         ? "Uses still-image motion via FFmpeg zoompan, pan, and scale."
         : "FFmpeg is not available on this host.",
       limitations: ffmpeg
-        ? ["Uses still-image motion", "Does not generate new camera views"]
+        ? ["Uses still-image motion", "STEP 9 subject-aware framing", "Does not generate new camera views"]
         : ["Requires FFmpeg"],
       recommended: recommendMotion,
     },
@@ -67,4 +67,24 @@ export async function getProductionCapabilities(opts?: {
   }
 
   return modes;
+}
+
+/** STEP 9 — lightweight smart-camera diagnostics (no secrets / no absolute paths). */
+export function getSmartCameraDiagnostics(input?: {
+  sceneCount?: number;
+  plansWithFallback?: number;
+  formatsSupported?: string[];
+}) {
+  return {
+    smartCameraAvailable: true,
+    version: "step9-smart-camera-v1",
+    supportedFormats: input?.formatsSupported ?? ["9:16", "16:9", "1:1", "4:5"],
+    sceneCameraPlanStatus: typeof input?.sceneCount === "number" ? `${input.sceneCount} planned` : "idle",
+    fallbackUsage: typeof input?.plansWithFallback === "number" ? input.plansWithFallback : 0,
+    rendererCompatibility: "ffmpeg-still-zoompan",
+    notes: [
+      "STEP 8 decides motion intent; STEP 9 decides safe subject-aware crop/zoom for the selected format.",
+      "Uses STEP 6 framing bounds when available; otherwise deterministic full-product fallback.",
+    ],
+  };
 }
