@@ -8,6 +8,7 @@ import {
   type ProductionModeCapability,
 } from "./production-mode-types.js";
 import { getCompositionDiagnostics } from "./scene-composition.js";
+import { getEndCardDiagnostics } from "./end-card.js";
 
 export type { CreativeToneId, ProductionModeCapability, ProductionModeId } from "./production-mode-types.js";
 export { recommendCreativeTone, recommendProductionMode } from "./production-mode-types.js";
@@ -30,7 +31,7 @@ export async function getProductionCapabilities(opts?: {
         ? "Uses still-image motion via FFmpeg zoompan, pan, and scale."
         : "FFmpeg is not available on this host.",
       limitations: ffmpeg
-        ? ["Uses still-image motion", "STEP 9 subject-aware framing", "Does not generate new camera views"]
+        ? ["Uses still-image motion", "STEP 9–11 framing, composition, end card", "Does not generate new camera views"]
         : ["Requires FFmpeg"],
       recommended: recommendMotion,
     },
@@ -96,4 +97,31 @@ export function getSceneCompositionDiagnostics(input?: {
   invalidCount?: number;
 }) {
   return getCompositionDiagnostics(input);
+}
+
+/** STEP 11 — ENGINE 1 end card + final validation diagnostics. */
+export function getEngine1FinalDiagnostics(input?: {
+  endCardRendered?: boolean;
+  endCardDurationMs?: number;
+}) {
+  return {
+    engine1FinalAvailable: true,
+    version: "step11-engine1-final-v1",
+    selectedEngine: "AI_PRODUCT_MOTION",
+    endCard: getEndCardDiagnostics({
+      rendered: input?.endCardRendered,
+      durationMs: input?.endCardDurationMs,
+    }),
+    outputValidation: {
+      probeRequired: true,
+      diskVerifyRequired: true,
+      falseReadyPrevention: true,
+      endCardRequiredForStandard: true,
+    },
+    notes: [
+      "STEP 11 finalizes ENGINE 1 via the existing FFmpeg pipeline with a professional end card.",
+      "Video Ready is only set after probe + output validation + registration + disk verification.",
+      "ENGINE 2 and ENGINE 3 remain future work.",
+    ],
+  };
 }

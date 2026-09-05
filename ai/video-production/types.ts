@@ -1,7 +1,7 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
 
-export const VIDEO_PRODUCTION_VERSION = "step10-composition-v1";
+export const VIDEO_PRODUCTION_VERSION = "step11-engine1-final-v1";
 
 export type VideoOutputStatus = "CURRENT" | "OUTDATED" | "NONE";
 export type VideoPlatformId =
@@ -307,6 +307,9 @@ export interface VideoRenderJob {
   productionMode?: ProductionModeId;
   /** Honest render label from production-render-profile. */
   engineLabel?: string;
+  /** STEP 11 — end card was rendered into the concatenated output. */
+  endCardRendered?: boolean;
+  endCardDurationMs?: number;
 }
 
 export interface VideoProject {
@@ -347,6 +350,21 @@ export interface VideoProject {
   qualityReview?: QualityReviewResult;
   /** Validated typography plan (font file paths omitted). */
   typographyPlan?: import("../typography/types.js").TypographyDecision;
+  /** STEP 11 — professional end card plan used for the closing seconds. */
+  endCardPlan?: {
+    projectId: string;
+    version: string;
+    durationMs: number;
+    companyName: string;
+    website: string;
+    phone: string;
+    cta: string;
+    hasLogo: boolean;
+    required: boolean;
+    lines: Array<{ role: string; content: string }>;
+    warnings: string[];
+    rendered: boolean;
+  };
 }
 
 export class VideoProductionError extends Error {

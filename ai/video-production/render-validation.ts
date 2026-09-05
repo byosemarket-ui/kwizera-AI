@@ -93,6 +93,13 @@ export function validateRenderedOutput(input: {
   plannedHeight: number;
   sceneCount: number;
   preset: "preview" | "standard";
+  /** STEP 11 — when set, output must accommodate the professional end card. */
+  endCardDurationMs?: number;
+  endCardRequired?: boolean;
+  endCardRendered?: boolean;
+  selectedEngine?: string;
+  projectId?: string;
+  jobProjectId?: string;
 }): { valid: boolean; issues: string[]; checks: Record<string, boolean> } {
   const issues: string[] = [];
   const toleranceMs = Math.max(2500, Math.round(input.plannedDurationMs * 0.15));
@@ -103,6 +110,13 @@ export function validateRenderedOutput(input: {
     durationValid: input.probed.durationMs > 200,
     durationConsistent: Math.abs(input.probed.durationMs - input.plannedDurationMs) <= toleranceMs,
     codecPresent: Boolean(input.probed.codec),
+    endCardPresent: input.endCardRequired !== true || input.endCardRendered === true,
+    endCardDurationPlausible: input.endCardRequired !== true
+      || ((input.endCardDurationMs ?? 0) >= 1500
+        && input.probed.durationMs + 500 >= (input.plannedDurationMs)),
+    projectIdentityConsistent: !input.projectId
+      || !input.jobProjectId
+      || input.projectId === input.jobProjectId,
   };
   if (!checks.fileNonEmpty) issues.push("Output file is empty or too small.");
   if (!checks.hasVideoStream) issues.push("Output does not contain a readable video stream.");
@@ -114,5 +128,44 @@ export function validateRenderedOutput(input: {
     issues.push(`Output duration ${input.probed.durationMs}ms differs from planned ${input.plannedDurationMs}ms.`);
   }
   if (input.preset === "standard" && input.sceneCount < 1) issues.push("Final export reported zero rendered scenes.");
+  if (!checks.endCardPresent) {
+    issues.push("Required professional end card was not rendered into the final video.");
+  }
+  if (!checks.endCardDurationPlausible) {
+    issues.push("Final output duration does not include the planned end card.");
+  }
+  if (!checks.projectIdentityConsistent) {
+    issues.push("Render job projectId does not match video project identity.");
+  }
   return { valid: issues.length === 0, issues, checks };
+}
+
+/** Pre-flight ENGINE 1 final plan checks before FFmpeg starts (extends validateBeforeRender). */
+export function validateEngine1FinalPlan(input: {
+  projectId: string;
+  selectedEngine: string;
+  format: string;
+  width: number;
+  height: number;
+  sceneIds: string[];
+  assetIds: string[];
+  assetsBelongToProject: boolean;
+  pathsResolved: boolean;
+  durationMs: number;
+}): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  if (!input.projectId.trim()) issues.push("ENGINE 1 plan missing projectId.");
+  if (input.selectedEngine !== "AI_PRODUCT_MOTION") {
+    issues.push(`ENGINE 1 finalization expected AI_PRODUCT_MOTION, got ${input.selectedEngine}.`);
+  }
+  if (!["9:16", "16:9", "1:1", "4:5"].includes(input.format)) {
+    issues.push(`Invalid output format ${input.format}.`);
+  }
+  if (input.width < 64 || input.height < 64) issues.push("Invalid output dimensions.");
+  if (!input.sceneIds.length) issues.push("ENGINE 1 plan has no scenes.");
+  if (!input.assetIds.length) issues.push("ENGINE 1 plan has no product assets.");
+  if (!input.assetsBelongToProject) issues.push("One or more assets do not belong to this project.");
+  if (!input.pathsResolved) issues.push("One or more production asset paths failed to resolve.");
+  if (input.durationMs < 500) issues.push("ENGINE 1 planned duration is too short.");
+  return { valid: issues.length === 0, issues };
 }

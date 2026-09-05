@@ -35,7 +35,13 @@ import { applyCompositionToTimeline, compositionHintForTypography, preferredText
 import type { CreativeToneId } from "./production-mode-types.js";
 import type { FramingInspection } from "../product-asset-preparation/framing.js";
 import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
-import { validateBeforeRender, validateRenderedOutput } from "./render-validation.js";
+import { validateBeforeRender, validateRenderedOutput, validateEngine1FinalPlan } from "./render-validation.js";
+import {
+  buildEndCardClip,
+  buildEndCardPlan,
+  validateEndCardPlan,
+  writeEndCardBackground,
+} from "./end-card.js";
 import {
   VIDEO_PRODUCTION_VERSION,
   VideoProductionError,
@@ -554,11 +560,50 @@ export class VideoProductionManager {
       const renderProfile = resolveProductionRenderProfile(video.productionMode);
       const profile = profileForPlatform(video.platform ?? "youtube");
       const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(renderClips), preset);
-      const plannedDurationMs = timelineDurationMs(renderClips);
+      let plannedDurationMs = timelineDurationMs(renderClips);
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
       let typedClips = renderClips;
+      let endCardRendered = false;
+      let endCardDurationMs = 0;
+      let endCardPlanPublic: VideoProject["endCardPlan"] | undefined;
+      const selectedEngine = String(video.productionMode ?? renderProfile.mode ?? "AI_PRODUCT_MOTION");
+      await this.writeJob(job.id, {
+        ...started,
+        stage: "preparing",
+        progress: 5,
+        sceneCount: renderClips.length,
+        stageMessage: "Validating ENGINE 1 production plan",
+      });
+      const assetIds = uniqueAssetIds(renderClips);
+      let assetsBelong = true;
+      let pathsResolved = true;
+      for (const assetId of assetIds) {
+        const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, assetId);
+        if (!resolved?.path) {
+          pathsResolved = false;
+          assetsBelong = false;
+          break;
+        }
+      }
+      const enginePlan = selectedEngine === "AI_PRODUCT_MOTION"
+        ? validateEngine1FinalPlan({
+          projectId: job.projectId,
+          selectedEngine,
+          format: renderPlan.aspectRatio,
+          width: renderPlan.width,
+          height: renderPlan.height,
+          sceneIds: renderClips.map((c) => c.sceneId),
+          assetIds,
+          assetsBelongToProject: assetsBelong,
+          pathsResolved,
+          durationMs: plannedDurationMs,
+        })
+        : { valid: pathsResolved && assetsBelong && renderClips.length > 0, issues: pathsResolved ? [] as string[] : ["One or more production asset paths failed to resolve."] };
+      if (!enginePlan.valid) {
+        throw new VideoProductionError("INVALID_RENDER_PLAN", enginePlan.issues.join(" "), 422);
+      }
       await this.writeJob(job.id, {
         ...started,
         stage: "preparing",
@@ -731,6 +776,58 @@ export class VideoProductionManager {
           }),
         });
       }
+
+      // STEP 11 — professional end card for ENGINE 1 standard renders before concat.
+      const workspaceForEnd = await this.workspace!.getProject(job.projectId);
+      if (workspaceForEnd && selectedEngine === "AI_PRODUCT_MOTION" && preset === "standard") {
+        const endPlan = buildEndCardPlan({
+          project: workspaceForEnd,
+          preset,
+          productionMode: selectedEngine,
+        });
+        const endCheck = validateEndCardPlan(endPlan);
+        if (!endCheck.valid) {
+          throw new VideoProductionError("END_CARD_INVALID", endCheck.issues.join(" "), 422);
+        }
+        await this.writeJob(job.id, {
+          ...started,
+          stage: "encoding",
+          progress: 80,
+          sceneCount: typedClips.length,
+          stageMessage: "Rendering professional end card",
+        });
+        const bgPath = path.join(tmpDir, "end-card-bg.png");
+        await writeEndCardBackground(bgPath, renderPlan.width, renderPlan.height);
+        const endClip = buildEndCardClip(endPlan, renderPlan);
+        const endClipPath = path.join(tmpDir, "clip-end-card.mp4");
+        const endRendered = await renderStillClip(
+          { clip: endClip, imagePath: bgPath },
+          renderPlan,
+          endClipPath,
+          fontFile,
+        );
+        overlays.push(endRendered.overlay);
+        clipPaths.push(endClipPath);
+        endCardRendered = true;
+        endCardDurationMs = endPlan.durationMs;
+        plannedDurationMs += endPlan.durationMs;
+        endCardPlanPublic = {
+          projectId: endPlan.projectId,
+          version: endPlan.version,
+          durationMs: endPlan.durationMs,
+          companyName: endPlan.companyName,
+          website: endPlan.website,
+          phone: endPlan.phone,
+          cta: endPlan.cta,
+          hasLogo: endPlan.hasLogo,
+          required: endPlan.required,
+          lines: endPlan.lines,
+          warnings: endPlan.warnings,
+          rendered: true,
+        };
+        await this.patchVideo(job.projectId, { endCardPlan: endCardPlanPublic });
+      }
+
       await yieldLoop();
       await this.writeJob(job.id, {
         ...started,
@@ -738,6 +835,8 @@ export class VideoProductionManager {
         progress: 82,
         sceneCount: renderClips.length,
         stageMessage: "Encoding final video",
+        endCardRendered,
+        endCardDurationMs: endCardDurationMs || undefined,
       });
       const outputPath = path.join(tmpDir, "output.mp4");
       if (clipPaths.length === 1) {
@@ -753,6 +852,8 @@ export class VideoProductionManager {
         stage: "validating",
         progress: 88,
         stageMessage: "Validating video file",
+        endCardRendered,
+        endCardDurationMs: endCardDurationMs || undefined,
       });
       await this.patchVideo(job.projectId, { qualityGate: "TECHNICAL_VALIDATION" });
       const probed = await probeVideo(outputPath);
@@ -763,6 +864,12 @@ export class VideoProductionManager {
         plannedHeight: renderPlan.height,
         sceneCount: renderClips.length,
         preset,
+        endCardDurationMs: endCardDurationMs || undefined,
+        endCardRequired: preset === "standard" && selectedEngine === "AI_PRODUCT_MOTION",
+        endCardRendered,
+        projectId: video.projectId,
+        jobProjectId: job.projectId,
+        selectedEngine,
       });
       if (!qc.valid) {
         throw new VideoProductionError("INVALID_OUTPUT", qc.issues.join(" "), 500);
@@ -858,6 +965,8 @@ export class VideoProductionManager {
         preset,
         productionMode: started.productionMode ?? video.productionMode ?? renderProfile.mode,
         engineLabel: started.engineLabel ?? renderProfile.providerHonestLabel,
+        endCardRendered,
+        endCardDurationMs: endCardDurationMs || undefined,
       };
       const updatedVideo = this.decorateVideo({
         ...video,
@@ -873,6 +982,7 @@ export class VideoProductionManager {
         qualityGate: "READY",
         qualityReview: qualityReview ?? undefined,
         versions: [...(video.versions ?? []), version],
+        endCardPlan: endCardPlanPublic ?? video.endCardPlan,
       });
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
       await this.writeJson(this.jobFile(job.id), completed);

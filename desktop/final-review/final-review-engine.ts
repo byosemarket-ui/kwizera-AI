@@ -39,12 +39,14 @@ export interface ProductionStageItem {
 
 export const PRODUCTION_STAGES: ProductionStageItem[] = [
   { id: "preparing-project", label: "Preparing project", minProgress: 0 },
-  { id: "checking-assets", label: "Checking product assets", minProgress: 10 },
-  { id: "creative-plan", label: "Preparing creative plan", minProgress: 14 },
-  { id: "building-timeline", label: "Building timeline", minProgress: 20 },
-  { id: "preparing-scenes", label: "Preparing scenes", minProgress: 25 },
-  { id: "rendering", label: "Rendering", minProgress: 45 },
-  { id: "verifying-output", label: "Verifying output", minProgress: 85 },
+  { id: "checking-assets", label: "Checking product assets", minProgress: 5 },
+  { id: "creative-plan", label: "Preparing creative plan", minProgress: 10 },
+  { id: "building-timeline", label: "Building timeline", minProgress: 14 },
+  { id: "preparing-scenes", label: "Preparing scenes", minProgress: 20 },
+  { id: "rendering", label: "Rendering scenes", minProgress: 25 },
+  { id: "end-card", label: "Professional end card", minProgress: 80 },
+  { id: "encoding", label: "Final encoding", minProgress: 82 },
+  { id: "verifying-output", label: "Validating output", minProgress: 88 },
   { id: "finalizing", label: "Finalizing", minProgress: 92 },
   { id: "complete", label: "Video ready", minProgress: 100 },
 ];
