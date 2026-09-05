@@ -65,7 +65,10 @@ export interface AiProductSummary {
 
 export interface ImageCardModel {
   assetId: string;
+  /** Stable list key (survives temp → server id handoff) */
+  clientKey: string;
   url: string | undefined;
+  remoteUrl: string | undefined;
   fileName: string;
   aiViewType: string;
   finalViewType: string;
@@ -78,6 +81,8 @@ export interface ImageCardModel {
   isDuplicate: boolean;
   /** Live import state — visible before server save completes */
   uploadStatus: "uploading" | "saved" | "failed";
+  /** True while still showing a blob: local preview */
+  usingLocalPreview: boolean;
 }
 
 export type SaveState = "saved" | "saving" | "unsaved" | "error";

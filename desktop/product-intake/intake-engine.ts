@@ -1,3 +1,4 @@
+import { isOriginalProductImage } from "../../ai/creative-workspace/project-asset.js";
 import { workspaceIntegrationEngine } from "../shell/integration/integration-engine";
 import { workspaceStateEngine } from "../shell/workspace-state/workspace-state-engine";
 import {
@@ -8,6 +9,13 @@ import { fileToBase64, isSha256Hex } from "./hash";
 import { INTAKE_UPLOAD_CONCURRENCY, IntakeImportQueue } from "./queue";
 import type { IntakeAssetMeta, IntakeHandoffPayload, IntakeSnapshot } from "./types";
 import { validateLocalFile } from "./validation";
+
+function intakeLog(
+  phase: string,
+  fields: Record<string, string | number | boolean | null | undefined>,
+): void {
+  console.info("[PRODUCT_IMAGE_INTAKE]", { phase, ...fields });
+}
 
 type Listener = (snap: IntakeSnapshot) => void;
 type NotifyFn = (
@@ -125,52 +133,130 @@ export class ProductIntakeEngine {
       || a.processingStatus === "uploading"
       || a.processingStatus === "failed"
       || a.assetId.startsWith("temp-")
-      || a.assetId.startsWith("local-fail-"),
-    );
-    const queueBusy = this.pumping || this.queue.list().some((i) =>
-      i.status === "pending" || i.status === "validating" || i.status === "importing",
+      || a.assetId.startsWith("local-fail-")
+      || Boolean(a.localPreviewUrl && !a.previewConfirmed),
     );
 
     this.projectId = active.id;
     this.projectName = active.name;
     const stored = loadProjectMeta(active.id);
     const byId = new Map(stored.map((a) => [a.assetId, a]));
-    const fromServer = active.productImages.map((image) => {
+    const liveById = new Map(this.assets.map((a) => [a.assetId, a]));
+    const liveByChecksum = new Map(
+      this.assets.filter((a) => a.checksum).map((a) => [a.checksum, a]),
+    );
+
+    // Critical: only original uploads become gallery cards — derived thumbnails inflate the list.
+    const originals = active.productImages.filter(isOriginalProductImage);
+    const thumbByParent = new Map<string, string>();
+    for (const image of active.productImages) {
+      if (!image.parentAssetId) continue;
+      if (image.derivedKind === "thumbnail" || image.derivedKind === "preview" || image.derivedKind === "optimized") {
+        if (!thumbByParent.has(image.parentAssetId)) thumbByParent.set(image.parentAssetId, image.url);
+      }
+    }
+
+    const fromServer = originals.map((image) => {
       const prev = byId.get(image.id);
+      const live = liveById.get(image.id)
+        ?? (image.checksumSha256 ? liveByChecksum.get(image.checksumSha256) : undefined);
+      const previewUrl = thumbByParent.get(image.id) ?? image.url;
+      const keepLocal = Boolean(live?.localPreviewUrl && !live.previewConfirmed);
       return {
         assetId: image.id,
         projectId: active.id,
         originalFilename: image.sourceFileName ?? image.fileName,
         fileType: image.mimeType,
-        width: image.width ?? prev?.width ?? null,
-        height: image.height ?? prev?.height ?? null,
+        width: image.width ?? prev?.width ?? live?.width ?? null,
+        height: image.height ?? prev?.height ?? live?.height ?? null,
         fileSize: image.sizeBytes,
         importDate: image.uploadedAt,
         sourceReference: `creative-workspace/projects/${active.id}/images`,
-        validationStatus: prev?.validationStatus ?? "valid",
-        duplicateStatus: prev?.duplicateStatus ?? "none",
-        duplicateOf: prev?.duplicateOf,
-        duplicateOfName: prev?.duplicateOfName,
+        validationStatus: prev?.validationStatus ?? live?.validationStatus ?? "valid",
+        duplicateStatus: prev?.duplicateStatus ?? live?.duplicateStatus ?? "none",
+        duplicateOf: prev?.duplicateOf ?? live?.duplicateOf,
+        duplicateOfName: prev?.duplicateOfName ?? live?.duplicateOfName,
         processingStatus: "saved" as const,
-        checksum: image.checksumSha256 ?? prev?.checksum ?? "",
+        checksum: image.checksumSha256 ?? prev?.checksum ?? live?.checksum ?? "",
         remoteUrl: image.url,
-        thumbnailUrl: image.url,
-        warnings: prev?.warnings ?? [],
-        keepDespiteDuplicate: prev?.keepDespiteDuplicate ?? true,
+        thumbnailUrl: previewUrl,
+        localPreviewUrl: keepLocal ? live!.localPreviewUrl : undefined,
+        clientKey: live?.clientKey ?? prev?.clientKey ?? image.id,
+        previewConfirmed: keepLocal ? false : true,
+        warnings: prev?.warnings ?? live?.warnings ?? [],
+        keepDespiteDuplicate: prev?.keepDespiteDuplicate ?? live?.keepDespiteDuplicate ?? true,
       } satisfies IntakeAssetMeta;
     });
 
     const serverIds = new Set(fromServer.map((a) => a.assetId));
-    const preservedInFlight = inFlight.filter((a) => !serverIds.has(a.assetId));
-    this.assets = queueBusy ? [...preservedInFlight, ...fromServer] : fromServer;
-    if (queueBusy && preservedInFlight.length) {
-      // Keep local previews while imports finish; server list may lag behind.
-      const mergedIds = new Set(this.assets.map((a) => a.assetId));
-      for (const local of inFlight) {
-        if (!mergedIds.has(local.assetId)) this.assets.unshift(local);
+    const serverChecksums = new Set(fromServer.map((a) => a.checksum).filter(Boolean));
+    const preservedInFlight = inFlight.filter((a) => {
+      if (serverIds.has(a.assetId)) return false;
+      // Temp card whose content already landed on the server — drop to avoid duplicate cards.
+      if (
+        a.checksum
+        && serverChecksums.has(a.checksum)
+        && (a.processingStatus === "queued" || a.processingStatus === "uploading")
+      ) {
+        return true; // still uploading; processOne will collapse same-id
       }
-    }
+      if (
+        a.checksum
+        && serverChecksums.has(a.checksum)
+        && a.processingStatus === "saved"
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // Deterministic order: in-flight (selection order) then server originals (upload order).
+    const merged = [...preservedInFlight, ...fromServer];
+    const seen = new Set<string>();
+    this.assets = merged.filter((a) => {
+      if (seen.has(a.assetId)) return false;
+      seen.add(a.assetId);
+      return true;
+    });
+
+    intakeLog("hydrate", {
+      projectId: active.id,
+      originals: originals.length,
+      derivedSkipped: active.productImages.length - originals.length,
+      inFlight: preservedInFlight.length,
+      cards: this.assets.length,
+    });
     this.persistMeta();
+    this.emit();
+  }
+
+  /**
+   * After the browser successfully loads the server preview, drop the temporary blob URL.
+   * Call from UI onLoad or from the post-upload probe.
+   */
+  confirmRemotePreview(assetId: string): void {
+    const asset = this.assets.find((a) => a.assetId === assetId);
+    if (!asset?.localPreviewUrl) {
+      if (asset && !asset.previewConfirmed) {
+        this.assets = this.assets.map((a) =>
+          a.assetId === assetId ? { ...a, previewConfirmed: true } : a,
+        );
+        this.emit();
+      }
+      return;
+    }
+    const blob = asset.localPreviewUrl;
+    this.assets = this.assets.map((a) =>
+      a.assetId === assetId
+        ? { ...a, localPreviewUrl: undefined, previewConfirmed: true, thumbnailUrl: a.thumbnailUrl || a.remoteUrl }
+        : a,
+    );
+    try {
+      URL.revokeObjectURL(blob);
+    } catch {
+      /* ignore */
+    }
+    intakeLog("preview_confirmed", { projectId: this.projectId, assetId, filename: asset.originalFilename });
     this.emit();
   }
 
@@ -283,6 +369,7 @@ export class ProductIntakeEngine {
       const tempId = `temp-${item.id}`;
       const pendingMeta: IntakeAssetMeta = {
         assetId: tempId,
+        clientKey: item.id,
         projectId: this.projectId ?? "pending",
         originalFilename: file.name,
         fileType: validation.mimeType,
@@ -298,9 +385,17 @@ export class ProductIntakeEngine {
         warnings: validation.warnings,
         localPreviewUrl: validation.localPreviewUrl,
         thumbnailUrl: validation.localPreviewUrl,
+        previewConfirmed: false,
         keepDespiteDuplicate: false,
       };
       this.assets = [pendingMeta, ...this.assets];
+      intakeLog("staged", {
+        projectId: this.projectId,
+        clientKey: item.id,
+        filename: file.name,
+        contentHash: validation.checksum?.slice(0, 12),
+        status: "QUEUED",
+      });
     }
     this.emit();
     void this.pump();
@@ -511,6 +606,13 @@ export class ProductIntakeEngine {
     }
 
     try {
+      intakeLog("upload_start", {
+        projectId: this.projectId,
+        clientKey: queueId,
+        filename: file.name,
+        contentHash: checksum?.slice(0, 12),
+        status: "UPLOADING",
+      });
       const dataBase64 = await fileToBase64(file);
       this.noteBytes(file.size);
       this.queue.update(queueId, { progress: 70 });
@@ -526,18 +628,19 @@ export class ProductIntakeEngine {
       });
 
       const prior = this.assets.find((a) => a.assetId === tempId);
-      if (prior?.localPreviewUrl) URL.revokeObjectURL(prior.localPreviewUrl);
-
+      // Keep local blob until the server URL actually loads — early revoke caused blank/black cards.
       this.assets = this.assets.map((a) =>
         a.assetId === tempId
           ? {
             ...a,
             assetId: image.id,
+            clientKey: a.clientKey ?? queueId,
             projectId: this.projectId!,
             processingStatus: "saved",
             remoteUrl: image.url,
             thumbnailUrl: image.url,
-            localPreviewUrl: undefined,
+            localPreviewUrl: prior?.localPreviewUrl,
+            previewConfirmed: false,
             checksum: image.checksumSha256 ?? a.checksum,
             sourceReference: `creative-workspace/projects/${this.projectId}/images`,
             keepDespiteDuplicate: true,
@@ -548,13 +651,24 @@ export class ProductIntakeEngine {
       // If server reused an existing id already in the gallery, drop the duplicate card.
       const sameIdCount = this.assets.filter((a) => a.assetId === image.id).length;
       if (sameIdCount > 1) {
+        let keptLocal: string | undefined;
         let seen = false;
         this.assets = this.assets.filter((a) => {
           if (a.assetId !== image.id) return true;
-          if (seen) return false;
+          if (seen) {
+            if (a.localPreviewUrl) keptLocal = a.localPreviewUrl;
+            return false;
+          }
           seen = true;
           return true;
         });
+        if (keptLocal) {
+          this.assets = this.assets.map((a) =>
+            a.assetId === image.id && !a.localPreviewUrl
+              ? { ...a, localPreviewUrl: keptLocal, previewConfirmed: false }
+              : a,
+          );
+        }
       }
 
       this.queue.update(queueId, {
@@ -566,6 +680,18 @@ export class ProductIntakeEngine {
       this.fileMap.delete(queueId);
       this.persistMeta();
       this.markDirty();
+
+      intakeLog("upload_complete", {
+        projectId: this.projectId,
+        assetId: image.id,
+        contentHash: (image.checksumSha256 ?? checksum)?.slice(0, 12),
+        filename: file.name,
+        reused: Boolean(reused),
+        remoteUrl: image.url,
+        status: "STORED",
+      });
+
+      this.probeRemotePreview(image.id, image.url);
 
       void workspaceIntegrationEngine.emit({
         type: "images.imported",
@@ -607,9 +733,50 @@ export class ProductIntakeEngine {
     this.emit();
   }
 
+  /** Prefetch server preview; only revoke blob URL after a successful decode. */
+  private probeRemotePreview(assetId: string, remoteUrl: string): void {
+    if (typeof Image === "undefined") {
+      this.confirmRemotePreview(assetId);
+      return;
+    }
+    intakeLog("preview_start", { projectId: this.projectId, assetId, remoteUrl });
+    const probe = new Image();
+    probe.onload = () => {
+      intakeLog("preview_complete", { projectId: this.projectId, assetId, remoteUrl, status: "READY" });
+      this.confirmRemotePreview(assetId);
+    };
+    probe.onerror = () => {
+      intakeLog("preview_failed", { projectId: this.projectId, assetId, remoteUrl, status: "PREVIEW_FAILED" });
+      this.assets = this.assets.map((a) => {
+        if (a.assetId !== assetId) return a;
+        const hasWarn = a.warnings.some((w) => w.code === "other" && /preview/i.test(w.message));
+        return {
+          ...a,
+          warnings: hasWarn
+            ? a.warnings
+            : [...a.warnings, { code: "other" as const, message: "Server preview failed to load — local preview kept." }],
+        };
+      });
+      this.emit();
+    };
+    probe.src = remoteUrl;
+  }
+
   private persistMeta(): void {
     if (!this.projectId) return;
-    saveProjectMeta(this.projectId, this.assets.filter((a) => a.processingStatus === "saved" || a.validationStatus === "duplicate"));
+    const durable = this.assets
+      .filter((a) => a.processingStatus === "saved" || a.validationStatus === "duplicate")
+      .map((a) => {
+        const remote = a.remoteUrl;
+        const thumb = a.thumbnailUrl?.startsWith("blob:") ? remote : (a.thumbnailUrl || remote);
+        return {
+          ...a,
+          localPreviewUrl: undefined,
+          thumbnailUrl: thumb,
+          previewConfirmed: true,
+        };
+      });
+    saveProjectMeta(this.projectId, durable);
   }
 
   private markDirty(): void {

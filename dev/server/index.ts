@@ -231,6 +231,12 @@ function contentType(filePath: string): string {
 
   if (filePath.endsWith(".webp")) return "image/webp";
 
+  if (filePath.endsWith(".gif")) return "image/gif";
+
+  if (filePath.endsWith(".tif") || filePath.endsWith(".tiff")) return "image/tiff";
+
+  if (filePath.endsWith(".bmp")) return "image/bmp";
+
   if (filePath.endsWith(".svg")) return "image/svg+xml";
 
   if (filePath.endsWith(".mp4")) return "video/mp4";

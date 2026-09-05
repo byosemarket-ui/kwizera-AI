@@ -23,6 +23,7 @@ export interface CreativeProjectDto {
     origin?: string;
     parentAssetId?: string;
     processingStatus?: string;
+    derivedKind?: string;
   }>;
   productInformation: Record<string, unknown> & {
     name: string;

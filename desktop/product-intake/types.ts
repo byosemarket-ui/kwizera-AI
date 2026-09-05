@@ -50,8 +50,12 @@ export interface IntakeAssetMeta {
   remoteUrl?: string;
   warnings: IntakeWarning[];
   error?: string;
-  /** Object URL for local preview before/after upload — revoked on remove */
+  /** Object URL for temporary local preview — never persist; revoke after remote confirmed */
   localPreviewUrl?: string;
+  /** Stable React/list identity from staging through server id assignment */
+  clientKey?: string;
+  /** True once a server-backed preview URL has loaded successfully */
+  previewConfirmed?: boolean;
   keepDespiteDuplicate?: boolean;
 }
 

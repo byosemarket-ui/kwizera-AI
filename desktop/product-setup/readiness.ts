@@ -50,9 +50,11 @@ export function buildImageCards(
   );
   return visible.map((asset) => {
     const organized = set?.images.find((i) => i.assetId === asset.assetId);
+    const classified = Boolean(organized && organized.viewType !== "UNKNOWN");
     const finalView = organized?.viewType ?? "UNKNOWN";
     const confidence = organized?.confidence ?? 0;
-    const needsReview = organized?.needsReview ?? (asset.processingStatus === "saved");
+    // Do not treat "not yet analyzed" as needs-review — that caused false Unknown/Needs review noise.
+    const needsReview = Boolean(organized?.needsReview);
     const userCorrected = organized?.userCorrected ?? false;
     const aiView = userCorrected && organized
       ? organized.viewType
@@ -65,6 +67,12 @@ export function buildImageCards(
           ? "failed"
           : "saved";
 
+    const usingLocalPreview = Boolean(asset.localPreviewUrl);
+    // Prefer local blob until server preview is confirmed; never show filename-only as a substitute.
+    const url = usingLocalPreview
+      ? asset.localPreviewUrl
+      : (asset.thumbnailUrl || asset.remoteUrl || undefined);
+
     let severity: ImageCardModel["severity"] = "ok";
     let issueMessage: string | null = null;
     if (uploadStatus === "uploading") {
@@ -73,6 +81,9 @@ export function buildImageCards(
     } else if (asset.validationStatus === "invalid" || asset.processingStatus === "failed") {
       severity = "critical";
       issueMessage = asset.error ?? "This image cannot be used.";
+    } else if (!url && uploadStatus === "saved") {
+      severity = "critical";
+      issueMessage = "Preview unavailable — retry or re-import.";
     } else if (organized?.visibilityStatus && organized.visibilityStatus !== "clear") {
       severity = "warning";
       issueMessage = "Product may not be clearly visible.";
@@ -89,11 +100,13 @@ export function buildImageCards(
 
     return {
       assetId: asset.assetId,
-      url: asset.thumbnailUrl || asset.remoteUrl || asset.localPreviewUrl,
+      clientKey: asset.clientKey ?? asset.assetId,
+      url,
+      remoteUrl: asset.remoteUrl || asset.thumbnailUrl,
       fileName: asset.originalFilename,
       aiViewType: aiView,
       finalViewType: finalView,
-      displayLabel: viewDisplayLabel(finalView),
+      displayLabel: classified ? viewDisplayLabel(finalView) : viewDisplayLabel("UNKNOWN"),
       confidence,
       needsReview,
       userCorrected,
@@ -101,6 +114,7 @@ export function buildImageCards(
       issueMessage,
       isDuplicate: Boolean(organized?.duplicateOfAssetId || asset.validationStatus === "duplicate"),
       uploadStatus,
+      usingLocalPreview,
     };
   });
 }

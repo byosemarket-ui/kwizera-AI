@@ -237,9 +237,33 @@ export function ProductSetupWorkspace() {
         {snap.imageCards.length > 0 && (
           <div className="product-setup__grid">
             {snap.imageCards.map((card) => (
-              <article key={card.assetId} className={`product-setup__card${card.uploadStatus === "uploading" ? " is-uploading" : ""}${card.uploadStatus === "failed" ? " is-failed" : ""}`}>
+              <article key={card.clientKey} className={`product-setup__card${card.uploadStatus === "uploading" ? " is-uploading" : ""}${card.uploadStatus === "failed" ? " is-failed" : ""}`}>
                 <div className="product-setup__card-thumb">
-                  {card.url ? <img src={card.url} alt={card.fileName} loading="lazy" /> : <ImagePlus size={22} />}
+                  {card.url ? (
+                    <img
+                      src={card.url}
+                      alt={card.fileName}
+                      loading="lazy"
+                      onLoad={() => {
+                        if (card.usingLocalPreview && card.remoteUrl) return;
+                        if (card.remoteUrl && card.url === card.remoteUrl) {
+                          productSetupEngine.confirmRemotePreview(card.assetId);
+                        }
+                      }}
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (card.remoteUrl && img.src !== card.remoteUrl && !card.usingLocalPreview) {
+                          img.src = card.remoteUrl;
+                          return;
+                        }
+                        img.style.visibility = "hidden";
+                      }}
+                    />
+                  ) : (
+                    <span className="product-setup__card-missing" title={card.issueMessage ?? "Preview unavailable"}>
+                      <ImagePlus size={22} />
+                    </span>
+                  )}
                   {card.uploadStatus === "uploading" && (
                     <span className="product-setup__card-overlay"><Loader2 size={18} className="spin" /></span>
                   )}
@@ -249,7 +273,7 @@ export function ProductSetupWorkspace() {
                 </div>
                 <div className="product-setup__card-body">
                   <div className="product-setup__card-head">
-                    <strong>{card.fileName}</strong>
+                    <strong title={card.fileName}>{card.fileName}</strong>
                     <button
                       type="button"
                       className="product-setup__icon-btn"
@@ -262,10 +286,14 @@ export function ProductSetupWorkspace() {
                   </div>
                   <span className="product-setup__card-meta">
                     {card.uploadStatus === "uploading"
-                      ? "Uploading…"
+                      ? (card.usingLocalPreview ? "Uploading… (local preview)" : "Uploading…")
                       : card.uploadStatus === "failed"
                         ? (card.issueMessage ?? "Upload failed")
-                        : card.needsReview ? "Needs review" : confidenceLabel(card.confidence)}
+                        : card.needsReview
+                          ? "Needs review"
+                          : card.finalViewType === "UNKNOWN"
+                            ? "Unclassified"
+                            : confidenceLabel(card.confidence)}
                   </span>
                   {card.uploadStatus === "saved" && (
                   <label className="product-setup__card-select">

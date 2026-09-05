@@ -216,6 +216,10 @@ export class ProductSetupEngine {
     this.emit();
   }
 
+  confirmRemotePreview(assetId: string): void {
+    productIntakeEngine.confirmRemotePreview(assetId);
+  }
+
   keepDuplicate(assetId: string): void {
     productIntakeEngine.keepDuplicate(assetId);
     imageOrganizationEngine.keepDuplicate(assetId);

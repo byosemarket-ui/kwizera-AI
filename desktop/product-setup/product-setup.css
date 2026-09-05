@@ -300,6 +300,16 @@
   object-fit: cover;
 }
 
+.product-setup__card-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #8b9aab;
+  background: #121a22;
+}
+
 .product-setup__card.is-uploading {
   border-color: var(--ps-accent-dim);
   opacity: 0.92;

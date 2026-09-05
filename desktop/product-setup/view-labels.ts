@@ -13,7 +13,7 @@ export const VIEW_PICKER_OPTIONS: Array<{ value: OrganizationViewType; label: st
   { value: "DETAIL", label: "Detail" },
   { value: "CLOSE_UP", label: "Close-up" },
   { value: "PACKAGING", label: "Packaging" },
-  { value: "UNKNOWN", label: "Unknown" },
+  { value: "UNKNOWN", label: "Unclassified" },
 ];
 
 export function viewDisplayLabel(view: OrganizationViewType): string {
@@ -34,12 +34,13 @@ export function viewDisplayLabel(view: OrganizationViewType): string {
     PACKAGING: "Packaging",
     LOGO: "Logo",
     OTHER: "Side",
-    UNKNOWN: "Unknown",
+    UNKNOWN: "Unclassified",
   };
   return map[view] ?? view.replace(/_/g, " ");
 }
 
 export function confidenceLabel(confidence: number): string {
+  if (confidence <= 0) return "Unclassified";
   if (confidence >= LOW_CONFIDENCE) return "High confidence";
   if (confidence >= 0.5) return "Medium confidence";
   return "Needs review";

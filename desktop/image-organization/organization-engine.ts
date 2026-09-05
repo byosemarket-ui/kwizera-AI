@@ -1,3 +1,4 @@
+import { isOriginalProductImage } from "../../ai/creative-workspace/project-asset.js";
 import { loadHandoff as loadIntakeHandoff, loadProjectMeta, openProjectApi } from "../product-intake/api";
 import type { IntakeAssetMeta, IntakeHandoffPayload } from "../product-intake/types";
 import {
@@ -272,9 +273,7 @@ export class ImageOrganizationEngine {
       );
       if (!this.intakeAssets.length && bound.project.productImages?.length) {
         this.intakeAssets = bound.project.productImages
-          .filter((img) => !img.parentAssetId && img.origin !== "derived" && img.origin !== "generated"
-            && img.assetType !== "derived-image" && img.assetType !== "video" && img.assetType !== "rendered"
-            && !String(img.mimeType).startsWith("video/") && !/product-video/i.test(img.fileName))
+          .filter(isOriginalProductImage)
           .map((img) => ({
           assetId: img.id,
           projectId: bound.projectId,
