@@ -270,6 +270,20 @@ describe("STEP 9 smart camera", () => {
     expect(vf).not.toMatch(/crop=1080:1920$/);
   });
 
+  it("primary purpose token wins over concatenated beat strings", () => {
+    expect(chooseSmartCameraMode({
+      purpose: "HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA",
+      order: 1,
+      isLast: false,
+      role: "HERO_PRODUCT",
+    })).toBe("PRODUCT_HERO");
+    expect(chooseSmartCameraMode({
+      purpose: "FEATURE",
+      order: 3,
+      isLast: false,
+    })).toBe("FEATURE_FOCUS");
+  });
+
   it("mode + occupancy helpers are format aware", () => {
     expect(chooseSmartCameraMode({ purpose: "CTA", order: 5, isLast: true })).toBe("FULL_PRODUCT");
     expect(occupancyTargetFor({ format: "9:16", mode: "PRODUCT_HERO", productCategory: "shoe" }))

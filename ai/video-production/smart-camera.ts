@@ -121,30 +121,37 @@ export function chooseSmartCameraMode(input: {
   order: number;
   isLast: boolean;
 }): SmartCameraMode {
-  const purpose = input.purpose.toUpperCase();
+  // Creative plans may concatenate beats ("HOOK|REVEAL|FEATURE|…") — use primary token.
+  const purposeRaw = input.purpose.toUpperCase();
+  const purpose = purposeRaw.split(/[|/]+/)[0]?.trim() || purposeRaw;
   const role = String(input.role ?? "").toUpperCase();
   const directed = String(input.directed ?? "").toUpperCase();
 
   if (input.isLast || purpose === "CTA" || /^(CTA|BRAND|COMPANY|CONTACT)/.test(purpose)) {
     return "FULL_PRODUCT";
   }
-  if (role === "DETAIL_CLOSE_UP" || directed === "DETAIL_PUSH" || /DETAIL|MACRO/.test(purpose)) {
+  // Opening hero always wins over a DETAIL role on the same asset.
+  if (input.order <= 1 || /^(HOOK|PRODUCT_REVEAL|INTRO|HERO)$/.test(purpose) || purpose === "PRODUCT_REVEAL") {
+    if (directed === "HERO_REVEAL" || purpose === "PRODUCT_REVEAL" || purpose.includes("REVEAL")) return "PRODUCT_REVEAL";
+    if (role === "HERO_PRODUCT" || role === "MAIN_REVEAL" || input.order <= 1 || purpose === "HOOK") return "PRODUCT_HERO";
+  }
+  if (role === "DETAIL_CLOSE_UP" || directed === "DETAIL_PUSH" || purpose === "DETAIL" || purpose === "DETAIL_SCENE" || /^DETAIL/.test(purpose)) {
     if (/TOP|UPPER/.test(purpose) || /TOP/.test(role)) return "TOP_DETAIL";
     if (/SIDE|LATERAL/.test(purpose) || /SIDE|ALTERNATE/.test(role)) return "SIDE_DETAIL";
     return "DETAIL_CLOSE_UP";
   }
-  if (role === "WIDE_PRODUCT_VIEW" || /WIDE|LIFESTYLE|CONTEXT|EXPLORATION/.test(purpose)) {
+  if (role === "WIDE_PRODUCT_VIEW" || /^(WIDE|LIFESTYLE|CONTEXT|VISUAL_EXPLORATION|EXPLORATION)/.test(purpose)) {
     return "WIDE_CONTEXT";
   }
-  if (/FEATURE|MESSAGE|PRICE/.test(purpose) || directed === "PRODUCT_FOCUS") {
+  if (/^(FEATURE|KEY_MESSAGE|MESSAGE|PRICE|PRICE_OR_OFFER)/.test(purpose) || directed === "PRODUCT_FOCUS") {
     return "FEATURE_FOCUS";
   }
-  if (input.order <= 1 || /HOOK|REVEAL|INTRO|HERO/.test(purpose) || role === "HERO_PRODUCT" || role === "MAIN_REVEAL") {
+  if (role === "HERO_PRODUCT" || role === "MAIN_REVEAL" || /^(HOOK|REVEAL|INTRO|HERO)/.test(purpose)) {
     if (directed === "HERO_REVEAL" || /REVEAL/.test(purpose)) return "PRODUCT_REVEAL";
     return "PRODUCT_HERO";
   }
-  if (role.includes("LEFT") || /LEFT_FOCUS/.test(purpose)) return "LEFT_FOCUS";
-  if (role.includes("RIGHT") || /RIGHT_FOCUS/.test(purpose)) return "RIGHT_FOCUS";
+  if (role.includes("LEFT") || /^LEFT/.test(purpose)) return "LEFT_FOCUS";
+  if (role.includes("RIGHT") || /^RIGHT/.test(purpose)) return "RIGHT_FOCUS";
   return "SMART_AUTO";
 }
 
