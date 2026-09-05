@@ -160,10 +160,8 @@ export async function getAiDirectorStatusSummary(): Promise<{
       available: await videoProvider.isAvailable().catch(() => false),
     },
   );
-  // Deep health uses real inference probe when tags already look ready (cached; resource-aware).
-  const adapterHealth = readiness.ready
-    ? await getCachedOllamaHealth({ probeInference: true })
-    : await getCachedOllamaHealth({ probeInference: false });
+  // Status must not block on inference probes (1-vCPU hosts). Deep probe stays on diagnostics/cache opt-in.
+  const adapterHealth = await getCachedOllamaHealth({ probeInference: false });
   const knowledge = getVideoKnowledgePackMeta();
   return {
     creativeDirector: diagnostics.creativeDirector,

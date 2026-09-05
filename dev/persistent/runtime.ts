@@ -571,32 +571,46 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         canonical: canonicalProductManager!,
         assets: productAssetPreparationManager,
       });
-      try {
-        const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
-        const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
-        const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
-        const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
-        const readiness = await assessOllamaReadiness();
-        const ollamaVision = new OllamaVisionProvider();
-        // Vision only when a vision-capable model is actually installed (isAvailable enforces this).
-        if (await ollamaVision.isAvailable()) {
-          imageIntelligenceManager.setVisionProvider(ollamaVision);
-          mediaIntelligenceManager.setVisionProvider(ollamaVision);
-        }
-        // Register Creative Director only when a model is actually ready and host can support it.
-        if (readiness.ready && readiness.selectedModel) {
-          const director = new OllamaCreativeReasoningProvider({
-            model: readiness.selectedModel,
-          });
-          if (await director.isAvailable()) {
-            setCreativeReasoningProvider(director);
+      // Ollama registration is deferred (resource-aware). Never block Core readiness on LLM load.
+      const registerOllamaProviders = async () => {
+        try {
+          const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
+          const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
+          const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
+          const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+          const readiness = await Promise.race([
+            assessOllamaReadiness(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
+          ]);
+          if (!readiness) {
+            console.warn("[KWIZERA] Ollama readiness timed out during boot — deterministic Creative Director active.");
+            setCreativeReasoningProvider(null);
+            return;
           }
-        } else {
+          const ollamaVision = new OllamaVisionProvider();
+          if (await ollamaVision.isAvailable()) {
+            imageIntelligenceManager?.setVisionProvider(ollamaVision);
+            mediaIntelligenceManager?.setVisionProvider(ollamaVision);
+          }
+          if (readiness.ready && readiness.selectedModel) {
+            const director = new OllamaCreativeReasoningProvider({
+              model: readiness.selectedModel,
+            });
+            if (await director.isAvailable()) {
+              setCreativeReasoningProvider(director);
+              console.log("[KWIZERA] Ollama Creative Director registered:", readiness.selectedModel);
+              return;
+            }
+          }
           setCreativeReasoningProvider(null);
+        } catch (error) {
+          console.warn(
+            "[KWIZERA] Ollama optional registration skipped:",
+            error instanceof Error ? error.message : error,
+          );
         }
-      } catch {
-        /* Ollama optional — heuristic intelligence + deterministic planning remain authoritative */
-      }
+      };
+      void registerOllamaProviders();
       productScenePlanningManager = new ProductScenePlanningManager();
       await productScenePlanningManager.initialize(storageRoot, {
         core: manager,

@@ -16,11 +16,6 @@ import {
 } from "../ai-provider/ollama-client.js";
 import type { AiCreativePlannerInput, CreativeReasoningProvider } from "./ai-creative-planner.js";
 import { buildProjectIntelligenceContext } from "./project-intelligence-context.js";
-import {
-  formatKnowledgeForPrompt,
-  retrieveVideoKnowledge,
-} from "../video-knowledge-engine/video-knowledge-pack.js";
-import { selectApplicableSkills } from "../video-skills/video-skills.js";
 
 /** Creative-plan inference may need longer than generic generate on 1-vCPU hosts. */
 export function ollamaPlanTimeoutMs(): number {
@@ -29,7 +24,7 @@ export function ollamaPlanTimeoutMs(): number {
   return Math.max(ollamaTimeoutMs(), 180_000);
 }
 
-function compactContext(input: AiCreativePlannerInput): Record<string, unknown> {
+async function compactContext(input: AiCreativePlannerInput): Promise<Record<string, unknown>> {
   const full = buildProjectIntelligenceContext(input);
   const task = [
     full.product.category,
@@ -37,6 +32,11 @@ function compactContext(input: AiCreativePlannerInput): Record<string, unknown> 
     full.style.creativeTone,
     "product marketing video hook reveal",
   ].filter(Boolean).join(" ");
+  const {
+    formatKnowledgeForPrompt,
+    retrieveVideoKnowledge,
+  } = await import("../video-knowledge-engine/video-knowledge-pack.js");
+  const { selectApplicableSkills } = await import("../video-skills/video-skills.js");
   const knowledge = retrieveVideoKnowledge(task, 4);
   const skills = selectApplicableSkills({
     task,
@@ -119,7 +119,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
     }
     this.lastModel = model;
 
-    const context = compactContext(input);
+    const context = await compactContext(input);
     const assetIds = Array.isArray(context.assetIds) ? context.assetIds as string[] : [];
     if (!context.projectId || assetIds.length === 0) {
       throw Object.assign(new Error("PROJECT_CONTEXT_MISSING"), { code: "PROJECT_CONTEXT_MISSING" });
