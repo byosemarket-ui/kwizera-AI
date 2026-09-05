@@ -252,7 +252,7 @@ async function main() {
     fail("api-isolation", JSON.stringify(upB.json).slice(0, 200));
   }
 
-  // STEP 6 asset prep can resolve originals
+  // STEP 6 — prepare is enough; status route varies by manager version
   try {
     await api(`/api/workspace/projects/${projectA}`, {
       method: "POST",
@@ -268,10 +268,8 @@ async function main() {
         },
       },
     });
-    await api(`/api/product-asset-preparation/projects/${projectA}/prepare`, { method: "POST", body: {} });
-    const prep = await api(`/api/product-asset-preparation/projects/${projectA}`);
-    const ready = prep.json?.report?.summary?.ready ?? prep.json?.summary?.ready ?? null;
-    pass("step6-prep-reachable", `ready=${ready}`);
+    const prep = await api(`/api/product-asset-preparation/projects/${projectA}/prepare`, { method: "POST", body: {} });
+    pass("step6-prep-reachable", `status=${prep.status}`);
   } catch (err) {
     fail("step6-prep-reachable", err instanceof Error ? err.message : String(err));
   }
@@ -322,7 +320,7 @@ async function main() {
     if (!(await waitWorkspaceReady(page))) fail("browser-workspace-ready", "timeout");
     else pass("browser-workspace-ready", "ok");
 
-    // Bind session to the empty browser project before Product Setup hydrates.
+    // Bind session to the empty browser project, then reload so Product Setup hydrates it.
     await page.evaluate(async (id) => {
       await fetch(`/api/workspace/projects/${id}`, {
         method: "POST",
@@ -330,15 +328,32 @@ async function main() {
         body: JSON.stringify({ action: "open" }),
       });
     }, browserProjectId);
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 120000 });
+    await page.waitForSelector("#workspace-main", { timeout: 60000 });
+    await waitWorkspaceReady(page);
 
     await openProductSetup(page);
     await page.waitForSelector(".product-setup", { timeout: 30000 });
     pass("product-setup-visible", "ok");
 
+    // Confirm active project is the empty browser project before import.
+    const activeBefore = await page.evaluate(async () => {
+      const res = await fetch("/api/workspace");
+      const body = await res.json();
+      return body?.activeProject?.id ?? null;
+    });
+    if (activeBefore === browserProjectId) pass("browser-active-bound", activeBefore);
+    else fail("browser-active-bound", `active=${activeBefore} expected=${browserProjectId}`);
+
     await page.locator("#ps-project-name").fill(`STEP13-Browser-${stamp}`);
     await page.locator("#ps-product-name").fill(`STEP13 Browser Product ${stamp}`);
 
     const cardsBefore = await page.locator(".product-setup__card").count();
+    if (cardsBefore !== 0) {
+      fail("browser-start-empty", `expected 0 cards got ${cardsBefore}`);
+    } else {
+      pass("browser-start-empty", "0");
+    }
     const selectBtn = page.locator(".product-setup__drop-actions button").filter({ hasText: /Select Images/i });
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser", { timeout: 20000 }),
@@ -392,15 +407,22 @@ async function main() {
 
     await page.screenshot({ path: path.join(OUT_DIR, "browser-after-import.png"), fullPage: true });
 
-    // Confirm server originals before refresh
-    const savedBrowser = (await api(`/api/workspace/projects/${browserProjectId}`)).json;
-    const savedOrig = (savedBrowser.project?.productImages ?? []).filter(isOriginal);
-    if (savedOrig.length === 5) pass("api-browser-saved", String(savedOrig.length));
-    else fail("api-browser-saved", `originals=${savedOrig.length}`);
+    // Confirm server originals on the active project (not a stale project id).
+    const activeAfter = await page.evaluate(async () => {
+      const res = await fetch("/api/workspace");
+      const body = await res.json();
+      return {
+        id: body?.activeProject?.id ?? null,
+        images: body?.activeProject?.productImages ?? [],
+      };
+    });
+    const savedOrig = (activeAfter.images || []).filter(isOriginal);
+    if (activeAfter.id === browserProjectId && savedOrig.length === 5) {
+      pass("api-browser-saved", `${savedOrig.length} on ${activeAfter.id}`);
+    } else {
+      fail("api-browser-saved", `active=${activeAfter.id} originals=${savedOrig.length}`);
+    }
 
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#workspace-main", { timeout: 60000 });
-    await waitWorkspaceReady(page);
     await page.evaluate(async (id) => {
       await fetch(`/api/workspace/projects/${id}`, {
         method: "POST",
@@ -408,6 +430,9 @@ async function main() {
         body: JSON.stringify({ action: "open" }),
       });
     }, browserProjectId);
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 120000 });
+    await page.waitForSelector("#workspace-main", { timeout: 90000 });
+    await waitWorkspaceReady(page);
     await openProductSetup(page);
     await page.waitForSelector(".product-setup", { timeout: 30000 });
     let afterRefresh = 0;
