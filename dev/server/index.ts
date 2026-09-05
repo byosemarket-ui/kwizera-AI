@@ -2707,7 +2707,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
 
   if (url.pathname === "/api/ai-director/creative-advisor/analyze" && req.method === "POST") {
     try {
-      const body = await readJsonBody<{
+      const body = JSON.parse((await readBody(req)) || "{}") as {
         projectId?: string;
         productName?: string;
         productCategory?: string;
@@ -2718,7 +2718,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         bpm?: number | null;
         energy?: string | null;
         creativeMode?: string | null;
-      }>(req);
+      };
       const projectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
       if (!projectId) {
         sendJson(res, 400, { error: "projectId is required" });
