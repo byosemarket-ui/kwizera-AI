@@ -8,6 +8,7 @@ import { createImageGenerationPlugin } from "../../ai/image-generation/image-gen
 import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
 import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
+import { AudioIntelligenceManager } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
 import { CommercialVideoManager } from "../../ai/commercial-video/commercial-video-manager.js";
 import { BusinessIntelligenceManager } from "../../ai/business-intelligence/business-intelligence-manager.js";
@@ -85,6 +86,7 @@ let modelManager: AiModelManager | null = null;
 let imageGenerationManager: ImageGenerationManager | null = null;
 let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
 let videoProductionManager: VideoProductionManager | null = null;
+let audioIntelligenceManager: AudioIntelligenceManager | null = null;
 let commercialVideoManager: CommercialVideoManager | null = null;
 let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
@@ -207,6 +209,10 @@ export function getVideoAudioGenerationManager(): VideoAudioGenerationManager | 
 
 export function getVideoProductionManager(): VideoProductionManager | null {
   return videoProductionManager;
+}
+
+export function getAudioIntelligenceManager(): AudioIntelligenceManager | null {
+  return audioIntelligenceManager;
 }
 
 export function getCommercialVideoManager(): CommercialVideoManager | null {
@@ -355,6 +361,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         console.log("[KWIZERA] Lightweight mode — creative workspace only (KWIZERA AI Core deferred)");
         workspaceManager = new CreativeWorkspaceManager();
         await workspaceManager.initialize(storageRoot);
+        audioIntelligenceManager = new AudioIntelligenceManager();
+        await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
         canonicalProductManager = new CanonicalProductManager();
         await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
         marketingBriefManager = new MarketingBriefManager();
@@ -399,6 +407,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       console.log("[KWIZERA] KWIZERA AI Core started");
       workspaceManager = new CreativeWorkspaceManager();
       await workspaceManager.initialize(storageRoot, manager);
+      audioIntelligenceManager = new AudioIntelligenceManager();
+      await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
       canonicalProductManager = new CanonicalProductManager();
       await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
       marketingBriefManager = new MarketingBriefManager();
@@ -955,6 +965,7 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   imageGenerationManager = null;
   videoAudioGenerationManager = null;
   videoProductionManager = null;
+  audioIntelligenceManager = null;
   commercialVideoManager = null;
   businessIntelligenceManager = null;
   workspaceSynchronizationManager = null;

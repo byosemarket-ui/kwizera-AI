@@ -17,6 +17,7 @@ import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
+import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { VideoProductionError } from "../../ai/video-production/types.js";
 import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
 import { ingestUploadedImage } from "../../ai/image-intelligence/image-ingest.js";
@@ -32,6 +33,8 @@ import {
   getVideoAudioGenerationManager,
 
   getVideoProductionManager,
+
+  getAudioIntelligenceManager,
 
   getCommercialVideoManager,
 
@@ -356,6 +359,10 @@ function requireWorkspace(res: ServerResponse) {
 
 function sendWorkspaceError(res: ServerResponse, error: unknown): void {
   if (error instanceof CreativeWorkspaceError) {
+    sendJson(res, error.httpStatus, { error: error.message, code: error.code });
+    return;
+  }
+  if (error instanceof AudioIntelligenceError) {
     sendJson(res, error.httpStatus, { error: error.message, code: error.code });
     return;
   }
@@ -4621,10 +4628,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         mimeType: body.mimeType ?? "",
         dataBase64: body.dataBase64 ?? "",
       });
+      let analysis = null;
+      const intel = getAudioIntelligenceManager();
+      if (intel?.isInitialized()) {
+        analysis = await intel.ensureAnalysis(result.audio.assetId).catch(() => null);
+      }
       sendJson(res, result.reused ? 200 : 201, {
         audio: result.audio,
         reused: result.reused,
         project: result.project,
+        analysis,
       });
     } catch (error) {
       sendWorkspaceError(res, error);
@@ -4647,7 +4660,12 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         mimeType: body.mimeType,
         dataBase64: body.dataBase64 ?? "",
       });
-      sendJson(res, 201, { audio: result.audio, project: result.project });
+      let analysis = null;
+      const intel = getAudioIntelligenceManager();
+      if (intel?.isInitialized()) {
+        analysis = await intel.ensureAnalysis(result.audio.assetId).catch(() => null);
+      }
+      sendJson(res, 201, { audio: result.audio, project: result.project, analysis });
     } catch (error) {
       sendWorkspaceError(res, error);
     }
@@ -4666,10 +4684,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         return;
       }
       const result = await workspace.selectProjectAudio(audioSelectMatch[1], body.assetId);
+      let analysis = null;
+      const intel = getAudioIntelligenceManager();
+      if (intel?.isInitialized()) {
+        analysis = await intel.ensureAnalysis(result.audio.assetId).catch(() => null);
+      }
       sendJson(res, 200, {
         project: result.project,
         audio: result.audio,
         selectedAudioAssetId: result.audio.assetId,
+        analysis,
       });
     } catch (error) {
       sendWorkspaceError(res, error);
@@ -4686,6 +4710,72 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     } catch (error) {
       sendWorkspaceError(res, error);
     }
+    return;
+  }
+
+  // STEP 2C — Audio Intelligence
+  const audioIntelMatch = url.pathname.match(/^\/api\/workspace\/audio-library\/([^/]+)\/intelligence$/);
+  if (audioIntelMatch && req.method === "GET") {
+    const intel = getAudioIntelligenceManager();
+    if (!intel?.isInitialized()) {
+      sendJson(res, 503, { error: "Audio Intelligence is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const existing = await intel.getAnalysis(audioIntelMatch[1]);
+      if (existing) {
+        sendJson(res, 200, { intelligence: existing, status: existing.status });
+        return;
+      }
+      const ensured = await intel.ensureAnalysis(audioIntelMatch[1]);
+      sendJson(res, 200, {
+        intelligence: ensured.intelligence,
+        job: ensured.job,
+        reused: ensured.reused,
+        status: ensured.intelligence?.status ?? ensured.job?.status ?? "PENDING",
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  if (audioIntelMatch && req.method === "POST") {
+    const intel = getAudioIntelligenceManager();
+    if (!intel?.isInitialized()) {
+      sendJson(res, 503, { error: "Audio Intelligence is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req).catch(() => "{}")) as { retry?: boolean };
+      if (body.retry) {
+        const result = await intel.retryAnalysis(audioIntelMatch[1]);
+        sendJson(res, 202, { job: result.job, status: result.job.status });
+        return;
+      }
+      const ensured = await intel.ensureAnalysis(audioIntelMatch[1]);
+      sendJson(res, ensured.intelligence ? 200 : 202, {
+        intelligence: ensured.intelligence,
+        job: ensured.job,
+        reused: ensured.reused,
+        status: ensured.intelligence?.status ?? ensured.job?.status ?? "QUEUED",
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const audioIntelJobMatch = url.pathname.match(/^\/api\/workspace\/audio-intelligence\/jobs\/([^/]+)$/);
+  if (audioIntelJobMatch && req.method === "GET") {
+    const intel = getAudioIntelligenceManager();
+    if (!intel?.isInitialized()) {
+      sendJson(res, 503, { error: "Audio Intelligence is restoring. Try again shortly." });
+      return;
+    }
+    const job = await intel.getJob(audioIntelJobMatch[1]);
+    if (!job) { sendJson(res, 404, { error: "Analysis job not found" }); return; }
+    sendJson(res, 200, { job });
     return;
   }
 

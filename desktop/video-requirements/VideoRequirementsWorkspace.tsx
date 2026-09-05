@@ -303,6 +303,49 @@ export function VideoRequirementsWorkspace() {
                   {" · "}
                   {sourceLabel(snap.audio.selected.sourceType)}
                 </span>
+                {snap.audio.intelligence ? (
+                  <span className="vr-audio-intel">
+                    {snap.audio.intelligence.status === "READY" ? (
+                      <>
+                        {snap.audio.intelligence.bpm != null
+                          ? `${Math.round(snap.audio.intelligence.bpm)} BPM`
+                          : "BPM unavailable"}
+                        {snap.audio.intelligence.bpmConfidence != null
+                          ? ` · ${Math.round(snap.audio.intelligence.bpmConfidence * 100)}% conf.`
+                          : ""}
+                        {snap.audio.intelligence.energyLabel
+                          ? ` · Energy: ${snap.audio.intelligence.energyLabel}`
+                          : ""}
+                        {` · ${snap.audio.intelligence.beatCount} beats`}
+                        {" · Analysis Ready"}
+                      </>
+                    ) : ["FAILED", "INVALID_AUDIO", "NO_AUDIO_STREAM", "ANALYSIS_TIMEOUT"].includes(snap.audio.intelligence.status) ? (
+                      <>
+                        Analysis failed
+                        {snap.audio.intelligence.message ? ` — ${snap.audio.intelligence.message}` : ""}
+                        {" "}
+                        <button
+                          type="button"
+                          className="vr-linkish"
+                          onClick={() => {
+                            void videoRequirementsEngine.retryAudioIntelligence().catch((err) => {
+                              notify("error", "Retry failed", err instanceof Error ? err.message : "Retry failed");
+                            });
+                          }}
+                        >
+                          Retry
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {snap.audio.intelligence.stageMessage || snap.audio.intelligence.status}
+                        {snap.audio.intelligence.progress > 0 ? ` · ${snap.audio.intelligence.progress}%` : ""}
+                      </>
+                    )}
+                  </span>
+                ) : (
+                  <span className="vr-audio-intel">Analysis pending…</span>
+                )}
               </div>
               <button
                 type="button"
@@ -409,6 +452,13 @@ export function VideoRequirementsWorkspace() {
                         {formatDur(item.durationMs)}
                         {" · "}
                         {sourceLabel(item.sourceType)}
+                        {item.analysisStatus === "READY" && item.bpm != null
+                          ? ` · ${Math.round(item.bpm)} BPM`
+                          : item.analysisStatus === "READY"
+                            ? " · Analyzed"
+                            : item.analysisStatus
+                              ? ` · ${item.analysisStatus}`
+                              : ""}
                         {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ""}
                       </span>
                       <div className="vr-audio-wave" aria-hidden="true" />

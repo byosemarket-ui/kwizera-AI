@@ -387,6 +387,23 @@
   color: var(--vr-muted);
 }
 
+.vr-audio-intel {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem !important;
+  color: var(--vr-accent, #8ec8ff) !important;
+}
+
+.vr-linkish {
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
 .vr-audio-none {
   margin: 0;
   font-size: 0.88rem;

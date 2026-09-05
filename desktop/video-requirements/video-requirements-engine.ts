@@ -87,10 +87,21 @@ function emptyAudio(): ProjectAudioState {
     extractStatus: "idle",
     error: null,
     playingAssetId: null,
+    intelligence: null,
   };
 }
 
+function energyLabel(mean: number | null | undefined): string | null {
+  if (mean == null || !Number.isFinite(mean)) return null;
+  if (mean < 0.25) return "Low";
+  if (mean < 0.55) return "Medium";
+  return "High";
+}
+
 function mapAudioItem(raw: Record<string, unknown>): AudioLibraryItem {
+  const meta = (raw.metadata && typeof raw.metadata === "object")
+    ? raw.metadata as Record<string, unknown>
+    : {};
   return {
     assetId: String(raw.assetId ?? ""),
     title: String(raw.title ?? raw.originalFilename ?? "Audio"),
@@ -101,6 +112,31 @@ function mapAudioItem(raw: Record<string, unknown>): AudioLibraryItem {
     status: String(raw.status ?? "READY"),
     createdAt: String(raw.createdAt ?? ""),
     mimeType: String(raw.mimeType ?? "audio/mpeg"),
+    analysisStatus: typeof meta.analysisStatus === "string" ? meta.analysisStatus : null,
+    bpm: typeof meta.bpm === "number" ? meta.bpm : null,
+    bpmConfidence: typeof meta.bpmConfidence === "number" ? meta.bpmConfidence : null,
+  };
+}
+
+function summaryFromIntelligence(intel: Record<string, unknown>, jobId: string | null = null): import("./types").AudioIntelligenceSummary {
+  const tempo = (intel.tempo && typeof intel.tempo === "object") ? intel.tempo as Record<string, unknown> : {};
+  const bpm = typeof intel.bpm === "number" ? intel.bpm : (typeof tempo.bpm === "number" ? tempo.bpm : null);
+  const bpmConfidence = typeof intel.bpmConfidence === "number"
+    ? intel.bpmConfidence
+    : (typeof tempo.confidence === "number" ? tempo.confidence : null);
+  const beats = Array.isArray(intel.beats) ? intel.beats : [];
+  const meanEnergy = typeof intel.meanEnergy === "number" ? intel.meanEnergy : null;
+  return {
+    status: String(intel.status ?? "PENDING"),
+    stageMessage: null,
+    progress: intel.status === "READY" ? 100 : 0,
+    bpm,
+    bpmConfidence,
+    beatCount: beats.length,
+    meanEnergy,
+    energyLabel: energyLabel(meanEnergy),
+    message: typeof intel.message === "string" ? intel.message : null,
+    jobId,
   };
 }
 
@@ -135,6 +171,7 @@ export class VideoRequirementsEngine {
   private audio: ProjectAudioState = emptyAudio();
   private platformId: VideoPlatformId = "tiktok";
   private previewAudioEl: HTMLAudioElement | null = null;
+  private intelPollTimer: ReturnType<typeof setTimeout> | null = null;
   private duration: DurationOption = "30s";
   private customDurationSeconds: number | null = null;
   private objective: CampaignObjectiveOption = "Product Showcase";
@@ -175,6 +212,7 @@ export class VideoRequirementsEngine {
         ...this.audio,
         selected: this.audio.selected ? { ...this.audio.selected } : null,
         library: this.audio.library.map((a) => ({ ...a })),
+        intelligence: this.audio.intelligence ? { ...this.audio.intelligence } : null,
       },
       discount,
       platformId: this.platformId,
@@ -248,8 +286,10 @@ export class VideoRequirementsEngine {
     if (selectedId) {
       const fromLib = this.audio.library.find((a) => a.assetId === selectedId) ?? null;
       this.audio.selected = fromLib;
+      if (fromLib) void this.fetchIntelligence(fromLib.assetId);
     } else {
       this.audio.selected = null;
+      this.audio.intelligence = null;
     }
 
     const canonical = await fetchCanonicalProduct(active.id);
@@ -679,12 +719,20 @@ export class VideoRequirementsEngine {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assetId }),
     });
-    const body = await res.json() as { error?: string; audio?: Record<string, unknown> };
+    const body = await res.json() as {
+      error?: string;
+      audio?: Record<string, unknown>;
+      analysis?: {
+        intelligence?: Record<string, unknown> | null;
+        job?: { jobId: string; status: string; progress: number; stageMessage: string } | null;
+      } | null;
+    };
     if (!res.ok) throw new Error(body.error ?? "Unable to select audio");
     this.audio.selected = body.audio ? mapAudioItem(body.audio) : null;
     this.audio.libraryOpen = false;
     this.saveState = "saved";
     workspaceStateEngine.autoSave.markDirty();
+    this.applyAnalysisResponse(body.analysis ?? null);
     this.emit();
   }
 
@@ -692,6 +740,7 @@ export class VideoRequirementsEngine {
   async removeAudioFromVideo(): Promise<void> {
     if (!this.projectId) return;
     this.stopAudioPreview();
+    this.stopIntelPoll();
     const res = await fetch(`/api/workspace/projects/${this.projectId}/audio/selection`, {
       method: "DELETE",
     });
@@ -700,8 +749,154 @@ export class VideoRequirementsEngine {
       throw new Error(body.error ?? "Unable to remove audio");
     }
     this.audio.selected = null;
+    this.audio.intelligence = null;
     this.saveState = "saved";
     this.emit();
+  }
+
+  async retryAudioIntelligence(): Promise<void> {
+    const assetId = this.audio.selected?.assetId;
+    if (!assetId) return;
+    const res = await fetch(`/api/workspace/audio-library/${assetId}/intelligence`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ retry: true }),
+    });
+    const body = await res.json() as {
+      error?: string;
+      job?: { jobId: string; status: string; progress: number; stageMessage: string };
+    };
+    if (!res.ok) throw new Error(body.error ?? "Unable to retry analysis");
+    if (body.job) {
+      this.audio.intelligence = {
+        status: body.job.status,
+        stageMessage: body.job.stageMessage,
+        progress: body.job.progress,
+        bpm: null,
+        bpmConfidence: null,
+        beatCount: 0,
+        meanEnergy: null,
+        energyLabel: null,
+        message: null,
+        jobId: body.job.jobId,
+      };
+      this.emit();
+      this.pollIntelligenceJob(body.job.jobId);
+    }
+  }
+
+  private applyAnalysisResponse(analysis: {
+    intelligence?: Record<string, unknown> | null;
+    job?: { jobId: string; status: string; progress: number; stageMessage: string } | null;
+  } | null): void {
+    if (!analysis) {
+      if (this.audio.selected) void this.fetchIntelligence(this.audio.selected.assetId);
+      return;
+    }
+    if (analysis.intelligence && analysis.intelligence.status === "READY") {
+      this.audio.intelligence = summaryFromIntelligence(analysis.intelligence);
+      this.stopIntelPoll();
+      return;
+    }
+    if (analysis.job) {
+      this.audio.intelligence = {
+        status: analysis.job.status,
+        stageMessage: analysis.job.stageMessage,
+        progress: analysis.job.progress,
+        bpm: null,
+        bpmConfidence: null,
+        beatCount: 0,
+        meanEnergy: null,
+        energyLabel: null,
+        message: null,
+        jobId: analysis.job.jobId,
+      };
+      this.pollIntelligenceJob(analysis.job.jobId);
+    }
+  }
+
+  private async fetchIntelligence(assetId: string): Promise<void> {
+    try {
+      const res = await fetch(`/api/workspace/audio-library/${assetId}/intelligence`);
+      const body = await res.json() as {
+        intelligence?: Record<string, unknown> | null;
+        job?: { jobId: string; status: string; progress: number; stageMessage: string } | null;
+        status?: string;
+      };
+      if (!res.ok) return;
+      this.applyAnalysisResponse(body);
+      this.emit();
+    } catch {
+      /* ignore transient */
+    }
+  }
+
+  private pollIntelligenceJob(jobId: string): void {
+    this.stopIntelPoll();
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/workspace/audio-intelligence/jobs/${jobId}`);
+        const body = await res.json() as {
+          job?: {
+            jobId: string;
+            status: string;
+            progress: number;
+            stageMessage: string;
+            result?: Record<string, unknown> | null;
+            error?: string | null;
+          };
+        };
+        const job = body.job;
+        if (!job) return;
+        if (job.result && job.status === "READY") {
+          this.audio.intelligence = summaryFromIntelligence(job.result, job.jobId);
+          this.emit();
+          this.stopIntelPoll();
+          return;
+        }
+        if (["FAILED", "INVALID_AUDIO", "NO_AUDIO_STREAM", "ANALYSIS_TIMEOUT"].includes(job.status)) {
+          this.audio.intelligence = {
+            status: job.status,
+            stageMessage: job.stageMessage,
+            progress: job.progress,
+            bpm: null,
+            bpmConfidence: null,
+            beatCount: 0,
+            meanEnergy: null,
+            energyLabel: null,
+            message: job.error ?? "Analysis failed",
+            jobId: job.jobId,
+          };
+          this.emit();
+          this.stopIntelPoll();
+          return;
+        }
+        this.audio.intelligence = {
+          status: job.status,
+          stageMessage: job.stageMessage,
+          progress: job.progress,
+          bpm: null,
+          bpmConfidence: null,
+          beatCount: 0,
+          meanEnergy: null,
+          energyLabel: null,
+          message: null,
+          jobId: job.jobId,
+        };
+        this.emit();
+        this.intelPollTimer = setTimeout(() => { void tick(); }, 900);
+      } catch {
+        this.intelPollTimer = setTimeout(() => { void tick(); }, 1500);
+      }
+    };
+    this.intelPollTimer = setTimeout(() => { void tick(); }, 600);
+  }
+
+  private stopIntelPoll(): void {
+    if (this.intelPollTimer) {
+      clearTimeout(this.intelPollTimer);
+      this.intelPollTimer = null;
+    }
   }
 
   async deleteAudioFromLibrary(assetId: string): Promise<void> {

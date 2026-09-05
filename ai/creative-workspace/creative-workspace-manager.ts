@@ -829,6 +829,29 @@ export class CreativeWorkspaceManager {
   }
 
   /**
+   * STEP 2C — soft-merge analysis fields into AudioAsset.metadata (does not change bytes).
+   */
+  async patchAudioAssetMetadata(
+    assetId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<AudioAsset | null> {
+    this.ensureInitialized();
+    const index = await this.readAudioLibraryIndex();
+    const idx = index.assets.findIndex((a) => a.assetId === assetId);
+    if (idx < 0) return null;
+    const current = index.assets[idx]!;
+    const next: AudioAsset = {
+      ...current,
+      metadata: { ...current.metadata, ...metadata },
+      updatedAt: new Date().toISOString(),
+    };
+    index.assets[idx] = next;
+    index.updatedAt = next.updatedAt;
+    await this.writeAudioLibraryIndex(index);
+    return next;
+  }
+
+  /**
    * Delete from library when no project still selects it.
    */
   async deleteAudioAsset(assetId: string): Promise<{ deleted: boolean }> {

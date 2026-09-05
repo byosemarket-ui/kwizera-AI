@@ -42,6 +42,24 @@ export interface AudioLibraryItem {
   status: string;
   createdAt: string;
   mimeType: string;
+  /** STEP 2C soft fields from asset metadata when present */
+  analysisStatus?: string | null;
+  bpm?: number | null;
+  bpmConfidence?: number | null;
+}
+
+/** STEP 2C — summary for selected audio analysis */
+export interface AudioIntelligenceSummary {
+  status: string;
+  stageMessage: string | null;
+  progress: number;
+  bpm: number | null;
+  bpmConfidence: number | null;
+  beatCount: number;
+  meanEnergy: number | null;
+  energyLabel: string | null;
+  message: string | null;
+  jobId: string | null;
 }
 
 export interface ProjectAudioState {
@@ -55,6 +73,7 @@ export interface ProjectAudioState {
   error: string | null;
   /** Only one preview at a time */
   playingAssetId: string | null;
+  intelligence: AudioIntelligenceSummary | null;
 }
 
 export interface DiscountPreview {
