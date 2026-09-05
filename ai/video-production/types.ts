@@ -182,11 +182,15 @@ export interface VideoTimelineClip {
 }
 
 export interface VideoAudioPlan {
-  backgroundMusic: "none";
+  backgroundMusic: "none" | "library";
   voiceover: "none";
   soundEffects: "none";
-  status: "UNAVAILABLE" | "planned";
+  status: "UNAVAILABLE" | "planned" | "selected";
   message: string;
+  /** STEP 2B — reference into studio Audio Library */
+  selectedAudioAssetId?: string | null;
+  enabled?: boolean;
+  volume?: number;
 }
 
 export interface VideoRenderPlan {
@@ -196,7 +200,7 @@ export interface VideoRenderPlan {
   frameRate: 24;
   durationMs: number;
   videoCodec: "libx264";
-  audioCodec: "none";
+  audioCodec: "none" | "aac";
   outputFormat: "mp4";
   preset: "preview" | "standard";
   platform?: VideoPlatformId;

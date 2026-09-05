@@ -31,6 +31,32 @@ export interface BrandLogoState {
   error: string | null;
 }
 
+/** STEP 2B — Audio Library item (studio-scoped) */
+export interface AudioLibraryItem {
+  assetId: string;
+  title: string;
+  originalFilename: string;
+  sourceType: "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO" | "AI_GENERATED";
+  durationMs: number;
+  playbackUrl: string;
+  status: string;
+  createdAt: string;
+  mimeType: string;
+}
+
+export interface ProjectAudioState {
+  selected: AudioLibraryItem | null;
+  library: AudioLibraryItem[];
+  libraryFilter: "ALL" | "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO";
+  libraryQuery: string;
+  libraryOpen: boolean;
+  uploadStatus: "idle" | "uploading" | "ready" | "error";
+  extractStatus: "idle" | "extracting" | "ready" | "error";
+  error: string | null;
+  /** Only one preview at a time */
+  playingAssetId: string | null;
+}
+
 export interface DiscountPreview {
   valid: boolean;
   percent: number | null;
@@ -86,6 +112,7 @@ export interface VideoRequirementsSnapshot {
   product: ProductSummary | null;
   commercial: CommercialFields;
   brandLogo: BrandLogoState;
+  audio: ProjectAudioState;
   discount: DiscountPreview;
   platformId: VideoPlatformId;
   platformPreview: PlatformPreview;

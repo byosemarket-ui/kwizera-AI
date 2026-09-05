@@ -1,8 +1,27 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import { ProjectState } from "../state-manager/types.js";
+import {
+  extractAudioFromVideo,
+  FfmpegAudioError,
+  probeAudio,
+} from "../video-production/ffmpeg-renderer.js";
+import {
+  audioExtensionForMime,
+  audioUserError,
+  extractedAudioTitle,
+  isSafeAudioStorageFileName,
+  maxAudioBytes,
+  normalizeAudioMime,
+  normalizeProjectAudio,
+  sanitizeAudioFileName,
+  type AudioAsset,
+  type AudioSourceType,
+  type ProjectAudioSelection,
+} from "./audio-asset.js";
 import { inspectImageBuffer } from "./image-inspect.js";
 import {
   CreativeWorkspaceError,
@@ -36,6 +55,7 @@ export type {
   ProjectAssetType,
   ProjectFoundationLinks,
 } from "./project-asset.js";
+export type { AudioAsset, ProjectAudioSelection } from "./audio-asset.js";
 
 export interface ProductVariant {
   id: string;
@@ -159,6 +179,13 @@ export interface CreativeProject {
   description?: string;
   status?: "open" | "closed";
   foundation?: ProjectFoundationLinks;
+  /**
+   * STEP 2B — project selection only (does not store audio bytes).
+   * Library assets live in the studio audio-library; projects reference by id.
+   */
+  selectedAudioAssetId?: string | null;
+  audioEnabled?: boolean;
+  audioVolume?: number;
 }
 
 export interface ValidationResult {
@@ -229,6 +256,12 @@ interface WorkspaceIndex {
   updatedAt: string;
 }
 
+interface AudioLibraryIndex {
+  version: 1;
+  assets: AudioAsset[];
+  updatedAt: string;
+}
+
 const EMPTY_PRODUCT: ProductInformation = { name: "", category: "", description: "" };
 const EMPTY_BRAND: BrandInformation = { name: "" };
 const EMPTY_CAMPAIGN: CampaignInformation = { name: "", objective: "" };
@@ -275,10 +308,12 @@ export class CreativeWorkspaceManager {
     this.core = core ?? null;
     this.root = path.join(storageRoot, "creative-workspace");
     await fs.mkdir(path.join(this.root, "projects"), { recursive: true });
+    await fs.mkdir(this.audioLibraryDir(), { recursive: true });
     this.index = await this.readJson<WorkspaceIndex>(this.indexPath(), {
       projectIds: [], activeProjectId: null, updatedAt: new Date().toISOString(),
     });
     await this.saveIndex();
+    await this.ensureAudioLibraryIndex();
   }
 
   async createProject(name: string): Promise<CreativeProject> {
@@ -373,8 +408,18 @@ export class CreativeWorkspaceManager {
         workspaceSettings: { ...project.workspaceSettings, ...changes.workspaceSettings },
         modifiedAt: new Date().toISOString(),
       };
+      if ("selectedAudioAssetId" in changes) {
+        updated.selectedAudioAssetId = changes.selectedAudioAssetId ?? null;
+        if (!updated.selectedAudioAssetId) updated.audioEnabled = false;
+      }
+      if ("audioEnabled" in changes && typeof changes.audioEnabled === "boolean") {
+        updated.audioEnabled = changes.audioEnabled;
+      }
+      if ("audioVolume" in changes && typeof changes.audioVolume === "number") {
+        updated.audioVolume = Math.min(1, Math.max(0, changes.audioVolume));
+      }
       await this.writeProjectRecord(updated);
-      return updated;
+      return this.hydrateProject(updated);
     });
   }
 
@@ -428,6 +473,433 @@ export class CreativeWorkspaceManager {
       await this.writeProjectRecord(current);
       return this.hydrateProject(current);
     });
+  }
+
+  // ─── STEP 2B — Audio Library (studio-scoped) + project selection ─────────
+
+  async listAudioLibrary(filter?: {
+    sourceType?: AudioSourceType | "ALL";
+    query?: string;
+  }): Promise<AudioAsset[]> {
+    this.ensureInitialized();
+    const index = await this.readAudioLibraryIndex();
+    let assets = index.assets.filter((a) => a.status === "READY");
+    if (filter?.sourceType && filter.sourceType !== "ALL") {
+      assets = assets.filter((a) => a.sourceType === filter.sourceType);
+    }
+    const q = filter?.query?.trim().toLowerCase();
+    if (q) {
+      assets = assets.filter((a) =>
+        a.title.toLowerCase().includes(q)
+        || a.originalFilename.toLowerCase().includes(q)
+        || a.sourceType.toLowerCase().includes(q),
+      );
+    }
+    return assets.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async getAudioAsset(assetId: string): Promise<AudioAsset | null> {
+    this.ensureInitialized();
+    const index = await this.readAudioLibraryIndex();
+    return index.assets.find((a) => a.assetId === assetId) ?? null;
+  }
+
+  async getAudioFilePath(assetId: string): Promise<string | null> {
+    const asset = await this.getAudioAsset(assetId);
+    if (!asset || asset.status !== "READY") return null;
+    if (!isSafeAudioStorageFileName(asset.storageFileName)) return null;
+    const filePath = path.join(this.audioLibraryDir(), asset.storageFileName);
+    try {
+      await fs.access(filePath);
+      return filePath;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Resolve playback path by storage file name (for media serving). */
+  async getAudioPathByFileName(fileName: string): Promise<string | null> {
+    this.ensureInitialized();
+    if (!isSafeAudioStorageFileName(fileName)) return null;
+    const filePath = path.join(this.audioLibraryDir(), fileName);
+    try {
+      await fs.access(filePath);
+      return filePath;
+    } catch {
+      return null;
+    }
+  }
+
+  getProjectAudioSelection(project: CreativeProject): ProjectAudioSelection {
+    return normalizeProjectAudio({
+      selectedAudioAssetId: project.selectedAudioAssetId,
+      enabled: project.audioEnabled,
+      volume: project.audioVolume,
+    });
+  }
+
+  async selectProjectAudio(projectId: string, assetId: string): Promise<{
+    project: CreativeProject;
+    audio: AudioAsset;
+  }> {
+    return this.enqueueProject(projectId, async () => {
+      const asset = await this.getAudioAsset(assetId);
+      if (!asset || asset.status !== "READY") {
+        throw new CreativeWorkspaceError("ASSET_NOT_FOUND", audioUserError("ASSET_NOT_FOUND", "Audio asset not found."), 404);
+      }
+      const project = await this.requireProject(projectId);
+      project.selectedAudioAssetId = asset.assetId;
+      project.audioEnabled = true;
+      if (typeof project.audioVolume !== "number") project.audioVolume = 1;
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      console.info("[audio-library] project_select", {
+        projectId,
+        assetId: asset.assetId,
+        sourceType: asset.sourceType,
+        contentHash: asset.contentHash,
+        durationMs: asset.durationMs,
+      });
+      return { project: this.hydrateProject(project), audio: asset };
+    });
+  }
+
+  /** Clears project selection only — never deletes library asset. */
+  async clearProjectAudio(projectId: string): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      project.selectedAudioAssetId = null;
+      project.audioEnabled = false;
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      console.info("[audio-library] project_clear", { projectId });
+      return this.hydrateProject(project);
+    });
+  }
+
+  async uploadAudio(projectId: string, input: {
+    fileName: string;
+    mimeType: string;
+    dataBase64: string;
+  }): Promise<{ audio: AudioAsset; reused: boolean; project: CreativeProject }> {
+    return this.enqueueProject(projectId, async () => {
+      await this.requireProject(projectId);
+      const started = Date.now();
+      console.info("[audio-library] upload_start", {
+        projectId,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+      });
+
+      const mime = normalizeAudioMime(input.mimeType, input.fileName);
+      if (!mime) {
+        throw new CreativeWorkspaceError("UNSUPPORTED_FORMAT", audioUserError("UNSUPPORTED_FORMAT", "Unsupported format"));
+      }
+
+      let data: Buffer;
+      try {
+        data = Buffer.from(input.dataBase64, "base64");
+      } catch {
+        throw new CreativeWorkspaceError("UPLOAD_FAILED", audioUserError("UPLOAD_FAILED", "Audio upload failed. Retry."));
+      }
+      if (!data.length) {
+        throw new CreativeWorkspaceError("EMPTY_FILE", audioUserError("EMPTY_FILE", "Empty file"));
+      }
+      const limit = maxAudioBytes();
+      if (data.length > limit) {
+        throw new CreativeWorkspaceError("FILE_TOO_LARGE", audioUserError("FILE_TOO_LARGE", "Too large"));
+      }
+
+      const contentHash = createHash("sha256").update(data).digest("hex");
+      const index = await this.readAudioLibraryIndex();
+      const existing = index.assets.find(
+        (a) => a.contentHash === contentHash && a.status === "READY",
+      );
+      if (existing) {
+        const project = await this.requireProject(projectId);
+        console.info("[audio-library] upload_reuse", {
+          projectId,
+          assetId: existing.assetId,
+          contentHash,
+          ms: Date.now() - started,
+        });
+        return { audio: existing, reused: true, project: this.hydrateProject(project) };
+      }
+
+      const assetId = randomUUID();
+      const ext = audioExtensionForMime(mime);
+      const storageFileName = `${assetId}.${ext}`;
+      const safeName = sanitizeAudioFileName(input.fileName, ext);
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-audio-"));
+      const tmpPath = path.join(tmpDir, `inspect.${ext}`);
+      try {
+        await fs.writeFile(tmpPath, data);
+        let probed;
+        try {
+          probed = await probeAudio(tmpPath);
+        } catch (error) {
+          if (error instanceof FfmpegAudioError) {
+            const code = error.code === "NO_AUDIO_STREAM" ? "NO_AUDIO_STREAM" : "CORRUPT_AUDIO";
+            throw new CreativeWorkspaceError(code, audioUserError(code, error.message));
+          }
+          throw new CreativeWorkspaceError("CORRUPT_AUDIO", audioUserError("CORRUPT_AUDIO", "Decode failed"));
+        }
+
+        const finalMime = normalizeAudioMime(probed.mimeHint, safeName) ?? mime;
+        const finalExt = audioExtensionForMime(finalMime);
+        const finalStorage = finalExt === ext ? storageFileName : `${assetId}.${finalExt}`;
+        await this.writeBinaryAtomic(path.join(this.audioLibraryDir(), finalStorage), data);
+
+        const now = new Date().toISOString();
+        const title = safeName.replace(/\.[^.]+$/, "") || safeName;
+        const audio: AudioAsset = {
+          assetId,
+          type: "AUDIO",
+          sourceType: "UPLOADED_AUDIO",
+          originalFilename: safeName,
+          title,
+          mimeType: finalMime,
+          durationMs: probed.durationMs,
+          fileSize: data.length,
+          storageFileName: finalStorage,
+          playbackUrl: `/api/workspace/audio-library/${finalStorage}`,
+          contentHash,
+          status: "READY",
+          metadata: {
+            codec: probed.codec,
+            sampleRate: probed.sampleRate,
+            channels: probed.channels,
+            bitrate: probed.bitrate,
+            container: probed.container,
+            bpm: null,
+            tempo: null,
+            energy: null,
+            beats: null,
+            sections: null,
+            mood: null,
+          },
+          createdAt: now,
+          updatedAt: now,
+          ownerProjectId: projectId,
+        };
+
+        index.assets.push(audio);
+        index.updatedAt = now;
+        await this.writeAudioLibraryIndex(index);
+        const project = await this.requireProject(projectId);
+        console.info("[audio-library] upload_complete", {
+          projectId,
+          assetId,
+          sourceType: audio.sourceType,
+          contentHash,
+          filename: safeName,
+          status: audio.status,
+          durationMs: audio.durationMs,
+          ms: Date.now() - started,
+        });
+        return { audio, reused: false, project: this.hydrateProject(project) };
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+      }
+    });
+  }
+
+  /**
+   * Extract audio from an uploaded video (base64) without modifying any existing video asset.
+   * Creates a new library AudioAsset (EXTRACTED_FROM_VIDEO).
+   */
+  async extractAudioFromUploadedVideo(projectId: string, input: {
+    fileName: string;
+    mimeType?: string;
+    dataBase64: string;
+  }): Promise<{ audio: AudioAsset; project: CreativeProject }> {
+    return this.enqueueProject(projectId, async () => {
+      await this.requireProject(projectId);
+      const started = Date.now();
+      console.info("[audio-library] extract_start", { projectId, fileName: input.fileName });
+
+      let data: Buffer;
+      try {
+        data = Buffer.from(input.dataBase64, "base64");
+      } catch {
+        throw new CreativeWorkspaceError("EXTRACTION_FAILED", audioUserError("EXTRACTION_FAILED", "Failed"));
+      }
+      if (!data.length) {
+        throw new CreativeWorkspaceError("EMPTY_FILE", "Video file is empty.");
+      }
+      if (data.length > 200 * 1024 * 1024) {
+        throw new CreativeWorkspaceError("FILE_TOO_LARGE", "Video file is too large for audio extraction (max 200 MB).");
+      }
+
+      const safeVideoName = sanitizeAudioFileName(input.fileName, "mp4");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-extract-"));
+      const videoPath = path.join(tmpDir, `source${path.extname(safeVideoName) || ".mp4"}`);
+      const outPath = path.join(tmpDir, "extracted.m4a");
+      try {
+        await fs.writeFile(videoPath, data);
+        let probed;
+        try {
+          probed = await extractAudioFromVideo(videoPath, outPath);
+        } catch (error) {
+          if (error instanceof FfmpegAudioError) {
+            const code = error.code === "NO_AUDIO_STREAM" ? "NO_AUDIO_STREAM" : "EXTRACTION_FAILED";
+            throw new CreativeWorkspaceError(code, audioUserError(code, error.message));
+          }
+          throw new CreativeWorkspaceError("EXTRACTION_FAILED", audioUserError("EXTRACTION_FAILED", "Failed"));
+        }
+
+        const extractedBytes = await fs.readFile(outPath);
+        if (!extractedBytes.length) {
+          throw new CreativeWorkspaceError("EXTRACTION_FAILED", audioUserError("EXTRACTION_FAILED", "Failed"));
+        }
+
+        const contentHash = createHash("sha256").update(extractedBytes).digest("hex");
+        const index = await this.readAudioLibraryIndex();
+        const existing = index.assets.find(
+          (a) => a.contentHash === contentHash && a.status === "READY",
+        );
+        if (existing) {
+          const project = await this.requireProject(projectId);
+          console.info("[audio-library] extract_reuse", {
+            projectId,
+            assetId: existing.assetId,
+            contentHash,
+            ms: Date.now() - started,
+          });
+          return { audio: existing, project: this.hydrateProject(project) };
+        }
+
+        const assetId = randomUUID();
+        const mime = normalizeAudioMime(probed.mimeHint, "extracted.m4a") ?? "audio/mp4";
+        const ext = audioExtensionForMime(mime);
+        const storageFileName = `${assetId}.${ext}`;
+        await this.writeBinaryAtomic(path.join(this.audioLibraryDir(), storageFileName), extractedBytes);
+
+        const now = new Date().toISOString();
+        const title = extractedAudioTitle(safeVideoName);
+        const audio: AudioAsset = {
+          assetId,
+          type: "AUDIO",
+          sourceType: "EXTRACTED_FROM_VIDEO",
+          originalFilename: `${title}.${ext}`,
+          title,
+          mimeType: mime,
+          durationMs: probed.durationMs,
+          fileSize: extractedBytes.length,
+          storageFileName,
+          playbackUrl: `/api/workspace/audio-library/${storageFileName}`,
+          contentHash,
+          status: "READY",
+          metadata: {
+            codec: probed.codec,
+            sampleRate: probed.sampleRate,
+            channels: probed.channels,
+            bitrate: probed.bitrate,
+            container: probed.container,
+            bpm: null,
+            tempo: null,
+            energy: null,
+            beats: null,
+            sections: null,
+            mood: null,
+          },
+          createdAt: now,
+          updatedAt: now,
+          ownerProjectId: projectId,
+          parentVideoFileName: safeVideoName,
+        };
+
+        index.assets.push(audio);
+        index.updatedAt = now;
+        await this.writeAudioLibraryIndex(index);
+        const project = await this.requireProject(projectId);
+        console.info("[audio-library] extract_complete", {
+          projectId,
+          assetId,
+          sourceType: audio.sourceType,
+          contentHash,
+          durationMs: audio.durationMs,
+          ms: Date.now() - started,
+        });
+        return { audio, project: this.hydrateProject(project) };
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+      }
+    });
+  }
+
+  /**
+   * Delete from library when no project still selects it.
+   */
+  async deleteAudioAsset(assetId: string): Promise<{ deleted: boolean }> {
+    this.ensureInitialized();
+    const asset = await this.getAudioAsset(assetId);
+    if (!asset) {
+      throw new CreativeWorkspaceError("ASSET_NOT_FOUND", audioUserError("ASSET_NOT_FOUND", "Not found"), 404);
+    }
+
+    const referencing: string[] = [];
+    for (const projectId of this.index.projectIds) {
+      const project = await this.getProject(projectId);
+      if (project?.selectedAudioAssetId === assetId) {
+        referencing.push(projectId);
+      }
+    }
+    if (referencing.length) {
+      throw new CreativeWorkspaceError(
+        "ASSET_IN_USE",
+        audioUserError("ASSET_IN_USE", "In use"),
+        409,
+      );
+    }
+
+    const index = await this.readAudioLibraryIndex();
+    index.assets = index.assets.filter((a) => a.assetId !== assetId);
+    index.updatedAt = new Date().toISOString();
+    await this.writeAudioLibraryIndex(index);
+    if (isSafeAudioStorageFileName(asset.storageFileName)) {
+      await fs.rm(path.join(this.audioLibraryDir(), asset.storageFileName), { force: true }).catch(() => undefined);
+    }
+    console.info("[audio-library] delete", { assetId, contentHash: asset.contentHash });
+    return { deleted: true };
+  }
+
+  private audioLibraryDir(): string {
+    return path.join(this.root, "audio-library");
+  }
+
+  private audioLibraryIndexPath(): string {
+    return path.join(this.audioLibraryDir(), "index.json");
+  }
+
+  private async ensureAudioLibraryIndex(): Promise<void> {
+    await fs.mkdir(this.audioLibraryDir(), { recursive: true });
+    const existing = await this.readJson<AudioLibraryIndex | null>(this.audioLibraryIndexPath(), null);
+    if (!existing) {
+      await this.writeAudioLibraryIndex({
+        version: 1,
+        assets: [],
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  private async readAudioLibraryIndex(): Promise<AudioLibraryIndex> {
+    await this.ensureAudioLibraryIndex();
+    const raw = await this.readJson<AudioLibraryIndex>(this.audioLibraryIndexPath(), {
+      version: 1,
+      assets: [],
+      updatedAt: new Date().toISOString(),
+    });
+    return {
+      version: 1,
+      assets: Array.isArray(raw.assets) ? raw.assets : [],
+      updatedAt: raw.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  private async writeAudioLibraryIndex(index: AudioLibraryIndex): Promise<void> {
+    await this.writeJson(this.audioLibraryIndexPath(), index);
   }
 
   /**
@@ -758,9 +1230,17 @@ export class CreativeWorkspaceManager {
 
   private hydrateProject(project: CreativeProject): CreativeProject {
     const active = this.index.activeProjectId === project.id;
+    const audio = normalizeProjectAudio({
+      selectedAudioAssetId: project.selectedAudioAssetId,
+      enabled: project.audioEnabled,
+      volume: project.audioVolume,
+    });
     return {
       ...project,
       status: active ? "open" : (project.status ?? "closed"),
+      selectedAudioAssetId: audio.selectedAudioAssetId,
+      audioEnabled: audio.enabled,
+      audioVolume: audio.volume,
       productImages: project.productImages.map((image) => this.normalizeImage(project.id, image)),
     };
   }

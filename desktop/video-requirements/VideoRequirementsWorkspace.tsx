@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, ChevronRight, Loader2, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, Loader2, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { WorkflowProgress } from "../product-creation/WorkflowProgress";
 import { useShell } from "../shell/ShellContext";
 import type { VideoPlatformId } from "../../ai/video-production/platform-profiles";
@@ -15,6 +15,20 @@ import { formatPrice } from "../product-setup/discount";
 import "./video-requirements.css";
 
 const LANGUAGES = ["English", "Kinyarwanda", "French"];
+
+function formatDur(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "0:00";
+  const total = Math.round(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function sourceLabel(source: string): string {
+  if (source === "EXTRACTED_FROM_VIDEO") return "Extracted";
+  if (source === "AI_GENERATED") return "AI Generated";
+  return "Uploaded";
+}
 
 export function VideoRequirementsWorkspace() {
   const { notify, switchWorkspace } = useShell();
@@ -260,6 +274,176 @@ export function VideoRequirementsWorkspace() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* STEP 2B — Audio & Music */}
+      <section className="vr-section vr-section--audio">
+        <h2>Audio &amp; Music</h2>
+        <p className="vr-hint" style={{ marginBottom: 12 }}>
+          Upload music, extract audio from a video, or choose from your Audio Library.
+          Beat detection and AI music are not enabled yet.
+        </p>
+
+        <div className="vr-audio-selected">
+          <div className="vr-audio-selected__label">Selected Audio</div>
+          {snap.audio.selected ? (
+            <div className="vr-audio-selected__card">
+              <button
+                type="button"
+                className="vr-audio-play"
+                aria-label={snap.audio.playingAssetId === snap.audio.selected.assetId ? "Pause" : "Play"}
+                onClick={() => videoRequirementsEngine.toggleAudioPreview(snap.audio.selected!)}
+              >
+                {snap.audio.playingAssetId === snap.audio.selected.assetId ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <div className="vr-audio-selected__meta">
+                <b>{snap.audio.selected.title}</b>
+                <span>
+                  {formatDur(snap.audio.selected.durationMs)}
+                  {" · "}
+                  {sourceLabel(snap.audio.selected.sourceType)}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="vr-secondary-btn"
+                onClick={() => {
+                  void videoRequirementsEngine.removeAudioFromVideo().catch((err) => {
+                    notify("error", "Remove failed", err instanceof Error ? err.message : "Remove failed");
+                  });
+                }}
+              >
+                Remove from Video
+              </button>
+            </div>
+          ) : (
+            <p className="vr-audio-none">None — video will render without music.</p>
+          )}
+        </div>
+
+        <div className="vr-audio-actions">
+          <label className="vr-logo-upload">
+            <input
+              type="file"
+              accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/ogg,.mp3,.wav,.m4a,.ogg,.aac"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                void videoRequirementsEngine.uploadAudio(file).catch((err) => {
+                  notify("error", "Audio upload failed", err instanceof Error ? err.message : "Upload failed");
+                });
+              }}
+            />
+            {snap.audio.uploadStatus === "uploading" ? "Uploading…" : "Upload Audio"}
+          </label>
+          <button
+            type="button"
+            className="vr-secondary-btn"
+            onClick={() => videoRequirementsEngine.setAudioLibraryOpen(!snap.audio.libraryOpen)}
+          >
+            {snap.audio.libraryOpen ? "Hide Library" : "Choose from Library"}
+          </button>
+          <label className="vr-logo-upload">
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                void videoRequirementsEngine.extractAudioFromVideo(file).catch((err) => {
+                  notify("error", "Extraction failed", err instanceof Error ? err.message : "Extraction failed");
+                });
+              }}
+            />
+            {snap.audio.extractStatus === "extracting" ? "Extracting…" : "Extract Audio from Video"}
+          </label>
+        </div>
+
+        {snap.audio.error ? (
+          <p className="vr-hint" style={{ color: "#c45" }}>{snap.audio.error}</p>
+        ) : null}
+
+        {snap.audio.libraryOpen ? (
+          <div className="vr-audio-library">
+            <div className="vr-audio-library__toolbar">
+              <input
+                type="search"
+                placeholder="Search title or filename…"
+                value={snap.audio.libraryQuery}
+                onChange={(e) => videoRequirementsEngine.setAudioLibraryQuery(e.target.value)}
+              />
+              <div className="vr-duration-row">
+                {(["ALL", "UPLOADED_AUDIO", "EXTRACTED_FROM_VIDEO"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className={`vr-chip ${snap.audio.libraryFilter === f ? "is-selected" : ""}`}
+                    onClick={() => videoRequirementsEngine.setAudioLibraryFilter(f)}
+                  >
+                    {f === "ALL" ? "All" : f === "UPLOADED_AUDIO" ? "Uploaded" : "Extracted"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {snap.audio.library.length === 0 ? (
+              <p className="vr-audio-none">No audio assets yet.</p>
+            ) : (
+              <ul className="vr-audio-list">
+                {snap.audio.library.map((item) => (
+                  <li key={item.assetId} className="vr-audio-card">
+                    <button
+                      type="button"
+                      className="vr-audio-play"
+                      aria-label={snap.audio.playingAssetId === item.assetId ? "Pause" : "Play"}
+                      onClick={() => videoRequirementsEngine.toggleAudioPreview(item)}
+                    >
+                      {snap.audio.playingAssetId === item.assetId ? <Pause size={14} /> : <Play size={14} />}
+                    </button>
+                    <div className="vr-audio-card__meta">
+                      <b>{item.title}</b>
+                      <span>
+                        {formatDur(item.durationMs)}
+                        {" · "}
+                        {sourceLabel(item.sourceType)}
+                        {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ""}
+                      </span>
+                      <div className="vr-audio-wave" aria-hidden="true" />
+                    </div>
+                    <div className="vr-audio-card__actions">
+                      <button
+                        type="button"
+                        className="vr-secondary-btn"
+                        onClick={() => {
+                          void videoRequirementsEngine.selectAudio(item.assetId).catch((err) => {
+                            notify("error", "Select failed", err instanceof Error ? err.message : "Select failed");
+                          });
+                        }}
+                      >
+                        Use in Video
+                      </button>
+                      <button
+                        type="button"
+                        className="vr-secondary-btn"
+                        title="Delete from library"
+                        onClick={() => {
+                          void videoRequirementsEngine.deleteAudioFromLibrary(item.assetId).catch((err) => {
+                            notify("error", "Delete failed", err instanceof Error ? err.message : "Delete failed");
+                          });
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </section>
 
       {/* Section C — Platform */}

@@ -42,6 +42,8 @@ import type {
   DurationOption,
   IntelligenceSummary,
   ProductSummary,
+  ProjectAudioState,
+  AudioLibraryItem,
   SaveState,
   SellingPointEntry,
   Step3HandoffPayload,
@@ -74,6 +76,45 @@ function emptyLogo(): BrandLogoState {
   return { assetId: null, url: null, fileName: null, status: "idle", error: null };
 }
 
+function emptyAudio(): ProjectAudioState {
+  return {
+    selected: null,
+    library: [],
+    libraryFilter: "ALL",
+    libraryQuery: "",
+    libraryOpen: false,
+    uploadStatus: "idle",
+    extractStatus: "idle",
+    error: null,
+    playingAssetId: null,
+  };
+}
+
+function mapAudioItem(raw: Record<string, unknown>): AudioLibraryItem {
+  return {
+    assetId: String(raw.assetId ?? ""),
+    title: String(raw.title ?? raw.originalFilename ?? "Audio"),
+    originalFilename: String(raw.originalFilename ?? ""),
+    sourceType: (raw.sourceType as AudioLibraryItem["sourceType"]) ?? "UPLOADED_AUDIO",
+    durationMs: typeof raw.durationMs === "number" ? raw.durationMs : 0,
+    playbackUrl: String(raw.playbackUrl ?? ""),
+    status: String(raw.status ?? "READY"),
+    createdAt: String(raw.createdAt ?? ""),
+    mimeType: String(raw.mimeType ?? "audio/mpeg"),
+  };
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export class VideoRequirementsEngine {
   private projectId: string | null = null;
   private projectName = "";
@@ -91,7 +132,9 @@ export class VideoRequirementsEngine {
     contact: "",
   };
   private brandLogo: BrandLogoState = emptyLogo();
+  private audio: ProjectAudioState = emptyAudio();
   private platformId: VideoPlatformId = "tiktok";
+  private previewAudioEl: HTMLAudioElement | null = null;
   private duration: DurationOption = "30s";
   private customDurationSeconds: number | null = null;
   private objective: CampaignObjectiveOption = "Product Showcase";
@@ -128,6 +171,11 @@ export class VideoRequirementsEngine {
       product: this.product,
       commercial: { ...this.commercial },
       brandLogo: { ...this.brandLogo },
+      audio: {
+        ...this.audio,
+        selected: this.audio.selected ? { ...this.audio.selected } : null,
+        library: this.audio.library.map((a) => ({ ...a })),
+      },
       discount,
       platformId: this.platformId,
       platformPreview: platformPreview(this.platformId),
@@ -192,6 +240,17 @@ export class VideoRequirementsEngine {
         error: null,
       }
       : emptyLogo();
+
+    await this.refreshAudioLibrary();
+    const selectedId = typeof active.selectedAudioAssetId === "string"
+      ? active.selectedAudioAssetId
+      : null;
+    if (selectedId) {
+      const fromLib = this.audio.library.find((a) => a.assetId === selectedId) ?? null;
+      this.audio.selected = fromLib;
+    } else {
+      this.audio.selected = null;
+    }
 
     const canonical = await fetchCanonicalProduct(active.id);
     const heroId = imageSet?.images.find((i) => i.roleInGroup === "primary")?.assetId
@@ -503,6 +562,203 @@ export class VideoRequirementsEngine {
     this.emit();
   }
 
+  async refreshAudioLibrary(): Promise<void> {
+    try {
+      const params = new URLSearchParams();
+      if (this.audio.libraryFilter !== "ALL") params.set("sourceType", this.audio.libraryFilter);
+      if (this.audio.libraryQuery.trim()) params.set("q", this.audio.libraryQuery.trim());
+      const res = await fetch(`/api/workspace/audio-library?${params.toString()}`);
+      const body = await res.json() as { assets?: Record<string, unknown>[]; error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Unable to load audio library");
+      this.audio.library = (body.assets ?? []).map(mapAudioItem);
+      if (this.audio.selected) {
+        const refreshed = this.audio.library.find((a) => a.assetId === this.audio.selected!.assetId);
+        if (refreshed) this.audio.selected = refreshed;
+      }
+      this.emit();
+    } catch (error) {
+      this.audio.error = error instanceof Error ? error.message : "Library load failed";
+      this.emit();
+    }
+  }
+
+  setAudioLibraryFilter(filter: ProjectAudioState["libraryFilter"]): void {
+    this.audio.libraryFilter = filter;
+    void this.refreshAudioLibrary();
+  }
+
+  setAudioLibraryQuery(query: string): void {
+    this.audio.libraryQuery = query;
+    void this.refreshAudioLibrary();
+  }
+
+  setAudioLibraryOpen(open: boolean): void {
+    this.audio.libraryOpen = open;
+    if (open) void this.refreshAudioLibrary();
+    this.emit();
+  }
+
+  async uploadAudio(file: File): Promise<void> {
+    if (!this.projectId) throw new Error("No project open");
+    this.audio.uploadStatus = "uploading";
+    this.audio.error = null;
+    this.emit();
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const res = await fetch(`/api/workspace/projects/${this.projectId}/audio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type || "audio/mpeg",
+          dataBase64,
+        }),
+      });
+      const body = await res.json() as {
+        error?: string;
+        audio?: Record<string, unknown>;
+        reused?: boolean;
+      };
+      if (!res.ok) throw new Error(body.error ?? "Audio upload failed. Retry.");
+      if (!body.audio) throw new Error("Audio upload returned no asset");
+      const item = mapAudioItem(body.audio);
+      this.audio.uploadStatus = "ready";
+      await this.refreshAudioLibrary();
+      await this.selectAudio(item.assetId);
+      this.notify?.(
+        "success",
+        body.reused ? "Audio reused" : "Audio ready",
+        body.reused
+          ? "Identical file already in library — selected existing asset."
+          : `${item.title} is ready.`,
+      );
+    } catch (error) {
+      this.audio.uploadStatus = "error";
+      this.audio.error = error instanceof Error ? error.message : "Audio upload failed. Retry.";
+      this.emit();
+      throw error;
+    }
+  }
+
+  async extractAudioFromVideo(file: File): Promise<void> {
+    if (!this.projectId) throw new Error("No project open");
+    this.audio.extractStatus = "extracting";
+    this.audio.error = null;
+    this.emit();
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const res = await fetch(`/api/workspace/projects/${this.projectId}/audio/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type || "video/mp4",
+          dataBase64,
+        }),
+      });
+      const body = await res.json() as { error?: string; audio?: Record<string, unknown> };
+      if (!res.ok) throw new Error(body.error ?? "Audio extraction failed. Retry.");
+      if (!body.audio) throw new Error("Extraction returned no audio asset");
+      const item = mapAudioItem(body.audio);
+      this.audio.extractStatus = "ready";
+      await this.refreshAudioLibrary();
+      await this.selectAudio(item.assetId);
+      this.notify?.("success", "Audio extracted", `${item.title} saved to library.`);
+    } catch (error) {
+      this.audio.extractStatus = "error";
+      this.audio.error = error instanceof Error ? error.message : "Audio extraction failed. Retry.";
+      this.emit();
+      throw error;
+    }
+  }
+
+  async selectAudio(assetId: string): Promise<void> {
+    if (!this.projectId) throw new Error("No project open");
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/audio/selection`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetId }),
+    });
+    const body = await res.json() as { error?: string; audio?: Record<string, unknown> };
+    if (!res.ok) throw new Error(body.error ?? "Unable to select audio");
+    this.audio.selected = body.audio ? mapAudioItem(body.audio) : null;
+    this.audio.libraryOpen = false;
+    this.saveState = "saved";
+    workspaceStateEngine.autoSave.markDirty();
+    this.emit();
+  }
+
+  /** Remove from current video only — keeps library asset. */
+  async removeAudioFromVideo(): Promise<void> {
+    if (!this.projectId) return;
+    this.stopAudioPreview();
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/audio/selection`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(body.error ?? "Unable to remove audio");
+    }
+    this.audio.selected = null;
+    this.saveState = "saved";
+    this.emit();
+  }
+
+  async deleteAudioFromLibrary(assetId: string): Promise<void> {
+    const res = await fetch("/api/workspace/audio-library", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetId }),
+    });
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    if (!res.ok) throw new Error(body.error ?? "Unable to delete audio");
+    if (this.audio.selected?.assetId === assetId) this.audio.selected = null;
+    if (this.audio.playingAssetId === assetId) this.stopAudioPreview();
+    await this.refreshAudioLibrary();
+  }
+
+  toggleAudioPreview(item: AudioLibraryItem): void {
+    if (typeof Audio === "undefined") return;
+    if (this.audio.playingAssetId === item.assetId) {
+      this.stopAudioPreview();
+      return;
+    }
+    this.stopAudioPreview();
+    const el = new Audio(item.playbackUrl);
+    this.previewAudioEl = el;
+    this.audio.playingAssetId = item.assetId;
+    this.emit();
+    el.onended = () => {
+      this.audio.playingAssetId = null;
+      this.previewAudioEl = null;
+      this.emit();
+    };
+    el.onerror = () => {
+      this.audio.playingAssetId = null;
+      this.previewAudioEl = null;
+      this.audio.error = "Audio playback failed.";
+      this.emit();
+    };
+    void el.play().catch(() => {
+      this.audio.playingAssetId = null;
+      this.previewAudioEl = null;
+      this.audio.error = "Audio playback failed.";
+      this.emit();
+    });
+  }
+
+  stopAudioPreview(): void {
+    if (this.previewAudioEl) {
+      this.previewAudioEl.pause();
+      this.previewAudioEl.src = "";
+      this.previewAudioEl = null;
+    }
+    if (this.audio.playingAssetId) {
+      this.audio.playingAssetId = null;
+      this.emit();
+    }
+  }
+
   private schedulePersist(): void {
     if (this.persistTimer) clearTimeout(this.persistTimer);
     this.saveState = "unsaved";
@@ -568,6 +824,8 @@ export class VideoRequirementsEngine {
       name: this.projectName,
       platform: this.platformId,
       language: this.language,
+      selectedAudioAssetId: this.audio.selected?.assetId ?? null,
+      audioEnabled: Boolean(this.audio.selected?.assetId),
       brandInformation: {
         name: brandName,
         website: website || undefined,

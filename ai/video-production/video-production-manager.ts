@@ -12,6 +12,7 @@ import {
   concatClips,
   ffmpegAvailable,
   ffprobeAvailable,
+  muxAudioOntoVideo,
   probeVideo,
   renderStillClip,
   resolveFontFile,
@@ -63,7 +64,9 @@ import { isEquivalentKnowledgeMessage } from "../product-intelligence/normalize-
 import { recordVideoProductionFoundation } from "./video-production-foundation.js";
 
 const PROVIDER_MESSAGE = "VIDEO GENERATION PROVIDER UNAVAILABLE. Deterministic FFmpeg still-to-video remains available.";
-const AUDIO_MESSAGE = "No audio generation provider is configured. Video will render without audio.";
+const AUDIO_MESSAGE_NONE = "No audio selected. Video will render without an audio stream.";
+const AUDIO_MESSAGE_SELECTED = "Selected library audio will be muxed onto the final MP4 (trimmed to video duration; no looping).";
+const AUDIO_MESSAGE_PROVIDER = "AI audio generation is not configured. Use Audio Library selection (STEP 2B).";
 
 export class VideoProductionManager {
   private root = "";
@@ -254,13 +257,7 @@ export class VideoProductionManager {
       version: (existing?.version ?? 0) + 1,
       timeline,
       timelineMode: "full",
-      audioPlan: {
-        backgroundMusic: "none",
-        voiceover: "none",
-        soundEffects: "none",
-        status: "UNAVAILABLE",
-        message: AUDIO_MESSAGE,
-      },
+      audioPlan: await this.buildAudioPlan(projectId),
       renderPlan,
       renderState: existing?.renderState === "processing" || existing?.renderState === "queued"
         ? existing.renderState
@@ -879,6 +876,42 @@ export class VideoProductionManager {
           crf: renderPlan.crf,
         });
       }
+
+      // STEP 2B — mux selected library audio onto silent concat (does not invent looping).
+      let audioWorkspaceProject = await this.workspace!.getProject(job.projectId);
+      const audioSelection = audioWorkspaceProject
+        ? this.workspace!.getProjectAudioSelection(audioWorkspaceProject)
+        : null;
+      if (audioSelection?.enabled && audioSelection.selectedAudioAssetId) {
+        await this.writeJob(job.id, {
+          ...started,
+          stage: "encoding",
+          progress: 85,
+          sceneCount: renderClips.length,
+          stageMessage: "Attaching selected audio",
+          endCardRendered,
+          endCardDurationMs: endCardDurationMs || undefined,
+        });
+        const audioPath = await this.workspace!.getAudioFilePath(audioSelection.selectedAudioAssetId);
+        if (!audioPath) {
+          throw new VideoProductionError(
+            "AUDIO_MISSING",
+            "Selected audio asset is missing from the Audio Library",
+            400,
+          );
+        }
+        const silentProbe = await probeVideo(outputPath);
+        const muxedPath = path.join(tmpDir, "output-with-audio.mp4");
+        await muxAudioOntoVideo({
+          videoPath: outputPath,
+          audioPath,
+          outputPath: muxedPath,
+          videoDurationMs: silentProbe.durationMs,
+          volume: audioSelection.volume,
+        });
+        await fs.copyFile(muxedPath, outputPath);
+      }
+
       await this.writeJob(job.id, {
         ...started,
         stage: "validating",
@@ -1161,6 +1194,48 @@ export class VideoProductionManager {
     } catch {
       return null;
     }
+  }
+
+  private async buildAudioPlan(projectId: string): Promise<import("./types.js").VideoAudioPlan> {
+    const project = await this.workspace?.getProject(projectId);
+    if (!project) {
+      return {
+        backgroundMusic: "none",
+        voiceover: "none",
+        soundEffects: "none",
+        status: "UNAVAILABLE",
+        message: AUDIO_MESSAGE_NONE,
+        selectedAudioAssetId: null,
+        enabled: false,
+        volume: 1,
+      };
+    }
+    const selection = this.workspace!.getProjectAudioSelection(project);
+    if (selection.enabled && selection.selectedAudioAssetId) {
+      const asset = await this.workspace!.getAudioAsset(selection.selectedAudioAssetId);
+      if (asset?.status === "READY") {
+        return {
+          backgroundMusic: "library",
+          voiceover: "none",
+          soundEffects: "none",
+          status: "selected",
+          message: AUDIO_MESSAGE_SELECTED,
+          selectedAudioAssetId: asset.assetId,
+          enabled: true,
+          volume: selection.volume,
+        };
+      }
+    }
+    return {
+      backgroundMusic: "none",
+      voiceover: "none",
+      soundEffects: "none",
+      status: "UNAVAILABLE",
+      message: `${AUDIO_MESSAGE_NONE} ${AUDIO_MESSAGE_PROVIDER}`,
+      selectedAudioAssetId: null,
+      enabled: false,
+      volume: selection.volume,
+    };
   }
 
   private async loadRoleForAsset(projectId: string, assetId: string): Promise<ProductionRoleDecision | null> {

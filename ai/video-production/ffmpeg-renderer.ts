@@ -20,6 +20,31 @@ export interface ProbedVideo {
   height: number;
   codec: string;
   sizeBytes: number;
+  /** Present when ffprobe reported an audio stream (STEP 2B+) */
+  hasAudioStream?: boolean;
+  audioCodec?: string | null;
+}
+
+export interface ProbedAudio {
+  durationMs: number;
+  sizeBytes: number;
+  mimeHint: string;
+  codec: string | null;
+  sampleRate: number | null;
+  channels: number | null;
+  bitrate: number | null;
+  container: string | null;
+  hasAudioStream: true;
+}
+
+export class FfmpegAudioError extends Error {
+  constructor(
+    public readonly code: "NO_AUDIO_STREAM" | "DECODE_FAILED" | "EXTRACTION_FAILED" | "MUX_FAILED",
+    message: string,
+  ) {
+    super(message);
+    this.name = "FfmpegAudioError";
+  }
 }
 
 export function ffmpegBinary(): string {
@@ -398,6 +423,7 @@ export async function probeVideo(filePath: string): Promise<ProbedVideo> {
     streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number }>;
   };
   const video = parsed.streams?.find((stream) => stream.codec_type === "video");
+  const audio = parsed.streams?.find((stream) => stream.codec_type === "audio");
   const durationMs = Math.round(Number(parsed.format?.duration ?? 0) * 1000);
   const sizeBytes = Number(parsed.format?.size ?? 0) || stat.size;
   if (!video?.width || !video.height || durationMs < 200 || sizeBytes < 100) {
@@ -409,7 +435,205 @@ export async function probeVideo(filePath: string): Promise<ProbedVideo> {
     height: video.height,
     codec: video.codec_name ?? "h264",
     sizeBytes,
+    hasAudioStream: Boolean(audio),
+    audioCodec: audio?.codec_name ?? null,
   };
+}
+
+/** Inspect a standalone audio file — requires a real audio stream. */
+export async function probeAudio(filePath: string): Promise<ProbedAudio> {
+  const available = await ffprobeAvailable();
+  if (!available) throw new Error("ffprobe is not available on this host");
+  const stat = await fs.stat(filePath).catch(() => null);
+  if (!stat?.size) {
+    throw new FfmpegAudioError("DECODE_FAILED", "The audio file could not be decoded.");
+  }
+  let parsed: {
+    format?: { duration?: string; size?: string; bit_rate?: string; format_name?: string };
+    streams?: Array<{
+      codec_type?: string;
+      codec_name?: string;
+      sample_rate?: string;
+      channels?: number;
+      bit_rate?: string;
+    }>;
+  };
+  try {
+    const { stdout } = await execFileAsync(ffprobeBinary(), [
+      "-v", "error",
+      "-show_entries",
+      "format=duration,size,bit_rate,format_name:stream=codec_type,codec_name,sample_rate,channels,bit_rate",
+      "-of", "json",
+      filePath,
+    ], { timeout: 20_000, windowsHide: true, maxBuffer: 1024 * 1024 });
+    parsed = JSON.parse(stdout);
+  } catch {
+    throw new FfmpegAudioError("DECODE_FAILED", "The audio file could not be decoded.");
+  }
+  const audio = parsed.streams?.find((stream) => stream.codec_type === "audio");
+  if (!audio) {
+    throw new FfmpegAudioError("NO_AUDIO_STREAM", "No audio stream was found in this video.");
+  }
+  const durationMs = Math.round(Number(parsed.format?.duration ?? 0) * 1000);
+  if (!Number.isFinite(durationMs) || durationMs < 50) {
+    throw new FfmpegAudioError("DECODE_FAILED", "The audio file could not be decoded.");
+  }
+  const sampleRate = audio.sample_rate ? Number(audio.sample_rate) : null;
+  const bitrate = Number(audio.bit_rate || parsed.format?.bit_rate || 0) || null;
+  const codec = audio.codec_name ?? null;
+  const container = parsed.format?.format_name ?? null;
+  const mimeHint = mimeHintFromCodec(codec, container, filePath);
+  return {
+    durationMs,
+    sizeBytes: Number(parsed.format?.size ?? 0) || stat.size,
+    mimeHint,
+    codec,
+    sampleRate: Number.isFinite(sampleRate) ? sampleRate : null,
+    channels: typeof audio.channels === "number" ? audio.channels : null,
+    bitrate,
+    container,
+    hasAudioStream: true,
+  };
+}
+
+function mimeHintFromCodec(codec: string | null, container: string | null, filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".ogg") return "audio/ogg";
+  if (ext === ".m4a" || ext === ".aac") return "audio/mp4";
+  const c = (codec ?? "").toLowerCase();
+  const fmt = (container ?? "").toLowerCase();
+  if (c.includes("mp3") || fmt.includes("mp3")) return "audio/mpeg";
+  if (c.includes("pcm") || fmt.includes("wav")) return "audio/wav";
+  if (c.includes("vorbis") || c.includes("opus") || fmt.includes("ogg")) return "audio/ogg";
+  if (c.includes("aac") || fmt.includes("mp4") || fmt.includes("m4a")) return "audio/mp4";
+  return "audio/mpeg";
+}
+
+/**
+ * Extract audio from a video file into a stable AAC/M4A (or stream-copy when safe).
+ * Never modifies the source video.
+ */
+export async function extractAudioFromVideo(
+  videoPath: string,
+  outputPath: string,
+): Promise<ProbedAudio> {
+  const available = await ffmpegAvailable();
+  if (!available) throw new FfmpegAudioError("EXTRACTION_FAILED", "Audio extraction failed. Retry.");
+  const videoProbe = await probeVideoHasAudio(videoPath);
+  if (!videoProbe.hasAudio) {
+    throw new FfmpegAudioError("NO_AUDIO_STREAM", "No audio stream was found in this video.");
+  }
+
+  const copySafe = Boolean(videoProbe.audioCodec && /^(aac|mp3)$/i.test(videoProbe.audioCodec));
+  try {
+    if (copySafe && videoProbe.audioCodec?.toLowerCase() === "aac") {
+      await runFfmpeg([
+        "-y", "-i", videoPath, "-vn", "-acodec", "copy", "-movflags", "+faststart", outputPath,
+      ], 3 * 60_000);
+    } else if (copySafe && videoProbe.audioCodec?.toLowerCase() === "mp3") {
+      const mp3Out = outputPath.replace(/\.[^.]+$/, ".mp3");
+      await runFfmpeg(["-y", "-i", videoPath, "-vn", "-acodec", "copy", mp3Out], 3 * 60_000);
+      if (mp3Out !== outputPath) {
+        await fs.rename(mp3Out, outputPath).catch(async () => {
+          await fs.copyFile(mp3Out, outputPath);
+          await fs.rm(mp3Out, { force: true });
+        });
+      }
+    } else {
+      await runFfmpeg([
+        "-y", "-i", videoPath,
+        "-vn", "-acodec", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2",
+        "-movflags", "+faststart",
+        outputPath,
+      ], 5 * 60_000);
+    }
+  } catch (error) {
+    if (error instanceof FfmpegAudioError) throw error;
+    // Fallback re-encode if stream-copy failed
+    try {
+      await runFfmpeg([
+        "-y", "-i", videoPath,
+        "-vn", "-acodec", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2",
+        "-movflags", "+faststart",
+        outputPath,
+      ], 5 * 60_000);
+    } catch {
+      throw new FfmpegAudioError("EXTRACTION_FAILED", "Audio extraction failed. Retry.");
+    }
+  }
+
+  try {
+    return await probeAudio(outputPath);
+  } catch (error) {
+    if (error instanceof FfmpegAudioError) throw error;
+    throw new FfmpegAudioError("EXTRACTION_FAILED", "Audio extraction failed. Retry.");
+  }
+}
+
+async function probeVideoHasAudio(filePath: string): Promise<{ hasAudio: boolean; audioCodec: string | null }> {
+  const available = await ffprobeAvailable();
+  if (!available) throw new FfmpegAudioError("EXTRACTION_FAILED", "Audio extraction failed. Retry.");
+  try {
+    const { stdout } = await execFileAsync(ffprobeBinary(), [
+      "-v", "error",
+      "-show_entries", "stream=codec_type,codec_name",
+      "-of", "json",
+      filePath,
+    ], { timeout: 20_000, windowsHide: true, maxBuffer: 1024 * 1024 });
+    const parsed = JSON.parse(stdout) as {
+      streams?: Array<{ codec_type?: string; codec_name?: string }>;
+    };
+    const audio = parsed.streams?.find((s) => s.codec_type === "audio");
+    return { hasAudio: Boolean(audio), audioCodec: audio?.codec_name ?? null };
+  } catch {
+    throw new FfmpegAudioError("DECODE_FAILED", "The audio file could not be decoded.");
+  }
+}
+
+/**
+ * Mux selected library audio onto a silent (or existing) MP4.
+ * Behavior:
+ * - Audio longer than video → trimmed to video duration.
+ * - Audio shorter than video → padded with silence (no looping).
+ */
+export async function muxAudioOntoVideo(input: {
+  videoPath: string;
+  audioPath: string;
+  outputPath: string;
+  videoDurationMs: number;
+  volume?: number;
+}): Promise<ProbedVideo> {
+  const available = await ffmpegAvailable();
+  if (!available) throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
+  const durSec = Math.max(0.2, input.videoDurationMs / 1000);
+  const volume = Math.min(1, Math.max(0, input.volume ?? 1));
+  const volFilter = volume === 1 ? "" : `volume=${volume.toFixed(3)},`;
+  const filter = `[1:a]${volFilter}atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[a]`;
+  try {
+    await runFfmpeg([
+      "-y",
+      "-i", input.videoPath,
+      "-i", input.audioPath,
+      "-filter_complex", filter,
+      "-map", "0:v:0",
+      "-map", "[a]",
+      "-c:v", "copy",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-t", durSec.toFixed(3),
+      "-movflags", "+faststart",
+      input.outputPath,
+    ], 8 * 60_000);
+  } catch {
+    throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
+  }
+  const probed = await probeVideo(input.outputPath);
+  if (!probed.hasAudioStream) {
+    throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
+  }
+  return probed;
 }
 
 async function runFfmpeg(args: string[], timeout: number): Promise<void> {

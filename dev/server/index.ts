@@ -129,7 +129,7 @@ const UI_DIR = path.join(projectRoot, "dev", "ui");
 
 const storageRoot = resolveStorageRoot();
 
-const MAX_REQUEST_BODY_BYTES = 24 * 1024 * 1024;
+const MAX_REQUEST_BODY_BYTES = 70 * 1024 * 1024;
 
 
 
@@ -177,7 +177,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
     if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
 
-      reject(new Error("Request body exceeds the 24 MB limit"));
+      reject(new Error("Request body exceeds the 70 MB limit"));
 
       req.resume();
 
@@ -195,7 +195,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
         rejected = true;
 
-        reject(new Error("Request body exceeds the 24 MB limit"));
+        reject(new Error("Request body exceeds the 70 MB limit"));
 
         req.resume();
 
@@ -251,6 +251,10 @@ function contentType(filePath: string): string {
 
   if (filePath.endsWith(".wav")) return "audio/wav";
 
+  if (filePath.endsWith(".m4a") || filePath.endsWith(".aac")) return "audio/mp4";
+
+  if (filePath.endsWith(".ogg") || filePath.endsWith(".opus")) return "audio/ogg";
+
   return "application/octet-stream";
 
 }
@@ -266,7 +270,7 @@ async function serveStatic(
   try {
     const stat = await fs.promises.stat(filePath);
     const type = contentType(filePath);
-    const isMedia = /^(video|audio)\//i.test(type) || /\.(mp4|webm|mov|m4a)$/i.test(filePath);
+    const isMedia = /^(video|audio)\//i.test(type) || /\.(mp4|webm|mov|m4a|mp3|wav|ogg|aac)$/i.test(filePath);
     const headers: Record<string, string> = {
       "Content-Type": type,
     };
@@ -4554,6 +4558,131 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
       const project = await workspace.clearBrandLogo(brandLogoClearMatch[1]);
       sendJson(res, 200, { project, logoAssetId: null });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  // ─── STEP 2B — Audio Library ─────────────────────────────────────────────
+  const audioLibraryFileMatch = url.pathname.match(/^\/api\/workspace\/audio-library\/([^/]+)$/);
+  if (audioLibraryFileMatch && (req.method === "GET" || req.method === "HEAD")) {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    const audioPath = await workspace.getAudioPathByFileName(audioLibraryFileMatch[1]);
+    if (!audioPath) { sendJson(res, 404, { error: "Audio not found" }); return; }
+    await serveStatic(res, audioPath, req.method, req.headers.range);
+    return;
+  }
+
+  if (url.pathname === "/api/workspace/audio-library" && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const sourceType = url.searchParams.get("sourceType") as "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO" | "ALL" | null;
+      const query = url.searchParams.get("q") ?? undefined;
+      const assets = await workspace.listAudioLibrary({
+        sourceType: sourceType ?? "ALL",
+        query,
+      });
+      sendJson(res, 200, { assets });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/workspace/audio-library" && req.method === "DELETE") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as { assetId?: string };
+      if (!body.assetId) { sendJson(res, 400, { error: "assetId is required" }); return; }
+      const result = await workspace.deleteAudioAsset(body.assetId);
+      sendJson(res, 200, result);
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const audioUploadMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/audio$/);
+  if (audioUploadMatch && req.method === "POST") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        fileName?: string;
+        mimeType?: string;
+        dataBase64?: string;
+      };
+      const result = await workspace.uploadAudio(audioUploadMatch[1], {
+        fileName: body.fileName ?? "audio",
+        mimeType: body.mimeType ?? "",
+        dataBase64: body.dataBase64 ?? "",
+      });
+      sendJson(res, result.reused ? 200 : 201, {
+        audio: result.audio,
+        reused: result.reused,
+        project: result.project,
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const audioExtractMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/audio\/extract$/);
+  if (audioExtractMatch && req.method === "POST") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        fileName?: string;
+        mimeType?: string;
+        dataBase64?: string;
+      };
+      const result = await workspace.extractAudioFromUploadedVideo(audioExtractMatch[1], {
+        fileName: body.fileName ?? "video.mp4",
+        mimeType: body.mimeType,
+        dataBase64: body.dataBase64 ?? "",
+      });
+      sendJson(res, 201, { audio: result.audio, project: result.project });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const audioSelectMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/audio\/selection$/);
+  if (audioSelectMatch && req.method === "PUT") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as { assetId?: string | null };
+      if (!body.assetId) {
+        const project = await workspace.clearProjectAudio(audioSelectMatch[1]);
+        sendJson(res, 200, { project, selectedAudioAssetId: null });
+        return;
+      }
+      const result = await workspace.selectProjectAudio(audioSelectMatch[1], body.assetId);
+      sendJson(res, 200, {
+        project: result.project,
+        audio: result.audio,
+        selectedAudioAssetId: result.audio.assetId,
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  if (audioSelectMatch && req.method === "DELETE") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const project = await workspace.clearProjectAudio(audioSelectMatch[1]);
+      sendJson(res, 200, { project, selectedAudioAssetId: null });
     } catch (error) {
       sendWorkspaceError(res, error);
     }

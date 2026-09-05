@@ -340,3 +340,139 @@
   font-size: 0.8rem;
 }
 
+/* STEP 2B — Audio & Music */
+.vr-section--audio .vr-audio-selected {
+  margin-bottom: 0.85rem;
+}
+
+.vr-audio-selected__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vr-muted);
+  margin-bottom: 0.45rem;
+}
+
+.vr-audio-selected__card,
+.vr-audio-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.vr-audio-selected__meta,
+.vr-audio-card__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.vr-audio-selected__meta b,
+.vr-audio-card__meta b {
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vr-audio-selected__meta span,
+.vr-audio-card__meta span {
+  font-size: 0.75rem;
+  color: var(--vr-muted);
+}
+
+.vr-audio-none {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--vr-muted);
+}
+
+.vr-audio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.vr-secondary-btn {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: inherit;
+  cursor: pointer;
+}
+
+.vr-audio-play {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.vr-audio-library {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vr-audio-library__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.vr-audio-library__toolbar input[type="search"] {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.45rem 0.65rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+.vr-audio-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.vr-audio-card__actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* Placeholder waveform foundation for STEP 2C beat visualization */
+.vr-audio-wave {
+  height: 3px;
+  margin-top: 0.25rem;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.22) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.28) 75%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+}
+
