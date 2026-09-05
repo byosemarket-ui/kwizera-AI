@@ -21,6 +21,7 @@ import {
   type VideoRenderJob,
   type VideoRenderValidation,
 } from "./api";
+import { AiCoreStatusPanel } from "../shared/AiCoreStatusPanel";
 import "./video-production.css";
 
 export function VideoProductionWorkspace() {
@@ -174,6 +175,8 @@ export function VideoProductionWorkspace() {
           <div><b>{video?.renderState ?? "idle"}</b><span>Render state</span></div>
         </div>
       </header>
+
+      <AiCoreStatusPanel />
 
       <div className="vp-toolbar">
         <div>

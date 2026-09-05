@@ -16,6 +16,10 @@ import type { CreativeProject } from "../creative-workspace/creative-workspace-m
 import type { QualityReviewResult } from "../ai-director/ai-director-types.js";
 import type { ProbedVideo } from "./ffmpeg-renderer.js";
 import type { VideoProject } from "./types.js";
+import { recordProductionLearning } from "../creative-planning/production-learning-loop.js";
+import { getVideoKnowledgePackMeta } from "../video-knowledge-engine/video-knowledge-pack.js";
+import { VIDEO_SKILLS_VERSION } from "../video-skills/video-skills.js";
+import { buildCreativeQualityReport } from "./creative-quality-report.js";
 
 export function runDeterministicQualityReview(input: {
   video: VideoProject;
@@ -139,6 +143,29 @@ export async function runFullQualityReview(input: {
   technicalChecks: Record<string, boolean>;
 }): Promise<QualityReviewResult> {
   const deterministic = runDeterministicQualityReview(input);
+  const planningQuality = buildCreativeQualityReport({
+    scenePurposes: (input.plan?.scenes ?? input.video.timeline).map((s) =>
+      "purpose" in s ? String(s.purpose) : "FEATURE"),
+    durationsSec: input.video.timeline.map((c) => c.durationMs / 1000),
+    transitions: input.video.timeline.map((c) => String(c.transitionOut ?? "cut")),
+    hasCta: Boolean(input.plan?.callToAction?.trim())
+      || input.video.timeline.some((c) => /cta|offer/i.test(c.purpose)),
+    hasEndCard: true,
+  });
+  recordProductionLearning({
+    projectId: input.project.id,
+    createdAt: new Date().toISOString(),
+    creativeMode: input.plan?.creativeDirectionSummary ?? input.plan?.creativeTone ?? null,
+    sceneDurationsMs: input.video.timeline.map((c) => c.durationMs),
+    transitions: input.video.timeline.map((c) => String(c.transitionOut ?? "cut")),
+    motions: input.video.timeline.map((c) => String(c.motion ?? "")),
+    audioTimingSummary: input.video.audioPlan ? `audioPlan=${JSON.stringify(input.video.audioPlan).slice(0, 120)}` : null,
+    qualityScore: Math.min(deterministic.score, planningQuality.score),
+    userApproved: null,
+    advisorSource: null,
+    knowledgeVersion: getVideoKnowledgePackMeta().version,
+    skillsVersion: VIDEO_SKILLS_VERSION,
+  });
   const ai = await runOptionalAiQualityReview({
     deterministic,
     plan: input.plan,

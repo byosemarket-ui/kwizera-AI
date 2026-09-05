@@ -1,6 +1,15 @@
 export { AiVideoKnowledgeEngine } from "./video-knowledge-engine.js";
 export { VideoProductionKnowledgeBuilder } from "./video-production-knowledge-builder.js";
 export type { VideoProductionKnowledgeAdvisory } from "./video-production-knowledge-builder.js";
+export {
+  VIDEO_KNOWLEDGE_PACK_VERSION,
+  VIDEO_KNOWLEDGE_PACK,
+  getVideoKnowledgePackMeta,
+  retrieveVideoKnowledge,
+  formatKnowledgeForPrompt,
+  type VideoKnowledgeItem,
+  type VideoKnowledgeCategory,
+} from "./video-knowledge-pack.js";
 export { ProfessionalVideoProductionKnowledge } from "./professional-video-production-knowledge.js";
 export { ProfessionalCameraKnowledge } from "./professional-camera-knowledge.js";
 export { ProfessionalLightingCompositionKnowledge } from "./professional-lighting-composition-knowledge.js";

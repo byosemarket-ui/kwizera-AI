@@ -8,6 +8,7 @@ import type { CreativePlannerSnapshot } from "./types";
 import { PLANNER_STAGES, PLANNER_STAGE_LABELS } from "./types";
 import type { CreativePlanSceneDto } from "../deep-intelligence/live-api";
 import { DisplayText } from "../shared/DisplayValue";
+import { AiCoreStatusPanel } from "../shared/AiCoreStatusPanel";
 import "./creative-planner.css";
 
 export function CreativePlannerWorkspace() {
@@ -122,6 +123,8 @@ export function CreativePlannerWorkspace() {
           <div><b>{pkg ? `${pkg.validation.readinessPercent}%` : snap.liveManifest?.status || snap.livePlan?.productionStatus || (snap.livePlan ? `v${snap.livePlan.version}` : "—")}</b><span>STATUS</span></div>
         </div>
       </header>
+
+      <AiCoreStatusPanel />
 
       <section className="cp-toolbar">
         <div>

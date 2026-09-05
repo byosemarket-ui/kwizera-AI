@@ -16,6 +16,11 @@ import {
 } from "../ai-provider/ollama-client.js";
 import type { AiCreativePlannerInput, CreativeReasoningProvider } from "./ai-creative-planner.js";
 import { buildProjectIntelligenceContext } from "./project-intelligence-context.js";
+import {
+  formatKnowledgeForPrompt,
+  retrieveVideoKnowledge,
+} from "../video-knowledge-engine/video-knowledge-pack.js";
+import { selectApplicableSkills } from "../video-skills/video-skills.js";
 
 /** Creative-plan inference may need longer than generic generate on 1-vCPU hosts. */
 export function ollamaPlanTimeoutMs(): number {
@@ -26,6 +31,19 @@ export function ollamaPlanTimeoutMs(): number {
 
 function compactContext(input: AiCreativePlannerInput): Record<string, unknown> {
   const full = buildProjectIntelligenceContext(input);
+  const task = [
+    full.product.category,
+    full.marketing.platform,
+    full.style.creativeTone,
+    "product marketing video hook reveal",
+  ].filter(Boolean).join(" ");
+  const knowledge = retrieveVideoKnowledge(task, 4);
+  const skills = selectApplicableSkills({
+    task,
+    hasCta: Boolean(full.marketing.cta),
+    imageCount: full.assets.length,
+    tone: full.style.creativeTone,
+  });
   return {
     projectId: full.projectId,
     product: {
@@ -46,11 +64,23 @@ function compactContext(input: AiCreativePlannerInput): Record<string, unknown> 
     },
     style: full.style,
     assetIds: full.constraints.mustUseOnlyAssetIds.slice(0, 6),
+    assets: full.assets.slice(0, 6).map((a) => ({
+      assetId: a.assetId,
+      viewRole: a.viewRole,
+      qualityScore: a.qualityScore,
+    })),
     verifiedFacts: {
       allowedFacts: full.verifiedFacts.allowedFacts.slice(0, 10),
       unknownFacts: full.verifiedFacts.unknownFacts.slice(0, 6),
       priceAllowed: full.verifiedFacts.priceAllowed,
     },
+    // Knowledge/skills inform the model; validators + engines remain authoritative.
+    videoKnowledge: formatKnowledgeForPrompt(knowledge, 4),
+    videoSkills: skills.slice(0, 4).map((s) => ({
+      id: s.skill.id,
+      motion: s.skill.execution.motionHint ?? null,
+      transition: s.skill.execution.transitionHint ?? null,
+    })),
   };
 }
 
@@ -98,8 +128,9 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
     const prompt = [
       "KWIZERA Creative Director. Return JSON only.",
       "Rules: use only assetIds listed; use only verifiedFacts.allowedFacts; no invented materials/prices.",
+      "Transitions must be cut or fade only. Prefer videoKnowledge and videoSkills hints.",
       "Plan short still-to-video scenes (zoom/pan/hold).",
-      `Schema:{"projectId":"${context.projectId}","creativeDirection":"string","primarySellingPoint":"string","textStrategy":{"headline":"string","price":"string","cta":"string"},"scenes":[{"id":"scene-1","purpose":"HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA","assetId":"${assetIds[0]}","duration":3,"camera":"string","motion":"string","narration":"string"}]}`,
+      `Schema:{"projectId":"${context.projectId}","creativeDirection":"string","primarySellingPoint":"string","textStrategy":{"headline":"string","price":"string","cta":"string"},"scenes":[{"id":"scene-1","purpose":"HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA","assetId":"${assetIds[0]}","duration":3,"camera":"string","motion":"string","narration":"string","transitionOut":"cut|fade"}]}`,
       "Context:",
       JSON.stringify(context),
     ].join("\n");

@@ -1,0 +1,48 @@
+.ai-core-status {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 0.9rem;
+  margin: 0.75rem 0 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(28, 36, 48, 0.92), rgba(18, 22, 30, 0.95));
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #d7dde8;
+}
+
+.ai-core-status--ready {
+  border-color: rgba(72, 160, 110, 0.45);
+}
+
+.ai-core-status--degraded {
+  border-color: rgba(200, 150, 60, 0.5);
+}
+
+.ai-core-status--fallback,
+.ai-core-status--error {
+  border-color: rgba(180, 90, 90, 0.45);
+}
+
+.ai-core-status__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ai-core-status__k {
+  letter-spacing: 0.04em;
+  opacity: 0.72;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.ai-core-status__v {
+  font-weight: 600;
+  text-align: right;
+}
+
+.ai-core-status__note {
+  margin-top: 0.25rem;
+  opacity: 0.65;
+  font-size: 0.7rem;
+}

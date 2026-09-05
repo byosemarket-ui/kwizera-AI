@@ -5,6 +5,7 @@
 import {
   type OllamaServiceStatus,
 } from "../ai-provider/ollama-client.js";
+import { getCachedOllamaHealth } from "../ai-provider/ollama-adapter.js";
 import {
   assessOllamaReadiness,
   toPublicOllamaReadiness,
@@ -13,6 +14,9 @@ import {
 } from "../media-intelligence/ollama-readiness.js";
 import { getCreativeReasoningProvider } from "../creative-planning/ai-creative-planner.js";
 import { getVideoGenerationProvider } from "../video-production/video-generation-provider.js";
+import { getVideoKnowledgePackMeta } from "../video-knowledge-engine/video-knowledge-pack.js";
+import { VIDEO_SKILLS_VERSION, listVideoSkills } from "../video-skills/video-skills.js";
+import { CREATIVE_ADVISOR_VERSION } from "../creative-planning/ollama-creative-advisor.js";
 import type { AiDirectorProviderStatus } from "./ai-director-types.js";
 import { describeIntelligencePipeline, type IntelligencePipelineDescription } from "./intelligence-pipeline.js";
 
@@ -125,6 +129,16 @@ export async function getAiDirectorStatusSummary(): Promise<{
   ollamaReady: boolean;
   ollamaNote: string;
   ollama: PublicOllamaReadiness;
+  ollamaAdapter: {
+    code: string;
+    ready: boolean;
+    model: string | null;
+    latencyMs: number | null;
+    probedInference: boolean;
+  };
+  videoKnowledge: { ready: true; version: string; count: number };
+  videoSkills: { ready: true; version: string; count: number };
+  creativeAdvisor: { version: string; role: "advisor-only" };
   videoGenerationProvider: AiDirectorDiagnostics["videoGenerationProvider"];
   pipeline: IntelligencePipelineDescription;
 }> {
@@ -146,11 +160,26 @@ export async function getAiDirectorStatusSummary(): Promise<{
       available: await videoProvider.isAvailable().catch(() => false),
     },
   );
+  // Deep health uses real inference probe when tags already look ready (cached; resource-aware).
+  const adapterHealth = readiness.ready
+    ? await getCachedOllamaHealth({ probeInference: true })
+    : await getCachedOllamaHealth({ probeInference: false });
+  const knowledge = getVideoKnowledgePackMeta();
   return {
     creativeDirector: diagnostics.creativeDirector,
-    ollamaReady: readiness.ready,
-    ollamaNote: readiness.notes[0] ?? readiness.recommendedAction,
+    ollamaReady: readiness.ready && adapterHealth.ready,
+    ollamaNote: adapterHealth.notes[0] ?? readiness.notes[0] ?? readiness.recommendedAction,
     ollama: toPublicOllamaReadiness(readiness),
+    ollamaAdapter: {
+      code: adapterHealth.code,
+      ready: adapterHealth.ready,
+      model: adapterHealth.model,
+      latencyMs: adapterHealth.latencyMs,
+      probedInference: adapterHealth.probedInference,
+    },
+    videoKnowledge: { ready: true, version: knowledge.version, count: knowledge.count },
+    videoSkills: { ready: true, version: VIDEO_SKILLS_VERSION, count: listVideoSkills().length },
+    creativeAdvisor: { version: CREATIVE_ADVISOR_VERSION, role: "advisor-only" },
     videoGenerationProvider: diagnostics.videoGenerationProvider,
     pipeline: diagnostics.pipeline,
   };

@@ -2705,6 +2705,49 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/ai-director/creative-advisor/analyze" && req.method === "POST") {
+    try {
+      const body = await readJsonBody<{
+        projectId?: string;
+        productName?: string;
+        productCategory?: string;
+        brandName?: string;
+        targetAudience?: string;
+        marketingObjective?: string;
+        imageRoles?: string[];
+        bpm?: number | null;
+        energy?: string | null;
+        creativeMode?: string | null;
+      }>(req);
+      const projectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
+      if (!projectId) {
+        sendJson(res, 400, { error: "projectId is required" });
+        return;
+      }
+      const {
+        OllamaCreativeAdvisor,
+        normalizeAdvisorContext,
+      } = await import("../../ai/creative-planning/ollama-creative-advisor.js");
+      const advisor = new OllamaCreativeAdvisor();
+      const result = await advisor.analyzeProductForVideo(normalizeAdvisorContext({
+        projectId,
+        productName: typeof body.productName === "string" ? body.productName : "Product",
+        productCategory: typeof body.productCategory === "string" ? body.productCategory : undefined,
+        brandName: typeof body.brandName === "string" ? body.brandName : undefined,
+        targetAudience: typeof body.targetAudience === "string" ? body.targetAudience : undefined,
+        marketingObjective: typeof body.marketingObjective === "string" ? body.marketingObjective : undefined,
+        imageRoles: Array.isArray(body.imageRoles) ? body.imageRoles.map(String) : [],
+        bpm: typeof body.bpm === "number" ? body.bpm : null,
+        energy: typeof body.energy === "string" ? body.energy : null,
+        creativeMode: typeof body.creativeMode === "string" ? body.creativeMode : null,
+      }));
+      sendJson(res, 200, { result });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Creative advisor analyze failed" });
+    }
+    return;
+  }
+
   const productAssetPrepareMatch = url.pathname.match(/^\/api\/product-asset-preparation\/projects\/([^/]+)\/prepare$/);
 
   if (productAssetPrepareMatch && req.method === "POST") {
