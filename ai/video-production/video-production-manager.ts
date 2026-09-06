@@ -26,6 +26,9 @@ import {
   type BeatSyncTimingPlan,
 } from "./beat-sync-timing.js";
 import { normalizeBeatSyncMode } from "../creative-workspace/audio-asset.js";
+import type { AudioVisualCreativeDirector } from "../audio-visual-director/director-manager.js";
+import { applyDirectorPlanToClips } from "../audio-visual-director/apply-plan.js";
+import { normalizeCreativeMode } from "../audio-visual-director/creative-modes.js";
 import {
   buildRenderPlan,
   buildRenderPlanForProfile,
@@ -84,6 +87,7 @@ export class VideoProductionManager {
   private planning: CreativePlanningManager | null = null;
   private assets: ProductAssetPreparationManager | null = null;
   private audioIntelligence: AudioIntelligenceManager | null = null;
+  private avDirector: AudioVisualCreativeDirector | null = null;
   private beatSyncPlanCache = new Map<string, BeatSyncTimingPlan>();
   private rendering = false;
   private draining = false;
@@ -96,6 +100,7 @@ export class VideoProductionManager {
       planning: CreativePlanningManager;
       assets?: ProductAssetPreparationManager;
       audioIntelligence?: AudioIntelligenceManager;
+      avDirector?: AudioVisualCreativeDirector;
     },
   ): Promise<void> {
     this.root = path.join(storageRoot, "video-production");
@@ -104,6 +109,7 @@ export class VideoProductionManager {
     this.planning = deps.planning;
     this.assets = deps.assets ?? null;
     this.audioIntelligence = deps.audioIntelligence ?? null;
+    this.avDirector = deps.avDirector ?? null;
     await fs.mkdir(path.join(this.root, "projects"), { recursive: true });
     await fs.mkdir(path.join(this.root, "jobs"), { recursive: true });
     await fs.mkdir(path.join(this.root, "tmp"), { recursive: true });
@@ -112,6 +118,10 @@ export class VideoProductionManager {
 
   attachProductAssetPreparation(assets: ProductAssetPreparationManager): void {
     this.assets = assets;
+  }
+
+  attachAudioVisualDirector(director: AudioVisualCreativeDirector): void {
+    this.avDirector = director;
   }
 
   attachAudioIntelligence(manager: AudioIntelligenceManager): void {
@@ -280,6 +290,39 @@ export class VideoProductionManager {
       aspectRatio: profile.aspectRatio,
     });
     timeline = directed.clips;
+
+    // STEP 2F — Audio-Visual Creative Director (decision layer; does not render).
+    let avCreativePlan = existing?.avCreativePlan;
+    let avCreativeMode = normalizeCreativeMode(
+      workspaceProject.avCreativeMode ?? existing?.avCreativeMode ?? "BALANCED",
+    );
+    if (this.avDirector?.isInitialized()) {
+      try {
+        // Sync project settings into director store when present on project.
+        if (workspaceProject.avCreativeMode || workspaceProject.avDirectorOverrides) {
+          await this.avDirector.updateSettings(projectId, {
+            creativeMode: workspaceProject.avCreativeMode ?? avCreativeMode,
+            overrides: workspaceProject.avDirectorOverrides ?? {},
+          });
+        }
+        const analyzed = await this.avDirector.analyze({
+          projectId,
+          clips: timeline,
+          beatPlan: beatSyncResult.plan,
+          storyboardVersion: repairedPlan.version,
+          aspectRatio: profile.aspectRatio,
+        });
+        avCreativePlan = analyzed.plan;
+        avCreativeMode = analyzed.plan.creativeMode;
+        timeline = applyDirectorPlanToClips(timeline, analyzed.plan);
+      } catch (error) {
+        console.warn("[av-director] plan_skipped", {
+          projectId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
     const now = new Date().toISOString();
     const audioPlan = await this.buildAudioPlan(projectId, beatSyncResult.plan);
     const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
@@ -316,6 +359,8 @@ export class VideoProductionManager {
       textOverlay: existing?.textOverlay,
       beatSyncTimingPlan: beatSyncResult.plan,
       beatSyncMode,
+      avCreativePlan,
+      avCreativeMode,
     };
     try {
       const { composeTypographyDecision } = await import("../typography/typography-engine.js");

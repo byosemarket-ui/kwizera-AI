@@ -19,6 +19,7 @@ import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { AiSoundError } from "../../ai/ai-sound/types.js";
+import { AvDirectorError } from "../../ai/audio-visual-director/types.js";
 import { VideoProductionError } from "../../ai/video-production/types.js";
 import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
 import { ingestUploadedImage } from "../../ai/image-intelligence/image-ingest.js";
@@ -38,6 +39,8 @@ import {
   getAudioIntelligenceManager,
 
   getAiSoundManager,
+
+  getAudioVisualCreativeDirector,
 
   getCommercialVideoManager,
 
@@ -370,6 +373,10 @@ function sendWorkspaceError(res: ServerResponse, error: unknown): void {
     return;
   }
   if (error instanceof AiSoundError) {
+    sendJson(res, error.httpStatus, { error: error.message, code: error.code });
+    return;
+  }
+  if (error instanceof AvDirectorError) {
     sendJson(res, error.httpStatus, { error: error.message, code: error.code });
     return;
   }
@@ -4918,6 +4925,89 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         signal: body.signal,
       });
       sendJson(res, 200, { feedback });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  // STEP 2F — Audio-Visual Creative Director
+  const avDirectorMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/audio-visual-director(?:\/(analyze|plan|recompute|preview|settings|overrides))?$/);
+  if (avDirectorMatch && (req.method === "GET" || req.method === "POST" || req.method === "PATCH")) {
+    const director = getAudioVisualCreativeDirector();
+    const videoMgr = getVideoProductionManager();
+    if (!director?.isInitialized()) {
+      sendJson(res, 503, { error: "Audio-Visual Creative Director is restoring. Try again shortly.", code: "NOT_READY" });
+      return;
+    }
+    const projectId = avDirectorMatch[1];
+    const action = avDirectorMatch[2] ?? "plan";
+    try {
+      if (req.method === "GET" && (action === "plan" || !avDirectorMatch[2])) {
+        const status = await director.getStatus(projectId);
+        sendJson(res, 200, status);
+        return;
+      }
+      if (req.method === "POST" && (action === "analyze" || action === "recompute")) {
+        const video = videoMgr
+          ? (await videoMgr.getVideoProject(projectId) ?? await videoMgr.createOrRefresh(projectId))
+          : null;
+        if (!video) {
+          sendJson(res, 422, { error: "Video project unavailable. Create a Creative Plan first.", code: "MISSING_VIDEO" });
+          return;
+        }
+        const result = await director.analyze({
+          projectId,
+          clips: video.timeline,
+          beatPlan: video.beatSyncTimingPlan ?? null,
+          storyboardVersion: video.creativePlanVersion,
+          aspectRatio: video.renderPlan.aspectRatio,
+          force: action === "recompute",
+        });
+        sendJson(res, 200, {
+          plan: result.plan,
+          reused: result.reused,
+          qualityGate: result.qualityGate,
+          video: {
+            id: video.id,
+            version: video.version,
+            avCreativeMode: video.avCreativeMode,
+          },
+        });
+        return;
+      }
+      if (req.method === "POST" && action === "preview") {
+        const preview = await director.preview(projectId);
+        sendJson(res, 200, preview);
+        return;
+      }
+      if (req.method === "PATCH" && (action === "settings" || action === "overrides")) {
+        const body = JSON.parse(await readBody(req)) as {
+          creativeMode?: string;
+          overrides?: Record<string, unknown>;
+        };
+        const workspace = requireWorkspace(res);
+        if (!workspace) return;
+        const settings = await director.updateSettings(projectId, {
+          creativeMode: body.creativeMode,
+          overrides: action === "overrides" || body.overrides
+            ? (body.overrides as import("../../ai/audio-visual-director/types.js").AvDirectorOverrides)
+            : undefined,
+        });
+        await workspace.updateProject(projectId, {
+          avCreativeMode: settings.creativeMode,
+          avDirectorOverrides: settings.overrides,
+        });
+        // Refresh video project so director decisions re-apply
+        if (videoMgr) {
+          try {
+            await videoMgr.createOrRefresh(projectId, { preserveEdits: true });
+          } catch { /* plan may not exist yet */ }
+        }
+        sendJson(res, 200, { settings });
+        return;
+      }
+      sendJson(res, 405, { error: "Method not allowed" });
     } catch (error) {
       sendWorkspaceError(res, error);
     }

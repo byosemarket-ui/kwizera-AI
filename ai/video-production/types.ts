@@ -378,6 +378,9 @@ export interface VideoProject {
   /** STEP 2D — beat-sync timing optimization (does not replace storyboard). */
   beatSyncTimingPlan?: import("./beat-sync-timing.js").BeatSyncTimingPlan;
   beatSyncMode?: import("./beat-sync-timing.js").BeatSyncMode;
+  /** STEP 2F — Audio-Visual Creative Director plan (decision layer only). */
+  avCreativePlan?: import("../audio-visual-director/types.js").AudioVisualCreativePlan;
+  avCreativeMode?: import("../audio-visual-director/types.js").AvCreativeMode;
 }
 
 export class VideoProductionError extends Error {

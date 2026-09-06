@@ -10,6 +10,7 @@ import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/vid
 import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
 import { AudioIntelligenceManager } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { AiSoundManager } from "../../ai/ai-sound/ai-sound-manager.js";
+import { AudioVisualCreativeDirector } from "../../ai/audio-visual-director/director-manager.js";
 import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
 import { CommercialVideoManager } from "../../ai/commercial-video/commercial-video-manager.js";
 import { BusinessIntelligenceManager } from "../../ai/business-intelligence/business-intelligence-manager.js";
@@ -89,6 +90,7 @@ let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
 let videoProductionManager: VideoProductionManager | null = null;
 let audioIntelligenceManager: AudioIntelligenceManager | null = null;
 let aiSoundManager: AiSoundManager | null = null;
+let avCreativeDirector: AudioVisualCreativeDirector | null = null;
 let commercialVideoManager: CommercialVideoManager | null = null;
 let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
@@ -219,6 +221,10 @@ export function getAudioIntelligenceManager(): AudioIntelligenceManager | null {
 
 export function getAiSoundManager(): AiSoundManager | null {
   return aiSoundManager;
+}
+
+export function getAudioVisualCreativeDirector(): AudioVisualCreativeDirector | null {
+  return avCreativeDirector;
 }
 
 export function getCommercialVideoManager(): CommercialVideoManager | null {
@@ -374,6 +380,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           workspace: workspaceManager,
           audioIntelligence: audioIntelligenceManager,
         });
+        avCreativeDirector = new AudioVisualCreativeDirector();
+        await avCreativeDirector.initialize(storageRoot, {
+          workspace: workspaceManager,
+          audioIntelligence: audioIntelligenceManager,
+        });
         canonicalProductManager = new CanonicalProductManager();
         await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
         marketingBriefManager = new MarketingBriefManager();
@@ -422,6 +433,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
       aiSoundManager = new AiSoundManager();
       await aiSoundManager.initialize(storageRoot, {
+        workspace: workspaceManager,
+        audioIntelligence: audioIntelligenceManager,
+      });
+      avCreativeDirector = new AudioVisualCreativeDirector();
+      await avCreativeDirector.initialize(storageRoot, {
         workspace: workspaceManager,
         audioIntelligence: audioIntelligenceManager,
       });
@@ -850,6 +866,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           planning: planningManager,
           assets: productAssetPreparationManager ?? undefined,
           audioIntelligence: audioIntelligenceManager ?? undefined,
+          avDirector: avCreativeDirector ?? undefined,
         });
         if (productAssetPreparationManager) {
           videoProductionManager.attachProductAssetPreparation(productAssetPreparationManager);
@@ -857,6 +874,10 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         if (audioIntelligenceManager) {
           videoProductionManager.attachAudioIntelligence(audioIntelligenceManager);
           aiSoundManager?.attachAudioIntelligence(audioIntelligenceManager);
+          avCreativeDirector?.attachAudioIntelligence(audioIntelligenceManager);
+        }
+        if (avCreativeDirector) {
+          videoProductionManager.attachAudioVisualDirector(avCreativeDirector);
         }
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);

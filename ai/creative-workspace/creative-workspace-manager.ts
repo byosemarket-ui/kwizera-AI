@@ -190,6 +190,9 @@ export interface CreativeProject {
   audioVolume?: number;
   /** STEP 2D — Off | Smart | Strict (default Smart). */
   beatSyncMode?: import("./audio-asset.js").BeatSyncMode;
+  /** STEP 2F — Audio-Visual Creative Director settings (project-isolated). */
+  avCreativeMode?: import("../audio-visual-director/types.js").AvCreativeMode;
+  avDirectorOverrides?: import("../audio-visual-director/types.js").AvDirectorOverrides;
 }
 
 export interface ValidationResult {
@@ -424,6 +427,12 @@ export class CreativeWorkspaceManager {
       }
       if ("beatSyncMode" in changes) {
         updated.beatSyncMode = normalizeBeatSyncMode(changes.beatSyncMode);
+      }
+      if ("avCreativeMode" in changes && changes.avCreativeMode != null) {
+        updated.avCreativeMode = changes.avCreativeMode;
+      }
+      if ("avDirectorOverrides" in changes) {
+        updated.avDirectorOverrides = changes.avDirectorOverrides ?? undefined;
       }
       await this.writeProjectRecord(updated);
       return this.hydrateProject(updated);

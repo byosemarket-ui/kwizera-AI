@@ -243,6 +243,82 @@ export function VideoProductionWorkspace() {
             {video.beatSyncTimingPlan?.message ? (
               <div className="vp-note">{video.beatSyncTimingPlan.message}</div>
             ) : null}
+            {video.avCreativePlan ? (
+              <div className="vp-av-director">
+                <div className="vp-note">
+                  <b>Creative Director</b>
+                  {" · "}
+                  Mode: {video.avCreativeMode ?? video.avCreativePlan.creativeMode}
+                  {" · "}
+                  {video.avCreativePlan.status.replace(/_/g, " ")}
+                  {" · "}
+                  Confidence: {video.avCreativePlan.confidence}
+                  {video.avCreativePlan.audioAssetId
+                    ? ` · BPM ${video.audioPlan.bpm != null ? Math.round(video.audioPlan.bpm) : "n/a"}`
+                    : " · No audio"}
+                  {` · ${video.avCreativePlan.emphasisEvents?.length ?? 0} events`}
+                </div>
+                {video.avCreativePlan.fallbackReason ? (
+                  <div className="vp-note">{video.avCreativePlan.fallbackReason}</div>
+                ) : null}
+                <div className="vp-note">
+                  {(video.avCreativePlan.hookEvents?.[0]?.reasoning)
+                    || (video.avCreativePlan.productRevealEvents?.[0]?.reasoning)
+                    || "Storyboard pacing retained"}
+                  {video.avCreativePlan.endCardTiming?.reasoning
+                    ? ` · ${video.avCreativePlan.endCardTiming.reasoning}`
+                    : ""}
+                </div>
+                <div className="vp-actions" style={{ marginTop: 8, gap: 8, display: "flex", flexWrap: "wrap" }}>
+                  {(["CALM", "BALANCED", "ENERGETIC", "CINEMATIC", "PRODUCT_FOCUSED"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      className={(video.avCreativeMode ?? video.avCreativePlan?.creativeMode) === mode ? "primary" : ""}
+                      onClick={() => {
+                        void (async () => {
+                          if (!project) return;
+                          const res = await fetch(`/api/workspace/projects/${project.id}/audio-visual-director/settings`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ creativeMode: mode }),
+                          });
+                          if (!res.ok) {
+                            const body = await res.json().catch(() => ({})) as { error?: string };
+                            notify("error", "Director update failed", body.error ?? "Update failed");
+                            return;
+                          }
+                          await hydrate();
+                        })();
+                      }}
+                    >
+                      {mode === "PRODUCT_FOCUSED" ? "Product" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        if (!project) return;
+                        const res = await fetch(`/api/workspace/projects/${project.id}/audio-visual-director/recompute`, {
+                          method: "POST",
+                        });
+                        if (!res.ok) {
+                          const body = await res.json().catch(() => ({})) as { error?: string };
+                          notify("error", "Recompute failed", body.error ?? "Failed");
+                          return;
+                        }
+                        await hydrate();
+                      })();
+                    }}
+                  >
+                    Recompute Plan
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="vp-note">Creative Director plan will appear after video project refresh.</div>
+            )}
             <div className="vp-progress-bar"><i style={{ width: `${job?.progress ?? (video.renderState === "completed" ? 100 : 0)}%` }} /></div>
             <div className="vp-note">
               Job {job?.stage ?? job?.status ?? video.renderState}
