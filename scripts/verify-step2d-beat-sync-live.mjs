@@ -166,7 +166,7 @@ async function createProject(name) {
   const project = created.project ?? created;
   const id = project.id;
   await api(`/api/workspace/projects/${id}`, {
-    method: "PUT",
+    method: "POST",
     body: {
       changes: {
         productInformation: {
@@ -217,15 +217,21 @@ async function refreshVideo(projectId) {
 
 async function main() {
   console.log(`STEP 2D live @ ${BASE}`);
-  const health = await api("/api/health").catch(() => api("/api/runtime/status").catch(() => null));
-  if (health) pass("health", JSON.stringify(health).slice(0, 120));
+  const health = await api("/api/health").catch(() => null);
+  if (health?.runtimeReady) pass("health", health.status || "ok");
+  else if (health) fail("health", JSON.stringify(health).slice(0, 120));
   else fail("health", "unreachable");
 
+  const deploy = await api("/api/deployment").catch(() => null);
   if (EXPECTED) {
-    const commit = String(health?.deployedCommit || health?.commit || health?.gitCommit || "").slice(0, 7);
-    if (commit && commit === EXPECTED) pass("deployed-commit", commit);
-    else if (commit) fail("deployed-commit", `got ${commit} expected ${EXPECTED}`);
-    else pass("deployed-commit", "commit field unavailable — continuing");
+    const commit = String(deploy?.deployedCommit || "").slice(0, 7);
+    if (commit && commit === EXPECTED && deploy?.verifiedLive) pass("deployed-commit", commit);
+    else if (commit && commit === EXPECTED) pass("deployed-commit", `${commit} (verifiedLive=${deploy?.verifiedLive})`);
+    else fail("deployed-commit", `got ${commit || "none"} expected ${EXPECTED}`);
+  } else if (deploy?.deployedCommit) {
+    pass("deployed-commit", String(deploy.deployedCommit).slice(0, 12));
+  } else {
+    pass("deployed-commit", "no expect pin");
   }
 
   const stamp = Date.now();
