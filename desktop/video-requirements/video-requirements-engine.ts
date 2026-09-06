@@ -76,6 +76,30 @@ function emptyLogo(): BrandLogoState {
   return { assetId: null, url: null, fileName: null, status: "idle", error: null };
 }
 
+function emptyAiSound(): import("./types").AiSoundUiState {
+  return {
+    available: null,
+    status: null,
+    reason: null,
+    providerId: null,
+    modelId: null,
+    mood: "AUTO",
+    energy: "AUTO",
+    tempo: "AUTO",
+    useStyleProfile: false,
+    styleProfileId: null,
+    styleProfiles: [],
+    jobId: null,
+    jobStatus: null,
+    jobProgress: 0,
+    jobMessage: null,
+    lastGeneratedAssetId: null,
+    generating: false,
+    feedbackSent: null,
+    error: null,
+  };
+}
+
 function emptyAudio(): ProjectAudioState {
   return {
     selected: null,
@@ -89,6 +113,7 @@ function emptyAudio(): ProjectAudioState {
     playingAssetId: null,
     intelligence: null,
     beatSyncMode: "SMART",
+    aiSound: emptyAiSound(),
   };
 }
 
@@ -214,6 +239,10 @@ export class VideoRequirementsEngine {
         selected: this.audio.selected ? { ...this.audio.selected } : null,
         library: this.audio.library.map((a) => ({ ...a })),
         intelligence: this.audio.intelligence ? { ...this.audio.intelligence } : null,
+        aiSound: {
+          ...this.audio.aiSound,
+          styleProfiles: this.audio.aiSound.styleProfiles.map((p) => ({ ...p })),
+        },
       },
       discount,
       platformId: this.platformId,
@@ -294,6 +323,8 @@ export class VideoRequirementsEngine {
     }
     const syncMode = String(active.beatSyncMode ?? "SMART").toUpperCase();
     this.audio.beatSyncMode = syncMode === "OFF" || syncMode === "STRICT" ? syncMode : "SMART";
+    void this.refreshAiSoundHealth();
+    void this.refreshStyleProfiles();
 
     const canonical = await fetchCanonicalProduct(active.id);
     const heroId = imageSet?.images.find((i) => i.roleInGroup === "primary")?.assetId
@@ -771,6 +802,253 @@ export class VideoRequirementsEngine {
     const next = String(body.beatSyncMode ?? body.project?.beatSyncMode ?? mode).toUpperCase();
     this.audio.beatSyncMode = next === "OFF" || next === "STRICT" ? next : "SMART";
     this.schedulePersist();
+    this.emit();
+  }
+
+  async refreshAiSoundHealth(): Promise<void> {
+    try {
+      const res = await fetch("/api/workspace/ai-sound/health");
+      const body = await res.json() as {
+        available?: boolean;
+        status?: string;
+        reason?: string | null;
+        providerId?: string;
+        modelId?: string | null;
+        error?: string;
+      };
+      this.audio.aiSound.available = Boolean(body.available);
+      this.audio.aiSound.status = body.status ?? (body.available ? "AVAILABLE" : "UNAVAILABLE");
+      this.audio.aiSound.reason = body.reason ?? null;
+      this.audio.aiSound.providerId = body.providerId ?? null;
+      this.audio.aiSound.modelId = body.modelId ?? null;
+      this.audio.aiSound.error = res.ok ? null : (body.error ?? body.reason ?? "Health check failed");
+      this.emit();
+    } catch (error) {
+      this.audio.aiSound.available = false;
+      this.audio.aiSound.status = "UNAVAILABLE";
+      this.audio.aiSound.reason = error instanceof Error ? error.message : "Health check failed";
+      this.emit();
+    }
+  }
+
+  async refreshStyleProfiles(): Promise<void> {
+    if (!this.projectId) return;
+    try {
+      const res = await fetch(`/api/workspace/projects/${this.projectId}/ai-sound/style-profile`);
+      const body = await res.json() as {
+        profiles?: Array<{ profileId: string; name: string }>;
+        error?: string;
+      };
+      if (!res.ok) return;
+      this.audio.aiSound.styleProfiles = (body.profiles ?? []).map((p) => ({
+        profileId: p.profileId,
+        name: p.name,
+      }));
+      if (
+        this.audio.aiSound.styleProfileId
+        && !this.audio.aiSound.styleProfiles.some((p) => p.profileId === this.audio.aiSound.styleProfileId)
+      ) {
+        this.audio.aiSound.styleProfileId = this.audio.aiSound.styleProfiles[0]?.profileId ?? null;
+      }
+      this.emit();
+    } catch {
+      /* non-blocking */
+    }
+  }
+
+  setAiSoundMood(mood: ProjectAudioState["aiSound"]["mood"]): void {
+    this.audio.aiSound.mood = mood;
+    this.emit();
+  }
+
+  setAiSoundEnergy(energy: ProjectAudioState["aiSound"]["energy"]): void {
+    this.audio.aiSound.energy = energy;
+    this.emit();
+  }
+
+  setAiSoundTempo(tempo: ProjectAudioState["aiSound"]["tempo"]): void {
+    this.audio.aiSound.tempo = tempo;
+    this.emit();
+  }
+
+  setAiSoundUseStyle(use: boolean): void {
+    this.audio.aiSound.useStyleProfile = use;
+    this.emit();
+  }
+
+  setAiSoundStyleProfileId(profileId: string | null): void {
+    this.audio.aiSound.styleProfileId = profileId;
+    this.emit();
+  }
+
+  async generateAiSound(): Promise<void> {
+    if (!this.projectId) return;
+    this.audio.aiSound.generating = true;
+    this.audio.aiSound.error = null;
+    this.audio.aiSound.feedbackSent = null;
+    this.emit();
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/ai-sound/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mood: this.audio.aiSound.mood,
+        energy: this.audio.aiSound.energy,
+        tempo: this.audio.aiSound.tempo,
+        instrumental: true,
+        mode: this.audio.aiSound.useStyleProfile && this.audio.aiSound.styleProfileId
+          ? "COMBINED"
+          : "PRODUCT_CONTEXT",
+        styleProfileId: this.audio.aiSound.useStyleProfile
+          ? this.audio.aiSound.styleProfileId
+          : null,
+      }),
+    });
+    const body = await res.json() as {
+      error?: string;
+      code?: string;
+      job?: {
+        jobId: string;
+        status: string;
+        progress: number;
+        stageMessage: string;
+        audioAssetId?: string | null;
+      };
+    };
+    if (!res.ok) {
+      this.audio.aiSound.generating = false;
+      this.audio.aiSound.error = body.error ?? "AI Sound generation unavailable";
+      this.audio.aiSound.available = body.code === "MUSIC_GENERATION_UNAVAILABLE" ? false : this.audio.aiSound.available;
+      this.emit();
+      throw new Error(body.error ?? "AI Sound generation unavailable");
+    }
+    if (!body.job) {
+      this.audio.aiSound.generating = false;
+      this.audio.aiSound.error = "No generation job returned";
+      this.emit();
+      throw new Error("No generation job returned");
+    }
+    this.audio.aiSound.jobId = body.job.jobId;
+    this.audio.aiSound.jobStatus = body.job.status;
+    this.audio.aiSound.jobProgress = body.job.progress;
+    this.audio.aiSound.jobMessage = body.job.stageMessage;
+    this.emit();
+    this.pollAiSoundJob(body.job.jobId);
+  }
+
+  private aiSoundPollTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private stopAiSoundPoll(): void {
+    if (this.aiSoundPollTimer) {
+      clearTimeout(this.aiSoundPollTimer);
+      this.aiSoundPollTimer = null;
+    }
+  }
+
+  private pollAiSoundJob(jobId: string): void {
+    this.stopAiSoundPoll();
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/workspace/ai-sound/jobs/${jobId}`);
+        const body = await res.json() as {
+          job?: {
+            jobId: string;
+            status: string;
+            progress: number;
+            stageMessage: string;
+            audioAssetId?: string | null;
+            error?: string | null;
+          };
+          error?: string;
+        };
+        const job = body.job;
+        if (!res.ok || !job) {
+          this.audio.aiSound.generating = false;
+          this.audio.aiSound.error = body.error ?? "Job poll failed";
+          this.emit();
+          this.stopAiSoundPoll();
+          return;
+        }
+        this.audio.aiSound.jobId = job.jobId;
+        this.audio.aiSound.jobStatus = job.status;
+        this.audio.aiSound.jobProgress = job.progress;
+        this.audio.aiSound.jobMessage = job.stageMessage;
+        if (job.status === "READY" && job.audioAssetId) {
+          this.audio.aiSound.generating = false;
+          this.audio.aiSound.lastGeneratedAssetId = job.audioAssetId;
+          this.audio.aiSound.error = null;
+          await this.refreshAudioLibrary();
+          await this.selectAudio(job.audioAssetId);
+          this.emit();
+          this.stopAiSoundPoll();
+          return;
+        }
+        if (["FAILED", "CANCELLED", "TIMEOUT"].includes(job.status)) {
+          this.audio.aiSound.generating = false;
+          this.audio.aiSound.error = job.error ?? job.stageMessage ?? "Generation failed";
+          this.emit();
+          this.stopAiSoundPoll();
+          return;
+        }
+        this.emit();
+        this.aiSoundPollTimer = setTimeout(() => { void tick(); }, 900);
+      } catch {
+        this.aiSoundPollTimer = setTimeout(() => { void tick(); }, 1500);
+      }
+    };
+    this.aiSoundPollTimer = setTimeout(() => { void tick(); }, 500);
+  }
+
+  async cancelAiSoundJob(): Promise<void> {
+    const jobId = this.audio.aiSound.jobId;
+    if (!jobId) return;
+    await fetch(`/api/workspace/ai-sound/jobs/${jobId}`, { method: "DELETE" });
+    this.stopAiSoundPoll();
+    this.audio.aiSound.generating = false;
+    this.audio.aiSound.jobStatus = "CANCELLED";
+    this.audio.aiSound.jobMessage = "Cancelled";
+    this.emit();
+  }
+
+  async analyzeMyStyle(): Promise<void> {
+    if (!this.projectId) return;
+    const ids = this.audio.library
+      .filter((a) => a.status === "READY")
+      .slice(0, 5)
+      .map((a) => a.assetId);
+    if (!ids.length) throw new Error("Add audio to the library first, then analyze style.");
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/ai-sound/style-profile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Kwizera Advertising Style",
+        audioAssetIds: ids,
+      }),
+    });
+    const body = await res.json() as {
+      error?: string;
+      profile?: { profileId: string; name: string };
+    };
+    if (!res.ok) throw new Error(body.error ?? "Unable to analyze style");
+    await this.refreshStyleProfiles();
+    if (body.profile) {
+      this.audio.aiSound.styleProfileId = body.profile.profileId;
+      this.audio.aiSound.useStyleProfile = true;
+    }
+    this.emit();
+  }
+
+  async submitAiSoundFeedback(signal: "like_style" | "dislike_style"): Promise<void> {
+    if (!this.projectId) return;
+    const assetId = this.audio.aiSound.lastGeneratedAssetId ?? this.audio.selected?.assetId;
+    if (!assetId) throw new Error("No generated audio to rate");
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/ai-sound/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioAssetId: assetId, signal }),
+    });
+    const body = await res.json() as { error?: string };
+    if (!res.ok) throw new Error(body.error ?? "Unable to save feedback");
+    this.audio.aiSound.feedbackSent = signal;
     this.emit();
   }
 

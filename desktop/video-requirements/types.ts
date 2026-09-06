@@ -65,7 +65,7 @@ export interface AudioIntelligenceSummary {
 export interface ProjectAudioState {
   selected: AudioLibraryItem | null;
   library: AudioLibraryItem[];
-  libraryFilter: "ALL" | "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO";
+  libraryFilter: "ALL" | "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO" | "AI_GENERATED";
   libraryQuery: string;
   libraryOpen: boolean;
   uploadStatus: "idle" | "uploading" | "ready" | "error";
@@ -76,6 +76,30 @@ export interface ProjectAudioState {
   intelligence: AudioIntelligenceSummary | null;
   /** STEP 2D — Off | Smart | Strict */
   beatSyncMode: "OFF" | "SMART" | "STRICT";
+  /** STEP 2E — AI Sound */
+  aiSound: AiSoundUiState;
+}
+
+export interface AiSoundUiState {
+  available: boolean | null;
+  status: string | null;
+  reason: string | null;
+  providerId: string | null;
+  modelId: string | null;
+  mood: "AUTO" | "ENERGETIC" | "PREMIUM" | "WARM" | "MODERN" | "CINEMATIC" | "PLAYFUL" | "CALM";
+  energy: "AUTO" | "LOW" | "MEDIUM" | "HIGH";
+  tempo: "AUTO" | "SLOW" | "MEDIUM" | "FAST";
+  useStyleProfile: boolean;
+  styleProfileId: string | null;
+  styleProfiles: Array<{ profileId: string; name: string }>;
+  jobId: string | null;
+  jobStatus: string | null;
+  jobProgress: number;
+  jobMessage: string | null;
+  lastGeneratedAssetId: string | null;
+  generating: boolean;
+  feedbackSent: "like_style" | "dislike_style" | null;
+  error: string | null;
 }
 
 export interface DiscountPreview {

@@ -15,6 +15,17 @@ const CATALOG: Omit<AiModel, "status" | "health" | "usageCount">[] = [
   { id: "studio-image-commercial", name: "Studio Image Commercial", category: "image", version: "1.0.0", description: "Prepared commercial product-image model profile", requirements: { ramMb: 3072, vramMb: 3072, storageMb: 1536 }, capabilities: ["image-generation", "product-placement", "brand-composition"] },
   { id: "studio-video-base", name: "Studio Video Base", category: "video", version: "1.0.0", description: "Prepared video-generation model profile", requirements: { ramMb: 8192, vramMb: 8192, storageMb: 6144 }, capabilities: ["video-generation", "motion-planning"] },
   { id: "studio-audio-base", name: "Studio Audio Base", category: "audio", version: "1.0.0", description: "Prepared audio-generation model profile", requirements: { ramMb: 2048, storageMb: 1024 }, capabilities: ["audio-generation"] },
+  {
+    id: "studio-music-generation",
+    name: "Studio Music Generation",
+    category: "audio",
+    version: "1.0.0",
+    description:
+      "Local music/beat generation model profile for STEP 2E AI Sound. "
+      + "Catalog entry only until a real compatible local provider/model is installed.",
+    requirements: { ramMb: 8192, vramMb: 4096, storageMb: 4096, cpuCores: 4 },
+    capabilities: ["music-generation", "instrumental-beat", "advertising-audio", "modality:audio"],
+  },
   { id: "studio-language-base", name: "Studio Language Base", category: "language", version: "1.0.0", description: "Prepared language model profile", requirements: { ramMb: 4096, storageMb: 2048 }, capabilities: ["planning", "language"] },
   { id: "studio-vision-base", name: "Studio Vision Base", category: "vision", version: "1.0.0", description: "Prepared vision model profile", requirements: { ramMb: 2048, storageMb: 1024 }, capabilities: ["vision", "analysis"] },
   { id: "studio-embedding-base", name: "Studio Embedding Base", category: "embedding", version: "1.0.0", description: "Prepared embedding model profile", requirements: { ramMb: 1024, storageMb: 512 }, capabilities: ["embedding", "retrieval"] },

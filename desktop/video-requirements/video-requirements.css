@@ -398,6 +398,58 @@
   margin: 0.85rem 0 0.65rem;
 }
 
+.vr-ai-sound {
+  margin: 1rem 0 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--vr-muted, #888) 35%, transparent);
+}
+
+.vr-ai-sound__unavailable {
+  color: color-mix(in srgb, #c45 70%, var(--vr-muted, #888));
+}
+
+.vr-ai-sound__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.55rem;
+  margin: 0.55rem 0;
+}
+
+.vr-ai-sound__controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--vr-muted);
+}
+
+.vr-ai-sound__controls select,
+.vr-ai-sound select {
+  font: inherit;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--vr-muted, #888) 40%, transparent);
+  background: color-mix(in srgb, var(--vr-bg, #111) 92%, white 8%);
+  color: inherit;
+}
+
+.vr-ai-sound__style-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.vr-ai-sound__ready {
+  margin-top: 0.55rem;
+}
+
+.vr-ai-sound__ready strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
 .vr-audio-sync__modes {
   display: flex;
   flex-wrap: wrap;

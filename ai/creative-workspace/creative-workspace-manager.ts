@@ -723,6 +723,114 @@ export class CreativeWorkspaceManager {
   }
 
   /**
+   * STEP 2E — register a validated AI-generated audio buffer as AI_GENERATED library asset.
+   * Caller must already validate decodeability; this method re-probes for metadata.
+   */
+  async registerAiGeneratedAudio(projectId: string, input: {
+    title: string;
+    mimeType: string;
+    data: Buffer;
+    generation: {
+      aiSoundVersion: string;
+      providerId: string;
+      modelId: string | null;
+      modelVersion: string | null;
+      spec: unknown;
+    };
+  }): Promise<{ audio: AudioAsset; reused: boolean; project: CreativeProject }> {
+    return this.enqueueProject(projectId, async () => {
+      await this.requireProject(projectId);
+      if (!input.data?.length) {
+        throw new CreativeWorkspaceError("EMPTY_FILE", audioUserError("EMPTY_FILE", "Empty file"));
+      }
+      const mime = normalizeAudioMime(input.mimeType, "generated.wav") ?? "audio/wav";
+      const contentHash = createHash("sha256").update(input.data).digest("hex");
+      const index = await this.readAudioLibraryIndex();
+      const existing = index.assets.find(
+        (a) => a.contentHash === contentHash && a.status === "READY",
+      );
+      if (existing) {
+        const project = await this.requireProject(projectId);
+        return { audio: existing, reused: true, project: this.hydrateProject(project) };
+      }
+
+      const assetId = randomUUID();
+      const ext = audioExtensionForMime(mime);
+      const storageFileName = `${assetId}.${ext}`;
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-ai-gen-"));
+      const tmpPath = path.join(tmpDir, `inspect.${ext}`);
+      try {
+        await fs.writeFile(tmpPath, input.data);
+        let probed;
+        try {
+          probed = await probeAudio(tmpPath);
+        } catch (error) {
+          if (error instanceof FfmpegAudioError) {
+            throw new CreativeWorkspaceError("CORRUPT_AUDIO", audioUserError("CORRUPT_AUDIO", error.message));
+          }
+          throw new CreativeWorkspaceError("CORRUPT_AUDIO", audioUserError("CORRUPT_AUDIO", "Decode failed"));
+        }
+        if (!probed.durationMs || probed.durationMs < 200) {
+          throw new CreativeWorkspaceError("CORRUPT_AUDIO", "Generated audio duration is invalid");
+        }
+        await this.writeBinaryAtomic(path.join(this.audioLibraryDir(), storageFileName), input.data);
+        const now = new Date().toISOString();
+        const title = (input.title || "AI Beat").slice(0, 180);
+        const audio: AudioAsset = {
+          assetId,
+          type: "AUDIO",
+          sourceType: "AI_GENERATED",
+          originalFilename: `${title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 120)}.${ext}`,
+          title,
+          mimeType: mime,
+          durationMs: probed.durationMs,
+          fileSize: input.data.length,
+          storageFileName,
+          playbackUrl: `/api/workspace/audio-library/${storageFileName}`,
+          contentHash,
+          status: "READY",
+          metadata: {
+            codec: probed.codec,
+            sampleRate: probed.sampleRate,
+            channels: probed.channels,
+            bitrate: probed.bitrate,
+            container: probed.container,
+            bpm: null,
+            tempo: null,
+            energy: null,
+            beats: null,
+            sections: null,
+            mood: null,
+            aiGenerated: true,
+            aiSoundVersion: input.generation.aiSoundVersion,
+            providerId: input.generation.providerId,
+            modelId: input.generation.modelId,
+            modelVersion: input.generation.modelVersion,
+            generationSpec: input.generation.spec,
+          },
+          createdAt: now,
+          updatedAt: now,
+          ownerProjectId: projectId,
+        };
+        index.assets.push(audio);
+        index.updatedAt = now;
+        await this.writeAudioLibraryIndex(index);
+        const project = await this.requireProject(projectId);
+        console.info("[audio-library] ai_generated_complete", {
+          projectId,
+          assetId,
+          providerId: input.generation.providerId,
+          contentHash,
+          durationMs: audio.durationMs,
+        });
+        return { audio, reused: false, project: this.hydrateProject(project) };
+      } finally {
+        await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+      }
+    });
+  }
+
+  /**
    * Extract audio from an uploaded video (base64) without modifying any existing video asset.
    * Creates a new library AudioAsset (EXTRACTED_FROM_VIDEO).
    */

@@ -280,8 +280,7 @@ export function VideoRequirementsWorkspace() {
       <section className="vr-section vr-section--audio">
         <h2>Audio &amp; Music</h2>
         <p className="vr-hint" style={{ marginBottom: 12 }}>
-          Upload music, extract audio from a video, or choose from your Audio Library.
-          Beat detection and AI music are not enabled yet.
+          Upload music, extract audio from a video, choose from your Audio Library, or generate AI Sound when a music provider is available.
         </p>
 
         <div className="vr-audio-selected">
@@ -391,6 +390,198 @@ export function VideoRequirementsWorkspace() {
           ) : null}
         </div>
 
+        <div className="vr-ai-sound">
+          <div className="vr-audio-selected__label">AI Generated Sound</div>
+          {snap.audio.aiSound.available === false ? (
+            <p className="vr-hint vr-ai-sound__unavailable">
+              AI Sound Generation is currently unavailable on this system.
+              {snap.audio.aiSound.reason ? ` ${snap.audio.aiSound.reason}` : ""}
+              {" "}Upload, extract, or library audio still work.
+            </p>
+          ) : snap.audio.aiSound.available === true ? (
+            <p className="vr-hint">AI Sound Ready — generate an instrumental advertising beat for this video.</p>
+          ) : (
+            <p className="vr-hint">Checking AI Sound provider…</p>
+          )}
+
+          <div className="vr-ai-sound__controls">
+            <label>
+              Mood
+              <select
+                value={snap.audio.aiSound.mood}
+                onChange={(e) => videoRequirementsEngine.setAiSoundMood(e.target.value as typeof snap.audio.aiSound.mood)}
+              >
+                {(["AUTO", "ENERGETIC", "PREMIUM", "WARM", "MODERN", "CINEMATIC", "PLAYFUL", "CALM"] as const).map((m) => (
+                  <option key={m} value={m}>{m === "AUTO" ? "Auto" : m.charAt(0) + m.slice(1).toLowerCase()}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Energy
+              <select
+                value={snap.audio.aiSound.energy}
+                onChange={(e) => videoRequirementsEngine.setAiSoundEnergy(e.target.value as typeof snap.audio.aiSound.energy)}
+              >
+                {(["AUTO", "LOW", "MEDIUM", "HIGH"] as const).map((m) => (
+                  <option key={m} value={m}>{m === "AUTO" ? "Auto" : m.charAt(0) + m.slice(1).toLowerCase()}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Tempo
+              <select
+                value={snap.audio.aiSound.tempo}
+                onChange={(e) => videoRequirementsEngine.setAiSoundTempo(e.target.value as typeof snap.audio.aiSound.tempo)}
+              >
+                {(["AUTO", "SLOW", "MEDIUM", "FAST"] as const).map((m) => (
+                  <option key={m} value={m}>{m === "AUTO" ? "Auto" : m.charAt(0) + m.slice(1).toLowerCase()}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="vr-ai-sound__style-toggle">
+            <input
+              type="checkbox"
+              checked={snap.audio.aiSound.useStyleProfile}
+              onChange={(e) => videoRequirementsEngine.setAiSoundUseStyle(e.target.checked)}
+            />
+            Generate using my style profile
+          </label>
+          {snap.audio.aiSound.useStyleProfile && snap.audio.aiSound.styleProfiles.length > 0 ? (
+            <select
+              value={snap.audio.aiSound.styleProfileId ?? ""}
+              onChange={(e) => videoRequirementsEngine.setAiSoundStyleProfileId(e.target.value || null)}
+            >
+              {snap.audio.aiSound.styleProfiles.map((p) => (
+                <option key={p.profileId} value={p.profileId}>{p.name}</option>
+              ))}
+            </select>
+          ) : null}
+
+          <div className="vr-audio-actions">
+            <button
+              type="button"
+              className="vr-secondary-btn"
+              disabled={snap.audio.aiSound.generating || snap.audio.aiSound.available === false}
+              onClick={() => {
+                void videoRequirementsEngine.generateAiSound().catch((err) => {
+                  notify(
+                    "error",
+                    "AI Sound unavailable",
+                    err instanceof Error ? err.message : "Generation failed",
+                  );
+                });
+              }}
+            >
+              {snap.audio.aiSound.generating
+                ? "Generating…"
+                : snap.audio.aiSound.lastGeneratedAssetId
+                  ? "Generate Again"
+                  : "Generate AI Sound"}
+            </button>
+            {snap.audio.aiSound.generating ? (
+              <button
+                type="button"
+                className="vr-secondary-btn"
+                onClick={() => {
+                  void videoRequirementsEngine.cancelAiSoundJob().catch(() => null);
+                }}
+              >
+                Cancel
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="vr-secondary-btn"
+              onClick={() => {
+                void videoRequirementsEngine.analyzeMyStyle().catch((err) => {
+                  notify("error", "Style analysis failed", err instanceof Error ? err.message : "Failed");
+                });
+              }}
+            >
+              Analyze My Style
+            </button>
+            <button
+              type="button"
+              className="vr-secondary-btn"
+              onClick={() => {
+                void videoRequirementsEngine.refreshAiSoundHealth();
+              }}
+            >
+              Check Provider
+            </button>
+          </div>
+
+          {snap.audio.aiSound.generating || snap.audio.aiSound.jobStatus ? (
+            <p className="vr-hint">
+              {snap.audio.aiSound.jobMessage || snap.audio.aiSound.jobStatus || "Working…"}
+              {snap.audio.aiSound.jobProgress > 0 ? ` · ${snap.audio.aiSound.jobProgress}%` : ""}
+            </p>
+          ) : null}
+
+          {snap.audio.aiSound.lastGeneratedAssetId && snap.audio.aiSound.jobStatus === "READY" ? (
+            <div className="vr-ai-sound__ready">
+              <strong>AI Sound Ready</strong>
+              <div className="vr-audio-actions">
+                <button
+                  type="button"
+                  className="vr-secondary-btn"
+                  onClick={() => {
+                    const item = snap.audio.library.find((a) => a.assetId === snap.audio.aiSound.lastGeneratedAssetId)
+                      ?? snap.audio.selected;
+                    if (item) videoRequirementsEngine.toggleAudioPreview(item);
+                  }}
+                >
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  className="vr-secondary-btn"
+                  onClick={() => {
+                    const id = snap.audio.aiSound.lastGeneratedAssetId;
+                    if (!id) return;
+                    void videoRequirementsEngine.selectAudio(id).catch((err) => {
+                      notify("error", "Select failed", err instanceof Error ? err.message : "Select failed");
+                    });
+                  }}
+                >
+                  Use in Video
+                </button>
+                <button
+                  type="button"
+                  className="vr-chip"
+                  disabled={snap.audio.aiSound.feedbackSent === "like_style"}
+                  onClick={() => {
+                    void videoRequirementsEngine.submitAiSoundFeedback("like_style").catch((err) => {
+                      notify("error", "Feedback failed", err instanceof Error ? err.message : "Failed");
+                    });
+                  }}
+                >
+                  Use this style
+                </button>
+                <button
+                  type="button"
+                  className="vr-chip"
+                  disabled={snap.audio.aiSound.feedbackSent === "dislike_style"}
+                  onClick={() => {
+                    void videoRequirementsEngine.submitAiSoundFeedback("dislike_style").catch((err) => {
+                      notify("error", "Feedback failed", err instanceof Error ? err.message : "Failed");
+                    });
+                  }}
+                >
+                  Not this style
+                </button>
+              </div>
+              <p className="vr-hint">Saved to Audio Library automatically.</p>
+            </div>
+          ) : null}
+
+          {snap.audio.aiSound.error ? (
+            <p className="vr-hint" style={{ color: "#c45" }}>{snap.audio.aiSound.error}</p>
+          ) : null}
+        </div>
+
         <div className="vr-audio-actions">
           <label className="vr-logo-upload">
             <input
@@ -447,14 +638,14 @@ export function VideoRequirementsWorkspace() {
                 onChange={(e) => videoRequirementsEngine.setAudioLibraryQuery(e.target.value)}
               />
               <div className="vr-duration-row">
-                {(["ALL", "UPLOADED_AUDIO", "EXTRACTED_FROM_VIDEO"] as const).map((f) => (
+                {(["ALL", "UPLOADED_AUDIO", "EXTRACTED_FROM_VIDEO", "AI_GENERATED"] as const).map((f) => (
                   <button
                     key={f}
                     type="button"
                     className={`vr-chip ${snap.audio.libraryFilter === f ? "is-selected" : ""}`}
                     onClick={() => videoRequirementsEngine.setAudioLibraryFilter(f)}
                   >
-                    {f === "ALL" ? "All" : f === "UPLOADED_AUDIO" ? "Uploaded" : "Extracted"}
+                    {f === "ALL" ? "All" : f === "UPLOADED_AUDIO" ? "Uploaded" : f === "EXTRACTED_FROM_VIDEO" ? "Extracted" : "AI Generated"}
                   </button>
                 ))}
               </div>

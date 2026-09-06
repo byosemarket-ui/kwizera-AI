@@ -18,6 +18,7 @@ import { resolvePublicUiFile } from "./static-ui.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
+import { AiSoundError } from "../../ai/ai-sound/types.js";
 import { VideoProductionError } from "../../ai/video-production/types.js";
 import { linkProjectFoundation } from "../../ai/creative-workspace/project-foundation-bridge.js";
 import { ingestUploadedImage } from "../../ai/image-intelligence/image-ingest.js";
@@ -35,6 +36,8 @@ import {
   getVideoProductionManager,
 
   getAudioIntelligenceManager,
+
+  getAiSoundManager,
 
   getCommercialVideoManager,
 
@@ -363,6 +366,10 @@ function sendWorkspaceError(res: ServerResponse, error: unknown): void {
     return;
   }
   if (error instanceof AudioIntelligenceError) {
+    sendJson(res, error.httpStatus, { error: error.message, code: error.code });
+    return;
+  }
+  if (error instanceof AiSoundError) {
     sendJson(res, error.httpStatus, { error: error.message, code: error.code });
     return;
   }
@@ -4724,6 +4731,193 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         (body.mode ?? "SMART") as "OFF" | "SMART" | "STRICT",
       );
       sendJson(res, 200, { project, beatSyncMode: project.beatSyncMode ?? "SMART" });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  // STEP 2E — AI Sound
+  if (url.pathname === "/api/workspace/ai-sound/health" && req.method === "GET") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, {
+        available: false,
+        status: "UNAVAILABLE",
+        reason: "AI Sound is restoring. Try again shortly.",
+      });
+      return;
+    }
+    try {
+      const health = await sound.health();
+      sendJson(res, 200, health);
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const aiSoundGenerateMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/ai-sound\/generate$/);
+  if (aiSoundGenerateMatch && req.method === "POST") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly.", code: "NOT_READY" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+      const job = await sound.startGeneration({
+        projectId: aiSoundGenerateMatch[1],
+        mode: body.mode as import("../../ai/ai-sound/types.js").MusicGenerationMode | undefined,
+        mood: body.mood as import("../../ai/ai-sound/types.js").MusicMood | undefined,
+        energy: body.energy as import("../../ai/ai-sound/types.js").MusicEnergyLevel | undefined,
+        tempo: body.tempo as import("../../ai/ai-sound/types.js").MusicTempoPreference | undefined,
+        durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : undefined,
+        instrumental: body.instrumental !== false,
+        styleProfileId: typeof body.styleProfileId === "string" ? body.styleProfileId : null,
+        referenceAudioAssetIds: Array.isArray(body.referenceAudioAssetIds)
+          ? body.referenceAudioAssetIds.map(String)
+          : undefined,
+        userNotes: typeof body.userNotes === "string" ? body.userNotes : null,
+        titleHint: typeof body.titleHint === "string" ? body.titleHint : undefined,
+      });
+      sendJson(res, 202, { job });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const aiSoundSpecMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/ai-sound\/spec$/);
+  if (aiSoundSpecMatch && req.method === "POST") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as Record<string, unknown>;
+      const spec = await sound.buildSpecPreview({
+        projectId: aiSoundSpecMatch[1],
+        mood: body.mood as import("../../ai/ai-sound/types.js").MusicMood | undefined,
+        energy: body.energy as import("../../ai/ai-sound/types.js").MusicEnergyLevel | undefined,
+        tempo: body.tempo as import("../../ai/ai-sound/types.js").MusicTempoPreference | undefined,
+        durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : undefined,
+        styleProfileId: typeof body.styleProfileId === "string" ? body.styleProfileId : null,
+        referenceAudioAssetIds: Array.isArray(body.referenceAudioAssetIds)
+          ? body.referenceAudioAssetIds.map(String)
+          : undefined,
+        userNotes: typeof body.userNotes === "string" ? body.userNotes : null,
+      });
+      sendJson(res, 200, { spec });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const aiSoundJobMatch = url.pathname.match(/^\/api\/workspace\/ai-sound\/jobs\/([^/]+)$/);
+  if (aiSoundJobMatch && req.method === "GET") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const job = await sound.getJob(aiSoundJobMatch[1]);
+      if (!job) {
+        sendJson(res, 404, { error: "Job not found" });
+        return;
+      }
+      sendJson(res, 200, { job });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  if (aiSoundJobMatch && req.method === "DELETE") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const job = await sound.cancelJob(aiSoundJobMatch[1]);
+      if (!job) {
+        sendJson(res, 404, { error: "Job not found" });
+        return;
+      }
+      sendJson(res, 200, { job });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const aiSoundStyleMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/ai-sound\/style-profile$/);
+  if (aiSoundStyleMatch && req.method === "POST") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        name?: string;
+        audioAssetIds?: string[];
+        profileId?: string;
+      };
+      const profile = await sound.analyzeStyleFromAssets({
+        projectId: aiSoundStyleMatch[1],
+        name: body.name,
+        audioAssetIds: body.audioAssetIds ?? [],
+        profileId: body.profileId,
+      });
+      sendJson(res, 200, { profile });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  if (aiSoundStyleMatch && req.method === "GET") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly." });
+      return;
+    }
+    try {
+      const profiles = await sound.getStyleStore().list(aiSoundStyleMatch[1]);
+      sendJson(res, 200, { profiles });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
+  const aiSoundFeedbackMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/ai-sound\/feedback$/);
+  if (aiSoundFeedbackMatch && req.method === "POST") {
+    const sound = getAiSoundManager();
+    if (!sound?.isInitialized()) {
+      sendJson(res, 503, { error: "AI Sound is restoring. Try again shortly.", code: "NOT_READY" });
+      return;
+    }
+    try {
+      const body = JSON.parse(await readBody(req)) as {
+        audioAssetId?: string;
+        signal?: "like_style" | "dislike_style";
+      };
+      if (!body.audioAssetId || (body.signal !== "like_style" && body.signal !== "dislike_style")) {
+        sendJson(res, 400, { error: "audioAssetId and signal (like_style|dislike_style) required" });
+        return;
+      }
+      const feedback = await sound.recordStyleFeedback({
+        projectId: aiSoundFeedbackMatch[1],
+        audioAssetId: body.audioAssetId,
+        signal: body.signal,
+      });
+      sendJson(res, 200, { feedback });
     } catch (error) {
       sendWorkspaceError(res, error);
     }

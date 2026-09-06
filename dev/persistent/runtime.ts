@@ -9,6 +9,7 @@ import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
 import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
 import { AudioIntelligenceManager } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
+import { AiSoundManager } from "../../ai/ai-sound/ai-sound-manager.js";
 import { createVideoAudioGenerationPlugin } from "../../ai/video-audio-generation/video-audio-generation-plugin.js";
 import { CommercialVideoManager } from "../../ai/commercial-video/commercial-video-manager.js";
 import { BusinessIntelligenceManager } from "../../ai/business-intelligence/business-intelligence-manager.js";
@@ -87,6 +88,7 @@ let imageGenerationManager: ImageGenerationManager | null = null;
 let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
 let videoProductionManager: VideoProductionManager | null = null;
 let audioIntelligenceManager: AudioIntelligenceManager | null = null;
+let aiSoundManager: AiSoundManager | null = null;
 let commercialVideoManager: CommercialVideoManager | null = null;
 let businessIntelligenceManager: BusinessIntelligenceManager | null = null;
 let generationOptimizationManager: GenerationOptimizationManager | null = null;
@@ -213,6 +215,10 @@ export function getVideoProductionManager(): VideoProductionManager | null {
 
 export function getAudioIntelligenceManager(): AudioIntelligenceManager | null {
   return audioIntelligenceManager;
+}
+
+export function getAiSoundManager(): AiSoundManager | null {
+  return aiSoundManager;
 }
 
 export function getCommercialVideoManager(): CommercialVideoManager | null {
@@ -363,6 +369,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         await workspaceManager.initialize(storageRoot);
         audioIntelligenceManager = new AudioIntelligenceManager();
         await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
+        aiSoundManager = new AiSoundManager();
+        await aiSoundManager.initialize(storageRoot, {
+          workspace: workspaceManager,
+          audioIntelligence: audioIntelligenceManager,
+        });
         canonicalProductManager = new CanonicalProductManager();
         await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
         marketingBriefManager = new MarketingBriefManager();
@@ -409,6 +420,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       await workspaceManager.initialize(storageRoot, manager);
       audioIntelligenceManager = new AudioIntelligenceManager();
       await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
+      aiSoundManager = new AiSoundManager();
+      await aiSoundManager.initialize(storageRoot, {
+        workspace: workspaceManager,
+        audioIntelligence: audioIntelligenceManager,
+      });
       canonicalProductManager = new CanonicalProductManager();
       await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
       marketingBriefManager = new MarketingBriefManager();
@@ -840,6 +856,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         }
         if (audioIntelligenceManager) {
           videoProductionManager.attachAudioIntelligence(audioIntelligenceManager);
+          aiSoundManager?.attachAudioIntelligence(audioIntelligenceManager);
         }
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
@@ -970,6 +987,7 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   videoAudioGenerationManager = null;
   videoProductionManager = null;
   audioIntelligenceManager = null;
+  aiSoundManager = null;
   commercialVideoManager = null;
   businessIntelligenceManager = null;
   workspaceSynchronizationManager = null;
