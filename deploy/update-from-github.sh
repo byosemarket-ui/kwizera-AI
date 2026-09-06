@@ -12,8 +12,8 @@ SERVICE="${SERVICE:-kwizera-ai}"
 LOCK_FILE="${KWIZERA_DEPLOY_LOCK:-/var/lock/kwizera-ai-deploy.lock}"
 HEALTH_URL="${KWIZERA_HEALTH_URL:-http://127.0.0.1:5173/api/health}"
 # Persistent AI Core cold-start commonly needs ~2.5–4 minutes on the VPS.
-# STEP 9 verified healthy at ~165s; 180s is too tight and caused false rollbacks.
-HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-540}"
+# Constrained 1-CPU hosts can exceed 9 minutes after large module loads (STEP 2F).
+HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-720}"
 STORAGE_ROOT="${KWIZERA_STORAGE_ROOT:-/var/lib/kwizera-ai-studio}"
 REQUESTED="${KWIZERA_DEPLOY_SHA:-${1:-}}"
 
