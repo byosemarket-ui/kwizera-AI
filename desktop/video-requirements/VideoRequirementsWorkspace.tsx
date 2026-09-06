@@ -364,6 +364,33 @@ export function VideoRequirementsWorkspace() {
           )}
         </div>
 
+        <div className="vr-audio-sync">
+          <div className="vr-audio-selected__label">Audio Sync</div>
+          <p className="vr-hint">
+            Align key visual moments with the rhythm of your music while preserving product readability.
+          </p>
+          <div className="vr-audio-sync__modes">
+            {(["OFF", "SMART", "STRICT"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`vr-chip ${snap.audio.beatSyncMode === mode ? "is-selected" : ""}`}
+                disabled={!snap.audio.selected && mode !== "OFF"}
+                onClick={() => {
+                  void videoRequirementsEngine.setBeatSyncMode(mode).catch((err) => {
+                    notify("error", "Sync update failed", err instanceof Error ? err.message : "Update failed");
+                  });
+                }}
+              >
+                {mode === "OFF" ? "Off" : mode === "SMART" ? "Smart" : "Strict"}
+              </button>
+            ))}
+          </div>
+          {snap.audio.selected && snap.audio.intelligence?.status !== "READY" ? (
+            <p className="vr-hint">Smart/Strict activate when audio analysis is ready.</p>
+          ) : null}
+        </div>
+
         <div className="vr-audio-actions">
           <label className="vr-logo-upload">
             <input

@@ -66,7 +66,7 @@ export class AudioIntelligenceManager {
    */
   async ensureAnalysis(audioAssetId: string): Promise<{
     intelligence: AudioTimingIntelligence | null;
-    job: AnalysisJobPublic | null;
+    job: AudioAnalysisJobPublic | null;
     reused: boolean;
   }> {
     this.ensureReady();
@@ -121,12 +121,12 @@ export class AudioIntelligenceManager {
     return this.readCache(contentHash);
   }
 
-  async getJob(jobId: string): Promise<AnalysisJobPublic | null> {
+  async getJob(jobId: string): Promise<AudioAnalysisJobPublic | null> {
     const job = this.jobs.get(jobId) ?? await this.readJobFile(jobId);
     return job ? this.toPublic(job) : null;
   }
 
-  async retryAnalysis(audioAssetId: string): Promise<{ job: AnalysisJobPublic }> {
+  async retryAnalysis(audioAssetId: string): Promise<{ job: AudioAnalysisJobPublic }> {
     this.ensureReady();
     const asset = await this.workspace!.getAudioAsset(audioAssetId);
     if (!asset) {

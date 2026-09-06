@@ -5,6 +5,7 @@ import { resolveProductionImagePath } from "../media-intelligence/asset-resolver
 import type { AiCoreManager } from "../core/ai-core-manager.js";
 import type { CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import type { CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
+import type { AudioIntelligenceManager } from "../audio-intelligence/audio-intelligence-manager.js";
 import { isOriginalProductImage } from "../creative-workspace/project-asset.js";
 import type { ProductAssetPreparationManager } from "../product-asset-preparation/product-asset-preparation-manager.js";
 import { buildFramingInspection } from "../product-asset-preparation/framing.js";
@@ -17,6 +18,14 @@ import {
   renderStillClip,
   resolveFontFile,
 } from "./ffmpeg-renderer.js";
+import {
+  applyBeatSyncTiming,
+  beatSyncCacheKey,
+  BEAT_SYNC_VERSION,
+  type BeatSyncMode,
+  type BeatSyncTimingPlan,
+} from "./beat-sync-timing.js";
+import { normalizeBeatSyncMode } from "../creative-workspace/audio-asset.js";
 import {
   buildRenderPlan,
   buildRenderPlanForProfile,
@@ -74,6 +83,8 @@ export class VideoProductionManager {
   private workspace: CreativeWorkspaceManager | null = null;
   private planning: CreativePlanningManager | null = null;
   private assets: ProductAssetPreparationManager | null = null;
+  private audioIntelligence: AudioIntelligenceManager | null = null;
+  private beatSyncPlanCache = new Map<string, BeatSyncTimingPlan>();
   private rendering = false;
   private draining = false;
 
@@ -84,6 +95,7 @@ export class VideoProductionManager {
       workspace: CreativeWorkspaceManager;
       planning: CreativePlanningManager;
       assets?: ProductAssetPreparationManager;
+      audioIntelligence?: AudioIntelligenceManager;
     },
   ): Promise<void> {
     this.root = path.join(storageRoot, "video-production");
@@ -91,6 +103,7 @@ export class VideoProductionManager {
     this.workspace = deps.workspace;
     this.planning = deps.planning;
     this.assets = deps.assets ?? null;
+    this.audioIntelligence = deps.audioIntelligence ?? null;
     await fs.mkdir(path.join(this.root, "projects"), { recursive: true });
     await fs.mkdir(path.join(this.root, "jobs"), { recursive: true });
     await fs.mkdir(path.join(this.root, "tmp"), { recursive: true });
@@ -99,6 +112,10 @@ export class VideoProductionManager {
 
   attachProductAssetPreparation(assets: ProductAssetPreparationManager): void {
     this.assets = assets;
+  }
+
+  attachAudioIntelligence(manager: AudioIntelligenceManager): void {
+    this.audioIntelligence = manager;
   }
 
   isInitialized(): boolean {
@@ -151,9 +168,18 @@ export class VideoProductionManager {
     const workspaceProject = await this.workspace!.getProject(projectId);
     if (!workspaceProject) throw new VideoProductionError("PROJECT_NOT_FOUND", "Project not found", 404);
     let video = await this.getVideoProject(projectId);
-    const stale = !video?.timeline?.length
+    const plan = await this.planning!.getPlan(projectId);
+    const audioSel = this.workspace!.getProjectAudioSelection(workspaceProject);
+    const mode = normalizeBeatSyncMode(audioSel.beatSyncMode ?? workspaceProject.beatSyncMode);
+    const staleAssets = !video?.timeline?.length
       || timelineUsesStaleAssets(workspaceProject.productImages, video.timeline);
-    if (!video || stale) {
+    const stalePlan = Boolean(plan && video && video.creativePlanVersion !== plan.version);
+    const staleAudio = Boolean(video && (
+      (video.audioPlan.selectedAudioAssetId ?? null) !== (audioSel.selectedAudioAssetId ?? null)
+      || (video.beatSyncMode ?? "SMART") !== mode
+      || (video.beatSyncTimingPlan?.beatSyncVersion !== BEAT_SYNC_VERSION && mode !== "OFF")
+    ));
+    if (!video || staleAssets || stalePlan || staleAudio) {
       video = await this.createOrRefresh(projectId, { preserveEdits: true });
     }
     return video;
@@ -233,6 +259,18 @@ export class VideoProductionManager {
       throw new VideoProductionError("MISSING_ASSET", "Creative Plan scenes could not be bound to original assets", 422);
     }
     const profile = profileForPlatform(workspaceProject.platform);
+    const audioSelection = this.workspace!.getProjectAudioSelection(workspaceProject);
+    const beatSyncMode = normalizeBeatSyncMode(audioSelection.beatSyncMode ?? workspaceProject.beatSyncMode);
+    const beatSyncResult = await this.applyBeatSyncToTimeline({
+      projectId,
+      clips: timeline,
+      mode: beatSyncMode,
+      audioAssetId: audioSelection.selectedAudioAssetId,
+      creativePlanVersion: repairedPlan.version,
+      aspectRatio: profile.aspectRatio,
+      existingPlan: existing?.beatSyncTimingPlan,
+    });
+    timeline = beatSyncResult.clips;
     const renderProfile = resolveProductionRenderProfile(repairedPlan.productionMode);
     const directed = await this.applyStep7MotionDirection({
       projectId,
@@ -243,6 +281,7 @@ export class VideoProductionManager {
     });
     timeline = directed.clips;
     const now = new Date().toISOString();
+    const audioPlan = await this.buildAudioPlan(projectId, beatSyncResult.plan);
     const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
     const video: VideoProject = {
       id: existing?.id ?? randomUUID(),
@@ -257,7 +296,7 @@ export class VideoProductionManager {
       version: (existing?.version ?? 0) + 1,
       timeline,
       timelineMode: "full",
-      audioPlan: await this.buildAudioPlan(projectId),
+      audioPlan,
       renderPlan,
       renderState: existing?.renderState === "processing" || existing?.renderState === "queued"
         ? existing.renderState
@@ -275,6 +314,8 @@ export class VideoProductionManager {
       userEdited: existing?.userEdited,
       foundationKnowledgeIds: existing?.foundationKnowledgeIds,
       textOverlay: existing?.textOverlay,
+      beatSyncTimingPlan: beatSyncResult.plan,
+      beatSyncMode,
     };
     try {
       const { composeTypographyDecision } = await import("../typography/typography-engine.js");
@@ -1196,7 +1237,71 @@ export class VideoProductionManager {
     }
   }
 
-  private async buildAudioPlan(projectId: string): Promise<import("./types.js").VideoAudioPlan> {
+  private async applyBeatSyncToTimeline(input: {
+    projectId: string;
+    clips: VideoTimelineClip[];
+    mode: BeatSyncMode;
+    audioAssetId: string | null;
+    creativePlanVersion: number;
+    aspectRatio: string;
+    existingPlan?: BeatSyncTimingPlan;
+  }): Promise<{ clips: VideoTimelineClip[]; plan: BeatSyncTimingPlan }> {
+    const baseDurationMs = timelineDurationMs(input.clips);
+    let intelligence = null as Awaited<ReturnType<AudioIntelligenceManager["getAnalysis"]>> | null;
+    if (input.audioAssetId && this.audioIntelligence?.isInitialized()) {
+      try {
+        intelligence = await this.audioIntelligence.getAnalysis(input.audioAssetId);
+      } catch {
+        intelligence = null;
+      }
+    }
+    const cacheKey = beatSyncCacheKey({
+      projectId: input.projectId,
+      audioAssetId: input.audioAssetId,
+      contentHash: intelligence?.contentHash ?? null,
+      analysisVersion: intelligence?.analysisVersion ?? null,
+      creativePlanVersion: input.creativePlanVersion,
+      targetDurationMs: baseDurationMs,
+      aspectRatio: input.aspectRatio,
+      mode: input.mode,
+    });
+    const cached = this.beatSyncPlanCache.get(cacheKey);
+    if (
+      cached
+      && input.existingPlan
+      && input.existingPlan.beatSyncVersion === BEAT_SYNC_VERSION
+      && input.existingPlan.mode === input.mode
+      && input.existingPlan.contentHash === (intelligence?.contentHash ?? null)
+      && input.existingPlan.scenes.length === input.clips.length
+    ) {
+      // Re-apply cached plan durations onto fresh storyboard clips (preserve identity/order).
+      const applied = input.clips.map((clip, i) => {
+        const scene = cached.scenes[i];
+        if (!scene || clip.userEdited) return { ...clip };
+        return { ...clip, durationMs: scene.durationMs };
+      });
+      const timed = recomputeStarts(applied);
+      return { clips: timed, plan: { ...cached, videoDurationMs: timelineDurationMs(timed) } };
+    }
+    const result = applyBeatSyncTiming({
+      clips: input.clips,
+      mode: input.mode,
+      intelligence,
+      audioAssetId: input.audioAssetId,
+    });
+    this.beatSyncPlanCache.set(cacheKey, result.plan);
+    // Bound memory on long-lived process
+    if (this.beatSyncPlanCache.size > 64) {
+      const first = this.beatSyncPlanCache.keys().next().value;
+      if (first) this.beatSyncPlanCache.delete(first);
+    }
+    return { clips: result.clips, plan: result.plan };
+  }
+
+  private async buildAudioPlan(
+    projectId: string,
+    beatPlan?: BeatSyncTimingPlan | null,
+  ): Promise<import("./types.js").VideoAudioPlan> {
     const project = await this.workspace?.getProject(projectId);
     if (!project) {
       return {
@@ -1208,9 +1313,28 @@ export class VideoProductionManager {
         selectedAudioAssetId: null,
         enabled: false,
         volume: 1,
+        beatSyncMode: "SMART",
+        beatSyncMessage: "No project",
+        audioAnalysisStatus: null,
+        bpm: null,
+        bpmConfidence: null,
       };
     }
     const selection = this.workspace!.getProjectAudioSelection(project);
+    const mode = normalizeBeatSyncMode(selection.beatSyncMode ?? project.beatSyncMode);
+    let analysisStatus: string | null = null;
+    let bpm: number | null = null;
+    let bpmConfidence: number | null = null;
+    if (selection.enabled && selection.selectedAudioAssetId && this.audioIntelligence?.isInitialized()) {
+      try {
+        const intel = await this.audioIntelligence.getAnalysis(selection.selectedAudioAssetId);
+        analysisStatus = intel?.status ?? "PENDING";
+        bpm = intel?.bpm ?? null;
+        bpmConfidence = intel?.bpmConfidence ?? null;
+      } catch {
+        analysisStatus = "UNAVAILABLE";
+      }
+    }
     if (selection.enabled && selection.selectedAudioAssetId) {
       const asset = await this.workspace!.getAudioAsset(selection.selectedAudioAssetId);
       if (asset?.status === "READY") {
@@ -1223,6 +1347,11 @@ export class VideoProductionManager {
           selectedAudioAssetId: asset.assetId,
           enabled: true,
           volume: selection.volume,
+          beatSyncMode: mode,
+          beatSyncMessage: beatPlan?.message ?? `Beat sync ${mode}`,
+          audioAnalysisStatus: analysisStatus,
+          bpm,
+          bpmConfidence,
         };
       }
     }
@@ -1235,6 +1364,11 @@ export class VideoProductionManager {
       selectedAudioAssetId: null,
       enabled: false,
       volume: selection.volume,
+      beatSyncMode: mode,
+      beatSyncMessage: "No audio selected — storyboard timing used.",
+      audioAnalysisStatus: analysisStatus,
+      bpm,
+      bpmConfidence,
     };
   }
 

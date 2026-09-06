@@ -64,6 +64,10 @@ export interface CreativeProjectDto {
   language?: string;
   platform?: string;
   workspaceSettings?: Record<string, unknown>;
+  selectedAudioAssetId?: string | null;
+  audioEnabled?: boolean;
+  audioVolume?: number;
+  beatSyncMode?: "OFF" | "SMART" | "STRICT";
 }
 
 export interface WorkspaceApiPayload {

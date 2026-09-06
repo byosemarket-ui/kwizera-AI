@@ -88,6 +88,7 @@ function emptyAudio(): ProjectAudioState {
     error: null,
     playingAssetId: null,
     intelligence: null,
+    beatSyncMode: "SMART",
   };
 }
 
@@ -291,6 +292,8 @@ export class VideoRequirementsEngine {
       this.audio.selected = null;
       this.audio.intelligence = null;
     }
+    const syncMode = String(active.beatSyncMode ?? "SMART").toUpperCase();
+    this.audio.beatSyncMode = syncMode === "OFF" || syncMode === "STRICT" ? syncMode : "SMART";
 
     const canonical = await fetchCanonicalProduct(active.id);
     const heroId = imageSet?.images.find((i) => i.roleInGroup === "primary")?.assetId
@@ -754,6 +757,23 @@ export class VideoRequirementsEngine {
     this.emit();
   }
 
+  async setBeatSyncMode(mode: "OFF" | "SMART" | "STRICT"): Promise<void> {
+    if (!this.projectId) return;
+    this.audio.beatSyncMode = mode;
+    this.emit();
+    const res = await fetch(`/api/workspace/projects/${this.projectId}/audio/beat-sync`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    });
+    const body = await res.json() as { error?: string; project?: { beatSyncMode?: string }; beatSyncMode?: string };
+    if (!res.ok) throw new Error(body.error ?? "Unable to update audio sync");
+    const next = String(body.beatSyncMode ?? body.project?.beatSyncMode ?? mode).toUpperCase();
+    this.audio.beatSyncMode = next === "OFF" || next === "STRICT" ? next : "SMART";
+    this.schedulePersist();
+    this.emit();
+  }
+
   async retryAudioIntelligence(): Promise<void> {
     const assetId = this.audio.selected?.assetId;
     if (!assetId) return;
@@ -1021,6 +1041,7 @@ export class VideoRequirementsEngine {
       language: this.language,
       selectedAudioAssetId: this.audio.selected?.assetId ?? null,
       audioEnabled: Boolean(this.audio.selected?.assetId),
+      beatSyncMode: this.audio.beatSyncMode,
       brandInformation: {
         name: brandName,
         website: website || undefined,

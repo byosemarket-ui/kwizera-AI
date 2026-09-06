@@ -232,6 +232,17 @@ export function VideoProductionWorkspace() {
 
           <div className="vp-panel">
             <div className="vp-note">Audio: {video.audioPlan.message}</div>
+            <div className="vp-note">
+              Sync: {video.audioPlan.beatSyncMode ?? video.beatSyncMode ?? "SMART"}
+              {video.audioPlan.audioAnalysisStatus ? ` · Analysis: ${video.audioPlan.audioAnalysisStatus}` : ""}
+              {video.audioPlan.bpm != null ? ` · BPM ${Math.round(video.audioPlan.bpm)}` : ""}
+              {video.audioPlan.bpmConfidence != null
+                ? ` (${Math.round(video.audioPlan.bpmConfidence * 100)}%)`
+                : ""}
+            </div>
+            {video.beatSyncTimingPlan?.message ? (
+              <div className="vp-note">{video.beatSyncTimingPlan.message}</div>
+            ) : null}
             <div className="vp-progress-bar"><i style={{ width: `${job?.progress ?? (video.renderState === "completed" ? 100 : 0)}%` }} /></div>
             <div className="vp-note">
               Job {job?.stage ?? job?.status ?? video.renderState}

@@ -16,10 +16,12 @@ import {
   isSafeAudioStorageFileName,
   maxAudioBytes,
   normalizeAudioMime,
+  normalizeBeatSyncMode,
   normalizeProjectAudio,
   sanitizeAudioFileName,
   type AudioAsset,
   type AudioSourceType,
+  type BeatSyncMode,
   type ProjectAudioSelection,
 } from "./audio-asset.js";
 import { inspectImageBuffer } from "./image-inspect.js";
@@ -186,6 +188,8 @@ export interface CreativeProject {
   selectedAudioAssetId?: string | null;
   audioEnabled?: boolean;
   audioVolume?: number;
+  /** STEP 2D — Off | Smart | Strict (default Smart). */
+  beatSyncMode?: import("./audio-asset.js").BeatSyncMode;
 }
 
 export interface ValidationResult {
@@ -418,6 +422,9 @@ export class CreativeWorkspaceManager {
       if ("audioVolume" in changes && typeof changes.audioVolume === "number") {
         updated.audioVolume = Math.min(1, Math.max(0, changes.audioVolume));
       }
+      if ("beatSyncMode" in changes) {
+        updated.beatSyncMode = normalizeBeatSyncMode(changes.beatSyncMode);
+      }
       await this.writeProjectRecord(updated);
       return this.hydrateProject(updated);
     });
@@ -535,6 +542,17 @@ export class CreativeWorkspaceManager {
       selectedAudioAssetId: project.selectedAudioAssetId,
       enabled: project.audioEnabled,
       volume: project.audioVolume,
+      beatSyncMode: project.beatSyncMode,
+    });
+  }
+
+  async setProjectBeatSyncMode(projectId: string, mode: BeatSyncMode): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      project.beatSyncMode = normalizeBeatSyncMode(mode);
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      return this.hydrateProject(project);
     });
   }
 
@@ -1257,6 +1275,7 @@ export class CreativeWorkspaceManager {
       selectedAudioAssetId: project.selectedAudioAssetId,
       enabled: project.audioEnabled,
       volume: project.audioVolume,
+      beatSyncMode: project.beatSyncMode,
     });
     return {
       ...project,
@@ -1264,6 +1283,7 @@ export class CreativeWorkspaceManager {
       selectedAudioAssetId: audio.selectedAudioAssetId,
       audioEnabled: audio.enabled,
       audioVolume: audio.volume,
+      beatSyncMode: audio.beatSyncMode,
       productImages: project.productImages.map((image) => this.normalizeImage(project.id, image)),
     };
   }

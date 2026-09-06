@@ -833,9 +833,13 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           workspace: workspaceManager,
           planning: planningManager,
           assets: productAssetPreparationManager ?? undefined,
+          audioIntelligence: audioIntelligenceManager ?? undefined,
         });
         if (productAssetPreparationManager) {
           videoProductionManager.attachProductAssetPreparation(productAssetPreparationManager);
+        }
+        if (audioIntelligenceManager) {
+          videoProductionManager.attachAudioIntelligence(audioIntelligenceManager);
         }
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);

@@ -126,6 +126,19 @@ export function FinalReviewWorkspace() {
                 </div>
               </div>
             ) : null}
+            {ctx && (ctx.audioName || ctx.beatSyncMode) ? (
+              <div className="fr-meta fr-audio-sync">
+                <span>Audio: {ctx.audioName ?? "None"}</span>
+                <span>Sync: {ctx.beatSyncMode === "OFF" ? "Off" : ctx.beatSyncMode === "STRICT" ? "Strict" : "Smart"}</span>
+                {ctx.audioAnalysisStatus ? <span>Analysis: {ctx.audioAnalysisStatus === "READY" ? "Ready" : ctx.audioAnalysisStatus}</span> : null}
+                {ctx.bpm != null ? (
+                  <span>
+                    BPM: {Math.round(ctx.bpm)}
+                    {ctx.bpmConfidence != null ? ` (${Math.round(ctx.bpmConfidence * 100)}%)` : ""}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </header>
 
           {!ctx ? (

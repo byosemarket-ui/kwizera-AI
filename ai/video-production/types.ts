@@ -191,6 +191,12 @@ export interface VideoAudioPlan {
   selectedAudioAssetId?: string | null;
   enabled?: boolean;
   volume?: number;
+  /** STEP 2D */
+  beatSyncMode?: import("./beat-sync-timing.js").BeatSyncMode;
+  beatSyncMessage?: string;
+  audioAnalysisStatus?: string | null;
+  bpm?: number | null;
+  bpmConfidence?: number | null;
 }
 
 export interface VideoRenderPlan {
@@ -369,6 +375,9 @@ export interface VideoProject {
     warnings: string[];
     rendered: boolean;
   };
+  /** STEP 2D — beat-sync timing optimization (does not replace storyboard). */
+  beatSyncTimingPlan?: import("./beat-sync-timing.js").BeatSyncTimingPlan;
+  beatSyncMode?: import("./beat-sync-timing.js").BeatSyncMode;
 }
 
 export class VideoProductionError extends Error {

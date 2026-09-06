@@ -66,18 +66,30 @@ export interface AudioAsset {
   parentVideoFileName?: string | null;
 }
 
+/** STEP 2D — beat-synchronized timing mode (default SMART). */
+export type BeatSyncMode = "OFF" | "SMART" | "STRICT";
+
 export interface ProjectAudioSelection {
   selectedAudioAssetId: string | null;
   enabled: boolean;
   /** 0–1 linear gain; default 1 */
   volume: number;
+  /** STEP 2D — Off | Smart | Strict */
+  beatSyncMode: BeatSyncMode;
 }
 
 export const DEFAULT_PROJECT_AUDIO: ProjectAudioSelection = {
   selectedAudioAssetId: null,
   enabled: false,
   volume: 1,
+  beatSyncMode: "SMART",
 };
+
+export function normalizeBeatSyncMode(raw: unknown): BeatSyncMode {
+  const v = String(raw ?? "SMART").toUpperCase();
+  if (v === "OFF" || v === "STRICT" || v === "SMART") return v;
+  return "SMART";
+}
 
 export const ALLOWED_AUDIO_MIME_TYPES = new Set([
   "audio/mpeg",
@@ -178,6 +190,7 @@ export function normalizeProjectAudio(
     selectedAudioAssetId: id,
     enabled,
     volume,
+    beatSyncMode: normalizeBeatSyncMode((raw as { beatSyncMode?: unknown }).beatSyncMode),
   };
 }
 

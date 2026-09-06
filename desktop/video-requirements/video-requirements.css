@@ -394,6 +394,17 @@
   color: var(--vr-accent, #8ec8ff) !important;
 }
 
+.vr-audio-sync {
+  margin: 0.85rem 0 0.65rem;
+}
+
+.vr-audio-sync__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
 .vr-linkish {
   background: none;
   border: none;

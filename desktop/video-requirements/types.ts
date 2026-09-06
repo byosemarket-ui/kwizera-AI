@@ -74,6 +74,8 @@ export interface ProjectAudioState {
   /** Only one preview at a time */
   playingAssetId: string | null;
   intelligence: AudioIntelligenceSummary | null;
+  /** STEP 2D — Off | Smart | Strict */
+  beatSyncMode: "OFF" | "SMART" | "STRICT";
 }
 
 export interface DiscountPreview {

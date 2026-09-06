@@ -4713,6 +4713,23 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  const beatSyncMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/audio\/beat-sync$/);
+  if (beatSyncMatch && req.method === "PUT") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const body = JSON.parse(await readBody(req)) as { mode?: string };
+      const project = await workspace.setProjectBeatSyncMode(
+        beatSyncMatch[1],
+        (body.mode ?? "SMART") as "OFF" | "SMART" | "STRICT",
+      );
+      sendJson(res, 200, { project, beatSyncMode: project.beatSyncMode ?? "SMART" });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
   // STEP 2C — Audio Intelligence
   const audioIntelMatch = url.pathname.match(/^\/api\/workspace\/audio-library\/([^/]+)\/intelligence$/);
   if (audioIntelMatch && req.method === "GET") {

@@ -87,6 +87,12 @@ export interface FinalProductionContext {
   phone: string | null;
   cta: string | null;
   logoUrl: string | null;
+  /** STEP 2D — audio sync summary */
+  audioName: string | null;
+  beatSyncMode: string | null;
+  audioAnalysisStatus: string | null;
+  bpm: number | null;
+  bpmConfidence: number | null;
 }
 
 export interface FinalReviewSnapshot {
@@ -143,6 +149,29 @@ function buildContext(
     phone: brand?.phone?.trim() || info?.phone?.trim() || info?.contact?.trim() || null,
     cta: project?.campaignInformation?.callToAction?.trim() || null,
     logoUrl: logo?.url ?? (logoId ? `/api/workspace/projects/${handoff.projectId}/images/${logoId}` : null),
+    audioName: null,
+    beatSyncMode: null,
+    audioAnalysisStatus: null,
+    bpm: null,
+    bpmConfidence: null,
+  };
+}
+
+function applyAudioSyncToContext(
+  ctx: FinalProductionContext,
+  video: VideoProject | null | undefined,
+): FinalProductionContext {
+  if (!ctx || !video?.audioPlan) return ctx;
+  const plan = video.audioPlan;
+  return {
+    ...ctx,
+    audioName: plan.enabled && plan.selectedAudioAssetId
+      ? (plan.message.includes("muxed") ? "Library audio" : plan.message.slice(0, 80))
+      : "None",
+    beatSyncMode: plan.beatSyncMode ?? video.beatSyncMode ?? "SMART",
+    audioAnalysisStatus: plan.audioAnalysisStatus ?? null,
+    bpm: plan.bpm ?? null,
+    bpmConfidence: plan.bpmConfidence ?? null,
   };
 }
 
@@ -233,7 +262,7 @@ export class FinalReviewEngine {
     });
     const rawUrl = verified ? (this.video?.output?.url ?? null) : null;
     return {
-      context: this.context,
+      context: this.context ? applyAudioSyncToContext(this.context, this.video) : null,
       uiStage,
       progress,
       currentStageLabel: stageLabel(this.job, uiStage, progress),

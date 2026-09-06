@@ -97,12 +97,16 @@ describe("STEP 2B audio asset helpers", () => {
       selectedAudioAssetId: null,
       enabled: false,
       volume: 1,
+      beatSyncMode: "SMART",
     });
     expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 2 })).toEqual({
       selectedAudioAssetId: "a1",
       enabled: true,
       volume: 1,
+      beatSyncMode: "SMART",
     });
+    expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 1, beatSyncMode: "STRICT" }).beatSyncMode).toBe("STRICT");
+    expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 1, beatSyncMode: "weird" as "OFF" }).beatSyncMode).toBe("SMART");
   });
 
   it("maps user-facing error messages", () => {
