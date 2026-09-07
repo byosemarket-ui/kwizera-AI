@@ -72,7 +72,7 @@ function walkJson(dir, depth = 0) {
     if (full.includes(`${path.sep}images${path.sep}`) || full.includes(`${path.sep}videos${path.sep}`)) {
       continue;
     }
-    if (statSize(full) >= 1_000_000) {
+    if (statSize(full) >= 100_000) {
       checkFile(full);
     }
   }

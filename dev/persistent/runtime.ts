@@ -351,6 +351,27 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
   bootPromise = (async () => {
     const storageRoot = resolveStorageRoot();
+    // Always quarantine truncated/corrupt JSON before any manager loads storage.
+    try {
+      const fsSync = await import("node:fs");
+      const { spawnSync } = await import("node:child_process");
+      const helper = path.join(process.cwd(), "deploy", "quarantine-corrupt-json.mjs");
+      if (fsSync.existsSync(helper)) {
+        console.log("[KWIZERA] pre-boot corrupt JSON quarantine…");
+        spawnSync(process.execPath, [helper], {
+          env: { ...process.env, KWIZERA_STORAGE_ROOT: storageRoot },
+          stdio: "inherit",
+          windowsHide: true,
+          timeout: 60_000,
+        });
+      }
+    } catch (error) {
+      console.warn(
+        "[KWIZERA] pre-boot JSON quarantine skipped:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
     const dashboardUrl = buildDashboardUrl(host, port);
     const bootstrap = bootstrapPersistentStorage(storageRoot);
     sessionStore = new DevSessionStore(storageRoot, dashboardUrl);

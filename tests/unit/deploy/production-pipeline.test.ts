@@ -62,6 +62,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(sh).toContain("verify-live-http.mjs");
     expect(sh).toContain("record-status.mjs");
     expect(sh).toContain("quarantine-corrupt-json.mjs");
+    expect(sh).toContain("KWIZERA_DEPLOY_REEXEC");
   });
 
   it("fails if Studio HTML is the Dev Dashboard or required artifacts are missing", () => {

@@ -198,6 +198,15 @@ fi
 REQUESTED="$DEPLOYED"
 echo "[KWIZERA] deployed working tree: $DEPLOYED"
 
+# Re-exec the checked-out deploy script so new helpers (quarantine, etc.) apply.
+# The initially invoked script may be from the previous commit still in memory.
+if [[ "${KWIZERA_DEPLOY_REEXEC:-0}" != "1" ]]; then
+  export KWIZERA_DEPLOY_REEXEC=1
+  export KWIZERA_DEPLOY_SHA="$REQUESTED"
+  echo "[KWIZERA] re-executing deploy script from checked-out commit"
+  exec bash "$APP_DIR/deploy/update-from-github.sh" "$REQUESTED"
+fi
+
 record_status deploying in-progress "Building production server and studio UI"
 if ! build_production; then
   rollback "production build failed"

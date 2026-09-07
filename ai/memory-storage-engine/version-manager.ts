@@ -54,15 +54,24 @@ export class VersionManager {
     return fs
       .readdirSync(versionsDir)
       .filter((f) => f.startsWith("v") && f.endsWith(".json"))
-      .map((f) => {
-        const raw = fs.readFileSync(path.join(versionsDir, f), "utf8");
-        const record = JSON.parse(raw) as MemoryRecord;
-        return {
-          version: record.version,
-          timestamp: record.lastUpdate,
-          storagePath: path.join(versionsDir, f),
-          contentHash: record.contentHash,
-        };
+      .flatMap((f) => {
+        try {
+          const versionPath = path.join(versionsDir, f);
+          const raw = fs.readFileSync(versionPath, "utf8");
+          const record = JSON.parse(raw) as MemoryRecord;
+          return [{
+            version: record.version,
+            timestamp: record.lastUpdate,
+            storagePath: versionPath,
+            contentHash: record.contentHash,
+          }];
+        } catch (error) {
+          this.logger.log("warning", "recovery", "Skipped corrupt memory version file", {
+            file: f,
+            reason: error instanceof Error ? error.message.slice(0, 160) : String(error),
+          });
+          return [];
+        }
       })
       .sort((a, b) => a.version - b.version);
   }
@@ -70,7 +79,15 @@ export class VersionManager {
   getVersion(recordStorageLocation: string, version: number): MemoryRecord | null {
     const versionPath = path.join(this.getVersionsDir(recordStorageLocation), `v${version}.json`);
     if (!fs.existsSync(versionPath)) return null;
-    return JSON.parse(fs.readFileSync(versionPath, "utf8")) as MemoryRecord;
+    try {
+      return JSON.parse(fs.readFileSync(versionPath, "utf8")) as MemoryRecord;
+    } catch (error) {
+      this.logger.log("warning", "recovery", "Corrupt memory version unreadable", {
+        version,
+        reason: error instanceof Error ? error.message.slice(0, 160) : String(error),
+      });
+      return null;
+    }
   }
 
   getTotalVersions(): number {
