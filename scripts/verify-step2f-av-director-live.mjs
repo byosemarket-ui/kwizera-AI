@@ -90,14 +90,29 @@ function makeWavBase64(durationSec = 10, bpm = 120) {
 }
 
 async function api(pathname, opts = {}) {
-  const res = await fetch(`${BASE}${pathname}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-  });
-  const text = await res.text();
-  let json = null;
-  try { json = JSON.parse(text); } catch { /* */ }
-  return { res, json, text };
+  let last = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${pathname}`, {
+        ...opts,
+        headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      });
+      const text = await res.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch { /* */ }
+      last = { res, json, text };
+      // Gateway may return {ok:false,status:"starting"} while Core boots.
+      if (json && json.ok === false && json.status === "starting") {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        continue;
+      }
+      return last;
+    } catch (err) {
+      last = { res: { ok: false, status: 0 }, json: null, text: String(err), error: err };
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+    }
+  }
+  return last;
 }
 
 async function main() {
@@ -128,15 +143,45 @@ async function main() {
   }
   pass("project_bootstrap", projectId);
 
+  // Ensure project fields (step2d-compatible update)
+  await api(`/api/workspace/projects/${projectId}`, {
+    method: "POST",
+    body: JSON.stringify({
+      changes: {
+        productInformation: {
+          name: "Director Probe Shoes",
+          category: "Running Shoes",
+          description: "STEP 2F verification product",
+          price: 45000,
+          currency: "RWF",
+        },
+        brandInformation: { name: "KWIZERA", website: "https://example.com", phone: "+250000000000" },
+        campaignInformation: {
+          name: `STEP2F Live`,
+          objective: "Promote Sale",
+          callToAction: "Shop Now",
+          duration: "15",
+        },
+        platform: "tiktok",
+        language: "en",
+        beatSyncMode: "SMART",
+      },
+    }),
+  });
+
   // Upload image
-  await api(`/api/workspace/projects/${projectId}/images`, {
+  const imgRes = await api(`/api/workspace/projects/${projectId}/images`, {
     method: "POST",
     body: JSON.stringify({
       fileName: "hero.png",
       mimeType: "image/png",
       dataBase64: png(640, 800, 30, 90, 180),
+      width: 640,
+      height: 800,
     }),
   });
+  if (imgRes.res.ok) pass("image_upload", imgRes.json?.image?.id || "ok");
+  else fail("image_upload", imgRes.text.slice(0, 160));
 
   // Upload audio
   const upload = await api(`/api/workspace/projects/${projectId}/audio`, {
@@ -152,7 +197,7 @@ async function main() {
     pass("audio_upload", audioId);
     await api(`/api/workspace/projects/${projectId}/audio/selection`, {
       method: "PUT",
-      body: JSON.stringify({ audioAssetId: audioId }),
+      body: JSON.stringify({ assetId: audioId, audioAssetId: audioId }),
     });
   } else {
     fail("audio_upload", upload.text.slice(0, 200));
@@ -160,16 +205,37 @@ async function main() {
 
   // Wait briefly for intelligence if kicked off by selection
   if (audioId) {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 40; i++) {
       const intel = await api(`/api/workspace/audio-library/${audioId}/intelligence`);
       if (intel.json?.intelligence?.status === "READY" || intel.json?.status === "READY") {
         pass("audio_intelligence", `bpm=${intel.json?.intelligence?.bpm ?? "n/a"}`);
         break;
       }
-      if (i === 19) pass("audio_intelligence", `pending:${intel.json?.status || intel.json?.intelligence?.status || "unknown"}`);
-      await new Promise((r) => setTimeout(r, 1000));
+      if (i === 39) pass("audio_intelligence", `pending:${intel.json?.status || intel.json?.intelligence?.status || "unknown"}`);
+      await new Promise((r) => setTimeout(r, 1500));
     }
   }
+
+  try {
+    await api(`/api/product-asset-preparation/projects/${projectId}/prepare`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  } catch { /* optional */ }
+
+  const planGen = await api(`/api/workspace/projects/${projectId}/plan`, {
+    method: "POST",
+    body: JSON.stringify({ action: "generate", productionMode: "AI_PRODUCT_MOTION", creativeTone: "Premium" }),
+  });
+  if (planGen.res.ok) pass("creative_plan_generate", "ok");
+  else fail("creative_plan_generate", planGen.text.slice(0, 200));
+
+  const planFin = await api(`/api/workspace/projects/${projectId}/plan/finalize`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+  if (planFin.res.ok) pass("creative_plan_finalize", "ok");
+  else fail("creative_plan_finalize", planFin.text.slice(0, 200));
 
   // Settings
   const settings = await api(`/api/workspace/projects/${projectId}/audio-visual-director/settings`, {
@@ -182,7 +248,7 @@ async function main() {
     fail("director_settings", settings.text.slice(0, 200));
   }
 
-  // Create / refresh video project (requires creative plan — may fail)
+  // Create / refresh video project
   const createVideo = await api(`/api/video-production/projects/${projectId}`, {
     method: "POST",
     body: JSON.stringify({ action: "create" }),
@@ -202,12 +268,11 @@ async function main() {
       else fail("director_analyze", analyzed.text.slice(0, 240));
     }
   } else {
-    // Creative plan missing is a known dependency — try analyze anyway / report partial
     const analyzed = await api(`/api/workspace/projects/${projectId}/audio-visual-director/analyze`, { method: "POST" });
     planBody = analyzed.json;
     if (analyzed.res.ok && analyzed.json?.plan) {
       pass("director_analyze", analyzed.json.plan.status);
-      pass("video_project", "deferred — analyze ok without full render path");
+      pass("video_project", "analyze-ok-without-create");
     } else {
       fail("video_project", createVideo.text.slice(0, 200));
       pass("director_analyze_blocked", analyzed.json?.code || String(analyzed.res.status));
