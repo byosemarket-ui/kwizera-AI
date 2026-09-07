@@ -351,27 +351,6 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
   bootPromise = (async () => {
     const storageRoot = resolveStorageRoot();
-    // Always quarantine truncated/corrupt JSON before any manager loads storage.
-    try {
-      const fsSync = await import("node:fs");
-      const { spawnSync } = await import("node:child_process");
-      const helper = path.join(process.cwd(), "deploy", "quarantine-corrupt-json.mjs");
-      if (fsSync.existsSync(helper)) {
-        console.log("[KWIZERA] pre-boot corrupt JSON quarantine…");
-        spawnSync(process.execPath, [helper], {
-          env: { ...process.env, KWIZERA_STORAGE_ROOT: storageRoot },
-          stdio: "inherit",
-          windowsHide: true,
-          timeout: 60_000,
-        });
-      }
-    } catch (error) {
-      console.warn(
-        "[KWIZERA] pre-boot JSON quarantine skipped:",
-        error instanceof Error ? error.message : error,
-      );
-    }
-
     const dashboardUrl = buildDashboardUrl(host, port);
     const bootstrap = bootstrapPersistentStorage(storageRoot);
     sessionStore = new DevSessionStore(storageRoot, dashboardUrl);
@@ -388,6 +367,62 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       bootstrap: { created: bootstrap.created.length, existing: bootstrap.existing.length },
     };
 
+    // Fast inline quarantine of known high-risk stores (no child process dependency).
+    try {
+      status.message = "Quarantining corrupt JSON stores…";
+      const { readJsonSafe } = await import("../../storage/safe-json.js");
+      const candidates = [
+        "learning-intelligence-runtime/learning.json",
+        "image-intelligence-runtime/profiles.json",
+        "product-intelligence-runtime/profiles.json",
+        "marketing-intelligence-runtime/profiles.json",
+        "creative-pipeline-runtime/pipeline.json",
+        "creative-workspace/workspace-session.json",
+        "config/dev/session.json",
+        "memory/storage/record-index.json",
+        "knowledge/storage/knowledge-record-index.json",
+      ];
+      for (const relative of candidates) {
+        const filePath = path.join(storageRoot, relative);
+        await readJsonSafe(filePath, null);
+      }
+      status.message = "Booting persistent AI runtime…";
+    } catch (error) {
+      console.warn(
+        "[KWIZERA] inline JSON quarantine skipped:",
+        error instanceof Error ? error.message : error,
+      );
+      status.message = "Booting persistent AI runtime…";
+    }
+
+    // Optional broader helper — hard-capped so boot cannot hang.
+    try {
+      const fsSync = await import("node:fs");
+      const { spawnSync } = await import("node:child_process");
+      const helper = path.join(process.cwd(), "deploy", "quarantine-corrupt-json.mjs");
+      if (fsSync.existsSync(helper)) {
+        console.log("[KWIZERA] pre-boot corrupt JSON quarantine helper…");
+        const result = spawnSync(process.execPath, [helper], {
+          env: { ...process.env, KWIZERA_STORAGE_ROOT: storageRoot },
+          stdio: "inherit",
+          windowsHide: true,
+          timeout: 15_000,
+          killSignal: "SIGKILL",
+        });
+        if (result.error) {
+          console.warn("[KWIZERA] quarantine helper error:", result.error.message);
+        } else if (result.signal) {
+          console.warn("[KWIZERA] quarantine helper killed by", result.signal);
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "[KWIZERA] quarantine helper skipped:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
+    // Continue with normal boot (status already set above).
     if (!isPersistentMode()) {
       // Workspace-only boot. KWIZERA AI Core is deferred, not replaced by an external LLM.
       try {
