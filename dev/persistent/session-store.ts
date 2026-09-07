@@ -85,8 +85,16 @@ export class DevSessionStore {
         raw.ui ??= { filter: "", openPhases: ["blueprint", "ai-brain", "memory", "knowledge"] };
         raw.lastRuntime ??= createDefaultSession(storageRoot, dashboardUrl).lastRuntime;
         return raw;
-      } catch {
-        /* fall through to new session */
+      } catch (error) {
+        try {
+          const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+          fs.renameSync(this.sessionPath, `${this.sessionPath}.corrupt.${stamp}`);
+          console.warn("[KWIZERA] quarantined corrupt session.json", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        } catch {
+          /* ignore quarantine failure */
+        }
       }
     }
     return createDefaultSession(storageRoot, dashboardUrl);

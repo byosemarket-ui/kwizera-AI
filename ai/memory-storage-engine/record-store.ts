@@ -72,8 +72,23 @@ export class RecordStore {
     if (!fs.existsSync(currentPath)) {
       return { data: null, durationMs: Date.now() - start };
     }
-    const raw = fs.readFileSync(currentPath, "utf8");
-    return { data: JSON.parse(raw) as T, durationMs: Date.now() - start };
+    try {
+      const raw = fs.readFileSync(currentPath, "utf8");
+      return { data: JSON.parse(raw) as T, durationMs: Date.now() - start };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      try {
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        fs.renameSync(currentPath, `${currentPath}.corrupt.${stamp}`);
+        this.logger.log("warning", "recovery", "Quarantined corrupt memory current.json", {
+          recordPath,
+          reason: reason.slice(0, 200),
+        });
+      } catch {
+        /* ignore */
+      }
+      return { data: null, durationMs: Date.now() - start };
+    }
   }
 
   verifyRecordChecksum(recordPath: string): boolean {

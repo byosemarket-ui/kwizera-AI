@@ -608,11 +608,16 @@ export class CreativePlanningManager {
   }
 
   private async readJson<T>(filePath: string, fallback: T): Promise<T> {
-    try { return JSON.parse(await fs.readFile(filePath, "utf8")) as T; }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return fallback;
-      throw new Error(`Unable to read creative plan: ${error instanceof Error ? error.message : String(error)}`);
+    const { readJsonSafe } = await import("../../storage/safe-json.js");
+    const result = await readJsonSafe<T>(filePath, fallback);
+    if (result.recovered) {
+      console.warn("[creative-planning] recovered from corrupt JSON", {
+        filePath,
+        error: result.error,
+        quarantinedPath: result.quarantinedPath,
+      });
     }
+    return result.value;
   }
 
   private async writeJson(filePath: string, value: unknown): Promise<void> {

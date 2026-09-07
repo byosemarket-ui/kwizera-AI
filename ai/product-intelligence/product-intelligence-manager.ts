@@ -395,20 +395,26 @@ export class ProductIntelligenceManager {
   }
 
   private async readStore(): Promise<ProductIntelligenceStore> {
-    try {
-      const value = JSON.parse(await fs.readFile(path.join(this.root, "profiles.json"), "utf8")) as Partial<ProductIntelligenceStore>;
-      return {
-        ...structuredClone(EMPTY),
-        ...value,
-        profiles: (value.profiles ?? []).map(normalizeLegacyProfile),
-        history: value.history ?? [],
-        cache: value.cache ?? {},
-        logs: value.logs ?? [],
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY);
-      throw error;
+    const { readJsonSafe } = await import("../../storage/safe-json.js");
+    const result = await readJsonSafe<Partial<ProductIntelligenceStore>>(
+      path.join(this.root, "profiles.json"),
+      {},
+    );
+    if (result.recovered) {
+      console.warn("[product-intelligence] recovered from corrupt profiles.json", {
+        error: result.error,
+        quarantinedPath: result.quarantinedPath,
+      });
     }
+    const value = result.value;
+    return {
+      ...structuredClone(EMPTY),
+      ...value,
+      profiles: (value.profiles ?? []).map(normalizeLegacyProfile),
+      history: value.history ?? [],
+      cache: value.cache ?? {},
+      logs: value.logs ?? [],
+    };
   }
 
   private async hydratePersistedProfile(

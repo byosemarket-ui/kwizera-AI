@@ -882,11 +882,30 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
         console.log("[KWIZERA] Initializing learning intelligence runtime");
-        learningIntelligenceManager = new AiLearningManager();
-        await learningIntelligenceManager.initialize(storageRoot, { core: manager, workspace: workspaceManager, products: productIntelligenceManager, images: imageIntelligenceManager, marketing: marketingIntelligenceManager, decisions: decisionIntelligenceManager });
-        if (manager.moduleManager) await manager.moduleManager.registerAndInitialize(createLearningIntelligencePlugin(learningIntelligenceManager, manager));
-        pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
-        console.log("[KWIZERA] Learning intelligence runtime initialized");
+        try {
+          learningIntelligenceManager = new AiLearningManager();
+          await learningIntelligenceManager.initialize(storageRoot, {
+            core: manager,
+            workspace: workspaceManager,
+            products: productIntelligenceManager,
+            images: imageIntelligenceManager,
+            marketing: marketingIntelligenceManager,
+            decisions: decisionIntelligenceManager,
+          });
+          if (manager.moduleManager) {
+            await manager.moduleManager.registerAndInitialize(
+              createLearningIntelligencePlugin(learningIntelligenceManager, manager),
+            );
+          }
+          pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
+          console.log("[KWIZERA] Learning intelligence runtime initialized");
+        } catch (learningError) {
+          learningIntelligenceManager = null;
+          console.warn(
+            "[KWIZERA] Learning intelligence deferred after store error:",
+            learningError instanceof Error ? learningError.message : learningError,
+          );
+        }
       imageGenerationManager.attachProductIntelligence(productIntelligenceManager);
       videoAudioGenerationManager.attachProductIntelligence(productIntelligenceManager);
       imageGenerationManager.attachImageIntelligence(imageIntelligenceManager);
@@ -901,9 +920,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       pipelineManager.attachImageIntelligence(imageIntelligenceManager);
         pipelineManager.attachMarketingIntelligence(marketingIntelligenceManager);
         pipelineManager.attachDecisionIntelligence(decisionIntelligenceManager);
-        pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
-        imageGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
-        videoAudioGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
+        if (learningIntelligenceManager) {
+          pipelineManager.attachLearningIntelligence(learningIntelligenceManager);
+          imageGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
+          videoAudioGenerationManager.attachLearningIntelligence(learningIntelligenceManager);
+        }
       const snapshot = await collectRuntimeSnapshot(manager);
       sessionStore.updateRuntime(snapshot);
 

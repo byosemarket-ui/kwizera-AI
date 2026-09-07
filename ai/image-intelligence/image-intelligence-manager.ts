@@ -514,20 +514,26 @@ export class ImageIntelligenceManager {
   }
 
   private async readStore(): Promise<ImageIntelligenceStore> {
-    try {
-      const value = JSON.parse(await fs.readFile(path.join(this.root, "profiles.json"), "utf8")) as Partial<ImageIntelligenceStore>;
-      return {
-        ...structuredClone(EMPTY),
-        ...value,
-        profiles: (value.profiles ?? []).map(normalizeLegacyImageProfile),
-        history: value.history ?? [],
-        cache: value.cache ?? {},
-        logs: value.logs ?? [],
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY);
-      throw error;
+    const { readJsonSafe } = await import("../../storage/safe-json.js");
+    const result = await readJsonSafe<Partial<ImageIntelligenceStore>>(
+      path.join(this.root, "profiles.json"),
+      {},
+    );
+    if (result.recovered) {
+      console.warn("[image-intelligence] recovered from corrupt profiles.json", {
+        error: result.error,
+        quarantinedPath: result.quarantinedPath,
+      });
     }
+    const value = result.value;
+    return {
+      ...structuredClone(EMPTY),
+      ...value,
+      profiles: (value.profiles ?? []).map(normalizeLegacyImageProfile),
+      history: value.history ?? [],
+      cache: value.cache ?? {},
+      logs: value.logs ?? [],
+    };
   }
 
   private ensureReady(): void {

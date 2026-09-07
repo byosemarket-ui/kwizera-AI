@@ -28,8 +28,30 @@ export class RecordIndex {
   }
 
   load(): void {
-    const raw = fs.readFileSync(this.indexPath, "utf8");
-    this.index = JSON.parse(raw) as MemoryStorageIndex;
+    try {
+      const raw = fs.readFileSync(this.indexPath, "utf8");
+      this.index = JSON.parse(raw) as MemoryStorageIndex;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      try {
+        const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const dest = `${this.indexPath}.corrupt.${stamp}`;
+        fs.renameSync(this.indexPath, dest);
+        this.logger.log("warning", "recovery", "Quarantined corrupt memory record-index.json", {
+          dest,
+          reason: reason.slice(0, 200),
+        });
+      } catch {
+        /* ignore */
+      }
+      this.index = {
+        version: INDEX_VERSION,
+        lastUpdated: new Date().toISOString(),
+        recordCount: 0,
+        entries: [],
+      };
+      this.persist();
+    }
   }
 
   persist(): void {

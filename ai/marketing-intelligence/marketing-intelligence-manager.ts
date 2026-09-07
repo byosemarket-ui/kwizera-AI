@@ -83,7 +83,28 @@ export class MarketingIntelligenceManager {
     };
   }
   private async retrieveFoundationKnowledge(project: CreativeProject): Promise<string[]> { const { retrieveFoundationKnowledgeForProject } = await import("../knowledge-foundation/knowledge-teaching-service.js"); return retrieveFoundationKnowledgeForProject(this.core?.knowledgeFoundation, project, "marketing-intelligence-manager", ["marketing", "campaign", "cta"]); }
-  private async readStore(): Promise<MarketingIntelligenceStore> { try { const value = JSON.parse(await fs.readFile(path.join(this.root, "profiles.json"), "utf8")) as Partial<MarketingIntelligenceStore>; return { ...structuredClone(EMPTY), ...value, profiles: value.profiles ?? [], history: value.history ?? [], cache: value.cache ?? {}, logs: value.logs ?? [] }; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return structuredClone(EMPTY); throw error; } }
+  private async readStore(): Promise<MarketingIntelligenceStore> {
+    const { readJsonSafe } = await import("../../storage/safe-json.js");
+    const result = await readJsonSafe<Partial<MarketingIntelligenceStore>>(
+      path.join(this.root, "profiles.json"),
+      {},
+    );
+    if (result.recovered) {
+      console.warn("[marketing-intelligence] recovered from corrupt profiles.json", {
+        error: result.error,
+        quarantinedPath: result.quarantinedPath,
+      });
+    }
+    const value = result.value;
+    return {
+      ...structuredClone(EMPTY),
+      ...value,
+      profiles: value.profiles ?? [],
+      history: value.history ?? [],
+      cache: value.cache ?? {},
+      logs: value.logs ?? [],
+    };
+  }
   private ensureReady(): void { if (!this.root || !this.workspace || !this.products || !this.images) throw new Error("Marketing Intelligence Manager is not initialized"); }
 }
 

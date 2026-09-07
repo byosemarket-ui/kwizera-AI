@@ -1225,12 +1225,16 @@ export class VideoProductionManager {
   }
 
   private async readJson<T>(filePath: string, fallback: T): Promise<T> {
-    try {
-      return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return fallback;
-      throw error;
+    const { readJsonSafe } = await import("../../storage/safe-json.js");
+    const result = await readJsonSafe<T>(filePath, fallback);
+    if (result.recovered) {
+      console.warn("[video-production] recovered from corrupt JSON", {
+        filePath,
+        error: result.error,
+        quarantinedPath: result.quarantinedPath,
+      });
     }
+    return result.value;
   }
 
   private async writeJson(filePath: string, value: unknown): Promise<void> {

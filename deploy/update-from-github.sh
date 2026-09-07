@@ -126,6 +126,11 @@ verify_live_routes() {
 }
 
 restart_service() {
+  # Quarantine truncated/corrupt JSON stores before boot (never deletes media).
+  if [[ -f "$APP_DIR/deploy/quarantine-corrupt-json.mjs" ]]; then
+    echo "[KWIZERA] scanning storage for corrupt JSON"
+    KWIZERA_STORAGE_ROOT="$STORAGE_ROOT" node "$APP_DIR/deploy/quarantine-corrupt-json.mjs" || true
+  fi
   install -m 644 "$APP_DIR/deploy/kwizera-ai.service" /etc/systemd/system/kwizera-ai.service
   if ! grep -q 'production-gateway.js' /etc/systemd/system/kwizera-ai.service; then
     echo "[KWIZERA] systemd unit was not updated to production-gateway.js" >&2

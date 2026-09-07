@@ -61,6 +61,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(sh).toContain('HEALTH_WAIT_SECONDS="${KWIZERA_HEALTH_WAIT_SECONDS:-720}"');
     expect(sh).toContain("verify-live-http.mjs");
     expect(sh).toContain("record-status.mjs");
+    expect(sh).toContain("quarantine-corrupt-json.mjs");
   });
 
   it("fails if Studio HTML is the Dev Dashboard or required artifacts are missing", () => {
@@ -93,6 +94,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("tests/unit/ai/video-production/step2a-brand-identity.test.ts");
     expect(yml).toContain("tests/unit/ai/audio-visual-director/step2f-av-director.test.ts");
     expect(yml).toContain("tests/unit/ai/video-production/final-hardening.test.ts");
+    expect(yml).toContain("tests/unit/storage/safe-json.test.ts");
     expect(yml).not.toContain("tests/unit/desktop");
     expect(yml).not.toContain("162.35.114.19");
     expect(yml).not.toMatch(/BEGIN (OPENSSH|RSA|EC) PRIVATE KEY/);
