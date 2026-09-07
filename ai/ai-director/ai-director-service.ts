@@ -124,9 +124,13 @@ export async function getAiDirectorDiagnostics(): Promise<AiDirectorDiagnostics>
   );
 }
 
-export async function getAiDirectorStatusSummary(): Promise<{
+export async function getAiDirectorStatusSummary(opts?: {
+  probeInference?: boolean;
+}): Promise<{
   creativeDirector: AiDirectorDiagnostics["creativeDirector"];
   ollamaReady: boolean;
+  ollamaInferenceReady: boolean;
+  ollamaStatusCode: string;
   ollamaNote: string;
   ollama: PublicOllamaReadiness;
   ollamaAdapter: {
@@ -160,12 +164,22 @@ export async function getAiDirectorStatusSummary(): Promise<{
       available: await videoProvider.isAvailable().catch(() => false),
     },
   );
-  // Status must not block on inference probes (1-vCPU hosts). Deep probe stays on diagnostics/cache opt-in.
-  const adapterHealth = await getCachedOllamaHealth({ probeInference: false });
+  // Default status stays tags-only for UI polling; ?probeInference=1 proves real inference.
+  const probeInference = opts?.probeInference === true;
+  const adapterHealth = await getCachedOllamaHealth({ probeInference });
+  const inferenceReady = adapterHealth.ready && adapterHealth.probedInference;
+  let ollamaStatusCode = adapterHealth.code;
+  if (inferenceReady) ollamaStatusCode = "OLLAMA_INFERENCE_READY";
+  else if (adapterHealth.ready && !adapterHealth.probedInference) ollamaStatusCode = "OLLAMA_READY";
+  else if (adapterHealth.code === "OLLAMA_TIMEOUT") ollamaStatusCode = "OLLAMA_RESOURCE_LIMITATION";
+  else if (!adapterHealth.ready) ollamaStatusCode = adapterHealth.code;
+
   const knowledge = getVideoKnowledgePackMeta();
   return {
     creativeDirector: diagnostics.creativeDirector,
     ollamaReady: readiness.ready && adapterHealth.ready,
+    ollamaInferenceReady: inferenceReady,
+    ollamaStatusCode,
     ollamaNote: adapterHealth.notes[0] ?? readiness.notes[0] ?? readiness.recommendedAction,
     ollama: toPublicOllamaReadiness(readiness),
     ollamaAdapter: {

@@ -261,7 +261,7 @@ function buildModelStrategy(input: {
   };
 }
 
-/** Public API payload — omits host URLs, RAM, CPU, and load averages. */
+/** Public API payload — omits bind URL and raw model name list; host capacity stays on probe/diagnostics. */
 export interface PublicOllamaReadiness {
   ready: boolean;
   status: OllamaServiceStatus;

@@ -2711,10 +2711,52 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   if (url.pathname === "/api/creative-director/status" && req.method === "GET") {
     try {
       const { getAiDirectorStatusSummary } = await import("../../ai/ai-director/ai-director-service.js");
-      const summary = await getAiDirectorStatusSummary();
+      const probeInference = url.searchParams.get("probeInference") === "1"
+        || url.searchParams.get("probe") === "1";
+      const summary = await getAiDirectorStatusSummary({ probeInference });
       sendJson(res, 200, { status: summary });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Creative director status failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/ai-director/ollama/probe" && req.method === "POST") {
+    try {
+      const body = JSON.parse((await readBody(req)) || "{}") as {
+        matrix?: boolean;
+        includeHeavy?: boolean;
+      };
+      const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+      const readiness = await assessOllamaReadiness();
+      const host = {
+        cpuCores: readiness.cpuCores,
+        totalMemoryGb: readiness.totalMemoryGb,
+        freeMemoryGb: readiness.freeMemoryGb,
+        loadAverage: readiness.loadAverage,
+        endpointBound: "127.0.0.1:11434",
+        publicExposure: false,
+      };
+      const { probeCapabilityMatrix, probeMinimalInference } = await import(
+        "../../ai/ai-provider/ollama-capability-probe.js"
+      );
+      if (body.matrix) {
+        const matrix = await probeCapabilityMatrix({ includeHeavy: body.includeHeavy === true });
+        sendJson(res, 200, {
+          host,
+          selectedModel: readiness.selectedModel,
+          matrix,
+          security: {
+            ollamaPublicProxy: false,
+            note: "Ollama remains localhost-only; this probe runs inside KWIZERA backend.",
+          },
+        });
+        return;
+      }
+      const minimal = await probeMinimalInference();
+      sendJson(res, 200, { host, selectedModel: readiness.selectedModel, minimal });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Ollama probe failed" });
     }
     return;
   }
