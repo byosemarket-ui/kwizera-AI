@@ -188,7 +188,7 @@ export class AiCoreManager {
     this.started = true;
     console.log("[KWIZERA] AI Core startup: configuration ready, initializing engines…");
 
-    const stageTimeoutMs = Number(process.env.KWIZERA_CORE_STAGE_TIMEOUT_MS || 45_000);
+    const stageTimeoutMs = Number(process.env.KWIZERA_CORE_STAGE_TIMEOUT_MS || 30_000);
     const softStage = async (name: string, fn: () => Promise<void>, timeoutMs = stageTimeoutMs): Promise<boolean> => {
       const startedAt = Date.now();
       try {
@@ -215,17 +215,19 @@ export class AiCoreManager {
 
     this._stateManager = new AiStateManager();
     this._stateManager.initialize(this, storageRoot);
-    const restored = await this._stateManager.restoreOnStartup();
-    const appState = this._stateManager.getApplicationState();
-    if (
-      appState === ApplicationState.Stopped ||
-      appState === ApplicationState.Starting ||
-      appState === ApplicationState.Recovering
-    ) {
-      this._stateManager.setApplicationState(ApplicationState.Loading, {
-        systemAction: restored ? "post-restore-engine-init" : "engine-initialization",
-      });
-    }
+    await softStage("state-restore", async () => {
+      const restored = await this._stateManager!.restoreOnStartup();
+      const appState = this._stateManager!.getApplicationState();
+      if (
+        appState === ApplicationState.Stopped ||
+        appState === ApplicationState.Starting ||
+        appState === ApplicationState.Recovering
+      ) {
+        this._stateManager!.setApplicationState(ApplicationState.Loading, {
+          systemAction: restored ? "post-restore-engine-init" : "engine-initialization",
+        });
+      }
+    }, Number(process.env.KWIZERA_CORE_STATE_TIMEOUT_MS || 20_000));
 
     this._moduleManager = new AiModuleManager();
     this._moduleManager.initialize(this, storageRoot);
@@ -249,7 +251,7 @@ export class AiCoreManager {
         await yieldEventLoop();
         const memoryPlugin = createMemoryFoundationPlugin(this._memoryFoundation!, this);
         await this._moduleManager!.registerAndInitialize(memoryPlugin);
-      }, Number(process.env.KWIZERA_CORE_MEMORY_TIMEOUT_MS || 60_000));
+      }, Number(process.env.KWIZERA_CORE_MEMORY_TIMEOUT_MS || 25_000));
       if (!memoryOk) {
         this._memoryFoundation = null;
       }
@@ -351,7 +353,7 @@ export class AiCoreManager {
         await yieldEventLoop();
         const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation!, this);
         await this._moduleManager!.registerAndInitialize(knowledgePlugin);
-      }, Number(process.env.KWIZERA_CORE_KNOWLEDGE_TIMEOUT_MS || 60_000));
+      }, Number(process.env.KWIZERA_CORE_KNOWLEDGE_TIMEOUT_MS || 25_000));
       if (!knowledgeOk) {
         this._knowledgeFoundation = null;
       }
@@ -514,40 +516,46 @@ export class AiCoreManager {
     });
 
     if (this._knowledgeFoundation) {
-      this._knowledgeFoundation.refreshIntegration(
-        this._memoryFoundation,
-        this._moduleManager,
-        this._stateManager,
-        this._communicationBus,
-        this._recoveryEngine,
-        this._systemHealthMonitor
-      );
-      await this._knowledgeFoundation.runHealthCheck();
+      await softStage("knowledge-health-check", async () => {
+        this._knowledgeFoundation!.refreshIntegration(
+          this._memoryFoundation,
+          this._moduleManager,
+          this._stateManager,
+          this._communicationBus,
+          this._recoveryEngine,
+          this._systemHealthMonitor
+        );
+        await this._knowledgeFoundation!.runHealthCheck();
+      }, 15_000);
     }
 
     if (this._productIntelligenceFoundation) {
-      this._productIntelligenceFoundation.refreshIntegration(
-        this._memoryFoundation,
-        this._knowledgeFoundation,
-        this._moduleManager,
-        this._stateManager,
-        this._recoveryEngine,
-        this._systemHealthMonitor
-      );
-      await this._productIntelligenceFoundation.runHealthCheck();
+      await softStage("product-intelligence-health-check", async () => {
+        this._productIntelligenceFoundation!.refreshIntegration(
+          this._memoryFoundation,
+          this._knowledgeFoundation,
+          this._moduleManager,
+          this._stateManager,
+          this._recoveryEngine,
+          this._systemHealthMonitor
+        );
+        await this._productIntelligenceFoundation!.runHealthCheck();
+      }, 15_000);
     }
 
     if (this._imageIntelligenceFoundation) {
-      this._imageIntelligenceFoundation.refreshIntegration(
-        this._memoryFoundation,
-        this._knowledgeFoundation,
-        this._productIntelligenceFoundation,
-        this._moduleManager,
-        this._stateManager,
-        this._recoveryEngine,
-        this._systemHealthMonitor
-      );
-      await this._imageIntelligenceFoundation.runHealthCheck();
+      await softStage("image-intelligence-health-check", async () => {
+        this._imageIntelligenceFoundation!.refreshIntegration(
+          this._memoryFoundation,
+          this._knowledgeFoundation,
+          this._productIntelligenceFoundation,
+          this._moduleManager,
+          this._stateManager,
+          this._recoveryEngine,
+          this._systemHealthMonitor
+        );
+        await this._imageIntelligenceFoundation!.runHealthCheck();
+      }, 15_000);
     }
 
     if (this._videoIntelligenceFoundation) {
@@ -618,23 +626,31 @@ export class AiCoreManager {
     await this._moduleManager.registerAndInitialize(modelManagementPlugin);
 
     this._toolManager = new AiToolManager();
-    await this._toolManager.initialize(this, storageRoot);
-    await this._toolManager.discover(createBuiltInTools(this));
-    await this._toolManager.monitor();
+    await softStage("tool-manager", async () => {
+      await this._toolManager!.initialize(this, storageRoot);
+      await this._toolManager!.discover(createBuiltInTools(this));
+      await this._toolManager!.monitor();
+    }, 20_000);
 
     this._pluginManager = new AiPluginManager();
-    await this._pluginManager.initialize(this, this._toolManager, storageRoot);
-    const internalPlugins = createInternalPlugins(this);
-    await this._pluginManager.discover(internalPlugins);
-    for (const plugin of internalPlugins) await this._pluginManager.load(plugin.manifest.id);
-    await this._pluginManager.monitor();
+    await softStage("plugin-manager", async () => {
+      await this._pluginManager!.initialize(this, this._toolManager!, storageRoot);
+      const internalPlugins = createInternalPlugins(this);
+      await this._pluginManager!.discover(internalPlugins);
+      for (const plugin of internalPlugins) await this._pluginManager!.load(plugin.manifest.id);
+      await this._pluginManager!.monitor();
+    }, 20_000);
 
     this._connectorManager = new AiConnectorManager();
-    await this._connectorManager.initialize(this, this._toolManager, storageRoot);
-    await this._connectorManager.monitor();
+    await this._connectorManager.initialize(this, this._toolManager!, storageRoot);
+    await softStage("connector-monitor", async () => {
+      await this._connectorManager!.monitor();
+    }, 10_000);
 
     this._desktopIntegrationManager = new AiDesktopIntegrationManager();
-    await this._desktopIntegrationManager.initialize(this, this._toolManager, storageRoot);
+    await softStage("desktop-integration", async () => {
+      await this._desktopIntegrationManager!.initialize(this, this._toolManager!, storageRoot);
+    }, 15_000);
 
     this._stateManager.syncAiCoreState(this.getLifecycleState(), {
       systemAction: "startup-complete",

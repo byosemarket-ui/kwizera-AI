@@ -469,7 +469,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       console.log("[KWIZERA] Starting KWIZERA AI Core…");
       status.message = "Starting KWIZERA AI Core…";
       // Soft-fail stages inside Core; keep overall ceiling for deploy health waits.
-      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 120_000);
+      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 180_000);
       const coreBootGeneration = Symbol("core-boot");
       (globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration = coreBootGeneration;
       try {
