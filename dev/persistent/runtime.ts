@@ -457,6 +457,9 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       // Memory + Knowledge remain enabled; corrupt JSON is quarantined via safe-json sync readers.
       core = createAiCore({
         storageRootOverride: storageRoot,
+        skipProductIntelligenceFoundation: true,
+        skipImageIntelligenceFoundation: true,
+        skipVideoIntelligenceFoundation: true,
         skipVideoGenerationFoundation: true,
         skipImageGenerationFoundation: true,
         skipAudioGenerationFoundation: true,
@@ -465,8 +468,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
       console.log("[KWIZERA] Starting KWIZERA AI Core…");
       status.message = "Starting KWIZERA AI Core…";
-      // Allow slow VPS Core restore; fallback only if truly hung after soft JSON recovery.
-      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 180_000);
+      // Soft-fail stages inside Core; keep overall ceiling for deploy health waits.
+      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 120_000);
       const coreBootGeneration = Symbol("core-boot");
       (globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration = coreBootGeneration;
       try {

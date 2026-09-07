@@ -188,6 +188,27 @@ export class AiCoreManager {
     this.started = true;
     console.log("[KWIZERA] AI Core startup: configuration ready, initializing engines…");
 
+    const stageTimeoutMs = Number(process.env.KWIZERA_CORE_STAGE_TIMEOUT_MS || 45_000);
+    const softStage = async (name: string, fn: () => Promise<void>, timeoutMs = stageTimeoutMs): Promise<boolean> => {
+      const startedAt = Date.now();
+      try {
+        await Promise.race([
+          fn(),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error(`${name} timed out after ${timeoutMs}ms`)), timeoutMs);
+          }),
+        ]);
+        console.log(`[KWIZERA] AI Core stage ok: ${name} (${Date.now() - startedAt}ms)`);
+        return true;
+      } catch (error) {
+        console.error(
+          `[KWIZERA] AI Core stage soft-fail: ${name}`,
+          error instanceof Error ? error.message : error,
+        );
+        return false;
+      }
+    };
+
     const storageRoot =
       this.options.storageRootOverride ??
       this.configuration.getConfiguration().storage.storageRoot;
@@ -223,12 +244,15 @@ export class AiCoreManager {
         this._stateManager,
         this._communicationBus
       );
-      await this._memoryFoundation.runStartup();
-      console.log("[KWIZERA] AI Core startup: memory foundation ready");
-      await yieldEventLoop();
-      const memoryPlugin = createMemoryFoundationPlugin(this._memoryFoundation, this);
-      await this._moduleManager.registerAndInitialize(memoryPlugin);
-      console.log("[KWIZERA] AI Core startup: memory plugin registered");
+      const memoryOk = await softStage("memory-foundation", async () => {
+        await this._memoryFoundation!.runStartup();
+        await yieldEventLoop();
+        const memoryPlugin = createMemoryFoundationPlugin(this._memoryFoundation!, this);
+        await this._moduleManager!.registerAndInitialize(memoryPlugin);
+      }, Number(process.env.KWIZERA_CORE_MEMORY_TIMEOUT_MS || 60_000));
+      if (!memoryOk) {
+        this._memoryFoundation = null;
+      }
     }
 
     if (!this.options.skipReasoningEngine) {
@@ -322,11 +346,15 @@ export class AiCoreManager {
         this._communicationBus
       );
       process.stdout.write("[KWIZERA] AI Core startup: knowledge foundation initialize() done, running startup…\n");
-      await this._knowledgeFoundation.runStartup();
-      console.log("[KWIZERA] AI Core startup: knowledge foundation ready");
-      await yieldEventLoop();
-      const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation, this);
-      await this._moduleManager.registerAndInitialize(knowledgePlugin);
+      const knowledgeOk = await softStage("knowledge-foundation", async () => {
+        await this._knowledgeFoundation!.runStartup();
+        await yieldEventLoop();
+        const knowledgePlugin = createKnowledgeFoundationPlugin(this._knowledgeFoundation!, this);
+        await this._moduleManager!.registerAndInitialize(knowledgePlugin);
+      }, Number(process.env.KWIZERA_CORE_KNOWLEDGE_TIMEOUT_MS || 60_000));
+      if (!knowledgeOk) {
+        this._knowledgeFoundation = null;
+      }
     }
 
     this._conversationEngine = new AiConversationEngine();
@@ -464,10 +492,11 @@ export class AiCoreManager {
       this._stateManager,
       this._communicationBus
     );
-    await this._recoveryEngine.runStartupRecovery();
-
-    const recoveryPlugin = createRecoveryEnginePlugin(this._recoveryEngine, this);
-    await this._moduleManager.registerAndInitialize(recoveryPlugin);
+    await softStage("recovery-engine", async () => {
+      await this._recoveryEngine!.runStartupRecovery();
+      const recoveryPlugin = createRecoveryEnginePlugin(this._recoveryEngine!, this);
+      await this._moduleManager!.registerAndInitialize(recoveryPlugin);
+    });
 
     this._systemHealthMonitor = new AiSystemHealthMonitor();
     this._systemHealthMonitor.initialize(
@@ -478,10 +507,11 @@ export class AiCoreManager {
       this._communicationBus,
       this._recoveryEngine
     );
-    await this._systemHealthMonitor.runHealthScan();
-
-    const healthPlugin = createHealthMonitorPlugin(this._systemHealthMonitor, this);
-    await this._moduleManager.registerAndInitialize(healthPlugin);
+    await softStage("system-health-monitor", async () => {
+      await this._systemHealthMonitor!.runHealthScan();
+      const healthPlugin = createHealthMonitorPlugin(this._systemHealthMonitor!, this);
+      await this._moduleManager!.registerAndInitialize(healthPlugin);
+    });
 
     if (this._knowledgeFoundation) {
       this._knowledgeFoundation.refreshIntegration(
