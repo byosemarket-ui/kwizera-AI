@@ -333,7 +333,7 @@ async function main() {
 
   const planGen = await api(`/api/workspace/projects/${projectId}/plan`, {
     method: "POST",
-    body: JSON.stringify({}),
+    body: JSON.stringify({ action: "generate", productionMode: "AI_PRODUCT_MOTION", creativeTone: "Premium" }),
   }, 300000);
   const plan = planGen.json?.plan || planGen.json;
   summary.plan = {

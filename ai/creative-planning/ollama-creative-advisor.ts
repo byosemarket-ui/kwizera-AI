@@ -340,14 +340,22 @@ export class OllamaCreativeAdvisor {
       generated.latencyMs,
     );
 
-    if (!validated || validated.confidenceBand === "LOW") {
+    if (!validated) {
       console.info("[OLLAMA_CREATIVE_ADVISOR]", {
-        phase: "low_confidence_or_invalid",
+        phase: "invalid_structure",
         projectId: ctx.projectId,
         model: generated.model,
         latencyMs: generated.latencyMs,
       });
       return deterministicAnalysis(ctx, skills);
+    }
+
+    // Tiny models often self-score LOW; still consume validated structure honestly.
+    if (validated.confidenceBand === "LOW") {
+      validated.limitations = [
+        ...validated.limitations,
+        "Ollama confidence band LOW — KWIZERA validators/engines remain authoritative.",
+      ];
     }
 
     console.info("[OLLAMA_CREATIVE_ADVISOR]", {
@@ -356,6 +364,7 @@ export class OllamaCreativeAdvisor {
       model: generated.model,
       latencyMs: generated.latencyMs,
       confidence: validated.confidence,
+      confidenceBand: validated.confidenceBand,
       skills: validated.appliedSkillIds,
       knowledgeVersion: validated.knowledgeVersion,
     });
