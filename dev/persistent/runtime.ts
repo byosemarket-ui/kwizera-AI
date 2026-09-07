@@ -456,8 +456,10 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
       console.log("[KWIZERA] Starting KWIZERA AI Core…");
       status.message = "Starting KWIZERA AI Core…";
-      // Keep short so a hung Core cannot exhaust deploy health waits; fall back to workspace-only.
-      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 60_000);
+      // Allow slow VPS Core restore (memory/knowledge). Fallback only if truly hung.
+      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 300_000);
+      const coreBootGeneration = Symbol("core-boot");
+      (globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration = coreBootGeneration;
       try {
         await Promise.race([
           core.start("persistent-dev-restore"),
@@ -467,11 +469,16 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
             }, coreBootTimeoutMs);
           }),
         ]);
+        if ((globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration !== coreBootGeneration) {
+          throw new Error("KWIZERA AI Core boot superseded");
+        }
       } catch (coreBootError) {
         console.error(
           "[KWIZERA] Core boot failed — falling back to workspace-only mode:",
           coreBootError instanceof Error ? coreBootError.message : coreBootError,
         );
+        // Invalidate late Core completion so a hung start cannot overwrite workspace mode.
+        (globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration = Symbol("core-boot-abandoned");
         core = null;
         // Reuse lightweight workspace path so production remains usable.
         workspaceManager = new CreativeWorkspaceManager();

@@ -175,10 +175,11 @@ async function main() {
   else if (commit) pass("deployed_commit", commit);
   else pass("deployed_commit", "unchecked");
 
-  // Existing projects remain
-  const listBefore = await api("/api/workspace/projects");
+  // Existing projects remain (list lives on GET /api/workspace)
+  const listBefore = await api("/api/workspace");
   const existingCount = (listBefore.json?.projects || []).length;
-  pass("existing_projects", `count=${existingCount}`);
+  if (existingCount >= 0 && listBefore.res.ok) pass("existing_projects", `count=${existingCount}`);
+  else fail("existing_projects", listBefore.text?.slice(0, 120) || "list failed");
 
   // AI Sound honesty
   const sound = await api("/api/workspace/ai-sound/health");

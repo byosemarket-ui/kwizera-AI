@@ -4178,6 +4178,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/workspace/projects" && req.method === "GET") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const projects = await workspace.listProjects();
+      const activeProject = await workspace.getActiveProject();
+      sendJson(res, 200, { projects, activeProject });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
   if (url.pathname === "/api/workspace/projects" && req.method === "POST") {
 
     const workspace = requireWorkspace(res);
