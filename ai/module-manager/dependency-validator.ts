@@ -47,7 +47,18 @@ export class ModuleDependencyValidator {
       const registry = core.registry;
       const slot = registry.getEntry(dep);
       const pluginRegistered = registry.getPlugin(dep);
-      const passed = Boolean(pluginRegistered) || slot?.status === "initialized";
+      let passed = Boolean(pluginRegistered) || slot?.status === "initialized";
+      // Memory/Knowledge may be deferred at boot to keep production Core ready.
+      // Dependent modules still register; foundation features soft-fail until loaded.
+      if (!passed && (dep === "memory-engine" || dep === "knowledge-engine")) {
+        passed = true;
+        checks.push({
+          name: `required-module:${dep}`,
+          passed: true,
+          message: `${dep} deferred (optional at boot)`,
+        });
+        continue;
+      }
       checks.push({
         name: `required-module:${dep}`,
         passed,
