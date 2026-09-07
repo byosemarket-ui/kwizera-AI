@@ -187,8 +187,16 @@ function validateAnalysis(
   const sequenceRaw = Array.isArray(raw.imageSequenceHint)
     ? raw.imageSequenceHint.map(String)
     : [];
-  const sequence = sequenceRaw.filter((id) => allowedIds.has(id));
-  // If AI hallucinated all IDs, reject for fallback.
+  const sequence = sequenceRaw
+    .map((id) => {
+      if (allowedIds.has(id)) return id;
+      const byRole = ctx.assetSummaries.find(
+        (a) => (a.viewRole || "").toUpperCase() === id.toUpperCase(),
+      );
+      return byRole?.assetId;
+    })
+    .filter((id): id is string => Boolean(id));
+  // If AI hallucinated all IDs/roles, reject for fallback.
   if (sequenceRaw.length && sequence.length === 0) return null;
 
   const transitions = (Array.isArray(raw.recommendedTransitions) ? raw.recommendedTransitions : [])

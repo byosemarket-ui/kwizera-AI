@@ -123,9 +123,9 @@ export async function probeCapabilityMatrix(opts?: {
     }),
   ));
 
-  results.push(await runStructuredTask(
+    results.push(await runStructuredTask(
     "product_marketing_reasoning",
-    'Product: leather shoes. Return JSON: {"audience":"professionals","sellingPoint":"durable style","confidence":0.7}',
+    'Return JSON only: {"audience":"professionals","sellingPoint":"durable style","confidence":0.7}',
     (data) => ({
       ok: typeof data.audience === "string" && typeof data.sellingPoint === "string",
       detail: String(data.sellingPoint ?? "").slice(0, 60),

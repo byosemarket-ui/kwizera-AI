@@ -168,7 +168,42 @@ async function main() {
   if (r.ready && r.selectedModel) pass("ollama_readiness", `${r.selectedModel} tier=${r.modelStrategy?.tier}`);
   else fail("ollama_readiness", JSON.stringify(r).slice(0, 160));
 
-  // Real inference probe (after deploy of probe API) — may 404 on older commits
+  // Creative advisor BEFORE heavy matrix (avoid starving 1-vCPU host).
+  const advisor = await api("/api/ai-director/creative-advisor/analyze", {
+    method: "POST",
+    body: JSON.stringify({
+      projectId: `ollama-audit-${Date.now()}`,
+      productName: "Audit Trail Runner",
+      productCategory: "Footwear",
+      brandName: "KWIZERA Audit",
+      targetAudience: "Urban runners",
+      marketingObjective: "Short social product video",
+      imageRoles: ["HERO", "DETAIL", "PACKAGING"],
+      bpm: 120,
+      energy: "high",
+      creativeMode: "energetic",
+    }),
+  }, 180000);
+  const adv = advisor.json?.result;
+  summary.advisor = adv;
+  if (advisor.res.ok && adv) {
+    pass("advisor_http", `source=${adv.source} model=${adv.model} latency=${adv.latencyMs}`);
+    if (adv.source === "ollama") {
+      pass("advisor_ollama_consumed", `confidence=${adv.confidence}`);
+      summary.ollamaParticipation.push("creative-advisor structured product recommendations");
+    } else {
+      pass("advisor_fallback", `deterministic — ${JSON.stringify(adv.limitations?.[0] || "").slice(0, 80)}`);
+      summary.fallback = "advisor deterministic-fallback";
+    }
+    const limOk = Array.isArray(adv.limitations)
+      && adv.limitations.some((l) => /cannot see|do not see|text-only|pixels/i.test(String(l)));
+    if (limOk) pass("advisor_textonly_honesty", adv.limitations.find((l) => /cannot see|do not see|text-only|pixels/i.test(String(l))));
+    else fail("advisor_textonly_honesty", "missing visual-limitation note");
+  } else {
+    fail("advisor_http", advisor.text.slice(0, 160));
+  }
+
+  // Real inference probe + capability matrix (serial, resource-aware)
   const probe = await api("/api/ai-director/ollama/probe", {
     method: "POST",
     body: JSON.stringify({ matrix: true, includeHeavy: false }),
@@ -206,47 +241,11 @@ async function main() {
       if (row.verdict === "SUCCESS" || row.verdict === "PARTIAL") {
         pass(`matrix_${row.task}`, `${row.verdict} ${row.latencyMs}ms`);
       } else {
-        // Model/resource limits are expected classifications, not script failures.
         pass(`matrix_${row.task}`, `${row.verdict} ${row.detail}`.slice(0, 140));
       }
     }
   } else {
     fail("capability_matrix", probe.text.slice(0, 180));
-  }
-
-  // Creative advisor — must consume Ollama when capable
-  const advisor = await api("/api/ai-director/creative-advisor/analyze", {
-    method: "POST",
-    body: JSON.stringify({
-      projectId: `ollama-audit-${Date.now()}`,
-      productName: "Audit Trail Runner",
-      productCategory: "Footwear",
-      brandName: "KWIZERA Audit",
-      targetAudience: "Urban runners",
-      marketingObjective: "Short social product video",
-      imageRoles: ["HERO", "DETAIL", "PACKAGING"],
-      bpm: 120,
-      energy: "high",
-      creativeMode: "energetic",
-    }),
-  }, 180000);
-  const adv = advisor.json?.result;
-  summary.advisor = adv;
-  if (advisor.res.ok && adv) {
-    pass("advisor_http", `source=${adv.source} model=${adv.model} latency=${adv.latencyMs}`);
-    if (adv.source === "ollama") {
-      pass("advisor_ollama_consumed", `confidence=${adv.confidence}`);
-      summary.ollamaParticipation.push("creative-advisor structured product recommendations");
-    } else {
-      pass("advisor_fallback", `deterministic — ${JSON.stringify(adv.limitations?.[0] || "").slice(0, 80)}`);
-      summary.fallback = "advisor deterministic-fallback";
-    }
-    const limOk = Array.isArray(adv.limitations)
-      && adv.limitations.some((l) => /cannot see|do not see|text-only|pixels/i.test(String(l)));
-    if (limOk) pass("advisor_textonly_honesty", adv.limitations[0]);
-    else fail("advisor_textonly_honesty", "missing visual-limitation note");
-  } else {
-    fail("advisor_http", advisor.text.slice(0, 160));
   }
 
   // Full project → plan (AI Creative Director) → AV director → render
@@ -283,6 +282,9 @@ async function main() {
           callToAction: "Shop Now",
           duration: "15",
         },
+        platform: "tiktok",
+        language: "en",
+        beatSyncMode: "SMART",
       },
     }),
   }, 60000);
@@ -292,8 +294,9 @@ async function main() {
     body: JSON.stringify({
       fileName: "hero.png",
       mimeType: "image/png",
-      contentBase64: png(320, 480, 40, 120, 200),
-      role: "HERO",
+      dataBase64: png(640, 800, 40, 120, 200),
+      width: 640,
+      height: 800,
     }),
   }, 90000);
   const imgB = await api(`/api/workspace/projects/${projectId}/images`, {
@@ -301,27 +304,28 @@ async function main() {
     body: JSON.stringify({
       fileName: "detail.png",
       mimeType: "image/png",
-      contentBase64: png(320, 480, 200, 80, 40),
-      role: "DETAIL",
+      dataBase64: png(640, 800, 200, 80, 40),
+      width: 640,
+      height: 800,
     }),
   }, 90000);
-  if (imgA.res.ok && imgB.res.ok) pass("images", `${imgA.json?.asset?.id || "a"},${imgB.json?.asset?.id || "b"}`);
-  else fail("images", `${imgA.res.status}/${imgB.res.status}`);
+  if (imgA.res.ok && imgB.res.ok) pass("images", `${imgA.json?.image?.id || "a"},${imgB.json?.image?.id || "b"}`);
+  else fail("images", `${imgA.res.status}/${imgB.res.status} ${imgA.text.slice(0, 80)}`);
 
   const audio = await api(`/api/workspace/projects/${projectId}/audio`, {
     method: "POST",
     body: JSON.stringify({
       fileName: "audit-beat.wav",
       mimeType: "audio/wav",
-      contentBase64: makeWavBase64(8, 120),
+      dataBase64: makeWavBase64(8, 120),
     }),
   }, 90000);
-  const audioId = audio.json?.asset?.id || audio.json?.audioAsset?.id;
+  const audioId = audio.json?.audio?.assetId;
   if (audio.res.ok && audioId) {
     pass("audio", audioId);
     await api(`/api/workspace/projects/${projectId}/audio/selection`, {
       method: "PUT",
-      body: JSON.stringify({ selectedAudioAssetId: audioId, enabled: true }),
+      body: JSON.stringify({ assetId: audioId, audioAssetId: audioId }),
     }, 30000);
   } else {
     fail("audio", audio.text.slice(0, 120));
