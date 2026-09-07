@@ -37,7 +37,6 @@ async function main() {
 
   const projectId = `intel-proof-${Date.now().toString(36)}`;
 
-  // Decision without prior learning (deterministic path).
   const decide1 = await json(`${BASE}/api/intelligence-layer/decide`, {
     method: "POST",
     body: JSON.stringify({
@@ -54,7 +53,6 @@ async function main() {
   });
   report.steps.push({ name: "decide-deterministic", ...decide1 });
 
-  // Optional Ollama-assisted decision (may fallback).
   const decideAi = await json(`${BASE}/api/intelligence-layer/decide`, {
     method: "POST",
     body: JSON.stringify({
@@ -70,7 +68,33 @@ async function main() {
   });
   report.steps.push({ name: "decide-ollama", ...decideAi });
 
-  // Strong learning event → possible promotion.
+  // Isolated weak observation with no hook signal — must refuse this pattern family.
+  const weakAlone = await json(`${BASE}/api/intelligence-layer/record-learning`, {
+    method: "POST",
+    body: JSON.stringify({
+      projectId: `${projectId}-weak-alone`,
+      qualityScore: 71,
+      planSource: "ai",
+      scenePurposes: ["FEATURE", "CTA"],
+      renderSucceeded: true,
+    }),
+  });
+  report.steps.push({ name: "record-learning-weak-alone", ...weakAlone });
+
+  // Failed render — must refuse.
+  const failed = await json(`${BASE}/api/intelligence-layer/record-learning`, {
+    method: "POST",
+    body: JSON.stringify({
+      projectId: `${projectId}-failed`,
+      qualityScore: 40,
+      planSource: "ai",
+      scenePurposes: ["HOOK"],
+      renderSucceeded: false,
+    }),
+  });
+  report.steps.push({ name: "record-learning-failed", ...failed });
+
+  // Strong learning event → promotion allowed.
   const learn = await json(`${BASE}/api/intelligence-layer/record-learning`, {
     method: "POST",
     body: JSON.stringify({
@@ -83,21 +107,7 @@ async function main() {
       renderSucceeded: true,
     }),
   });
-  report.steps.push({ name: "record-learning", ...learn });
-
-  // Weak learning must refuse promotion path (separate project).
-  const weak = await json(`${BASE}/api/intelligence-layer/record-learning`, {
-    method: "POST",
-    body: JSON.stringify({
-      projectId: `${projectId}-weak`,
-      qualityScore: 71,
-      planSource: "ai",
-      scenePurposes: ["HOOK", "CTA"],
-      renderSucceeded: true,
-      forceStrong: false,
-    }),
-  });
-  report.steps.push({ name: "record-learning-weak", ...weak });
+  report.steps.push({ name: "record-learning-strong", ...learn });
 
   const learningGet = await json(`${BASE}/api/intelligence-layer/projects/${encodeURIComponent(projectId)}/learning`);
   report.steps.push({ name: "get-learning", ...learningGet });
@@ -118,31 +128,38 @@ async function main() {
   report.steps.push({ name: "second-pass", ...second });
 
   const promoted = Boolean(learn.body?.promoted?.length);
-  const refusedWeak = Array.isArray(weak.body?.refused) && weak.body.refused.length > 0
-    && (!weak.body.promoted || weak.body.promoted.length === 0);
+  const refusedWeak = Array.isArray(weakAlone.body?.refused) && weakAlone.body.refused.length > 0
+    && (!weakAlone.body.promoted || weakAlone.body.promoted.length === 0);
+  const refusedFailed = Array.isArray(failed.body?.refused) && failed.body.refused.length > 0
+    && (!failed.body.promoted || failed.body.promoted.length === 0);
   const secondInfluenced = Boolean(second.body?.learningInfluenced)
     || Boolean(second.body?.decision?.knowledgePatternIds?.length);
   const decisionOk = Boolean(decide1.body?.decision?.decisionId);
   const layerReady = Boolean(status.body?.status?.ready);
+  const motionClamped = !String(decideAi.body?.decision?.motion || "").includes(" with ");
 
   report.complete = layerReady && decisionOk && Boolean(learn.body?.event)
-    && (promoted ? secondInfluenced : true)
-    && refusedWeak;
+    && promoted && secondInfluenced && refusedWeak && refusedFailed && motionClamped;
   report.summary = {
     layerReady,
     decisionOk,
     learningEventId: learn.body?.event?.eventId ?? null,
     promoted,
-    promotionRefusedForWeak: refusedWeak,
+    promotionRefusedForWeakAlone: refusedWeak,
+    promotionRefusedForFailed: refusedFailed,
     secondPassLearningInfluenced: secondInfluenced,
     ollamaDecisionSource: decideAi.body?.decision?.reasoningSource ?? null,
     ollamaModel: decideAi.body?.decision?.model ?? null,
+    ollamaMotion: decideAi.body?.decision?.motion ?? null,
+    motionClampedSafe: motionClamped,
     classification: {
-      strongPromotion: promoted ? "FIXED_OR_WORKING" : "FALLBACK_OR_INSUFFICIENT_EVIDENCE",
+      strongPromotion: promoted ? "WORKING" : "FAILED",
       weakRefusal: refusedWeak ? "CORRECT_REFUSAL" : "UNEXPECTED",
+      failedRefusal: refusedFailed ? "CORRECT_REFUSAL" : "UNEXPECTED",
       ollama: decideAi.body?.decision?.reasoningSource === "ai"
         ? "OLLAMA_ASSISTED"
-        : "DETERMINISTIC_FALLBACK",
+        : "DETERMINISTIC_FALLBACK_MODEL_OR_SCHEMA",
+      motionClamp: motionClamped ? "FIXED" : "SOFTWARE_BUG",
     },
   };
   report.finishedAt = new Date().toISOString();

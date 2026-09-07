@@ -16,6 +16,26 @@ import {
   type IntelligenceDecision,
 } from "./types.js";
 
+const ALLOWED_MOTIONS = new Set([
+  "PRODUCT_FOCUS",
+  "DETAIL_PUSH",
+  "SUBTLE_PUSH",
+  "HOLD",
+]);
+
+function clampMotion(raw: string | null | undefined, clamped: string[]): string | null {
+  if (!raw) return null;
+  const upper = String(raw).toUpperCase();
+  for (const allowed of ALLOWED_MOTIONS) {
+    if (upper.includes(allowed)) {
+      if (String(raw) !== allowed) clamped.push(`motion:${raw.slice(0, 40)}->${allowed}`);
+      return allowed;
+    }
+  }
+  clamped.push(`motion:${String(raw).slice(0, 40)}->PRODUCT_FOCUS`);
+  return "PRODUCT_FOCUS";
+}
+
 export interface DecideInput {
   projectId: string;
   productName: string;
@@ -105,8 +125,13 @@ export class VideoDecisionEngine {
         if (analysis.recommendedSceneStructure?.length) {
           structure = analysis.recommendedSceneStructure.map(String).slice(0, 6);
         }
-        if (analysis.recommendedMotion) motion = String(analysis.recommendedMotion);
-        if (analysis.recommendedPacing) pacing = String(analysis.recommendedPacing);
+        if (analysis.recommendedMotion) {
+          motion = clampMotion(String(analysis.recommendedMotion), clamped);
+        }
+        if (analysis.recommendedPacing) {
+          const p = String(analysis.recommendedPacing).slice(0, 40);
+          pacing = /tight|fast|social/i.test(p) ? "tight-social" : /slow|cinematic/i.test(p) ? "cinematic" : "standard";
+        }
         if (analysis.recommendedTransitions?.length) {
           const raw = analysis.recommendedTransitions[analysis.recommendedTransitions.length - 1];
           const mapped = mapTransitionToSupported(raw);
@@ -129,6 +154,7 @@ export class VideoDecisionEngine {
     }
 
     // Hard clamps
+    motion = clampMotion(motion, clamped);
     if (transition !== "cut" && transition !== "fade") {
       clamped.push(`transition:${transition}->cut`);
       transition = "cut";

@@ -154,4 +154,20 @@ describe("intelligence-layer", () => {
     expect(mapTransitionSafe("morph-wipe")).toBe("cut");
     expect(mapTransitionSafe("soft fade dissolve")).toBe("fade");
   });
+
+  it("clamps unsupported motion language on decide", async () => {
+    const layer = await ensureIntelligenceLayer(tmp);
+    const decision = await layer.decide({
+      projectId: "proj-clamp",
+      productName: "Product",
+      category: "beauty",
+      durationSeconds: 15,
+      cta: "Buy",
+      platform: "social",
+      assetRoles: [{ assetId: "a1", viewRole: "HERO" }],
+      useOllama: false,
+    });
+    expect(["PRODUCT_FOCUS", "DETAIL_PUSH", "SUBTLE_PUSH", "HOLD", null]).toContain(decision.motion);
+    expect(decision.transition === "cut" || decision.transition === "fade").toBe(true);
+  });
 });

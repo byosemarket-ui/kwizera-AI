@@ -134,6 +134,10 @@ export class IntelligenceLearningStore {
       refused.push({ reason: "Quality score below promotion threshold (70)." });
       return { promoted, refused };
     }
+    if (!event.scenePurposes[0] || !/hook|reveal/i.test(event.scenePurposes[0])) {
+      refused.push({ reason: "Event lacks early hook/reveal signal required for this pattern family." });
+      return { promoted, refused };
+    }
 
     const similar = this.store.events.filter((e) =>
       e.kind === "SUCCESSFUL_PATTERN"
@@ -143,17 +147,30 @@ export class IntelligenceLearningStore {
       && /hook|reveal/i.test(e.scenePurposes[0]),
     );
     const projectIds = new Set(similar.map((e) => e.projectId));
+    const otherProjects = [...projectIds].filter((id) => id !== event.projectId);
+    const strongOtherProjects = similar
+      .filter((e) => e.projectId !== event.projectId && (e.qualityScore ?? 0) >= 85)
+      .map((e) => e.projectId);
+    const strongOther = new Set(strongOtherProjects);
 
-    // Require at least 2 successful projects OR one strong (>=85) observation for MEDIUM only.
+    // Current event gates:
+    // - quality>=85: may promote alone (MEDIUM)
+    // - quality 70-84: needs 2+ OTHER projects OR 1 OTHER strong (>=85) project
     const strong = (event.qualityScore ?? 0) >= 85;
-    if (projectIds.size < 2 && !strong) {
-      refused.push({
-        reason: "Insufficient cross-project evidence (need 2+ successful projects or quality>=85).",
-      });
-      return { promoted, refused };
+    if (!strong) {
+      if (otherProjects.length < 2 && strongOther.size < 1) {
+        refused.push({
+          reason: "Insufficient peer evidence for medium-quality observation (need 2+ other projects or 1 quality>=85 peer).",
+        });
+        return { promoted, refused };
+      }
     }
 
-    const confidence = projectIds.size >= 3 ? 0.86 : strong && projectIds.size < 2 ? 0.62 : 0.74;
+    const confidence = otherProjects.length >= 3 || projectIds.size >= 3
+      ? 0.86
+      : strong && otherProjects.length < 1
+        ? 0.62
+        : 0.74;
     const band = confidenceBand(confidence);
     if (band === "LOW") {
       refused.push({ reason: "Computed confidence LOW — not promoted." });
