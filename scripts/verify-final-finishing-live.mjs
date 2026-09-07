@@ -416,9 +416,33 @@ async function main() {
     fail("mp4_download", "no output url");
   }
 
-  // Scenario A — no-audio project create/refresh still works
+  // Scenario A — no-audio project still gets a deterministic video project
   const projectSilent = await createProject(`Final Finishing NoAudio ${Date.now()}`);
   if (projectSilent) {
+    await api(`/api/workspace/projects/${projectSilent}`, {
+      method: "POST",
+      body: JSON.stringify({
+        changes: {
+          productInformation: {
+            name: "Silent Fallback Product",
+            category: "Apparel",
+            description: "No-audio fallback verification",
+            price: 10000,
+            currency: "RWF",
+          },
+          brandInformation: { name: "Silent Brand", website: "https://silent.example" },
+          campaignInformation: {
+            name: "Silent Campaign",
+            objective: "Brand Awareness",
+            callToAction: "Learn More",
+            duration: "15",
+          },
+          platform: "tiktok",
+          language: "en",
+          beatSyncMode: "OFF",
+        },
+      }),
+    });
     await api(`/api/workspace/projects/${projectSilent}/images`, {
       method: "POST",
       body: JSON.stringify({
@@ -431,18 +455,21 @@ async function main() {
     });
     const plan = await api(`/api/workspace/projects/${projectSilent}/plan`, {
       method: "POST",
-      body: JSON.stringify({ action: "generate", productionMode: "AI_PRODUCT_MOTION" }),
+      body: JSON.stringify({ action: "generate", productionMode: "AI_PRODUCT_MOTION", creativeTone: "Calm" }),
     });
-    await api(`/api/workspace/projects/${projectSilent}/plan/finalize`, { method: "POST", body: "{}" });
+    const fin = await api(`/api/workspace/projects/${projectSilent}/plan/finalize`, {
+      method: "POST",
+      body: "{}",
+    });
     const v = await api(`/api/video-production/projects/${projectSilent}`, {
       method: "POST",
       body: JSON.stringify({ action: "create" }),
     });
-    if (v.res.ok || plan.res.ok) {
+    if (v.res.ok && (plan.res.ok || fin.res.ok)) {
       pass("scenario_a_no_audio", "deterministic path available");
       summary.scenarios.A = "OK";
     } else {
-      fail("scenario_a_no_audio", v.text.slice(0, 120));
+      fail("scenario_a_no_audio", v.text.slice(0, 180) || plan.text.slice(0, 120));
       summary.scenarios.A = "FAIL";
     }
   }
