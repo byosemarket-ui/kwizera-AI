@@ -102,9 +102,9 @@ export function FinalReviewWorkspace() {
         <main className="fr-main">
           <header className="fr-header">
             <span className="kw-workflow-progress__step-label">
-              {isReady ? "VIDEO READY" : "STEP 4 OF 4 · CREATING YOUR VIDEO"}
+              {isReady ? (snap.video?.qualityGate === "FINAL" ? "FINAL VIDEO" : "VIDEO READY") : "STEP 4 OF 4 · CREATING YOUR VIDEO"}
             </span>
-            <h1>{isReady ? "Your Video Is Ready" : "Creating Your Video"}</h1>
+            <h1>{isReady ? (snap.video?.qualityGate === "FINAL" ? "Your Final Video Is Ready" : "Your Video Is Ready") : "Creating Your Video"}</h1>
             {ctx ? (
               <div className="fr-meta">
                 <strong>{ctx.productName}</strong>

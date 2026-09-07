@@ -641,6 +641,7 @@ export class VideoRequirementsEngine {
       const params = new URLSearchParams();
       if (this.audio.libraryFilter !== "ALL") params.set("sourceType", this.audio.libraryFilter);
       if (this.audio.libraryQuery.trim()) params.set("q", this.audio.libraryQuery.trim());
+      if (this.projectId) params.set("projectId", this.projectId);
       const res = await fetch(`/api/workspace/audio-library?${params.toString()}`);
       const body = await res.json() as { assets?: Record<string, unknown>[]; error?: string };
       if (!res.ok) throw new Error(body.error ?? "Unable to load audio library");

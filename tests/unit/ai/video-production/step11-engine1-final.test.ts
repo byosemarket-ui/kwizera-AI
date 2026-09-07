@@ -218,7 +218,7 @@ describe("STEP 11 ENGINE 1 end card + final validation", () => {
     expect(refreshed?.endCardPlan?.rendered).toBe(true);
     expect(refreshed?.endCardPlan?.projectId).toBe(projectA.id);
     expect(refreshed?.endCardPlan?.companyName).toContain("STEP11-A");
-    expect(refreshed?.qualityGate).toBe("READY");
+    expect(refreshed?.qualityGate).toBe("FINAL");
     expect(refreshed?.output?.sizeBytes).toBeGreaterThan(1000);
 
     const details = await production.getOutputDetails(projectA.id);

@@ -102,6 +102,8 @@ export function validateRenderedOutput(input: {
   selectedEngine?: string;
   projectId?: string;
   jobProjectId?: string;
+  /** When true, output must contain a muxed audio stream. */
+  audioRequired?: boolean;
 }): { valid: boolean; issues: string[]; checks: Record<string, boolean> } {
   const issues: string[] = [];
   const toleranceMs = Math.max(2500, Math.round(input.plannedDurationMs * 0.15));
@@ -119,6 +121,7 @@ export function validateRenderedOutput(input: {
     projectIdentityConsistent: !input.projectId
       || !input.jobProjectId
       || input.projectId === input.jobProjectId,
+    audioPresentWhenRequired: input.audioRequired !== true || Boolean(input.probed.hasAudioStream),
   };
   if (!checks.fileNonEmpty) issues.push("Output file is empty or too small.");
   if (!checks.hasVideoStream) issues.push("Output does not contain a readable video stream.");
@@ -138,6 +141,9 @@ export function validateRenderedOutput(input: {
   }
   if (!checks.projectIdentityConsistent) {
     issues.push("Render job projectId does not match video project identity.");
+  }
+  if (!checks.audioPresentWhenRequired) {
+    issues.push("Selected project audio was not present in the rendered MP4.");
   }
   return { valid: issues.length === 0, issues, checks };
 }

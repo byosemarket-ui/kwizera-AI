@@ -1008,6 +1008,7 @@ export class VideoProductionManager {
       });
       await this.patchVideo(job.projectId, { qualityGate: "TECHNICAL_VALIDATION" });
       const probed = await probeVideo(outputPath);
+      const audioRequired = Boolean(audioSelection?.enabled && audioSelection.selectedAudioAssetId);
       const qc = validateRenderedOutput({
         probed,
         plannedDurationMs,
@@ -1021,6 +1022,7 @@ export class VideoProductionManager {
         projectId: video.projectId,
         jobProjectId: job.projectId,
         selectedEngine,
+        audioRequired,
       });
       if (!qc.valid) {
         throw new VideoProductionError("INVALID_OUTPUT", qc.issues.join(" "), 500);
@@ -1119,6 +1121,9 @@ export class VideoProductionManager {
         endCardRendered,
         endCardDurationMs: endCardDurationMs || undefined,
       };
+      const qualityGate = preset === "standard" && !(qualityReview?.blocking)
+        ? "FINAL" as const
+        : "READY" as const;
       const updatedVideo = this.decorateVideo({
         ...video,
         platform: profile.id,
@@ -1130,7 +1135,7 @@ export class VideoProductionManager {
         output,
         outputSourceFingerprint: sourceFingerprint,
         outputValidation: technicalChecks,
-        qualityGate: "READY",
+        qualityGate,
         qualityReview: qualityReview ?? undefined,
         versions: [...(video.versions ?? []), version],
         endCardPlan: endCardPlanPublic ?? video.endCardPlan,
@@ -1197,12 +1202,17 @@ export class VideoProductionManager {
         ...job,
         status: "failed",
         stage: "failed",
-        error: "Studio restarted before render completed.",
+        error: "Studio restarted before render completed. Use Create New Version or Retry to recover.",
+        errorCode: "RESTART_INTERRUPTED",
         updatedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
       };
       await this.writeJson(this.jobFile(job.id), failed);
-      await this.patchVideo(job.projectId, { renderState: "failed", qualityGate: "FAILED" });
+      await this.patchVideo(job.projectId, {
+        renderState: "failed",
+        qualityGate: "FAILED",
+        activeJobId: undefined,
+      });
     }
   }
 

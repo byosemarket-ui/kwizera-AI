@@ -496,12 +496,21 @@ export class CreativeWorkspaceManager {
   async listAudioLibrary(filter?: {
     sourceType?: AudioSourceType | "ALL";
     query?: string;
+    /** When set, hide other projects' extracted/AI audio (UPLOADED stays shared catalog). */
+    projectId?: string;
   }): Promise<AudioAsset[]> {
     this.ensureInitialized();
     const index = await this.readAudioLibraryIndex();
     let assets = index.assets.filter((a) => a.status === "READY");
     if (filter?.sourceType && filter.sourceType !== "ALL") {
       assets = assets.filter((a) => a.sourceType === filter.sourceType);
+    }
+    const projectId = filter?.projectId?.trim();
+    if (projectId) {
+      assets = assets.filter((a) => {
+        if (a.sourceType === "UPLOADED_AUDIO") return true;
+        return !a.ownerProjectId || a.ownerProjectId === projectId;
+      });
     }
     const q = filter?.query?.trim().toLowerCase();
     if (q) {
@@ -537,7 +546,12 @@ export class CreativeWorkspaceManager {
   async getAudioPathByFileName(fileName: string): Promise<string | null> {
     this.ensureInitialized();
     if (!isSafeAudioStorageFileName(fileName)) return null;
-    const filePath = path.join(this.audioLibraryDir(), fileName);
+    const index = await this.readAudioLibraryIndex();
+    const asset = index.assets.find(
+      (a) => a.storageFileName === fileName && a.status === "READY",
+    );
+    if (!asset) return null;
+    const filePath = path.join(this.audioLibraryDir(), asset.storageFileName);
     try {
       await fs.access(filePath);
       return filePath;

@@ -4602,9 +4602,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
       const sourceType = url.searchParams.get("sourceType") as "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO" | "ALL" | null;
       const query = url.searchParams.get("q") ?? undefined;
+      const projectId = url.searchParams.get("projectId") ?? undefined;
       const assets = await workspace.listAudioLibrary({
         sourceType: sourceType ?? "ALL",
         query,
+        projectId,
       });
       sendJson(res, 200, { assets });
     } catch (error) {

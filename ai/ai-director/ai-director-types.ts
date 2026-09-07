@@ -30,6 +30,8 @@ export type OutputQualityGate =
   | "TECHNICAL_VALIDATION"
   | "AI_QUALITY_REVIEW"
   | "READY"
+  /** Standard export accepted after technical + quality review (non-blocking). */
+  | "FINAL"
   | "FAILED";
 
 export interface QualityReviewResult {
