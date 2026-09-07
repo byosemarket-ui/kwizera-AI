@@ -267,31 +267,21 @@ export class OllamaCreativeAdvisor {
       : [{ assetId: "pending-asset", fileName: "pending", viewRole: "HERO" }];
 
     const prompt = [
-      "KWIZERA Creative Advisor. Return JSON only.",
-      "Do not invent asset IDs. Do not invent transitions other than cut or fade.",
-      "You cannot see images — use roles/metadata only.",
-      `Schema:{"productType":"string","targetAudience":"string","visualStyle":"string","recommendedPacing":"string","recommendedMotion":"string","recommendedSceneStructure":["HOOK"],"recommendedTransitions":["cut"],"imageSequenceHint":["asset-id"],"confidence":0.0}`,
+      "KWIZERA Creative Advisor. JSON only.",
+      "Transitions: cut or fade only. You cannot see images — use roles only.",
+      'Schema:{"productType":"string","targetAudience":"string","visualStyle":"string","recommendedPacing":"tight-social","recommendedMotion":"PRODUCT_FOCUS","recommendedSceneStructure":["HOOK","REVEAL","FEATURE","CTA"],"recommendedTransitions":["cut","cut","cut","fade"],"imageSequenceHint":["HERO","DETAIL"],"confidence":0.7}',
       "Knowledge:",
-      ...knowledgeLines,
-      "Skills:",
-      ...skills.map((s) => `${s.skill.id}: ${s.skill.execution.motionHint ?? ""} ${s.skill.execution.transitionHint ?? ""}`),
+      ...knowledgeLines.slice(0, 3),
       "Context:",
       JSON.stringify({
         projectId: ctx.projectId,
         productName: ctx.productName,
-        brandName: ctx.brandName,
         category: ctx.category,
-        description: (ctx.description ?? "").slice(0, 160),
         audience: ctx.audience,
-        objective: (ctx.marketingObjective ?? "").slice(0, 120),
-        platform: ctx.platform,
-        durationSeconds: ctx.durationSeconds,
         cta: ctx.cta,
-        tone: ctx.tone,
         bpm: ctx.bpm,
         energy: ctx.energy,
-        creativeMode: ctx.creativeMode,
-        assets: assetsForPrompt,
+        roles: assetsForPrompt.map((a) => a.viewRole || a.assetId),
       }),
     ].join("\n");
 
@@ -328,8 +318,17 @@ export class OllamaCreativeAdvisor {
         projectId: ctx.projectId,
         code: generated.code,
         error: generated.error,
+        latencyMs: generated.latencyMs,
       });
-      return deterministicAnalysis(ctx, skills);
+      const fallback = deterministicAnalysis(ctx, skills);
+      return {
+        ...fallback,
+        latencyMs: generated.latencyMs,
+        limitations: [
+          `Deterministic advisor used (${generated.code}: ${generated.error ?? "no data"}).`,
+          "Text-only models do not visually see images — roles come from Image Intelligence metadata.",
+        ],
+      };
     }
 
     const validated = validateAnalysis(
@@ -346,8 +345,19 @@ export class OllamaCreativeAdvisor {
         projectId: ctx.projectId,
         model: generated.model,
         latencyMs: generated.latencyMs,
+        keys: Object.keys(generated.data),
       });
-      return deterministicAnalysis(ctx, skills);
+      const fallback = deterministicAnalysis(ctx, skills);
+      return {
+        ...fallback,
+        latencyMs: generated.latencyMs,
+        model: generated.model,
+        limitations: [
+          "Deterministic advisor used (Ollama JSON failed schema validation).",
+          `Raw keys: ${Object.keys(generated.data).join(",")}`,
+          "Text-only models do not visually see images — roles come from Image Intelligence metadata.",
+        ],
+      };
     }
 
     // Tiny models often self-score LOW; still consume validated structure honestly.
