@@ -44,6 +44,37 @@ async function compactContext(input: AiCreativePlannerInput): Promise<Record<str
     imageCount: full.assets.length,
     tone: full.style.creativeTone,
   });
+
+  let learnedPatterns: Array<{ patternId: string; statement: string; confidence: number }> = [];
+  try {
+    const { getIntelligenceLayer } = await import("../intelligence-layer/index.js");
+    const layer = getIntelligenceLayer();
+    if (layer.isReady()) {
+      learnedPatterns = layer.getPatterns({ projectId: full.projectId, minConfidence: 0.55 })
+        .filter((p) => p.promoted)
+        .slice(0, 3)
+        .map((p) => ({
+          patternId: p.patternId,
+          statement: p.statement.slice(0, 140),
+          confidence: p.confidence,
+        }));
+      if (learnedPatterns.length) {
+        console.info("[MEMORY_RETRIEVED]", {
+          projectId: full.projectId,
+          via: "learned-patterns",
+          count: learnedPatterns.length,
+        });
+        console.info("[KNOWLEDGE_RETRIEVED]", {
+          projectId: full.projectId,
+          via: "intelligence-layer",
+          patternIds: learnedPatterns.map((p) => p.patternId),
+        });
+      }
+    }
+  } catch {
+    /* optional */
+  }
+
   return {
     projectId: full.projectId,
     product: {
@@ -81,6 +112,7 @@ async function compactContext(input: AiCreativePlannerInput): Promise<Record<str
       motion: s.skill.execution.motionHint ?? null,
       transition: s.skill.execution.transitionHint ?? null,
     })),
+    learnedPatterns,
   };
 }
 
@@ -140,6 +172,7 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
           durationSeconds: (context.marketing as { durationSeconds?: number })?.durationSeconds,
         },
         assets: context.assets,
+        learned: context.learnedPatterns,
       }),
     ].join("\n");
 

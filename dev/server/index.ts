@@ -2815,6 +2815,197 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/intelligence-layer/status" && req.method === "GET") {
+    try {
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      sendJson(res, 200, {
+        status: layer.isReady() ? layer.getStatus() : { ready: false, note: "not initialized" },
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Intelligence layer status failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/intelligence-layer/knowledge-patterns" && req.method === "GET") {
+    try {
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      if (!layer.isReady()) {
+        sendJson(res, 503, { error: "Intelligence Layer not ready" });
+        return;
+      }
+      const projectId = url.searchParams.get("projectId") ?? undefined;
+      const minConfidence = Number(url.searchParams.get("minConfidence") ?? "0");
+      sendJson(res, 200, {
+        patterns: layer.getPatterns({
+          projectId: projectId || undefined,
+          minConfidence: Number.isFinite(minConfidence) ? minConfidence : 0,
+        }),
+      });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Knowledge patterns failed" });
+    }
+    return;
+  }
+
+  const intelLearningMatch = url.pathname.match(/^\/api\/intelligence-layer\/projects\/([^/]+)\/learning$/);
+  if (intelLearningMatch && req.method === "GET") {
+    try {
+      const projectId = decodeURIComponent(intelLearningMatch[1]!);
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      if (!layer.isReady()) {
+        sendJson(res, 503, { error: "Intelligence Layer not ready" });
+        return;
+      }
+      sendJson(res, 200, { projectId, events: layer.getProjectLearning(projectId) });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Learning fetch failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/intelligence-layer/decide" && req.method === "POST") {
+    try {
+      const body = JSON.parse((await readBody(req)) || "{}") as {
+        projectId?: string;
+        productName?: string;
+        category?: string;
+        audience?: string;
+        durationSeconds?: number;
+        cta?: string;
+        energy?: string | null;
+        bpm?: number | null;
+        platform?: string;
+        tone?: string;
+        imageRoles?: string[];
+        useOllama?: boolean;
+      };
+      const projectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
+      if (!projectId) {
+        sendJson(res, 400, { error: "projectId is required" });
+        return;
+      }
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      if (!layer.isReady()) {
+        sendJson(res, 503, { error: "Intelligence Layer not ready" });
+        return;
+      }
+      const roles = Array.isArray(body.imageRoles) ? body.imageRoles.map(String) : ["HERO", "DETAIL"];
+      const decision = await layer.decide({
+        projectId,
+        productName: typeof body.productName === "string" ? body.productName : "Product",
+        category: typeof body.category === "string" ? body.category : undefined,
+        audience: typeof body.audience === "string" ? body.audience : undefined,
+        durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : 20,
+        cta: typeof body.cta === "string" ? body.cta : "Shop now",
+        energy: typeof body.energy === "string" ? body.energy : null,
+        bpm: typeof body.bpm === "number" ? body.bpm : null,
+        platform: typeof body.platform === "string" ? body.platform : "social",
+        tone: typeof body.tone === "string" ? body.tone : undefined,
+        assetRoles: roles.map((viewRole, i) => ({ assetId: `role-${i + 1}`, viewRole })),
+        useOllama: body.useOllama === true,
+      });
+      sendJson(res, 200, { decision });
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Decide failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/intelligence-layer/record-learning" && req.method === "POST") {
+    try {
+      const body = JSON.parse((await readBody(req)) || "{}") as {
+        projectId?: string;
+        qualityScore?: number;
+        planSource?: "ai" | "deterministic";
+        aiModelId?: string | null;
+        scenePurposes?: string[];
+        sceneDurationsMs?: number[];
+        transitions?: string[];
+        motions?: string[];
+        renderSucceeded?: boolean;
+        fallbackUsed?: boolean;
+        forceStrong?: boolean;
+      };
+      const projectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
+      if (!projectId) {
+        sendJson(res, 400, { error: "projectId is required" });
+        return;
+      }
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      if (!layer.isReady()) {
+        sendJson(res, 503, { error: "Intelligence Layer not ready" });
+        return;
+      }
+      const qualityScore = typeof body.qualityScore === "number"
+        ? body.qualityScore
+        : body.forceStrong ? 88 : 75;
+      const result = await layer.recordRenderLearning({
+        projectId,
+        qualityScore,
+        planSource: body.planSource ?? "ai",
+        aiModelId: body.aiModelId ?? "llama3.2:1b",
+        advisorSource: body.planSource === "deterministic" ? "deterministic-fallback" : "ollama",
+        sceneDurationsMs: Array.isArray(body.sceneDurationsMs) ? body.sceneDurationsMs.map(Number) : [2800, 3200, 3500, 3000],
+        transitions: Array.isArray(body.transitions) ? body.transitions.map(String) : ["cut", "cut", "cut", "fade"],
+        motions: Array.isArray(body.motions) ? body.motions.map(String) : ["PRODUCT_FOCUS", "DETAIL_PUSH", "HOLD", "HOLD"],
+        scenePurposes: Array.isArray(body.scenePurposes) ? body.scenePurposes.map(String) : ["HOOK", "REVEAL", "FEATURE", "CTA"],
+        fallbackUsed: body.fallbackUsed === true,
+        renderSucceeded: body.renderSucceeded !== false,
+        knowledgeVersion: "video-knowledge-pack-v1",
+        skillsVersion: "video-skills-v1",
+        provenance: { source: "live-audit" },
+      });
+      sendJson(res, 200, result);
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Record learning failed" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/intelligence-layer/second-pass" && req.method === "POST") {
+    try {
+      const body = JSON.parse((await readBody(req)) || "{}") as {
+        projectId?: string;
+        productName?: string;
+        category?: string;
+        useOllama?: boolean;
+        imageRoles?: string[];
+      };
+      const projectId = typeof body.projectId === "string" ? body.projectId.trim() : "";
+      if (!projectId) {
+        sendJson(res, 400, { error: "projectId is required" });
+        return;
+      }
+      const { getIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      const layer = getIntelligenceLayer();
+      if (!layer.isReady()) {
+        sendJson(res, 503, { error: "Intelligence Layer not ready" });
+        return;
+      }
+      const roles = Array.isArray(body.imageRoles) ? body.imageRoles.map(String) : ["HERO", "DETAIL", "CTA"];
+      const proof = await layer.secondPassProof({
+        projectId,
+        productName: typeof body.productName === "string" ? body.productName : "Product",
+        category: typeof body.category === "string" ? body.category : "ecommerce",
+        durationSeconds: 20,
+        cta: "Shop now",
+        platform: "social",
+        assetRoles: roles.map((viewRole, i) => ({ assetId: `role-${i + 1}`, viewRole })),
+        useOllama: body.useOllama === true,
+      });
+      sendJson(res, 200, proof);
+    } catch (error) {
+      sendJson(res, 500, { error: error instanceof Error ? error.message : "Second-pass failed" });
+    }
+    return;
+  }
+
   const productAssetPrepareMatch = url.pathname.match(/^\/api\/product-asset-preparation\/projects\/([^/]+)\/prepare$/);
 
   if (productAssetPrepareMatch && req.method === "POST") {

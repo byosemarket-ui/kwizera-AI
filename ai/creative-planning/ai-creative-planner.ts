@@ -169,12 +169,47 @@ export async function generateCreativeScenes(
   planVersion = 1,
 ): Promise<AiCreativePlannerResult> {
   const warnings: string[] = [];
+
+  // Deterministic intelligence decision (no Ollama here — planner may call Ollama separately).
+  let intelligenceDecisionId: string | null = null;
+  try {
+    const { getIntelligenceLayer } = await import("../intelligence-layer/index.js");
+    const layer = getIntelligenceLayer();
+    if (layer.isReady()) {
+      const decision = await layer.decide({
+        projectId: input.project.id,
+        productName: input.project.productInformation?.name
+          || input.canonical?.identity.name
+          || "Product",
+        category: input.productIntelligence?.category || input.canonical?.identity.category,
+        audience: input.marketingSettings?.campaign.audience?.general,
+        durationSeconds: input.videoSettings.durationSeconds,
+        cta: input.marketingSettings?.marketing.cta || input.marketingSettings?.campaign.cta,
+        platform: input.videoSettings.platform,
+        tone: input.videoSettings.creativeTone,
+        assetRoles: input.project.productImages.slice(0, 6).map((img) => {
+          const profile = input.assets.find((a) => a.imageId === img.id);
+          return { assetId: img.id, viewRole: profile?.viewRole, fileName: img.fileName };
+        }),
+        useOllama: false,
+      });
+      intelligenceDecisionId = decision.decisionId;
+      if (decision.knowledgePatternIds.length) {
+        warnings.push(`Intelligence Layer applied ${decision.knowledgePatternIds.length} learned pattern(s).`);
+      }
+    }
+  } catch {
+    /* optional */
+  }
+
   if (!(await reasoningProvider.isAvailable())) {
     warnings.push("AI Creative Director unavailable — using deterministic planning.");
     return finalizePlannerResult(input, {
       scenes: buildDeterministicPlan(input),
       source: "deterministic",
-      warnings,
+      warnings: intelligenceDecisionId
+        ? [...warnings, `decisionId=${intelligenceDecisionId}`]
+        : warnings,
       modelId: null,
     }, planVersion);
   }

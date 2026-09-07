@@ -160,10 +160,16 @@ export async function runFullQualityReview(input: {
       sceneDurationsMs: input.video.timeline.map((c) => c.durationMs),
       transitions: input.video.timeline.map((c) => String(c.transitionOut ?? "cut")),
       motions: input.video.timeline.map((c) => String(c.motion ?? "")),
+      scenePurposes: (input.plan?.scenes ?? input.video.timeline).map((s) =>
+        "purpose" in s ? String(s.purpose) : String((s as { purpose?: string }).purpose ?? "FEATURE")),
       audioTimingSummary: input.video.audioPlan ? `audioPlan=${JSON.stringify(input.video.audioPlan).slice(0, 120)}` : null,
       qualityScore: Math.min(deterministic.score, planningQuality.score),
       userApproved: null,
       advisorSource: null,
+      planSource: input.plan?.planSource ?? null,
+      aiModelId: input.plan?.aiModelId ?? null,
+      fallbackUsed: input.plan?.planSource === "deterministic",
+      renderSucceeded: true,
       knowledgeVersion: getVideoKnowledgePackMeta().version,
       skillsVersion: VIDEO_SKILLS_VERSION,
     });

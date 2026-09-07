@@ -355,6 +355,18 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     const bootstrap = bootstrapPersistentStorage(storageRoot);
     sessionStore = new DevSessionStore(storageRoot, dashboardUrl);
 
+    // Lightweight Intelligence Layer (Memory→Knowledge→Learning→Skills→Decision bridge).
+    // Does not load heavy Memory/Knowledge foundations; never wipes existing data.
+    try {
+      const { ensureIntelligenceLayer } = await import("../../ai/intelligence-layer/index.js");
+      await ensureIntelligenceLayer(storageRoot);
+    } catch (error) {
+      console.warn(
+        "[KWIZERA] Intelligence Layer init skipped:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
     status = {
       ready: false,
       booting: true,
@@ -383,6 +395,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         "memory/registry/memory-registry.json",
         "knowledge/storage/knowledge-record-index.json",
         "knowledge/registry/knowledge-registry.json",
+        "intelligence-layer/learning-store.json",
       ];
       for (const relative of candidates) {
         const filePath = path.join(storageRoot, relative);
