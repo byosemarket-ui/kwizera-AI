@@ -126,13 +126,21 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
     }
 
     const prompt = [
-      "KWIZERA Creative Director. Return JSON only.",
-      "Rules: use only assetIds listed; use only verifiedFacts.allowedFacts; no invented materials/prices.",
-      "Transitions must be cut or fade only. Prefer videoKnowledge and videoSkills hints.",
-      "Plan short still-to-video scenes (zoom/pan/hold).",
-      `Schema:{"projectId":"${context.projectId}","creativeDirection":"string","primarySellingPoint":"string","textStrategy":{"headline":"string","price":"string","cta":"string"},"scenes":[{"id":"scene-1","purpose":"HOOK|REVEAL|FEATURE|DETAIL|OFFER|CTA","assetId":"${assetIds[0]}","duration":3,"camera":"string","motion":"string","narration":"string","transitionOut":"cut|fade"}]}`,
+      "KWIZERA Creative Director. JSON only.",
+      "Use only listed assetIds. Transitions: cut or fade only.",
+      `Schema:{"projectId":"${context.projectId}","creativeDirection":"product-first","primarySellingPoint":"clear benefit","textStrategy":{"headline":"name","price":"","cta":"Shop"},"scenes":[{"id":"scene-1","purpose":"HOOK","assetId":"${assetIds[0]}","duration":3,"camera":"slow push","motion":"subtle zoom","narration":"","transitionOut":"cut"},{"id":"scene-2","purpose":"REVEAL","assetId":"${assetIds[Math.min(1, assetIds.length - 1)]}","duration":3,"camera":"hold","motion":"hold","narration":"","transitionOut":"fade"}]}`,
       "Context:",
-      JSON.stringify(context),
+      JSON.stringify({
+        projectId: context.projectId,
+        product: context.product,
+        marketing: {
+          goal: (context.marketing as { goal?: string })?.goal,
+          audience: (context.marketing as { audience?: string })?.audience,
+          cta: (context.marketing as { cta?: string })?.cta,
+          durationSeconds: (context.marketing as { durationSeconds?: number })?.durationSeconds,
+        },
+        assets: context.assets,
+      }),
     ].join("\n");
 
     const generated = await ollamaGenerateJson({
@@ -142,8 +150,8 @@ export class OllamaCreativeReasoningProvider implements CreativeReasoningProvide
       timeoutMs: ollamaPlanTimeoutMs(),
       options: {
         temperature: 0.1,
-        num_ctx: 1536,
-        num_predict: 320,
+        num_ctx: 1024,
+        num_predict: 280,
       },
     });
     if (!generated.ok) {

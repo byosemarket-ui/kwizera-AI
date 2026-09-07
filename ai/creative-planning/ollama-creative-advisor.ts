@@ -308,8 +308,8 @@ export class OllamaCreativeAdvisor {
 
     const generated = await getOllamaAdapter().generateStructured({
       prompt,
-      timeoutMs: Math.min(90_000, Number(process.env.KWIZERA_OLLAMA_ADVISOR_TIMEOUT_MS) || 60_000),
-      options: { temperature: 0.15, num_ctx: 1536, num_predict: 280 },
+      timeoutMs: Math.min(180_000, Number(process.env.KWIZERA_OLLAMA_ADVISOR_TIMEOUT_MS) || 120_000),
+      options: { temperature: 0.1, num_ctx: 1024, num_predict: 220 },
     });
 
     if (!generated.ok || !generated.data) {
