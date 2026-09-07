@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { resolveStoragePath } from "../../storage/paths/storage-paths.js";
+import { readJsonSafeSync } from "../../storage/safe-json.js";
 import { PREPARED_KNOWLEDGE_CATEGORIES } from "./knowledge-categories.js";
 import { KnowledgeFoundationLogger } from "./knowledge-logger.js";
 
@@ -83,10 +84,7 @@ export class KnowledgeStorageManager {
   readCategoryData<T>(subdirectory: string, filename: string): { data: T | null; durationMs: number } {
     const start = Date.now();
     const filePath = path.join(this.getCategoryPath(subdirectory), filename);
-    if (!fs.existsSync(filePath)) {
-      return { data: null, durationMs: Date.now() - start };
-    }
-    const raw = fs.readFileSync(filePath, "utf8");
-    return { data: JSON.parse(raw) as T, durationMs: Date.now() - start };
+    const result = readJsonSafeSync<T | null>(filePath, null);
+    return { data: result.value, durationMs: Date.now() - start };
   }
 }

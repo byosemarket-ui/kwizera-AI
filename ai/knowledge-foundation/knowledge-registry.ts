@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { readJsonSafeSync } from "../../storage/safe-json.js";
 import {
   KnowledgeHealthLevel,
   KnowledgeModuleRegistration,
@@ -62,8 +63,18 @@ export class KnowledgeRegistry {
   }
 
   private loadFromDisk(registryPath: string): void {
-    const raw = fs.readFileSync(registryPath, "utf8");
-    const snapshot = JSON.parse(raw) as KnowledgeRegistrySnapshot;
+    const result = readJsonSafeSync<KnowledgeRegistrySnapshot | null>(registryPath, null);
+    if (!result.value) {
+      this.logger.log("warn", "startup", "Knowledge registry missing or recovered; rebuilding defaults", {
+        registryPath,
+        recovered: result.recovered,
+        error: result.error,
+      });
+      this.seedPreparedCategories(this.storage!);
+      this.persist();
+      return;
+    }
+    const snapshot = result.value;
     this.modules.clear();
 
     for (const mod of snapshot.modules) {

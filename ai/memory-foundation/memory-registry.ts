@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { readJsonSafeSync } from "../../storage/safe-json.js";
 import {
   MemoryHealthLevel,
   MemoryModuleRegistration,
@@ -61,8 +62,18 @@ export class MemoryRegistry {
   }
 
   private loadFromDisk(registryPath: string, storageRoot: string): void {
-    const raw = fs.readFileSync(registryPath, "utf8");
-    const snapshot = JSON.parse(raw) as MemoryRegistrySnapshot;
+    const result = readJsonSafeSync<MemoryRegistrySnapshot | null>(registryPath, null);
+    if (!result.value) {
+      this.logger.log("warn", "startup", "Memory registry missing or recovered; rebuilding defaults", {
+        registryPath,
+        recovered: result.recovered,
+        error: result.error,
+      });
+      this.seedPreparedCategories(this.storage!, storageRoot);
+      this.persist();
+      return;
+    }
+    const snapshot = result.value;
     this.modules.clear();
 
     for (const mod of snapshot.modules) {

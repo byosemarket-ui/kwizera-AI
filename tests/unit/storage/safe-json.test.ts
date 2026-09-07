@@ -49,6 +49,16 @@ describe("safe-json persistence recovery", () => {
     await expect(fs.access(filePath)).rejects.toBeTruthy();
   });
 
+  it("readJsonSafeSync quarantines corrupt JSON", async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-safe-json-"));
+    const filePath = path.join(root, "bad.json");
+    await fs.writeFile(filePath, '{"x":', "utf8");
+    const { readJsonSafeSync } = await import("../../../storage/safe-json.js");
+    const result = readJsonSafeSync(filePath, { ok: false });
+    expect(result.recovered).toBe(true);
+    expect(result.value).toEqual({ ok: false });
+  });
+
   it("quarantineCorruptFile renames without deleting sibling assets", async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-safe-json-"));
     const bad = path.join(root, "profiles.json");

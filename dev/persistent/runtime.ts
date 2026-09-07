@@ -380,7 +380,9 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         "creative-workspace/workspace-session.json",
         "config/dev/session.json",
         "memory/storage/record-index.json",
+        "memory/registry/memory-registry.json",
         "knowledge/storage/knowledge-record-index.json",
+        "knowledge/registry/knowledge-registry.json",
       ];
       for (const relative of candidates) {
         const filePath = path.join(storageRoot, relative);
@@ -451,13 +453,20 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       console.log("[KWIZERA] Restoring persistent session from", storageRoot);
       console.log("[KWIZERA] Loading KWIZERA AI Core module…");
       const { createAiCore } = await import("../../ai/core/index.js");
-      core = createAiCore({ storageRootOverride: storageRoot });
+      // Skip heavy chained generation foundations on boot — studio Engine-1 path does not need them.
+      // Memory + Knowledge remain enabled; corrupt JSON is quarantined via safe-json sync readers.
+      core = createAiCore({
+        storageRootOverride: storageRoot,
+        skipVideoGenerationFoundation: true,
+        skipImageGenerationFoundation: true,
+        skipAudioGenerationFoundation: true,
+      });
       const manager = core.getManager();
 
       console.log("[KWIZERA] Starting KWIZERA AI Core…");
       status.message = "Starting KWIZERA AI Core…";
-      // Allow slow VPS Core restore (memory/knowledge). Fallback only if truly hung.
-      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 300_000);
+      // Allow slow VPS Core restore; fallback only if truly hung after soft JSON recovery.
+      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 180_000);
       const coreBootGeneration = Symbol("core-boot");
       (globalThis as { __kwizeraCoreBootGeneration?: symbol }).__kwizeraCoreBootGeneration = coreBootGeneration;
       try {
