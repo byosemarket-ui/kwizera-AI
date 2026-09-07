@@ -395,33 +395,7 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       status.message = "Booting persistent AI runtime…";
     }
 
-    // Optional broader helper — hard-capped so boot cannot hang.
-    try {
-      const fsSync = await import("node:fs");
-      const { spawnSync } = await import("node:child_process");
-      const helper = path.join(process.cwd(), "deploy", "quarantine-corrupt-json.mjs");
-      if (fsSync.existsSync(helper)) {
-        console.log("[KWIZERA] pre-boot corrupt JSON quarantine helper…");
-        const result = spawnSync(process.execPath, [helper], {
-          env: { ...process.env, KWIZERA_STORAGE_ROOT: storageRoot },
-          stdio: "inherit",
-          windowsHide: true,
-          timeout: 15_000,
-          killSignal: "SIGKILL",
-        });
-        if (result.error) {
-          console.warn("[KWIZERA] quarantine helper error:", result.error.message);
-        } else if (result.signal) {
-          console.warn("[KWIZERA] quarantine helper killed by", result.signal);
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "[KWIZERA] quarantine helper skipped:",
-        error instanceof Error ? error.message : error,
-      );
-    }
-
+    // Optional broader helper removed from critical path — inline candidate quarantine above is enough.
     // Continue with normal boot (status already set above).
     if (!isPersistentMode()) {
       // Workspace-only boot. KWIZERA AI Core is deferred, not replaced by an external LLM.
@@ -481,8 +455,72 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
       const manager = core.getManager();
 
       console.log("[KWIZERA] Starting KWIZERA AI Core…");
-      await core.start("persistent-dev-restore");
+      status.message = "Starting KWIZERA AI Core…";
+      // Keep short so a hung Core cannot exhaust deploy health waits; fall back to workspace-only.
+      const coreBootTimeoutMs = Number(process.env.KWIZERA_CORE_BOOT_TIMEOUT_MS || 60_000);
+      try {
+        await Promise.race([
+          core.start("persistent-dev-restore"),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`KWIZERA AI Core boot timed out after ${coreBootTimeoutMs}ms`));
+            }, coreBootTimeoutMs);
+          }),
+        ]);
+      } catch (coreBootError) {
+        console.error(
+          "[KWIZERA] Core boot failed — falling back to workspace-only mode:",
+          coreBootError instanceof Error ? coreBootError.message : coreBootError,
+        );
+        core = null;
+        // Reuse lightweight workspace path so production remains usable.
+        workspaceManager = new CreativeWorkspaceManager();
+        await workspaceManager.initialize(storageRoot);
+        audioIntelligenceManager = new AudioIntelligenceManager();
+        await audioIntelligenceManager.initialize(storageRoot, { workspace: workspaceManager });
+        aiSoundManager = new AiSoundManager();
+        await aiSoundManager.initialize(storageRoot, {
+          workspace: workspaceManager,
+          audioIntelligence: audioIntelligenceManager,
+        });
+        avCreativeDirector = new AudioVisualCreativeDirector();
+        await avCreativeDirector.initialize(storageRoot, {
+          workspace: workspaceManager,
+          audioIntelligence: audioIntelligenceManager,
+        });
+        canonicalProductManager = new CanonicalProductManager();
+        await canonicalProductManager.initialize(storageRoot, { workspace: workspaceManager });
+        marketingBriefManager = new MarketingBriefManager();
+        await marketingBriefManager.initialize(storageRoot, {
+          workspace: workspaceManager,
+          canonical: canonicalProductManager,
+        });
+        planningManager = new CreativePlanningManager();
+        await planningManager.initialize(storageRoot);
+        planningManager.attachCanonicalProduct(canonicalProductManager);
+        planningManager.attachMarketingBrief(marketingBriefManager);
+        modelManager = new AiModelManager();
+        await modelManager.initialize(storageRoot);
+        videoProductionManager = new VideoProductionManager();
+        await videoProductionManager.initialize(storageRoot, {
+          workspace: workspaceManager,
+          planning: planningManager,
+        });
+        if (audioIntelligenceManager) {
+          videoProductionManager.attachAudioIntelligence(audioIntelligenceManager);
+        }
+        if (avCreativeDirector) {
+          videoProductionManager.attachAudioVisualDirector(avCreativeDirector);
+        }
+        status.booting = false;
+        status.ready = true;
+        status.restored = true;
+        status.message = `Workspace ready (AI Core deferred: ${coreBootError instanceof Error ? coreBootError.message : String(coreBootError)})`;
+        console.log("[KWIZERA]", status.message);
+        return status;
+      }
       console.log("[KWIZERA] KWIZERA AI Core started");
+      status.message = "KWIZERA AI Core started — restoring managers…";
       workspaceManager = new CreativeWorkspaceManager();
       await workspaceManager.initialize(storageRoot, manager);
       audioIntelligenceManager = new AudioIntelligenceManager();

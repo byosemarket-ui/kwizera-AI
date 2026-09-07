@@ -36,8 +36,21 @@ export async function quarantineCorruptFile(filePath: string, reason: string): P
 export async function readJsonSafe<T>(
   filePath: string,
   fallback: T,
+  opts?: { maxBytes?: number },
 ): Promise<SafeJsonReadResult<T>> {
+  const maxBytes = opts?.maxBytes ?? Number(process.env.KWIZERA_JSON_MAX_BYTES || 2_000_000);
   try {
+    const stat = await fs.stat(filePath);
+    if (stat.size > maxBytes) {
+      const reason = `oversized JSON store (${stat.size} bytes > ${maxBytes})`;
+      const quarantinedPath = await quarantineCorruptFile(filePath, reason);
+      return {
+        value: fallback,
+        recovered: true,
+        quarantinedPath,
+        error: reason,
+      };
+    }
     const text = await fs.readFile(filePath, "utf8");
     if (!text.trim()) {
       return { value: fallback, recovered: false };

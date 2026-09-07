@@ -38,6 +38,17 @@ describe("safe-json persistence recovery", () => {
     expect(result.value).toEqual({ ok: true, n: 3 });
   });
 
+  it("quarantines oversized JSON without parsing", async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-safe-json-"));
+    const filePath = path.join(root, "huge.json");
+    await fs.writeFile(filePath, `{"pad":"${"x".repeat(50_000)}"}`, "utf8");
+    const result = await readJsonSafe(filePath, { ok: true }, { maxBytes: 1_000 });
+    expect(result.recovered).toBe(true);
+    expect(result.value).toEqual({ ok: true });
+    expect(result.error).toMatch(/oversized/i);
+    await expect(fs.access(filePath)).rejects.toBeTruthy();
+  });
+
   it("quarantineCorruptFile renames without deleting sibling assets", async () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-safe-json-"));
     const bad = path.join(root, "profiles.json");
