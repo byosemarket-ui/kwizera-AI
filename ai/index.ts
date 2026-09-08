@@ -162,3 +162,4 @@ export * from "./rendering-preparation-engine/index.js";
 export * from "./video-quality-validation-engine/index.js";
 export * from "./video-generation-optimization-engine/index.js";
 export * from "./video-generation-health-monitor-engine/index.js";
+export * from "./admin-control-plane/index.js";

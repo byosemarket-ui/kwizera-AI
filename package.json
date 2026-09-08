@@ -19,6 +19,7 @@
     "start:production": "node scripts/start-production.mjs",
     "verify:production": "node scripts/verify-vps-step1.mjs",
     "verify:studio-ui": "node scripts/verify-studio-static.mjs",
+    "verify:admin": "node scripts/verify-admin-control-center-live.mjs",
     "desktop": "electron .",
     "desktop:dev": "electron .",
     "make:ico": "node electron/make-ico.mjs",

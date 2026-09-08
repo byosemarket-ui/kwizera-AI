@@ -4,8 +4,12 @@ import path from "node:path";
 export const STUDIO_INDEX_RELATIVE = path.join("dev", "ui", "desktop", "index.html");
 export const LEGACY_INDEX_RELATIVE = path.join("dev", "ui", "index.html");
 
-const STUDIO_ENTRY = new Set(["/", "/desktop", "/desktop/"]);
+const STUDIO_ENTRY = new Set(["/", "/desktop", "/desktop/", "/admin", "/admin/"]);
 const LEGACY_ENTRY = new Set(["/dev", "/dev/", "/dev-dashboard"]);
+
+export function isAdminEntryPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname === "/admin/" || pathname.startsWith("/admin/");
+}
 
 export type PublicUiResolution =
   | { kind: "studio" | "legacy" | "asset"; filePath: string }
@@ -52,7 +56,7 @@ export function resolvePublicUiFile(pathname: string, uiDir: string): PublicUiRe
     return { kind: "legacy", filePath: legacyIndex };
   }
 
-  if (isStudioEntryPath(pathname)) {
+  if (isStudioEntryPath(pathname) || isAdminEntryPath(pathname)) {
     if (!fs.existsSync(desktopIndex) || !fs.statSync(desktopIndex).isFile()) return { kind: "missing-studio" };
     return { kind: "studio", filePath: desktopIndex };
   }

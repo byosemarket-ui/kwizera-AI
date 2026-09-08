@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  isAdminEntryPath,
   isLegacyDashboardPath,
   isStudioEntryPath,
   resolvePublicUiFile,
@@ -36,6 +37,14 @@ describe("public studio static routing", () => {
     expect(isStudioEntryPath("/desktop/")).toBe(true);
     expect(isLegacyDashboardPath("/dev")).toBe(true);
     expect(isLegacyDashboardPath("/")).toBe(false);
+  });
+
+  it("serves the professional studio at /admin", () => {
+    expect(isAdminEntryPath("/admin")).toBe(true);
+    expect(isAdminEntryPath("/admin/models")).toBe(true);
+    const uiDir = makeUi({ studio: true });
+    const resolved = resolvePublicUiFile("/admin/dashboard", uiDir);
+    expect(resolved.kind).toBe("studio");
   });
 
   it("serves the professional studio at / and /desktop/", () => {

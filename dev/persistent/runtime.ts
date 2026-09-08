@@ -6,6 +6,7 @@ import { CreativeWorkspaceManager } from "../../ai/creative-workspace/creative-w
 import { ImageGenerationManager } from "../../ai/image-generation/image-generation-manager.js";
 import { createImageGenerationPlugin } from "../../ai/image-generation/image-generation-plugin.js";
 import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
+import { AdminControlPlaneManager } from "../../ai/admin-control-plane/admin-control-plane-manager.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
 import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
 import { AudioIntelligenceManager } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
@@ -85,6 +86,7 @@ let planningManager: CreativePlanningManager | null = null;
 let reviewManager: CreativeReviewManager | null = null;
 let pipelineManager: CreativePipelineManager | null = null;
 let modelManager: AiModelManager | null = null;
+let adminControlPlaneManager: AdminControlPlaneManager | null = null;
 let imageGenerationManager: ImageGenerationManager | null = null;
 let videoAudioGenerationManager: VideoAudioGenerationManager | null = null;
 let videoProductionManager: VideoProductionManager | null = null;
@@ -201,6 +203,10 @@ export function getPipelineManager(): CreativePipelineManager | null {
 
 export function getModelManager(): AiModelManager | null {
   return modelManager;
+}
+
+export function getAdminControlPlaneManager(): AdminControlPlaneManager | null {
+  return adminControlPlaneManager;
 }
 
 export function getImageGenerationManager(): ImageGenerationManager | null {
@@ -411,6 +417,19 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     }
 
     // Optional broader helper removed from critical path — inline candidate quarantine above is enough.
+    // Admin Control Plane is additive and must boot in both lightweight and full modes.
+    try {
+      adminControlPlaneManager = new AdminControlPlaneManager();
+      await adminControlPlaneManager.initialize(storageRoot);
+      console.log("[KWIZERA] Admin Control Plane ready");
+    } catch (error) {
+      adminControlPlaneManager = null;
+      console.warn(
+        "[KWIZERA] Admin Control Plane failed to start:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
     // Continue with normal boot (status already set above).
     if (!isPersistentMode()) {
       // Workspace-only boot. KWIZERA AI Core is deferred, not replaced by an external LLM.
@@ -1158,6 +1177,7 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   reviewManager = null;
   pipelineManager = null;
   modelManager = null;
+  adminControlPlaneManager = null;
   imageGenerationManager = null;
   videoAudioGenerationManager = null;
   videoProductionManager = null;

@@ -1,8 +1,8 @@
 import {
   Activity, BarChart3, BookOpen, Bot, Clapperboard, Download, Eye, FileAudio, FileImage,
   FileVideo, FolderOpen, FolderPlus, Gauge, HeartPulse, HelpCircle, History, Home, Layers,
-  Library, ListOrdered, Megaphone, Package, Search, Settings, ShieldCheck, Sparkles, Tag,
-  Workflow, Brain, Globe, FileText,
+  Library, ListOrdered, Megaphone, Package, Search,   Settings, ShieldCheck, Sparkles, Tag,
+  Workflow, Brain, Globe, FileText, Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ALL_WORKSPACE_IDS, type WorkspaceId } from "./types";
@@ -46,6 +46,7 @@ export const NAV_ICONS: Record<WorkspaceId, LucideIcon> = {
   history: History,
   settings: Settings,
   "system-health": HeartPulse,
+  admin: Shield,
   help: HelpCircle,
 };
 

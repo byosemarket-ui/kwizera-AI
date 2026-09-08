@@ -38,6 +38,7 @@ import { deriveProjectStatus, resolveActiveProjectName } from "./project-context
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import { resetPersistedNavigationInStorage } from "./startup-navigation";
 import { STARTUP_READY_TIMEOUT_MS } from "./bootstrap-recovery";
+import { AdminControlCenter, isAdminUrl } from "../admin-control-center";
 import "./layout/layout-engine.css";
 import "./performance/performance.css";
 import "./ux/ux.css";
@@ -117,6 +118,11 @@ export function AppShell({
   layoutManagerRef.current = layoutManager;
   preferencesRef.current = preferences;
   appReadyRef.current = appReady;
+
+  useEffect(() => {
+    if (!isAdminUrl()) return;
+    setLayoutState((current) => (current.workspace === "admin" ? current : { ...current, workspace: "admin" }));
+  }, []);
 
   useEffect(() => {
     workspaceStateEngine.setProviders({
@@ -591,6 +597,18 @@ export function AppShell({
 
   return (
     <ShellProvider value={contextValue}>
+      {layout.workspace === "admin" ? (
+        <AdminControlCenter
+          onExitToStudio={() => {
+            window.history.replaceState({}, "", "/desktop/");
+            switchWorkspace("home");
+          }}
+          onOpenStudioHealth={() => {
+            window.history.replaceState({}, "", "/desktop/");
+            switchWorkspace("system-health");
+          }}
+        />
+      ) : (
       <main
         className={shellClass}
         style={shellStyle}
@@ -652,6 +670,7 @@ export function AppShell({
         <ShortcutGuide open={shortcutGuideOpen} onClose={() => setShortcutGuideOpen(false)} />
         <LiveRegion />
       </main>
+      )}
     </ShellProvider>
   );
 }

@@ -38,7 +38,8 @@ export type WorkspaceId =
   | "history"
   | "settings"
   | "system-health"
-  | "help";
+  | "help"
+  | "admin";
 
 export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "home", "new-project", "video-requirements", "video-style", "final-video-review", "open-project", "recent-projects",
@@ -47,7 +48,7 @@ export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "storyboard", "marketing", "marketing-strategy",
   "asset-library", "image-organization", "product-information", "product-validation", "visual-analysis", "deep-intelligence", "market-research", "master-intelligence", "generated-images", "generated-videos", "generated-audio",
   "output", "exports", "creative-review", "reports", "history",
-  "settings", "system-health", "help",
+  "settings", "system-health", "help", "admin",
 ];
 
 /** Legacy workspace IDs migrated on load */

@@ -15,6 +15,7 @@ import { persistentMemoryCenter } from "./persistent-memory-center.js";
 import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
+import { handleAdminApi } from "./admin-control-center-api.js";
 import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
@@ -95,6 +96,8 @@ import {
   getLearningIntelligenceManager,
 
   getModelManager,
+
+  getAdminControlPlaneManager,
 
   getPlanningManager,
 
@@ -1153,6 +1156,24 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
 
+
+  if (await handleAdminApi(req, res, url, {
+    getManager: getAdminControlPlaneManager,
+    sendJson,
+    readBody,
+    dashboardHints: () => {
+      const runtime = getRuntimeStatus();
+      const health = coreHttpHealth(runtime);
+      return {
+        aiCoreOnline: health.status === "healthy" || health.status === "degraded",
+        projectCount: null,
+        queueDepth: null,
+        storageOk: true,
+      };
+    },
+  })) {
+    return;
+  }
 
   if (url.pathname === "/api/health") {
 

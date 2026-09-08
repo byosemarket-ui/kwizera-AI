@@ -75,6 +75,8 @@ async function check(pathname, expectTitle) {
 try {
   await check("/", "KWIZERA AI STUDIO");
   await check("/desktop/", "KWIZERA AI STUDIO");
+  await check("/admin", "KWIZERA AI STUDIO");
+  await check("/admin/dashboard", "KWIZERA AI STUDIO");
   await check("/dev", "Dev Dashboard");
   console.log("PASS  studio static routing");
 } finally {
