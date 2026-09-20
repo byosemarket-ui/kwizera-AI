@@ -34,7 +34,6 @@ import { CreativeReviewWorkspace } from "../creative-review/CreativeReviewWorksp
 import { CreativeAssistantWorkspace } from "../creative-assistant/CreativeAssistantWorkspace";
 import { PersistentMemoryWorkspace } from "../persistent-memory/PersistentMemoryWorkspace";
 import { SystemHealthWorkspace } from "../system-health/SystemHealthWorkspace";
-import { AdminControlCenter } from "../admin-control-center/AdminControlCenter";
 import { loadStep2AssistantHandoff } from "../creative-review/review-engine";
 import { loadFinalCompleteHandoff } from "../production-final/final-engine";
 import type { CoreStatus, WorkspaceId } from "./types";
@@ -130,18 +129,11 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
     case "system-health":
       return <SystemHealthWorkspace />;
     case "admin":
-      return (
-        <AdminControlCenter
-          onExitToStudio={() => {
-            window.history.replaceState({}, "", "/desktop/");
-            onNavigate("home");
-          }}
-          onOpenStudioHealth={() => {
-            window.history.replaceState({}, "", "/desktop/");
-            onNavigate("system-health");
-          }}
-        />
-      );
+      // Admin is a separate application surface — never nest inside StudioShell.
+      if (typeof window !== "undefined") {
+        window.location.replace("/admin/dashboard");
+      }
+      return placeholder(<Settings size={30} />, "Opening Admin…", "Redirecting to the Admin Control Center.");
     case "help":
       return <HelpRoute onNavigate={onNavigate} />;
     default:

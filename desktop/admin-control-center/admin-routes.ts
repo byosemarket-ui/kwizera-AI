@@ -58,8 +58,11 @@ export function syncAdminUrl(route: AdminRouteId): void {
   }
 }
 
-export function isAdminUrl(): boolean {
-  return window.location.pathname === "/admin"
-    || window.location.pathname.startsWith("/admin/")
-    || window.location.hash.startsWith("#admin");
+export function isAdminUrl(pathname = typeof window !== "undefined" ? window.location.pathname : "", hash = typeof window !== "undefined" ? window.location.hash : ""): boolean {
+  return pathname === "/admin"
+    || pathname.startsWith("/admin/")
+    || hash.startsWith("#admin");
 }
+
+/** Canonical customer Studio entry (public static routing serves studio at / and /desktop). */
+export const STUDIO_ROOT_PATH = "/";

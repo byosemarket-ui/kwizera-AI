@@ -77,7 +77,21 @@ try {
   await check("/desktop/", "KWIZERA AI STUDIO");
   await check("/admin", "KWIZERA AI STUDIO");
   await check("/admin/dashboard", "KWIZERA AI STUDIO");
+  await check("/admin/models", "KWIZERA AI STUDIO");
   await check("/dev", "Dev Dashboard");
+
+  const assetsDir = path.join(uiDir, "desktop", "assets");
+  const jsFiles = fs.existsSync(assetsDir)
+    ? fs.readdirSync(assetsDir).filter((name) => name.endsWith(".js"))
+    : [];
+  const bundle = jsFiles.map((name) => fs.readFileSync(path.join(assetsDir, name), "utf8")).join("\n");
+  if (!bundle.includes("data-app-surface") || !bundle.includes("acc-shell")) {
+    throw new Error("built desktop bundle missing Admin surface markers (data-app-surface / acc-shell)");
+  }
+  if (!bundle.includes("Back to Studio")) {
+    throw new Error("built desktop bundle missing Back to Studio control");
+  }
+  console.log("PASS  desktop bundle Admin/Studio surface separation markers");
   console.log("PASS  studio static routing");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

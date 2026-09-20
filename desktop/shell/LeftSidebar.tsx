@@ -14,8 +14,15 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
     layout, switchWorkspace, setLayout, navigation, setNavigation, toggleFavorite, notify,
   } = useShell();
   const groups = getSidebarNavByGroup();
+  const studioFavorites = navigation.favorites.filter((id) => id !== "admin");
+  const studioFrequent = (navigation.quickAccess ?? []).filter((id) => id !== "admin").slice(0, 4);
+  const studioRecent = navigation.recent.filter((id) => id !== "admin").slice(0, 4);
 
   const handleSelect = (id: WorkspaceId, action?: "navigate" | "modal") => {
+    if (id === "admin") {
+      window.location.assign("/admin/dashboard");
+      return;
+    }
     if (action === "modal" || id === "new-project") {
       onNewProject?.();
       switchWorkspace("new-project");
@@ -56,10 +63,10 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
       </div>
 
       <nav className="nav-tree" tabIndex={0} aria-label="Studio pages">
-        {!layout.leftCollapsed && navigation.favorites.length > 0 && (
+        {!layout.leftCollapsed && studioFavorites.length > 0 && (
           <div className="nav-quick-section">
             <span className="nav-group">Favorites</span>
-            {navigation.favorites.map((id) => {
+            {studioFavorites.map((id) => {
               const item = getNavItem(id);
               const Icon = resolveNavIcon(id);
               return (
@@ -77,10 +84,10 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
           </div>
         )}
 
-        {!layout.leftCollapsed && (navigation.quickAccess?.length ?? 0) > 0 && (
+        {!layout.leftCollapsed && studioFrequent.length > 0 && (
           <div className="nav-quick-section">
             <span className="nav-group">Frequent</span>
-            {(navigation.quickAccess ?? []).slice(0, 4).map((id) => {
+            {studioFrequent.map((id) => {
               const item = getNavItem(id);
               const Icon = resolveNavIcon(id);
               return (
@@ -97,10 +104,10 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
           </div>
         )}
 
-        {!layout.leftCollapsed && navigation.recent.length > 0 && (
+        {!layout.leftCollapsed && studioRecent.length > 0 && (
           <div className="nav-quick-section">
             <span className="nav-group">Recently Used</span>
-            {navigation.recent.slice(0, 4).map((id) => {
+            {studioRecent.map((id) => {
               const item = getNavItem(id);
               const Icon = resolveNavIcon(id);
               return (

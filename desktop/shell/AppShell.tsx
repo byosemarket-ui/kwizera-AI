@@ -38,7 +38,7 @@ import { deriveProjectStatus, resolveActiveProjectName } from "./project-context
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import { resetPersistedNavigationInStorage } from "./startup-navigation";
 import { STARTUP_READY_TIMEOUT_MS } from "./bootstrap-recovery";
-import { AdminControlCenter, isAdminUrl } from "../admin-control-center";
+import { mapLegacyWorkspace } from "./workspace-registry";
 import "./layout/layout-engine.css";
 import "./performance/performance.css";
 import "./ux/ux.css";
@@ -120,11 +120,6 @@ export function AppShell({
   appReadyRef.current = appReady;
 
   useEffect(() => {
-    if (!isAdminUrl()) return;
-    setLayoutState((current) => (current.workspace === "admin" ? current : { ...current, workspace: "admin" }));
-  }, []);
-
-  useEffect(() => {
     workspaceStateEngine.setProviders({
       getShell: () => layoutRef.current,
       getNavigation: () => navigationRef.current,
@@ -162,6 +157,18 @@ export function AppShell({
         setPreferences(applied.preferences);
         if (!report.restored && applied.preferences.sidebarPinnedDefault) {
           setNavigationState((current) => ({ ...current, pinned: true }));
+        }
+        // Optional deep-link from Admin "Open System Health" — Studio surface only.
+        try {
+          const requested = new URLSearchParams(window.location.search).get("workspace");
+          if (requested && requested !== "admin") {
+            const mapped = mapLegacyWorkspace(requested);
+            if (mapped !== "admin") {
+              setLayoutState((current) => ({ ...current, workspace: mapped }));
+            }
+          }
+        } catch {
+          /* ignore malformed query */
         }
         const combined: RestoreReport = {
           ...report,
@@ -409,6 +416,11 @@ export function AppShell({
   }, []);
 
   const switchWorkspace = useCallback((workspace: WorkspaceId) => {
+    // Admin is a separate application surface — never open it inside StudioShell.
+    if (workspace === "admin") {
+      window.location.assign("/admin/dashboard");
+      return;
+    }
     setLayoutState((current) => ({ ...current, workspace }));
     setNavigationState((current) => navigationStore.visit(current, workspace));
     setPreferences((current) => ({ ...current, lastWorkspace: workspace }));
@@ -597,18 +609,6 @@ export function AppShell({
 
   return (
     <ShellProvider value={contextValue}>
-      {layout.workspace === "admin" ? (
-        <AdminControlCenter
-          onExitToStudio={() => {
-            window.history.replaceState({}, "", "/desktop/");
-            switchWorkspace("home");
-          }}
-          onOpenStudioHealth={() => {
-            window.history.replaceState({}, "", "/desktop/");
-            switchWorkspace("system-health");
-          }}
-        />
-      ) : (
       <main
         className={shellClass}
         style={shellStyle}
@@ -670,7 +670,6 @@ export function AppShell({
         <ShortcutGuide open={shortcutGuideOpen} onClose={() => setShortcutGuideOpen(false)} />
         <LiveRegion />
       </main>
-      )}
     </ShellProvider>
   );
 }

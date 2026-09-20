@@ -49,7 +49,7 @@ export const workspaceNav: WorkspaceNavItem[] = [
 
   { id: "settings", label: "Settings", group: "system", groupLabel: "Settings", keywords: ["settings", "preferences", "config"], shortcut: "Ctrl+," },
   { id: "system-health", label: "System Health", group: "system", groupLabel: "Settings", keywords: ["health", "diagnostics", "repair", "update", "windows", "monitor"] },
-  { id: "admin", label: "Admin Control Center", group: "system", groupLabel: "Settings", keywords: ["admin", "control plane", "models", "providers", "saas"] },
+  { id: "admin", label: "Admin Control Center", group: "system", groupLabel: "Settings", keywords: ["admin", "control plane", "models", "providers", "saas"], inSidebar: false },
   { id: "help", label: "Help", group: "system", groupLabel: "Settings", keywords: ["help", "docs", "guide", "support"] },
 ];
 
@@ -81,7 +81,7 @@ export const SIDEBAR_SECTIONS: Array<{ group: NavGroupId; label: string; ids: Wo
     label: "Production",
     ids: ["pipeline", "queue", "active-production", "command-center", "output"],
   },
-  { group: "system", label: "System", ids: ["system-health", "admin", "knowledge-center", "settings"] },
+  { group: "system", label: "System", ids: ["system-health", "knowledge-center", "settings"] },
 ];
 
 export function getSidebarNavByGroup(): Array<{ group: NavGroupId; label: string; items: WorkspaceNavItem[] }> {

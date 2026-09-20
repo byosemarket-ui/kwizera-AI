@@ -49,6 +49,10 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
 
   useEffect(() => {
     syncAdminUrl(route);
+    document.title = "KWIZERA AI STUDIO — Admin Control Center";
+    return () => {
+      document.title = "KWIZERA AI STUDIO";
+    };
   }, [route]);
 
   useEffect(() => {
@@ -93,7 +97,7 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
             {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
           <div className="acc-brand">
-            <span className="acc-brand-mark">KWIZERA</span>
+            <span className="acc-brand-mark">KWIZERA AI STUDIO</span>
             <span className="acc-brand-sub">Admin Control Center</span>
           </div>
         </div>

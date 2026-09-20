@@ -21,24 +21,31 @@ export const defaultNavigationState: NavigationState = {
   selectedViews: {},
 };
 
+/** Admin is a separate app surface — never keep it in Studio navigation memory. */
+function isStudioNavWorkspace(id: string): id is WorkspaceId {
+  return isWorkspaceId(id) && id !== "admin";
+}
+
 function safeRead(): NavigationState {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<NavigationState>;
     const visitCounts = { ...(parsed.visitCounts ?? defaultNavigationState.visitCounts) };
+    delete visitCounts.admin;
     const lastVisitedAt = { ...(parsed.lastVisitedAt ?? {}) };
+    delete lastVisitedAt.admin;
     return {
       ...defaultNavigationState,
       ...parsed,
-      favorites: (parsed.favorites ?? defaultNavigationState.favorites).filter(isWorkspaceId),
-      recent: (parsed.recent ?? defaultNavigationState.recent).filter(isWorkspaceId),
+      favorites: (parsed.favorites ?? defaultNavigationState.favorites).filter(isStudioNavWorkspace),
+      recent: (parsed.recent ?? defaultNavigationState.recent).filter(isStudioNavWorkspace),
       collapsedGroups: parsed.collapsedGroups ?? [],
       history: (parsed.history ?? defaultNavigationState.history)
-        .filter((entry) => isWorkspaceId(entry.workspace))
+        .filter((entry) => isStudioNavWorkspace(entry.workspace))
         .slice(0, 40),
       visitCounts,
       lastVisitedAt,
       recentPanels: (parsed.recentPanels ?? []).slice(0, 20),
-      quickAccess: (parsed.quickAccess ?? defaultNavigationState.quickAccess).filter(isWorkspaceId),
+      quickAccess: (parsed.quickAccess ?? defaultNavigationState.quickAccess).filter(isStudioNavWorkspace),
       commandCounts: { ...(parsed.commandCounts ?? {}) },
       frequentProjects: (parsed.frequentProjects ?? []).slice(0, 12),
       frequentAssets: (parsed.frequentAssets ?? []).slice(0, 12),
@@ -61,6 +68,7 @@ export class NavigationStore {
   }
 
   visit(state: NavigationState, workspace: WorkspaceId): NavigationState {
+    if (workspace === "admin") return state;
     const at = new Date().toISOString();
     const recent = [workspace, ...state.recent.filter((id) => id !== workspace)].slice(0, 12);
     const history = [{ workspace, at }, ...state.history].slice(0, 40);
@@ -118,13 +126,14 @@ export class NavigationStore {
 
   rankFrequentWorkspaces(state: NavigationState, limit = 6): WorkspaceId[] {
     return Object.entries(state.visitCounts)
-      .filter(([id]) => isWorkspaceId(id))
+      .filter(([id]) => isStudioNavWorkspace(id))
       .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
       .map(([id]) => id as WorkspaceId)
       .slice(0, limit);
   }
 
   toggleFavorite(state: NavigationState, workspace: WorkspaceId): NavigationState {
+    if (workspace === "admin") return state;
     const favorites = state.favorites.includes(workspace)
       ? state.favorites.filter((id) => id !== workspace)
       : [...state.favorites, workspace];

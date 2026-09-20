@@ -55,14 +55,24 @@
 }
 
 .acc-brand-mark {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .acc-brand-sub {
   font-size: 11px;
   color: var(--acc-muted);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.acc-root-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0e1218;
 }
 
 .acc-body {

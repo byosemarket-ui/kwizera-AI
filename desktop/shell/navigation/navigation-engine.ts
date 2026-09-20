@@ -83,6 +83,8 @@ export class NavigationEngine {
     const results: SearchResult[] = [];
 
     for (const item of workspaceNav) {
+      // Admin is a separate application surface — never surface it in Studio search.
+      if (item.id === "admin") continue;
       const haystack = `${item.label} ${item.groupLabel} ${item.keywords.join(" ")}`.toLowerCase();
       const score = scoreMatch(haystack, q, item.label.toLowerCase());
       if (!q || score > 0) {

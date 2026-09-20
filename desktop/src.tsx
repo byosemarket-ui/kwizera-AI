@@ -19,6 +19,7 @@ import { NotificationCenter } from "./shell/navigation/NotificationCenter";
 import { mapLegacyWorkspace } from "./shell/workspace-registry";
 import { installBootstrapRecovery } from "./shell/bootstrap-recovery";
 import { resetPersistedNavigationInStorage } from "./shell/startup-navigation";
+import { AdminControlCenter, isAdminUrl, STUDIO_ROOT_PATH } from "./admin-control-center";
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
 import "./shell/shell.css";
@@ -72,6 +73,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
+  const [surface, setSurface] = useState<"admin" | "studio">(() => (isAdminUrl() ? "admin" : "studio"));
   const [preferences, setPreferences] = useState<DesktopPreferences>(() => preferenceManager.load());
   const [core, setCore] = useState<CoreStatus | null>(null);
   const [layoutSnapshot, setLayoutSnapshot] = useState<ShellLayoutState | null>(null);
@@ -81,6 +83,14 @@ function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [notifications, setNotifications] = useState<DesktopNotification[]>(() => notificationManager.load());
+
+  useEffect(() => {
+    const syncSurface = () => setSurface(isAdminUrl() ? "admin" : "studio");
+    // Initial sync covers refresh / direct URL entry; popstate covers back/forward.
+    syncSurface();
+    window.addEventListener("popstate", syncSurface);
+    return () => window.removeEventListener("popstate", syncSurface);
+  }, []);
 
   useEffect(() => {
     preferenceManager.save(preferences);
@@ -239,7 +249,20 @@ function App() {
 
   return (
     <>
+      {surface === "admin" ? (
+        <div className="acc-root-surface" data-app-surface="admin">
+          <AdminControlCenter
+            onExitToStudio={() => {
+              window.location.assign(STUDIO_ROOT_PATH);
+            }}
+            onOpenStudioHealth={() => {
+              window.location.assign(`${STUDIO_ROOT_PATH}?workspace=system-health`);
+            }}
+          />
+        </div>
+      ) : (
       <div
+        data-app-surface="studio"
         onContextMenu={(event) => {
           event.preventDefault();
           setContextMenu({ x: event.clientX, y: event.clientY });
@@ -265,8 +288,9 @@ function App() {
           <ShellWorkspaceContent core={core} />
         </AppShell>
       </div>
+      )}
 
-      {preferencesOpen && (
+      {surface === "studio" && preferencesOpen && (
         <DesktopPreferencesPanel
           preferences={preferences}
           onChange={setPreferences}
@@ -281,7 +305,7 @@ function App() {
           onClose={() => setPreferencesOpen(false)}
         />
       )}
-      {notificationsOpen && (
+      {surface === "studio" && notificationsOpen && (
         <NotificationCenter
           notifications={notifications}
           onClear={() => setNotifications([])}
@@ -289,7 +313,7 @@ function App() {
           onMarkRead={(id) => setNotifications((current) => current.map((item) => (item.id === id ? { ...item, read: true } : item)))}
         />
       )}
-      {contextMenu && (
+      {surface === "studio" && contextMenu && (
         <DesktopContextMenu
           position={contextMenu}
           onClose={() => setContextMenu(null)}
