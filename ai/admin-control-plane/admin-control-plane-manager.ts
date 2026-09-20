@@ -15,6 +15,7 @@ import {
   validateOptionalCost,
   validatePriority,
   validateTimeoutMs,
+  validateModelCategory,
 } from "./validation.js";
 import type {
   AdminControlPlaneStore,
@@ -216,6 +217,7 @@ export class AdminControlPlaneManager {
       throw new AdminValidationError(ADMIN_ERROR_CODES.DUPLICATE_MODEL, `Model ${modelId} already exists for this provider`);
     }
     this.validateModelRef(input.fallbackModelId);
+    const category = validateModelCategory(String(input.category ?? existing?.category ?? ""));
     const timeoutMs = validateTimeoutMs(typeof input.timeoutMs === "number" ? input.timeoutMs : existing?.timeoutMs ?? 60_000);
     const priority = validatePriority(typeof input.priority === "number" ? input.priority : existing?.priority ?? 50);
     const estimatedCost = validateOptionalCost(input.estimatedCost ?? existing?.estimatedCost);
@@ -225,7 +227,7 @@ export class AdminControlPlaneManager {
       id: existing?.id ?? input.id ?? `model-${randomUUID()}`,
       name,
       providerId: input.providerId,
-      category: input.category,
+      category,
       capability: input.capability,
       modelId,
       endpoint: input.endpoint ?? existing?.endpoint,

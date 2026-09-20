@@ -17,7 +17,12 @@ export function DashboardPage() {
     setLoading(true);
     setError(null);
     adminApi.dashboard()
-      .then(setData)
+      .then((snapshot) => {
+        if (!snapshot?.system || !snapshot?.business || !snapshot?.ai || !snapshot?.cost) {
+          throw new Error("Dashboard payload was incomplete");
+        }
+        setData(snapshot);
+      })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -86,6 +91,7 @@ export function DashboardPage() {
               <StatCard label="Estimated" value={display(data.cost.estimated)} />
               <StatCard label="Provider usage" value={display(data.cost.providerUsage)} />
             </div>
+            <p className="acc-muted">Usage and cost stay empty until AI operations record them. Values are not fabricated.</p>
           </SectionCard>
         </>
       )}

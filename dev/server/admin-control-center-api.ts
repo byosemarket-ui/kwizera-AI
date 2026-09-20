@@ -307,10 +307,13 @@ export async function handleAdminApi(
       fail(deps.sendJson, res, 400, error.code, error.message);
       return true;
     }
+    if (error instanceof SyntaxError) {
+      fail(deps.sendJson, res, 400, "INVALID_JSON", "Request body is not valid JSON");
+      return true;
+    }
     const message = error instanceof Error ? error.message : String(error);
-    const safe = /secret|api[_-]?key|password|token|credential/i.test(message)
-      ? "Admin request failed (details redacted)"
-      : message;
+    const redacted = /secret|api[_-]?key|password|token|credential|stack|\\\\|C:\\\\|\/home\/|\/var\/|process\.env/i.test(message);
+    const safe = redacted ? "Admin request failed (details redacted)" : message;
     fail(deps.sendJson, res, 400, "ADMIN_REQUEST_FAILED", safe);
     return true;
   }

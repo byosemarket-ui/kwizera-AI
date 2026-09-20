@@ -35,7 +35,14 @@ async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const adminApi = {
   dashboard: () => adminFetch<AdminDashboardSnapshot>("/api/admin/dashboard"),
-  health: () => adminFetch<{ ok: boolean; initialized: boolean }>("/api/admin/health"),
+  health: () => adminFetch<{
+    ok: boolean;
+    initialized: boolean;
+    providers?: number;
+    models?: number;
+    features?: number;
+    settings?: number;
+  }>("/api/admin/health"),
   providers: () => adminFetch<{ items: AdminProviderPublicView[] }>("/api/admin/providers"),
   saveProvider: (body: Record<string, unknown>) =>
     adminFetch<AdminProviderPublicView>("/api/admin/providers", { method: "POST", body: JSON.stringify(body) }),
@@ -60,6 +67,16 @@ export const adminApi = {
   features: () => adminFetch<{ items: FeatureMappingView[] }>("/api/admin/features"),
   saveFeature: (body: Record<string, unknown>) =>
     adminFetch("/api/admin/features", { method: "POST", body: JSON.stringify(body) }),
+  resolveFeature: (feature: string) =>
+    adminFetch<{
+      ok: boolean;
+      feature: string;
+      status: string;
+      selectedModelId: string | null;
+      providerId: string | null;
+      source: string;
+      reason?: string;
+    }>(`/api/admin/features/resolve/${encodeURIComponent(feature)}`),
   settings: (category?: string) => {
     const suffix = category ? `?category=${encodeURIComponent(category)}` : "";
     return adminFetch<{ items: TypedSetting[] }>(`/api/admin/settings${suffix}`);

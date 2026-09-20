@@ -129,3 +129,32 @@ describe("Admin route parsing (jsdom-free helpers)", () => {
     void parseAdminRouteFromLocation;
   });
 });
+
+describe("Admin UI talks to live Admin APIs", () => {
+  it("does not ship mock catalogs and loads every implemented page from /api/admin", () => {
+    const pages = {
+      dashboard: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/DashboardPage.tsx"), "utf8"),
+      models: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/ModelsPage.tsx"), "utf8"),
+      providers: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/ProvidersPage.tsx"), "utf8"),
+      features: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/FeaturesPage.tsx"), "utf8"),
+      settings: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/SettingsPage.tsx"), "utf8"),
+      system: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/SystemPage.tsx"), "utf8"),
+      client: fs.readFileSync(path.resolve("desktop/admin-control-center/admin-api.ts"), "utf8"),
+    };
+    for (const [name, src] of Object.entries(pages)) {
+      expect(src, name).not.toMatch(/mockModels|MOCK_|fakeCustomers|hardcoded revenue/i);
+    }
+    expect(pages.dashboard).toContain("adminApi.dashboard");
+    expect(pages.dashboard).toContain("Not available yet");
+    expect(pages.models).toContain("adminApi.models");
+    expect(pages.models).toContain("No models in registry");
+    expect(pages.providers).toContain("adminApi.providers");
+    expect(pages.providers).toContain("No providers configured");
+    expect(pages.features).toContain("adminApi.features");
+    expect(pages.features).toContain("resolveFeature");
+    expect(pages.settings).toContain("adminApi.settings");
+    expect(pages.system).toContain("adminApi.health");
+    expect(pages.client).toContain("/api/admin/features/resolve/");
+    expect(pages.client).toContain("error?.message");
+  });
+});

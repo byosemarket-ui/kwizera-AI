@@ -20,6 +20,7 @@ export const ADMIN_ERROR_CODES = {
   INVALID_PRIORITY: "INVALID_PRIORITY",
   INVALID_COST: "INVALID_COST",
   INVALID_SETTING: "INVALID_SETTING",
+  INVALID_CATEGORY: "INVALID_CATEGORY",
   REQUIRED_FIELD: "REQUIRED_FIELD",
   FEATURE_DISABLED: "FEATURE_DISABLED",
   CREDENTIAL_LOCKED: "CREDENTIAL_LOCKED",
@@ -52,4 +53,17 @@ export function validateOptionalCost(value: number | undefined): number | undefi
     throw new AdminValidationError(ADMIN_ERROR_CODES.INVALID_COST, "cost values must be finite and >= 0");
   }
   return value;
+}
+
+const MODEL_CATEGORIES = [
+  "VISION", "IMAGE", "IMAGE_EDITING", "SEGMENTATION", "UPSCALE",
+  "VIDEO", "AUDIO", "MUSIC", "TTS", "STT", "LLM", "EMBEDDING", "OTHER",
+] as const;
+
+export function validateModelCategory(value: string): (typeof MODEL_CATEGORIES)[number] {
+  const category = value.trim().toUpperCase();
+  if (!(MODEL_CATEGORIES as readonly string[]).includes(category)) {
+    throw new AdminValidationError(ADMIN_ERROR_CODES.INVALID_CATEGORY, `Invalid model category: ${value}`);
+  }
+  return category as (typeof MODEL_CATEGORIES)[number];
 }

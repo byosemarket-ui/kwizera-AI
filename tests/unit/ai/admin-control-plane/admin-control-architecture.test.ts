@@ -90,6 +90,19 @@ describe("Admin control architecture — registries", () => {
       inputType: "any",
       outputType: "any",
     })).rejects.toMatchObject({ code: "INVALID_TIMEOUT" });
+
+    await expect(manager.upsertModel({
+      name: "Bad category",
+      providerId: provider.id,
+      category: "NOT_A_CATEGORY" as never,
+      capability: "other",
+      modelId: "bad-category",
+      metadata: {},
+      currency: "USD",
+      timeoutMs: 1000,
+      inputType: "any",
+      outputType: "any",
+    })).rejects.toMatchObject({ code: "INVALID_CATEGORY" });
   });
 
   it("creates, reads, updates providers and never exposes secrets", async () => {

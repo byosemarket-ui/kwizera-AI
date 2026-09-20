@@ -14,6 +14,15 @@ export function FeaturesPage() {
   const [editing, setEditing] = useState<FeatureMappingView | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [probing, setProbing] = useState(false);
+  const [probe, setProbe] = useState<{
+    feature: string;
+    status: string;
+    selectedModelId: string | null;
+    providerId: string | null;
+    source: string;
+    reason?: string;
+  } | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -60,6 +69,26 @@ export function FeaturesPage() {
     }
   };
 
+  const testResolve = async (feature: string) => {
+    setProbing(true);
+    try {
+      const result = await adminApi.resolveFeature(feature);
+      setProbe({
+        feature: result.feature,
+        status: result.status,
+        selectedModelId: result.selectedModelId,
+        providerId: result.providerId,
+        source: result.source,
+        reason: result.reason,
+      });
+      setToast(`Resolution ${result.status} · ${result.source}`);
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Resolution test failed");
+    } finally {
+      setProbing(false);
+    }
+  };
+
   return (
     <div className="acc-page">
       <PageHeader
@@ -101,11 +130,36 @@ export function FeaturesPage() {
                 ? <StatusBadge status={`${item.resolutionStatus}${item.resolutionSource && item.resolutionSource !== "NONE" ? ` · ${item.resolutionSource}` : ""}`} />
                 : "—",
               actions: (
-                <button type="button" className="acc-button ghost" onClick={() => setEditing(item)}>Edit</button>
+                <div className="acc-row-actions">
+                  <button type="button" className="acc-button ghost" onClick={() => void testResolve(item.feature)} disabled={probing}>
+                    Test
+                  </button>
+                  <button type="button" className="acc-button ghost" onClick={() => { setEditing(item); setProbe(null); }}>Edit</button>
+                </div>
               ),
             },
           }))}
         />
+      )}
+
+      {probe && (
+        <section className="acc-section-card" aria-live="polite">
+          <div className="acc-section-card-head">
+            <div>
+              <h2 className="acc-section-title">Dry-run resolution</h2>
+              <p className="acc-section-desc">Configuration only — no external AI generation.</p>
+            </div>
+          </div>
+          <div className="acc-section-card-body">
+            <div className="acc-stat-grid">
+              <div className="acc-stat-card"><span className="acc-stat-label">Feature</span><strong className="acc-stat-value">{probe.feature}</strong></div>
+              <div className="acc-stat-card"><span className="acc-stat-label">Status</span><strong className="acc-stat-value">{probe.status}</strong></div>
+              <div className="acc-stat-card"><span className="acc-stat-label">Source</span><strong className="acc-stat-value">{probe.source}</strong></div>
+              <div className="acc-stat-card"><span className="acc-stat-label">Model</span><strong className="acc-stat-value">{probe.selectedModelId ?? "None"}</strong></div>
+            </div>
+            {probe.reason ? <p className="acc-muted">{probe.reason}</p> : null}
+          </div>
+        </section>
       )}
 
       <Modal
@@ -115,6 +169,14 @@ export function FeaturesPage() {
         footer={
           <>
             <button type="button" className="acc-button ghost" onClick={() => setEditing(null)}>Cancel</button>
+            <button
+              type="button"
+              className="acc-button ghost"
+              disabled={probing || !editing}
+              onClick={() => editing && void testResolve(editing.feature)}
+            >
+              {probing ? "Testing…" : "Test resolution"}
+            </button>
             <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
               {saving ? "Saving…" : "Save mapping"}
             </button>
