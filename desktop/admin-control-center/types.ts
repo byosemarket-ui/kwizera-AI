@@ -77,6 +77,9 @@ export interface FeatureMappingView {
   secondaryModelName?: string | null;
   fallbackModelName?: string | null;
   providerName?: string | null;
+  resolutionStatus?: string;
+  resolutionSource?: string;
+  resolutionReason?: string | null;
   createdAt: string;
   updatedAt: string;
 }

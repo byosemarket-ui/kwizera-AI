@@ -420,7 +420,17 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
     // Admin Control Plane is additive and must boot in both lightweight and full modes.
     try {
       adminControlPlaneManager = new AdminControlPlaneManager();
-      await adminControlPlaneManager.initialize(storageRoot);
+      try {
+        const { AiSecretsManager } = await import("../../ai/connector-management/secrets-manager.js");
+        const { AdminCredentialManager } = await import("../../ai/admin-control-plane/credential-manager.js");
+        const secrets = new AiSecretsManager();
+        await secrets.initialize(storageRoot);
+        const credentials = new AdminCredentialManager();
+        credentials.attach(secrets);
+        await adminControlPlaneManager.initialize(storageRoot, { credentials });
+      } catch {
+        await adminControlPlaneManager.initialize(storageRoot);
+      }
       console.log("[KWIZERA] Admin Control Plane ready");
     } catch (error) {
       adminControlPlaneManager = null;

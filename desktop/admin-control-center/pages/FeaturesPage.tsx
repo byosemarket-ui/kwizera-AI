@@ -80,6 +80,7 @@ export function FeaturesPage() {
             { key: "fallback", label: "Fallback" },
             { key: "provider", label: "Provider" },
             { key: "status", label: "Status" },
+            { key: "resolution", label: "Resolution" },
             { key: "actions", label: "" },
           ]}
           rows={items.map((item) => ({
@@ -96,6 +97,9 @@ export function FeaturesPage() {
               fallback: item.fallbackModelName ?? "—",
               provider: item.providerName ?? "—",
               status: <StatusBadge status={item.enabled ? "Enabled" : "Disabled"} />,
+              resolution: item.resolutionStatus
+                ? <StatusBadge status={`${item.resolutionStatus}${item.resolutionSource && item.resolutionSource !== "NONE" ? ` · ${item.resolutionSource}` : ""}`} />
+                : "—",
               actions: (
                 <button type="button" className="acc-button ghost" onClick={() => setEditing(item)}>Edit</button>
               ),

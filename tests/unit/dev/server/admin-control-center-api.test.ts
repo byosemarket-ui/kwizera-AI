@@ -5,7 +5,6 @@ import os from "node:os";
 import path from "node:path";
 import { AdminControlPlaneManager } from "../../../../ai/admin-control-plane/admin-control-plane-manager.js";
 import { handleAdminApi } from "../../../../dev/server/admin-control-center-api.ts";
-import { isAdminEntryPath, resolvePublicUiFile } from "../../../../dev/server/static-ui.ts";
 
 const roots: string[] = [];
 
@@ -73,17 +72,38 @@ describe("Admin API routes", () => {
 
       const health = await fetch(`http://127.0.0.1:${port}/api/admin/health`).then((r) => r.json());
       expect(health.ok).toBe(true);
+
+      const resolved = await fetch(`http://127.0.0.1:${port}/api/admin/features/resolve/LLM_CHAT`).then((r) => r.json());
+      expect(resolved.ok).toBe(true);
+      expect(["READY", "FALLBACK", "UNAVAILABLE"]).toContain(resolved.status);
+
+      const leaked = await fetch(`http://127.0.0.1:${port}/api/admin/providers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Bad", type: "custom", credentialReference: "sk-this-must-not-be-accepted-as-a-reference" }),
+      }).then((r) => r.json());
+      expect(leaked.ok).toBe(false);
+      expect(JSON.stringify(leaked)).not.toContain("sk-this-must-not-be-accepted-as-a-reference");
     } finally {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }
   });
 
-  it("routes /admin to the studio SPA entry", () => {
-    expect(isAdminEntryPath("/admin")).toBe(true);
-    expect(isAdminEntryPath("/admin/models")).toBe(true);
-    const uiDir = path.join(os.tmpdir(), `kwizera-admin-ui-${Date.now()}`);
-    // resolvePublicUiFile needs real files — covered by static-ui tests with fixtures
-    expect(typeof resolvePublicUiFile).toBe("function");
-    void uiDir;
+  it("does not handle public routes as Admin APIs", async () => {
+    const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-admin-public-"));
+    roots.push(storageRoot);
+    const manager = new AdminControlPlaneManager();
+    await manager.initialize(storageRoot);
+    const handled = await handleAdminApi(
+      { method: "GET", headers: {}, socket: { remoteAddress: "127.0.0.1" } } as never,
+      { writeHead() { /* unused */ }, end() { /* unused */ } } as never,
+      new URL("http://127.0.0.1/api/health"),
+      {
+        getManager: () => manager,
+        sendJson: () => undefined,
+        readBody: async () => "",
+      },
+    );
+    expect(handled).toBe(false);
   });
 });

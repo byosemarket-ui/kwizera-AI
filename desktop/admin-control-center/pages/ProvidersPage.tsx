@@ -131,8 +131,7 @@ export function ProvidersPage() {
               onChange={(enabled) => setDraft({ ...draft, enabled })}
             />
             <p className="acc-muted">
-              Health checks and encrypted credential storage will plug into this drawer in a later stage.
-              Use `credentialReference` on the backend only.
+              Encrypted credentials are stored on the server via the Credential Manager. The browser never receives API keys.
             </p>
             <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
               {saving ? "Saving…" : "Save provider"}

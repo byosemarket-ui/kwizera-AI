@@ -24,12 +24,11 @@ async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new AdminApiError(
-      typeof (data as { error?: string }).error === "string"
-        ? (data as { error: string }).error
-        : `Admin API failed (${response.status})`,
-      response.status,
-    );
+    const payload = data as { error?: string | { message?: string }; message?: string };
+    const message = typeof payload.error === "string"
+      ? payload.error
+      : payload.error?.message || payload.message || `Admin API failed (${response.status})`;
+    throw new AdminApiError(message, response.status);
   }
   return data as T;
 }

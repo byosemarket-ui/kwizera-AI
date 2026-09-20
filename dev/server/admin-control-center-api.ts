@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   assertAdminAccess,
   rolesFromHeaders,
+  AdminValidationError,
   type AdminControlPlaneManager,
 } from "../../ai/admin-control-plane/index.js";
 
@@ -28,6 +29,19 @@ function headersRecord(req: IncomingMessage): Record<string, string | string[] |
   return req.headers as Record<string, string | string[] | undefined>;
 }
 
+function fail(sendJson: SendJson, res: ServerResponse, status: number, code: string, message: string): void {
+  sendJson(res, status, {
+    ok: false,
+    error: { code, message },
+    code,
+    message,
+  });
+}
+
+function ok(sendJson: SendJson, res: ServerResponse, data: Record<string, unknown>, status = 200): void {
+  sendJson(res, status, { ok: true, ...data });
+}
+
 function guard(req: IncomingMessage, res: ServerResponse, sendJson: SendJson, pathname: string): boolean {
   const decision = assertAdminAccess({
     roles: rolesFromHeaders(headersRecord(req)),
@@ -36,7 +50,7 @@ function guard(req: IncomingMessage, res: ServerResponse, sendJson: SendJson, pa
     remoteAddress: req.socket.remoteAddress,
   });
   if (!decision.allowed) {
-    sendJson(res, 403, { error: decision.reason, code: "ADMIN_FORBIDDEN" });
+    fail(sendJson, res, 403, "ADMIN_FORBIDDEN", decision.reason);
     return false;
   }
   return true;
@@ -45,7 +59,7 @@ function guard(req: IncomingMessage, res: ServerResponse, sendJson: SendJson, pa
 function requireManager(deps: AdminApiDeps, res: ServerResponse): AdminControlPlaneManager | null {
   const manager = deps.getManager();
   if (!manager?.isInitialized()) {
-    deps.sendJson(res, 503, { error: "Admin Control Plane is not ready", code: "ADMIN_NOT_READY" });
+    fail(deps.sendJson, res, 503, "ADMIN_NOT_READY", "Admin Control Plane is not ready");
     return null;
   }
   return manager;
@@ -55,6 +69,10 @@ async function parseJsonBody(req: IncomingMessage, readBody: ReadBody): Promise<
   const raw = await readBody(req);
   if (!raw.trim()) return {};
   return JSON.parse(raw) as unknown;
+}
+
+function looksLikeSecret(value: string): boolean {
+  return /^(sk-|rk-|Bearer\s|api[_-]?key)/i.test(value.trim()) || value.trim().length > 80;
 }
 
 /**
@@ -74,47 +92,64 @@ export async function handleAdminApi(
   if (!manager) return true;
 
   try {
-    // Dashboard
     if (url.pathname === "/api/admin/dashboard" && req.method === "GET") {
       const hints = deps.dashboardHints?.() ?? {};
-      deps.sendJson(res, 200, manager.buildDashboard(hints));
+      ok(deps.sendJson, res, manager.buildDashboard(hints) as unknown as Record<string, unknown>);
       return true;
     }
 
-    // Providers
     if (url.pathname === "/api/admin/providers" && req.method === "GET") {
-      deps.sendJson(res, 200, { items: manager.listProviders() });
+      ok(deps.sendJson, res, { items: manager.listProviders() });
       return true;
     }
     if (url.pathname === "/api/admin/providers" && req.method === "POST") {
       const body = (await parseJsonBody(req, deps.readBody)) as Record<string, unknown>;
+      if (typeof body.credentialReference === "string" && looksLikeSecret(body.credentialReference)) {
+        fail(deps.sendJson, res, 400, "CREDENTIAL_REQUIRED", "Do not send raw API keys. Use POST /api/admin/providers/:id/credential");
+        return true;
+      }
       const saved = await manager.upsertProvider({
         id: typeof body.id === "string" ? body.id : undefined,
         name: String(body.name ?? ""),
         type: String(body.type ?? "custom"),
+        kind: body.kind as never,
         baseEndpoint: typeof body.baseEndpoint === "string" ? body.baseEndpoint : undefined,
         status: body.status as never,
         enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
         healthStatus: body.healthStatus as never,
         metadata: (body.metadata as Record<string, unknown>) ?? {},
-        // credentialReference may be set only as a reference id — never accept raw API keys as response fields
         credentialReference: typeof body.credentialReference === "string" ? body.credentialReference : undefined,
       });
-      deps.sendJson(res, 200, saved);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
+      return true;
+    }
+    if (url.pathname.match(/^\/api\/admin\/providers\/[^/]+\/credential$/) && req.method === "POST") {
+      const id = decodeURIComponent(url.pathname.split("/")[4] ?? "");
+      const body = (await parseJsonBody(req, deps.readBody)) as { secret?: string; value?: string };
+      const secret = typeof body.secret === "string" ? body.secret : body.value;
+      if (!secret) {
+        fail(deps.sendJson, res, 400, "CREDENTIAL_REQUIRED", "Credential value is required");
+        return true;
+      }
+      const saved = await manager.setProviderSecret(id, secret);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname.startsWith("/api/admin/providers/") && req.method === "GET") {
       const id = decodeURIComponent(url.pathname.slice("/api/admin/providers/".length));
-      const provider = manager.getProvider(id);
-      if (!provider) {
-        deps.sendJson(res, 404, { error: "Provider not found" });
+      if (id.includes("/")) {
+        fail(deps.sendJson, res, 404, "NOT_FOUND", "Unknown admin API route");
         return true;
       }
-      deps.sendJson(res, 200, provider);
+      const provider = manager.getProvider(id);
+      if (!provider) {
+        fail(deps.sendJson, res, 404, "UNKNOWN_PROVIDER", "Provider not found");
+        return true;
+      }
+      ok(deps.sendJson, res, provider as unknown as Record<string, unknown>);
       return true;
     }
 
-    // Models
     if (url.pathname === "/api/admin/models" && req.method === "GET") {
       const enabledParam = url.searchParams.get("enabled");
       const result = manager.listModels({
@@ -127,7 +162,7 @@ export async function handleAdminApi(
         page: Number(url.searchParams.get("page") ?? 1),
         pageSize: Number(url.searchParams.get("pageSize") ?? 25),
       });
-      deps.sendJson(res, 200, result);
+      ok(deps.sendJson, res, result as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname === "/api/admin/models" && req.method === "POST") {
@@ -150,42 +185,46 @@ export async function handleAdminApi(
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
         enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
         fallbackModelId: typeof body.fallbackModelId === "string" ? body.fallbackModelId : undefined,
+        costModel: body.costModel as never,
         metadata: (body.metadata as Record<string, unknown>) ?? {},
       });
-      deps.sendJson(res, 200, saved);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname.match(/^\/api\/admin\/models\/[^/]+\/enabled$/) && req.method === "POST") {
       const id = decodeURIComponent(url.pathname.split("/")[4] ?? "");
       const body = (await parseJsonBody(req, deps.readBody)) as { enabled?: boolean };
       const saved = await manager.setModelEnabled(id, Boolean(body.enabled));
-      deps.sendJson(res, 200, saved);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname.startsWith("/api/admin/models/") && req.method === "GET") {
       const id = decodeURIComponent(url.pathname.slice("/api/admin/models/".length));
       const model = manager.getModel(id);
       if (!model) {
-        deps.sendJson(res, 404, { error: "Model not found" });
+        fail(deps.sendJson, res, 404, "UNKNOWN_MODEL", "Model not found");
         return true;
       }
-      deps.sendJson(res, 200, model);
+      ok(deps.sendJson, res, model as unknown as Record<string, unknown>);
       return true;
     }
 
-    // Feature mappings
     if (url.pathname === "/api/admin/features" && req.method === "GET") {
       const items = manager.listFeatureMappings().map((mapping) => {
         const resolved = manager.resolveFeature(mapping.feature);
+        const execution = manager.resolveFeatureExecution(mapping.feature);
         return {
           ...mapping,
           primaryModelName: resolved.primaryModel?.name ?? null,
           secondaryModelName: resolved.secondaryModel?.name ?? null,
           fallbackModelName: resolved.fallbackModel?.name ?? null,
           providerName: resolved.provider?.name ?? null,
+          resolutionStatus: execution.status,
+          resolutionSource: execution.source,
+          resolutionReason: execution.reason ?? null,
         };
       });
-      deps.sendJson(res, 200, { items });
+      ok(deps.sendJson, res, { items });
       return true;
     }
     if (url.pathname === "/api/admin/features" && req.method === "POST") {
@@ -201,45 +240,57 @@ export async function handleAdminApi(
         providerId: typeof body.providerId === "string" ? body.providerId : undefined,
         enabled: typeof body.enabled === "boolean" ? body.enabled : undefined,
         priority: typeof body.priority === "number" ? body.priority : undefined,
+        configuration: (body.configuration as Record<string, unknown>) ?? undefined,
         metadata: (body.metadata as Record<string, unknown>) ?? {},
       });
-      deps.sendJson(res, 200, saved);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname.startsWith("/api/admin/features/resolve/") && req.method === "GET") {
       const feature = decodeURIComponent(url.pathname.slice("/api/admin/features/resolve/".length));
-      deps.sendJson(res, 200, manager.resolveFeature(feature));
+      ok(deps.sendJson, res, manager.resolveFeatureExecution(feature) as unknown as Record<string, unknown>);
       return true;
     }
 
-    // Settings
     if (url.pathname === "/api/admin/settings" && req.method === "GET") {
       const category = url.searchParams.get("category") as never;
-      deps.sendJson(res, 200, { items: manager.listSettings(category || undefined) });
+      ok(deps.sendJson, res, { items: manager.listSettings(category || undefined) });
       return true;
     }
     if (url.pathname === "/api/admin/settings" && req.method === "POST") {
       const body = (await parseJsonBody(req, deps.readBody)) as { key?: string; value?: unknown };
       if (!body.key) {
-        deps.sendJson(res, 400, { error: "Setting key is required" });
+        fail(deps.sendJson, res, 400, "REQUIRED_FIELD", "Setting key is required");
         return true;
       }
       const saved = await manager.updateSetting(body.key, body.value as never);
-      deps.sendJson(res, 200, saved);
+      ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
 
-    // Usage (read-only foundation)
     if (url.pathname === "/api/admin/usage" && req.method === "GET") {
       const limit = Number(url.searchParams.get("limit") ?? 50);
-      deps.sendJson(res, 200, { items: manager.listUsage(limit), note: "Usage ledger is empty until AI operations record costs" });
+      ok(deps.sendJson, res, {
+        items: manager.listUsage(limit),
+        note: "Usage ledger is empty until AI operations record costs",
+      });
       return true;
     }
 
-    // Health of the control plane itself
+    if (url.pathname === "/api/admin/configuration/provider" && req.method === "GET") {
+      const providerId = url.searchParams.get("providerId") ?? "";
+      const { AdminConfiguration } = await import("../../ai/admin-control-plane/configuration-access.js");
+      const config = new AdminConfiguration(manager).getProviderConfiguration(providerId);
+      if (!config) {
+        fail(deps.sendJson, res, 404, "UNKNOWN_PROVIDER", "Provider not found");
+        return true;
+      }
+      ok(deps.sendJson, res, config as unknown as Record<string, unknown>);
+      return true;
+    }
+
     if (url.pathname === "/api/admin/health" && req.method === "GET") {
-      deps.sendJson(res, 200, {
-        ok: true,
+      ok(deps.sendJson, res, {
         initialized: manager.isInitialized(),
         providers: manager.listProviders().length,
         models: manager.listModels({ pageSize: 1 }).total,
@@ -249,15 +300,18 @@ export async function handleAdminApi(
       return true;
     }
 
-    deps.sendJson(res, 404, { error: "Unknown admin API route", path: url.pathname });
+    fail(deps.sendJson, res, 404, "NOT_FOUND", "Unknown admin API route");
     return true;
   } catch (error) {
+    if (error instanceof AdminValidationError) {
+      fail(deps.sendJson, res, 400, error.code, error.message);
+      return true;
+    }
     const message = error instanceof Error ? error.message : String(error);
-    // Never echo secrets
     const safe = /secret|api[_-]?key|password|token|credential/i.test(message)
       ? "Admin request failed (details redacted)"
       : message;
-    deps.sendJson(res, 400, { error: safe });
+    fail(deps.sendJson, res, 400, "ADMIN_REQUEST_FAILED", safe);
     return true;
   }
 }

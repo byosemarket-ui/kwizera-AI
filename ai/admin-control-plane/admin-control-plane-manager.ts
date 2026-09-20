@@ -3,7 +3,19 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readJsonSafe, writeJsonAtomic } from "../../storage/safe-json.js";
 import { maskCredential } from "./admin-auth-boundary.js";
-import { createEmptyStore } from "./defaults.js";
+import { createEmptyStore, createDefaultSettings, createDefaultFeatureMappings } from "./defaults.js";
+import { defaultKindForType, inferProviderKind } from "./provider-kind.js";
+import { resolveFeatureExecution as executeFeatureResolution, type FeatureResolutionResult } from "./model-resolution.js";
+import { credentialReferenceFor, type AdminCredentialManager } from "./credential-manager.js";
+import { normalizeCostModel } from "./cost-model.js";
+import {
+  AdminValidationError,
+  ADMIN_ERROR_CODES,
+  requireNonEmpty,
+  validateOptionalCost,
+  validatePriority,
+  validateTimeoutMs,
+} from "./validation.js";
 import type {
   AdminControlPlaneStore,
   AdminDashboardSnapshot,
@@ -30,18 +42,24 @@ export class AdminControlPlaneManager {
   private storePath = "";
   private store: AdminControlPlaneStore = createEmptyStore();
   private initialized = false;
+  private credentials: AdminCredentialManager | null = null;
 
   isInitialized(): boolean {
     return this.initialized;
   }
 
-  async initialize(storageRoot: string): Promise<void> {
+  attachCredentials(credentials: AdminCredentialManager): void {
+    this.credentials = credentials;
+  }
+
+  async initialize(storageRoot: string, options?: { credentials?: AdminCredentialManager }): Promise<void> {
+    if (options?.credentials) this.credentials = options.credentials;
     this.root = path.join(storageRoot, "admin-control-plane");
     this.storePath = path.join(this.root, "registry.json");
     await fs.mkdir(this.root, { recursive: true });
     const loaded = await readJsonSafe<AdminControlPlaneStore>(this.storePath, createEmptyStore());
     this.store = this.normalizeStore(loaded.value);
-    if (loaded.recovered || !loaded.value?.version) {
+    if (loaded.recovered || !loaded.value?.version || loaded.value.version !== this.store.version) {
       await this.persist();
     }
     this.initialized = true;
@@ -65,16 +83,27 @@ export class AdminControlPlaneManager {
     return found ? this.toProviderPublic(found) : null;
   }
 
+  /** Internal record — adapters may read this; HTTP must use getProvider(). */
+  getProviderRecord(id: string): AdminProviderRecord | null {
+    this.requireInit();
+    const found = this.store.providers.find((p) => p.id === id);
+    return found ? structuredClone(found) : null;
+  }
+
   async upsertProvider(input: Partial<AdminProviderRecord> & { name: string; type: string }): Promise<AdminProviderPublicView> {
     this.requireInit();
     const t = now();
     const existing = input.id ? this.store.providers.find((p) => p.id === input.id) : undefined;
+    const name = requireNonEmpty(String(input.name), "Provider name");
+    const type = requireNonEmpty(String(input.type), "Provider type");
     const record: AdminProviderRecord = {
       id: existing?.id ?? input.id ?? `provider-${randomUUID()}`,
-      name: String(input.name).trim(),
-      type: input.type,
+      name,
+      type,
+      kind: input.kind ?? existing?.kind ?? defaultKindForType(type),
       baseEndpoint: input.baseEndpoint?.trim() || existing?.baseEndpoint,
       credentialReference: input.credentialReference ?? existing?.credentialReference,
+      credentialHint: input.credentialHint ?? existing?.credentialHint,
       status: input.status ?? existing?.status ?? "inactive",
       enabled: input.enabled ?? existing?.enabled ?? false,
       healthStatus: input.healthStatus ?? existing?.healthStatus ?? "unchecked",
@@ -83,7 +112,6 @@ export class AdminControlPlaneManager {
       createdAt: existing?.createdAt ?? t,
       updatedAt: t,
     };
-    if (!record.name) throw new Error("Provider name is required");
     this.store.providers = [
       ...this.store.providers.filter((p) => p.id !== record.id),
       record,
@@ -91,6 +119,22 @@ export class AdminControlPlaneManager {
     this.store.updatedAt = t;
     await this.persist();
     return this.toProviderPublic(record);
+  }
+
+  async setProviderSecret(providerId: string, secret: string): Promise<AdminProviderPublicView> {
+    this.requireInit();
+    const provider = this.store.providers.find((p) => p.id === providerId);
+    if (!provider) throw new AdminValidationError(ADMIN_ERROR_CODES.UNKNOWN_PROVIDER, `Provider not found: ${providerId}`);
+    if (!this.credentials) {
+      throw new AdminValidationError(ADMIN_ERROR_CODES.CREDENTIAL_LOCKED, "Credential manager is not attached");
+    }
+    const stored = await this.credentials.setProviderSecret(providerId, secret);
+    provider.credentialReference = credentialReferenceFor(providerId);
+    provider.credentialHint = stored.hint;
+    provider.updatedAt = now();
+    this.store.updatedAt = provider.updatedAt;
+    await this.persist();
+    return this.toProviderPublic(provider);
   }
 
   async setProviderCredentialReference(providerId: string, credentialReference: string | undefined): Promise<AdminProviderPublicView> {
@@ -159,35 +203,51 @@ export class AdminControlPlaneManager {
   }): Promise<AdminModelRecord> {
     this.requireInit();
     if (!this.store.providers.some((p) => p.id === input.providerId)) {
-      throw new Error(`Unknown providerId: ${input.providerId}`);
+      throw new AdminValidationError(ADMIN_ERROR_CODES.UNKNOWN_PROVIDER, `Unknown providerId: ${input.providerId}`);
     }
+    const name = requireNonEmpty(String(input.name), "Model name");
+    const modelId = requireNonEmpty(String(input.modelId), "modelId");
     const t = now();
     const existing = input.id ? this.store.models.find((m) => m.id === input.id) : undefined;
+    const duplicate = this.store.models.find(
+      (m) => m.providerId === input.providerId && m.modelId === modelId && m.id !== (existing?.id ?? input.id),
+    );
+    if (duplicate) {
+      throw new AdminValidationError(ADMIN_ERROR_CODES.DUPLICATE_MODEL, `Model ${modelId} already exists for this provider`);
+    }
+    this.validateModelRef(input.fallbackModelId);
+    const timeoutMs = validateTimeoutMs(typeof input.timeoutMs === "number" ? input.timeoutMs : existing?.timeoutMs ?? 60_000);
+    const priority = validatePriority(typeof input.priority === "number" ? input.priority : existing?.priority ?? 50);
+    const estimatedCost = validateOptionalCost(input.estimatedCost ?? existing?.estimatedCost);
+    const inputType = input.inputType ?? existing?.inputType ?? "any";
+    const outputType = input.outputType ?? existing?.outputType ?? "any";
     const record: AdminModelRecord = {
       id: existing?.id ?? input.id ?? `model-${randomUUID()}`,
-      name: String(input.name).trim(),
+      name,
       providerId: input.providerId,
       category: input.category,
       capability: input.capability,
-      modelId: String(input.modelId).trim(),
+      modelId,
       endpoint: input.endpoint ?? existing?.endpoint,
       version: input.version ?? existing?.version,
       status: input.status ?? existing?.status ?? "inactive",
-      priority: typeof input.priority === "number" ? input.priority : existing?.priority ?? 50,
-      inputType: input.inputType ?? existing?.inputType ?? "any",
-      outputType: input.outputType ?? existing?.outputType ?? "any",
-      estimatedCost: input.estimatedCost ?? existing?.estimatedCost,
+      priority,
+      inputType,
+      outputType,
+      inputTypes: input.inputTypes ?? existing?.inputTypes ?? [inputType],
+      outputTypes: input.outputTypes ?? existing?.outputTypes ?? [outputType],
+      estimatedCost,
       currency: input.currency ?? existing?.currency ?? "USD",
-      timeoutMs: typeof input.timeoutMs === "number" ? input.timeoutMs : existing?.timeoutMs ?? 60_000,
+      timeoutMs,
       enabled: input.enabled ?? existing?.enabled ?? false,
       fallbackModelId: input.fallbackModelId ?? existing?.fallbackModelId,
+      costModel: normalizeCostModel(input.costModel ?? existing?.costModel, input.currency ?? existing?.currency ?? "USD"),
       metadata: { ...(existing?.metadata ?? {}), ...(input.metadata ?? {}) },
       customerId: input.customerId ?? existing?.customerId,
       projectId: input.projectId ?? existing?.projectId,
       createdAt: existing?.createdAt ?? t,
       updatedAt: t,
     };
-    if (!record.name || !record.modelId) throw new Error("Model name and modelId are required");
     this.store.models = [
       ...this.store.models.filter((m) => m.id !== record.id),
       record,
@@ -243,6 +303,20 @@ export class AdminControlPlaneManager {
     return { feature, mapping, primaryModel, secondaryModel, fallbackModel, provider };
   }
 
+  resolveFeatureExecution(feature: FeatureKey): FeatureResolutionResult {
+    this.requireInit();
+    return executeFeatureResolution(feature, {
+      mapping: this.getFeatureMapping(feature),
+      getModel: (id) => this.getModel(id),
+      getProvider: (id) => this.store.providers.find((p) => p.id === id) ?? null,
+      hasCredential: (providerId) => {
+        if (this.credentials?.has(providerId)) return true;
+        const provider = this.store.providers.find((p) => p.id === providerId);
+        return Boolean(provider?.credentialReference || provider?.credentialHint);
+      },
+    });
+  }
+
   async upsertFeatureMapping(input: Partial<FeatureMappingRecord> & { feature: FeatureKey; label: string }): Promise<FeatureMappingRecord> {
     this.requireInit();
     const t = now();
@@ -251,19 +325,33 @@ export class AdminControlPlaneManager {
     this.validateModelRef(input.secondaryModelId);
     this.validateModelRef(input.fallbackModelId);
     if (input.providerId && !this.store.providers.some((p) => p.id === input.providerId)) {
-      throw new Error(`Unknown providerId: ${input.providerId}`);
+      throw new AdminValidationError(ADMIN_ERROR_CODES.UNKNOWN_PROVIDER, `Unknown providerId: ${input.providerId}`);
+    }
+    const enabled = input.enabled ?? existing?.enabled ?? false;
+    const primaryModelId = input.primaryModelId ?? existing?.primaryModelId;
+    if (enabled && primaryModelId) {
+      const primary = this.store.models.find((m) => m.id === primaryModelId);
+      const providerId = input.providerId ?? existing?.providerId ?? primary?.providerId;
+      const provider = providerId ? this.store.providers.find((p) => p.id === providerId) : undefined;
+      if (provider && !provider.enabled) {
+        throw new AdminValidationError(
+          ADMIN_ERROR_CODES.PROVIDER_DISABLED,
+          "Cannot enable a feature mapping whose primary provider is disabled",
+        );
+      }
     }
     const record: FeatureMappingRecord = {
       id: existing?.id ?? input.id ?? `feat-${randomUUID()}`,
       feature: input.feature,
-      label: String(input.label).trim(),
+      label: requireNonEmpty(String(input.label), "Feature label"),
       description: input.description ?? existing?.description ?? "",
-      primaryModelId: input.primaryModelId ?? existing?.primaryModelId,
+      primaryModelId,
       secondaryModelId: input.secondaryModelId ?? existing?.secondaryModelId,
       fallbackModelId: input.fallbackModelId ?? existing?.fallbackModelId,
       providerId: input.providerId ?? existing?.providerId,
-      enabled: input.enabled ?? existing?.enabled ?? false,
-      priority: typeof input.priority === "number" ? input.priority : existing?.priority ?? 50,
+      enabled,
+      priority: validatePriority(typeof input.priority === "number" ? input.priority : existing?.priority ?? 50),
+      configuration: input.configuration ?? existing?.configuration,
       metadata: { ...(existing?.metadata ?? {}), ...(input.metadata ?? {}) },
       customerId: input.customerId ?? existing?.customerId,
       projectId: input.projectId ?? existing?.projectId,
@@ -295,7 +383,7 @@ export class AdminControlPlaneManager {
   async updateSetting(key: string, value: TypedSetting["value"]): Promise<TypedSetting> {
     this.requireInit();
     const setting = this.store.settings.find((s) => s.key === key);
-    if (!setting) throw new Error(`Setting not found: ${key}`);
+    if (!setting) throw new AdminValidationError(ADMIN_ERROR_CODES.INVALID_SETTING, `Setting not found: ${key}`);
     this.validateSettingValue(setting, value);
     setting.value = value;
     setting.updatedAt = now();
@@ -313,8 +401,13 @@ export class AdminControlPlaneManager {
       .slice(0, Math.min(200, Math.max(1, limit)));
   }
 
-  async recordUsage(entry: Omit<AiUsageRecord, "id" | "timestamp"> & { id?: string; timestamp?: string }): Promise<AiUsageRecord> {
+  async recordUsage(entry: Omit<AiUsageRecord, "id" | "timestamp" | "createdAt"> & {
+    id?: string;
+    timestamp?: string;
+    createdAt?: string;
+  }): Promise<AiUsageRecord> {
     this.requireInit();
+    const stamp = entry.timestamp ?? entry.createdAt ?? now();
     const record: AiUsageRecord = {
       id: entry.id ?? `usage-${randomUUID()}`,
       customerId: entry.customerId,
@@ -325,12 +418,15 @@ export class AdminControlPlaneManager {
       operation: entry.operation,
       inputSummary: entry.inputSummary,
       outputSummary: entry.outputSummary,
+      inputReference: entry.inputReference,
+      outputReference: entry.outputReference,
       durationMs: entry.durationMs,
       status: entry.status,
-      estimatedCost: entry.estimatedCost,
-      actualCost: entry.actualCost,
+      estimatedCost: validateOptionalCost(entry.estimatedCost),
+      actualCost: validateOptionalCost(entry.actualCost),
       currency: entry.currency || "USD",
-      timestamp: entry.timestamp ?? now(),
+      timestamp: stamp,
+      createdAt: entry.createdAt ?? stamp,
       metadata: entry.metadata ?? {},
     };
     this.store.usage.push(record);
@@ -404,11 +500,15 @@ export class AdminControlPlaneManager {
 
   private toProviderPublic(provider: AdminProviderRecord): AdminProviderPublicView {
     const configuredModelCount = this.store.models.filter((m) => m.providerId === provider.id).length;
-    const { credentialReference, ...rest } = provider;
+    const { credentialReference, credentialHint, ...rest } = provider;
+    const hasSecret = this.credentials?.has(provider.id) ?? false;
+    const hasCredential = hasSecret || Boolean(credentialReference) || Boolean(credentialHint);
+    const hintSource = credentialHint ? `secret${credentialHint}` : credentialReference;
     return {
       ...rest,
-      hasCredential: Boolean(credentialReference),
-      credentialMasked: credentialReference ? maskCredential(credentialReference) : null,
+      kind: inferProviderKind(provider),
+      hasCredential,
+      credentialMasked: hasCredential ? (credentialHint ? `••••••••${credentialHint}` : maskCredential(hintSource)) : null,
       configuredModelCount,
     };
   }
@@ -416,26 +516,29 @@ export class AdminControlPlaneManager {
   private validateModelRef(id?: string): void {
     if (!id) return;
     if (!this.store.models.some((m) => m.id === id)) {
-      throw new Error(`Unknown model id: ${id}`);
+      throw new AdminValidationError(ADMIN_ERROR_CODES.UNKNOWN_MODEL, `Unknown model id: ${id}`);
     }
   }
 
   private validateSettingValue(setting: TypedSetting, value: TypedSetting["value"]): void {
     if (value === null) return;
+    const fail = (message: string) => {
+      throw new AdminValidationError(ADMIN_ERROR_CODES.INVALID_SETTING, message);
+    };
     switch (setting.valueType) {
       case "string":
-        if (typeof value !== "string") throw new Error(`Setting ${setting.key} expects string`);
+        if (typeof value !== "string") fail(`Setting ${setting.key} expects string`);
         break;
       case "number":
-        if (typeof value !== "number" || Number.isNaN(value)) throw new Error(`Setting ${setting.key} expects number`);
-        if (typeof setting.min === "number" && value < setting.min) throw new Error(`Setting ${setting.key} below min`);
-        if (typeof setting.max === "number" && value > setting.max) throw new Error(`Setting ${setting.key} above max`);
+        if (typeof value !== "number" || Number.isNaN(value)) fail(`Setting ${setting.key} expects number`);
+        if (typeof setting.min === "number" && typeof value === "number" && value < setting.min) fail(`Setting ${setting.key} below min`);
+        if (typeof setting.max === "number" && typeof value === "number" && value > setting.max) fail(`Setting ${setting.key} above max`);
         break;
       case "boolean":
-        if (typeof value !== "boolean") throw new Error(`Setting ${setting.key} expects boolean`);
+        if (typeof value !== "boolean") fail(`Setting ${setting.key} expects boolean`);
         break;
       case "json":
-        if (!isObject(value) && !Array.isArray(value)) throw new Error(`Setting ${setting.key} expects json object`);
+        if (!isObject(value) && !Array.isArray(value)) fail(`Setting ${setting.key} expects json object`);
         break;
       default:
         break;
@@ -444,16 +547,39 @@ export class AdminControlPlaneManager {
 
   private normalizeStore(raw: AdminControlPlaneStore): AdminControlPlaneStore {
     const empty = createEmptyStore();
-    if (!raw || raw.version !== 1) return empty;
+    if (!raw || (raw.version !== 1 && raw.version !== 2)) return empty;
+
+    const providers = (Array.isArray(raw.providers) ? raw.providers : empty.providers).map((provider) => ({
+      ...provider,
+      kind: inferProviderKind(provider),
+    }));
+    const models = (Array.isArray(raw.models) ? raw.models : empty.models).map((model) => ({
+      ...model,
+      inputTypes: model.inputTypes ?? [model.inputType],
+      outputTypes: model.outputTypes ?? [model.outputType],
+      costModel: normalizeCostModel(model.costModel, model.currency),
+    }));
+    const existingFeatures = Array.isArray(raw.featureMappings) ? raw.featureMappings : [];
+    const featureByKey = new Map(existingFeatures.map((item) => [item.feature, item]));
+    for (const seed of createDefaultFeatureMappings()) {
+      if (!featureByKey.has(seed.feature)) featureByKey.set(seed.feature, seed);
+    }
+    const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
+    for (const seed of createDefaultSettings()) {
+      if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);
+    }
+    const usage = (Array.isArray(raw.usage) ? raw.usage : []).map((entry) => ({
+      ...entry,
+      createdAt: entry.createdAt ?? entry.timestamp,
+    }));
+
     return {
-      version: 1,
-      providers: Array.isArray(raw.providers) && raw.providers.length ? raw.providers : empty.providers,
-      models: Array.isArray(raw.models) && raw.models.length ? raw.models : empty.models,
-      featureMappings: Array.isArray(raw.featureMappings) && raw.featureMappings.length
-        ? raw.featureMappings
-        : empty.featureMappings,
-      settings: Array.isArray(raw.settings) && raw.settings.length ? raw.settings : empty.settings,
-      usage: Array.isArray(raw.usage) ? raw.usage : [],
+      version: 2,
+      providers: providers.length ? providers : empty.providers,
+      models: models.length ? models : empty.models,
+      featureMappings: [...featureByKey.values()],
+      settings: [...settingsByKey.values()],
+      usage,
       updatedAt: raw.updatedAt || now(),
     };
   }

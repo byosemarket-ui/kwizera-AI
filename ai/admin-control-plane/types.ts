@@ -3,6 +3,8 @@
  * Complementary to AiModelManager (local studio models); does not replace it.
  */
 
+import type { ModelCostModel } from "./cost-model.js";
+
 export type ModelCategory =
   | "VISION"
   | "IMAGE"
@@ -36,6 +38,7 @@ export type ModelCapability =
 
 export type RegistryStatus = "active" | "inactive" | "deprecated" | "error" | "unknown";
 export type HealthStatus = "healthy" | "degraded" | "unhealthy" | "unknown" | "unchecked";
+export type ProviderKind = "EXTERNAL_API" | "LOCAL" | "INTERNAL" | "OTHER";
 export type ProviderType =
   | "fal"
   | "replicate"
@@ -63,11 +66,14 @@ export interface AdminModelRecord {
   priority: number;
   inputType: MediaType;
   outputType: MediaType;
+  inputTypes?: MediaType[];
+  outputTypes?: MediaType[];
   estimatedCost?: number;
   currency: string;
   timeoutMs: number;
   enabled: boolean;
   fallbackModelId?: string;
+  costModel?: ModelCostModel;
   metadata: Record<string, unknown>;
   /** Future multi-tenant isolation fields (optional in Stage 1). */
   customerId?: string;
@@ -80,9 +86,12 @@ export interface AdminProviderRecord {
   id: string;
   name: string;
   type: ProviderType;
+  kind?: ProviderKind;
   baseEndpoint?: string;
   /** Reference id into secrets store — never the secret itself. */
   credentialReference?: string;
+  /** Last-4 hint only; never a full secret. */
+  credentialHint?: string;
   status: RegistryStatus;
   enabled: boolean;
   healthStatus: HealthStatus;
@@ -111,7 +120,9 @@ export type FeatureKey =
   | "TEXT_TO_SPEECH"
   | "SPEECH_TO_TEXT"
   | "LLM_CHAT"
+  | "LLM_REASONING"
   | "EMBEDDING"
+  | "IMAGE_SEGMENTATION"
   | string;
 
 export interface FeatureMappingRecord {
@@ -125,6 +136,7 @@ export interface FeatureMappingRecord {
   providerId?: string;
   enabled: boolean;
   priority: number;
+  configuration?: Record<string, unknown>;
   metadata: Record<string, unknown>;
   customerId?: string;
   projectId?: string;
@@ -171,17 +183,20 @@ export interface AiUsageRecord {
   operation: string;
   inputSummary?: string;
   outputSummary?: string;
+  inputReference?: string;
+  outputReference?: string;
   durationMs?: number;
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   estimatedCost?: number;
   actualCost?: number;
   currency: string;
   timestamp: string;
+  createdAt: string;
   metadata: Record<string, unknown>;
 }
 
 export interface AdminControlPlaneStore {
-  version: 1;
+  version: 1 | 2;
   providers: AdminProviderRecord[];
   models: AdminModelRecord[];
   featureMappings: FeatureMappingRecord[];
