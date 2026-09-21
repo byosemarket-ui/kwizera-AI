@@ -1,0 +1,148 @@
+import type {
+  CustomerCategory,
+  CustomerNavGroup,
+  CustomerNavItem,
+  CustomerService,
+  CustomerServiceRegistrySnapshot,
+  CustomerServiceStatus,
+} from "./types";
+import { CUSTOMER_CATEGORIES } from "./categories";
+import { CUSTOMER_SERVICES } from "./services";
+import { validateCategory, validateService, CustomerRegistryError } from "./validation";
+
+const NAV_GROUP_META: Array<{ key: CustomerNavGroup["key"]; title: string; order: number }> = [
+  { key: "HOME", title: "Home", order: 0 },
+  { key: "CREATE", title: "Create", order: 10 },
+  { key: "MY_WORK", title: "My Work", order: 20 },
+  { key: "ACCOUNT", title: "Account", order: 30 },
+];
+
+function sortByOrder<T extends { order: number; title?: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.order - b.order || (a.title ?? "").localeCompare(b.title ?? ""));
+}
+
+export class CustomerServiceRegistry {
+  readonly categories: CustomerCategory[];
+  readonly services: CustomerService[];
+
+  constructor(
+    categories: CustomerCategory[] = CUSTOMER_CATEGORIES,
+    services: CustomerService[] = CUSTOMER_SERVICES,
+  ) {
+    const seenCategories = new Set<string>();
+    this.categories = sortByOrder(categories.map((item) => validateCategory(item, seenCategories)));
+    const categoryKeys = new Set(this.categories.map((item) => item.key));
+    const seenServices = new Set<string>();
+    this.services = sortByOrder(services.map((item) => validateService(item, categoryKeys, seenServices)));
+    this.assertNoAdmin();
+  }
+
+  assertNoAdmin(): void {
+    const haystack = JSON.stringify({
+      categories: this.categories,
+      services: this.services,
+    });
+    if (/admin control center|\/admin|provider credentials|feature mapping/i.test(haystack)) {
+      throw new CustomerRegistryError("ADMIN_FORBIDDEN", "Customer registry must not include Admin surfaces");
+    }
+  }
+
+  getCategory(key: string): CustomerCategory | undefined {
+    return this.categories.find((item) => item.key === key);
+  }
+
+  getService(key: string): CustomerService | undefined {
+    return this.services.find((item) => item.key === key);
+  }
+
+  listByCategory(category: string): CustomerService[] {
+    return this.services.filter((item) => item.category === category);
+  }
+
+  listByStatus(status: CustomerServiceStatus): CustomerService[] {
+    return this.services.filter((item) => item.status === status);
+  }
+
+  featuredForHome(): CustomerService[] {
+    const available = this.services.filter((item) => item.status === "AVAILABLE" && item.category !== "ACCOUNT");
+    const soon = this.services.filter((item) => item.status === "COMING_SOON").slice(0, 8);
+    return [...available, ...soon];
+  }
+
+  buildNavigation(): CustomerNavGroup[] {
+    const home: CustomerNavItem = {
+      key: "home",
+      title: "Home",
+      description: "Customer home",
+      icon: "home",
+      route: "/",
+      status: "AVAILABLE",
+      workspace: "home",
+      group: "HOME",
+    };
+
+    const createItems: CustomerNavItem[] = this.categories
+      .filter((category) => category.navGroup === "CREATE" && category.enabled)
+      .map((category) => {
+        const firstAvailable = this.listByCategory(category.key).find((item) => item.status === "AVAILABLE" && item.workspace);
+        const allDisabled = this.listByCategory(category.key).every((item) => item.status === "DISABLED");
+        return {
+          key: `category-${category.key}`,
+          title: category.title,
+          description: category.description,
+          icon: category.icon,
+          route: `/create/${category.key.toLowerCase()}`,
+          status: allDisabled ? "DISABLED" : firstAvailable ? "AVAILABLE" : "COMING_SOON",
+          workspace: firstAvailable?.workspace,
+          group: "CREATE" as const,
+          category: category.key,
+        };
+      });
+
+    const workAndAccount = this.services
+      .filter((item) => item.category === "MY_WORK" || item.category === "ACCOUNT")
+      .filter((item) => item.key !== "designs")
+      .map((item) => ({
+        key: item.key,
+        title: item.title,
+        description: item.description,
+        icon: item.icon,
+        route: item.route,
+        status: item.status,
+        workspace: item.workspace,
+        group: item.category === "MY_WORK" ? "MY_WORK" as const : "ACCOUNT" as const,
+        category: item.category,
+      }));
+
+    return NAV_GROUP_META.map((meta) => ({
+      key: meta.key,
+      title: meta.title,
+      order: meta.order,
+      items: meta.key === "HOME"
+        ? [home]
+        : meta.key === "CREATE"
+          ? createItems
+          : workAndAccount.filter((item) => item.group === meta.key),
+    }));
+  }
+
+  snapshot(): CustomerServiceRegistrySnapshot {
+    return {
+      categories: this.categories,
+      services: this.services,
+      navigation: this.buildNavigation(),
+    };
+  }
+
+  search(query: string): CustomerService[] {
+    const q = query.trim().toLowerCase();
+    if (!q) return this.services.filter((item) => item.status !== "DISABLED");
+    return this.services.filter((item) => {
+      if (item.status === "DISABLED") return false;
+      const hay = `${item.title} ${item.description} ${item.keywords.join(" ")} ${item.category}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+}
+
+export const customerServiceRegistry = new CustomerServiceRegistry();

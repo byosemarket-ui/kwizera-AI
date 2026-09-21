@@ -1,0 +1,140 @@
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  CUSTOMER_CATEGORIES,
+  CUSTOMER_SERVICES,
+  CustomerRegistryError,
+  CustomerServiceRegistry,
+  customerNavContainsAdmin,
+  customerServiceRegistry,
+} from "../../../desktop/customer-platform/index.ts";
+import { navigationEngine } from "../../../desktop/shell/navigation/navigation-engine.ts";
+
+describe("Customer service registry", () => {
+  it("loads categories and services with stable order and statuses", () => {
+    const snapshot = customerServiceRegistry.snapshot();
+    expect(snapshot.categories.map((item) => item.key)).toEqual([
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "MY_WORK", "ACCOUNT",
+    ]);
+    expect(snapshot.services.length).toBe(CUSTOMER_SERVICES.length);
+    expect(snapshot.services.some((item) => item.status === "AVAILABLE")).toBe(true);
+    expect(snapshot.services.some((item) => item.status === "COMING_SOON")).toBe(true);
+    const video = snapshot.services.filter((item) => item.category === "VIDEO");
+    const orders = video.map((item) => item.order);
+    expect([...orders].sort((a, b) => a - b)).toEqual(orders);
+    expect(customerServiceRegistry.getService("create-video")?.workspace).toBe("generated-videos");
+  });
+
+  it("rejects invalid, duplicate, and Admin-leaking definitions", () => {
+    expect(() => new CustomerServiceRegistry([
+      { ...CUSTOMER_CATEGORIES[0], key: "NOT_REAL" as never },
+    ], [])).toThrow(CustomerRegistryError);
+
+    expect(() => new CustomerServiceRegistry(CUSTOMER_CATEGORIES, [
+      { ...CUSTOMER_SERVICES[0], key: "create-video" },
+      { ...CUSTOMER_SERVICES[0], key: "create-video" },
+    ])).toThrow(/Duplicate service/);
+
+    expect(() => new CustomerServiceRegistry(CUSTOMER_CATEGORIES, [
+      { ...CUSTOMER_SERVICES[0], key: "admin-models", title: "Admin Control Center", route: "/admin/models" },
+    ])).toThrow(/Admin/);
+
+    expect(() => new CustomerServiceRegistry(CUSTOMER_CATEGORIES, [
+      { ...CUSTOMER_SERVICES[0], key: "ghost", category: "MISSING" as never },
+    ])).toThrow(/unknown category/);
+
+    const withDisabled = new CustomerServiceRegistry(CUSTOMER_CATEGORIES, [
+      ...CUSTOMER_SERVICES,
+      {
+        ...CUSTOMER_SERVICES[0],
+        key: "retired-tool",
+        title: "Retired Tool",
+        description: "Kept in the registry but not offered to customers.",
+        route: "/create/retired",
+        status: "DISABLED",
+      },
+    ]);
+    expect(withDisabled.getService("retired-tool")?.enabled).toBe(false);
+    expect(withDisabled.search("Retired Tool")).toEqual([]);
+  });
+
+  it("builds customer navigation from the registry and never includes Admin", () => {
+    const nav = customerServiceRegistry.buildNavigation();
+    expect(nav.map((group) => group.key)).toEqual(["HOME", "CREATE", "MY_WORK", "ACCOUNT"]);
+    expect(nav.find((group) => group.key === "HOME")?.items[0]?.workspace).toBe("home");
+    expect(nav.find((group) => group.key === "CREATE")?.items.map((item) => item.title)).toEqual(
+      expect.arrayContaining(["Video", "Image", "Design Studio", "Photo Studio", "Audio"]),
+    );
+    expect(JSON.stringify(nav)).not.toMatch(/Admin Control Center|\/admin/);
+    expect(customerNavContainsAdmin()).toBe(false);
+  });
+});
+
+describe("Customer design system and components", () => {
+  it("defines required tokens and reusable component exports", () => {
+    const css = fs.readFileSync(path.resolve("desktop/customer-platform/customer.css"), "utf8");
+    for (const token of [
+      "--cp-bg", "--cp-surface", "--cp-surface-elevated", "--cp-text", "--cp-text-secondary",
+      "--cp-text-muted", "--cp-border", "--cp-focus", "--cp-success", "--cp-warning", "--cp-error",
+      "--cp-disabled", "--cp-radius", "--cp-title-size", "--cp-touch",
+    ]) {
+      expect(css).toContain(token);
+    }
+    expect(css).toContain("--cp-shadow");
+    expect(css).toContain("--cp-transition");
+    expect(css).toContain(".cp-page-title");
+    expect(css).toContain(".cp-section-title");
+    expect(css).toContain("@media (max-width: 320px)");
+    expect(css).toContain("@media (max-width: 360px)");
+    expect(css).toContain("@media (max-width: 375px)");
+    expect(css).toContain("@media (max-width: 390px)");
+    expect(css).toContain("@media (max-width: 414px)");
+    expect(css).toContain("@media (max-width: 768px)");
+    expect(css).toContain("@media (max-width: 820px)");
+    expect(css).toContain("@media (max-width: 1024px)");
+    expect(css).toContain("@media (max-width: 1280px)");
+    expect(css).toContain(".cp-mobile-nav-drawer");
+    expect(css).toContain("focus-visible");
+
+    const ui = fs.readFileSync(path.resolve("desktop/customer-platform/components/ui.tsx"), "utf8");
+    expect(ui).toContain("export function ServiceCard");
+    expect(ui).toContain("export function ServiceGrid");
+    expect(ui).toContain("aria-label");
+    expect(ui).toContain("Coming soon");
+    expect(ui).toContain("Unavailable");
+    expect(ui).toContain('event.key === "Enter"');
+  });
+
+  it("wires catalog and customer nav into Studio without putting Admin in Customer IA", () => {
+    const dash = fs.readFileSync(path.resolve("desktop/dashboard/ProfessionalDashboard.tsx"), "utf8");
+    expect(dash).toContain("CustomerCatalog");
+    const catalog = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerCatalog.tsx"), "utf8");
+    expect(catalog).toContain("ServiceCategory");
+    expect(catalog).toContain("What do you want to create?");
+    const sidebar = fs.readFileSync(path.resolve("desktop/shell/LeftSidebar.tsx"), "utf8");
+    expect(sidebar).toContain("CustomerNavSection");
+    expect(sidebar).toContain('id !== "admin"');
+    const header = fs.readFileSync(path.resolve("desktop/shell/WorkspaceHeader.tsx"), "utf8");
+    expect(header).toContain("cp-mobile-nav-toggle");
+    const shell = fs.readFileSync(path.resolve("desktop/shell/AppShell.tsx"), "utf8");
+    expect(shell).toContain("CustomerMobileNavDrawer");
+    expect(shell).not.toContain("Admin Control Center");
+    const src = fs.readFileSync(path.resolve("desktop/src.tsx"), "utf8");
+    expect(src).toContain("customer-platform/customer.css");
+    expect(src).toContain("AdminControlCenter");
+    expect(src).toContain('surface === "admin"');
+  });
+});
+
+describe("Customer navigation search regression", () => {
+  it("finds customer services and still excludes Admin Control Center", () => {
+    const flyer = navigationEngine.search("Flyer");
+    expect(flyer.some((item) => item.label === "Flyer")).toBe(true);
+    expect(flyer.find((item) => item.label === "Flyer")?.detail).toBe("Coming soon");
+    const video = navigationEngine.search("Create Video");
+    expect(video.some((item) => item.label === "Create Video")).toBe(true);
+    const admin = navigationEngine.search("Admin Control");
+    expect(admin.some((item) => item.workspace === "admin" || /admin control center/i.test(item.label))).toBe(false);
+  });
+});

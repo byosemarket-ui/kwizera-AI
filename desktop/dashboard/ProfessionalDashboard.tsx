@@ -15,6 +15,7 @@ import {
   NotificationCard, PreviewCard, ProgressCard, StatCard,
 } from "./widgets/cards";
 import { ProductionModuleGrid, ReservedPanelGrid } from "./widgets/module-slots";
+import { CustomerCatalog } from "../customer-platform";
 import "./dashboard.css";
 
 async function fetchJson<T>(path: string): Promise<T | null> {
@@ -200,6 +201,10 @@ export function ProfessionalDashboard({ onNavigate, workspaceLabel = "Home" }: P
 
   return (
     <div className="professional-dashboard" data-dragging={dragId ?? undefined}>
+      <CustomerCatalog
+        onNavigate={onNavigate}
+        projects={(workspace?.projects ?? []).map((project) => ({ id: project.id, name: project.name }))}
+      />
       <header className="dash-header">
         <div>
           <span>PROFESSIONAL DASHBOARD</span>

@@ -36,6 +36,7 @@ import type { CertificationSnapshot } from "./certification/types";
 import type { RestoreReport } from "./workspace-state/types";
 import { deriveProjectStatus, resolveActiveProjectName } from "./project-context";
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
+import { CustomerMobileNavDrawer } from "../customer-platform";
 import { resetPersistedNavigationInStorage } from "./startup-navigation";
 import { STARTUP_READY_TIMEOUT_MS } from "./bootstrap-recovery";
 import { mapLegacyWorkspace } from "./workspace-registry";
@@ -99,6 +100,7 @@ export function AppShell({
   const [integrationSnapshot, setIntegrationSnapshot] = useState<IntegrationSnapshot | null>(null);
   const [certificationSnapshot, setCertificationSnapshot] = useState<CertificationSnapshot | null>(null);
   const [appReady, setAppReady] = useState(false);
+  const [customerNavOpen, setCustomerNavOpen] = useState(false);
   const projectStatus: ProjectStatus = deriveProjectStatus(
     resolveActiveProjectName(core?.activeProject),
     core?.runtimeMetrics?.activeJobs ?? 0,
@@ -278,6 +280,10 @@ export function AppShell({
   useEffect(() => {
     uxEngine.applyPreferences(preferences);
   }, [preferences]);
+
+  useEffect(() => {
+    setCustomerNavOpen(false);
+  }, [layout.workspace]);
 
   useEffect(() => {
     workspacePerformanceEngine.configure({
@@ -632,9 +638,17 @@ export function AppShell({
           onPreferencesOpen={onPreferencesOpen}
           onNotificationsToggle={onNotificationsToggle}
           notificationsOpen={notificationsOpen}
+          customerNavOpen={customerNavOpen}
+          onCustomerNavToggle={() => setCustomerNavOpen((open) => !open)}
         />
 
         <LeftSidebar onPreferencesOpen={onPreferencesOpen} onNewProject={onNewProject} />
+        <CustomerMobileNavDrawer
+          open={customerNavOpen}
+          onClose={() => setCustomerNavOpen(false)}
+          onNavigate={(workspace) => switchWorkspace(workspace as WorkspaceId)}
+          currentWorkspace={layout.workspace}
+        />
 
         <ProductionWorkspace onOpenLayoutManager={() => setLayoutManagerOpen(true)}>
           <WorkspaceErrorBoundary workspace={layout.workspace} onRecover={switchWorkspace}>

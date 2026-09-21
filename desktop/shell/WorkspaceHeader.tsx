@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Bell, Bot, Cloud, CloudOff, Command, Cpu, HardDrive, RefreshCw, Search, Settings, Sparkles, WifiOff,
+  Bell, Bot, Cloud, CloudOff, Command, Cpu, HardDrive, Menu, RefreshCw, Search, Settings, Sparkles, WifiOff, X,
 } from "lucide-react";
 import type { ProjectStatus } from "./types";
 import { useShell } from "./ShellContext";
@@ -21,6 +21,8 @@ interface WorkspaceHeaderProps {
   onPreferencesOpen: () => void;
   onNotificationsToggle: () => void;
   notificationsOpen: boolean;
+  customerNavOpen?: boolean;
+  onCustomerNavToggle?: () => void;
 }
 
 export function WorkspaceHeader({
@@ -28,6 +30,8 @@ export function WorkspaceHeader({
   onPreferencesOpen,
   onNotificationsToggle,
   notificationsOpen,
+  customerNavOpen = false,
+  onCustomerNavToggle,
 }: WorkspaceHeaderProps) {
   const { core, saveState, autoSave, notifications, layout, projectStatus, performanceSnapshot, switchWorkspace } = useShell();
   const workspaceLabel = getNavItem(layout.workspace).label;
@@ -40,6 +44,18 @@ export function WorkspaceHeader({
 
   return (
     <header className="topbar workspace-header nav-engine-header" role="banner">
+      {onCustomerNavToggle ? (
+        <button
+          type="button"
+          className="cp-mobile-nav-toggle"
+          aria-label={customerNavOpen ? "Close customer navigation" : "Open customer navigation"}
+          aria-expanded={customerNavOpen}
+          aria-controls="customer-mobile-nav"
+          onClick={onCustomerNavToggle}
+        >
+          {customerNavOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+      ) : null}
       <button
         type="button"
         className="brand"

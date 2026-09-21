@@ -23,6 +23,7 @@ import { AdminControlCenter, isAdminUrl, STUDIO_ROOT_PATH } from "./admin-contro
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
 import "./shell/shell.css";
+import "./customer-platform/customer.css";
 
 const preferenceManager = new DesktopPreferenceManager();
 const notificationManager = new DesktopNotificationManager();

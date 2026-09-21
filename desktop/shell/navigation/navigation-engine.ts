@@ -3,6 +3,7 @@ import type {
   SearchCategory, SearchResult, WorkspaceId, WorkspaceStatusSnapshot,
 } from "../types";
 import { getNavByGroup, getNavItem, workspaceNav } from "../workspace-registry";
+import { customerServiceRegistry } from "../../customer-platform";
 
 export const QUICK_ACTIONS: Array<{
   id: QuickActionId;
@@ -151,6 +152,22 @@ export class NavigationEngine {
             score: q ? score : 0.5,
           });
         }
+      }
+    }
+
+    for (const service of customerServiceRegistry.services) {
+      if (service.status === "DISABLED") continue;
+      const haystack = `${service.title} ${service.description} ${service.keywords.join(" ")}`.toLowerCase();
+      const score = scoreMatch(haystack, q, service.title.toLowerCase());
+      if (!q || score > 0) {
+        results.push({
+          id: `service-${service.key}`,
+          label: service.title,
+          category: "commands",
+          detail: service.status === "AVAILABLE" ? service.description : "Coming soon",
+          workspace: service.workspace as WorkspaceId | undefined,
+          score: q ? score + 0.15 : 0.7,
+        });
       }
     }
 

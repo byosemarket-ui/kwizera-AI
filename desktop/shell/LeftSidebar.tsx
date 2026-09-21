@@ -3,6 +3,7 @@ import type { WorkspaceId } from "./types";
 import { useShell } from "./ShellContext";
 import { getNavItem, getSidebarNavByGroup } from "./workspace-registry";
 import { resolveNavIcon } from "./nav-icons";
+import { CustomerNavSection } from "../customer-platform";
 
 interface LeftSidebarProps {
   onPreferencesOpen: () => void;
@@ -63,6 +64,11 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
       </div>
 
       <nav className="nav-tree" tabIndex={0} aria-label="Studio pages">
+        <CustomerNavSection
+          onNavigate={(workspace) => handleSelect(workspace as WorkspaceId)}
+          currentWorkspace={layout.workspace}
+          collapsed={layout.leftCollapsed}
+        />
         {!layout.leftCollapsed && studioFavorites.length > 0 && (
           <div className="nav-quick-section">
             <span className="nav-group">Favorites</span>

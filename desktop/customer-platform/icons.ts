@@ -1,0 +1,55 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  AudioLines, Calendar, Camera, Clapperboard, Crop, Eraser, FileAudio, FileText,
+  FolderKanban, Gift, Heart, HelpCircle, Home, Image, Layers, LayoutTemplate,
+  Library, ListOrdered, Mail, Megaphone, Mic, Music, Package, Scissors, Settings,
+  Share2, Sparkles, Sun, Tag, User, Video,
+} from "lucide-react";
+
+const ICONS: Record<string, LucideIcon> = {
+  home: Home,
+  video: Video,
+  image: Image,
+  camera: Camera,
+  "pen-tool": LayoutTemplate,
+  audio: AudioLines,
+  folder: FolderKanban,
+  user: User,
+  clapperboard: Clapperboard,
+  megaphone: Megaphone,
+  share: Share2,
+  scissors: Scissors,
+  sparkles: Sparkles,
+  wand: Sparkles,
+  eraser: Eraser,
+  crop: Crop,
+  package: Package,
+  "id-card": User,
+  badge: User,
+  aperture: Camera,
+  sun: Sun,
+  "file-text": FileText,
+  layout: LayoutTemplate,
+  panel: Layers,
+  contact: User,
+  mail: Mail,
+  calendar: Calendar,
+  heart: Heart,
+  gift: Gift,
+  award: Sparkles,
+  list: ListOrdered,
+  tag: Tag,
+  billboard: Layers,
+  music: Music,
+  mic: Mic,
+  speech: Mic,
+  captions: FileText,
+  waveform: FileAudio,
+  library: Library,
+  settings: Settings,
+  help: HelpCircle,
+};
+
+export function resolveCustomerIcon(name: string): LucideIcon {
+  return ICONS[name] ?? Sparkles;
+}
