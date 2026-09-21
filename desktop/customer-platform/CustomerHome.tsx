@@ -99,7 +99,7 @@ export function CustomerHome({
   const PlusIcon = resolveCustomerIcon("sparkles");
 
   return (
-    <section className="cp-home" data-customer-home="true" aria-label="Customer home">
+    <section className="cp-home" data-customer-home="true" data-customer-catalog="true" aria-label="Customer home">
       <CustomerPage>
         <ResponsiveContainer>
           <header className="cp-hero" data-customer-hero="true">

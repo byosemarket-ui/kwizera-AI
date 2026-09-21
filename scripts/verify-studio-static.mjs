@@ -91,6 +91,9 @@ try {
   if (!bundle.includes("Back to Studio")) {
     throw new Error("built desktop bundle missing Back to Studio control");
   }
+  if (!bundle.includes("data-customer-home") || !bundle.includes("Create something amazing today")) {
+    throw new Error("built desktop bundle missing commercial Customer Home markers");
+  }
   if (!bundle.includes("data-customer-catalog") || !bundle.includes("What do you want to create?")) {
     throw new Error("built desktop bundle missing customer catalog foundation");
   }
@@ -100,8 +103,12 @@ try {
   if (!bundle.includes("data-customer-mobile-nav")) {
     throw new Error("built desktop bundle missing customer mobile navigation drawer");
   }
+  if (!bundle.includes("data-customer-sidebar") || !bundle.includes("data-customer-header")) {
+    throw new Error("built desktop bundle missing customer shell markers");
+  }
   console.log("PASS  desktop bundle Admin/Studio surface separation markers");
   console.log("PASS  desktop bundle customer platform foundation markers");
+  console.log("PASS  desktop bundle commercial Customer Home markers");
   console.log("PASS  studio static routing");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
