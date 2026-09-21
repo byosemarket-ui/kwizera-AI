@@ -63,10 +63,61 @@ export class CustomerServiceRegistry {
     return this.services.filter((item) => item.status === status);
   }
 
+  /** Primary creation CTAs shown first on Customer Home. */
+  primaryCreationServices(): CustomerService[] {
+    const keys = ["create-video", "edit-photo", "passport-photo", "design-studio"];
+    return keys
+      .map((key) => this.getService(key))
+      .filter((item): item is CustomerService => Boolean(item));
+  }
+
+  /** Featured / popular strip — available creation services plus a few honest coming-soon cards. */
+  popularServices(): CustomerService[] {
+    const primary = new Set(this.primaryCreationServices().map((item) => item.key));
+    const available = this.services.filter(
+      (item) =>
+        item.status === "AVAILABLE"
+        && item.category !== "ACCOUNT"
+        && item.category !== "MY_WORK"
+        && !primary.has(item.key),
+    );
+    const soon = this.services.filter(
+      (item) => item.status === "COMING_SOON" && !primary.has(item.key),
+    ).slice(0, 4);
+    return [...available.slice(0, 6), ...soon];
+  }
+
   featuredForHome(): CustomerService[] {
-    const available = this.services.filter((item) => item.status === "AVAILABLE" && item.category !== "ACCOUNT");
-    const soon = this.services.filter((item) => item.status === "COMING_SOON").slice(0, 8);
-    return [...available, ...soon];
+    const seen = new Set<string>();
+    const merged: CustomerService[] = [];
+    for (const item of [...this.primaryCreationServices(), ...this.popularServices()]) {
+      if (seen.has(item.key)) continue;
+      seen.add(item.key);
+      merged.push(item);
+    }
+    return merged;
+  }
+
+  /** Category browse sections for Home — creation categories only, prioritized. */
+  exploreCategories(): Array<{ category: CustomerCategory; services: CustomerService[] }> {
+    const order: Array<CustomerCategory["key"]> = [
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO",
+    ];
+    return order
+      .map((key) => this.getCategory(key))
+      .filter((category): category is CustomerCategory => Boolean(category?.enabled))
+      .map((category) => ({
+        category,
+        services: this.listByCategory(category.key).filter((item) => item.status !== "DISABLED"),
+      }))
+      .filter((entry) => entry.services.length > 0);
+  }
+
+  /** Quick actions that already map to a real Studio workspace. */
+  quickActionsForHome(): CustomerService[] {
+    return this.primaryCreationServices().filter(
+      (item) => item.status === "AVAILABLE" && Boolean(item.workspace),
+    );
   }
 
   buildNavigation(): CustomerNavGroup[] {
@@ -88,7 +139,7 @@ export class CustomerServiceRegistry {
         const allDisabled = this.listByCategory(category.key).every((item) => item.status === "DISABLED");
         return {
           key: `category-${category.key}`,
-          title: category.title,
+          title: category.title === "Design Studio" ? "Design" : category.title,
           description: category.description,
           icon: category.icon,
           route: `/create/${category.key.toLowerCase()}`,
@@ -99,9 +150,13 @@ export class CustomerServiceRegistry {
         };
       });
 
+    const workKeys = new Set(["projects", "assets"]);
+    const accountKeys = new Set(["settings", "help"]);
     const workAndAccount = this.services
-      .filter((item) => item.category === "MY_WORK" || item.category === "ACCOUNT")
-      .filter((item) => item.key !== "designs")
+      .filter((item) =>
+        (item.category === "MY_WORK" && workKeys.has(item.key))
+        || (item.category === "ACCOUNT" && accountKeys.has(item.key)),
+      )
       .map((item) => ({
         key: item.key,
         title: item.title,

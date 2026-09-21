@@ -66,7 +66,11 @@ describe("Admin Control Center routing separation", () => {
     expect(store).toContain("isStudioNavWorkspace");
     expect(store).toContain('id !== "admin"');
     const sidebar = fs.readFileSync(path.resolve("desktop/shell/LeftSidebar.tsx"), "utf8");
-    expect(sidebar).toContain('id !== "admin"');
+    // Customer-nav sidebar: Admin is never listed; deep-link still redirects to ACC.
+    expect(sidebar).toContain("CustomerNavSection");
+    expect(sidebar).toContain("data-customer-sidebar");
+    expect(sidebar).not.toContain("getSidebarNavByGroup");
+    expect(sidebar).toContain('id === "admin"');
     expect(sidebar).toContain("/admin/dashboard");
   });
 

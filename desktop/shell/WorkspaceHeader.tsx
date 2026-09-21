@@ -1,20 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Bell, Bot, Cloud, CloudOff, Command, Cpu, HardDrive, Menu, RefreshCw, Search, Settings, Sparkles, WifiOff, X,
+  Bell, Command, Menu, Search, Settings, Sparkles, X,
 } from "lucide-react";
-import type { ProjectStatus } from "./types";
 import { useShell } from "./ShellContext";
 import { getNavItem } from "./workspace-registry";
-import { navigationEngine } from "./navigation/navigation-engine";
 import { resolveActiveProjectName } from "./project-context";
-
-const statusLabels: Record<ProjectStatus, string> = {
-  idle: "No active project",
-  draft: "Draft",
-  "in-production": "In Production",
-  review: "In Review",
-  complete: "Complete",
-};
 
 interface WorkspaceHeaderProps {
   onSearchOpen: () => void;
@@ -25,6 +15,10 @@ interface WorkspaceHeaderProps {
   onCustomerNavToggle?: () => void;
 }
 
+/**
+ * Customer-facing header.
+ * Internal model/queue diagnostics stay out of this surface.
+ */
 export function WorkspaceHeader({
   onSearchOpen,
   onPreferencesOpen,
@@ -33,17 +27,13 @@ export function WorkspaceHeader({
   customerNavOpen = false,
   onCustomerNavToggle,
 }: WorkspaceHeaderProps) {
-  const { core, saveState, autoSave, notifications, layout, projectStatus, performanceSnapshot, switchWorkspace } = useShell();
+  const { notifications, layout, switchWorkspace, core } = useShell();
   const workspaceLabel = getNavItem(layout.workspace).label;
-  const status = navigationEngine.buildWorkspaceStatus(core, projectStatus, layout.zen);
   const unread = notifications.filter((n) => !n.read).length;
-  const fps = performanceSnapshot?.metrics.fps;
-  const ram = performanceSnapshot?.metrics.ramUsage ?? core?.runtimeMetrics?.ramUsage;
   const projectName = resolveActiveProjectName(core?.activeProject);
-  const gatewayReachable = core != null;
 
   return (
-    <header className="topbar workspace-header nav-engine-header" role="banner">
+    <header className="topbar workspace-header nav-engine-header customer-header" role="banner" data-customer-header="true">
       {onCustomerNavToggle ? (
         <button
           type="button"
@@ -77,88 +67,36 @@ export function WorkspaceHeader({
           <span className="project-dot" />
           <span className="project-name">{projectName ?? "No project"}</span>
         </div>
-        <span className="project-status-badge">{statusLabels[projectStatus]}</span>
       </div>
 
-      <button className="global-search" onClick={onSearchOpen} aria-label="Global search">
+      <button className="global-search" onClick={onSearchOpen} aria-label="Search services and projects">
         <Search size={16} />
-        <span>Search projects, assets, knowledge…</span>
+        <span>Search services and projects…</span>
         <kbd>Ctrl K</kbd>
       </button>
 
-      <div className="header-status-cluster" aria-label="Workspace status">
-        <StatusChip icon={<Bot size={12} />} label="AI" value={status.ai} online={core?.aiCore} />
-        <StatusChip icon={<RefreshCw size={12} />} label="Mode" value={status.mode} />
-        <StatusChip icon={<Cpu size={12} />} label="Prod" value={status.production} online={projectStatus === "in-production"} />
-        <StatusChip
-          icon={gatewayReachable ? <Cloud size={12} /> : <WifiOff size={12} />}
-          label="Net"
-          value={gatewayReachable ? "Local" : "Unreachable"}
-          online={gatewayReachable}
-        />
-        <StatusChip icon={<HardDrive size={12} />} label="HW" value={
-          fps != null
-            ? `${fps}fps · ${ram ?? core?.runtimeMetrics?.memoryMb ?? "—"}%`
-            : core?.runtimeMetrics
-              ? `${core.runtimeMetrics.memoryMb}MB`
-              : "Local"
-        } />
-      </div>
-
-      <SaveIndicator state={saveState} autoSave={autoSave} />
       <HeaderClock />
 
       <div className="top-actions">
-        <button className="icon-button" title="Quick commands" onClick={onSearchOpen}>
+        <button className="icon-button" title="Quick commands" aria-label="Quick commands" onClick={onSearchOpen}>
           <Command size={17} />
         </button>
         <button
           className={`icon-button notification ${notificationsOpen ? "active" : ""}`}
-          title="Notification center"
+          title="Notifications"
+          aria-label="Notifications"
           onClick={onNotificationsToggle}
           aria-expanded={notificationsOpen}
         >
           <Bell size={17} />
           {unread > 0 && <i />}
         </button>
-        <div className={`ai-pill ${core?.aiCore ? "online" : ""}`}>
-          <span />
-          AI {core?.aiCore ? "Ready" : "Offline"}
-        </div>
-        <button className="avatar" title="User menu" aria-label="User menu">KA</button>
-        <button className="icon-button" title="Settings" onClick={onPreferencesOpen}>
+        <button className="avatar" title="Account" aria-label="Account menu">KA</button>
+        <button className="icon-button" title="Settings" aria-label="Settings" onClick={onPreferencesOpen}>
           <Settings size={17} />
         </button>
       </div>
     </header>
-  );
-}
-
-function StatusChip({ icon, label, value, online }: { icon: React.ReactNode; label: string; value: string; online?: boolean }) {
-  return (
-    <div className={`status-chip ${online ? "online" : ""}`} title={`${label}: ${value}`}>
-      {icon}
-      <span>{label}</span>
-      <b>{value}</b>
-    </div>
-  );
-}
-
-function SaveIndicator({ state, autoSave }: { state: string; autoSave: boolean }) {
-  const labels: Record<string, { icon: typeof Cloud; text: string; className: string }> = {
-    saved: { icon: Cloud, text: "Saved", className: "save-saved" },
-    saving: { icon: Cloud, text: "Saving…", className: "save-saving" },
-    unsaved: { icon: CloudOff, text: "Unsaved", className: "save-unsaved" },
-    error: { icon: CloudOff, text: "Save error", className: "save-error" },
-  };
-  const entry = labels[state] ?? labels.saved;
-  const Icon = entry.icon;
-  return (
-    <div className={`save-indicator ${entry.className}`} title={`Save: ${entry.text}${autoSave ? " · Auto-save on" : ""}`}>
-      <Icon size={14} />
-      <span>{entry.text}</span>
-      {autoSave && <em className="auto-save-badge">Auto</em>}
-    </div>
   );
 }
 

@@ -23,7 +23,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
   svc({
     key: "create-video",
     title: "Create Video",
-    description: "Start a new video from your product and story.",
+    description: "Turn your photos into professional videos.",
     category: "VIDEO",
     icon: "clapperboard",
     route: "/create/video",
@@ -78,7 +78,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
   svc({
     key: "edit-photo",
     title: "Edit Photo",
-    description: "Open visual analysis and photo editing tools.",
+    description: "Enhance, edit and prepare your photos.",
     category: "IMAGE",
     icon: "image",
     route: "/create/image/edit",
@@ -134,7 +134,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
   svc({
     key: "passport-photo",
     title: "Passport Photo",
-    description: "Compliant passport photographs.",
+    description: "Create a clean passport-ready photo.",
     category: "PHOTO_STUDIO",
     icon: "id-card",
     route: "/create/photo/passport",
@@ -182,6 +182,17 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     order: 50,
   }),
 
+  svc({
+    key: "design-studio",
+    title: "Design Studio",
+    description: "Create flyers, posters, banners and more.",
+    category: "DESIGN",
+    icon: "pen-tool",
+    route: "/create/design",
+    status: "COMING_SOON",
+    order: 1,
+    keywords: ["design", "flyer", "poster", "banner", "graphics"],
+  }),
   svc({
     key: "flyer",
     title: "Flyer",

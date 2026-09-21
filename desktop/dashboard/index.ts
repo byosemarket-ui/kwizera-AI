@@ -1,4 +1,5 @@
 export { ProfessionalDashboard } from "./ProfessionalDashboard";
+export { TechnicalProductionDashboard } from "./TechnicalProductionDashboard";
 export { dashboardWidgetStore, defaultDashboardLayout, WIDGET_LABELS } from "./widget-store";
 export { dashboardLiveEngine } from "./live-engine";
 export { buildAiMeDashboardContext, guideDashboardWidget, serializeAiMeDashboardContext } from "./aime-dashboard-awareness";

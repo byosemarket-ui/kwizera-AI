@@ -12,6 +12,7 @@ export { CUSTOMER_SERVICES } from "./services";
 export { CustomerServiceRegistry, customerServiceRegistry } from "./registry";
 export { resolveCustomerIcon } from "./icons";
 export { CustomerCatalog } from "./CustomerCatalog";
+export { CustomerHome } from "./CustomerHome";
 export { CustomerNavSection, customerNavContainsAdmin } from "./CustomerNavSection";
 export { CustomerMobileNavDrawer } from "./CustomerMobileNavDrawer";
 export {

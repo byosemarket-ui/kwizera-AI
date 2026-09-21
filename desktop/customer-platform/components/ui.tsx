@@ -106,11 +106,20 @@ export function SearchInput({
   );
 }
 
-export function EmptyState({ title, detail }: { title: string; detail?: string }) {
+export function EmptyState({
+  title,
+  detail,
+  action,
+}: {
+  title: string;
+  detail?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="cp-empty" role="status">
       <strong className="cp-card-title">{title}</strong>
       {detail ? <p className="cp-body">{detail}</p> : null}
+      {action ? <div className="cp-empty-action">{action}</div> : null}
     </div>
   );
 }
@@ -154,17 +163,39 @@ export function QuickAction({
 export function ProjectCard({
   title,
   detail,
+  updatedAt,
+  status,
+  thumbnail,
   onOpen,
 }: {
   title: string;
   detail?: string;
+  updatedAt?: string;
+  status?: string;
+  thumbnail?: string;
   onOpen?: () => void;
 }) {
   return (
-    <button type="button" className="cp-project-card" onClick={onOpen} aria-label={`Open project ${title}`}>
-      <strong className="cp-card-title">{title}</strong>
-      {detail ? <p className="cp-body">{detail}</p> : null}
-    </button>
+    <article className="cp-project-card">
+      <div className="cp-project-thumb" aria-hidden={thumbnail ? undefined : true}>
+        {thumbnail ? (
+          <img src={thumbnail} alt="" />
+        ) : (
+          <span className="cp-project-thumb-fallback" aria-hidden="true" />
+        )}
+      </div>
+      <div className="cp-project-body">
+        <strong className="cp-card-title">{title}</strong>
+        {detail ? <p className="cp-body">{detail}</p> : null}
+        <div className="cp-project-meta">
+          {updatedAt ? <span className="cp-caption">Updated {updatedAt}</span> : null}
+          {status ? <span className="cp-caption">{status}</span> : null}
+        </div>
+      </div>
+      <PrimaryButton onClick={onOpen} disabled={!onOpen}>
+        Open
+      </PrimaryButton>
+    </article>
   );
 }
 
