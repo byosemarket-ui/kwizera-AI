@@ -4,6 +4,7 @@ import type { WorkspaceId } from "../../shell/types";
 const CUSTOMER_SURFACES = new Set<WorkspaceId>([
   "home",
   "service-create-video",
+  "service-product-marketing-video",
   "service-edit-photo",
   "service-passport",
   "service-design",

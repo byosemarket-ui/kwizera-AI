@@ -41,6 +41,7 @@ export type WorkspaceId =
   | "help"
   | "admin"
   | "service-create-video"
+  | "service-product-marketing-video"
   | "service-edit-photo"
   | "service-passport"
   | "service-design"
@@ -54,7 +55,7 @@ export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "asset-library", "image-organization", "product-information", "product-validation", "visual-analysis", "deep-intelligence", "market-research", "master-intelligence", "generated-images", "generated-videos", "generated-audio",
   "output", "exports", "creative-review", "reports", "history",
   "settings", "system-health", "help", "admin",
-  "service-create-video", "service-edit-photo", "service-passport", "service-design", "service-audio",
+  "service-create-video", "service-product-marketing-video", "service-edit-photo", "service-passport", "service-design", "service-audio",
 ];
 
 /** Legacy workspace IDs migrated on load */

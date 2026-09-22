@@ -42,6 +42,7 @@ import {
   DesignStudioServiceWorkspace,
   EditPhotoServiceWorkspace,
   PassportPhotoServiceWorkspace,
+  ProductMarketingVideoWorkspace,
 } from "../customer-platform/workspace";
 import type { CoreStatus, WorkspaceId } from "./types";
 import { mapLegacyWorkspace } from "./workspace-registry";
@@ -145,6 +146,8 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
       return <HelpRoute onNavigate={onNavigate} />;
     case "service-create-video":
       return <CreateVideoServiceWorkspace />;
+    case "service-product-marketing-video":
+      return <ProductMarketingVideoWorkspace />;
     case "service-edit-photo":
       return <EditPhotoServiceWorkspace />;
     case "service-passport":

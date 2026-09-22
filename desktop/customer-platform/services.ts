@@ -77,7 +77,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/video/product",
     status: "AVAILABLE",
     order: 50,
-    workspace: "service-create-video",
+    workspace: "service-product-marketing-video",
     useCase: "MARKETING",
     keywords: ["product", "marketing", "video", "campaign"],
   }),

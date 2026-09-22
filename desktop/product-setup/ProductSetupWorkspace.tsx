@@ -27,6 +27,7 @@ export function ProductSetupWorkspace({ customerMode = false }: { customerMode?:
   const folderRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    productSetupEngine.setServiceMode("standard");
     productSetupEngine.setNotify(notify);
     const unsub = productSetupEngine.subscribe(setSnap);
     void productSetupEngine.hydrateFromServer();

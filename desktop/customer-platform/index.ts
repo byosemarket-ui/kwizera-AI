@@ -24,6 +24,7 @@ export {
 export {
   ServiceWorkspace,
   CreateVideoServiceWorkspace,
+  ProductMarketingVideoWorkspace,
   EditPhotoServiceWorkspace,
   PassportPhotoServiceWorkspace,
   DesignStudioServiceWorkspace,

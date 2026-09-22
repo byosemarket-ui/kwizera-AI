@@ -49,6 +49,7 @@ export const NAV_ICONS: Record<WorkspaceId, LucideIcon> = {
   admin: Shield,
   help: HelpCircle,
   "service-create-video": Clapperboard,
+  "service-product-marketing-video": Clapperboard,
   "service-edit-photo": FileImage,
   "service-passport": FileImage,
   "service-design": Layers,

@@ -14,6 +14,7 @@ export {
 } from "./types";
 export { ServiceWorkspace } from "./ServiceWorkspace";
 export { CreateVideoServiceWorkspace } from "./CreateVideoServiceWorkspace";
+export { ProductMarketingVideoWorkspace } from "./ProductMarketingVideoWorkspace";
 export { EditPhotoServiceWorkspace } from "./EditPhotoServiceWorkspace";
 export { PassportPhotoServiceWorkspace } from "./PassportPhotoServiceWorkspace";
 export { DesignStudioServiceWorkspace, AudioServiceWorkspace } from "./ComingSoonServiceWorkspaces";

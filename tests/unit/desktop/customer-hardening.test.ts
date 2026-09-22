@@ -13,6 +13,7 @@ describe("STEP 4–5 customer platform hardening", () => {
   it("identifies customer surfaces for chrome suppression", () => {
     expect(isCustomerSurface("home")).toBe(true);
     expect(isCustomerSurface("service-create-video")).toBe(true);
+    expect(isCustomerSurface("service-product-marketing-video")).toBe(true);
     expect(isCustomerSurface("service-edit-photo")).toBe(true);
     expect(isCustomerSurface("open-project")).toBe(true);
     expect(isCustomerSurface("generated-videos")).toBe(false);

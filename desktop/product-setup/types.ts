@@ -30,6 +30,54 @@ export interface OptionalProductDetails {
   features: string;
   website: string;
   notes: string;
+  /** Extended product information for Product Marketing Video foundation */
+  longDescription: string;
+  benefits: string;
+  offer: string;
+  productCategory: string;
+  productCta: string;
+}
+
+/** Customer-facing brand/contact for PMV Step 1 — maps to brandInformation + end-card contract. */
+export interface PmvBrandContact {
+  brandName: string;
+  websiteName: string;
+  websiteUrl: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  cta: string;
+  language: string;
+  logoAssetId: string | null;
+  logoUrl: string | null;
+  logoFileName: string | null;
+}
+
+export type PmvAspectRatio = "9:16" | "1:1" | "16:9";
+
+export interface PmvVideoSettings {
+  durationSeconds: number;
+  aspectRatio: PmvAspectRatio;
+  language: string;
+  cta: string;
+}
+
+/** Foundation lifecycle for Steps 2–5. Step 1 only sets DRAFT / READY_FOR_INTELLIGENCE. */
+export type PmvFoundationStatus =
+  | "DRAFT"
+  | "READY_FOR_INTELLIGENCE"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED";
+
+export const PMV_SETTINGS_KEY = "productMarketingVideo";
+
+export interface PmvFoundationSettings {
+  foundationStatus: PmvFoundationStatus;
+  heroAssetId: string | null;
+  assetOrder: string[];
+  durationSeconds: number;
+  aspectRatio: PmvAspectRatio;
 }
 
 export interface DiscountInfo {
@@ -119,6 +167,14 @@ export interface ProductSetupSnapshot {
   continueLabel: string;
   mediaPreparation: MediaPreparationUiSummary | null;
   updatedAt: string;
+  /** Product Marketing Video foundation fields (always present; defaults when unused). */
+  brandContact: PmvBrandContact;
+  videoSettings: PmvVideoSettings;
+  foundationStatus: PmvFoundationStatus;
+  heroAssetId: string | null;
+  assetOrder: string[];
+  canMarkReady: boolean;
+  readyBlockedReason: string | null;
 }
 
 export interface Step2HandoffPayload {
