@@ -30,8 +30,8 @@ export function parsePriceInput(raw: string): number | null {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-export function formatPrice(value: number | null, currency: string): string {
+export function formatPrice(value: number | null, currency?: string | null): string {
   if (value == null) return "";
-  const cur = currency.trim() || "RWF";
+  const cur = (currency ?? "").trim() || "RWF";
   return `${value.toLocaleString()} ${cur}`;
 }

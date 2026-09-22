@@ -5,7 +5,7 @@ import {
 import { useShell } from "../../shell/ShellContext";
 import { productSetupEngine } from "../../product-setup/product-setup-engine";
 import type { ProductSetupSnapshot } from "../../product-setup/types";
-import { formatPrice, parsePriceInput } from "../../product-setup/discount";
+import { parsePriceInput } from "../../product-setup/discount";
 import { ACCEPT_ATTR, classifyFormat } from "../../product-intake/formats";
 import { desktopPicksToFiles } from "../../product-intake/desktop-import";
 import { ServiceWorkspace } from "./ServiceWorkspace";
@@ -320,7 +320,7 @@ export function ProductMarketingVideoWorkspace() {
               <span>Current price</span>
               <input
                 inputMode="decimal"
-                value={snap.essentials.currentPrice == null ? "" : formatPrice(snap.essentials.currentPrice)}
+                value={snap.essentials.currentPrice ?? ""}
                 onChange={(e) => productSetupEngine.setEssentialField("currentPrice", parsePriceInput(e.target.value))}
                 placeholder="20,000"
               />
@@ -329,7 +329,7 @@ export function ProductMarketingVideoWorkspace() {
               <span>Previous price</span>
               <input
                 inputMode="decimal"
-                value={snap.essentials.previousPrice == null ? "" : formatPrice(snap.essentials.previousPrice)}
+                value={snap.essentials.previousPrice ?? ""}
                 onChange={(e) => productSetupEngine.setEssentialField("previousPrice", parsePriceInput(e.target.value))}
                 placeholder="45,000"
               />
