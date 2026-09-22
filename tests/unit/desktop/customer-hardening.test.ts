@@ -5,6 +5,8 @@ import {
   customerServiceRegistry,
   isCustomerSurface,
   isCustomerServiceWorkspace,
+  isCustomerVisibleProjectName,
+  customerFacingProjectName,
 } from "../../../desktop/customer-platform/index.ts";
 
 describe("STEP 4–5 customer platform hardening", () => {
@@ -104,6 +106,18 @@ describe("STEP 4–5 customer platform hardening", () => {
     expect(home).not.toContain("quickActionsForHome");
     expect(home).not.toContain("Quick actions");
     expect(home).not.toContain("Popular services");
+  });
+
+  it("hides internal-ops project names from customer Home and header without deleting data", () => {
+    expect(isCustomerVisibleProjectName("Summer Promo Video")).toBe(true);
+    expect(isCustomerVisibleProjectName("Ollama Audit 1788798532693")).toBe(false);
+    expect(customerFacingProjectName("Ollama Audit 1788798532693")).toBeNull();
+    expect(customerFacingProjectName("Brand Launch")).toBe("Brand Launch");
+
+    const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
+    expect(home).toContain("isCustomerVisibleProjectName");
+    const header = fs.readFileSync(path.resolve("desktop/shell/WorkspaceHeader.tsx"), "utf8");
+    expect(header).toContain("customerFacingProjectName");
   });
 
   it("does not put Admin in customer navigation or customer surfaces", () => {

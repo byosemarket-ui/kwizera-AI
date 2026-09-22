@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { useShell } from "./ShellContext";
 import { resolveActiveProjectName } from "./project-context";
+import { customerFacingProjectName } from "../customer-platform/project-visibility";
 
 interface WorkspaceHeaderProps {
   onSearchOpen: () => void;
@@ -28,7 +29,7 @@ export function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const { notifications, switchWorkspace, core } = useShell();
   const unread = notifications.filter((n) => !n.read).length;
-  const projectName = resolveActiveProjectName(core?.activeProject);
+  const projectName = customerFacingProjectName(resolveActiveProjectName(core?.activeProject));
 
   return (
     <header className="topbar workspace-header nav-engine-header customer-header" role="banner" data-customer-header="true">

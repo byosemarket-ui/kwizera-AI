@@ -12,6 +12,7 @@ import {
   ServiceGrid,
 } from "./components/ui";
 import type { CustomerCategory, CustomerService } from "./types";
+import { isCustomerVisibleProjectName } from "./project-visibility";
 
 export interface CustomerHomeProject {
   id: string;
@@ -31,6 +32,7 @@ async function fetchRecentProjects(limit = 6): Promise<CustomerHomeProject[]> {
     const data = (await response.json()) as WorkspacePayload;
     const projects = Array.isArray(data.projects) ? data.projects : [];
     return [...projects]
+      .filter((project) => isCustomerVisibleProjectName(project.name))
       .sort((a, b) => {
         const aTime = a.modifiedAt ? Date.parse(a.modifiedAt) : 0;
         const bTime = b.modifiedAt ? Date.parse(b.modifiedAt) : 0;

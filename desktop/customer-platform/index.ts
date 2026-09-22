@@ -17,6 +17,10 @@ export { CustomerNavSection, customerNavContainsAdmin } from "./CustomerNavSecti
 export { CustomerMobileNavDrawer } from "./CustomerMobileNavDrawer";
 export { isCustomerSurface, isCustomerServiceWorkspace } from "./surface";
 export {
+  customerFacingProjectName,
+  isCustomerVisibleProjectName,
+} from "./project-visibility";
+export {
   ServiceWorkspace,
   CreateVideoServiceWorkspace,
   EditPhotoServiceWorkspace,
