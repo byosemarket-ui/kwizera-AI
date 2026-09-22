@@ -15,7 +15,7 @@ import "./product-setup.css";
 
 const CURRENCIES = ["RWF", "USD", "EUR", "GBP", "KES", "UGX", "TZS"];
 
-export function ProductSetupWorkspace() {
+export function ProductSetupWorkspace({ customerMode = false }: { customerMode?: boolean } = {}) {
   const { notify, switchWorkspace } = useShell();
   const [snap, setSnap] = useState<ProductSetupSnapshot>(() => productSetupEngine.snapshot());
   const [dragging, setDragging] = useState(false);
@@ -136,13 +136,17 @@ export function ProductSetupWorkspace() {
   const heroLabel = snap.aiSummary?.usefulViews[0] ?? "Not selected";
 
   return (
-    <div className="product-setup">
-      <WorkflowProgress currentStep={1} projectName={snap.projectName || undefined} />
+    <div className={`product-setup ${customerMode ? "is-customer-mode" : ""}`.trim()} data-customer-mode={customerMode || undefined}>
+      {!customerMode ? <WorkflowProgress currentStep={1} projectName={snap.projectName || undefined} /> : null}
 
       <header className="product-setup__header">
         <div>
-          <h1>Product Setup</h1>
-          <p>Add your product and the information needed to create the video.</p>
+          <h1>{customerMode ? "Add your photos" : "Product Setup"}</h1>
+          <p>
+            {customerMode
+              ? "Upload product photos to create your video. Your work saves automatically."
+              : "Add your product and the information needed to create the video."}
+          </p>
         </div>
         <p className="product-setup__save" data-state={snap.saveState}>
           {snap.saveState === "saving" ? "Saving…" : snap.saveState === "error" ? "Unsaved" : snap.saveState === "unsaved" ? "Unsaved" : "Saved automatically"}
@@ -152,7 +156,7 @@ export function ProductSetupWorkspace() {
       {showAnalysis && (
         <section className="product-setup__panel product-setup__analysis" data-status={snap.analysisStatus.toLowerCase()}>
           <div className="product-setup__analysis-head">
-            <h2>AI Analysis</h2>
+            <h2>{customerMode ? "Preparing your photos" : "AI Analysis"}</h2>
             <span className="product-setup__badge" data-tone={analysisFailed ? "warn" : analysisComplete ? "ok" : "active"}>
               {analysisFailed ? "Needs attention" : analysisComplete ? "Complete" : analysisActive ? "Running" : "In progress"}
             </span>

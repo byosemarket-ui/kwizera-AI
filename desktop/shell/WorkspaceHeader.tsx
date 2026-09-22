@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-  Bell, Command, Menu, Search, Settings, Sparkles, X,
+  Bell, Menu, Search, Settings, Sparkles, X,
 } from "lucide-react";
 import { useShell } from "./ShellContext";
-import { getNavItem } from "./workspace-registry";
 import { resolveActiveProjectName } from "./project-context";
 
 interface WorkspaceHeaderProps {
@@ -16,8 +15,8 @@ interface WorkspaceHeaderProps {
 }
 
 /**
- * Customer-facing header.
- * Internal model/queue diagnostics stay out of this surface.
+ * Customer-facing header — brand, search, notifications, account.
+ * Internal diagnostics stay out of this surface.
  */
 export function WorkspaceHeader({
   onSearchOpen,
@@ -27,8 +26,7 @@ export function WorkspaceHeader({
   customerNavOpen = false,
   onCustomerNavToggle,
 }: WorkspaceHeaderProps) {
-  const { notifications, layout, switchWorkspace, core } = useShell();
-  const workspaceLabel = getNavItem(layout.workspace).label;
+  const { notifications, switchWorkspace, core } = useShell();
   const unread = notifications.filter((n) => !n.read).length;
   const projectName = resolveActiveProjectName(core?.activeProject);
 
@@ -57,12 +55,7 @@ export function WorkspaceHeader({
         <em>AI STUDIO</em>
       </button>
 
-      <div className="header-workspace-name" title="Current workspace">
-        <span className="header-meta-label">Workspace</span>
-        <strong>{workspaceLabel}</strong>
-      </div>
-
-      <div className="header-project-block">
+      <div className="header-project-block" title={projectName ? `Project: ${projectName}` : "No project selected"}>
         <div className="project-switcher">
           <span className="project-dot" />
           <span className="project-name">{projectName ?? "No project"}</span>
@@ -75,12 +68,7 @@ export function WorkspaceHeader({
         <kbd>Ctrl K</kbd>
       </button>
 
-      <HeaderClock />
-
       <div className="top-actions">
-        <button className="icon-button" title="Quick commands" aria-label="Quick commands" onClick={onSearchOpen}>
-          <Command size={17} />
-        </button>
         <button
           className={`icon-button notification ${notificationsOpen ? "active" : ""}`}
           title="Notifications"
@@ -113,3 +101,6 @@ function HeaderClock() {
     </time>
   );
 }
+
+// Keep export for any residual imports; not rendered in customer header.
+export { HeaderClock };

@@ -86,11 +86,11 @@ describe("Customer Home architecture", () => {
     expect(primary.find((item) => item.key === "create-video")?.status).toBe("AVAILABLE");
     expect(primary.find((item) => item.key === "edit-photo")?.status).toBe("AVAILABLE");
     expect(primary.find((item) => item.key === "passport-photo")?.status).toBe("AVAILABLE");
-    expect(primary.find((item) => item.key === "design-studio")?.status).toBe("AVAILABLE");
+    expect(primary.find((item) => item.key === "design-studio")?.status).toBe("COMING_SOON");
     expect(primary.find((item) => item.key === "create-video")?.workspace).toBe("service-create-video");
     expect(primary.find((item) => item.key === "edit-photo")?.workspace).toBe("service-edit-photo");
     expect(primary.find((item) => item.key === "passport-photo")?.workspace).toBe("service-passport");
-    expect(primary.find((item) => item.key === "design-studio")?.workspace).toBe("service-design");
+    expect(primary.find((item) => item.key === "design-studio")?.workspace).toBeUndefined();
   });
 
   it("builds explore categories from the central registry", () => {
@@ -145,6 +145,7 @@ describe("Customer design system and components", () => {
     expect(ui).toContain("export function ServiceGrid");
     expect(ui).toContain("export function ProjectCard");
     expect(ui).toContain("export function QuickAction");
+    expect(ui).toContain("export function CategoryCard");
     expect(ui).toContain("aria-label");
     expect(ui).toContain("Coming soon");
     expect(ui).toContain("Unavailable");
@@ -160,7 +161,13 @@ describe("Customer design system and components", () => {
     expect(home).toContain("primaryCreationServices");
     expect(home).toContain("Recent projects");
     expect(home).toContain("No projects yet");
-    expect(home).toContain("Quick actions");
+    expect(home).toContain("Explore services");
+    expect(home).toContain("CategoryCard");
+    expect(home).not.toContain("Quick actions");
+    expect(home).not.toContain("Popular services");
+    expect(home).not.toContain("My work");
+    expect(home).not.toContain("quickActionsForHome");
+    expect(home).not.toContain("popularServices");
     expect(home).toContain("/api/workspace");
     const catalog = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerCatalog.tsx"), "utf8");
     expect(catalog).toContain("ServiceCategory");

@@ -54,7 +54,7 @@ export function ServiceWorkspace({
           <span>Back</span>
         </button>
         <div className="cp-sw-title-block">
-          <p className="cp-label">{meta.serviceKey.replace(/-/g, " ")}</p>
+          <p className="cp-label">Create</p>
           <h1 className="cp-sw-title">{meta.title}</h1>
           <p className="cp-body">{meta.description}</p>
         </div>
@@ -72,7 +72,11 @@ export function ServiceWorkspace({
               const active = step.id === currentStepId;
               const done = stepIndex >= 0 && index < stepIndex;
               return (
-                <li key={step.id} className={[active ? "is-active" : "", done ? "is-done" : ""].filter(Boolean).join(" ")}>
+                <li
+                  key={step.id}
+                  className={[active ? "is-active" : "", done ? "is-done" : ""].filter(Boolean).join(" ")}
+                  aria-current={active ? "step" : undefined}
+                >
                   <span className="cp-sw-step-index" aria-hidden="true">{index + 1}</span>
                   <span className="cp-sw-step-label">{step.label}</span>
                 </li>

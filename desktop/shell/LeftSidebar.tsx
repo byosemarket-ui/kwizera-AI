@@ -50,6 +50,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
           <button
             className="icon-button"
             title={navigation.pinned ? "Unpin sidebar" : "Pin sidebar"}
+            aria-label={navigation.pinned ? "Unpin sidebar" : "Pin sidebar"}
             onClick={togglePin}
             aria-pressed={navigation.pinned}
           >
@@ -60,6 +61,7 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
               className="sidebar-collapse icon-button"
               onClick={() => setLayout({ leftCollapsed: !layout.leftCollapsed })}
               title={layout.leftCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={layout.leftCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               aria-expanded={!layout.leftCollapsed}
             >
               {layout.leftCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -77,9 +79,9 @@ export function LeftSidebar({ onPreferencesOpen, onNewProject }: LeftSidebarProp
       </nav>
 
       <div className="sidebar-footer">
-        <button className="nav-item" onClick={onPreferencesOpen} aria-label="Desktop preferences">
+        <button className="nav-item" onClick={onPreferencesOpen} aria-label="Settings">
           <MoreHorizontal size={18} />
-          <span>Preferences</span>
+          <span>Settings</span>
         </button>
       </div>
     </aside>

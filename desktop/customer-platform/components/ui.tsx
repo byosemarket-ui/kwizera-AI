@@ -234,14 +234,14 @@ export function ServiceCard({
   return (
     <article
       className={className}
-      tabIndex={0}
+      tabIndex={available ? 0 : -1}
       role="button"
       aria-label={`${service.title}. ${actionLabel(service.status)}`}
       aria-disabled={!available}
       data-service-key={service.key}
       data-service-status={service.status}
       onClick={activate}
-      onKeyDown={onKeyDown}
+      onKeyDown={available ? onKeyDown : undefined}
     >
       <span className="cp-service-icon" aria-hidden="true"><Icon size={18} /></span>
       <StatusBadge status={service.status} />
@@ -265,6 +265,46 @@ export function ServiceCategory({
       <p className="cp-body">{category.description}</p>
       {children}
     </section>
+  );
+}
+
+/** Compact category tile for Home Explore — not a duplicate service card. */
+export function CategoryCard({
+  category,
+  onOpen,
+  status = "AVAILABLE",
+}: {
+  category: CustomerCategory;
+  onOpen?: (category: CustomerCategory) => void;
+  status?: CustomerServiceStatus;
+}) {
+  const Icon = resolveCustomerIcon(category.icon);
+  const title = category.title === "Design Studio" ? "Design" : category.title;
+  const available = status === "AVAILABLE";
+  const className = [
+    "cp-category-card",
+    status === "COMING_SOON" ? "is-soon" : "",
+    status === "DISABLED" ? "is-disabled" : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <button
+      type="button"
+      className={className}
+      data-category-key={category.key}
+      data-category-status={status}
+      aria-label={`Explore ${title}${available ? "" : `. ${status === "COMING_SOON" ? "Coming soon" : "Unavailable"}`}`}
+      aria-disabled={!available}
+      disabled={!available}
+      onClick={() => {
+        if (available) onOpen?.(category);
+      }}
+    >
+      <span className="cp-service-icon" aria-hidden="true"><Icon size={18} /></span>
+      <StatusBadge status={status} />
+      <strong className="cp-card-title">{title}</strong>
+      <span className="cp-caption">{category.description}</span>
+    </button>
   );
 }
 

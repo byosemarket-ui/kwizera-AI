@@ -15,6 +15,7 @@ export { CustomerCatalog } from "./CustomerCatalog";
 export { CustomerHome } from "./CustomerHome";
 export { CustomerNavSection, customerNavContainsAdmin } from "./CustomerNavSection";
 export { CustomerMobileNavDrawer } from "./CustomerMobileNavDrawer";
+export { isCustomerSurface, isCustomerServiceWorkspace } from "./surface";
 export {
   ServiceWorkspace,
   CreateVideoServiceWorkspace,
@@ -32,6 +33,7 @@ export {
   ServiceCard,
   ServiceCategory,
   ServiceGrid,
+  CategoryCard,
   QuickAction,
   ProjectCard,
   EmptyState,

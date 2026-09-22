@@ -5,6 +5,7 @@ import {
 import type { SearchCategory, SearchResult, WorkspaceId } from "../types";
 import { useShell } from "../ShellContext";
 import { navigationEngine } from "./navigation-engine";
+import { isCustomerSurface } from "../../customer-platform/surface";
 
 const categoryIcons: Record<SearchCategory, typeof Search> = {
   projects: FolderKanban,
@@ -25,16 +26,26 @@ interface GlobalSearchProps {
 }
 
 export function GlobalSearch({ open, onClose, onSelectWorkspace }: GlobalSearchProps) {
-  const { core, navigation, runQuickAction } = useShell();
+  const { core, navigation, runQuickAction, layout } = useShell();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const customerOnly = isCustomerSurface(layout.workspace);
 
   const results = useMemo(() => {
-    if (!query.trim()) return navigationEngine.getSuggestions(navigation);
+    if (!query.trim()) {
+      if (customerOnly) {
+        return navigationEngine.search("", {
+          projectNames: core?.activeProject ? [core.activeProject] : [],
+          customerOnly: true,
+        }).slice(0, 8);
+      }
+      return navigationEngine.getSuggestions(navigation);
+    }
     return navigationEngine.search(query, {
       projectNames: core?.activeProject ? [core.activeProject] : ["Demo Product Project"],
+      customerOnly,
     });
-  }, [query, navigation, core?.activeProject]);
+  }, [query, navigation, core?.activeProject, customerOnly]);
 
   useEffect(() => {
     if (open) {

@@ -115,10 +115,14 @@ try {
       throw new Error("built desktop bundle missing Create Video service workspace");
     }
   }
+  if (!bundle.includes("data-customer-canvas") || !bundle.includes("customer-production-workspace")) {
+    throw new Error("built desktop bundle missing customer canvas hardening markers");
+  }
   console.log("PASS  desktop bundle Admin/Studio surface separation markers");
   console.log("PASS  desktop bundle customer platform foundation markers");
   console.log("PASS  desktop bundle commercial Customer Home markers");
   console.log("PASS  desktop bundle customer service workspace markers");
+  console.log("PASS  desktop bundle customer canvas hardening markers");
   console.log("PASS  studio static routing");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

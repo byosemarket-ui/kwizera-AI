@@ -191,9 +191,8 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     category: "DESIGN",
     icon: "pen-tool",
     route: "/create/design",
-    status: "AVAILABLE",
+    status: "COMING_SOON",
     order: 1,
-    workspace: "service-design",
     keywords: ["design", "flyer", "poster", "banner", "graphics"],
   }),
   svc({

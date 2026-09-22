@@ -37,6 +37,7 @@ import type { RestoreReport } from "./workspace-state/types";
 import { deriveProjectStatus, resolveActiveProjectName } from "./project-context";
 import { WorkspaceErrorBoundary } from "./WorkspaceErrorBoundary";
 import { CustomerMobileNavDrawer } from "../customer-platform";
+import { isCustomerSurface } from "../customer-platform/surface";
 import { resetPersistedNavigationInStorage } from "./startup-navigation";
 import { STARTUP_READY_TIMEOUT_MS } from "./bootstrap-recovery";
 import { mapLegacyWorkspace } from "./workspace-registry";
@@ -284,6 +285,13 @@ export function AppShell({
   useEffect(() => {
     setCustomerNavOpen(false);
   }, [layout.workspace]);
+
+  useEffect(() => {
+    if (!isCustomerSurface(layout.workspace)) return;
+    if (layout.rightOpen || layout.bottomExpanded) {
+      setLayout({ rightOpen: false, bottomExpanded: false });
+    }
+  }, [layout.workspace, layout.rightOpen, layout.bottomExpanded, setLayout]);
 
   useEffect(() => {
     workspacePerformanceEngine.configure({
@@ -560,7 +568,7 @@ export function AppShell({
         event.preventDefault();
         runQuickAction("save");
       }
-      if (mod && event.shiftKey && key === "a") {
+      if (mod && event.shiftKey && key === "a" && !isCustomerSurface(layout.workspace)) {
         event.preventDefault();
         switchWorkspace("ai-me");
       }
@@ -572,20 +580,27 @@ export function AppShell({
     };
     window.addEventListener("keydown", shortcut);
     return () => window.removeEventListener("keydown", shortcut);
-  }, [applyLayoutWithUndo, layout.leftCollapsed, navigation.history, navigation.pinned, notify, onNewProject, runQuickAction, switchWorkspace]);
+  }, [applyLayoutWithUndo, layout.leftCollapsed, layout.workspace, navigation.history, navigation.pinned, notify, onNewProject, runQuickAction, switchWorkspace]);
+
+  const customerSurface = isCustomerSurface(layout.workspace);
 
   const shellClass = useMemo(() => {
     const classes = ["studio-shell", "layout-engine-shell", "nav-engine-shell"];
     if (layout.leftCollapsed) classes.push("left-collapsed");
-    if (!layout.rightOpen) classes.push("right-closed");
+    if (!layout.rightOpen || customerSurface) classes.push("right-closed");
     if (layout.zen) classes.push("zen");
-    if (layout.bottomExpanded) classes.push("bottom-expanded");
+    if (layout.bottomExpanded && !customerSurface) classes.push("bottom-expanded");
     if (navigation.pinned) classes.push("sidebar-pinned");
+    if (customerSurface) classes.push("customer-surface");
     return classes.join(" ");
-  }, [layout, navigation.pinned]);
+  }, [layout, navigation.pinned, customerSurface]);
 
   const shellStyle = {
-    "--bottom-panel-height": layout.bottomExpanded ? `${layout.bottomHeight}px` : "28px",
+    "--bottom-panel-height": customerSurface
+      ? "0px"
+      : layout.bottomExpanded
+        ? `${layout.bottomHeight}px`
+        : "28px",
   } as React.CSSProperties;
 
   const contextValue = {
@@ -655,20 +670,22 @@ export function AppShell({
             {appReady ? children : (
               <section className="startup-loading-panel" role="status" aria-live="polite">
                 <strong>KWIZERA AI STUDIO</strong>
-                <span>Initializing workspace…</span>
+                <span>Loading your studio…</span>
               </section>
             )}
           </WorkspaceErrorBoundary>
         </ProductionWorkspace>
 
-        {layout.rightOpen && !layout.zen && (
+        {layout.rightOpen && !layout.zen && !customerSurface && (
           <RightSidebar onClose={() => setLayout({ rightOpen: false })} />
         )}
 
-        <BottomPanel />
+        {!customerSurface ? <BottomPanel /> : null}
 
-        <FloatingWindowsLayer />
-        <LayoutManagerPanel open={layoutManagerOpen} onClose={() => setLayoutManagerOpen(false)} />
+        {!customerSurface ? <FloatingWindowsLayer /> : null}
+        {!customerSurface ? (
+          <LayoutManagerPanel open={layoutManagerOpen} onClose={() => setLayoutManagerOpen(false)} />
+        ) : null}
 
         <GlobalSearch
           open={searchOpen}

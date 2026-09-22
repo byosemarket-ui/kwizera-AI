@@ -5,6 +5,7 @@ import { getActiveWorkspaceLabel } from "./LeftSidebar";
 import { panelEngine } from "./panel-engine";
 import { Breadcrumb } from "./navigation/Breadcrumb";
 import { QuickActionBar } from "./navigation/QuickActionBar";
+import { isCustomerSurface } from "../customer-platform/surface";
 
 interface ProductionWorkspaceProps {
   children: ReactNode;
@@ -16,6 +17,22 @@ export function ProductionWorkspace({ children, onOpenLayoutManager }: Productio
   const activeLabel = getActiveWorkspaceLabel(layout.workspace);
   const centerPanels = panelEngine.getPanelsInZone(layout, "center");
   const layoutName = layoutManager?.layouts.find((l) => l.id === layoutManager.activeLayoutId)?.name ?? "Default";
+  const customerSurface = isCustomerSurface(layout.workspace);
+
+  if (customerSurface) {
+    return (
+      <section
+        className="workspace-area production-workspace customer-production-workspace"
+        data-customer-canvas="true"
+      >
+        <div className="production-canvas customer-canvas">
+          <div className="production-main-panel" data-panel-id="production-main">
+            {children}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="workspace-area production-workspace">
@@ -33,7 +50,7 @@ export function ProductionWorkspace({ children, onOpenLayoutManager }: Productio
             <MonitorCog size={15} />
             {layout.zen ? "Exit focus" : "Focus mode"}
           </button>
-          <button className="icon-button" onClick={() => setLayout({ rightOpen: !layout.rightOpen })} title="Toggle AI panel">
+          <button className="icon-button" onClick={() => setLayout({ rightOpen: !layout.rightOpen })} title="Toggle AI panel" aria-label="Toggle AI panel">
             {layout.rightOpen ? <PanelRightClose size={17} /> : <PanelRightOpen size={17} />}
           </button>
         </div>
@@ -64,7 +81,7 @@ export function PlaceholderWorkspace({ title, description, icon }: PlaceholderWo
   return (
     <section className="empty-workspace module-placeholder">
       <div className="empty-icon">{icon}</div>
-      <span>Layout engine ready</span>
+      <span>Ready</span>
       <h2>{title}</h2>
       <p>{description}</p>
     </section>

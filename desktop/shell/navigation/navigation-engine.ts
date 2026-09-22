@@ -78,14 +78,27 @@ export class NavigationEngine {
       projectNames?: string[];
       assetHints?: string[];
       knowledgeHints?: string[];
+      /** Customer Home/surfaces: services, projects, assets only — no internal ops. */
+      customerOnly?: boolean;
     },
   ): SearchResult[] {
     const q = query.trim().toLowerCase();
     const results: SearchResult[] = [];
+    const customerOnly = Boolean(options?.customerOnly);
 
     for (const item of workspaceNav) {
       // Admin is a separate application surface — never surface it in Studio search.
       if (item.id === "admin") continue;
+      if (customerOnly) {
+        const allowed =
+          item.id === "home"
+          || item.id === "open-project"
+          || item.id === "asset-library"
+          || item.id === "settings"
+          || item.id === "help"
+          || item.id.startsWith("service-");
+        if (!allowed) continue;
+      }
       const haystack = `${item.label} ${item.groupLabel} ${item.keywords.join(" ")}`.toLowerCase();
       const score = scoreMatch(haystack, q, item.label.toLowerCase());
       if (!q || score > 0) {
@@ -100,19 +113,21 @@ export class NavigationEngine {
       }
     }
 
-    for (const action of QUICK_ACTIONS) {
-      const haystack = `${action.label} ${action.detail} command`.toLowerCase();
-      const score = scoreMatch(haystack, q, action.label.toLowerCase());
-      if (!q || score > 0) {
-        results.push({
-          id: `cmd-${action.id}`,
-          label: action.label,
-          category: "commands",
-          detail: action.detail,
-          workspace: action.workspace,
-          commandId: action.id,
-          score: q ? score + 0.1 : 0.9,
-        });
+    if (!customerOnly) {
+      for (const action of QUICK_ACTIONS) {
+        const haystack = `${action.label} ${action.detail} command`.toLowerCase();
+        const score = scoreMatch(haystack, q, action.label.toLowerCase());
+        if (!q || score > 0) {
+          results.push({
+            id: `cmd-${action.id}`,
+            label: action.label,
+            category: "commands",
+            detail: action.detail,
+            workspace: action.workspace,
+            commandId: action.id,
+            score: q ? score + 0.1 : 0.9,
+          });
+        }
       }
     }
 
@@ -130,14 +145,18 @@ export class NavigationEngine {
       }
     }
 
-    const categoryHints: Array<{ list: string[]; category: SearchCategory; workspace: WorkspaceId; detail: string }> = [
-      { list: options?.assetHints ?? ["Product photos", "Brand assets"], category: "assets", workspace: "asset-library", detail: "Asset library" },
-      { list: ["Campaign stills", "Hero frames"], category: "images", workspace: "generated-images", detail: "Generated images" },
-      { list: ["Product reel", "Social cut"], category: "videos", workspace: "generated-videos", detail: "Generated videos" },
-      { list: options?.knowledgeHints ?? ["Brand guidelines", "Audience insights"], category: "knowledge", workspace: "knowledge-center", detail: "Knowledge center" },
-      { list: ["Weekly production report", "Quality summary"], category: "reports", workspace: "reports", detail: "Reports" },
-      { list: ["Active SKU", "Product brief", "Product profile"], category: "products", workspace: "product-information", detail: "Product information" },
-    ];
+    const categoryHints: Array<{ list: string[]; category: SearchCategory; workspace: WorkspaceId; detail: string }> = customerOnly
+      ? [
+          { list: options?.assetHints ?? ["Product photos", "Brand assets"], category: "assets", workspace: "asset-library", detail: "Asset library" },
+        ]
+      : [
+          { list: options?.assetHints ?? ["Product photos", "Brand assets"], category: "assets", workspace: "asset-library", detail: "Asset library" },
+          { list: ["Campaign stills", "Hero frames"], category: "images", workspace: "generated-images", detail: "Generated images" },
+          { list: ["Product reel", "Social cut"], category: "videos", workspace: "generated-videos", detail: "Generated videos" },
+          { list: options?.knowledgeHints ?? ["Brand guidelines", "Audience insights"], category: "knowledge", workspace: "knowledge-center", detail: "Knowledge center" },
+          { list: ["Weekly production report", "Quality summary"], category: "reports", workspace: "reports", detail: "Reports" },
+          { list: ["Active SKU", "Product brief", "Product profile"], category: "products", workspace: "product-information", detail: "Product information" },
+        ];
 
     for (const hint of categoryHints) {
       for (const label of hint.list) {

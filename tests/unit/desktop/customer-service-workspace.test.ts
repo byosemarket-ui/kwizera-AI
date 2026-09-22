@@ -36,7 +36,8 @@ describe("Customer service workspace foundation", () => {
     expect(customerServiceRegistry.getService("edit-photo")?.workspace).toBe("service-edit-photo");
     expect(customerServiceRegistry.getService("remove-background")?.workspace).toBe("service-edit-photo");
     expect(customerServiceRegistry.getService("passport-photo")?.workspace).toBe("service-passport");
-    expect(customerServiceRegistry.getService("design-studio")?.workspace).toBe("service-design");
+    expect(customerServiceRegistry.getService("design-studio")?.status).toBe("COMING_SOON");
+    expect(customerServiceRegistry.getService("design-studio")?.workspace).toBeUndefined();
   });
 
   it("defines reusable step catalogs without inventing engine capabilities", () => {

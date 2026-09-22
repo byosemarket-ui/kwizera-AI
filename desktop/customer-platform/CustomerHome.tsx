@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { customerServiceRegistry } from "./registry";
 import {
+  CategoryCard,
   CustomerPage,
   EmptyState,
   LoadingState,
   PrimaryButton,
   ProjectCard,
-  QuickAction,
   ResponsiveContainer,
   SectionHeader,
-  ServiceCategory,
   ServiceGrid,
 } from "./components/ui";
-import { resolveCustomerIcon } from "./icons";
-import type { CustomerService } from "./types";
+import type { CustomerCategory, CustomerService } from "./types";
 
 export interface CustomerHomeProject {
   id: string;
@@ -47,7 +45,7 @@ async function fetchRecentProjects(limit = 6): Promise<CustomerHomeProject[]> {
 function projectTypeLabel(project: CustomerHomeProject): string {
   const images = project.productImages?.length ?? 0;
   if (images > 0) return `Photo project · ${images} asset${images === 1 ? "" : "s"}`;
-  return "Studio project";
+  return "Project";
 }
 
 function formatUpdated(value?: string): string | undefined {
@@ -63,7 +61,6 @@ export function CustomerHome({
   onNavigate: (workspace: string) => void;
 }) {
   const primary = customerServiceRegistry.primaryCreationServices();
-  const popular = customerServiceRegistry.popularServices();
   const exploreCategories = customerServiceRegistry.exploreCategories();
   const createVideo = customerServiceRegistry.getService("create-video");
   const [projects, setProjects] = useState<CustomerHomeProject[]>([]);
@@ -93,17 +90,27 @@ export function CustomerHome({
     onNavigate("new-project");
   };
 
-  const quickActions = customerServiceRegistry.quickActionsForHome();
-  const FolderIcon = resolveCustomerIcon("folder");
-  const UploadIcon = resolveCustomerIcon("image");
-  const PlusIcon = resolveCustomerIcon("sparkles");
+  const openCategory = (category: CustomerCategory) => {
+    const firstAvailable = customerServiceRegistry
+      .listByCategory(category.key)
+      .find((item) => item.status === "AVAILABLE" && item.workspace);
+    if (firstAvailable?.workspace) {
+      onNavigate(firstAvailable.workspace);
+    }
+  };
+
+  const categoryStatus = (categoryKey: string) => {
+    const services = customerServiceRegistry.listByCategory(categoryKey as CustomerCategory["key"]);
+    if (services.some((item) => item.status === "AVAILABLE" && item.workspace)) return "AVAILABLE" as const;
+    if (services.every((item) => item.status === "DISABLED")) return "DISABLED" as const;
+    return "COMING_SOON" as const;
+  };
 
   return (
     <section className="cp-home" data-customer-home="true" data-customer-catalog="true" aria-label="Customer home">
       <CustomerPage>
         <ResponsiveContainer>
           <header className="cp-hero" data-customer-hero="true">
-            <p className="cp-label">KWIZERA AI STUDIO</p>
             <h1 className="cp-page-title">Create something amazing today.</h1>
             <p className="cp-body cp-hero-copy">
               Create videos, edit photos, design graphics and more with KWIZERA AI STUDIO.
@@ -119,69 +126,20 @@ export function CustomerHome({
           </header>
 
           <section className="cp-primary-create" aria-labelledby="cp-primary-heading">
-            <SectionHeader
-              title="What do you want to create?"
-              description="Start with a primary service. Coming soon items stay visible but do not open unfinished workflows."
-            />
+            <SectionHeader title="What do you want to create?" />
             <h2 id="cp-primary-heading" className="cp-sr-only">Primary creation actions</h2>
             <ServiceGrid services={primary} onStart={onStart} emptyTitle="No primary services configured" />
-          </section>
-
-          <section className="cp-quick-actions-section" aria-label="Quick actions">
-            <SectionHeader title="Quick actions" description="Common next steps with working destinations." />
-            <div className="cp-actions">
-              <QuickAction
-                label="New Project"
-                icon={<PlusIcon size={16} />}
-                onClick={() => onNavigate("new-project")}
-              />
-              <QuickAction
-                label="Upload Photos"
-                icon={<UploadIcon size={16} />}
-                onClick={() => onNavigate("image-organization")}
-              />
-              {quickActions.map((service) => {
-                const Icon = resolveCustomerIcon(service.icon);
-                return (
-                  <QuickAction
-                    key={service.key}
-                    label={service.title}
-                    icon={<Icon size={16} />}
-                    onClick={() => onStart(service)}
-                  />
-                );
-              })}
-              <QuickAction
-                label="My Projects"
-                icon={<FolderIcon size={16} />}
-                onClick={() => onNavigate("open-project")}
-              />
-            </div>
-          </section>
-
-          <section className="cp-popular-section" aria-labelledby="cp-popular-heading">
-            <SectionHeader title="Popular services" description="Featured customer services from the shared registry." />
-            <h2 id="cp-popular-heading" className="cp-sr-only">Popular services</h2>
-            <ServiceGrid services={popular} onStart={onStart} />
-          </section>
-
-          <section className="cp-explore-section" aria-label="Explore services">
-            <SectionHeader title="Explore services" description="Browse by category. Only available services open a real workspace." />
-            {exploreCategories.map(({ category, services }) => (
-              <ServiceCategory key={category.key} category={category}>
-                <ServiceGrid services={services} onStart={onStart} />
-              </ServiceCategory>
-            ))}
           </section>
 
           <section className="cp-recent-projects" aria-labelledby="cp-recent-heading">
             <SectionHeader
               title="Recent projects"
-              description="Your latest studio work."
               actions={
-                <button type="button" className="cp-button-secondary" onClick={() => onNavigate("open-project")}>
-                  View all
-                </button>
+                projects.length > 0 ? (
+                  <button type="button" className="cp-button-secondary" onClick={() => onNavigate("open-project")}>
+                    View all
+                  </button>
+                ) : undefined
               }
             />
             <h2 id="cp-recent-heading" className="cp-sr-only">Recent projects</h2>
@@ -189,9 +147,9 @@ export function CustomerHome({
               <LoadingState label="Loading projects…" />
             ) : projects.length === 0 ? (
               <EmptyState
-                title="No projects yet."
-                detail="Create your first project to see it here."
-                action={<PrimaryButton onClick={startCreating}>Start Creating</PrimaryButton>}
+                title="No projects yet"
+                detail="Start creating something and your work will appear here."
+                action={<PrimaryButton onClick={startCreating}>Create Video</PrimaryButton>}
               />
             ) : (
               <div className="cp-project-grid" role="list">
@@ -210,11 +168,18 @@ export function CustomerHome({
             )}
           </section>
 
-          <section className="cp-my-work" aria-label="My work">
-            <SectionHeader title="My work" description="Jump back into projects and assets." />
-            <div className="cp-actions">
-              <QuickAction label="Projects" icon={<FolderIcon size={16} />} onClick={() => onNavigate("open-project")} />
-              <QuickAction label="Assets" icon={<UploadIcon size={16} />} onClick={() => onNavigate("asset-library")} />
+          <section className="cp-explore-section" aria-label="Explore services">
+            <SectionHeader title="Explore services" />
+            <div className="cp-category-grid" role="list">
+              {exploreCategories.map(({ category }) => (
+                <div key={category.key} role="listitem">
+                  <CategoryCard
+                    category={category}
+                    status={categoryStatus(category.key)}
+                    onOpen={openCategory}
+                  />
+                </div>
+              ))}
             </div>
           </section>
         </ResponsiveContainer>

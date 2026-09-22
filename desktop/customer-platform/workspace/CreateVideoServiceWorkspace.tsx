@@ -29,7 +29,7 @@ export function CreateVideoServiceWorkspace() {
       footerNote="Your project saves through the studio project system."
     >
       <div className="cp-sw-engine" data-engine="product-setup">
-        <ProductSetupWorkspace />
+        <ProductSetupWorkspace customerMode />
       </div>
     </ServiceWorkspace>
   );
