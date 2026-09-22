@@ -67,7 +67,7 @@ describe("STEP 4–5 customer platform hardening", () => {
     const css = fs.readFileSync(path.resolve("desktop/customer-platform/customer.css"), "utf8");
     expect(css).toContain("customer-production-workspace");
     expect(css).toContain("layout-engine-shell.customer-surface");
-    expect(css).toContain(".cp-category-grid");
+    expect(css).toContain(".cp-catalog-grid");
     expect(css).not.toContain("min-width: 560px");
   });
 
