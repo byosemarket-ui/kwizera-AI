@@ -288,10 +288,14 @@ export function AppShell({
 
   useEffect(() => {
     if (!isCustomerSurface(layout.workspace)) return;
-    if (layout.rightOpen || layout.bottomExpanded) {
-      setLayout({ rightOpen: false, bottomExpanded: false });
-    }
-  }, [layout.workspace, layout.rightOpen, layout.bottomExpanded, setLayout]);
+    if (!layout.rightOpen && !layout.bottomExpanded) return;
+    // Use setLayoutState directly — setLayout is declared later in this component.
+    setLayoutState((current) => ({
+      ...current,
+      rightOpen: false,
+      bottomExpanded: false,
+    }));
+  }, [layout.workspace, layout.rightOpen, layout.bottomExpanded]);
 
   useEffect(() => {
     workspacePerformanceEngine.configure({

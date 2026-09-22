@@ -76,6 +76,9 @@ describe("STEP 4–5 customer platform hardening", () => {
     expect(appShell).toMatch(/!customerSurface \? <FloatingWindowsLayer \/> : null/);
     expect(appShell).toMatch(/rightOpen && !layout\.zen && !customerSurface/);
     expect(appShell).toMatch(/isCustomerSurface\(layout\.workspace\)[\s\S]*ai-me|!isCustomerSurface\(layout\.workspace\)/);
+    // Customer chrome-suppression effect must not reference setLayout before it is declared.
+    expect(appShell).toMatch(/setLayoutState\(\(current\) => \(\{[\s\S]*rightOpen: false[\s\S]*bottomExpanded: false/);
+    expect(appShell).not.toMatch(/setLayout\(\{ rightOpen: false, bottomExpanded: false \}\)/);
 
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
     expect(home).not.toMatch(/AI Me|AI Assistance|Ollama|Workspace Awareness|Production Status/i);
