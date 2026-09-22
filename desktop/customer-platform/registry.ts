@@ -138,6 +138,25 @@ export class CustomerServiceRegistry {
       .filter((entry) => entry.services.length > 0);
   }
 
+  /**
+   * Home service discovery — category sections with real services (not category pillars).
+   * Hides category-hub rows marked metadata.homeVisible === false.
+   */
+  homeServiceCatalog(): Array<{ category: CustomerCategory; services: CustomerService[] }> {
+    return this.exploreCategories()
+      .map(({ category, services }) => ({
+        category,
+        services: services.filter((item) => item.metadata?.homeVisible !== false),
+      }))
+      .filter((entry) => entry.services.length > 0);
+  }
+
+  listByUseCase(useCase: string): CustomerService[] {
+    return this.services.filter(
+      (item) => item.status !== "DISABLED" && item.useCase === useCase,
+    );
+  }
+
   /** Quick actions that already map to a real Studio workspace. */
   quickActionsForHome(): CustomerService[] {
     return this.primaryCreationServices().filter(
@@ -223,7 +242,14 @@ export class CustomerServiceRegistry {
     if (!q) return this.services.filter((item) => item.status !== "DISABLED");
     return this.services.filter((item) => {
       if (item.status === "DISABLED") return false;
-      const hay = `${item.title} ${item.description} ${item.keywords.join(" ")} ${item.category}`.toLowerCase();
+      const hay = [
+        item.title,
+        item.description,
+        item.keywords.join(" "),
+        item.category,
+        item.subcategory ?? "",
+        item.useCase ?? "",
+      ].join(" ").toLowerCase();
       return hay.includes(q);
     });
   }

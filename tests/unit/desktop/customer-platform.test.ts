@@ -106,6 +106,17 @@ describe("Customer Home architecture", () => {
     ]);
     expect(explore.every((entry) => entry.services.length > 0)).toBe(true);
     expect(explore.every((entry) => entry.services.every((service) => service.category === entry.category.key))).toBe(true);
+    const homeServices = customerServiceRegistry.homeServiceCatalog();
+    expect(homeServices.map((entry) => entry.category.key)).toEqual([
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE",
+    ]);
+    expect(homeServices.find((e) => e.category.key === "VIDEO")?.services.some((s) => s.key === "image-to-video")).toBe(true);
+    expect(homeServices.find((e) => e.category.key === "DESIGN")?.services.some((s) => s.key === "flyer")).toBe(true);
+    expect(homeServices.find((e) => e.category.key === "DESIGN")?.services.some((s) => s.key === "design-studio")).toBe(false);
+    expect(homeServices.find((e) => e.category.key === "PHOTO_STUDIO")?.services.some((s) => s.key === "passport-photo")).toBe(true);
+    expect(homeServices.find((e) => e.category.key === "PHOTO_STUDIO")?.services.some((s) => s.key === "take-photo")).toBe(true);
+    expect(customerServiceRegistry.getService("product-marketing-video")?.useCase).toBe("MARKETING");
+    expect(customerServiceRegistry.listByUseCase("SOCIAL_MEDIA").length).toBeGreaterThan(0);
   });
 
   it("quick actions only include available services with workspaces", () => {
@@ -169,11 +180,15 @@ describe("Customer design system and components", () => {
     expect(dash).not.toMatch(/Live production|Live Production|dash-widget-grid|AI Status|Render Queue/i);
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
     expect(home).toContain("Welcome to");
-    expect(home).toContain("homeCatalogCategories");
+    expect(home).toContain("homeServiceCatalog");
     expect(home).toContain("What do you want to create?");
     expect(home).toContain("My Projects");
-    expect(home).toContain("CategoryCard");
+    expect(home).toContain("ServiceCategory");
+    expect(home).toContain("ServiceGrid");
+    expect(home).toContain("cp-category-jump");
+    expect(home).toContain("data-home-footer");
     expect(home).toContain("data-customer-service-grid");
+    expect(home).not.toContain("CategoryCard");
     expect(home).not.toContain("Recent projects");
     expect(home).not.toContain("Quick actions");
     expect(home).not.toContain("Popular services");
@@ -182,6 +197,8 @@ describe("Customer design system and components", () => {
     expect(home).not.toContain("popularServices");
     expect(home).not.toContain("/api/workspace");
     expect(home).not.toContain("Create something amazing today");
+    // My Projects must appear after the categorized service catalog in source order.
+    expect(home.indexOf("cp-home-categories")).toBeLessThan(home.indexOf("cp-my-projects-entry"));
     const tokens = fs.readFileSync(path.resolve("desktop/shell/theme/tokens.css"), "utf8");
     expect(tokens).toContain("--shell-page-bg");
     expect(tokens).toContain("scrollbar-color");

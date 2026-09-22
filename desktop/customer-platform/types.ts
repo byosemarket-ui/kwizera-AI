@@ -18,6 +18,14 @@ export type CustomerCategoryKey =
 
 export type CustomerNavGroupKey = "HOME" | "CREATE" | "MY_WORK" | "ACCOUNT";
 
+/** Cross-category creative intent — not a separate Home category. */
+export type CustomerUseCase =
+  | "MARKETING"
+  | "SOCIAL_MEDIA"
+  | "PRODUCT"
+  | "IDENTITY"
+  | "GENERAL";
+
 /** Existing Studio workspace ids that a service may open. */
 export type CustomerWorkspaceId = string;
 
@@ -43,6 +51,10 @@ export interface CustomerService {
   order: number;
   workspace?: CustomerWorkspaceId;
   keywords: string[];
+  /** Optional customer-facing grouping within a category. */
+  subcategory?: string;
+  /** Cross-category use case tags (marketing, social, product, etc.). */
+  useCase?: CustomerUseCase;
   metadata: Record<string, unknown>;
 }
 

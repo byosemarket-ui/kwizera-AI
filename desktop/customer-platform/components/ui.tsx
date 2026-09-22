@@ -255,14 +255,26 @@ export function ServiceCard({
 export function ServiceCategory({
   category,
   children,
+  id,
+  compact = false,
 }: {
   category: CustomerCategory;
   children: ReactNode;
+  id?: string;
+  compact?: boolean;
 }) {
+  const headingId = id ? `${id}-title` : `cp-cat-${category.key}`;
   return (
-    <section className="cp-page" data-category={category.key} aria-labelledby={`cp-cat-${category.key}`}>
-      <h2 className="cp-section-title" id={`cp-cat-${category.key}`}>{category.title}</h2>
-      <p className="cp-body">{category.description}</p>
+    <section
+      className={compact ? "cp-home-category" : "cp-page"}
+      id={id}
+      data-category={category.key}
+      aria-labelledby={headingId}
+    >
+      <header className="cp-home-category-header">
+        <h2 className="cp-section-title" id={headingId}>{category.title}</h2>
+        <p className="cp-body">{category.description}</p>
+      </header>
       {children}
     </section>
   );

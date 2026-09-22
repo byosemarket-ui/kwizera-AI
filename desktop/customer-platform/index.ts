@@ -5,6 +5,7 @@ export type {
   CustomerNavItem,
   CustomerService,
   CustomerServiceStatus,
+  CustomerUseCase,
 } from "./types";
 export { CustomerRegistryError } from "./validation";
 export { CUSTOMER_CATEGORIES } from "./categories";

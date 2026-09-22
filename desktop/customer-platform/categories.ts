@@ -4,7 +4,7 @@ export const CUSTOMER_CATEGORIES: CustomerCategory[] = [
   {
     key: "VIDEO",
     title: "Video",
-    description: "Create, edit, and enhance videos.",
+    description: "Create, edit, and transform videos.",
     order: 10,
     enabled: true,
     icon: "video",
@@ -22,7 +22,7 @@ export const CUSTOMER_CATEGORIES: CustomerCategory[] = [
   {
     key: "PHOTO_STUDIO",
     title: "Photo Studio",
-    description: "ID, passport, and professional portraits.",
+    description: "Passport, ID, portraits, and camera capture.",
     order: 30,
     enabled: true,
     icon: "camera",
@@ -30,8 +30,8 @@ export const CUSTOMER_CATEGORIES: CustomerCategory[] = [
   },
   {
     key: "DESIGN",
-    title: "Design",
-    description: "Flyers, posters, cards, and brand graphics.",
+    title: "Design Studio",
+    description: "Flyers, posters, cards, labels, and brand graphics.",
     order: 40,
     enabled: true,
     icon: "pen-tool",

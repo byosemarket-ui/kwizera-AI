@@ -1,10 +1,12 @@
-import type { CustomerService } from "./types";
+import type { CustomerService, CustomerUseCase } from "./types";
 
 function svc(
   partial: Omit<CustomerService, "enabled" | "metadata" | "keywords"> & {
     enabled?: boolean;
     keywords?: string[];
     metadata?: Record<string, unknown>;
+    useCase?: CustomerUseCase;
+    subcategory?: string;
   },
 ): CustomerService {
   return {
@@ -18,8 +20,42 @@ function svc(
 /**
  * Canonical customer services. AVAILABLE maps to existing Studio workspaces.
  * COMING_SOON is catalogued but not presented as a working product.
+ * Category hub rows use metadata.homeVisible = false so Home shows real services.
  */
 export const CUSTOMER_SERVICES: CustomerService[] = [
+  // —— VIDEO ——
+  svc({
+    key: "image-to-video",
+    title: "Image to Video",
+    description: "Animate photos into short videos.",
+    category: "VIDEO",
+    icon: "clapperboard",
+    route: "/create/video/image-to-video",
+    status: "COMING_SOON",
+    order: 10,
+    keywords: ["image", "photo", "animate", "video"],
+  }),
+  svc({
+    key: "video-editing",
+    title: "Video Editing",
+    description: "Trim, arrange, and refine existing video.",
+    category: "VIDEO",
+    icon: "scissors",
+    route: "/create/video/edit",
+    status: "COMING_SOON",
+    order: 20,
+  }),
+  svc({
+    key: "text-to-video",
+    title: "Text to Video",
+    description: "Turn a written idea into video scenes.",
+    category: "VIDEO",
+    icon: "file-text",
+    route: "/create/video/text",
+    status: "COMING_SOON",
+    order: 30,
+    keywords: ["text", "prompt", "script", "video"],
+  }),
   svc({
     key: "create-video",
     title: "Create Video",
@@ -28,7 +64,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "clapperboard",
     route: "/create/video",
     status: "AVAILABLE",
-    order: 10,
+    order: 40,
     workspace: "service-create-video",
     keywords: ["video", "create", "film", "reel"],
   }),
@@ -40,8 +76,9 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "megaphone",
     route: "/create/video/product",
     status: "AVAILABLE",
-    order: 20,
+    order: 50,
     workspace: "service-create-video",
+    useCase: "MARKETING",
     keywords: ["product", "marketing", "video", "campaign"],
   }),
   svc({
@@ -52,47 +89,8 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "share",
     route: "/create/video/social",
     status: "COMING_SOON",
-    order: 30,
-  }),
-  svc({
-    key: "video-editing",
-    title: "Video Editing",
-    description: "Edit and refine existing video.",
-    category: "VIDEO",
-    icon: "scissors",
-    route: "/create/video/edit",
-    status: "COMING_SOON",
-    order: 40,
-  }),
-  svc({
-    key: "video-enhancement",
-    title: "Video Enhancement",
-    description: "Improve quality, color, and clarity.",
-    category: "VIDEO",
-    icon: "sparkles",
-    route: "/create/video/enhance",
-    status: "COMING_SOON",
-    order: 50,
-  }),
-  svc({
-    key: "image-to-video",
-    title: "Image-to-Video",
-    description: "Animate photos into short videos.",
-    category: "VIDEO",
-    icon: "clapperboard",
-    route: "/create/video/image-to-video",
-    status: "COMING_SOON",
     order: 60,
-  }),
-  svc({
-    key: "product-video",
-    title: "Product Video",
-    description: "Showcase products in motion.",
-    category: "VIDEO",
-    icon: "package",
-    route: "/create/video/product-clip",
-    status: "COMING_SOON",
-    order: 70,
+    useCase: "SOCIAL_MEDIA",
   }),
   svc({
     key: "promotional-video",
@@ -102,9 +100,54 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "megaphone",
     route: "/create/video/promo",
     status: "COMING_SOON",
+    order: 70,
+    useCase: "MARKETING",
+  }),
+  svc({
+    key: "product-video",
+    title: "Product Video",
+    description: "Showcase products in motion.",
+    category: "VIDEO",
+    icon: "package",
+    route: "/create/video/product-clip",
+    status: "COMING_SOON",
     order: 80,
+    useCase: "PRODUCT",
+  }),
+  svc({
+    key: "ai-video-creation",
+    title: "AI Video Creation",
+    description: "Generate video with AI-assisted creative planning.",
+    category: "VIDEO",
+    icon: "sparkles",
+    route: "/create/video/ai",
+    status: "COMING_SOON",
+    order: 90,
+  }),
+  svc({
+    key: "image-based-product-video",
+    title: "Image-based Product Video",
+    description: "Build product videos from still product photos.",
+    category: "VIDEO",
+    icon: "package",
+    route: "/create/video/image-product",
+    status: "COMING_SOON",
+    order: 100,
+    useCase: "PRODUCT",
+    keywords: ["product", "images", "photos", "video"],
+  }),
+  svc({
+    key: "video-enhancement",
+    title: "Video Enhancement",
+    description: "Improve quality, color, and clarity.",
+    category: "VIDEO",
+    icon: "sparkles",
+    route: "/create/video/enhance",
+    status: "COMING_SOON",
+    order: 110,
   }),
 
+  // —— IMAGE ——
   svc({
     key: "edit-photo",
     title: "Edit Photo",
@@ -131,7 +174,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
   svc({
     key: "remove-background",
     title: "Remove Background",
-    description: "Isolate the product from its background.",
+    description: "Isolate the subject from its background.",
     category: "IMAGE",
     icon: "eraser",
     route: "/create/image/background",
@@ -159,8 +202,51 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     status: "AVAILABLE",
     order: 50,
     workspace: "service-create-video",
+    useCase: "PRODUCT",
+  }),
+  svc({
+    key: "image-photo-enhancement",
+    title: "Photo Enhancement",
+    description: "Improve clarity, color, and detail.",
+    category: "IMAGE",
+    icon: "sun",
+    route: "/create/image/photo-enhance",
+    status: "COMING_SOON",
+    order: 60,
+  }),
+  svc({
+    key: "professional-photo-editing",
+    title: "Professional Photo Editing",
+    description: "Advanced retouching and finishing.",
+    category: "IMAGE",
+    icon: "wand",
+    route: "/create/image/pro-edit",
+    status: "COMING_SOON",
+    order: 70,
+  }),
+  svc({
+    key: "image-optimization",
+    title: "Image Optimization",
+    description: "Optimize images for web and export.",
+    category: "IMAGE",
+    icon: "crop",
+    route: "/create/image/optimize",
+    status: "COMING_SOON",
+    order: 80,
+  }),
+  svc({
+    key: "product-image-preparation",
+    title: "Product Image Preparation",
+    description: "Prep product images for catalogs and ads.",
+    category: "IMAGE",
+    icon: "package",
+    route: "/create/image/product-prep",
+    status: "COMING_SOON",
+    order: 90,
+    useCase: "PRODUCT",
   }),
 
+  // —— PHOTO STUDIO ——
   svc({
     key: "passport-photo",
     title: "Passport Photo",
@@ -171,6 +257,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     status: "AVAILABLE",
     order: 10,
     workspace: "service-passport",
+    useCase: "IDENTITY",
     keywords: ["passport", "photo", "id"],
   }),
   svc({
@@ -182,6 +269,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/photo/id",
     status: "COMING_SOON",
     order: 20,
+    useCase: "IDENTITY",
   }),
   svc({
     key: "professional-photo",
@@ -194,6 +282,16 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     order: 30,
   }),
   svc({
+    key: "portrait-photo",
+    title: "Portrait Photo",
+    description: "Portrait framing and finishing.",
+    category: "PHOTO_STUDIO",
+    icon: "camera",
+    route: "/create/photo/portrait",
+    status: "COMING_SOON",
+    order: 40,
+  }),
+  svc({
     key: "take-photo",
     title: "Take Photo / Camera",
     description: "Capture a photo with camera and enhance it.",
@@ -201,20 +299,31 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "aperture",
     route: "/create/photo/capture",
     status: "COMING_SOON",
-    order: 40,
+    order: 50,
     keywords: ["camera", "capture", "take photo"],
   }),
   svc({
     key: "photo-enhancement",
     title: "Photo Enhancement",
-    description: "Retouch and enhance portraits.",
+    description: "Retouch and enhance studio portraits.",
     category: "PHOTO_STUDIO",
     icon: "sun",
     route: "/create/photo/enhance",
     status: "COMING_SOON",
-    order: 50,
+    order: 60,
+  }),
+  svc({
+    key: "studio-photo-preparation",
+    title: "Studio Photo Preparation",
+    description: "Prepare studio shots for print and export.",
+    category: "PHOTO_STUDIO",
+    icon: "camera",
+    route: "/create/photo/studio-prep",
+    status: "COMING_SOON",
+    order: 70,
   }),
 
+  // —— DESIGN STUDIO ——
   svc({
     key: "design-studio",
     title: "Design Studio",
@@ -225,6 +334,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     status: "COMING_SOON",
     order: 1,
     keywords: ["design", "flyer", "poster", "banner", "graphics"],
+    metadata: { homeVisible: false },
   }),
   svc({
     key: "flyer",
@@ -235,6 +345,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/design/flyer",
     status: "COMING_SOON",
     order: 10,
+    useCase: "MARKETING",
   }),
   svc({
     key: "poster",
@@ -255,6 +366,16 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/design/banner",
     status: "COMING_SOON",
     order: 30,
+  }),
+  svc({
+    key: "billboard",
+    title: "Billboard",
+    description: "Large-format outdoor design.",
+    category: "DESIGN",
+    icon: "billboard",
+    route: "/create/design/billboard",
+    status: "COMING_SOON",
+    order: 35,
   }),
   svc({
     key: "business-card",
@@ -355,6 +476,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/design/label",
     status: "COMING_SOON",
     order: 110,
+    useCase: "PRODUCT",
   }),
   svc({
     key: "social-media-design",
@@ -365,6 +487,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/design/social",
     status: "COMING_SOON",
     order: 120,
+    useCase: "SOCIAL_MEDIA",
   }),
   svc({
     key: "advertisement",
@@ -375,22 +498,45 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/design/ad",
     status: "COMING_SOON",
     order: 130,
+    useCase: "MARKETING",
   }),
   svc({
-    key: "billboard",
-    title: "Billboard",
-    description: "Large-format outdoor design.",
+    key: "creative-graphic",
+    title: "Creative Graphic",
+    description: "General creative graphic layouts.",
     category: "DESIGN",
-    icon: "billboard",
-    route: "/create/design/billboard",
+    icon: "layout",
+    route: "/create/design/creative",
     status: "COMING_SOON",
     order: 140,
   }),
+  svc({
+    key: "brand-graphic",
+    title: "Brand Graphic",
+    description: "Brand-consistent marketing graphics.",
+    category: "DESIGN",
+    icon: "pen-tool",
+    route: "/create/design/brand",
+    status: "COMING_SOON",
+    order: 150,
+    useCase: "MARKETING",
+  }),
+  svc({
+    key: "logo-design",
+    title: "Logo Design",
+    description: "Logo concepts and brand marks.",
+    category: "DESIGN",
+    icon: "award",
+    route: "/create/design/logo",
+    status: "COMING_SOON",
+    order: 160,
+  }),
 
+  // —— AUDIO ——
   svc({
     key: "music",
     title: "Music",
-    description: "Generate or edit music beds.",
+    description: "Browse and work with music beds.",
     category: "AUDIO",
     icon: "music",
     route: "/create/audio/music",
@@ -408,6 +554,16 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     order: 20,
   }),
   svc({
+    key: "audio-editing",
+    title: "Audio Editing",
+    description: "Edit and refine existing audio.",
+    category: "AUDIO",
+    icon: "waveform",
+    route: "/create/audio/edit",
+    status: "COMING_SOON",
+    order: 30,
+  }),
+  svc({
     key: "sound-design",
     title: "Sound Design",
     description: "Effects and sound design tools.",
@@ -415,19 +571,40 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     icon: "waveform",
     route: "/create/audio/sound-design",
     status: "COMING_SOON",
-    order: 30,
-  }),
-  svc({
-    key: "audio-editing",
-    title: "Audio Editing",
-    description: "Edit existing audio.",
-    category: "AUDIO",
-    icon: "waveform",
-    route: "/create/audio/edit",
-    status: "COMING_SOON",
     order: 40,
   }),
+  svc({
+    key: "ai-sound",
+    title: "AI Sound",
+    description: "Generate soundscapes and audio accents.",
+    category: "AUDIO",
+    icon: "sparkles",
+    route: "/create/audio/ai-sound",
+    status: "COMING_SOON",
+    order: 50,
+  }),
+  svc({
+    key: "audio-intelligence",
+    title: "Audio Intelligence",
+    description: "Analyze and structure audio for creative work.",
+    category: "AUDIO",
+    icon: "waveform",
+    route: "/create/audio/intelligence",
+    status: "COMING_SOON",
+    order: 60,
+  }),
+  svc({
+    key: "beat-sync",
+    title: "Beat Sync",
+    description: "Align cuts and motion to musical beats.",
+    category: "AUDIO",
+    icon: "music",
+    route: "/create/audio/beat-sync",
+    status: "COMING_SOON",
+    order: 70,
+  }),
 
+  // —— VOICE ——
   svc({
     key: "voice-over",
     title: "Voice-over",
@@ -460,7 +637,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
   }),
   svc({
     key: "voice-narration",
-    title: "Voice / Narration",
+    title: "Narration",
     description: "Narration for videos and stories.",
     category: "VOICE",
     icon: "mic",
@@ -468,7 +645,18 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     status: "COMING_SOON",
     order: 40,
   }),
+  svc({
+    key: "voice-tools",
+    title: "Voice Tools",
+    description: "Additional voice utilities and workflows.",
+    category: "VOICE",
+    icon: "mic",
+    route: "/create/voice/tools",
+    status: "COMING_SOON",
+    order: 50,
+  }),
 
+  // —— MY WORK ——
   svc({
     key: "projects",
     title: "Projects",
@@ -536,6 +724,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     workspace: "generated-audio",
   }),
 
+  // —— ACCOUNT ——
   svc({
     key: "settings",
     title: "Settings",

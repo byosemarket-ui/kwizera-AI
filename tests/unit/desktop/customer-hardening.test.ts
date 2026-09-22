@@ -97,11 +97,15 @@ describe("STEP 4–5 customer platform hardening", () => {
     expect(engine).toContain("if (customerOnly)");
   });
 
-  it("Customer Home IA uses catalog pillars without Recent Projects duplication", () => {
+  it("Customer Home IA uses categorized services with My Projects at the bottom", () => {
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
-    expect(home).toContain("homeCatalogCategories");
-    expect(home).toContain("CategoryCard");
+    expect(home).toContain("homeServiceCatalog");
+    expect(home).toContain("ServiceCategory");
+    expect(home).toContain("ServiceGrid");
     expect(home).toContain("My Projects");
+    expect(home).toContain("data-home-footer");
+    expect(home.indexOf("cp-home-categories")).toBeLessThan(home.indexOf("cp-my-projects-entry"));
+    expect(home).not.toContain("CategoryCard");
     expect(home).not.toContain("Recent projects");
     expect(home).not.toContain("popularServices");
     expect(home).not.toContain("quickActionsForHome");

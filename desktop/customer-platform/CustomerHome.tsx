@@ -1,18 +1,35 @@
 import { customerServiceRegistry } from "./registry";
 import {
-  CategoryCard,
   CustomerPage,
   PrimaryButton,
   ResponsiveContainer,
   SectionHeader,
+  ServiceCategory,
+  ServiceGrid,
 } from "./components/ui";
 import { resolveCustomerIcon } from "./icons";
-import type { CustomerCategory } from "./types";
+import type { CustomerService } from "./types";
 
-function homeCategoryTitle(category: CustomerCategory): string {
-  if (category.key === "PHOTO_STUDIO") return "Photo";
-  if (category.key === "DESIGN" || category.title === "Design Studio") return "Design";
-  return category.title;
+const HOME_CATEGORY_ORDER = [
+  "VIDEO",
+  "IMAGE",
+  "PHOTO_STUDIO",
+  "DESIGN",
+  "AUDIO",
+  "VOICE",
+] as const;
+
+function categoryNavLabel(key: string, title: string): string {
+  if (key === "PHOTO_STUDIO") return "Photo Studio";
+  if (key === "DESIGN") return "Design";
+  return title;
+}
+
+function scrollToCategory(key: string) {
+  const el = document.getElementById(`cp-home-cat-${key}`);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 export function CustomerHome({
@@ -20,16 +37,12 @@ export function CustomerHome({
 }: {
   onNavigate: (workspace: string) => void;
 }) {
-  const catalog = customerServiceRegistry.homeCatalogCategories();
+  const catalog = customerServiceRegistry.homeServiceCatalog();
   const FolderIcon = resolveCustomerIcon("folder");
 
-  const openCategory = (category: CustomerCategory) => {
-    const firstAvailable = customerServiceRegistry
-      .listByCategory(category.key)
-      .find((item) => item.status === "AVAILABLE" && item.workspace);
-    if (firstAvailable?.workspace) {
-      onNavigate(firstAvailable.workspace);
-    }
+  const onStart = (service: CustomerService) => {
+    if (service.status !== "AVAILABLE" || !service.workspace) return;
+    onNavigate(service.workspace);
   };
 
   return (
@@ -38,28 +51,54 @@ export function CustomerHome({
         <ResponsiveContainer>
           <header className="cp-welcome" data-customer-hero="true">
             <p className="cp-welcome-line">
-              Welcome to <span>KWIZERA AI STUDIO</span> — let&apos;s create something amazing.
+              Welcome to <span>KWIZERA AI STUDIO</span>
             </p>
           </header>
 
           <section className="cp-service-catalog" aria-labelledby="cp-catalog-heading">
-            <SectionHeader title="What do you want to create?" />
+            <SectionHeader
+              title="What do you want to create?"
+              description="Browse creative services by category."
+            />
             <h2 id="cp-catalog-heading" className="cp-sr-only">Service catalog</h2>
-            <div className="cp-catalog-grid" role="list" data-customer-service-grid="true">
-              {catalog.map(({ category, status }) => (
-                <div key={category.key} role="listitem">
-                  <CategoryCard
-                    category={category}
-                    status={status}
-                    displayTitle={homeCategoryTitle(category)}
-                    onOpen={openCategory}
-                  />
-                </div>
+
+            <nav className="cp-category-jump" aria-label="Service categories">
+              <div className="cp-catalog-grid cp-category-jump-grid" role="list">
+                {HOME_CATEGORY_ORDER.map((key) => {
+                  const entry = catalog.find((item) => item.category.key === key);
+                  if (!entry) return null;
+                  const label = categoryNavLabel(entry.category.key, entry.category.title);
+                  return (
+                    <div key={key} role="listitem">
+                      <button
+                        type="button"
+                        className="cp-category-jump-btn"
+                        data-category-key={key}
+                        onClick={() => scrollToCategory(key)}
+                      >
+                        {label}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </nav>
+
+            <div className="cp-home-categories" data-customer-service-grid="true">
+              {catalog.map(({ category, services }) => (
+                <ServiceCategory
+                  key={category.key}
+                  category={category}
+                  id={`cp-home-cat-${category.key}`}
+                  compact
+                >
+                  <ServiceGrid services={services} onStart={onStart} />
+                </ServiceCategory>
               ))}
             </div>
           </section>
 
-          <section className="cp-my-projects-entry" aria-label="My projects">
+          <section className="cp-my-projects-entry" aria-label="My projects" data-home-footer="true">
             <div className="cp-my-projects-card">
               <div className="cp-my-projects-copy">
                 <span className="cp-service-icon" aria-hidden="true"><FolderIcon size={18} /></span>
