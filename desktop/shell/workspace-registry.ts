@@ -51,6 +51,11 @@ export const workspaceNav: WorkspaceNavItem[] = [
   { id: "system-health", label: "System Health", group: "system", groupLabel: "Settings", keywords: ["health", "diagnostics", "repair", "update", "windows", "monitor"] },
   { id: "admin", label: "Admin Control Center", group: "system", groupLabel: "Settings", keywords: ["admin", "control plane", "models", "providers", "saas"], inSidebar: false },
   { id: "help", label: "Help", group: "system", groupLabel: "Settings", keywords: ["help", "docs", "guide", "support"] },
+  { id: "service-create-video", label: "Create Video", group: "projects", groupLabel: "Projects", keywords: ["create video", "customer", "service workspace"], inSidebar: false },
+  { id: "service-edit-photo", label: "Edit Photo", group: "assets", groupLabel: "Assets", keywords: ["edit photo", "customer", "service workspace"], inSidebar: false },
+  { id: "service-passport", label: "Passport Photo", group: "assets", groupLabel: "Assets", keywords: ["passport", "customer", "service workspace"], inSidebar: false },
+  { id: "service-design", label: "Design Studio", group: "creative", groupLabel: "Creative", keywords: ["design", "flyer", "customer", "service workspace"], inSidebar: false },
+  { id: "service-audio", label: "Audio", group: "creative", groupLabel: "Creative", keywords: ["audio", "voice", "customer", "service workspace"], inSidebar: false },
 ];
 
 export const NAV_GROUP_ORDER: NavGroupId[] = [
@@ -143,6 +148,11 @@ export const workspaceTiers: Record<WorkspaceId, WorkspaceTier> = {
   "system-health": "live",
   admin: "live",
   help: "placeholder",
+  "service-create-video": "live",
+  "service-edit-photo": "live",
+  "service-passport": "partial",
+  "service-design": "partial",
+  "service-audio": "partial",
 };
 
 const LEGACY_NAV_MAP: Record<string, WorkspaceId> = {
@@ -153,8 +163,8 @@ const LEGACY_NAV_MAP: Record<string, WorkspaceId> = {
   brand: "marketing",
   ai: "ai-me",
   editor: "production",
-  video: "generated-videos",
-  image: "generated-images",
+  video: "service-create-video",
+  image: "service-edit-photo",
   intelligence: "reports",
   knowledge: "knowledge-center",
   memory: "knowledge-center",

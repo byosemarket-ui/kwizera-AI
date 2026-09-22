@@ -106,9 +106,19 @@ try {
   if (!bundle.includes("data-customer-sidebar") || !bundle.includes("data-customer-header")) {
     throw new Error("built desktop bundle missing customer shell markers");
   }
+  if (!bundle.includes("data-customer-service-workspace") || !bundle.includes("service-create-video")) {
+    throw new Error("built desktop bundle missing customer service workspace markers");
+  }
+  if (!bundle.includes("ProductSetupWorkspace") && !bundle.includes("product-setup")) {
+    // Engine may be minified; ensure Create Video service workspace string remains.
+    if (!bundle.includes("Create Video")) {
+      throw new Error("built desktop bundle missing Create Video service workspace");
+    }
+  }
   console.log("PASS  desktop bundle Admin/Studio surface separation markers");
   console.log("PASS  desktop bundle customer platform foundation markers");
   console.log("PASS  desktop bundle commercial Customer Home markers");
+  console.log("PASS  desktop bundle customer service workspace markers");
   console.log("PASS  studio static routing");
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

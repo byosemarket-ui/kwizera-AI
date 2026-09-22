@@ -36,6 +36,13 @@ import { PersistentMemoryWorkspace } from "../persistent-memory/PersistentMemory
 import { SystemHealthWorkspace } from "../system-health/SystemHealthWorkspace";
 import { loadStep2AssistantHandoff } from "../creative-review/review-engine";
 import { loadFinalCompleteHandoff } from "../production-final/final-engine";
+import {
+  AudioServiceWorkspace,
+  CreateVideoServiceWorkspace,
+  DesignStudioServiceWorkspace,
+  EditPhotoServiceWorkspace,
+  PassportPhotoServiceWorkspace,
+} from "../customer-platform/workspace";
 import type { CoreStatus, WorkspaceId } from "./types";
 import { mapLegacyWorkspace } from "./workspace-registry";
 import { PlaceholderWorkspace } from "./ProductionWorkspace";
@@ -136,6 +143,16 @@ export function WorkspaceRouter({ workspace, core, onNavigate }: WorkspaceRouter
       return placeholder(<Settings size={30} />, "Opening Admin…", "Redirecting to the Admin Control Center.");
     case "help":
       return <HelpRoute onNavigate={onNavigate} />;
+    case "service-create-video":
+      return <CreateVideoServiceWorkspace />;
+    case "service-edit-photo":
+      return <EditPhotoServiceWorkspace />;
+    case "service-passport":
+      return <PassportPhotoServiceWorkspace />;
+    case "service-design":
+      return <DesignStudioServiceWorkspace />;
+    case "service-audio":
+      return <AudioServiceWorkspace />;
     default:
       return placeholder(<Sparkles size={30} />, "Workspace", core?.aiCore ? "AI online." : "Unknown workspace route.");
   }

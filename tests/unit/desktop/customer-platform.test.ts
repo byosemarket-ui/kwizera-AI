@@ -23,7 +23,7 @@ describe("Customer service registry", () => {
     const video = snapshot.services.filter((item) => item.category === "VIDEO");
     const orders = video.map((item) => item.order);
     expect([...orders].sort((a, b) => a - b)).toEqual(orders);
-    expect(customerServiceRegistry.getService("create-video")?.workspace).toBe("generated-videos");
+    expect(customerServiceRegistry.getService("create-video")?.workspace).toBe("service-create-video");
   });
 
   it("rejects invalid, duplicate, and Admin-leaking definitions", () => {
@@ -85,10 +85,12 @@ describe("Customer Home architecture", () => {
     ]);
     expect(primary.find((item) => item.key === "create-video")?.status).toBe("AVAILABLE");
     expect(primary.find((item) => item.key === "edit-photo")?.status).toBe("AVAILABLE");
-    expect(primary.find((item) => item.key === "passport-photo")?.status).toBe("COMING_SOON");
-    expect(primary.find((item) => item.key === "design-studio")?.status).toBe("COMING_SOON");
-    expect(primary.find((item) => item.key === "create-video")?.workspace).toBeTruthy();
-    expect(primary.find((item) => item.key === "passport-photo")?.workspace).toBeUndefined();
+    expect(primary.find((item) => item.key === "passport-photo")?.status).toBe("AVAILABLE");
+    expect(primary.find((item) => item.key === "design-studio")?.status).toBe("AVAILABLE");
+    expect(primary.find((item) => item.key === "create-video")?.workspace).toBe("service-create-video");
+    expect(primary.find((item) => item.key === "edit-photo")?.workspace).toBe("service-edit-photo");
+    expect(primary.find((item) => item.key === "passport-photo")?.workspace).toBe("service-passport");
+    expect(primary.find((item) => item.key === "design-studio")?.workspace).toBe("service-design");
   });
 
   it("builds explore categories from the central registry", () => {
@@ -104,7 +106,7 @@ describe("Customer Home architecture", () => {
     const actions = customerServiceRegistry.quickActionsForHome();
     expect(actions.length).toBeGreaterThan(0);
     expect(actions.every((item) => item.status === "AVAILABLE" && item.workspace)).toBe(true);
-    expect(actions.some((item) => item.key === "passport-photo")).toBe(false);
+    expect(actions.some((item) => item.key === "passport-photo")).toBe(true);
   });
 });
 

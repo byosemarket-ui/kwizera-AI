@@ -39,7 +39,12 @@ export type WorkspaceId =
   | "settings"
   | "system-health"
   | "help"
-  | "admin";
+  | "admin"
+  | "service-create-video"
+  | "service-edit-photo"
+  | "service-passport"
+  | "service-design"
+  | "service-audio";
 
 export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "home", "new-project", "video-requirements", "video-style", "final-video-review", "open-project", "recent-projects",
@@ -49,6 +54,7 @@ export const ALL_WORKSPACE_IDS: WorkspaceId[] = [
   "asset-library", "image-organization", "product-information", "product-validation", "visual-analysis", "deep-intelligence", "market-research", "master-intelligence", "generated-images", "generated-videos", "generated-audio",
   "output", "exports", "creative-review", "reports", "history",
   "settings", "system-health", "help", "admin",
+  "service-create-video", "service-edit-photo", "service-passport", "service-design", "service-audio",
 ];
 
 /** Legacy workspace IDs migrated on load */

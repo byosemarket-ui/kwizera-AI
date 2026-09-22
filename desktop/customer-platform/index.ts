@@ -16,6 +16,16 @@ export { CustomerHome } from "./CustomerHome";
 export { CustomerNavSection, customerNavContainsAdmin } from "./CustomerNavSection";
 export { CustomerMobileNavDrawer } from "./CustomerMobileNavDrawer";
 export {
+  ServiceWorkspace,
+  CreateVideoServiceWorkspace,
+  EditPhotoServiceWorkspace,
+  PassportPhotoServiceWorkspace,
+  DesignStudioServiceWorkspace,
+  AudioServiceWorkspace,
+  VIDEO_SERVICE_STEPS,
+  IMAGE_SERVICE_STEPS,
+} from "./workspace";
+export {
   CustomerPage,
   ResponsiveContainer,
   SectionHeader,

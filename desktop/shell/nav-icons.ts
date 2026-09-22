@@ -48,6 +48,11 @@ export const NAV_ICONS: Record<WorkspaceId, LucideIcon> = {
   "system-health": HeartPulse,
   admin: Shield,
   help: HelpCircle,
+  "service-create-video": Clapperboard,
+  "service-edit-photo": FileImage,
+  "service-passport": FileImage,
+  "service-design": Layers,
+  "service-audio": FileAudio,
 };
 
 export function isNavIconComponent(icon: unknown): icon is LucideIcon {

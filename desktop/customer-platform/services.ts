@@ -29,7 +29,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/video",
     status: "AVAILABLE",
     order: 10,
-    workspace: "generated-videos",
+    workspace: "service-create-video",
     keywords: ["video", "create", "film", "reel"],
   }),
   svc({
@@ -41,7 +41,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/video/product",
     status: "AVAILABLE",
     order: 20,
-    workspace: "new-project",
+    workspace: "service-create-video",
     keywords: ["product", "marketing", "video", "campaign"],
   }),
   svc({
@@ -84,7 +84,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/image/edit",
     status: "AVAILABLE",
     order: 10,
-    workspace: "visual-analysis",
+    workspace: "service-edit-photo",
     keywords: ["photo", "edit", "image"],
   }),
   svc({
@@ -107,7 +107,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/image/background",
     status: "AVAILABLE",
     order: 30,
-    workspace: "visual-analysis",
+    workspace: "service-edit-photo",
   }),
   svc({
     key: "resize-crop",
@@ -128,7 +128,7 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     route: "/create/image/product",
     status: "AVAILABLE",
     order: 50,
-    workspace: "new-project",
+    workspace: "service-create-video",
   }),
 
   svc({
@@ -138,8 +138,10 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     category: "PHOTO_STUDIO",
     icon: "id-card",
     route: "/create/photo/passport",
-    status: "COMING_SOON",
+    status: "AVAILABLE",
     order: 10,
+    workspace: "service-passport",
+    keywords: ["passport", "photo", "id"],
   }),
   svc({
     key: "id-photo",
@@ -189,8 +191,9 @@ export const CUSTOMER_SERVICES: CustomerService[] = [
     category: "DESIGN",
     icon: "pen-tool",
     route: "/create/design",
-    status: "COMING_SOON",
+    status: "AVAILABLE",
     order: 1,
+    workspace: "service-design",
     keywords: ["design", "flyer", "poster", "banner", "graphics"],
   }),
   svc({
