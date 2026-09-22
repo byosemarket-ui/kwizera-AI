@@ -15,7 +15,7 @@ describe("Customer service registry", () => {
   it("loads categories and services with stable order and statuses", () => {
     const snapshot = customerServiceRegistry.snapshot();
     expect(snapshot.categories.map((item) => item.key)).toEqual([
-      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "MY_WORK", "ACCOUNT",
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE", "MY_WORK", "ACCOUNT",
     ]);
     expect(snapshot.services.length).toBe(CUSTOMER_SERVICES.length);
     expect(snapshot.services.some((item) => item.status === "AVAILABLE")).toBe(true);
@@ -64,7 +64,7 @@ describe("Customer service registry", () => {
     expect(nav.map((group) => group.key)).toEqual(["HOME", "CREATE", "MY_WORK", "ACCOUNT"]);
     expect(nav.find((group) => group.key === "HOME")?.items[0]?.workspace).toBe("home");
     expect(nav.find((group) => group.key === "CREATE")?.items.map((item) => item.title)).toEqual(
-      expect.arrayContaining(["Video", "Image", "Design", "Photo Studio", "Audio"]),
+      expect.arrayContaining(["Video", "Image", "Design", "Photo Studio", "Audio", "Voice"]),
     );
     expect(nav.find((group) => group.key === "MY_WORK")?.items.map((item) => item.key)).toEqual([
       "projects", "assets",
@@ -93,10 +93,16 @@ describe("Customer Home architecture", () => {
     expect(primary.find((item) => item.key === "design-studio")?.workspace).toBeUndefined();
   });
 
-  it("builds explore categories from the central registry", () => {
+  it("builds home catalog pillars and explore categories from the central registry", () => {
+    const catalog = customerServiceRegistry.homeCatalogCategories();
+    expect(catalog.map((entry) => entry.category.key)).toEqual([
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE",
+    ]);
+    expect(catalog.find((entry) => entry.category.key === "VIDEO")?.status).toBe("AVAILABLE");
+    expect(catalog.find((entry) => entry.category.key === "VOICE")?.status).toBe("COMING_SOON");
     const explore = customerServiceRegistry.exploreCategories();
     expect(explore.map((entry) => entry.category.key)).toEqual([
-      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO",
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE",
     ]);
     expect(explore.every((entry) => entry.services.length > 0)).toBe(true);
     expect(explore.every((entry) => entry.services.every((service) => service.category === entry.category.key))).toBe(true);
@@ -125,7 +131,12 @@ describe("Customer design system and components", () => {
     expect(css).toContain(".cp-page-title");
     expect(css).toContain(".cp-section-title");
     expect(css).toContain(".cp-home");
-    expect(css).toContain(".cp-hero");
+    expect(css).toContain(".cp-welcome");
+    expect(css).toContain(".cp-catalog-grid");
+    expect(css).toContain("repeat(6, minmax(0, 1fr))");
+    expect(css).toContain("--cp-page-bg");
+    expect(css).toContain("--cp-surface-glass");
+    expect(css).toContain(".cp-my-projects-entry");
     expect(css).toContain(".cp-project-grid");
     expect(css).toContain("@media (max-width: 320px)");
     expect(css).toContain("@media (max-width: 360px)");
@@ -157,18 +168,24 @@ describe("Customer design system and components", () => {
     expect(dash).toContain("CustomerHome");
     expect(dash).not.toMatch(/Live production|Live Production|dash-widget-grid|AI Status|Render Queue/i);
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
-    expect(home).toContain("Create something amazing today");
-    expect(home).toContain("primaryCreationServices");
-    expect(home).toContain("Recent projects");
-    expect(home).toContain("No projects yet");
-    expect(home).toContain("Explore services");
+    expect(home).toContain("Welcome to");
+    expect(home).toContain("homeCatalogCategories");
+    expect(home).toContain("What do you want to create?");
+    expect(home).toContain("My Projects");
     expect(home).toContain("CategoryCard");
+    expect(home).toContain("data-customer-service-grid");
+    expect(home).not.toContain("Recent projects");
     expect(home).not.toContain("Quick actions");
     expect(home).not.toContain("Popular services");
     expect(home).not.toContain("My work");
     expect(home).not.toContain("quickActionsForHome");
     expect(home).not.toContain("popularServices");
-    expect(home).toContain("/api/workspace");
+    expect(home).not.toContain("/api/workspace");
+    expect(home).not.toContain("Create something amazing today");
+    const tokens = fs.readFileSync(path.resolve("desktop/shell/theme/tokens.css"), "utf8");
+    expect(tokens).toContain("--shell-page-bg");
+    expect(tokens).toContain("scrollbar-color");
+    expect(tokens).toContain("::-webkit-scrollbar");
     const catalog = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerCatalog.tsx"), "utf8");
     expect(catalog).toContain("ServiceCategory");
     expect(catalog).toContain("exploreCategories");

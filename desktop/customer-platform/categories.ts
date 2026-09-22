@@ -30,7 +30,7 @@ export const CUSTOMER_CATEGORIES: CustomerCategory[] = [
   },
   {
     key: "DESIGN",
-    title: "Design Studio",
+    title: "Design",
     description: "Flyers, posters, cards, and brand graphics.",
     order: 40,
     enabled: true,
@@ -40,10 +40,19 @@ export const CUSTOMER_CATEGORIES: CustomerCategory[] = [
   {
     key: "AUDIO",
     title: "Audio",
-    description: "Music, voice, and speech tools.",
+    description: "Music, sound design, and audio editing.",
     order: 50,
     enabled: true,
     icon: "audio",
+    navGroup: "CREATE",
+  },
+  {
+    key: "VOICE",
+    title: "Voice",
+    description: "Voice-over, speech, and narration tools.",
+    order: 55,
+    enabled: true,
+    icon: "mic",
     navGroup: "CREATE",
   },
   {

@@ -268,21 +268,29 @@ export function ServiceCategory({
   );
 }
 
-/** Compact category tile for Home Explore — not a duplicate service card. */
+/** Compact category tile for Home catalog — six pillars on large desktop. */
 export function CategoryCard({
   category,
   onOpen,
   status = "AVAILABLE",
+  displayTitle,
 }: {
   category: CustomerCategory;
   onOpen?: (category: CustomerCategory) => void;
   status?: CustomerServiceStatus;
+  displayTitle?: string;
 }) {
   const Icon = resolveCustomerIcon(category.icon);
-  const title = category.title === "Design Studio" ? "Design" : category.title;
+  const title = displayTitle
+    ?? (category.key === "PHOTO_STUDIO"
+      ? "Photo"
+      : category.title === "Design Studio"
+        ? "Design"
+        : category.title);
   const available = status === "AVAILABLE";
   const className = [
     "cp-category-card",
+    "cp-catalog-card",
     status === "COMING_SOON" ? "is-soon" : "",
     status === "DISABLED" ? "is-disabled" : "",
   ].filter(Boolean).join(" ");
@@ -293,17 +301,18 @@ export function CategoryCard({
       className={className}
       data-category-key={category.key}
       data-category-status={status}
-      aria-label={`Explore ${title}${available ? "" : `. ${status === "COMING_SOON" ? "Coming soon" : "Unavailable"}`}`}
+      aria-label={`${title}. ${actionLabel(status)}`}
       aria-disabled={!available}
       disabled={!available}
       onClick={() => {
         if (available) onOpen?.(category);
       }}
     >
-      <span className="cp-service-icon" aria-hidden="true"><Icon size={18} /></span>
+      <span className="cp-service-icon" aria-hidden="true"><Icon size={16} /></span>
       <StatusBadge status={status} />
       <strong className="cp-card-title">{title}</strong>
       <span className="cp-caption">{category.description}</span>
+      <span className="cp-catalog-action">{actionLabel(status)}</span>
     </button>
   );
 }

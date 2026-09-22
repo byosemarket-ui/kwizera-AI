@@ -63,12 +63,37 @@ export class CustomerServiceRegistry {
     return this.services.filter((item) => item.status === status);
   }
 
-  /** Primary creation CTAs shown first on Customer Home. */
+  /** Primary creation CTAs — representative available / coming-soon pillars. */
   primaryCreationServices(): CustomerService[] {
     const keys = ["create-video", "edit-photo", "passport-photo", "design-studio"];
     return keys
       .map((key) => this.getService(key))
       .filter((item): item is CustomerService => Boolean(item));
+  }
+
+  /**
+   * Home catalog pillars — six creative domains for the main grid.
+   * Status is derived from services in each category (honest availability).
+   */
+  homeCatalogCategories(): Array<{ category: CustomerCategory; status: CustomerServiceStatus }> {
+    const order: Array<CustomerCategory["key"]> = [
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE",
+    ];
+    return order
+      .map((key) => this.getCategory(key))
+      .filter((category): category is CustomerCategory => Boolean(category?.enabled))
+      .map((category) => {
+        const services = this.listByCategory(category.key).filter((item) => item.status !== "DISABLED");
+        const available = services.some((item) => item.status === "AVAILABLE" && item.workspace);
+        const allDisabled = services.length === 0
+          || this.listByCategory(category.key).every((item) => item.status === "DISABLED");
+        const status: CustomerServiceStatus = allDisabled
+          ? "DISABLED"
+          : available
+            ? "AVAILABLE"
+            : "COMING_SOON";
+        return { category, status };
+      });
   }
 
   /** Featured / popular strip — available creation services plus a few honest coming-soon cards. */
@@ -98,10 +123,10 @@ export class CustomerServiceRegistry {
     return merged;
   }
 
-  /** Category browse sections for Home — creation categories only, prioritized. */
+  /** Category browse sections for catalog pages — creation categories only. */
   exploreCategories(): Array<{ category: CustomerCategory; services: CustomerService[] }> {
     const order: Array<CustomerCategory["key"]> = [
-      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO",
+      "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE",
     ];
     return order
       .map((key) => this.getCategory(key))
@@ -139,7 +164,11 @@ export class CustomerServiceRegistry {
         const allDisabled = this.listByCategory(category.key).every((item) => item.status === "DISABLED");
         return {
           key: `category-${category.key}`,
-          title: category.title === "Design Studio" ? "Design" : category.title,
+          title: category.key === "PHOTO_STUDIO"
+            ? "Photo Studio"
+            : category.title === "Design Studio"
+              ? "Design"
+              : category.title,
           description: category.description,
           icon: category.icon,
           route: `/create/${category.key.toLowerCase()}`,

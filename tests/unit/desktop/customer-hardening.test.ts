@@ -97,25 +97,25 @@ describe("STEP 4–5 customer platform hardening", () => {
     expect(engine).toContain("if (customerOnly)");
   });
 
-  it("Customer Home IA has no duplicated service strips", () => {
+  it("Customer Home IA uses catalog pillars without Recent Projects duplication", () => {
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
-    expect(home).toContain("primaryCreationServices");
-    expect(home).toContain("exploreCategories");
+    expect(home).toContain("homeCatalogCategories");
     expect(home).toContain("CategoryCard");
+    expect(home).toContain("My Projects");
+    expect(home).not.toContain("Recent projects");
     expect(home).not.toContain("popularServices");
     expect(home).not.toContain("quickActionsForHome");
     expect(home).not.toContain("Quick actions");
     expect(home).not.toContain("Popular services");
+    expect(home).not.toContain("/api/workspace");
   });
 
-  it("hides internal-ops project names from customer Home and header without deleting data", () => {
+  it("hides internal-ops project names from customer header without deleting data", () => {
     expect(isCustomerVisibleProjectName("Summer Promo Video")).toBe(true);
     expect(isCustomerVisibleProjectName("Ollama Audit 1788798532693")).toBe(false);
     expect(customerFacingProjectName("Ollama Audit 1788798532693")).toBeNull();
     expect(customerFacingProjectName("Brand Launch")).toBe("Brand Launch");
 
-    const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
-    expect(home).toContain("isCustomerVisibleProjectName");
     const header = fs.readFileSync(path.resolve("desktop/shell/WorkspaceHeader.tsx"), "utf8");
     expect(header).toContain("customerFacingProjectName");
   });

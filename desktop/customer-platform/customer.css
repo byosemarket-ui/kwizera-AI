@@ -1,9 +1,10 @@
 /* Customer platform design tokens — extend KWIZERA shell identity, do not replace Admin. */
 
 :root {
-  --cp-bg: var(--shell-bg, #0c0f14);
-  --cp-surface: var(--shell-surface, #101319);
-  --cp-surface-elevated: var(--shell-surface-elevated, #151a21);
+  --cp-bg: var(--shell-bg, #0a0e14);
+  --cp-surface: var(--shell-surface, #10151c);
+  --cp-surface-elevated: var(--shell-surface-elevated, #161c25);
+  --cp-surface-glass: var(--shell-surface-glass, rgba(22, 28, 37, 0.72));
   --cp-text: var(--shell-text, #e7e9ed);
   --cp-text-secondary: #c5ccd4;
   --cp-text-muted: var(--shell-text-muted, #8a94a0);
@@ -15,7 +16,9 @@
   --cp-disabled: #5c6772;
   --cp-accent: var(--shell-accent, #b9f2cc);
   --cp-accent-dim: var(--shell-accent-dim, #1b3529);
-  --cp-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --cp-glow: var(--shell-glow, rgba(185, 242, 204, 0.1));
+  --cp-page-bg: var(--shell-page-bg, var(--cp-bg));
+  --cp-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
   --cp-radius: 10px;
   --cp-space-1: 4px;
   --cp-space-2: 8px;
@@ -25,11 +28,11 @@
   --cp-space-6: 32px;
   --cp-transition: var(--shell-transition, 0.24s ease);
   --cp-font: var(--shell-font-sans, Manrope, "Segoe UI", sans-serif);
-  --cp-title-size: 28px;
-  --cp-section-size: 18px;
+  --cp-title-size: 22px;
+  --cp-section-size: 17px;
   --cp-card-title-size: 15px;
-  --cp-body-size: 14px;
-  --cp-label-size: 12px;
+  --cp-body-size: 13px;
+  --cp-label-size: 11px;
   --cp-caption-size: 11px;
   --cp-touch: 44px;
 }
@@ -37,7 +40,7 @@
 :root[data-theme="light"] {
   --cp-text-secondary: #33404b;
   --cp-focus: #1a7a52;
-  --cp-shadow: 0 8px 22px rgba(21, 32, 41, 0.08);
+  --cp-shadow: 0 8px 20px rgba(21, 32, 41, 0.08);
 }
 
 .cp-page-title {
@@ -118,8 +121,8 @@
 .cp-service-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 148px;
+  gap: 6px;
+  min-height: 128px;
   padding: 12px;
   border: 1px solid var(--cp-border);
   border-radius: var(--cp-radius);
@@ -129,6 +132,16 @@
   font: inherit;
   cursor: pointer;
   transition: border-color var(--cp-transition), transform var(--cp-transition), box-shadow var(--cp-transition);
+}
+
+.cp-service-card .cp-card-title {
+  font-size: var(--cp-card-title-size);
+}
+
+.cp-service-card .cp-body {
+  font-size: var(--cp-caption-size);
+  line-height: 1.35;
+  color: var(--cp-text-muted);
 }
 
 .cp-service-card:hover,
@@ -165,8 +178,8 @@
 }
 
 .cp-service-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 8px;
@@ -325,63 +338,85 @@
   max-width: 100%;
   overflow-x: hidden;
   padding: var(--cp-space-3) 0 var(--cp-space-5);
-  background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(185, 242, 204, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(16, 19, 25, 0.4), transparent 28%),
-    var(--cp-bg);
+  background: var(--cp-page-bg);
 }
 
-.cp-hero {
+.cp-welcome {
   display: flex;
-  flex-direction: column;
-  gap: var(--cp-space-2);
+  align-items: center;
+  min-height: 40px;
   padding: var(--cp-space-2) 0 var(--cp-space-3);
-  max-width: 44rem;
 }
 
-.cp-hero .cp-page-title {
-  font-size: clamp(22px, 2.4vw, 28px);
+.cp-welcome-line {
+  margin: 0;
+  font-size: clamp(15px, 1.5vw, 18px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--cp-text);
+  line-height: 1.35;
 }
 
-.cp-hero-copy {
-  max-width: 48ch;
+.cp-welcome-line span {
+  color: var(--cp-accent);
 }
 
-.cp-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--cp-space-2);
-  margin-top: var(--cp-space-1);
-}
-
-.cp-primary-create,
-.cp-explore-section,
-.cp-recent-projects {
+.cp-service-catalog,
+.cp-my-projects-entry {
   display: flex;
   flex-direction: column;
   gap: var(--cp-space-3);
 }
 
-.cp-category-grid {
+.cp-catalog-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--cp-space-3);
 }
 
-.cp-category-card {
+.cp-category-card,
+.cp-catalog-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 112px;
+  gap: 6px;
+  min-height: 124px;
   padding: 12px;
   border: 1px solid var(--cp-border);
   border-radius: var(--cp-radius);
-  background: var(--cp-surface-elevated);
+  background: var(--cp-surface-glass);
+  backdrop-filter: blur(10px);
   color: var(--cp-text);
   text-align: left;
   font: inherit;
   cursor: pointer;
-  transition: border-color var(--cp-transition), box-shadow var(--cp-transition);
+  transition: border-color var(--cp-transition), box-shadow var(--cp-transition), transform var(--cp-transition);
+}
+
+.cp-catalog-card .cp-card-title {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.cp-catalog-card .cp-caption {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cp-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cp-catalog-action {
+  margin-top: auto;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--cp-accent);
+}
+
+.cp-category-card.is-soon .cp-catalog-action,
+.cp-category-card.is-disabled .cp-catalog-action {
+  color: var(--cp-text-muted);
 }
 
 .cp-category-card.is-soon,
@@ -409,6 +444,36 @@
 .cp-category-card:focus-visible {
   outline: 2px solid var(--cp-focus);
   outline-offset: 2px;
+}
+
+.cp-my-projects-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cp-space-3);
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--cp-border);
+  border-radius: var(--cp-radius);
+  background: var(--cp-surface-glass);
+  backdrop-filter: blur(10px);
+}
+
+.cp-my-projects-copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cp-my-projects-copy .cp-section-title {
+  font-size: 16px;
+}
+
+.cp-my-projects-copy .cp-body {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--cp-text-muted);
 }
 
 .cp-project-grid {
@@ -527,19 +592,19 @@
 @media (max-width: 1280px) {
   .cp-service-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cp-project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .cp-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cp-catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1024px) {
   .cp-service-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cp-project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cp-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cp-catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 820px) {
   .cp-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cp-page-title { font-size: 22px; }
+  .cp-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-page-title { font-size: 20px; }
   .cp-catalog { margin-inline: 12px; }
   .cp-home { padding-top: var(--cp-space-3); }
   .cp-mobile-nav-toggle { display: grid; }
@@ -592,13 +657,15 @@
 @media (max-width: 768px) {
   .cp-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cp-project-grid { grid-template-columns: minmax(0, 1fr); }
-  .cp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 414px) {
   .cp-service-grid { grid-template-columns: minmax(0, 1fr); }
-  .cp-category-grid { grid-template-columns: minmax(0, 1fr); }
+  .cp-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cp-container, .cp-catalog { padding-inline: 12px; }
+  .cp-my-projects-card { align-items: stretch; }
+  .cp-my-projects-card .cp-button { width: 100%; }
 }
 
 @media (max-width: 390px) {
@@ -611,8 +678,7 @@
 
 @media (max-width: 360px) {
   .cp-quick-action { width: 100%; justify-content: center; }
-  .cp-hero-actions .cp-button,
-  .cp-hero-actions .cp-button-secondary { width: 100%; }
+  .cp-welcome-line { font-size: 15px; }
 }
 
 @media (max-width: 320px) {
@@ -863,6 +929,7 @@
 .customer-canvas {
   min-height: 0;
   height: 100%;
+  background: var(--cp-page-bg);
 }
 
 .customer-production-workspace .production-canvas {

@@ -1,19 +1,29 @@
 /* KWIZERA AI STUDIO — Design tokens for workspace shell */
 
 :root {
-  --shell-bg: #0c0f14;
-  --shell-surface: #101319;
-  --shell-surface-elevated: #151a21;
+  --shell-bg: #0a0e14;
+  --shell-surface: #10151c;
+  --shell-surface-elevated: #161c25;
+  --shell-surface-glass: rgba(22, 28, 37, 0.72);
   --shell-border: #262b33;
-  --shell-border-subtle: #252a32;
+  --shell-border-subtle: #1f252e;
   --shell-text: #e7e9ed;
   --shell-text-muted: #8a94a0;
   --shell-text-subtle: #77818e;
   --shell-accent: #b9f2cc;
   --shell-accent-dim: #1b3529;
+  --shell-glow: rgba(185, 242, 204, 0.1);
+  --shell-glow-strong: rgba(80, 140, 200, 0.08);
+  --shell-page-bg:
+    radial-gradient(ellipse 70% 55% at 8% -8%, var(--shell-glow), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 92% 0%, var(--shell-glow-strong), transparent 50%),
+    linear-gradient(180deg, #0d1219 0%, var(--shell-bg) 42%, #090c11 100%);
+  --shell-scrollbar-track: #10151c;
+  --shell-scrollbar-thumb: #3a4450;
+  --shell-scrollbar-thumb-hover: #516070;
   --shell-top-height: 64px;
-  --shell-left-width: 232px;
-  --shell-left-collapsed: 58px;
+  --shell-left-width: 220px;
+  --shell-left-collapsed: 64px;
   --shell-right-width: 276px;
   --shell-bottom-collapsed: 28px;
   --shell-bottom-expanded: 200px;
@@ -25,27 +35,75 @@
 }
 
 :root[data-theme="light"] {
-  --shell-bg: #edf2f4;
-  --shell-surface: #f8fafb;
+  --shell-bg: #eef3f6;
+  --shell-surface: #f7fafb;
   --shell-surface-elevated: #ffffff;
+  --shell-surface-glass: rgba(255, 255, 255, 0.78);
   --shell-border: #cbd5dc;
   --shell-border-subtle: #d8e0e6;
   --shell-text: #152029;
   --shell-text-muted: #4c5b67;
   --shell-text-subtle: #6b7a86;
   --shell-accent-dim: #d4ede0;
+  --shell-glow: rgba(26, 122, 82, 0.08);
+  --shell-glow-strong: rgba(70, 120, 180, 0.06);
+  --shell-page-bg:
+    radial-gradient(ellipse 70% 50% at 10% -5%, var(--shell-glow), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 0%, var(--shell-glow-strong), transparent 50%),
+    linear-gradient(180deg, #f4f8fa 0%, var(--shell-bg) 45%, #e8eef2 100%);
+  --shell-scrollbar-track: #e8eef2;
+  --shell-scrollbar-thumb: #a8b4bf;
+  --shell-scrollbar-thumb-hover: #7f8d99;
 }
 
 @media (prefers-color-scheme: light) {
   :root[data-theme="system"] {
-    --shell-bg: #edf2f4;
-    --shell-surface: #f8fafb;
+    --shell-bg: #eef3f6;
+    --shell-surface: #f7fafb;
     --shell-surface-elevated: #ffffff;
+    --shell-surface-glass: rgba(255, 255, 255, 0.78);
     --shell-border: #cbd5dc;
     --shell-text: #152029;
+    --shell-glow: rgba(26, 122, 82, 0.08);
+    --shell-glow-strong: rgba(70, 120, 180, 0.06);
+    --shell-page-bg:
+      radial-gradient(ellipse 70% 50% at 10% -5%, var(--shell-glow), transparent 55%),
+      linear-gradient(180deg, #f4f8fa 0%, var(--shell-bg) 45%, #e8eef2 100%);
+    --shell-scrollbar-track: #e8eef2;
+    --shell-scrollbar-thumb: #a8b4bf;
+    --shell-scrollbar-thumb-hover: #7f8d99;
   }
 }
 
 :root[data-accent="sky"] { --shell-accent: #78c8ff; }
 :root[data-accent="amber"] { --shell-accent: #efc36d; }
 :root[data-accent="rose"] { --shell-accent: #ed91a3; }
+
+/* Theme-aware scrollbars — page, sidebar, drawers, modals, nested panels */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--shell-scrollbar-thumb) var(--shell-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--shell-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--shell-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--shell-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--shell-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--shell-scrollbar-track);
+}

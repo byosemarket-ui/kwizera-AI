@@ -12,6 +12,7 @@ export type CustomerCategoryKey =
   | "PHOTO_STUDIO"
   | "DESIGN"
   | "AUDIO"
+  | "VOICE"
   | "MY_WORK"
   | "ACCOUNT";
 

@@ -12,7 +12,7 @@ export class CustomerRegistryError extends Error {
 const STATUSES: CustomerServiceStatus[] = ["AVAILABLE", "COMING_SOON", "DISABLED"];
 
 const CATEGORY_KEYS = new Set([
-  "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "MY_WORK", "ACCOUNT",
+  "VIDEO", "IMAGE", "PHOTO_STUDIO", "DESIGN", "AUDIO", "VOICE", "MY_WORK", "ACCOUNT",
 ]);
 
 const ADMIN_LEAK = /admin|provider credential|feature mapping|control plane|internal cost/i;
