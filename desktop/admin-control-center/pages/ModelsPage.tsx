@@ -123,7 +123,7 @@ export function ModelsPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }
         }
       />
 
-      {!authLocked && (
+      {!loading && !authLocked && (
         <FilterBar>
           <SearchInput value={search} onChange={(value) => { setPage(1); setSearch(value); }} placeholder="Search models…" />
           <Select

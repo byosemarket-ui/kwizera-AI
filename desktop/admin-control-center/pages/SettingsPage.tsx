@@ -70,7 +70,7 @@ export function SettingsPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void
         description="Typed application settings for the Admin control plane. Billing logic is not implemented yet."
         breadcrumbs={[{ label: "Admin" }, { label: "System" }, { label: "Settings" }]}
       />
-      {!authLocked && <Tabs tabs={CATEGORIES} active={category} onChange={setCategory} />}
+      {!loading && !authLocked && <Tabs tabs={CATEGORIES} active={category} onChange={setCategory} />}
       {loading && <LoadingState />}
       {authLocked && !loading && (
         <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
