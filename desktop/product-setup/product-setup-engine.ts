@@ -1349,9 +1349,16 @@ export class ProductSetupEngine {
         .map((clip) => clip.assetId)
         .filter((id): id is string => Boolean(id));
 
-      const productAssetIds = productIntakeEngine.snapshot().assets
-        .filter((a) => a.processingStatus === "saved")
-        .map((a) => a.assetId);
+      const productAssetIds = (() => {
+        const intakeIds = productIntakeEngine.snapshot().assets
+          .filter((a) => a.processingStatus === "saved")
+          .map((a) => a.assetId);
+        // Prefer the full project image set when available so lock QA is not
+        // false-failed by a partial intake hydrate of the same project.
+        const timelineIds = timelineAssetIds;
+        const outputIds = output.sourceAssetIds ?? [];
+        return [...new Set([...intakeIds, ...timelineIds, ...outputIds])];
+      })();
 
       // Vision frame QA is optional; Exact Product Mode uses asset-lock identity.
       // Do not fake PASS when vision is unavailable for generative modes.
