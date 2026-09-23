@@ -14,6 +14,7 @@ import { defaultKindForType, inferProviderKind } from "./provider-kind.js";
 import { resolveFeatureExecution as executeFeatureResolution, type FeatureResolutionResult } from "./model-resolution.js";
 import { credentialReferenceFor, type AdminCredentialManager } from "./credential-manager.js";
 import { createCapabilityRuntime, type CapabilityRuntime } from "./capability-runtime.js";
+import { createDefaultAdapterRegistry, isExecutableAdapter } from "./provider-adapters.js";
 import { normalizeCostModel } from "./cost-model.js";
 import {
   AdminValidationError,
@@ -51,6 +52,7 @@ export class AdminControlPlaneManager {
   private store: AdminControlPlaneStore = createEmptyStore();
   private initialized = false;
   private credentials: AdminCredentialManager | null = null;
+  private readonly adapters = createDefaultAdapterRegistry();
 
   isInitialized(): boolean {
     return this.initialized;
@@ -140,16 +142,43 @@ export class AdminControlPlaneManager {
     return this.toProviderPublic(record);
   }
 
-  async setProviderSecret(providerId: string, secret: string): Promise<AdminProviderPublicView> {
+  /** Safe credential vault status — never includes secrets. */
+  getCredentialVaultStatus(): { attached: boolean; unlocked: boolean } {
+    return {
+      attached: Boolean(this.credentials?.isAttached()),
+      unlocked: Boolean(this.credentials?.isUnlocked()),
+    };
+  }
+
+  async setProviderSecret(
+    providerId: string,
+    secret: string,
+    options?: { enable?: boolean },
+  ): Promise<AdminProviderPublicView> {
     this.requireInit();
     const provider = this.store.providers.find((p) => p.id === providerId);
     if (!provider) throw new AdminValidationError(ADMIN_ERROR_CODES.UNKNOWN_PROVIDER, `Provider not found: ${providerId}`);
     if (!this.credentials) {
-      throw new AdminValidationError(ADMIN_ERROR_CODES.CREDENTIAL_LOCKED, "Credential manager is not attached");
+      throw new AdminValidationError(
+        ADMIN_ERROR_CODES.CREDENTIAL_LOCKED,
+        "Credential vault is not attached. Set KWIZERA_SECRETS_PASSPHRASE and restart kwizera-ai.service",
+      );
+    }
+    if (!this.credentials.isUnlocked()) {
+      throw new AdminValidationError(
+        ADMIN_ERROR_CODES.CREDENTIAL_LOCKED,
+        "Credential vault is locked. Set KWIZERA_SECRETS_PASSPHRASE in /opt/kwizera-ai/.env and restart kwizera-ai.service",
+      );
     }
     const stored = await this.credentials.setProviderSecret(providerId, secret);
     provider.credentialReference = credentialReferenceFor(providerId);
     provider.credentialHint = stored.hint;
+    // Shared behavior for all external providers: persist enablement with credential save.
+    const shouldEnable = options?.enable !== false && inferProviderKind(provider) === "EXTERNAL_API";
+    if (shouldEnable) {
+      provider.enabled = true;
+      provider.status = "active";
+    }
     provider.updatedAt = now();
     this.store.updatedAt = provider.updatedAt;
     await this.persist();
@@ -521,15 +550,44 @@ export class AdminControlPlaneManager {
   private toProviderPublic(provider: AdminProviderRecord): AdminProviderPublicView {
     const configuredModelCount = this.store.models.filter((m) => m.providerId === provider.id).length;
     const { credentialReference, credentialHint, ...rest } = provider;
+    const vault = this.getCredentialVaultStatus();
     const hasSecret = this.credentials?.has(provider.id) ?? false;
-    const hasCredential = hasSecret || Boolean(credentialReference) || Boolean(credentialHint);
+    // Authoritative: prefer live vault; fall back to persisted reference/hint only when vault is locked
+    // (so CONFIGURED can still display after restart before passphrase unlock — without returning secrets).
+    const hasCredential = hasSecret
+      || Boolean(credentialReference)
+      || Boolean(credentialHint);
     const hintSource = credentialHint ? `secret${credentialHint}` : credentialReference;
+    const kind = inferProviderKind(provider);
+    const adapter = this.adapters.resolve(provider);
+    const adapterExecutable = Boolean(adapter && isExecutableAdapter(adapter));
+    let connectionStatus: string;
+    if (kind === "LOCAL") {
+      connectionStatus = provider.enabled ? "LOCAL" : "DISABLED";
+    } else if (!adapterExecutable) {
+      connectionStatus = "NOT_IMPLEMENTED";
+    } else if (!provider.enabled) {
+      connectionStatus = "DISABLED";
+    } else if (provider.healthStatus === "healthy") {
+      connectionStatus = "CONNECTED";
+    } else if (provider.healthStatus === "unhealthy") {
+      connectionStatus = "AUTHENTICATION_FAILED";
+    } else if (provider.healthStatus === "degraded") {
+      connectionStatus = "PROVIDER_ERROR";
+    } else {
+      connectionStatus = "NOT_TESTED";
+    }
     return {
       ...rest,
-      kind: inferProviderKind(provider),
+      kind,
       hasCredential,
-      credentialMasked: hasCredential ? (credentialHint ? `••••••••${credentialHint}` : maskCredential(hintSource)) : null,
+      credentialMasked: hasCredential ? (credentialHint ? `••••••••${credentialHint}` : maskCredential(hintSource ?? "configured")) : null,
       configuredModelCount,
+      credentialVaultAttached: vault.attached,
+      credentialVaultUnlocked: vault.unlocked,
+      adapterId: adapter?.id ?? null,
+      adapterExecutable,
+      connectionStatus,
     };
   }
 

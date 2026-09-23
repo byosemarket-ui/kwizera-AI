@@ -171,9 +171,9 @@ describe("Admin UI talks to live Admin APIs", () => {
     expect(pages.providers).toContain("No providers match");
     expect(pages.providers).toContain("AuthLockedState");
     expect(pages.providers).toContain("AI Providers");
-    expect(pages.providers).toContain("setProviderCredential");
-    expect(pages.providers).toContain("OpenAI API Key");
-    expect(pages.providers).toContain("acc-provider-grid");
+    expect(pages.providers).toContain("Save credential & enable");
+    expect(pages.providers).toContain("credentialVault");
+    expect(pages.providers).toContain("NOT_CONFIGURED");
     expect(pages.providers).not.toMatch(/Admin API Token[\s\S]{0,40}Paste/);
     expect(pages.features).toContain("adminApi.features");
     expect(pages.features).toContain("resolveFeature");

@@ -11,6 +11,10 @@ import {
 type ProviderFilter = "all" | "configured" | "not_configured" | "connected" | "disabled";
 
 function connectionStatus(provider: AdminProviderPublicView): string {
+  if (provider.connectionStatus) return provider.connectionStatus;
+  if (provider.adapterExecutable === false && provider.type !== "ollama" && provider.type !== "local") {
+    return "NOT_IMPLEMENTED";
+  }
   if (!provider.enabled) return "DISABLED";
   if (provider.healthStatus === "healthy") return "CONNECTED";
   if (provider.healthStatus === "unhealthy") return "AUTHENTICATION_FAILED";
@@ -50,6 +54,7 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
   const [items, setItems] = useState<AdminProviderPublicView[]>([]);
   const [models, setModels] = useState<AdminModelRecord[]>([]);
   const [features, setFeatures] = useState<FeatureMappingView[]>([]);
+  const [vault, setVault] = useState<{ attached: boolean; unlocked: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authLocked, setAuthLocked] = useState(false);
@@ -74,11 +79,14 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
     ])
       .then(([providerResult, modelResult, featureResult]) => {
         setItems(providerResult.items);
+        setVault(providerResult.credentialVault ?? null);
         setModels(modelResult.items);
         setFeatures(featureResult.items);
         setSelected((current) => {
           if (!current) return null;
-          return providerResult.items.find((item) => item.id === current.id) ?? null;
+          const next = providerResult.items.find((item) => item.id === current.id) ?? null;
+          if (next) setDraft({ ...next });
+          return next;
         });
       })
       .catch((err: unknown) => {
@@ -88,6 +96,7 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
           setItems([]);
           setModels([]);
           setFeatures([]);
+          setVault(null);
           return;
         }
         setError(err instanceof Error ? err.message : "Providers failed");
@@ -167,13 +176,22 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
 
   const saveCredential = async () => {
     if (!selected || !credentialDraft.trim()) return;
+    if (vault && !vault.unlocked) {
+      setToast("Credential vault is locked. Set KWIZERA_SECRETS_PASSPHRASE on the VPS and restart the service.");
+      return;
+    }
     setSaving(true);
     try {
-      const saved = await adminApi.setProviderCredential(selected.id, credentialDraft.trim());
+      // Shared for all external providers: persist credential + enable unless vault blocks.
+      const saved = await adminApi.setProviderCredential(selected.id, credentialDraft.trim(), { enable: true });
       setSelected(saved);
       setDraft(saved);
       setCredentialDraft("");
-      setToast("Provider API credential stored (encrypted)");
+      setToast(
+        saved.hasCredential
+          ? `Credential stored encrypted · ${saved.enabled ? "ENABLED" : "DISABLED"}`
+          : "Credential save returned without CONFIGURED status",
+      );
       load();
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Credential save failed");
@@ -190,9 +208,11 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
       const result = await adminApi.testProviderHealth(selected.id);
       const label = result.code === "HEALTHY"
         ? "CONNECTED"
-        : result.code === "AUTHENTICATION_ERROR"
+        : result.code === "AUTHENTICATION_ERROR" || result.code === "AUTHENTICATION_FAILED"
           ? "AUTHENTICATION_FAILED"
-          : result.code;
+          : result.code === "NOT_IMPLEMENTED"
+            ? "NOT_IMPLEMENTED"
+            : result.code;
       setHealthDetail(
         `${label}${result.httpStatus ? ` · HTTP ${result.httpStatus}` : ""}${result.endpointHost ? ` · ${result.endpointHost}` : ""}${result.detail ? ` — ${result.detail}` : ""}`,
       );
@@ -209,6 +229,7 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
   const selectedFeatures = selected
     ? features.filter((feature) => feature.providerId === selected.id)
     : [];
+  const vaultLocked = Boolean(vault && (!vault.attached || !vault.unlocked));
 
   return (
     <div className="acc-page">
@@ -226,6 +247,23 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
 
       {!loading && !error && !authLocked && (
         <>
+          {vaultLocked ? (
+            <div className="acc-callout" role="alert">
+              <strong>Credential vault locked</strong>
+              <p className="acc-muted">
+                Provider API credentials cannot be saved until <code>KWIZERA_SECRETS_PASSPHRASE</code> is set
+                in the VPS <code>/opt/kwizera-ai/.env</code> and <code>kwizera-ai.service</code> is restarted.
+                Masked characters in an empty password field do not mean a credential is configured —
+                only backend status <strong>CONFIGURED</strong> is authoritative.
+              </p>
+            </div>
+          ) : (
+            <p className="acc-callout-inline">
+              Credential status comes from the server after save. Typing in the password field alone does not
+              configure a provider — use <strong>Save credential &amp; enable</strong>.
+            </p>
+          )}
+
           <div className="acc-provider-toolbar">
             <label className="acc-provider-search">
               <Search size={14} aria-hidden />
@@ -306,6 +344,9 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
                     {provider.baseEndpoint ? (
                       <p className="acc-muted mono acc-provider-endpoint">{provider.baseEndpoint}</p>
                     ) : null}
+                    {provider.adapterId ? (
+                      <p className="acc-muted mono">adapter={provider.adapterId}{provider.adapterExecutable ? "" : " · not executable"}</p>
+                    ) : null}
 
                     <div className="acc-provider-card-actions">
                       <button type="button" className="acc-button" onClick={() => open(provider)}>
@@ -323,7 +364,7 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
       <Drawer
         open={Boolean(selected && draft)}
         title={selected?.name ?? "Provider"}
-        onClose={() => { setSelected(null); setDraft(null); }}
+        onClose={() => { setSelected(null); setDraft(null); setCredentialDraft(""); }}
       >
         {draft && selected && (
           <div className="acc-form-stack">
@@ -358,14 +399,17 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
 
             <section className="acc-provider-section">
               <h3>Credential</h3>
-              <FormField label="Credential status" hint="Raw secrets are never returned to the browser.">
+              <FormField
+                label="Server credential status"
+                hint="Authoritative backend status. Empty password dots/autofill do not mean configured."
+              >
                 <input
                   value={
                     selected.hasCredential
-                      ? "Credential configured"
+                      ? "CONFIGURED (encrypted on server)"
                       : supportsExternalCredential(selected)
-                        ? "Not configured"
-                        : "Local runtime — external API key not required"
+                        ? "NOT_CONFIGURED"
+                        : "LOCAL_RUNTIME — external API key not required"
                   }
                   readOnly
                   disabled
@@ -374,13 +418,16 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
               {supportsExternalCredential(selected) ? (
                 <FormField
                   label={credentialFieldLabel(selected)}
-                  hint="Sent once and encrypted. Never echoed back. Not the Admin API Token."
+                  hint="Enter a new value, then Save credential & enable. The raw key is never shown after save."
                 >
                   <input
                     type="password"
-                    autoComplete="off"
+                    autoComplete="new-password"
+                    name={`${selected.id}-provider-credential`}
                     spellCheck={false}
-                    placeholder={selected.hasCredential ? "Enter new credential to replace" : `Paste ${credentialFieldLabel(selected)}`}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    placeholder={selected.hasCredential ? "Paste new key to replace (optional)" : `Paste ${credentialFieldLabel(selected)}`}
                     value={credentialDraft}
                     onChange={(e) => setCredentialDraft(e.target.value)}
                   />
@@ -397,6 +444,11 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
               <p className="acc-muted">
                 Status: <StatusBadge status={connectionStatus(selected)} />
               </p>
+              {selected.adapterExecutable === false && supportsExternalCredential(selected) ? (
+                <p className="acc-muted">
+                  Live online adapter is not implemented for this provider type yet. Credential storage still works.
+                </p>
+              ) : null}
               {healthDetail ? <p className="acc-muted" role="status">{healthDetail}</p> : null}
             </section>
 
@@ -434,20 +486,26 @@ export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => voi
             </section>
 
             <div className="acc-form-actions">
-              <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
-                {saving ? "Saving…" : "Save provider"}
+              <button type="button" className="acc-button ghost" disabled={saving} onClick={() => void save()}>
+                {saving ? "Saving…" : "Save provider settings"}
               </button>
               {supportsExternalCredential(selected) ? (
                 <>
                   <button
                     type="button"
-                    className="acc-button ghost"
-                    disabled={saving || !credentialDraft.trim()}
+                    className="acc-button"
+                    disabled={saving || !credentialDraft.trim() || vaultLocked}
                     onClick={() => void saveCredential()}
                   >
-                    Save credential
+                    {saving ? "Saving…" : "Save credential & enable"}
                   </button>
-                  <button type="button" className="acc-button ghost" disabled={saving} onClick={() => void runHealth()}>
+                  <button
+                    type="button"
+                    className="acc-button ghost"
+                    disabled={saving || !selected.adapterExecutable}
+                    onClick={() => void runHealth()}
+                    title={selected.adapterExecutable ? "Run real provider health probe" : "Live adapter not implemented"}
+                  >
                     Test connection
                   </button>
                 </>

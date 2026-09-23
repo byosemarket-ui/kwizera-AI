@@ -351,3 +351,45 @@ describe("Admin control architecture — settings, usage, isolation, adapters", 
     expect(["READY", "FALLBACK", "UNAVAILABLE"]).toContain(mapped.status);
   });
 });
+
+describe("Admin control architecture — shared credential vault", () => {
+  it("rejects credential save when secrets passphrase is missing (shared for all providers)", async () => {
+    const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "kwizera-vault-locked-"));
+    roots.push(storageRoot);
+    const secrets = new AiSecretsManager();
+    await secrets.initialize(storageRoot, undefined);
+    const credentials = new AdminCredentialManager();
+    credentials.attach(secrets);
+    const manager = new AdminControlPlaneManager();
+    await manager.initialize(storageRoot, { credentials });
+    expect(manager.getCredentialVaultStatus()).toEqual({ attached: true, unlocked: false });
+    await expect(manager.setProviderSecret("provider-openai", "sk-test-not-a-real-key")).rejects.toMatchObject({
+      code: "CREDENTIAL_LOCKED",
+    });
+    expect(manager.getProvider("provider-openai")?.hasCredential).toBe(false);
+  });
+
+  it("persists CONFIGURED + ENABLED for any external provider after credential save", async () => {
+    const { manager, storageRoot } = await boot();
+    for (const type of ["openai", "google", "anthropic", "fal", "replicate", "alibaba"] as const) {
+      const provider = manager.listProviders().find((item) => item.type === type);
+      expect(provider, type).toBeTruthy();
+      const saved = await manager.setProviderSecret(provider!.id, `test-secret-${type}-not-real`);
+      expect(saved.hasCredential, type).toBe(true);
+      expect(saved.enabled, type).toBe(true);
+      expect(JSON.stringify(saved), type).not.toContain(`test-secret-${type}`);
+    }
+    const restored = new AdminControlPlaneManager();
+    const secrets = new AiSecretsManager();
+    await secrets.initialize(storageRoot, "test-passphrase-for-admin-control");
+    const credentials = new AdminCredentialManager();
+    credentials.attach(secrets);
+    await restored.initialize(storageRoot, { credentials });
+    expect(restored.getProvider("provider-openai")?.hasCredential).toBe(true);
+    expect(restored.getProvider("provider-openai")?.enabled).toBe(true);
+    expect(restored.getProvider("provider-openai")?.connectionStatus).toBe("NOT_TESTED");
+    expect(restored.getProvider("provider-google")?.adapterExecutable).toBe(false);
+    expect(restored.getProvider("provider-google")?.connectionStatus).toBe("NOT_IMPLEMENTED");
+    expect(restored.getProvider("provider-openai")?.adapterExecutable).toBe(true);
+  });
+});

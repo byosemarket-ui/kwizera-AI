@@ -77,13 +77,16 @@ export const adminApi = {
     features?: number;
     settings?: number;
   }>("/api/admin/health"),
-  providers: () => adminFetch<{ items: AdminProviderPublicView[] }>("/api/admin/providers"),
+  providers: () => adminFetch<{
+    items: AdminProviderPublicView[];
+    credentialVault?: { attached: boolean; unlocked: boolean };
+  }>("/api/admin/providers"),
   saveProvider: (body: Record<string, unknown>) =>
     adminFetch<AdminProviderPublicView>("/api/admin/providers", { method: "POST", body: JSON.stringify(body) }),
-  setProviderCredential: (id: string, secret: string) =>
+  setProviderCredential: (id: string, secret: string, options?: { enable?: boolean }) =>
     adminFetch<AdminProviderPublicView>(`/api/admin/providers/${encodeURIComponent(id)}/credential`, {
       method: "POST",
-      body: JSON.stringify({ secret }),
+      body: JSON.stringify({ secret, enable: options?.enable }),
     }),
   testProviderHealth: (id: string) =>
     adminFetch<{

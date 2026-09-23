@@ -106,6 +106,15 @@ export interface AdminProviderPublicView extends Omit<AdminProviderRecord, "cred
   hasCredential: boolean;
   credentialMasked: string | null;
   configuredModelCount: number;
+  /** Whether AdminCredentialManager is attached (safe metadata only). */
+  credentialVaultAttached?: boolean;
+  /** Whether KWIZERA_SECRETS_PASSPHRASE unlocked the vault (safe metadata only). */
+  credentialVaultUnlocked?: boolean;
+  adapterId?: string | null;
+  /** True only when a real executable online adapter is registered. */
+  adapterExecutable?: boolean;
+  /** Truthful connection readiness label for Admin UI. */
+  connectionStatus?: string;
 }
 
 export type FeatureKey =

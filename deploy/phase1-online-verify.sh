@@ -21,6 +21,18 @@ if ! grep -qE '^KWIZERA_ADMIN_API_TOKEN=.+' "$ENV_FILE"; then
   token="$(openssl rand -hex 24)"
   printf '\nKWIZERA_ADMIN_API_TOKEN=%s\n' "$token" >>"$ENV_FILE"
   echo "[phase1] generated KWIZERA_ADMIN_API_TOKEN (value not logged)"
+  NEED_RESTART=1
+fi
+
+# Ensure secrets passphrase exists so provider credentials can be encrypted at rest.
+if ! grep -qE '^KWIZERA_SECRETS_PASSPHRASE=.+' "$ENV_FILE"; then
+  passphrase="$(openssl rand -hex 32)"
+  printf '\nKWIZERA_SECRETS_PASSPHRASE=%s\n' "$passphrase" >>"$ENV_FILE"
+  echo "[phase1] generated KWIZERA_SECRETS_PASSPHRASE (value not logged)"
+  NEED_RESTART=1
+fi
+
+if [[ "${NEED_RESTART:-0}" == "1" ]]; then
   systemctl restart kwizera-ai.service
   for _ in $(seq 1 60); do
     if curl -fsS -m 3 "$BASE_URL/api/health" | grep -q '"status":"healthy"'; then

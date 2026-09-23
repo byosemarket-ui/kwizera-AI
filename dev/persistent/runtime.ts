@@ -428,7 +428,18 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         const credentials = new AdminCredentialManager();
         credentials.attach(secrets);
         await adminControlPlaneManager.initialize(storageRoot, { credentials });
-      } catch {
+        if (!secrets.isUnlocked()) {
+          console.warn(
+            "[KWIZERA] Admin credential vault is locked — set KWIZERA_SECRETS_PASSPHRASE in .env to store provider API credentials",
+          );
+        } else {
+          console.log("[KWIZERA] Admin credential vault unlocked");
+        }
+      } catch (credentialError) {
+        console.warn(
+          "[KWIZERA] Admin credential vault failed to attach:",
+          credentialError instanceof Error ? credentialError.message : credentialError,
+        );
         await adminControlPlaneManager.initialize(storageRoot);
       }
       console.log("[KWIZERA] Admin Control Plane ready");

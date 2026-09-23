@@ -69,9 +69,9 @@ export function SectionCard({ title, description, actions, children }: {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const tone = /healthy|active|online|ok|enabled|succeeded|operational|configured|authorized|connected|ready|local_runtime/i.test(status)
+  const tone = /healthy|active|online|ok|enabled|succeeded|operational|configured|authorized|connected|ready|local_runtime|^local$/i.test(status)
     ? "ok"
-    : /degraded|warning|inactive|unchecked|pending|coming.?soon|not.?configured|not.?tested|disabled|local runtime/i.test(status)
+    : /degraded|warning|inactive|unchecked|pending|coming.?soon|not.?configured|not.?tested|disabled|not.?implemented/i.test(status)
       ? "warn"
       : /error|unhealthy|failed|denied|offline|unavailable|locked|authentication/i.test(status)
         ? "bad"

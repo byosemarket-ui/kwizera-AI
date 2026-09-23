@@ -101,7 +101,11 @@ export async function handleAdminApi(
     }
 
     if (url.pathname === "/api/admin/providers" && req.method === "GET") {
-      ok(deps.sendJson, res, { items: manager.listProviders() });
+      const vault = manager.getCredentialVaultStatus();
+      ok(deps.sendJson, res, {
+        items: manager.listProviders(),
+        credentialVault: vault,
+      });
       return true;
     }
     if (url.pathname === "/api/admin/providers" && req.method === "POST") {
@@ -127,13 +131,19 @@ export async function handleAdminApi(
     }
     if (url.pathname.match(/^\/api\/admin\/providers\/[^/]+\/credential$/) && req.method === "POST") {
       const id = decodeURIComponent(url.pathname.split("/")[4] ?? "");
-      const body = (await parseJsonBody(req, deps.readBody)) as { secret?: string; value?: string };
+      const body = (await parseJsonBody(req, deps.readBody)) as {
+        secret?: string;
+        value?: string;
+        enable?: boolean;
+      };
       const secret = typeof body.secret === "string" ? body.secret : body.value;
       if (!secret) {
         fail(deps.sendJson, res, 400, "CREDENTIAL_REQUIRED", "Credential value is required");
         return true;
       }
-      const saved = await manager.setProviderSecret(id, secret);
+      const saved = await manager.setProviderSecret(id, secret, {
+        enable: typeof body.enable === "boolean" ? body.enable : undefined,
+      });
       ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
       return true;
     }
@@ -333,12 +343,14 @@ export async function handleAdminApi(
     }
 
     if (url.pathname === "/api/admin/health" && req.method === "GET") {
+      const vault = manager.getCredentialVaultStatus();
       ok(deps.sendJson, res, {
         initialized: manager.isInitialized(),
         providers: manager.listProviders().length,
         models: manager.listModels({ pageSize: 1 }).total,
         features: manager.listFeatureMappings().length,
         settings: manager.listSettings().length,
+        credentialVault: vault,
       });
       return true;
     }

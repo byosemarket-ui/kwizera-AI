@@ -51,6 +51,7 @@ export interface AdminProviderPublicView {
   id: string;
   name: string;
   type: string;
+  kind?: string;
   baseEndpoint?: string;
   status: string;
   enabled: boolean;
@@ -59,6 +60,11 @@ export interface AdminProviderPublicView {
   hasCredential: boolean;
   credentialMasked: string | null;
   configuredModelCount: number;
+  credentialVaultAttached?: boolean;
+  credentialVaultUnlocked?: boolean;
+  adapterId?: string | null;
+  adapterExecutable?: boolean;
+  connectionStatus?: string;
   createdAt: string;
   updatedAt: string;
 }
