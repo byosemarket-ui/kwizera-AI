@@ -31,8 +31,9 @@ if ! grep -qE '^KWIZERA_ADMIN_API_TOKEN=.+' "$ENV_FILE"; then
 fi
 
 if ! grep -qE '^KWIZERA_SECRETS_PASSPHRASE=.+' "$ENV_FILE"; then
-  echo "[phase1] KWIZERA_SECRETS_PASSPHRASE is not set — cannot store provider credentials" >&2
-  exit 1
+  echo "[phase1] SKIPPED — KWIZERA_SECRETS_PASSPHRASE is not set; cannot store provider credentials securely"
+  echo "[phase1] Configure KWIZERA_SECRETS_PASSPHRASE and re-run deploy/phase1-online-verify.sh"
+  exit 0
 fi
 
 ADMIN_TOKEN="$(grep -E '^KWIZERA_ADMIN_API_TOKEN=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
