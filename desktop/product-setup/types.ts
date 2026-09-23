@@ -2,6 +2,11 @@
 
 import type { IntakeAssetMeta, IntakeSnapshot } from "../product-intake/types";
 import type { OrganizationSnapshot, OrganizedImage, ProductImageSet } from "../image-organization/types";
+import type {
+  PmvIntelligenceStatus,
+  ProductIdentityLock,
+  ProductIntelligenceReview,
+} from "../product-identity-lock/types";
 
 export type AnalysisUiStatus =
   | "NOT_STARTED"
@@ -78,6 +83,13 @@ export interface PmvFoundationSettings {
   assetOrder: string[];
   durationSeconds: number;
   aspectRatio: PmvAspectRatio;
+  /** Step 2 — Product Intelligence lifecycle */
+  intelligenceStatus?: PmvIntelligenceStatus;
+  intelligenceProfileId?: string | null;
+  intelligenceAnalysisVersion?: string | null;
+  intelligenceAssetFingerprint?: string | null;
+  intelligenceError?: string | null;
+  intelligenceReview?: ProductIntelligenceReview | null;
 }
 
 export interface DiscountInfo {
@@ -175,6 +187,14 @@ export interface ProductSetupSnapshot {
   assetOrder: string[];
   canMarkReady: boolean;
   readyBlockedReason: string | null;
+  /** Step 2 — Product Intelligence + Identity Lock */
+  intelligenceStatus: PmvIntelligenceStatus;
+  intelligenceReview: ProductIntelligenceReview | null;
+  identityLock: ProductIdentityLock | null;
+  intelligenceError: string | null;
+  canConfirmIdentityLock: boolean;
+  canContinueToCreative: boolean;
+  identityLockBlockedReason: string | null;
 }
 
 export interface Step2HandoffPayload {

@@ -35,6 +35,20 @@ import type {
   Step2HandoffPayload,
 } from "./types";
 import { PMV_SETTINGS_KEY } from "./types";
+import {
+  analyzeProductIntelligence,
+  buildProductIdentityLock,
+  buildProductIntelligenceReview,
+  computeAssetFingerprint,
+  confirmIdentityLock,
+  fetchProductIntelligenceProfile,
+  markIdentityLockStale,
+  PMV_IDENTITY_LOCK_KEY,
+  validateIdentityLock,
+  type PmvIntelligenceStatus,
+  type ProductIdentityLock,
+  type ProductIntelligenceReview,
+} from "../product-identity-lock";
 
 export const SETUP_HANDOFF_KEY = "kwizera.product-setup.handoff.v1";
 
@@ -112,6 +126,11 @@ export class ProductSetupEngine {
   private heroAssetId: string | null = null;
   private assetOrder: string[] = [];
   private serviceMode: "standard" | "pmv" = "standard";
+  private intelligenceStatus: PmvIntelligenceStatus = "NOT_STARTED";
+  private intelligenceReview: ProductIntelligenceReview | null = null;
+  private identityLock: ProductIdentityLock | null = null;
+  private intelligenceError: string | null = null;
+  private intelligenceAssetFingerprint: string | null = null;
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
   private saveState: SaveState = "saved";
@@ -153,6 +172,8 @@ export class ProductSetupEngine {
         this.brandContact = this.brandFromProject(project);
         this.videoSettings = this.videoSettingsFromProject(project);
         this.applyPmvSettings(project.workspaceSettings);
+        this.applyIdentityLock(project.workspaceSettings);
+        this.refreshStaleLockState();
         if (!this.heroAssetId) {
           const summary = buildAiSummary(imageOrganizationEngine.snapshot(), this.essentials);
           this.heroAssetId = summary?.heroAssetId ?? null;
@@ -161,6 +182,13 @@ export class ProductSetupEngine {
           this.assetOrder = project.productImages
             .filter((img) => img.assetRole !== "brand-logo")
             .map((img) => img.id);
+        }
+        if (
+          this.intelligenceStatus === "REVIEW"
+          || this.intelligenceStatus === "LOCKED"
+          || this.intelligenceStatus === "STALE"
+        ) {
+          void this.hydrateIntelligenceProfile(intake.projectId);
         }
       } catch {
         /* keep local defaults */
@@ -200,11 +228,33 @@ export class ProductSetupEngine {
       || null;
     const readiness = computeReadiness(intake, org, this.essentials, analysisStatus);
     const readyGate = this.computeReadyGate(intake.projectId, heroAssetId, imageCards, readiness);
+    const productAssetIds = imageCards
+      .filter((c) => c.uploadStatus === "saved")
+      .map((c) => c.assetId);
+    const lockValidation = validateIdentityLock({
+      lock: this.identityLock,
+      projectId: intake.projectId ?? "",
+      productAssetIds,
+      heroAssetId,
+    });
+    const canConfirmIdentityLock = this.intelligenceStatus === "REVIEW"
+      && Boolean(this.intelligenceReview?.readyToConfirm)
+      && Boolean(this.identityLock && this.identityLock.status === "PENDING_CONFIRMATION")
+      && !this.transitioning;
+    const canContinueToCreative = Boolean(
+      this.identityLock
+      && this.identityLock.status === "LOCKED"
+      && this.intelligenceStatus === "LOCKED"
+      && lockValidation.ok
+      && !lockValidation.stale
+      && !this.transitioning,
+    );
 
     let continueLabel = "Continue to Video Plan →";
     if (this.saveState === "saving") continueLabel = "Saving…";
     else if (analysisStatus === "UPLOADING") continueLabel = "Uploading…";
-    else if (analysisStatus === "ANALYZING") continueLabel = "Analyzing…";
+    else if (analysisStatus === "ANALYZING" || this.intelligenceStatus === "ANALYZING") continueLabel = "Analyzing…";
+    else if (this.intelligenceStatus === "LOCKED") continueLabel = "Continue to Creative Plan →";
     else if (readiness.ready) continueLabel = "Continue to Video Plan →";
 
     return {
@@ -235,6 +285,20 @@ export class ProductSetupEngine {
       assetOrder: [...this.assetOrder],
       canMarkReady: readyGate.ok && !this.transitioning,
       readyBlockedReason: readyGate.reason,
+      intelligenceStatus: this.intelligenceStatus,
+      intelligenceReview: this.intelligenceReview ? { ...this.intelligenceReview } : null,
+      identityLock: this.identityLock ? { ...this.identityLock } : null,
+      intelligenceError: this.intelligenceError,
+      canConfirmIdentityLock,
+      canContinueToCreative,
+      identityLockBlockedReason: canContinueToCreative
+        ? null
+        : (lockValidation.issues[0]
+          ?? (this.intelligenceStatus === "STALE"
+            ? "Product images changed. Re-analyze to refresh the Product Identity Lock."
+            : this.intelligenceStatus !== "LOCKED"
+              ? "Confirm the Product Identity Lock before creative generation."
+              : null)),
     };
   }
 
@@ -283,6 +347,7 @@ export class ProductSetupEngine {
     // Local preview cards are still staged before network upload work begins.
     await productIntakeEngine.prepareImport(name);
     await productIntakeEngine.stageAndEnqueue(list);
+    this.markIntelligenceStaleIfNeeded("Product images were added.");
     this.emit();
   }
 
@@ -290,6 +355,7 @@ export class ProductSetupEngine {
     await productIntakeEngine.removeAsset(assetId);
     this.assetOrder = this.assetOrder.filter((id) => id !== assetId);
     if (this.heroAssetId === assetId) this.heroAssetId = null;
+    this.markIntelligenceStaleIfNeeded("A product image was removed.");
     this.scheduleEssentialsPersist();
     void this.scheduleAutoAnalysis(true);
     this.emit();
@@ -299,10 +365,12 @@ export class ProductSetupEngine {
     const intake = productIntakeEngine.snapshot();
     const asset = intake.assets.find((a) => a.assetId === assetId && a.processingStatus === "saved");
     if (!asset) throw new Error("Hero image must be a saved project asset.");
+    const heroChanged = this.heroAssetId !== assetId;
     this.heroAssetId = assetId;
     if (imageOrganizationEngine.snapshot().productImageSet) {
       await imageOrganizationEngine.setPrimary(assetId);
     }
+    if (heroChanged) this.markIntelligenceStaleIfNeeded("Hero image changed.");
     this.scheduleEssentialsPersist();
     this.emit();
   }
@@ -402,9 +470,113 @@ export class ProductSetupEngine {
     this.emit();
   }
 
+  /** Step 2 — run Product Intelligence via existing server capability (no provider secrets). */
+  async runProductIntelligence(): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (snap.foundationStatus !== "READY_FOR_INTELLIGENCE" && snap.foundationStatus !== "PROCESSING") {
+      if (!snap.canMarkReady) {
+        throw new Error(snap.readyBlockedReason ?? "Complete product setup before analysis.");
+      }
+      this.foundationStatus = "READY_FOR_INTELLIGENCE";
+    }
+    const savedIds = snap.imageCards.filter((c) => c.uploadStatus === "saved").map((c) => c.assetId);
+    const heroId = snap.heroAssetId;
+    if (!heroId || !savedIds.includes(heroId)) {
+      throw new Error("Select a hero image from your uploaded product photos.");
+    }
+
+    this.intelligenceStatus = "ANALYZING";
+    this.foundationStatus = "PROCESSING";
+    this.intelligenceError = null;
+    this.emit();
+
+    try {
+      await this.flushPersist();
+      const result = await analyzeProductIntelligence(snap.projectId);
+      if (!result.ok || !result.profile) {
+        this.intelligenceStatus = result.unavailable ? "UNAVAILABLE" : "FAILED";
+        this.foundationStatus = "READY_FOR_INTELLIGENCE";
+        this.intelligenceError = result.error ?? "Product analysis failed.";
+        this.intelligenceReview = null;
+        this.identityLock = null;
+        await this.flushPersist();
+        this.emit();
+        throw new Error(this.intelligenceError);
+      }
+
+      const fingerprint = computeAssetFingerprint(savedIds, heroId);
+      const review = buildProductIntelligenceReview(result.profile, heroId);
+      const draftLock = buildProductIdentityLock({
+        projectId: snap.projectId,
+        profile: result.profile,
+        heroAssetId: heroId,
+        productAssetIds: savedIds,
+        assetFingerprint: fingerprint,
+      });
+
+      this.intelligenceReview = review;
+      this.identityLock = draftLock;
+      this.intelligenceAssetFingerprint = fingerprint;
+      this.intelligenceError = null;
+      this.intelligenceStatus = result.unavailable ? "REVIEW" : "REVIEW";
+      this.foundationStatus = "READY_FOR_INTELLIGENCE";
+      if (result.unavailable && review.visionUnavailableMessage) {
+        this.intelligenceError = null;
+      }
+      await this.flushPersist();
+      await persistWorkflowStep(snap.projectId, 2, 1);
+      this.emit();
+    } catch (error) {
+      if (this.intelligenceStatus === "ANALYZING") {
+        this.intelligenceStatus = "FAILED";
+        this.foundationStatus = "READY_FOR_INTELLIGENCE";
+        this.intelligenceError = error instanceof Error ? error.message : "Product analysis failed.";
+        await this.flushPersist().catch(() => undefined);
+        this.emit();
+      }
+      throw error;
+    }
+  }
+
+  /** Step 2 — customer confirms Product Identity Lock. */
+  async confirmProductIdentityLock(): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.canConfirmIdentityLock || !snap.identityLock || !snap.projectId) {
+      throw new Error(
+        snap.identityLockBlockedReason
+          ?? "Review Product Intelligence before confirming the Product Identity Lock.",
+      );
+    }
+    if (snap.intelligenceReview && !snap.intelligenceReview.readyToConfirm) {
+      throw new Error("Product Intelligence is not ready to lock. Re-analyze or fix warnings.");
+    }
+    const validation = validateIdentityLock({
+      lock: this.identityLock,
+      projectId: snap.projectId,
+      productAssetIds: snap.imageCards.filter((c) => c.uploadStatus === "saved").map((c) => c.assetId),
+      heroAssetId: snap.heroAssetId,
+    });
+    if (validation.stale) {
+      this.markIntelligenceStaleIfNeeded("Product assets changed before confirmation.");
+      throw new Error(validation.issues[0] ?? "Product Identity Lock is stale. Re-analyze first.");
+    }
+
+    this.identityLock = confirmIdentityLock(this.identityLock!);
+    this.intelligenceStatus = "LOCKED";
+    this.foundationStatus = "READY_FOR_INTELLIGENCE";
+    this.intelligenceError = null;
+    await this.flushPersist();
+    await persistWorkflowStep(snap.projectId, 2, 2);
+    this.emit();
+  }
+
   async saveDraft(): Promise<void> {
     await this.ensureProject();
-    if (this.foundationStatus !== "READY_FOR_INTELLIGENCE") {
+    if (
+      this.foundationStatus !== "READY_FOR_INTELLIGENCE"
+      && this.foundationStatus !== "PROCESSING"
+    ) {
       this.foundationStatus = "DRAFT";
     }
     await this.flushPersist();
@@ -561,6 +733,14 @@ export class ProductSetupEngine {
       assetOrder: [...this.assetOrder],
       durationSeconds: this.videoSettings.durationSeconds,
       aspectRatio: this.videoSettings.aspectRatio,
+      intelligenceStatus: this.intelligenceStatus,
+      intelligenceProfileId: this.intelligenceReview?.profileId ?? this.identityLock?.profileId ?? null,
+      intelligenceAnalysisVersion: this.intelligenceReview?.analysisVersion
+        ?? this.identityLock?.analysisVersion
+        ?? null,
+      intelligenceAssetFingerprint: this.intelligenceAssetFingerprint,
+      intelligenceError: this.intelligenceError,
+      intelligenceReview: this.intelligenceReview,
     };
     const language = this.videoSettings.language.trim()
       || this.brandContact.language.trim()
@@ -628,6 +808,7 @@ export class ProductSetupEngine {
       },
       workspaceSettings: {
         [PMV_SETTINGS_KEY]: pmvSettings,
+        [PMV_IDENTITY_LOCK_KEY]: this.identityLock,
         serviceKey: "product-marketing-video",
       },
     });
@@ -772,6 +953,105 @@ export class ProductSetupEngine {
     this.assetOrder = Array.isArray(stored.assetOrder) ? stored.assetOrder.map(String) : [];
     if (stored.durationSeconds) this.videoSettings.durationSeconds = stored.durationSeconds;
     if (stored.aspectRatio) this.videoSettings.aspectRatio = stored.aspectRatio;
+    if (stored.intelligenceStatus) this.intelligenceStatus = stored.intelligenceStatus;
+    if (stored.intelligenceReview) this.intelligenceReview = stored.intelligenceReview;
+    if (stored.intelligenceAssetFingerprint !== undefined) {
+      this.intelligenceAssetFingerprint = stored.intelligenceAssetFingerprint ?? null;
+    }
+    if (stored.intelligenceError !== undefined) {
+      this.intelligenceError = stored.intelligenceError ?? null;
+    }
+  }
+
+  private applyIdentityLock(workspaceSettings: Record<string, unknown> | undefined): void {
+    if (!workspaceSettings || typeof workspaceSettings !== "object") return;
+    const raw = workspaceSettings[PMV_IDENTITY_LOCK_KEY];
+    if (!raw || typeof raw !== "object") {
+      this.identityLock = null;
+      return;
+    }
+    this.identityLock = raw as ProductIdentityLock;
+  }
+
+  private async hydrateIntelligenceProfile(projectId: string): Promise<void> {
+    try {
+      const profile = await fetchProductIntelligenceProfile(projectId);
+      if (!profile) return;
+      const heroId = this.heroAssetId
+        ?? profile.imageIds[0]
+        ?? null;
+      this.intelligenceReview = buildProductIntelligenceReview(profile, heroId);
+      if (!this.identityLock && this.intelligenceStatus === "REVIEW") {
+        const savedIds = productIntakeEngine.snapshot().assets
+          .filter((a) => a.processingStatus === "saved")
+          .map((a) => a.assetId);
+        if (heroId && savedIds.length) {
+          this.identityLock = buildProductIdentityLock({
+            projectId,
+            profile,
+            heroAssetId: heroId,
+            productAssetIds: savedIds,
+            assetFingerprint: computeAssetFingerprint(savedIds, heroId),
+          });
+        }
+      }
+      this.emit();
+    } catch {
+      /* keep persisted review */
+    }
+  }
+
+  private currentAssetFingerprint(): string {
+    const intake = productIntakeEngine.snapshot();
+    const ids = intake.assets
+      .filter((a) => a.processingStatus === "saved")
+      .map((a) => a.assetId);
+    return computeAssetFingerprint(ids, this.heroAssetId);
+  }
+
+  private refreshStaleLockState(): void {
+    if (this.serviceMode !== "pmv") return;
+    if (!this.identityLock && this.intelligenceStatus === "NOT_STARTED") return;
+    const fingerprint = this.currentAssetFingerprint();
+    if (!this.intelligenceAssetFingerprint) {
+      this.intelligenceAssetFingerprint = this.identityLock?.assetFingerprint ?? fingerprint;
+    }
+    if (
+      this.intelligenceAssetFingerprint
+      && this.intelligenceAssetFingerprint !== fingerprint
+      && (this.intelligenceStatus === "LOCKED"
+        || this.intelligenceStatus === "REVIEW"
+        || this.identityLock?.status === "LOCKED"
+        || this.identityLock?.status === "PENDING_CONFIRMATION")
+    ) {
+      this.markIntelligenceStaleIfNeeded("Product assets changed.");
+    }
+  }
+
+  private markIntelligenceStaleIfNeeded(_reason: string): void {
+    if (this.serviceMode !== "pmv") return;
+    if (
+      this.intelligenceStatus === "NOT_STARTED"
+      && !this.identityLock
+      && !this.intelligenceReview
+    ) {
+      return;
+    }
+    if (this.intelligenceStatus === "ANALYZING") return;
+
+    const shouldStale = this.intelligenceStatus === "LOCKED"
+      || this.intelligenceStatus === "REVIEW"
+      || this.identityLock?.status === "LOCKED"
+      || this.identityLock?.status === "PENDING_CONFIRMATION";
+
+    if (!shouldStale && this.intelligenceStatus !== "STALE") return;
+
+    if (this.identityLock) {
+      this.identityLock = markIdentityLockStale(this.identityLock);
+    }
+    this.intelligenceStatus = "STALE";
+    this.intelligenceAssetFingerprint = this.currentAssetFingerprint();
+    this.scheduleEssentialsPersist();
   }
 
   private readPmvSettings(workspaceSettings: Record<string, unknown> | undefined): PmvFoundationSettings | null {

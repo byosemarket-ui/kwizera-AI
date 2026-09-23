@@ -28,11 +28,11 @@ export interface ServiceWorkspaceMeta {
 }
 
 export const VIDEO_SERVICE_STEPS: ServiceWorkspaceStep[] = [
-  { id: "upload", label: "Upload", description: "Add product photos" },
-  { id: "plan", label: "Plan", description: "Video purpose and settings" },
-  { id: "style", label: "Style", description: "Look and creative direction" },
-  { id: "create", label: "Create", description: "Produce your video" },
-  { id: "preview", label: "Preview", description: "Review and export" },
+  { id: "upload", label: "Product", description: "Images and product details" },
+  { id: "plan", label: "Intelligence", description: "Analyze and lock product identity" },
+  { id: "style", label: "Creative", description: "Ad plan and generation" },
+  { id: "create", label: "Produce", description: "Audio, timeline, render" },
+  { id: "preview", label: "Deliver", description: "QA and export" },
 ];
 
 export const IMAGE_SERVICE_STEPS: ServiceWorkspaceStep[] = [
