@@ -1353,12 +1353,22 @@ export class ProductSetupEngine {
         const intakeIds = productIntakeEngine.snapshot().assets
           .filter((a) => a.processingStatus === "saved")
           .map((a) => a.assetId);
-        // Prefer the full project image set when available so lock QA is not
-        // false-failed by a partial intake hydrate of the same project.
         const timelineIds = timelineAssetIds;
         const outputIds = output.sourceAssetIds ?? [];
         return [...new Set([...intakeIds, ...timelineIds, ...outputIds])];
       })();
+
+      // Authoritative project image set (intake hydrate can be partial).
+      const opened = await openProjectApi(snap.projectId).catch(() => null);
+      const projectImageIds = (opened?.productImages ?? [])
+        .map((img) => {
+          const row = img as { id?: string; assetId?: string };
+          return row.id ?? row.assetId ?? "";
+        })
+        .filter(Boolean);
+      const qaProductAssetIds = projectImageIds.length
+        ? [...new Set([...productAssetIds, ...projectImageIds])]
+        : productAssetIds;
 
       // Vision frame QA is optional; Exact Product Mode uses asset-lock identity.
       // Do not fake PASS when vision is unavailable for generative modes.
@@ -1367,8 +1377,8 @@ export class ProductSetupEngine {
       const qa = runDeterministicPmvQa({
         projectId: snap.projectId,
         lock: this.identityLock,
-        productAssetIds,
-        heroAssetId: this.heroAssetId,
+        productAssetIds: qaProductAssetIds,
+        heroAssetId: this.heroAssetId ?? this.identityLock?.heroAssetId ?? null,
         brandName: this.brandContact.brandName || this.optional.brand || this.essentials.productName,
         website: this.brandContact.websiteUrl || this.optional.website,
         phone: this.brandContact.phone,
