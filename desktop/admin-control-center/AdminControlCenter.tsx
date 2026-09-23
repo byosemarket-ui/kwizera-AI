@@ -14,6 +14,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { FeaturesPage } from "./pages/FeaturesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SystemPage } from "./pages/SystemPage";
+import { AdminApiError, adminApi, getStoredAdminToken, setStoredAdminToken } from "./admin-api";
 import "./admin.css";
 
 const ICONS: Record<AdminRouteId, LucideIcon> = {
@@ -46,6 +47,28 @@ interface AdminControlCenterProps {
 export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: AdminControlCenterProps) {
   const [route, setRoute] = useState<AdminRouteId>(() => parseAdminRouteFromLocation());
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [authTokenDraft, setAuthTokenDraft] = useState(() => getStoredAdminToken());
+  const [authRequired, setAuthRequired] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminApi.health()
+      .then(() => {
+        if (!cancelled) {
+          setAuthRequired(false);
+          setAuthMessage(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof AdminApiError && err.status === 403) {
+          setAuthRequired(true);
+          setAuthMessage(err.message);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     syncAdminUrl(route);
@@ -149,7 +172,37 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
         ) : null}
 
         <main className="acc-main" id="admin-main">
-          {content}
+          {authRequired ? (
+            <div className="acc-page" style={{ maxWidth: 480 }}>
+              <h2>Admin authorization required</h2>
+              <p className="acc-muted">
+                Production Admin APIs require an Admin API token. Paste the server-configured token.
+                It is stored only in this browser session and is never shown in provider responses.
+              </p>
+              {authMessage ? <p className="acc-muted" role="alert">{authMessage}</p> : null}
+              <label className="acc-field">
+                <span>Admin API token</span>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={authTokenDraft}
+                  onChange={(e) => setAuthTokenDraft(e.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="acc-button"
+                onClick={() => {
+                  setStoredAdminToken(authTokenDraft);
+                  setAuthRequired(false);
+                  setAuthMessage(null);
+                  window.location.reload();
+                }}
+              >
+                Unlock Admin
+              </button>
+            </div>
+          ) : content}
         </main>
       </div>
 

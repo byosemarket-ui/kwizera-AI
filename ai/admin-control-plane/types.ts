@@ -123,6 +123,7 @@ export type FeatureKey =
   | "LLM_REASONING"
   | "EMBEDDING"
   | "IMAGE_SEGMENTATION"
+  | "ONLINE_API_PROBE"
   | string;
 
 export interface FeatureMappingRecord {

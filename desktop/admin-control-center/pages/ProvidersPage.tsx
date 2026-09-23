@@ -14,6 +14,8 @@ export function ProvidersPage() {
   const [draft, setDraft] = useState<Partial<AdminProviderPublicView> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [credentialDraft, setCredentialDraft] = useState("");
+  const [healthDetail, setHealthDetail] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -29,6 +31,8 @@ export function ProvidersPage() {
   const open = (provider: AdminProviderPublicView) => {
     setSelected(provider);
     setDraft({ ...provider });
+    setCredentialDraft("");
+    setHealthDetail(null);
   };
 
   const save = async () => {
@@ -51,6 +55,41 @@ export function ProvidersPage() {
       load();
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveCredential = async () => {
+    if (!selected || !credentialDraft.trim()) return;
+    setSaving(true);
+    try {
+      const saved = await adminApi.setProviderCredential(selected.id, credentialDraft.trim());
+      setSelected(saved);
+      setDraft(saved);
+      setCredentialDraft("");
+      setToast("Credential stored (encrypted)");
+      load();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Credential save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runHealth = async () => {
+    if (!selected) return;
+    setSaving(true);
+    setHealthDetail(null);
+    try {
+      const result = await adminApi.testProviderHealth(selected.id);
+      setHealthDetail(
+        `${result.code}${result.httpStatus ? ` · HTTP ${result.httpStatus}` : ""}${result.endpointHost ? ` · ${result.endpointHost}` : ""}${result.detail ? ` — ${result.detail}` : ""}`,
+      );
+      setToast(`Health: ${result.code}`);
+      load();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Health check failed");
     } finally {
       setSaving(false);
     }
@@ -118,11 +157,20 @@ export function ProvidersPage() {
                 onChange={(e) => setDraft({ ...draft, baseEndpoint: e.target.value })}
               />
             </FormField>
-            <FormField label="Credential" hint="Full secrets are never returned to the browser.">
+            <FormField label="Credential status" hint="Full secrets are never returned to the browser.">
               <input
                 value={selected.hasCredential ? (selected.credentialMasked ?? "••••••••") : "Not configured"}
                 readOnly
                 disabled
+              />
+            </FormField>
+            <FormField label="Set / replace API credential" hint="Value is sent once to the server and encrypted. It is never echoed back.">
+              <input
+                type="password"
+                autoComplete="off"
+                placeholder={selected.hasCredential ? "Enter new secret to replace" : "Paste API key"}
+                value={credentialDraft}
+                onChange={(e) => setCredentialDraft(e.target.value)}
               />
             </FormField>
             <Toggle
@@ -133,9 +181,23 @@ export function ProvidersPage() {
             <p className="acc-muted">
               Encrypted credentials are stored on the server via the Credential Manager. The browser never receives API keys.
             </p>
-            <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
-              {saving ? "Saving…" : "Save provider"}
-            </button>
+            {healthDetail && <p className="acc-muted" role="status">{healthDetail}</p>}
+            <div className="acc-form-actions" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
+                {saving ? "Saving…" : "Save provider"}
+              </button>
+              <button
+                type="button"
+                className="acc-button ghost"
+                disabled={saving || !credentialDraft.trim()}
+                onClick={() => void saveCredential()}
+              >
+                Store credential
+              </button>
+              <button type="button" className="acc-button ghost" disabled={saving} onClick={() => void runHealth()}>
+                Test connection
+              </button>
+            </div>
           </div>
         )}
       </Drawer>

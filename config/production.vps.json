@@ -37,16 +37,19 @@
     "KWIZERA_ENV": "production",
     "KWIZERA_PERSISTENT_MODE": "1",
     "KWIZERA_SKIP_BROWSER_OPEN": "1",
-    "KWIZERA_FFMPEG_PATH": "optional — required only for actual ffmpeg encoding, not for pipeline initialization"
+    "KWIZERA_FFMPEG_PATH": "optional — required only for actual ffmpeg encoding, not for pipeline initialization",
+    "KWIZERA_ADMIN_API_TOKEN": "required in production .env — Admin APIs refuse unauthenticated access",
+    "KWIZERA_SECRETS_PASSPHRASE": "required in production .env — unlocks encrypted provider credentials"
   },
   "architecture": {
     "aiCore": "original KWIZERA AI Core / Memory / Knowledge / Intelligence modules",
-    "externalProviders": "optional loopback image/video adapters (ComfyUI, Automatic1111) — never required for startup; no external LLM"
+    "externalProviders": "optional loopback image/video adapters (ComfyUI, Automatic1111) — never required for startup; Phase 1 online runtime uses Admin-mapped OpenAI for ONLINE_API_PROBE"
   },
   "security": {
     "bindLoopbackByDefault": true,
     "noSecretsInPackage": true,
-    "envFile": ".env (not committed)"
+    "envFile": ".env (not committed)",
+    "adminApi": "production defaults to require-admin-token when KWIZERA_ADMIN_API_TOKEN is set, otherwise require-admin-role"
   },
   "commands": {
     "build": "npm run build:production",

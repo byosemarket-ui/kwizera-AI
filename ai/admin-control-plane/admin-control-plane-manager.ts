@@ -3,10 +3,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readJsonSafe, writeJsonAtomic } from "../../storage/safe-json.js";
 import { maskCredential } from "./admin-auth-boundary.js";
-import { createEmptyStore, createDefaultSettings, createDefaultFeatureMappings } from "./defaults.js";
+import {
+  createEmptyStore,
+  createDefaultSettings,
+  createDefaultFeatureMappings,
+  createDefaultModels,
+  createDefaultProviders,
+} from "./defaults.js";
 import { defaultKindForType, inferProviderKind } from "./provider-kind.js";
 import { resolveFeatureExecution as executeFeatureResolution, type FeatureResolutionResult } from "./model-resolution.js";
 import { credentialReferenceFor, type AdminCredentialManager } from "./credential-manager.js";
+import { createCapabilityRuntime, type CapabilityRuntime } from "./capability-runtime.js";
 import { normalizeCostModel } from "./cost-model.js";
 import {
   AdminValidationError,
@@ -51,6 +58,17 @@ export class AdminControlPlaneManager {
 
   attachCredentials(credentials: AdminCredentialManager): void {
     this.credentials = credentials;
+  }
+
+  /** Runtime-only credential manager — never serialize or return secrets via HTTP. */
+  getCredentialManager(): AdminCredentialManager | null {
+    return this.credentials;
+  }
+
+  /** Shared capability → provider → online adapter runtime. */
+  getCapabilityRuntime(): CapabilityRuntime {
+    this.requireInit();
+    return createCapabilityRuntime(this, this.credentials);
   }
 
   async initialize(storageRoot: string, options?: { credentials?: AdminCredentialManager }): Promise<void> {
@@ -551,16 +569,42 @@ export class AdminControlPlaneManager {
     const empty = createEmptyStore();
     if (!raw || (raw.version !== 1 && raw.version !== 2)) return empty;
 
-    const providers = (Array.isArray(raw.providers) ? raw.providers : empty.providers).map((provider) => ({
-      ...provider,
-      kind: inferProviderKind(provider),
-    }));
-    const models = (Array.isArray(raw.models) ? raw.models : empty.models).map((model) => ({
-      ...model,
-      inputTypes: model.inputTypes ?? [model.inputType],
-      outputTypes: model.outputTypes ?? [model.outputType],
-      costModel: normalizeCostModel(model.costModel, model.currency),
-    }));
+    const providerById = new Map(
+      (Array.isArray(raw.providers) ? raw.providers : []).map((provider) => [
+        provider.id,
+        { ...provider, kind: inferProviderKind(provider) },
+      ]),
+    );
+    for (const seed of createDefaultProviders()) {
+      if (!providerById.has(seed.id)) {
+        providerById.set(seed.id, { ...seed, kind: inferProviderKind(seed) });
+      }
+    }
+    const providers = [...providerById.values()];
+
+    const modelById = new Map(
+      (Array.isArray(raw.models) ? raw.models : []).map((model) => [
+        model.id,
+        {
+          ...model,
+          inputTypes: model.inputTypes ?? [model.inputType],
+          outputTypes: model.outputTypes ?? [model.outputType],
+          costModel: normalizeCostModel(model.costModel, model.currency),
+        },
+      ]),
+    );
+    for (const seed of createDefaultModels()) {
+      if (!modelById.has(seed.id)) {
+        modelById.set(seed.id, {
+          ...seed,
+          inputTypes: seed.inputTypes ?? [seed.inputType],
+          outputTypes: seed.outputTypes ?? [seed.outputType],
+          costModel: normalizeCostModel(seed.costModel, seed.currency),
+        });
+      }
+    }
+    const models = [...modelById.values()];
+
     const existingFeatures = Array.isArray(raw.featureMappings) ? raw.featureMappings : [];
     const featureByKey = new Map(existingFeatures.map((item) => [item.feature, item]));
     for (const seed of createDefaultFeatureMappings()) {
@@ -585,6 +629,7 @@ export class AdminControlPlaneManager {
       updatedAt: raw.updatedAt || now(),
     };
   }
+
 
   private async persist(): Promise<void> {
     await writeJsonAtomic(this.storePath, this.store);

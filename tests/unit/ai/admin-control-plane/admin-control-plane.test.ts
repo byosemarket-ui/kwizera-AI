@@ -104,6 +104,8 @@ describe("Admin Control Plane foundation", () => {
   });
 
   it("enforces auth boundary modes and never reveals secrets", () => {
+    process.env.KWIZERA_ADMIN_AUTH_MODE = "development-open";
+    delete process.env.KWIZERA_ENV;
     expect(assertAdminAccess({
       roles: [],
       path: "/api/admin/providers",

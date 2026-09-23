@@ -6,6 +6,8 @@ import type {
   TypedSetting,
 } from "./types";
 
+const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+
 export class AdminApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -14,11 +16,39 @@ export class AdminApiError extends Error {
   }
 }
 
+export function getStoredAdminToken(): string {
+  try {
+    return sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setStoredAdminToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed) sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, trimmed);
+    else sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function adminAuthHeaders(): Record<string, string> {
+  const token = getStoredAdminToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+    "x-kwizera-admin-token": token,
+  };
+}
+
 async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...adminAuthHeaders(),
       ...(init?.headers ?? {}),
     },
   });
@@ -46,6 +76,22 @@ export const adminApi = {
   providers: () => adminFetch<{ items: AdminProviderPublicView[] }>("/api/admin/providers"),
   saveProvider: (body: Record<string, unknown>) =>
     adminFetch<AdminProviderPublicView>("/api/admin/providers", { method: "POST", body: JSON.stringify(body) }),
+  setProviderCredential: (id: string, secret: string) =>
+    adminFetch<AdminProviderPublicView>(`/api/admin/providers/${encodeURIComponent(id)}/credential`, {
+      method: "POST",
+      body: JSON.stringify({ secret }),
+    }),
+  testProviderHealth: (id: string) =>
+    adminFetch<{
+      providerId: string;
+      code: string;
+      healthStatus: string;
+      detail?: string;
+      durationMs: number;
+      requestId: string;
+      httpStatus?: number;
+      endpointHost?: string;
+    }>(`/api/admin/providers/${encodeURIComponent(id)}/health`, { method: "POST", body: "{}" }),
   models: (params?: Record<string, string | number | boolean | undefined>) => {
     const qs = new URLSearchParams();
     if (params) {
@@ -77,6 +123,13 @@ export const adminApi = {
       source: string;
       reason?: string;
     }>(`/api/admin/features/resolve/${encodeURIComponent(feature)}`),
+  describeRuntime: (feature = "ONLINE_API_PROBE") =>
+    adminFetch<Record<string, unknown>>(`/api/admin/runtime/describe?feature=${encodeURIComponent(feature)}`),
+  executeRuntimeProbe: (body?: { prompt?: string }) =>
+    adminFetch<Record<string, unknown>>("/api/admin/runtime/execute", {
+      method: "POST",
+      body: JSON.stringify({ feature: "ONLINE_API_PROBE", ...(body ?? {}) }),
+    }),
   settings: (category?: string) => {
     const suffix = category ? `?category=${encodeURIComponent(category)}` : "";
     return adminFetch<{ items: TypedSetting[] }>(`/api/admin/settings${suffix}`);

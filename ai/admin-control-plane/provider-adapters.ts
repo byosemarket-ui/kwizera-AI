@@ -1,30 +1,31 @@
 /**
  * Provider adapter boundary.
- * Future Fal/Replicate/Alibaba/OpenAI adapters register here without changing each feature.
+ * OpenAI is the Phase 1 reference EXTERNAL_API adapter (real HTTPS).
+ * Other external types remain placeholders until later phases.
  * Existing Ollama integration remains the local runtime — this adapter does not replace it.
  */
-import type { AdminModelRecord, AdminProviderRecord, HealthStatus } from "./types.js";
+import type { AdminProviderRecord, HealthStatus } from "./types.js";
 import { inferProviderKind } from "./provider-kind.js";
+import { OpenAiProviderAdapter } from "./openai-adapter.js";
+import type {
+  ProviderAdapter,
+  ProviderAdapterRequest,
+} from "./adapter-contracts.js";
 
-export interface ProviderAdapterRequest {
-  provider: AdminProviderRecord;
-  model: AdminModelRecord;
-  /** Runtime-only secret getter. Must not be serialized. */
-  getSecret?: () => string | undefined;
-}
-
-export interface ProviderAdapter {
-  id: string;
-  supports(provider: AdminProviderRecord): boolean;
-  healthCheck(request: ProviderAdapterRequest): Promise<HealthStatus>;
-}
+export type {
+  ExecutableProviderAdapter,
+  ProviderAdapter,
+  ProviderAdapterExecuteRequest,
+  ProviderAdapterRequest,
+} from "./adapter-contracts.js";
+export { isExecutableAdapter } from "./adapter-contracts.js";
 
 export class OllamaAdapter implements ProviderAdapter {
   readonly id = "ollama";
   supports(provider: AdminProviderRecord): boolean {
     return provider.type === "ollama" || (inferProviderKind(provider) === "LOCAL" && provider.type === "ollama");
   }
-  async healthCheck(): Promise<HealthStatus> {
+  async healthCheck(_request: ProviderAdapterRequest): Promise<HealthStatus> {
     return "unchecked";
   }
 }
@@ -34,18 +35,18 @@ export class LocalRuntimeAdapter implements ProviderAdapter {
   supports(provider: AdminProviderRecord): boolean {
     return provider.type === "local" || inferProviderKind(provider) === "LOCAL";
   }
-  async healthCheck(): Promise<HealthStatus> {
+  async healthCheck(_request: ProviderAdapterRequest): Promise<HealthStatus> {
     return "unchecked";
   }
 }
 
-/** Placeholder registrations — no remote calls in this step. */
+/** Placeholder registrations — no remote calls until a real adapter is registered. */
 export class ExternalApiAdapter implements ProviderAdapter {
   constructor(readonly id: string) {}
   supports(provider: AdminProviderRecord): boolean {
     return provider.type === this.id;
   }
-  async healthCheck(): Promise<HealthStatus> {
+  async healthCheck(_request: ProviderAdapterRequest): Promise<HealthStatus> {
     return "unchecked";
   }
 }
@@ -64,12 +65,14 @@ export class ProviderAdapterRegistry {
 
 export function createDefaultAdapterRegistry(): ProviderAdapterRegistry {
   const registry = new ProviderAdapterRegistry();
+  // Placeholders for future phases (not yet real HTTPS callers).
   registry.register(new ExternalApiAdapter("fal"));
   registry.register(new ExternalApiAdapter("replicate"));
   registry.register(new ExternalApiAdapter("alibaba"));
-  registry.register(new ExternalApiAdapter("openai"));
   registry.register(new ExternalApiAdapter("google"));
   registry.register(new ExternalApiAdapter("anthropic"));
+  // Phase 1 reference online adapter.
+  registry.register(new OpenAiProviderAdapter());
   registry.register(new LocalRuntimeAdapter());
   registry.register(new OllamaAdapter());
   return registry;

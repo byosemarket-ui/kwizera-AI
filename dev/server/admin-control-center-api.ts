@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   assertAdminAccess,
   rolesFromHeaders,
+  adminTokenFromHeaders,
   AdminValidationError,
   type AdminControlPlaneManager,
 } from "../../ai/admin-control-plane/index.js";
@@ -45,6 +46,7 @@ function ok(sendJson: SendJson, res: ServerResponse, data: Record<string, unknow
 function guard(req: IncomingMessage, res: ServerResponse, sendJson: SendJson, pathname: string): boolean {
   const decision = assertAdminAccess({
     roles: rolesFromHeaders(headersRecord(req)),
+    adminToken: adminTokenFromHeaders(headersRecord(req)),
     path: pathname,
     adminApi: true,
     remoteAddress: req.socket.remoteAddress,
@@ -133,6 +135,13 @@ export async function handleAdminApi(
       }
       const saved = await manager.setProviderSecret(id, secret);
       ok(deps.sendJson, res, saved as unknown as Record<string, unknown>);
+      return true;
+    }
+    if (url.pathname.match(/^\/api\/admin\/providers\/[^/]+\/health$/) && req.method === "POST") {
+      const id = decodeURIComponent(url.pathname.split("/")[4] ?? "");
+      const runtime = manager.getCapabilityRuntime();
+      const result = await runtime.healthCheckProvider(id);
+      ok(deps.sendJson, res, result as unknown as Record<string, unknown>);
       return true;
     }
     if (url.pathname.startsWith("/api/admin/providers/") && req.method === "GET") {
@@ -249,6 +258,40 @@ export async function handleAdminApi(
     if (url.pathname.startsWith("/api/admin/features/resolve/") && req.method === "GET") {
       const feature = decodeURIComponent(url.pathname.slice("/api/admin/features/resolve/".length));
       ok(deps.sendJson, res, manager.resolveFeatureExecution(feature) as unknown as Record<string, unknown>);
+      return true;
+    }
+    if (url.pathname === "/api/admin/runtime/describe" && req.method === "GET") {
+      const feature = url.searchParams.get("feature") ?? "ONLINE_API_PROBE";
+      const runtime = manager.getCapabilityRuntime();
+      ok(deps.sendJson, res, runtime.describe(feature) as unknown as Record<string, unknown>);
+      return true;
+    }
+    if (url.pathname === "/api/admin/runtime/execute" && req.method === "POST") {
+      const body = (await parseJsonBody(req, deps.readBody)) as {
+        feature?: string;
+        prompt?: string;
+        messages?: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+      };
+      const feature = typeof body.feature === "string" && body.feature.trim()
+        ? body.feature.trim()
+        : "ONLINE_API_PROBE";
+      // Phase 1: only allow the lightweight online probe capability from Admin.
+      if (feature !== "ONLINE_API_PROBE") {
+        fail(
+          deps.sendJson,
+          res,
+          400,
+          "FEATURE_NOT_ALLOWED",
+          "Admin runtime execute currently allows ONLINE_API_PROBE only",
+        );
+        return true;
+      }
+      const runtime = manager.getCapabilityRuntime();
+      const result = await runtime.execute(feature, {
+        prompt: typeof body.prompt === "string" ? body.prompt : undefined,
+        messages: Array.isArray(body.messages) ? body.messages : undefined,
+      });
+      ok(deps.sendJson, res, result as unknown as Record<string, unknown>);
       return true;
     }
 

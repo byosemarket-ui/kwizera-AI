@@ -1,8 +1,10 @@
 /**
  * Authorization boundary for Admin Control Plane.
- * Stage 1: development allow-all with structured hooks for future auth.
- * Does not implement customer login or password forms.
+ * Development remains configurable; production defaults to requiring a role or API token.
+ * Secrets are never revealed through this boundary.
  */
+
+import { timingSafeEqual } from "node:crypto";
 
 export interface AdminAccessContext {
   /** Future: authenticated principal id */
@@ -15,6 +17,8 @@ export interface AdminAccessContext {
   adminApi: boolean;
   /** Source IP / trust hint (optional) */
   remoteAddress?: string;
+  /** Optional Admin API token from Authorization Bearer / x-kwizera-admin-token */
+  adminToken?: string;
 }
 
 export interface AdminAccessDecision {
@@ -24,31 +28,96 @@ export interface AdminAccessDecision {
   mayRevealSecrets: boolean;
 }
 
-export type AdminAuthMode = "development-open" | "require-admin-role" | "deny-all";
+export type AdminAuthMode =
+  | "development-open"
+  | "require-admin-role"
+  | "require-admin-token"
+  | "deny-all";
 
-function resolveMode(): AdminAuthMode {
-  const raw = (process.env.KWIZERA_ADMIN_AUTH_MODE ?? "development-open").trim().toLowerCase();
-  if (raw === "require-admin-role" || raw === "deny-all" || raw === "development-open") return raw;
+function isProductionEnv(): boolean {
+  const env = (process.env.KWIZERA_ENV ?? "").trim().toLowerCase();
+  const node = (process.env.NODE_ENV ?? "").trim().toLowerCase();
+  return env === "production" || node === "production";
+}
+
+export function resolveAdminAuthMode(): AdminAuthMode {
+  const raw = (process.env.KWIZERA_ADMIN_AUTH_MODE ?? "").trim().toLowerCase();
+  if (
+    raw === "require-admin-role"
+    || raw === "require-admin-token"
+    || raw === "deny-all"
+    || raw === "development-open"
+  ) {
+    return raw;
+  }
+  // Production must not default to open Admin APIs.
+  if (isProductionEnv()) {
+    return process.env.KWIZERA_ADMIN_API_TOKEN?.trim()
+      ? "require-admin-token"
+      : "require-admin-role";
+  }
   return "development-open";
+}
+
+function hasAdminRole(roles: string[]): boolean {
+  const normalized = roles.map((r) => r.toLowerCase());
+  return normalized.includes("admin")
+    || normalized.includes("super-administrator")
+    || normalized.includes("super_admin");
+}
+
+function tokenMatches(provided: string | undefined, expected: string): boolean {
+  if (!provided) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) {
+    // Constant-time-ish reject without leaking length via early return on equal buffers only.
+    const padded = Buffer.alloc(b.length);
+    a.copy(padded);
+    timingSafeEqual(padded, b);
+    return false;
+  }
+  return timingSafeEqual(a, b);
 }
 
 /**
  * Decide whether the caller may access Admin APIs.
- * Secrets are never revealed through this boundary in Stage 1 (mayRevealSecrets = false).
+ * Secrets are never revealed through this boundary (mayRevealSecrets = false).
  */
 export function assertAdminAccess(ctx: AdminAccessContext): AdminAccessDecision {
-  const mode = resolveMode();
+  const mode = resolveAdminAuthMode();
 
   if (mode === "deny-all") {
     return { allowed: false, reason: "Admin access denied by KWIZERA_ADMIN_AUTH_MODE=deny-all", mayRevealSecrets: false };
   }
 
+  if (mode === "require-admin-token") {
+    const expected = process.env.KWIZERA_ADMIN_API_TOKEN?.trim();
+    if (!expected) {
+      return {
+        allowed: false,
+        reason: "Admin API token is not configured on the server",
+        mayRevealSecrets: false,
+      };
+    }
+    if (tokenMatches(ctx.adminToken, expected) || hasAdminRole(ctx.roles)) {
+      return {
+        allowed: true,
+        reason: tokenMatches(ctx.adminToken, expected) ? "Admin API token accepted" : "Admin role granted",
+        mayRevealSecrets: false,
+      };
+    }
+    return { allowed: false, reason: "Admin API token or admin role required", mayRevealSecrets: false };
+  }
+
   if (mode === "require-admin-role") {
-    const roles = ctx.roles.map((r) => r.toLowerCase());
-    const ok = roles.includes("admin") || roles.includes("super-administrator") || roles.includes("super_admin");
+    const ok = hasAdminRole(ctx.roles) || (
+      Boolean(process.env.KWIZERA_ADMIN_API_TOKEN?.trim())
+      && tokenMatches(ctx.adminToken, process.env.KWIZERA_ADMIN_API_TOKEN!.trim())
+    );
     return {
       allowed: ok,
-      reason: ok ? "Admin role granted" : "Admin role required",
+      reason: ok ? "Admin authorization granted" : "Admin role or API token required",
       mayRevealSecrets: false,
     };
   }
@@ -70,6 +139,20 @@ export function rolesFromHeaders(headers: Record<string, string | string[] | und
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+/** Extract Admin API token from Authorization Bearer or dedicated header. */
+export function adminTokenFromHeaders(headers: Record<string, string | string[] | undefined>): string | undefined {
+  const dedicated = headers["x-kwizera-admin-token"];
+  if (dedicated) {
+    const value = Array.isArray(dedicated) ? dedicated[0] : dedicated;
+    if (value?.trim()) return value.trim();
+  }
+  const auth = headers.authorization ?? headers.Authorization;
+  if (!auth) return undefined;
+  const value = Array.isArray(auth) ? auth[0] : auth;
+  const match = /^Bearer\s+(.+)$/i.exec(String(value ?? "").trim());
+  return match?.[1]?.trim() || undefined;
 }
 
 /** Mask a credential for UI display — never return the full secret. */

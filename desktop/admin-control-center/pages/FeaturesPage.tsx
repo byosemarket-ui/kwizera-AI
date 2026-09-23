@@ -22,6 +22,11 @@ export function FeaturesPage() {
     providerId: string | null;
     source: string;
     reason?: string;
+    live?: boolean;
+    outputText?: string | null;
+    errorCode?: string;
+    httpStatus?: number;
+    requestId?: string;
   } | null>(null);
 
   const load = () => {
@@ -80,10 +85,48 @@ export function FeaturesPage() {
         providerId: result.providerId,
         source: result.source,
         reason: result.reason,
+        live: false,
       });
       setToast(`Resolution ${result.status} · ${result.source}`);
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Resolution test failed");
+    } finally {
+      setProbing(false);
+    }
+  };
+
+  const runLiveOnlineProbe = async () => {
+    setProbing(true);
+    try {
+      const result = await adminApi.executeRuntimeProbe({ prompt: "Reply with exactly: OK" }) as {
+        ok?: boolean;
+        feature?: string;
+        source?: string;
+        modelId?: string | null;
+        providerId?: string | null;
+        outputText?: string | null;
+        errorCode?: string;
+        errorMessage?: string;
+        httpStatus?: number;
+        requestId?: string;
+        resolutionStatus?: string;
+      };
+      setProbe({
+        feature: result.feature ?? "ONLINE_API_PROBE",
+        status: result.ok ? "LIVE_OK" : (result.errorCode ?? "LIVE_FAILED"),
+        selectedModelId: result.modelId ?? null,
+        providerId: result.providerId ?? null,
+        source: result.source ?? "ONLINE",
+        reason: result.errorMessage,
+        live: true,
+        outputText: result.outputText ?? null,
+        errorCode: result.errorCode,
+        httpStatus: result.httpStatus,
+        requestId: result.requestId,
+      });
+      setToast(result.ok ? "Online probe succeeded" : `Online probe: ${result.errorCode ?? "failed"}`);
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Online probe failed");
     } finally {
       setProbing(false);
     }
@@ -134,6 +177,11 @@ export function FeaturesPage() {
                   <button type="button" className="acc-button ghost" onClick={() => void testResolve(item.feature)} disabled={probing}>
                     Test
                   </button>
+                  {item.feature === "ONLINE_API_PROBE" ? (
+                    <button type="button" className="acc-button ghost" onClick={() => void runLiveOnlineProbe()} disabled={probing}>
+                      Live API
+                    </button>
+                  ) : null}
                   <button type="button" className="acc-button ghost" onClick={() => { setEditing(item); setProbe(null); }}>Edit</button>
                 </div>
               ),
@@ -146,8 +194,12 @@ export function FeaturesPage() {
         <section className="acc-section-card" aria-live="polite">
           <div className="acc-section-card-head">
             <div>
-              <h2 className="acc-section-title">Dry-run resolution</h2>
-              <p className="acc-section-desc">Configuration only — no external AI generation.</p>
+              <h2 className="acc-section-title">{probe.live ? "Live online probe" : "Dry-run resolution"}</h2>
+              <p className="acc-section-desc">
+                {probe.live
+                  ? "Real HTTPS call through Admin credential → provider adapter. Secrets are never shown."
+                  : "Configuration only — no external AI generation."}
+              </p>
             </div>
           </div>
           <div className="acc-section-card-body">
@@ -157,6 +209,9 @@ export function FeaturesPage() {
               <div className="acc-stat-card"><span className="acc-stat-label">Source</span><strong className="acc-stat-value">{probe.source}</strong></div>
               <div className="acc-stat-card"><span className="acc-stat-label">Model</span><strong className="acc-stat-value">{probe.selectedModelId ?? "None"}</strong></div>
             </div>
+            {probe.httpStatus != null ? <p className="acc-muted">HTTP {probe.httpStatus}</p> : null}
+            {probe.requestId ? <p className="acc-muted mono">requestId={probe.requestId}</p> : null}
+            {probe.outputText ? <p className="acc-muted">Output: {probe.outputText}</p> : null}
             {probe.reason ? <p className="acc-muted">{probe.reason}</p> : null}
           </div>
         </section>
