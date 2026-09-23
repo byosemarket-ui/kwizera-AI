@@ -227,6 +227,15 @@ if ! verify_live_routes; then
   exit 1
 fi
 
+if [[ -f "$APP_DIR/deploy/phase1-online-verify.sh" ]]; then
+  record_status verifying in-progress "Phase 1 online AI runtime verification"
+  chmod +x "$APP_DIR/deploy/phase1-online-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase1-online-verify.sh"; then
+    rollback "phase1 online AI verification failed"
+    exit 1
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"
