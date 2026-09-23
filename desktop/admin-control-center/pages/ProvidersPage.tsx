@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "../admin-api";
+import { adminAuthErrorMessage, isAdminAuthError } from "../admin-auth";
 import type { AdminProviderPublicView } from "../types";
 import {
-  DataTable, Drawer, ErrorState, FormField, LoadingState, PageHeader,
+  AuthLockedState, DataTable, Drawer, ErrorState, FormField, LoadingState, PageHeader,
   StatusBadge, Toast, Toggle,
 } from "../components/ui";
 
-export function ProvidersPage() {
+function connectionLabel(provider: AdminProviderPublicView): string {
+  if (!provider.enabled) return "Disabled";
+  if (provider.healthStatus === "healthy") return "Connected";
+  if (provider.healthStatus === "unhealthy") return "Failed";
+  if (provider.healthStatus === "degraded") return "Degraded";
+  return provider.healthStatus === "unchecked" ? "Not tested" : provider.healthStatus;
+}
+
+export function ProvidersPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }) {
   const [items, setItems] = useState<AdminProviderPublicView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authLocked, setAuthLocked] = useState(false);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdminProviderPublicView | null>(null);
   const [draft, setDraft] = useState<Partial<AdminProviderPublicView> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -20,9 +31,18 @@ export function ProvidersPage() {
   const load = () => {
     setLoading(true);
     setError(null);
+    setAuthLocked(false);
     adminApi.providers()
       .then((result) => setItems(result.items))
-      .catch((err: Error) => setError(err.message))
+      .catch((err: unknown) => {
+        if (isAdminAuthError(err)) {
+          setAuthLocked(true);
+          setAuthDetail(adminAuthErrorMessage(err));
+          setItems([]);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Providers failed");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -68,7 +88,7 @@ export function ProvidersPage() {
       setSelected(saved);
       setDraft(saved);
       setCredentialDraft("");
-      setToast("Credential stored (encrypted)");
+      setToast("Provider credential stored (encrypted)");
       load();
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Credential save failed");
@@ -86,7 +106,7 @@ export function ProvidersPage() {
       setHealthDetail(
         `${result.code}${result.httpStatus ? ` · HTTP ${result.httpStatus}` : ""}${result.endpointHost ? ` · ${result.endpointHost}` : ""}${result.detail ? ` — ${result.detail}` : ""}`,
       );
-      setToast(`Health: ${result.code}`);
+      setToast(`Connection: ${result.code}`);
       load();
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Health check failed");
@@ -99,39 +119,47 @@ export function ProvidersPage() {
     <div className="acc-page">
       <PageHeader
         title="Providers"
-        description="AI provider registry. Credentials stay on the server and are shown masked only."
+        description="AI provider registry. Provider API keys are encrypted on the server — never confuse them with the Admin API Token."
         breadcrumbs={[{ label: "Admin" }, { label: "AI Control" }, { label: "Providers" }]}
       />
 
       {loading && <LoadingState />}
-      {error && <ErrorState title="Providers failed to load" detail={error} onRetry={load} />}
-      {!loading && !error && (
+      {authLocked && !loading && (
+        <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
+      )}
+      {error && !authLocked && <ErrorState title="Providers failed to load" detail={error} onRetry={load} />}
+      {!loading && !error && !authLocked && (
         <DataTable
           emptyTitle="No providers configured"
           columns={[
             { key: "name", label: "Provider" },
             { key: "type", label: "Type" },
             { key: "status", label: "Status" },
-            { key: "health", label: "Health" },
+            { key: "connection", label: "Connection" },
             { key: "enabled", label: "Enabled" },
             { key: "models", label: "Models", className: "numeric" },
-            { key: "credential", label: "Credential" },
+            { key: "credential", label: "Provider credential" },
             { key: "actions", label: "" },
           ]}
           rows={items.map((provider) => ({
             id: provider.id,
             cells: {
-              name: <strong>{provider.name}</strong>,
+              name: (
+                <div>
+                  <strong>{provider.name}</strong>
+                  {provider.baseEndpoint ? <div className="acc-muted mono">{provider.baseEndpoint}</div> : null}
+                </div>
+              ),
               type: provider.type,
               status: <StatusBadge status={provider.status} />,
-              health: <StatusBadge status={provider.healthStatus} />,
+              connection: <StatusBadge status={connectionLabel(provider)} />,
               enabled: provider.enabled ? "Yes" : "No",
               models: provider.configuredModelCount,
               credential: provider.hasCredential
-                ? <span className="mono">{provider.credentialMasked}</span>
-                : <span className="acc-muted">Not set</span>,
+                ? <StatusBadge status="Configured" />
+                : <StatusBadge status="Not configured" />,
               actions: (
-                <button type="button" className="acc-button ghost" onClick={() => open(provider)}>Details</button>
+                <button type="button" className="acc-button ghost" onClick={() => open(provider)}>Manage</button>
               ),
             },
           }))}
@@ -145,6 +173,9 @@ export function ProvidersPage() {
       >
         {draft && selected && (
           <div className="acc-form-stack">
+            <p className="acc-callout-inline">
+              Provider API credentials are encrypted server-side. This is not the Admin API Token (see Security → API Access).
+            </p>
             <FormField label="Name">
               <input value={draft.name ?? ""} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </FormField>
@@ -157,18 +188,18 @@ export function ProvidersPage() {
                 onChange={(e) => setDraft({ ...draft, baseEndpoint: e.target.value })}
               />
             </FormField>
-            <FormField label="Credential status" hint="Full secrets are never returned to the browser.">
+            <FormField label="Provider credential status" hint="Full secrets are never returned to the browser.">
               <input
-                value={selected.hasCredential ? (selected.credentialMasked ?? "••••••••") : "Not configured"}
+                value={selected.hasCredential ? "Credential configured" : "Not configured"}
                 readOnly
                 disabled
               />
             </FormField>
-            <FormField label="Set / replace API credential" hint="Value is sent once to the server and encrypted. It is never echoed back.">
+            <FormField label="Set / replace provider API key" hint="Value is sent once and encrypted. It is never echoed back.">
               <input
                 type="password"
                 autoComplete="off"
-                placeholder={selected.hasCredential ? "Enter new secret to replace" : "Paste API key"}
+                placeholder={selected.hasCredential ? "Enter new secret to replace" : "Paste provider API key"}
                 value={credentialDraft}
                 onChange={(e) => setCredentialDraft(e.target.value)}
               />
@@ -178,9 +209,6 @@ export function ProvidersPage() {
               checked={Boolean(draft.enabled)}
               onChange={(enabled) => setDraft({ ...draft, enabled })}
             />
-            <p className="acc-muted">
-              Encrypted credentials are stored on the server via the Credential Manager. The browser never receives API keys.
-            </p>
             {healthDetail && <p className="acc-muted" role="status">{healthDetail}</p>}
             <div className="acc-form-actions" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <button type="button" className="acc-button" disabled={saving} onClick={() => void save()}>
@@ -192,7 +220,7 @@ export function ProvidersPage() {
                 disabled={saving || !credentialDraft.trim()}
                 onClick={() => void saveCredential()}
               >
-                Store credential
+                Save credential
               </button>
               <button type="button" className="acc-button ghost" disabled={saving} onClick={() => void runHealth()}>
                 Test connection

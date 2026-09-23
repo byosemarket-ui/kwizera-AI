@@ -230,4 +230,33 @@ describe("Phase 1 online capability runtime", () => {
     expect(resolved.providerId).toBe("provider-ollama-local");
     expect(resolved.status).toBe("READY");
   });
+
+  it("seeds the Phase 1 capability catalog without claiming fake online readiness", async () => {
+    const { manager } = await boot();
+    const features = manager.listFeatureMappings().map((item) => item.feature);
+    for (const key of [
+      "VISION_ANALYSIS",
+      "LLM_REASONING",
+      "IMAGE_GENERATION",
+      "IMAGE_EDITING",
+      "IMAGE_SEGMENTATION",
+      "IMAGE_UPSCALE",
+      "IMAGE_TO_VIDEO",
+      "VIDEO_IMAGE_TO_VIDEO",
+      "VIDEO_GENERATION",
+      "MUSIC_GENERATION",
+      "TEXT_TO_SPEECH",
+      "SPEECH_TO_TEXT",
+      "AUDIO_INTELLIGENCE",
+      "VIDEO_QA",
+      "IMAGE_QA",
+      "ONLINE_API_PROBE",
+    ]) {
+      expect(features, key).toContain(key);
+    }
+    expect(manager.getFeatureMapping("ONLINE_API_PROBE")?.enabled).toBe(false);
+    expect(manager.getFeatureMapping("IMAGE_GENERATION")?.enabled).toBe(false);
+    expect(manager.getFeatureMapping("IMAGE_GENERATION")?.metadata.comingSoon).toBe(true);
+    expect(manager.getFeatureMapping("VIDEO_QA")?.metadata.pendingProvider).toBe(true);
+  });
 });

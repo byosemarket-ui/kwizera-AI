@@ -34,6 +34,10 @@ export function setStoredAdminToken(token: string): void {
   }
 }
 
+export function clearStoredAdminToken(): void {
+  setStoredAdminToken("");
+}
+
 function adminAuthHeaders(): Record<string, string> {
   const token = getStoredAdminToken();
   if (!token) return {};

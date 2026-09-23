@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../admin-api";
+import { adminAuthErrorMessage, isAdminAuthError } from "../admin-auth";
 import type { AdminModelRecord, AdminProviderPublicView } from "../types";
 import {
-  DataTable, ErrorState, FilterBar, FormField, LoadingState, Modal, PageHeader,
+  AuthLockedState, DataTable, ErrorState, FilterBar, FormField, LoadingState, Modal, PageHeader,
   Pagination, SearchInput, Select, StatusBadge, Toast, Toggle,
 } from "../components/ui";
 
@@ -11,7 +12,7 @@ const CATEGORIES = [
   "VIDEO", "AUDIO", "MUSIC", "TTS", "STT", "LLM", "EMBEDDING", "OTHER",
 ];
 
-export function ModelsPage() {
+export function ModelsPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }) {
   const [items, setItems] = useState<AdminModelRecord[]>([]);
   const [providers, setProviders] = useState<AdminProviderPublicView[]>([]);
   const [total, setTotal] = useState(0);
@@ -22,6 +23,8 @@ export function ModelsPage() {
   const [providerId, setProviderId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authLocked, setAuthLocked] = useState(false);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [editing, setEditing] = useState<Partial<AdminModelRecord> | null>(null);
   const [saving, setSaving] = useState(false);
@@ -34,6 +37,7 @@ export function ModelsPage() {
   const load = () => {
     setLoading(true);
     setError(null);
+    setAuthLocked(false);
     Promise.all([
       adminApi.models({ search: debounced, category, providerId, page, pageSize: 25 }),
       adminApi.providers(),
@@ -43,7 +47,17 @@ export function ModelsPage() {
         setTotal(models.total);
         setProviders(providerResult.items);
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: unknown) => {
+        if (isAdminAuthError(err)) {
+          setAuthLocked(true);
+          setAuthDetail(adminAuthErrorMessage(err));
+          setItems([]);
+          setProviders([]);
+          setTotal(0);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Models failed");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -80,55 +94,62 @@ export function ModelsPage() {
     <div className="acc-page">
       <PageHeader
         title="Model Registry"
-        description="Central registry for AI models. Engines should resolve models through this control plane."
+        description="Central registry for AI models. Models reference a provider — never store API keys on the model."
         breadcrumbs={[{ label: "Admin" }, { label: "AI Control" }, { label: "Models" }]}
         actions={
-          <button
-            type="button"
-            className="acc-button"
-            onClick={() => setEditing({
-              name: "",
-              providerId: providers[0]?.id ?? "",
-              category: "OTHER",
-              capability: "other",
-              modelId: "",
-              priority: 50,
-              inputType: "any",
-              outputType: "any",
-              currency: "USD",
-              timeoutMs: 60000,
-              enabled: false,
-              status: "inactive",
-              metadata: {},
-            })}
-          >
-            Add model
-          </button>
+          !authLocked ? (
+            <button
+              type="button"
+              className="acc-button"
+              onClick={() => setEditing({
+                name: "",
+                providerId: providers[0]?.id ?? "",
+                category: "OTHER",
+                capability: "other",
+                modelId: "",
+                priority: 50,
+                inputType: "any",
+                outputType: "any",
+                currency: "USD",
+                timeoutMs: 60000,
+                enabled: false,
+                status: "inactive",
+                metadata: {},
+              })}
+            >
+              Add model
+            </button>
+          ) : null
         }
       />
 
-      <FilterBar>
-        <SearchInput value={search} onChange={(value) => { setPage(1); setSearch(value); }} placeholder="Search models…" />
-        <Select
-          label="Category"
-          value={category}
-          onChange={(value) => { setPage(1); setCategory(value); }}
-          options={CATEGORIES.map((value) => ({ value, label: value || "All categories" }))}
-        />
-        <Select
-          label="Provider"
-          value={providerId}
-          onChange={(value) => { setPage(1); setProviderId(value); }}
-          options={[
-            { value: "", label: "All providers" },
-            ...providers.map((p) => ({ value: p.id, label: p.name })),
-          ]}
-        />
-      </FilterBar>
+      {!authLocked && (
+        <FilterBar>
+          <SearchInput value={search} onChange={(value) => { setPage(1); setSearch(value); }} placeholder="Search models…" />
+          <Select
+            label="Category"
+            value={category}
+            onChange={(value) => { setPage(1); setCategory(value); }}
+            options={CATEGORIES.map((value) => ({ value, label: value || "All categories" }))}
+          />
+          <Select
+            label="Provider"
+            value={providerId}
+            onChange={(value) => { setPage(1); setProviderId(value); }}
+            options={[
+              { value: "", label: "All providers" },
+              ...providers.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
+        </FilterBar>
+      )}
 
       {loading && <LoadingState />}
-      {error && <ErrorState title="Models failed to load" detail={error} onRetry={load} />}
-      {!loading && !error && (
+      {authLocked && !loading && (
+        <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
+      )}
+      {error && !authLocked && <ErrorState title="Models failed to load" detail={error} onRetry={load} />}
+      {!loading && !error && !authLocked && (
         <>
           <DataTable
             emptyTitle="No models in registry"

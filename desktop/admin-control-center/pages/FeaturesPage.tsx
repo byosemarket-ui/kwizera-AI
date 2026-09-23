@@ -1,16 +1,49 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "../admin-api";
+import { adminAuthErrorMessage, isAdminAuthError } from "../admin-auth";
 import type { AdminModelRecord, AdminProviderPublicView, FeatureMappingView } from "../types";
 import {
-  DataTable, ErrorState, FormField, LoadingState, Modal, PageHeader, StatusBadge, Toast, Toggle,
+  AuthLockedState, DataTable, ErrorState, FormField, LoadingState, Modal, PageHeader, StatusBadge, Toast, Toggle,
 } from "../components/ui";
 
-export function FeaturesPage() {
+/** Truthful capability readiness for Admin display — never invents AVAILABILITY. */
+function capabilityCatalogStatus(item: FeatureMappingView): string {
+  const meta = item.metadata ?? {};
+  if (meta.comingSoon === true) return "COMING_SOON";
+  if (!item.enabled) {
+    if (meta.pendingProvider === true || meta.pendingCredential === true) return "DISABLED";
+    if (item.feature === "ONLINE_API_PROBE") return "DISABLED";
+    return "DISABLED";
+  }
+  if (meta.pendingProvider === true || (!item.providerId && !item.primaryModelId)) {
+    return "PENDING_PROVIDER";
+  }
+  if (meta.pendingModel === true || (item.providerId && !item.primaryModelId)) {
+    return "PENDING_MODEL";
+  }
+  if (item.resolutionStatus === "READY" || item.resolutionStatus === "FALLBACK") {
+    return "CONFIGURED";
+  }
+  if (item.resolutionStatus === "UNAVAILABLE") return "UNAVAILABLE";
+  return item.resolutionStatus ?? "UNAVAILABLE";
+}
+
+function displayProvider(item: FeatureMappingView): string {
+  return item.providerName ?? (item.providerId ? item.providerId : "Not configured");
+}
+
+function displayModel(item: FeatureMappingView): string {
+  return item.primaryModelName ?? (item.primaryModelId ? item.primaryModelId : "Not configured");
+}
+
+export function FeaturesPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }) {
   const [items, setItems] = useState<FeatureMappingView[]>([]);
   const [models, setModels] = useState<AdminModelRecord[]>([]);
   const [providers, setProviders] = useState<AdminProviderPublicView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authLocked, setAuthLocked] = useState(false);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   const [editing, setEditing] = useState<FeatureMappingView | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -32,6 +65,7 @@ export function FeaturesPage() {
   const load = () => {
     setLoading(true);
     setError(null);
+    setAuthLocked(false);
     Promise.all([
       adminApi.features(),
       adminApi.models({ pageSize: 100 }),
@@ -42,7 +76,17 @@ export function FeaturesPage() {
         setModels(modelResult.items);
         setProviders(providerResult.items);
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: unknown) => {
+        if (isAdminAuthError(err)) {
+          setAuthLocked(true);
+          setAuthDetail(adminAuthErrorMessage(err));
+          setItems([]);
+          setModels([]);
+          setProviders([]);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Feature mappings failed");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -136,21 +180,24 @@ export function FeaturesPage() {
     <div className="acc-page">
       <PageHeader
         title="Feature Mapping"
-        description="Feature → Model → Provider resolution. Change mappings here without editing engine source."
+        description="Capability → Provider → Model resolution. Statuses are truthful — pending capabilities are not shown as available."
         breadcrumbs={[{ label: "Admin" }, { label: "AI Control" }, { label: "Feature Mapping" }]}
       />
 
       {loading && <LoadingState />}
-      {error && <ErrorState title="Feature mappings failed to load" detail={error} onRetry={load} />}
-      {!loading && !error && (
+      {authLocked && !loading && (
+        <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
+      )}
+      {error && !authLocked && <ErrorState title="Feature mappings failed to load" detail={error} onRetry={load} />}
+      {!loading && !error && !authLocked && (
         <DataTable
           emptyTitle="No feature mappings"
           columns={[
-            { key: "feature", label: "Feature" },
-            { key: "primary", label: "Primary model" },
-            { key: "secondary", label: "Secondary" },
-            { key: "fallback", label: "Fallback" },
+            { key: "feature", label: "Capability" },
             { key: "provider", label: "Provider" },
+            { key: "primary", label: "Model" },
+            { key: "fallback", label: "Fallback" },
+            { key: "priority", label: "Priority", className: "numeric" },
             { key: "status", label: "Status" },
             { key: "resolution", label: "Resolution" },
             { key: "actions", label: "" },
@@ -164,11 +211,11 @@ export function FeaturesPage() {
                   <div className="acc-muted mono">{item.feature}</div>
                 </div>
               ),
-              primary: item.primaryModelName ?? "—",
-              secondary: item.secondaryModelName ?? "—",
+              provider: displayProvider(item),
+              primary: displayModel(item),
               fallback: item.fallbackModelName ?? "—",
-              provider: item.providerName ?? "—",
-              status: <StatusBadge status={item.enabled ? "Enabled" : "Disabled"} />,
+              priority: item.priority,
+              status: <StatusBadge status={capabilityCatalogStatus(item)} />,
               resolution: item.resolutionStatus
                 ? <StatusBadge status={`${item.resolutionStatus}${item.resolutionSource && item.resolutionSource !== "NONE" ? ` · ${item.resolutionSource}` : ""}`} />
                 : "—",
@@ -190,7 +237,7 @@ export function FeaturesPage() {
         />
       )}
 
-      {probe && (
+      {probe && !authLocked && (
         <section className="acc-section-card" aria-live="polite">
           <div className="acc-section-card-head">
             <div>

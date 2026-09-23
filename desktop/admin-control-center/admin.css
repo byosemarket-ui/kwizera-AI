@@ -405,11 +405,164 @@
 
 .acc-empty-state,
 .acc-error-state,
-.acc-loading-state {
+.acc-loading-state,
+.acc-auth-locked {
   border: 1px dashed var(--acc-border);
   border-radius: var(--acc-radius);
   padding: 24px;
   background: rgba(21, 27, 36, 0.7);
+}
+
+.acc-auth-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border-style: solid;
+  border-color: rgba(199, 145, 45, 0.4);
+}
+
+.acc-auth-locked strong {
+  font-size: 15px;
+}
+
+.acc-auth-locked p {
+  margin: 0;
+  color: var(--acc-muted);
+  font-size: 13px;
+  max-width: 52ch;
+}
+
+.acc-api-access-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.acc-info-card {
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  background: var(--acc-surface-2);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acc-info-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.acc-info-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(61, 156, 253, 0.12);
+  color: var(--acc-accent);
+}
+
+.acc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--acc-muted);
+}
+
+.acc-field input {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--acc-border);
+  background: var(--acc-bg);
+  color: var(--acc-text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.acc-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.acc-callout,
+.acc-callout-inline {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--acc-radius);
+  border: 1px solid rgba(61, 156, 253, 0.28);
+  background: rgba(61, 156, 253, 0.08);
+  font-size: 13px;
+}
+
+.acc-callout-inline {
+  margin-top: 0;
+  color: var(--acc-muted);
+}
+
+.acc-callout ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--acc-muted);
+}
+
+.acc-callout li + li {
+  margin-top: 4px;
+}
+
+.acc-auth-hint {
+  margin: 0;
+  color: #f3d49a;
+  font-size: 12px;
+}
+
+/* Theme-aware scrollbars (dark Admin shell) */
+.acc-shell,
+.acc-sidebar,
+.acc-main,
+.acc-modal,
+.acc-drawer,
+.acc-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: #3a4658 transparent;
+}
+
+.acc-shell::-webkit-scrollbar,
+.acc-sidebar::-webkit-scrollbar,
+.acc-main::-webkit-scrollbar,
+.acc-modal::-webkit-scrollbar,
+.acc-drawer::-webkit-scrollbar,
+.acc-table-wrap::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.acc-shell::-webkit-scrollbar-track,
+.acc-sidebar::-webkit-scrollbar-track,
+.acc-main::-webkit-scrollbar-track,
+.acc-modal::-webkit-scrollbar-track,
+.acc-drawer::-webkit-scrollbar-track,
+.acc-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.acc-shell::-webkit-scrollbar-thumb,
+.acc-sidebar::-webkit-scrollbar-thumb,
+.acc-main::-webkit-scrollbar-thumb,
+.acc-modal::-webkit-scrollbar-thumb,
+.acc-drawer::-webkit-scrollbar-thumb,
+.acc-table-wrap::-webkit-scrollbar-thumb {
+  background: #3a4658;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .acc-error-state {
@@ -722,7 +875,8 @@
   }
 
   .acc-form-grid,
-  .acc-setting-row {
+  .acc-setting-row,
+  .acc-api-access-grid {
     grid-template-columns: 1fr;
   }
 

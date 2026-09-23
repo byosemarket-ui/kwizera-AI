@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../admin-api";
+import { adminAuthErrorMessage, isAdminAuthError } from "../admin-auth";
 import type { TypedSetting } from "../types";
 import {
-  ErrorState, FormField, LoadingState, PageHeader, SectionCard, Tabs, Toast, Toggle,
+  AuthLockedState, ErrorState, FormField, LoadingState, PageHeader, SectionCard, Tabs, Toast, Toggle,
 } from "../components/ui";
 
 const CATEGORIES = [
@@ -18,19 +19,30 @@ const CATEGORIES = [
   { id: "notifications", label: "Notifications" },
 ];
 
-export function SettingsPage() {
+export function SettingsPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }) {
   const [items, setItems] = useState<TypedSetting[]>([]);
   const [category, setCategory] = useState("general");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authLocked, setAuthLocked] = useState(false);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
     setError(null);
+    setAuthLocked(false);
     adminApi.settings()
       .then((result) => setItems(result.items))
-      .catch((err: Error) => setError(err.message))
+      .catch((err: unknown) => {
+        if (isAdminAuthError(err)) {
+          setAuthLocked(true);
+          setAuthDetail(adminAuthErrorMessage(err));
+          setItems([]);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Settings failed");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -58,10 +70,13 @@ export function SettingsPage() {
         description="Typed application settings for the Admin control plane. Billing logic is not implemented yet."
         breadcrumbs={[{ label: "Admin" }, { label: "System" }, { label: "Settings" }]}
       />
-      <Tabs tabs={CATEGORIES} active={category} onChange={setCategory} />
+      {!authLocked && <Tabs tabs={CATEGORIES} active={category} onChange={setCategory} />}
       {loading && <LoadingState />}
-      {error && <ErrorState title="Settings failed to load" detail={error} onRetry={load} />}
-      {!loading && !error && (
+      {authLocked && !loading && (
+        <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
+      )}
+      {error && !authLocked && <ErrorState title="Settings failed to load" detail={error} onRetry={load} />}
+      {!loading && !error && !authLocked && (
         <SectionCard title={CATEGORIES.find((item) => item.id === category)?.label ?? category}>
           {visible.length === 0 ? (
             <p className="acc-muted">No settings in this category.</p>

@@ -69,11 +69,11 @@ export function SectionCard({ title, description, actions, children }: {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const tone = /healthy|active|online|ok|enabled|succeeded|operational/i.test(status)
+  const tone = /healthy|active|online|ok|enabled|succeeded|operational|configured|authorized|connected|ready/i.test(status)
     ? "ok"
-    : /degraded|warning|inactive|unchecked|pending/i.test(status)
+    : /degraded|warning|inactive|unchecked|pending|coming.?soon|not configured|not tested|disabled/i.test(status)
       ? "warn"
-      : /error|unhealthy|failed|denied|offline/i.test(status)
+      : /error|unhealthy|failed|denied|offline|unavailable|locked|authentication failed/i.test(status)
         ? "bad"
         : "neutral";
   return <span className={`acc-status-badge tone-${tone}`}>{status}</span>;
@@ -104,6 +104,30 @@ export function ErrorState({ title, detail, onRetry }: { title: string; detail?:
       <strong>{title}</strong>
       {detail ? <p>{detail}</p> : null}
       {onRetry ? <button type="button" className="acc-button" onClick={onRetry}>Retry</button> : null}
+    </div>
+  );
+}
+
+/** In-content lock for protected Admin pages — never replaces the Admin shell. */
+export function AuthLockedState({
+  detail,
+  onGoToApiAccess,
+}: {
+  detail?: string;
+  onGoToApiAccess?: () => void;
+}) {
+  return (
+    <div className="acc-auth-locked" role="status">
+      <strong>Admin authorization required</strong>
+      <p>
+        {detail
+          || "This page needs a valid Admin API token for this browser session. Open API Access to unlock — this is not an AI provider API key."}
+      </p>
+      {onGoToApiAccess ? (
+        <button type="button" className="acc-button" onClick={onGoToApiAccess}>
+          Go to API Access
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ export type AdminRouteId =
   | "models"
   | "providers"
   | "features"
+  | "api-access"
   | "video"
   | "image"
   | "audio"
@@ -80,6 +81,7 @@ export interface FeatureMappingView {
   resolutionStatus?: string;
   resolutionSource?: string;
   resolutionReason?: string | null;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

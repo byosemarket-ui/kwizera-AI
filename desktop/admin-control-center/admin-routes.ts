@@ -5,15 +5,16 @@ export interface AdminNavItem {
   label: string;
   path: string;
   implemented: boolean;
-  group: "admin" | "ai" | "creative" | "business" | "system";
+  group: "admin" | "ai" | "security" | "creative" | "business" | "system";
   groupLabel: string;
 }
 
 export const ADMIN_NAV: AdminNavItem[] = [
   { id: "dashboard", label: "Dashboard", path: "/admin/dashboard", implemented: true, group: "admin", groupLabel: "Admin" },
-  { id: "models", label: "Models", path: "/admin/models", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "providers", label: "Providers", path: "/admin/providers", implemented: true, group: "ai", groupLabel: "AI Control" },
+  { id: "models", label: "Models", path: "/admin/models", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "features", label: "Feature Mapping", path: "/admin/features", implemented: true, group: "ai", groupLabel: "AI Control" },
+  { id: "api-access", label: "API Access", path: "/admin/api-access", implemented: true, group: "security", groupLabel: "Security" },
   { id: "video", label: "Video", path: "/admin/video", implemented: false, group: "creative", groupLabel: "Creative" },
   { id: "image", label: "Image", path: "/admin/image", implemented: false, group: "creative", groupLabel: "Creative" },
   { id: "audio", label: "Audio", path: "/admin/audio", implemented: false, group: "creative", groupLabel: "Creative" },
@@ -31,7 +32,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: "settings", label: "Settings", path: "/admin/settings", implemented: true, group: "system", groupLabel: "System" },
 ];
 
-export const ADMIN_GROUP_ORDER = ["admin", "ai", "creative", "business", "system"] as const;
+export const ADMIN_GROUP_ORDER = ["admin", "ai", "security", "creative", "business", "system"] as const;
 
 export function parseAdminRouteFromLocation(): AdminRouteId {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";

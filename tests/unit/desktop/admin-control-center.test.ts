@@ -76,9 +76,13 @@ describe("Admin Control Center routing separation", () => {
 
   it("exposes implemented admin routes and marks future sections as coming soon", () => {
     const implemented = ADMIN_NAV.filter((item) => item.implemented).map((item) => item.id);
-    expect(implemented).toEqual(expect.arrayContaining(["dashboard", "models", "providers", "features", "settings", "system"]));
+    expect(implemented).toEqual(expect.arrayContaining([
+      "dashboard", "models", "providers", "features", "api-access", "settings", "system",
+    ]));
+    expect(ADMIN_NAV.find((item) => item.id === "api-access")?.group).toBe("security");
     expect(ADMIN_NAV.find((item) => item.id === "customers")?.implemented).toBe(false);
     expect(adminPathFor("models")).toBe("/admin/models");
+    expect(adminPathFor("api-access")).toBe("/admin/api-access");
     expect(STUDIO_ROOT_PATH).toBe("/");
   });
 
@@ -88,6 +92,7 @@ describe("Admin Control Center routing separation", () => {
     expect(isAdminUrl("/admin/models", "")).toBe(true);
     expect(isAdminUrl("/admin/providers", "")).toBe(true);
     expect(isAdminUrl("/admin/features", "")).toBe(true);
+    expect(isAdminUrl("/admin/api-access", "")).toBe(true);
     expect(isAdminUrl("/admin/settings", "")).toBe(true);
     expect(isAdminUrl("/admin/system", "")).toBe(true);
     expect(isAdminUrl("/", "")).toBe(false);
@@ -105,6 +110,10 @@ describe("Admin Control Center routing separation", () => {
     const admin = fs.readFileSync(path.resolve("desktop/admin-control-center/AdminControlCenter.tsx"), "utf8");
     expect(admin).toContain("Back to Studio");
     expect(admin).toContain("acc-shell");
+    expect(admin).toContain("ApiAccessPage");
+    expect(admin).toContain("goToApiAccess");
+    // Shell must remain usable — token form is a page, not a full-shell gate
+    expect(admin).not.toMatch(/if\s*\(\s*!.*token[\s\S]{0,120}return\s*\(/i);
   });
 
   it("does not nest AdminControlCenter inside AppShell", () => {
@@ -143,22 +152,39 @@ describe("Admin UI talks to live Admin APIs", () => {
       features: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/FeaturesPage.tsx"), "utf8"),
       settings: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/SettingsPage.tsx"), "utf8"),
       system: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/SystemPage.tsx"), "utf8"),
+      apiAccess: fs.readFileSync(path.resolve("desktop/admin-control-center/pages/ApiAccessPage.tsx"), "utf8"),
       client: fs.readFileSync(path.resolve("desktop/admin-control-center/admin-api.ts"), "utf8"),
+      ui: fs.readFileSync(path.resolve("desktop/admin-control-center/components/ui.tsx"), "utf8"),
     };
     for (const [name, src] of Object.entries(pages)) {
       expect(src, name).not.toMatch(/mockModels|MOCK_|fakeCustomers|hardcoded revenue/i);
     }
     expect(pages.dashboard).toContain("adminApi.dashboard");
     expect(pages.dashboard).toContain("Not available yet");
+    expect(pages.dashboard).toContain("AuthLockedState");
     expect(pages.models).toContain("adminApi.models");
     expect(pages.models).toContain("No models in registry");
+    expect(pages.models).toContain("AuthLockedState");
     expect(pages.providers).toContain("adminApi.providers");
     expect(pages.providers).toContain("No providers configured");
+    expect(pages.providers).toContain("AuthLockedState");
     expect(pages.features).toContain("adminApi.features");
     expect(pages.features).toContain("resolveFeature");
+    expect(pages.features).toContain("AuthLockedState");
     expect(pages.settings).toContain("adminApi.settings");
+    expect(pages.settings).toContain("AuthLockedState");
     expect(pages.system).toContain("adminApi.health");
+    expect(pages.system).toContain("AuthLockedState");
+    expect(pages.apiAccess).toContain("Unlock Admin");
+    expect(pages.apiAccess).toContain("Clear Session");
+    expect(pages.apiAccess).toContain("not an AI provider API key");
+    expect(pages.apiAccess).toContain("setStoredAdminToken");
+    expect(pages.apiAccess).toContain("clearStoredAdminToken");
+    expect(pages.ui).toContain("AuthLockedState");
+    expect(pages.ui).toContain("Go to API Access");
     expect(pages.client).toContain("/api/admin/features/resolve/");
     expect(pages.client).toContain("error?.message");
+    expect(pages.client).toContain("sessionStorage");
+    expect(pages.client).not.toContain("localStorage");
   });
 });

@@ -1,33 +1,52 @@
 import { useEffect, useState } from "react";
-import { adminApi } from "../admin-api";
+import { adminApi, getStoredAdminToken } from "../admin-api";
+import { adminAuthErrorMessage, isAdminAuthError } from "../admin-auth";
 import type { AdminDashboardSnapshot } from "../types";
-import { ErrorState, LoadingState, PageHeader, SectionCard, StatCard, StatusBadge } from "../components/ui";
+import {
+  AuthLockedState, ErrorState, LoadingState, PageHeader, SectionCard, StatCard, StatusBadge,
+} from "../components/ui";
 
 function display(value: string | number | undefined): string {
   if (value === undefined || value === null || value === "") return "Not available yet";
   return String(value);
 }
 
-export function DashboardPage() {
+export function DashboardPage({ onGoToApiAccess }: { onGoToApiAccess?: () => void }) {
   const [data, setData] = useState<AdminDashboardSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authLocked, setAuthLocked] = useState(false);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionAuthorized, setSessionAuthorized] = useState(false);
 
   const load = () => {
     setLoading(true);
     setError(null);
+    setAuthLocked(false);
     adminApi.dashboard()
       .then((snapshot) => {
         if (!snapshot?.system || !snapshot?.business || !snapshot?.ai || !snapshot?.cost) {
           throw new Error("Dashboard payload was incomplete");
         }
         setData(snapshot);
+        setSessionAuthorized(true);
       })
-      .catch((err: Error) => setError(err.message))
+      .catch((err: unknown) => {
+        if (isAdminAuthError(err)) {
+          setAuthLocked(true);
+          setAuthDetail(adminAuthErrorMessage(err));
+          setData(null);
+          setSessionAuthorized(false);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Dashboard failed");
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(load, []);
+
+  const hasSessionToken = Boolean(getStoredAdminToken());
 
   return (
     <div className="acc-page">
@@ -37,9 +56,29 @@ export function DashboardPage() {
         breadcrumbs={[{ label: "Admin" }, { label: "Dashboard" }]}
       />
       {loading && <LoadingState />}
-      {error && <ErrorState title="Dashboard failed to load" detail={error} onRetry={load} />}
-      {data && !loading && !error && (
+      {authLocked && !loading && (
+        <AuthLockedState detail={authDetail ?? undefined} onGoToApiAccess={onGoToApiAccess} />
+      )}
+      {error && !authLocked && <ErrorState title="Dashboard failed to load" detail={error} onRetry={load} />}
+      {data && !loading && !error && !authLocked && (
         <>
+          <SectionCard title="Admin Security" description="Browser session authorization for Admin APIs">
+            <div className="acc-stat-grid">
+              <StatCard
+                label="Admin security"
+                value={sessionAuthorized ? "Authorized" : hasSessionToken ? "Locked" : "Locked"}
+                hint="Admin API Token · API Access page"
+              />
+              <StatCard
+                label="AI providers"
+                value={`${data.ai.activeProviders} enabled`}
+                hint="See Providers for credentials"
+              />
+              <StatCard label="Active models" value={data.ai.activeModels} />
+              <StatCard label="Feature defaults" value={data.ai.defaultModels.length} />
+            </div>
+          </SectionCard>
+
           <SectionCard title="System Overview" description="Live operational signals">
             <div className="acc-stat-grid">
               <StatCard label="System" value={display(data.system.systemStatus)} />
