@@ -477,7 +477,7 @@ export class ProductSetupEngine {
       approvedRenderJobId: this.approvedRenderJobId,
       approvedOutputAssetId: this.approvedOutputAssetId,
       targetedRegeneration: this.targetedRegeneration ? { ...this.targetedRegeneration } : null,
-      canRunQa: canContinueToCreative
+      canRunQa: Boolean(productIntakeEngine.snapshot().projectId)
         && this.finalVideoReady
         && Boolean(this.finalOutputUrl)
         && this.produceStatus !== "STALE"
@@ -487,6 +487,7 @@ export class ProductSetupEngine {
         && this.produceStatus !== "REGENERATING"
         && !this.transitioning,
       canRegenerateFailedScene: Boolean(this.qaResult?.scenes.some((s) => s.status === "FAIL"))
+        && canContinueToCreative
         && this.produceStatus !== "RENDERING"
         && this.produceStatus !== "QA_IN_PROGRESS"
         && this.produceStatus !== "REGENERATING"
@@ -499,7 +500,9 @@ export class ProductSetupEngine {
         ? "Render a final video before quality checks."
         : this.produceStatus === "STALE"
           ? "Final video is stale — re-render before QA."
-          : this.qaResult?.failures[0] ?? this.produceError,
+          : !canContinueToCreative && this.qaResult?.overallStatus !== "QA_PASSED"
+            ? (lockValidation.issues[0] ?? "Product Identity Lock must be valid to approve delivery.")
+            : this.qaResult?.failures[0] ?? this.produceError,
     };
   }
 
