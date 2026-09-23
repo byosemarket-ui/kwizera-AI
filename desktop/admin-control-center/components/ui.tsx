@@ -69,14 +69,14 @@ export function SectionCard({ title, description, actions, children }: {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const tone = /healthy|active|online|ok|enabled|succeeded|operational|configured|authorized|connected|ready/i.test(status)
+  const tone = /healthy|active|online|ok|enabled|succeeded|operational|configured|authorized|connected|ready|local_runtime/i.test(status)
     ? "ok"
-    : /degraded|warning|inactive|unchecked|pending|coming.?soon|not configured|not tested|disabled/i.test(status)
+    : /degraded|warning|inactive|unchecked|pending|coming.?soon|not.?configured|not.?tested|disabled|local runtime/i.test(status)
       ? "warn"
-      : /error|unhealthy|failed|denied|offline|unavailable|locked|authentication failed/i.test(status)
+      : /error|unhealthy|failed|denied|offline|unavailable|locked|authentication/i.test(status)
         ? "bad"
         : "neutral";
-  return <span className={`acc-status-badge tone-${tone}`}>{status}</span>;
+  return <span className={`acc-status-badge tone-${tone}`}>{status.replace(/_/g, " ")}</span>;
 }
 
 export function EmptyState({ title, detail }: { title: string; detail?: string }) {

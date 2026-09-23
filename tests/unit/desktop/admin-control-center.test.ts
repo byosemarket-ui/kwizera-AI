@@ -112,6 +112,8 @@ describe("Admin Control Center routing separation", () => {
     expect(admin).toContain("acc-shell");
     expect(admin).toContain("ApiAccessPage");
     expect(admin).toContain("goToApiAccess");
+    expect(admin).toContain("acc-mobile-nav-toggle");
+    expect(admin).not.toContain("acc-mobile-bottom");
     // Shell must remain usable — token form is a page, not a full-shell gate
     expect(admin).not.toMatch(/if\s*\(\s*!.*token[\s\S]{0,120}return\s*\(/i);
   });
@@ -166,8 +168,13 @@ describe("Admin UI talks to live Admin APIs", () => {
     expect(pages.models).toContain("No models in registry");
     expect(pages.models).toContain("AuthLockedState");
     expect(pages.providers).toContain("adminApi.providers");
-    expect(pages.providers).toContain("No providers configured");
+    expect(pages.providers).toContain("No providers match");
     expect(pages.providers).toContain("AuthLockedState");
+    expect(pages.providers).toContain("AI Providers");
+    expect(pages.providers).toContain("setProviderCredential");
+    expect(pages.providers).toContain("OpenAI API Key");
+    expect(pages.providers).toContain("acc-provider-grid");
+    expect(pages.providers).not.toMatch(/Admin API Token[\s\S]{0,40}Paste/);
     expect(pages.features).toContain("adminApi.features");
     expect(pages.features).toContain("resolveFeature");
     expect(pages.features).toContain("AuthLockedState");
@@ -177,7 +184,11 @@ describe("Admin UI talks to live Admin APIs", () => {
     expect(pages.system).toContain("AuthLockedState");
     expect(pages.apiAccess).toContain("Unlock Admin");
     expect(pages.apiAccess).toContain("Clear Session");
+    expect(pages.apiAccess).toContain("Admin API Token");
     expect(pages.apiAccess).toContain("not an AI provider API key");
+    expect(pages.apiAccess).toContain("Open AI Providers");
+    expect(pages.apiAccess).not.toContain("OpenAI API Key");
+    expect(pages.apiAccess).not.toContain("fal.ai API");
     expect(pages.apiAccess).toContain("setStoredAdminToken");
     expect(pages.apiAccess).toContain("clearStoredAdminToken");
     expect(pages.ui).toContain("AuthLockedState");

@@ -1,4 +1,4 @@
-import { KeyRound, ShieldCheck, ShieldOff } from "lucide-react";
+import { KeyRound, ShieldCheck, ShieldOff, Cable } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   AdminApiError,
@@ -10,10 +10,10 @@ import {
 import { PageHeader, SectionCard, StatusBadge, Toast } from "../components/ui";
 
 /**
- * Dedicated Admin API Access page.
- * This is NOT the AI provider credential UI — that lives under Providers.
+ * Admin API Access — browser session authorization ONLY.
+ * AI provider API credentials live under AI Control → Providers.
  */
-export function ApiAccessPage() {
+export function ApiAccessPage({ onGoToProviders }: { onGoToProviders?: () => void }) {
   const [draft, setDraft] = useState("");
   const [hasSessionToken, setHasSessionToken] = useState(() => Boolean(getStoredAdminToken()));
   const [authorized, setAuthorized] = useState(false);
@@ -83,16 +83,16 @@ export function ApiAccessPage() {
   const statusLabel = checking
     ? "Checking…"
     : authorized
-      ? "Session authorized"
+      ? "Authorized"
       : hasSessionToken
         ? "Token present — not accepted"
-        : "Not configured in this browser session";
+        : "Not authorized";
 
   return (
     <div className="acc-page acc-api-access-page">
       <PageHeader
         title="API Access"
-        description="Authorize this browser session for protected Admin APIs. This is not an AI provider API key."
+        description="Admin session security only. AI provider API keys are managed under AI Control → Providers."
         breadcrumbs={[{ label: "Admin" }, { label: "Security" }, { label: "API Access" }]}
       />
 
@@ -122,15 +122,15 @@ export function ApiAccessPage() {
             <h3>Admin API Token</h3>
             <p className="acc-muted">
               This token authorizes this browser session to access protected Admin APIs.
-              It is not an AI provider API key. Provider keys are configured under Providers.
+              It is not an AI provider API key.
             </p>
             <label className="acc-field">
-              <span>Admin API token</span>
+              <span>Admin API Token</span>
               <input
                 type="password"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder={hasSessionToken || authorized ? "••••••••••••" : "Paste server Admin API token"}
+                placeholder={hasSessionToken || authorized ? "••••••••••••" : "Paste Admin API Token"}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
@@ -157,9 +157,21 @@ export function ApiAccessPage() {
         <div className="acc-callout">
           <strong>Keep these separate</strong>
           <ul>
-            <li><strong>Admin API Token</strong> — authorizes Admin Control Center API requests from this browser.</li>
-            <li><strong>AI Provider API Key</strong> — stored encrypted on the server for OpenAI, fal.ai, and other providers.</li>
+            <li>
+              <strong>Admin API Token</strong> (this page) — authorizes Admin Control Center API requests
+              from this browser session.
+            </li>
+            <li>
+              <strong>AI Provider API Credentials</strong> — OpenAI, Google, Anthropic, fal.ai, and others,
+              configured per provider under <strong>AI Control → Providers</strong>.
+            </li>
           </ul>
+          {onGoToProviders ? (
+            <button type="button" className="acc-button ghost acc-callout-action" onClick={onGoToProviders}>
+              <Cable size={14} />
+              Open AI Providers
+            </button>
+          ) : null}
         </div>
       </SectionCard>
       <Toast message={toast} />

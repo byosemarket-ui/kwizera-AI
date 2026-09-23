@@ -720,7 +720,7 @@
 .acc-toast {
   position: fixed;
   right: 16px;
-  bottom: 72px;
+  bottom: 16px;
   z-index: 90;
   padding: 10px 14px;
   border-radius: 8px;
@@ -778,9 +778,161 @@
 }
 
 .acc-mobile-nav-toggle,
-.acc-sidebar-scrim,
-.acc-mobile-bottom {
+.acc-sidebar-scrim {
   display: none;
+}
+
+.acc-provider-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.acc-provider-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--acc-border);
+  border-radius: 8px;
+  background: var(--acc-surface-2);
+  color: var(--acc-muted);
+}
+
+.acc-provider-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--acc-text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.acc-provider-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acc-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.acc-provider-card {
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  background: var(--acc-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.acc-provider-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.acc-provider-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(61, 156, 253, 0.12);
+  color: var(--acc-accent);
+  flex-shrink: 0;
+}
+
+.acc-provider-card-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-provider-card-titles h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.acc-provider-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.acc-provider-meta dt {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acc-muted);
+  margin-bottom: 4px;
+}
+
+.acc-provider-meta dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.acc-provider-endpoint {
+  word-break: break-all;
+  font-size: 11px !important;
+}
+
+.acc-provider-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.acc-provider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--acc-border);
+}
+
+.acc-provider-section h3 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acc-muted);
+}
+
+.acc-provider-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acc-provider-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--acc-border);
+  border-radius: 6px;
+  background: var(--acc-surface-2);
+}
+
+.acc-callout-action {
+  margin-top: 10px;
 }
 
 @media (max-width: 1024px) {
@@ -813,19 +965,36 @@
     top: 52px;
     left: 0;
     bottom: 0;
-    width: min(280px, 86vw);
+    width: min(300px, 88vw);
     z-index: 70;
     transform: translateX(-105%);
     transition: transform 0.2s ease;
+    padding: 12px 10px 28px;
+    overflow: auto;
   }
 
   .acc-sidebar.open {
     transform: translateX(0);
   }
 
+  /* Full labels in the mobile drawer — not icon-only */
+  .acc-sidebar .acc-nav-item span,
+  .acc-sidebar .acc-nav-group-label,
+  .acc-sidebar .acc-soon {
+    display: initial;
+  }
+
+  .acc-sidebar .acc-nav-item {
+    justify-content: flex-start;
+  }
+
+  .acc-sidebar .acc-soon {
+    margin-left: auto;
+    font-style: normal;
+  }
+
   .acc-mobile-nav-toggle,
-  .acc-sidebar-scrim,
-  .acc-mobile-bottom {
+  .acc-sidebar-scrim {
     display: flex;
   }
 
@@ -837,47 +1006,26 @@
     z-index: 60;
   }
 
-  .acc-mobile-bottom {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 55;
-    min-height: 56px;
-    background: rgba(14, 18, 24, 0.96);
-    border-top: 1px solid var(--acc-border);
-    justify-content: space-around;
-    align-items: stretch;
-    padding: 4px;
-  }
-
-  .acc-mobile-bottom button {
-    flex: 1;
-    border: 0;
-    background: transparent;
-    color: var(--acc-muted);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    font: inherit;
-    font-size: 10px;
-    min-height: 48px;
-  }
-
-  .acc-mobile-bottom button.active {
-    color: #d7ebff;
-  }
-
   .acc-main {
-    padding-bottom: 84px;
+    padding-bottom: 28px;
+  }
+
+  .acc-toast {
+    bottom: 16px;
   }
 
   .acc-form-grid,
   .acc-setting-row,
   .acc-api-access-grid {
     grid-template-columns: 1fr;
+  }
+
+  .acc-provider-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .acc-drawer {
+    width: min(100vw, 100%);
   }
 
   .acc-table thead {
@@ -931,7 +1079,6 @@
   .acc-main { padding-inline: 12px; }
   .acc-stat-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .acc-topbar { gap: 8px; padding-inline: 8px; }
-  .acc-mobile-bottom button { font-size: 9px; min-height: 48px; }
 }
 
 @media (max-width: 320px) {

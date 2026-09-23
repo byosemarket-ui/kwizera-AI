@@ -79,13 +79,14 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
   };
 
   const goToApiAccess = () => navigate("api-access", true);
+  const goToProviders = () => navigate("providers", true);
 
   let content = <ComingSoon title={ADMIN_NAV.find((item) => item.id === route)?.label ?? "Section"} />;
   if (route === "dashboard") content = <DashboardPage onGoToApiAccess={goToApiAccess} />;
   else if (route === "models") content = <ModelsPage onGoToApiAccess={goToApiAccess} />;
   else if (route === "providers") content = <ProvidersPage onGoToApiAccess={goToApiAccess} />;
   else if (route === "features") content = <FeaturesPage onGoToApiAccess={goToApiAccess} />;
-  else if (route === "api-access") content = <ApiAccessPage />;
+  else if (route === "api-access") content = <ApiAccessPage onGoToProviders={goToProviders} />;
   else if (route === "settings") content = <SettingsPage onGoToApiAccess={goToApiAccess} />;
   else if (route === "system") content = <SystemPage onOpenStudioHealth={onOpenStudioHealth} onGoToApiAccess={goToApiAccess} />;
 
@@ -157,24 +158,6 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
           {content}
         </main>
       </div>
-
-      <nav className="acc-mobile-bottom" aria-label="Admin quick navigation">
-        {(["dashboard", "providers", "models", "features", "api-access"] as AdminRouteId[]).map((id) => {
-          const item = ADMIN_NAV.find((entry) => entry.id === id)!;
-          const Icon = ICONS[id];
-          return (
-            <button
-              key={id}
-              type="button"
-              className={route === id ? "active" : ""}
-              onClick={() => navigate(id, true)}
-            >
-              <Icon size={16} />
-              <span>{item.label.split(" ")[0]}</span>
-            </button>
-          );
-        })}
-      </nav>
     </div>
   );
 }
