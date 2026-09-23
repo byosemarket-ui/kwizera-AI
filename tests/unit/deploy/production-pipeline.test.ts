@@ -91,7 +91,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("secrets.VPS_KNOWN_HOSTS");
     expect(yml).toContain("BatchMode=yes");
     expect(yml).toContain("npm run build:production");
-    expect(yml).toContain("npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/desktop/admin-control-center.test.ts tests/unit/desktop/customer-platform.test.ts tests/unit/desktop/customer-service-workspace.test.ts tests/unit/desktop/customer-hardening.test.ts tests/unit/desktop/product-identity-lock.test.ts tests/unit/desktop/pmv-creative.test.ts tests/unit/ai/admin-control-plane tests/unit/ai/creative-workspace");
+    expect(yml).toContain("npx vitest run tests/unit/deploy tests/unit/dev/server tests/unit/desktop/admin-control-center.test.ts tests/unit/desktop/customer-platform.test.ts tests/unit/desktop/customer-service-workspace.test.ts tests/unit/desktop/customer-hardening.test.ts tests/unit/desktop/product-identity-lock.test.ts tests/unit/desktop/pmv-creative.test.ts tests/unit/desktop/pmv-final.test.ts tests/unit/ai/admin-control-plane tests/unit/ai/creative-workspace");
     expect(yml).toContain("tests/unit/ai/admin-control-plane");
     expect(yml).toContain("tests/unit/desktop/admin-control-center.test.ts");
     expect(yml).toContain("tests/unit/desktop/customer-platform.test.ts");

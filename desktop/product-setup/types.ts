@@ -14,6 +14,13 @@ import type {
   PmvModeCapabilityView,
   PmvStoryboardSceneView,
 } from "../pmv-creative/types";
+import type {
+  PmvAudioIntelligenceView,
+  PmvAudioLibraryItem,
+  PmvBeatSyncMode,
+  PmvMusicCapabilityView,
+  PmvProduceStatus,
+} from "../pmv-final/types";
 
 export type AnalysisUiStatus =
   | "NOT_STARTED"
@@ -108,6 +115,15 @@ export interface PmvFoundationSettings {
   videoReady?: boolean;
   creativeError?: string | null;
   audioRequirements?: PmvAudioRequirements | null;
+  /** Step 4 — audio + final render */
+  produceStatus?: PmvProduceStatus;
+  finalRenderJobId?: string | null;
+  finalVideoReady?: boolean;
+  finalOutputAssetId?: string | null;
+  finalOutputUrl?: string | null;
+  beatSyncMode?: PmvBeatSyncMode;
+  audioVolume?: number;
+  selectedAudioAssetId?: string | null;
 }
 
 export interface DiscountInfo {
@@ -227,6 +243,31 @@ export interface ProductSetupSnapshot {
   canGenerateCreativePlan: boolean;
   canGenerateVideo: boolean;
   creativeBlockedReason: string | null;
+  /** Step 4 — Audio + Timeline + Final Render */
+  produceStatus: PmvProduceStatus;
+  audioLibrary: PmvAudioLibraryItem[];
+  selectedAudioAssetId: string | null;
+  selectedAudioTitle: string | null;
+  audioEnabled: boolean;
+  audioVolume: number;
+  beatSyncMode: PmvBeatSyncMode;
+  audioIntelligence: PmvAudioIntelligenceView | null;
+  musicCapability: PmvMusicCapabilityView;
+  timelineReady: boolean;
+  finalRenderJobId: string | null;
+  finalVideoReady: boolean;
+  finalOutputUrl: string | null;
+  finalOutputAssetId: string | null;
+  finalDurationMs: number | null;
+  finalWidth: number | null;
+  finalHeight: number | null;
+  produceProgress: number;
+  produceStageLabel: string;
+  produceError: string | null;
+  canRefreshAudioLibrary: boolean;
+  canSelectAudio: boolean;
+  canStartFinalRender: boolean;
+  produceBlockedReason: string | null;
 }
 
 export interface Step2HandoffPayload {

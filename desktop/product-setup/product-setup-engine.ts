@@ -66,6 +66,16 @@ import {
   type PmvStoryboardSceneView,
 } from "../pmv-creative";
 import {
+  mapIntelligence,
+  mapLibraryItem,
+  produceStageLabel,
+  type PmvAudioIntelligenceView,
+  type PmvAudioLibraryItem,
+  type PmvBeatSyncMode,
+  type PmvMusicCapabilityView,
+  type PmvProduceStatus,
+} from "../pmv-final";
+import {
   fetchProductionCapabilities,
   finalizeCreativePlan,
   generatePlanWithMode,
@@ -77,6 +87,8 @@ import {
   getVideoOutputDetails,
   getVideoProject,
   startVideoRender,
+  validateVideoRender,
+  VideoProductionApiError,
 } from "../video-production/api";
 import type { ProductionModeId } from "../../ai/video-production/production-mode-types";
 import type { CreativePlanDto } from "../deep-intelligence/live-api";
@@ -174,6 +186,29 @@ export class ProductSetupEngine {
   private videoReady = false;
   private creativeError: string | null = null;
   private audioRequirements: PmvAudioRequirements | null = null;
+  private produceStatus: PmvProduceStatus = "NOT_STARTED";
+  private audioLibrary: PmvAudioLibraryItem[] = [];
+  private selectedAudioAssetId: string | null = null;
+  private selectedAudioTitle: string | null = null;
+  private audioEnabled = false;
+  private audioVolume = 1;
+  private beatSyncMode: PmvBeatSyncMode = "SMART";
+  private audioIntelligence: PmvAudioIntelligenceView | null = null;
+  private musicCapability: PmvMusicCapabilityView = {
+    available: false,
+    status: "UNAVAILABLE",
+    reason: "Not checked yet",
+  };
+  private timelineReady = false;
+  private finalRenderJobId: string | null = null;
+  private finalVideoReady = false;
+  private finalOutputUrl: string | null = null;
+  private finalOutputAssetId: string | null = null;
+  private finalDurationMs: number | null = null;
+  private finalWidth: number | null = null;
+  private finalHeight: number | null = null;
+  private produceProgress = 0;
+  private produceError: string | null = null;
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
   private saveState: SaveState = "saved";
@@ -216,6 +251,7 @@ export class ProductSetupEngine {
         this.videoSettings = this.videoSettingsFromProject(project);
         this.applyPmvSettings(project.workspaceSettings);
         this.applyIdentityLock(project.workspaceSettings);
+        this.applyProjectAudio(project);
         this.refreshStaleLockState();
         if (
           this.creativeStatus === "PLAN_READY"
@@ -223,6 +259,11 @@ export class ProductSetupEngine {
           || this.creativeStatus === "FAILED"
         ) {
           void this.hydrateCreativePlan(intake.projectId);
+        }
+        if (this.videoReady || this.finalVideoReady || this.produceStatus !== "NOT_STARTED") {
+          void this.refreshFinalOutput();
+          void this.refreshAudioLibrary();
+          void this.refreshMusicCapability();
         }
         if (!this.heroAssetId) {
           const summary = buildAiSummary(imageOrganizationEngine.snapshot(), this.essentials);
@@ -371,6 +412,42 @@ export class ProductSetupEngine {
       creativeBlockedReason: !canContinueToCreative
         ? (lockValidation.issues[0] ?? "Product Identity Lock required before creative production.")
         : this.creativeError,
+      produceStatus: this.produceStatus,
+      audioLibrary: this.audioLibrary.map((a) => ({ ...a })),
+      selectedAudioAssetId: this.selectedAudioAssetId,
+      selectedAudioTitle: this.selectedAudioTitle,
+      audioEnabled: this.audioEnabled,
+      audioVolume: this.audioVolume,
+      beatSyncMode: this.beatSyncMode,
+      audioIntelligence: this.audioIntelligence ? { ...this.audioIntelligence } : null,
+      musicCapability: { ...this.musicCapability },
+      timelineReady: this.timelineReady,
+      finalRenderJobId: this.finalRenderJobId,
+      finalVideoReady: this.finalVideoReady,
+      finalOutputUrl: this.finalOutputUrl,
+      finalOutputAssetId: this.finalOutputAssetId,
+      finalDurationMs: this.finalDurationMs,
+      finalWidth: this.finalWidth,
+      finalHeight: this.finalHeight,
+      produceProgress: this.produceProgress,
+      produceStageLabel: produceStageLabel(this.produceProgress, this.produceStatus),
+      produceError: this.produceError,
+      canRefreshAudioLibrary: Boolean(productIntakeEngine.snapshot().projectId) && !this.transitioning,
+      canSelectAudio: Boolean(productIntakeEngine.snapshot().projectId)
+        && canContinueToCreative
+        && this.videoReady
+        && this.produceStatus !== "RENDERING"
+        && !this.transitioning,
+      canStartFinalRender: canContinueToCreative
+        && this.videoReady
+        && this.produceStatus !== "RENDERING"
+        && this.produceStatus !== "VALIDATING"
+        && !this.transitioning,
+      produceBlockedReason: !canContinueToCreative
+        ? (lockValidation.issues[0] ?? "Product Identity Lock required.")
+        : !this.videoReady
+          ? "Generate Exact Product scenes in Step 3 before final render."
+          : this.produceError,
     };
   }
 
@@ -862,8 +939,293 @@ export class ProductSetupEngine {
       const output = await getVideoOutputDetails(projectId).catch(() => null);
       this.videoReady = Boolean(output?.output);
       if (this.videoReady) this.creativeStatus = "VIDEO_READY";
+      this.timelineReady = Boolean(video.timeline?.length);
       this.emit();
       return this.videoReady;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Step 4 — list Audio Library assets (existing library, no duplicate storage). */
+  async refreshAudioLibrary(): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    try {
+      const params = new URLSearchParams();
+      if (projectId) params.set("projectId", projectId);
+      const res = await fetch(`/api/workspace/audio-library?${params.toString()}`);
+      const body = await res.json() as { assets?: Record<string, unknown>[]; error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Unable to load audio library");
+      this.audioLibrary = (body.assets ?? []).map(mapLibraryItem);
+      if (this.selectedAudioAssetId) {
+        const selected = this.audioLibrary.find((a) => a.assetId === this.selectedAudioAssetId);
+        this.selectedAudioTitle = selected?.title ?? this.selectedAudioTitle;
+      }
+      this.emit();
+    } catch (error) {
+      this.produceError = customerSafeError(
+        error instanceof Error ? error.message : "Unable to load audio library",
+      );
+      this.emit();
+    }
+  }
+
+  async refreshMusicCapability(): Promise<void> {
+    try {
+      const res = await fetch("/api/workspace/ai-sound/health");
+      const body = await res.json() as {
+        available?: boolean;
+        status?: string;
+        reason?: string | null;
+        error?: string;
+      };
+      this.musicCapability = {
+        available: Boolean(body.available),
+        status: body.status ?? (body.available ? "AVAILABLE" : "UNAVAILABLE"),
+        reason: body.reason ?? body.error ?? null,
+      };
+      this.emit();
+    } catch (error) {
+      this.musicCapability = {
+        available: false,
+        status: "UNAVAILABLE",
+        reason: error instanceof Error ? error.message : "Music generation unavailable",
+      };
+      this.emit();
+    }
+  }
+
+  async selectProjectAudio(assetId: string): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) throw new Error("Create or open a project first.");
+    const res = await fetch(`/api/workspace/projects/${projectId}/audio/selection`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetId }),
+    });
+    const body = await res.json() as {
+      error?: string;
+      audio?: Record<string, unknown>;
+      analysis?: { intelligence?: Record<string, unknown> | null } | null;
+    };
+    if (!res.ok) throw new Error(body.error ?? "Unable to select audio");
+    const item = body.audio ? mapLibraryItem(body.audio) : null;
+    this.selectedAudioAssetId = item?.assetId ?? assetId;
+    this.selectedAudioTitle = item?.title ?? null;
+    this.audioEnabled = true;
+    this.audioIntelligence = mapIntelligence(body.analysis?.intelligence ?? null);
+    if (this.produceStatus === "FINAL_READY") this.produceStatus = "STALE";
+    else if (this.produceStatus === "NOT_STARTED") this.produceStatus = "AUDIO_READY";
+    this.finalVideoReady = false;
+    await this.flushPersist();
+    this.emit();
+  }
+
+  async clearProjectAudio(): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return;
+    const res = await fetch(`/api/workspace/projects/${projectId}/audio/selection`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(body.error ?? "Unable to remove audio");
+    }
+    this.selectedAudioAssetId = null;
+    this.selectedAudioTitle = null;
+    this.audioEnabled = false;
+    this.audioIntelligence = null;
+    if (this.produceStatus === "FINAL_READY" || this.produceStatus === "AUDIO_READY") {
+      this.produceStatus = this.timelineReady ? "TIMELINE_READY" : "NOT_STARTED";
+    }
+    this.finalVideoReady = false;
+    await this.flushPersist();
+    this.emit();
+  }
+
+  async setBeatSyncMode(mode: PmvBeatSyncMode): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return;
+    this.beatSyncMode = mode;
+    this.emit();
+    const res = await fetch(`/api/workspace/projects/${projectId}/audio/beat-sync`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    });
+    const body = await res.json() as { error?: string; beatSyncMode?: string; project?: { beatSyncMode?: string } };
+    if (!res.ok) throw new Error(body.error ?? "Unable to update beat sync");
+    const next = String(body.beatSyncMode ?? body.project?.beatSyncMode ?? mode).toUpperCase();
+    this.beatSyncMode = next === "OFF" || next === "STRICT" ? next : "SMART";
+    if (this.produceStatus === "FINAL_READY") {
+      this.produceStatus = "STALE";
+      this.finalVideoReady = false;
+    }
+    await this.flushPersist();
+    this.emit();
+  }
+
+  async setAudioVolume(volume: number): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return;
+    const clamped = Math.min(1, Math.max(0, volume));
+    this.audioVolume = clamped;
+    await updateProjectApi(projectId, { audioVolume: clamped });
+    if (this.produceStatus === "FINAL_READY") {
+      this.produceStatus = "STALE";
+      this.finalVideoReady = false;
+    }
+    await this.flushPersist();
+    this.emit();
+  }
+
+  async ensureTimeline(): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (!snap.canContinueToCreative) {
+      throw new Error(snap.identityLockBlockedReason ?? "Product Identity Lock required.");
+    }
+    if (!this.videoReady && !this.creativePlan?.scenes?.length) {
+      throw new Error("Generate Exact Product scenes before building the final timeline.");
+    }
+    await finalizeCreativePlan(snap.projectId).catch(() => undefined);
+    const created = await createVideoProject(snap.projectId);
+    this.timelineReady = Boolean(created.video?.timeline?.length);
+    this.produceStatus = this.selectedAudioAssetId ? "AUDIO_READY" : "TIMELINE_READY";
+    if (this.timelineReady && this.produceStatus === "NOT_STARTED") this.produceStatus = "TIMELINE_READY";
+    await this.flushPersist();
+    this.emit();
+  }
+
+  /** Step 4 — validate + render final advertisement (standard preset). */
+  async startFinalRender(force = false): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (!snap.canContinueToCreative) {
+      throw new Error(snap.identityLockBlockedReason ?? "Product Identity Lock required.");
+    }
+    if (!this.videoReady) {
+      throw new Error("Generate Exact Product scenes in Step 3 before final render.");
+    }
+
+    this.produceStatus = "RENDERING";
+    this.produceProgress = 5;
+    this.produceError = null;
+    this.emit();
+
+    try {
+      await this.flushPersist();
+      await finalizeCreativePlan(snap.projectId).catch(() => undefined);
+
+      let payload = await getVideoProject(snap.projectId);
+      if (!payload.video?.timeline?.length) {
+        this.produceProgress = 10;
+        this.emit();
+        const created = await createVideoProject(snap.projectId);
+        payload = created;
+      } else {
+        const validation = await validateVideoRender(snap.projectId, "standard");
+        if (!validation.validation.ready || force) {
+          const created = await createVideoProject(snap.projectId);
+          payload = created;
+        }
+      }
+      this.timelineReady = Boolean(payload.video?.timeline?.length);
+
+      this.produceProgress = 15;
+      this.emit();
+      const { job } = await startVideoRender(snap.projectId, "standard");
+      this.finalRenderJobId = job.id;
+      await this.flushPersist();
+
+      let terminal = job;
+      for (let i = 0; i < 180; i += 1) {
+        if (terminal.status === "completed" || terminal.status === "failed" || terminal.status === "cancelled") {
+          break;
+        }
+        const progress = typeof terminal.progress === "number" ? terminal.progress : Math.min(85, 15 + i);
+        this.produceProgress = Math.max(this.produceProgress, progress);
+        this.produceStatus = "RENDERING";
+        this.emit();
+        await new Promise((r) => setTimeout(r, 1000));
+        const next = await getVideoJob(snap.projectId, terminal.id);
+        terminal = next.job;
+      }
+
+      if (terminal.status !== "completed") {
+        this.produceStatus = "FAILED";
+        this.produceError = customerSafeError(terminal.error ?? "Final render did not complete.");
+        this.produceProgress = 0;
+        await this.flushPersist();
+        this.emit();
+        throw new Error(this.produceError);
+      }
+
+      this.produceStatus = "VALIDATING";
+      this.produceProgress = 92;
+      this.emit();
+
+      const details = await getVideoOutputDetails(snap.projectId);
+      const output = details.output;
+      if (!output?.url) {
+        throw new Error("Final render completed but no output asset was registered.");
+      }
+      this.finalOutputUrl = output.url;
+      this.finalOutputAssetId = output.assetId ?? null;
+      this.finalDurationMs = typeof output.durationMs === "number" ? output.durationMs : null;
+      this.finalWidth = typeof output.width === "number" ? output.width : null;
+      this.finalHeight = typeof output.height === "number" ? output.height : null;
+      this.finalVideoReady = true;
+      this.produceStatus = "FINAL_READY";
+      this.produceProgress = 100;
+      await this.flushPersist();
+      await persistWorkflowStep(snap.projectId, 4, 3);
+      this.emit();
+    } catch (error) {
+      if (error instanceof VideoProductionApiError
+        && (error.status === 409 || error.code === "RENDER_IN_PROGRESS")
+        && this.finalRenderJobId) {
+        /* polling path already handles in-progress */
+      }
+      if (this.produceStatus === "RENDERING" || this.produceStatus === "VALIDATING") {
+        this.produceStatus = "FAILED";
+        this.produceError = customerSafeError(
+          error instanceof Error ? error.message : "Final render failed",
+        );
+        this.finalVideoReady = false;
+        await this.flushPersist().catch(() => undefined);
+        this.emit();
+      }
+      throw error instanceof Error ? error : new Error(this.produceError ?? "Final render failed");
+    }
+  }
+
+  async refreshFinalOutput(): Promise<boolean> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return false;
+    try {
+      const { video } = await getVideoProject(projectId);
+      this.timelineReady = Boolean(video?.timeline?.length);
+      const details = await getVideoOutputDetails(projectId).catch(() => null);
+      const output = details?.output;
+      if (output?.url && (video?.outputStatus === "CURRENT" || !video?.outputStatus)) {
+        this.finalOutputUrl = output.url;
+        this.finalOutputAssetId = output.assetId ?? null;
+        this.finalDurationMs = typeof output.durationMs === "number" ? output.durationMs : null;
+        this.finalWidth = typeof output.width === "number" ? output.width : null;
+        this.finalHeight = typeof output.height === "number" ? output.height : null;
+        this.finalVideoReady = true;
+        if (this.produceStatus !== "STALE") {
+          this.produceStatus = "FINAL_READY";
+          this.produceProgress = 100;
+        }
+        this.emit();
+        return true;
+      }
+      if (video?.outputStatus === "OUTDATED" && this.finalVideoReady) {
+        this.produceStatus = "STALE";
+        this.finalVideoReady = false;
+        this.emit();
+      }
+      return false;
     } catch {
       return false;
     }
@@ -1049,6 +1411,14 @@ export class ProductSetupEngine {
       videoReady: this.videoReady,
       creativeError: this.creativeError,
       audioRequirements: this.audioRequirements,
+      produceStatus: this.produceStatus,
+      finalRenderJobId: this.finalRenderJobId,
+      finalVideoReady: this.finalVideoReady,
+      finalOutputAssetId: this.finalOutputAssetId,
+      finalOutputUrl: this.finalOutputUrl,
+      beatSyncMode: this.beatSyncMode,
+      audioVolume: this.audioVolume,
+      selectedAudioAssetId: this.selectedAudioAssetId,
     };
     const language = this.videoSettings.language.trim()
       || this.brandContact.language.trim()
@@ -1283,6 +1653,27 @@ export class ProductSetupEngine {
     else if (stored.creativeDirection) {
       this.audioRequirements = audioRequirementsFromDirection(this.creativeDirection);
     }
+    if (stored.produceStatus) this.produceStatus = stored.produceStatus;
+    if (stored.finalRenderJobId !== undefined) this.finalRenderJobId = stored.finalRenderJobId ?? null;
+    if (stored.finalVideoReady !== undefined) this.finalVideoReady = Boolean(stored.finalVideoReady);
+    if (stored.finalOutputAssetId !== undefined) this.finalOutputAssetId = stored.finalOutputAssetId ?? null;
+    if (stored.finalOutputUrl !== undefined) this.finalOutputUrl = stored.finalOutputUrl ?? null;
+    if (stored.beatSyncMode) this.beatSyncMode = stored.beatSyncMode;
+    if (typeof stored.audioVolume === "number") this.audioVolume = stored.audioVolume;
+    if (stored.selectedAudioAssetId !== undefined) {
+      this.selectedAudioAssetId = stored.selectedAudioAssetId ?? null;
+    }
+  }
+
+  private applyProjectAudio(project: Awaited<ReturnType<typeof openProjectApi>>): void {
+    const selected = typeof project.selectedAudioAssetId === "string"
+      ? project.selectedAudioAssetId
+      : this.selectedAudioAssetId;
+    this.selectedAudioAssetId = selected || null;
+    this.audioEnabled = Boolean(project.audioEnabled ?? this.selectedAudioAssetId);
+    if (typeof project.audioVolume === "number") this.audioVolume = project.audioVolume;
+    const mode = String(project.beatSyncMode ?? this.beatSyncMode).toUpperCase();
+    this.beatSyncMode = mode === "OFF" || mode === "STRICT" ? mode : "SMART";
   }
 
   private async hydrateCreativePlan(projectId: string): Promise<void> {
@@ -1308,6 +1699,10 @@ export class ProductSetupEngine {
   private markCreativeScenesStale(): void {
     this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "STALE" }));
     this.videoReady = false;
+    if (this.produceStatus === "FINAL_READY" || this.finalVideoReady) {
+      this.produceStatus = "STALE";
+      this.finalVideoReady = false;
+    }
   }
 
   private applyIdentityLock(workspaceSettings: Record<string, unknown> | undefined): void {

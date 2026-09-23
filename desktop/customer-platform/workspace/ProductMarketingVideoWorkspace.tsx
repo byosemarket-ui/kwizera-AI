@@ -22,10 +22,11 @@ const ASPECTS = [
 ];
 
 /**
- * Product Marketing Video — Steps 1–3.
+ * Product Marketing Video — Steps 1–4.
  * Step 1: product assets, info, brand, settings.
  * Step 2: Product Intelligence + Product Identity Lock.
  * Step 3: Creative direction, plan/storyboard, Exact Product video generation.
+ * Step 4: Audio selection, timeline, final standard render.
  */
 export function ProductMarketingVideoWorkspace() {
   const { notify, switchWorkspace } = useShell();
@@ -44,6 +45,8 @@ export function ProductMarketingVideoWorkspace() {
     const unsub = productSetupEngine.subscribe(setSnap);
     void productSetupEngine.hydrateFromServer().then(() => {
       void productSetupEngine.refreshCreativeCapabilities();
+      void productSetupEngine.refreshAudioLibrary();
+      void productSetupEngine.refreshMusicCapability();
     });
     return () => {
       unsub();
@@ -200,6 +203,8 @@ export function ProductMarketingVideoWorkspace() {
         "Your Exact Product advertisement scenes were rendered and saved to the project.",
         "production-complete",
       );
+      void productSetupEngine.refreshAudioLibrary();
+      void productSetupEngine.refreshMusicCapability();
     } catch (error) {
       notify(
         "error",
@@ -212,24 +217,80 @@ export function ProductMarketingVideoWorkspace() {
     }
   };
 
+  const onSelectAudio = async (assetId: string) => {
+    setBusy(true);
+    try {
+      await productSetupEngine.selectProjectAudio(assetId);
+      notify("success", "Music selected", "Audio will be mixed into the final advertisement.", "updates");
+    } catch (error) {
+      notify("error", "Audio selection failed", error instanceof Error ? error.message : "Could not select audio.", "errors");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onClearAudio = async () => {
+    setBusy(true);
+    try {
+      await productSetupEngine.clearProjectAudio();
+      notify("info", "Music removed", "Final render can continue without music.", "updates");
+    } catch (error) {
+      notify("error", "Could not remove audio", error instanceof Error ? error.message : "Remove failed.", "errors");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onFinalRender = async () => {
+    setBusy(true);
+    try {
+      await productSetupEngine.startFinalRender(false);
+      notify(
+        "success",
+        "Final video ready",
+        "Your advertisement MP4 was rendered with timeline, branding, and selected audio.",
+        "production-complete",
+      );
+    } catch (error) {
+      notify(
+        "error",
+        "Final render failed",
+        error instanceof Error ? error.message : "Could not complete final render.",
+        "errors",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const savedCount = snap.intake.assets.filter((a) => a.processingStatus === "saved").length;
   const uploadingCount = snap.intake.assets.filter((a) => a.processingStatus === "uploading").length;
   const hasImages = savedCount > 0 || uploadingCount > 0 || snap.imageCards.length > 0;
   const currentStepId =
-    snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY"
-      || snap.creativeStatus === "PLANNING" || snap.creativeStatus === "GENERATING"
-      || snap.creativeStatus === "FAILED" || snap.creativeStatus === "STALE"
-      || snap.canContinueToCreative
-      ? "style"
-      : snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW"
-        || snap.intelligenceStatus === "STALE" || snap.intelligenceStatus === "ANALYZING"
-        || snap.intelligenceStatus === "FAILED" || snap.intelligenceStatus === "UNAVAILABLE"
-        || snap.foundationStatus === "READY_FOR_INTELLIGENCE" || snap.foundationStatus === "PROCESSING"
-        ? "plan"
-        : "upload";
+    snap.produceStatus === "FINAL_READY" || snap.produceStatus === "RENDERING"
+      || snap.produceStatus === "VALIDATING" || snap.produceStatus === "FAILED"
+      || snap.produceStatus === "STALE" || snap.produceStatus === "AUDIO_READY"
+      || snap.produceStatus === "TIMELINE_READY"
+      || snap.creativeStatus === "VIDEO_READY"
+      ? "create"
+      : snap.creativeStatus === "PLAN_READY"
+        || snap.creativeStatus === "PLANNING" || snap.creativeStatus === "GENERATING"
+        || snap.creativeStatus === "FAILED" || snap.creativeStatus === "STALE"
+        || snap.canContinueToCreative
+        ? "style"
+        : snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW"
+          || snap.intelligenceStatus === "STALE" || snap.intelligenceStatus === "ANALYZING"
+          || snap.intelligenceStatus === "FAILED" || snap.intelligenceStatus === "UNAVAILABLE"
+          || snap.foundationStatus === "READY_FOR_INTELLIGENCE" || snap.foundationStatus === "PROCESSING"
+          ? "plan"
+          : "upload";
 
   const statusLabel = (() => {
-    if (snap.creativeStatus === "VIDEO_READY") return "Video ready";
+    if (snap.produceStatus === "FINAL_READY") return "Final video ready";
+    if (snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING") return "Final rendering";
+    if (snap.produceStatus === "FAILED") return "Final render failed";
+    if (snap.produceStatus === "STALE") return "Final video stale";
+    if (snap.creativeStatus === "VIDEO_READY") return "Scenes ready";
     if (snap.creativeStatus === "GENERATING") return "Generating video";
     if (snap.creativeStatus === "PLAN_READY") return "Plan ready";
     if (snap.creativeStatus === "PLANNING") return "Planning";
@@ -265,12 +326,16 @@ export function ProductMarketingVideoWorkspace() {
         serviceKey: "product-marketing-video",
         title: "Product Marketing Video",
         description: "Build a product marketing video project — images, information, brand, and settings.",
-        helpHint: "Lock product identity, build a creative plan, then generate Exact Product video.",
+        helpHint: "Lock identity, build a plan, generate scenes, then select audio and export the final MP4.",
       }}
       steps={VIDEO_SERVICE_STEPS}
       currentStepId={currentStepId}
       phase={
-        snap.creativeStatus === "GENERATING" || snap.intelligenceStatus === "ANALYZING" || snap.creativeStatus === "PLANNING"
+        snap.creativeStatus === "GENERATING"
+          || snap.intelligenceStatus === "ANALYZING"
+          || snap.creativeStatus === "PLANNING"
+          || snap.produceStatus === "RENDERING"
+          || snap.produceStatus === "VALIDATING"
           ? "processing"
           : "input"
       }
@@ -279,18 +344,20 @@ export function ProductMarketingVideoWorkspace() {
       onCancel={() => switchWorkspace("home")}
       cancelLabel="Back to Home"
       footerNote={
-        snap.creativeStatus === "VIDEO_READY"
-          ? "Video scenes are ready. Audio + final timeline polish come in Step 4."
-          : snap.intelligenceStatus === "LOCKED"
-            ? "Product Identity Lock is active — build a creative plan and generate Exact Product video."
-            : "Step 2 locks product identity. Step 3 builds the ad plan and video."
+        snap.produceStatus === "FINAL_READY"
+          ? "Final advertisement is ready. Step 5 will cover product QA and delivery."
+          : snap.creativeStatus === "VIDEO_READY"
+            ? "Scenes are ready — select music, then render the final advertisement."
+            : snap.intelligenceStatus === "LOCKED"
+              ? "Product Identity Lock is active — build a creative plan and generate Exact Product video."
+              : "Step 2 locks product identity. Step 3 builds scenes. Step 4 finalizes audio and render."
       }
     >
       <div className="pmv-foundation product-setup is-customer-mode" data-pmv-foundation="true" data-customer-mode="true">
         <header className="product-setup__header pmv-foundation__header">
           <div>
             <h1>Product Marketing Video</h1>
-            <p>Product → Intelligence → Lock → Creative plan → Storyboard → Generate video.</p>
+            <p>Product → Intelligence → Lock → Creative → Storyboard → Audio → Timeline → Final video.</p>
           </div>
           <div className="pmv-foundation__status-row">
             <span
@@ -368,12 +435,54 @@ export function ProductMarketingVideoWorkspace() {
                   : "PENDING"
           }
           >
-            <span>Video</span>
+            <span>Scenes</span>
             <strong>
               {snap.creativeStatus === "VIDEO_READY" ? "READY"
                 : snap.creativeStatus === "GENERATING" ? "GENERATING"
                   : snap.creativeStatus === "FAILED" ? "FAILED"
                     : "PENDING"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.selectedAudioAssetId ? "READY"
+              : snap.creativeStatus === "VIDEO_READY" ? "ATTENTION"
+                : "PENDING"
+          }
+          >
+            <span>Audio</span>
+            <strong>
+              {snap.selectedAudioAssetId ? "READY"
+                : snap.creativeStatus === "VIDEO_READY" ? "NOT SELECTED"
+                  : "PENDING"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.timelineReady || snap.produceStatus === "TIMELINE_READY" || snap.produceStatus === "FINAL_READY"
+              ? "READY"
+              : snap.creativeStatus === "VIDEO_READY" ? "ATTENTION" : "PENDING"
+          }
+          >
+            <span>Timeline</span>
+            <strong>
+              {snap.timelineReady || snap.produceStatus === "FINAL_READY" ? "READY"
+                : snap.creativeStatus === "VIDEO_READY" ? "NEEDS UPDATE"
+                  : "NOT READY"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.produceStatus === "FINAL_READY" ? "READY"
+              : snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING" ? "WORKING"
+                : snap.produceStatus === "FAILED" || snap.produceStatus === "STALE" ? "ATTENTION"
+                  : "PENDING"
+          }
+          >
+            <span>Final Video</span>
+            <strong>
+              {snap.produceStatus === "FINAL_READY" ? "READY"
+                : snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING" ? "RENDERING"
+                  : snap.produceStatus === "FAILED" ? "FAILED"
+                    : snap.produceStatus === "STALE" ? "STALE"
+                      : "PENDING"}
             </strong>
           </li>
         </ol>
@@ -1100,8 +1209,203 @@ export function ProductMarketingVideoWorkspace() {
 
               {snap.videoReady ? (
                 <p className="pmv-foundation__hint" role="status">
-                  Video output is saved on this project. Open production preview or continue to Step 4 for audio and final timeline.
+                  Scene media is saved. Continue below to select music and render the final advertisement.
                 </p>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        {/* H. AUDIO + TIMELINE + FINAL RENDER */}
+        <section
+          className="product-setup__panel pmv-produce"
+          aria-labelledby="pmv-produce-heading"
+          data-pmv-produce="true"
+          data-produce-status={snap.produceStatus}
+        >
+          <div className="product-setup__section-head">
+            <h2 id="pmv-produce-heading">Audio, timeline &amp; final render</h2>
+            <span className="product-setup__meta">{snap.produceStageLabel}</span>
+          </div>
+          <p className="pmv-foundation__hint">
+            Uses your Step 3 scenes with deterministic text, logo, CTA, and end card.
+            Music is optional. Final export uses the standard production render — not a second engine.
+          </p>
+
+          {!snap.videoReady ? (
+            <p className="pmv-foundation__blocked" role="status">
+              {snap.produceBlockedReason ?? "Generate Exact Product scenes before final production."}
+            </p>
+          ) : (
+            <>
+              <div className="pmv-produce__row">
+                <div>
+                  <p className="pmv-intelligence__label">Music</p>
+                  <p className="pmv-foundation__hint">
+                    {snap.selectedAudioTitle
+                      ? `Selected: ${snap.selectedAudioTitle}`
+                      : "No music selected — final video can still render without audio."}
+                  </p>
+                  {snap.audioIntelligence?.bpm != null ? (
+                    <p className="pmv-foundation__hint">
+                      Audio intelligence: {snap.audioIntelligence.bpm} BPM
+                      {snap.audioIntelligence.bpmConfidence != null
+                        ? ` · confidence ${Math.round(snap.audioIntelligence.bpmConfidence * 100)}%`
+                        : ""}
+                      {snap.audioIntelligence.energyLabel ? ` · ${snap.audioIntelligence.energyLabel} energy` : ""}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="pmv-intelligence__actions">
+                  <button
+                    type="button"
+                    className="is-secondary"
+                    disabled={busy || !snap.canRefreshAudioLibrary}
+                    onClick={() => void productSetupEngine.refreshAudioLibrary()}
+                  >
+                    Refresh library
+                  </button>
+                  {snap.selectedAudioAssetId ? (
+                    <button type="button" className="is-secondary" disabled={busy} onClick={() => void onClearAudio()}>
+                      Remove music
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {snap.audioLibrary.length > 0 ? (
+                <ul className="pmv-produce__audio-list" data-pmv-audio-library="true">
+                  {snap.audioLibrary.slice(0, 8).map((item) => (
+                    <li key={item.assetId} data-selected={item.assetId === snap.selectedAudioAssetId ? "true" : "false"}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <span>
+                          {item.durationMs > 0 ? `${Math.round(item.durationMs / 1000)}s` : "Audio"}
+                          {item.bpm != null ? ` · ${Math.round(item.bpm)} BPM` : ""}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy || !snap.canSelectAudio || item.assetId === snap.selectedAudioAssetId}
+                        onClick={() => void onSelectAudio(item.assetId)}
+                      >
+                        {item.assetId === snap.selectedAudioAssetId ? "Selected" : "Use"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="pmv-foundation__hint">
+                  Audio library is empty. Upload music in Video Requirements or continue without music.
+                </p>
+              )}
+
+              {!snap.musicCapability.available ? (
+                <p className="pmv-foundation__hint" role="status">
+                  AI music generation is not configured
+                  {snap.musicCapability.reason ? ` (${snap.musicCapability.reason})` : ""}.
+                  Existing library tracks still work.
+                </p>
+              ) : null}
+
+              <div className="product-setup__form-grid">
+                <label className="product-setup__field">
+                  <span>Beat sync</span>
+                  <select
+                    value={snap.beatSyncMode}
+                    disabled={busy || !snap.selectedAudioAssetId}
+                    onChange={(e) => {
+                      void productSetupEngine.setBeatSyncMode(
+                        e.target.value as "OFF" | "SMART" | "STRICT",
+                      ).catch((err) => {
+                        notify("error", "Beat sync failed", err instanceof Error ? err.message : "Update failed", "errors");
+                      });
+                    }}
+                  >
+                    <option value="OFF">Off</option>
+                    <option value="SMART">Smart</option>
+                    <option value="STRICT">Strict</option>
+                  </select>
+                </label>
+                <label className="product-setup__field">
+                  <span>Music volume</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(snap.audioVolume * 100)}
+                    disabled={busy || !snap.selectedAudioAssetId}
+                    onChange={(e) => {
+                      void productSetupEngine.setAudioVolume(Number(e.target.value) / 100).catch(() => undefined);
+                    }}
+                  />
+                </label>
+                <label className="product-setup__field is-wide">
+                  <span>Voice / narration</span>
+                  <input
+                    value={snap.creativeDirection.voicePreference}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                  <span className="pmv-foundation__hint">
+                    Voice preference is prepared from Step 3. Full TTS mux ships when a voice provider is configured in Admin.
+                  </span>
+                </label>
+              </div>
+
+              {snap.produceError ? (
+                <p className="pmv-foundation__blocked" role="alert">{snap.produceError}</p>
+              ) : null}
+
+              {(snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING") ? (
+                <p className="pmv-foundation__hint" role="status">
+                  {snap.produceStageLabel} · {Math.round(snap.produceProgress)}%
+                </p>
+              ) : null}
+
+              <div className="pmv-intelligence__actions">
+                <button
+                  type="button"
+                  className="is-secondary"
+                  disabled={busy || !snap.canStartFinalRender}
+                  onClick={() => {
+                    void productSetupEngine.ensureTimeline().then(() => {
+                      notify("success", "Timeline ready", "Scenes, text, and branding are assembled for final export.", "updates");
+                    }).catch((err) => {
+                      notify("error", "Timeline failed", err instanceof Error ? err.message : "Could not build timeline", "errors");
+                    });
+                  }}
+                >
+                  Build timeline
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !snap.canStartFinalRender}
+                  onClick={() => void onFinalRender()}
+                >
+                  {snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING"
+                    ? <Loader2 size={14} className="spin" />
+                    : null}
+                  {snap.finalVideoReady ? "Re-render final video" : "Render final video"}
+                </button>
+              </div>
+
+              {snap.finalOutputUrl ? (
+                <div className="pmv-produce__output" data-pmv-final-output="true">
+                  <p className="pmv-intelligence__label">Final output</p>
+                  <p className="pmv-foundation__hint">
+                    {snap.finalWidth && snap.finalHeight ? `${snap.finalWidth}×${snap.finalHeight}` : "MP4"}
+                    {snap.finalDurationMs != null ? ` · ${(snap.finalDurationMs / 1000).toFixed(1)}s` : ""}
+                    {snap.selectedAudioAssetId ? " · with audio" : " · video only"}
+                  </p>
+                  <video
+                    key={snap.finalOutputUrl}
+                    controls
+                    preload="metadata"
+                    src={snap.finalOutputUrl}
+                    className="pmv-produce__player"
+                  />
+                </div>
               ) : null}
             </>
           )}
@@ -1112,13 +1416,15 @@ export function ProductMarketingVideoWorkspace() {
           <div>
             <p className="pmv-foundation__footer-title">Project state</p>
             <p className="pmv-foundation__footer-copy">
-              {snap.creativeStatus === "VIDEO_READY"
-                ? "Advertisement video scenes are ready for Step 4 (audio + final render)."
-                : snap.intelligenceStatus === "LOCKED"
-                  ? "Identity is locked. Create a plan and generate Exact Product video."
-                  : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
-                    ? "Foundation is ready — analyze and confirm Product Identity Lock."
-                    : "Save a draft anytime, or mark ready when product images and name are set."}
+              {snap.produceStatus === "FINAL_READY"
+                ? "Final advertisement is ready for Step 5 (QA + delivery)."
+                : snap.creativeStatus === "VIDEO_READY"
+                  ? "Scenes are ready — select audio and render the final MP4."
+                  : snap.intelligenceStatus === "LOCKED"
+                    ? "Identity is locked. Create a plan and generate Exact Product video."
+                    : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
+                      ? "Foundation is ready — analyze and confirm Product Identity Lock."
+                      : "Save a draft anytime, or mark ready when product images and name are set."}
             </p>
             {snap.readyBlockedReason && snap.foundationStatus !== "READY_FOR_INTELLIGENCE" ? (
               <p className="pmv-foundation__blocked">{snap.readyBlockedReason}</p>
