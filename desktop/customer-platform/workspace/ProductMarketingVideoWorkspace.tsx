@@ -22,10 +22,10 @@ const ASPECTS = [
 ];
 
 /**
- * Product Marketing Video — Steps 1–2 foundation.
+ * Product Marketing Video — Steps 1–3.
  * Step 1: product assets, info, brand, settings.
- * Step 2: Product Intelligence + Product Identity Lock (reuses PI API).
- * Does not generate video.
+ * Step 2: Product Intelligence + Product Identity Lock.
+ * Step 3: Creative direction, plan/storyboard, Exact Product video generation.
  */
 export function ProductMarketingVideoWorkspace() {
   const { notify, switchWorkspace } = useShell();
@@ -42,7 +42,9 @@ export function ProductMarketingVideoWorkspace() {
     productSetupEngine.setServiceMode("pmv");
     productSetupEngine.setNotify(notify);
     const unsub = productSetupEngine.subscribe(setSnap);
-    void productSetupEngine.hydrateFromServer();
+    void productSetupEngine.hydrateFromServer().then(() => {
+      void productSetupEngine.refreshCreativeCapabilities();
+    });
     return () => {
       unsub();
       productSetupEngine.setNotify(null);
@@ -147,6 +149,7 @@ export function ProductMarketingVideoWorkspace() {
     setBusy(true);
     try {
       await productSetupEngine.confirmProductIdentityLock();
+      await productSetupEngine.refreshCreativeCapabilities();
       notify(
         "success",
         "Product identity locked",
@@ -165,18 +168,73 @@ export function ProductMarketingVideoWorkspace() {
     }
   };
 
+  const onGeneratePlan = async () => {
+    setBusy(true);
+    try {
+      await productSetupEngine.generateCreativePlan(true);
+      notify(
+        "success",
+        "Creative plan ready",
+        "Review the storyboard, then generate your product video.",
+        "production-complete",
+      );
+    } catch (error) {
+      notify(
+        "error",
+        "Plan failed",
+        error instanceof Error ? error.message : "Could not build creative plan.",
+        "errors",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onGenerateVideo = async () => {
+    setBusy(true);
+    try {
+      await productSetupEngine.generateProductVideo();
+      notify(
+        "success",
+        "Video generated",
+        "Your Exact Product advertisement scenes were rendered and saved to the project.",
+        "production-complete",
+      );
+    } catch (error) {
+      notify(
+        "error",
+        "Generation failed",
+        error instanceof Error ? error.message : "Could not generate video.",
+        "errors",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const savedCount = snap.intake.assets.filter((a) => a.processingStatus === "saved").length;
   const uploadingCount = snap.intake.assets.filter((a) => a.processingStatus === "uploading").length;
   const hasImages = savedCount > 0 || uploadingCount > 0 || snap.imageCards.length > 0;
   const currentStepId =
-    snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW"
-      || snap.intelligenceStatus === "STALE" || snap.intelligenceStatus === "ANALYZING"
-      || snap.intelligenceStatus === "FAILED" || snap.intelligenceStatus === "UNAVAILABLE"
-      || snap.foundationStatus === "READY_FOR_INTELLIGENCE" || snap.foundationStatus === "PROCESSING"
-      ? "plan"
-      : "upload";
+    snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY"
+      || snap.creativeStatus === "PLANNING" || snap.creativeStatus === "GENERATING"
+      || snap.creativeStatus === "FAILED" || snap.creativeStatus === "STALE"
+      || snap.canContinueToCreative
+      ? "style"
+      : snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW"
+        || snap.intelligenceStatus === "STALE" || snap.intelligenceStatus === "ANALYZING"
+        || snap.intelligenceStatus === "FAILED" || snap.intelligenceStatus === "UNAVAILABLE"
+        || snap.foundationStatus === "READY_FOR_INTELLIGENCE" || snap.foundationStatus === "PROCESSING"
+        ? "plan"
+        : "upload";
 
   const statusLabel = (() => {
+    if (snap.creativeStatus === "VIDEO_READY") return "Video ready";
+    if (snap.creativeStatus === "GENERATING") return "Generating video";
+    if (snap.creativeStatus === "PLAN_READY") return "Plan ready";
+    if (snap.creativeStatus === "PLANNING") return "Planning";
+    if (snap.creativeStatus === "FAILED") return "Generation failed";
+    if (snap.creativeStatus === "STALE") return "Creative stale";
     if (snap.intelligenceStatus === "LOCKED") return "Product locked";
     if (snap.intelligenceStatus === "REVIEW") return "Review intelligence";
     if (snap.intelligenceStatus === "ANALYZING") return "Analyzing";
@@ -197,6 +255,9 @@ export function ProductMarketingVideoWorkspace() {
       || snap.intelligenceStatus === "UNAVAILABLE"
       || snap.canMarkReady)
     && snap.intelligenceStatus !== "ANALYZING";
+  const direction = snap.creativeDirection;
+  const cinematicCap = snap.creativeCapabilities.find((c) => c.mode === "CINEMATIC");
+  const advancedCap = snap.creativeCapabilities.find((c) => c.mode === "ADVANCED_CREATIVE");
 
   return (
     <ServiceWorkspace
@@ -204,32 +265,39 @@ export function ProductMarketingVideoWorkspace() {
         serviceKey: "product-marketing-video",
         title: "Product Marketing Video",
         description: "Build a product marketing video project — images, information, brand, and settings.",
-        helpHint: "Save anytime. Video generation comes in later steps.",
+        helpHint: "Lock product identity, build a creative plan, then generate Exact Product video.",
       }}
       steps={VIDEO_SERVICE_STEPS}
       currentStepId={currentStepId}
-      phase={snap.intelligenceStatus === "ANALYZING" ? "processing" : "input"}
+      phase={
+        snap.creativeStatus === "GENERATING" || snap.intelligenceStatus === "ANALYZING" || snap.creativeStatus === "PLANNING"
+          ? "processing"
+          : "input"
+      }
       onBack={() => switchWorkspace("home")}
       onHelp={() => switchWorkspace("help")}
       onCancel={() => switchWorkspace("home")}
       cancelLabel="Back to Home"
       footerNote={
-        snap.intelligenceStatus === "LOCKED"
-          ? "Product Identity Lock is active — ready for Creative Plan (Step 3)."
-          : "Step 2 locks product identity. Video generation comes in later steps."
+        snap.creativeStatus === "VIDEO_READY"
+          ? "Video scenes are ready. Audio + final timeline polish come in Step 4."
+          : snap.intelligenceStatus === "LOCKED"
+            ? "Product Identity Lock is active — build a creative plan and generate Exact Product video."
+            : "Step 2 locks product identity. Step 3 builds the ad plan and video."
       }
     >
       <div className="pmv-foundation product-setup is-customer-mode" data-pmv-foundation="true" data-customer-mode="true">
         <header className="product-setup__header pmv-foundation__header">
           <div>
             <h1>Product Marketing Video</h1>
-            <p>Set up your product, analyze it, and lock visual identity before creative generation.</p>
+            <p>Product → Intelligence → Lock → Creative plan → Storyboard → Generate video.</p>
           </div>
           <div className="pmv-foundation__status-row">
             <span
               className="pmv-foundation__status"
               data-status={snap.intelligenceStatus === "LOCKED" ? "LOCKED" : snap.foundationStatus}
               data-intelligence={snap.intelligenceStatus}
+              data-creative={snap.creativeStatus}
             >
               {statusLabel}
             </span>
@@ -238,6 +306,77 @@ export function ProductMarketingVideoWorkspace() {
             </p>
           </div>
         </header>
+
+        <ol className="pmv-pipeline" aria-label="Product Marketing Video progress">
+          <li data-state={hasImages && snap.essentials.productName.trim() ? "READY" : "PENDING"}>
+            <span>Product</span>
+            <strong>{hasImages && snap.essentials.productName.trim() ? "READY" : "PENDING"}</strong>
+          </li>
+          <li data-state={
+            snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW" ? "READY"
+              : snap.intelligenceStatus === "ANALYZING" ? "WORKING"
+                : "PENDING"
+          }
+          >
+            <span>Product Intelligence</span>
+            <strong>
+              {snap.intelligenceStatus === "LOCKED" || snap.intelligenceStatus === "REVIEW" ? "READY"
+                : snap.intelligenceStatus === "ANALYZING" ? "WORKING"
+                  : snap.intelligenceStatus === "FAILED" || snap.intelligenceStatus === "UNAVAILABLE" ? "FAILED"
+                    : "PENDING"}
+            </strong>
+          </li>
+          <li data-state={snap.intelligenceStatus === "LOCKED" ? "LOCKED" : "PENDING"}>
+            <span>Product Lock</span>
+            <strong>{snap.intelligenceStatus === "LOCKED" ? "LOCKED" : "PENDING"}</strong>
+          </li>
+          <li data-state={
+            snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY" ? "READY"
+              : snap.creativeStatus === "PLANNING" ? "WORKING"
+                : snap.creativeStatus === "FAILED" || snap.creativeStatus === "STALE" ? "ATTENTION"
+                  : "PENDING"
+          }
+          >
+            <span>Creative Plan</span>
+            <strong>
+              {snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY" ? "READY"
+                : snap.creativeStatus === "PLANNING" ? "WORKING"
+                  : snap.creativeStatus === "FAILED" ? "FAILED"
+                    : snap.creativeStatus === "STALE" ? "STALE"
+                      : "NOT READY"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.creativeScenes.length > 0
+              && (snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY" || snap.creativeStatus === "GENERATING")
+              ? "READY"
+              : "PENDING"
+          }
+          >
+            <span>Storyboard</span>
+            <strong>
+              {snap.creativeScenes.length > 0
+                && (snap.creativeStatus === "PLAN_READY" || snap.creativeStatus === "VIDEO_READY" || snap.creativeStatus === "GENERATING")
+                ? "READY"
+                : "NOT READY"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.creativeStatus === "VIDEO_READY" ? "READY"
+              : snap.creativeStatus === "GENERATING" ? "WORKING"
+                : snap.creativeStatus === "FAILED" ? "ATTENTION"
+                  : "PENDING"
+          }
+          >
+            <span>Video</span>
+            <strong>
+              {snap.creativeStatus === "VIDEO_READY" ? "READY"
+                : snap.creativeStatus === "GENERATING" ? "GENERATING"
+                  : snap.creativeStatus === "FAILED" ? "FAILED"
+                    : "PENDING"}
+            </strong>
+          </li>
+        </ol>
 
         {/* A. PRODUCT */}
         <section className="product-setup__panel" aria-labelledby="pmv-product-heading">
@@ -785,16 +924,201 @@ export function ProductMarketingVideoWorkspace() {
           </div>
         </section>
 
+        {/* G. CREATIVE DIRECTION + STORYBOARD + GENERATE */}
+        <section
+          className="product-setup__panel pmv-creative"
+          aria-labelledby="pmv-creative-heading"
+          data-pmv-creative="true"
+          data-creative-status={snap.creativeStatus}
+        >
+          <div className="product-setup__section-head">
+            <h2 id="pmv-creative-heading">Creative plan &amp; video</h2>
+            <span className="product-setup__meta">{snap.creativeStatus.replace(/_/g, " ")}</span>
+          </div>
+          <p className="pmv-foundation__hint">
+            Product Identity Lock stays authoritative. Creative direction may change camera, lighting,
+            and atmosphere — not the real product.
+          </p>
+
+          {!snap.canContinueToCreative ? (
+            <p className="pmv-foundation__blocked" role="status">
+              {snap.identityLockBlockedReason ?? "Confirm Product Identity Lock before creative production."}
+            </p>
+          ) : (
+            <>
+              <div className="product-setup__form-grid">
+                <label className="product-setup__field">
+                  <span>Advertising goal</span>
+                  <select
+                    value={direction.goal}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField(
+                      "goal",
+                      e.target.value as typeof direction.goal,
+                    )}
+                  >
+                    <option value="product_showcase">Product showcase</option>
+                    <option value="drive_orders">Drive orders</option>
+                    <option value="brand_awareness">Brand awareness</option>
+                    <option value="promo_offer">Promo / offer</option>
+                  </select>
+                </label>
+                <label className="product-setup__field">
+                  <span>Energy</span>
+                  <select
+                    value={direction.energy}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField(
+                      "energy",
+                      e.target.value as typeof direction.energy,
+                    )}
+                  >
+                    <option value="calm">Calm</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="energetic">Energetic</option>
+                    <option value="aggressive">Aggressive</option>
+                  </select>
+                </label>
+                <label className="product-setup__field">
+                  <span>Target audience</span>
+                  <input
+                    value={direction.audience}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("audience", e.target.value)}
+                    placeholder="Product shoppers"
+                  />
+                </label>
+                <label className="product-setup__field">
+                  <span>Mood</span>
+                  <input
+                    value={direction.mood}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("mood", e.target.value)}
+                    placeholder="Premium and clear"
+                  />
+                </label>
+                <label className="product-setup__field">
+                  <span>Visual style</span>
+                  <input
+                    value={direction.visualStyle}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("visualStyle", e.target.value)}
+                    placeholder="Product-focused"
+                  />
+                </label>
+                <label className="product-setup__field">
+                  <span>Generation mode</span>
+                  <select
+                    value={direction.generationMode}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField(
+                      "generationMode",
+                      e.target.value as typeof direction.generationMode,
+                    )}
+                  >
+                    <option value="EXACT_PRODUCT">Exact product (default)</option>
+                    <option value="CINEMATIC" disabled={cinematicCap ? !cinematicCap.available : true}>
+                      Cinematic{cinematicCap && !cinematicCap.available ? " — unavailable" : ""}
+                    </option>
+                    <option value="ADVANCED_CREATIVE">
+                      Advanced creative{advancedCap && !advancedCap.available ? " — limited" : ""}
+                    </option>
+                  </select>
+                </label>
+                <label className="product-setup__field">
+                  <span>Desired motion</span>
+                  <input
+                    value={direction.desiredMotion}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("desiredMotion", e.target.value)}
+                    placeholder="Controlled product motion"
+                  />
+                </label>
+                <label className="product-setup__field">
+                  <span>Music preference (Step 4)</span>
+                  <input
+                    value={direction.musicPreference}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("musicPreference", e.target.value)}
+                  />
+                </label>
+                <label className="product-setup__field">
+                  <span>Voice preference (Step 4)</span>
+                  <input
+                    value={direction.voicePreference}
+                    onChange={(e) => productSetupEngine.setCreativeDirectionField("voicePreference", e.target.value)}
+                  />
+                </label>
+              </div>
+
+              {cinematicCap && !cinematicCap.available ? (
+                <p className="pmv-foundation__hint" role="status">
+                  Cinematic image-to-video is not configured. Exact Product mode still produces a real advertisement from your photos.
+                </p>
+              ) : null}
+              {advancedCap && !advancedCap.available ? (
+                <p className="pmv-foundation__hint" role="status">
+                  Advanced generative tools are not configured. Advanced creative uses a classic product showcase with your Product Identity Lock.
+                </p>
+              ) : null}
+
+              {snap.creativeError ? (
+                <p className="pmv-foundation__blocked" role="alert">{snap.creativeError}</p>
+              ) : null}
+
+              {snap.creativeScenes.length > 0 ? (
+                <div className="pmv-creative__storyboard" data-pmv-storyboard="true">
+                  <p className="pmv-intelligence__label">Storyboard</p>
+                  <ol className="pmv-creative__scene-list">
+                    {snap.creativeScenes.map((scene) => (
+                      <li key={scene.sceneId} data-scene-status={scene.status}>
+                        <strong>
+                          Scene {scene.order}: {scene.purpose}
+                        </strong>
+                        <span>{scene.durationSeconds}s · {scene.status}</span>
+                        <p>{scene.text || scene.visual || scene.camera}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : (
+                <p className="pmv-foundation__hint">
+                  Generate a creative plan to build the advertising storyboard from your locked product.
+                </p>
+              )}
+
+              <div className="pmv-intelligence__actions">
+                <button
+                  type="button"
+                  disabled={busy || !snap.canGenerateCreativePlan}
+                  onClick={() => void onGeneratePlan()}
+                >
+                  {snap.creativeStatus === "PLANNING" ? <Loader2 size={14} className="spin" /> : null}
+                  {snap.creativeScenes.length ? "Regenerate plan" : "Generate creative plan"}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !snap.canGenerateVideo}
+                  onClick={() => void onGenerateVideo()}
+                >
+                  {snap.creativeStatus === "GENERATING" ? <Loader2 size={14} className="spin" /> : null}
+                  Generate video
+                </button>
+              </div>
+
+              {snap.videoReady ? (
+                <p className="pmv-foundation__hint" role="status">
+                  Video output is saved on this project. Open production preview or continue to Step 4 for audio and final timeline.
+                </p>
+              ) : null}
+            </>
+          )}
+        </section>
+
         {/* E. PROJECT SAVE / STATE */}
         <footer className="product-setup__footer pmv-foundation__footer">
           <div>
             <p className="pmv-foundation__footer-title">Project state</p>
             <p className="pmv-foundation__footer-copy">
-              {snap.intelligenceStatus === "LOCKED"
-                ? "Identity is locked. Creative Plan (Step 3) can use this project."
-                : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
-                  ? "Foundation is ready — analyze and confirm Product Identity Lock."
-                  : "Save a draft anytime, or mark ready when product images and name are set."}
+              {snap.creativeStatus === "VIDEO_READY"
+                ? "Advertisement video scenes are ready for Step 4 (audio + final render)."
+                : snap.intelligenceStatus === "LOCKED"
+                  ? "Identity is locked. Create a plan and generate Exact Product video."
+                  : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
+                    ? "Foundation is ready — analyze and confirm Product Identity Lock."
+                    : "Save a draft anytime, or mark ready when product images and name are set."}
             </p>
             {snap.readyBlockedReason && snap.foundationStatus !== "READY_FOR_INTELLIGENCE" ? (
               <p className="pmv-foundation__blocked">{snap.readyBlockedReason}</p>

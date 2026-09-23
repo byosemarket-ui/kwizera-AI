@@ -49,6 +49,37 @@ import {
   type ProductIdentityLock,
   type ProductIntelligenceReview,
 } from "../product-identity-lock";
+import {
+  DEFAULT_PMV_CREATIVE_DIRECTION,
+  audioRequirementsFromDirection,
+  customerSafeError,
+  mapPmvModeToProduction,
+  mapProductionToPmvMode,
+  pmvModeLabel,
+  scenesFromPlan,
+  toneFromEnergy,
+  type PmvAudioRequirements,
+  type PmvCreativeDirection,
+  type PmvCreativeStatus,
+  type PmvGenerationMode,
+  type PmvModeCapabilityView,
+  type PmvStoryboardSceneView,
+} from "../pmv-creative";
+import {
+  fetchProductionCapabilities,
+  finalizeCreativePlan,
+  generatePlanWithMode,
+  getCreativePlan,
+} from "../video-style/api";
+import {
+  createVideoProject,
+  getVideoJob,
+  getVideoOutputDetails,
+  getVideoProject,
+  startVideoRender,
+} from "../video-production/api";
+import type { ProductionModeId } from "../../ai/video-production/production-mode-types";
+import type { CreativePlanDto } from "../deep-intelligence/live-api";
 
 export const SETUP_HANDOFF_KEY = "kwizera.product-setup.handoff.v1";
 
@@ -131,6 +162,18 @@ export class ProductSetupEngine {
   private identityLock: ProductIdentityLock | null = null;
   private intelligenceError: string | null = null;
   private intelligenceAssetFingerprint: string | null = null;
+  private creativeStatus: PmvCreativeStatus = "NOT_STARTED";
+  private creativeDirection: PmvCreativeDirection = DEFAULT_PMV_CREATIVE_DIRECTION();
+  private creativeScenes: PmvStoryboardSceneView[] = [];
+  private creativeCapabilities: PmvModeCapabilityView[] = [];
+  private creativePlan: CreativePlanDto | null = null;
+  private creativePlanId: string | null = null;
+  private creativePlanStatus: string | null = null;
+  private productionMode: ProductionModeId | null = null;
+  private renderJobId: string | null = null;
+  private videoReady = false;
+  private creativeError: string | null = null;
+  private audioRequirements: PmvAudioRequirements | null = null;
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
   private saveState: SaveState = "saved";
@@ -174,6 +217,13 @@ export class ProductSetupEngine {
         this.applyPmvSettings(project.workspaceSettings);
         this.applyIdentityLock(project.workspaceSettings);
         this.refreshStaleLockState();
+        if (
+          this.creativeStatus === "PLAN_READY"
+          || this.creativeStatus === "VIDEO_READY"
+          || this.creativeStatus === "FAILED"
+        ) {
+          void this.hydrateCreativePlan(intake.projectId);
+        }
         if (!this.heroAssetId) {
           const summary = buildAiSummary(imageOrganizationEngine.snapshot(), this.essentials);
           this.heroAssetId = summary?.heroAssetId ?? null;
@@ -299,6 +349,28 @@ export class ProductSetupEngine {
             : this.intelligenceStatus !== "LOCKED"
               ? "Confirm the Product Identity Lock before creative generation."
               : null)),
+      creativeStatus: this.creativeStatus,
+      creativeDirection: { ...this.creativeDirection },
+      creativeScenes: this.creativeScenes.map((s) => ({ ...s })),
+      creativeCapabilities: this.creativeCapabilities.map((c) => ({ ...c })),
+      creativePlanId: this.creativePlanId,
+      creativePlanStatus: this.creativePlanStatus,
+      creativeError: this.creativeError,
+      videoReady: this.videoReady,
+      renderJobId: this.renderJobId,
+      audioRequirements: this.audioRequirements ? { ...this.audioRequirements } : null,
+      canGenerateCreativePlan: canContinueToCreative
+        && this.creativeStatus !== "PLANNING"
+        && this.creativeStatus !== "GENERATING"
+        && !this.transitioning,
+      canGenerateVideo: canContinueToCreative
+        && Boolean(this.creativePlan?.scenes?.length)
+        && (this.creativeStatus === "PLAN_READY" || this.creativeStatus === "VIDEO_READY" || this.creativeStatus === "FAILED")
+        && this.creativeStatus !== "GENERATING"
+        && !this.transitioning,
+      creativeBlockedReason: !canContinueToCreative
+        ? (lockValidation.issues[0] ?? "Product Identity Lock required before creative production.")
+        : this.creativeError,
     };
   }
 
@@ -571,6 +643,232 @@ export class ProductSetupEngine {
     this.emit();
   }
 
+  setCreativeDirectionField<K extends keyof PmvCreativeDirection>(
+    field: K,
+    value: PmvCreativeDirection[K],
+  ): void {
+    this.creativeDirection = { ...this.creativeDirection, [field]: value };
+    if (field === "energy" || field === "goal") {
+      this.creativeDirection.creativeTone = toneFromEnergy(
+        this.creativeDirection.energy,
+        this.creativeDirection.goal,
+      );
+    }
+    if (field === "generationMode") {
+      this.productionMode = mapPmvModeToProduction(value as PmvGenerationMode);
+    }
+    if (
+      field === "musicPreference"
+      || field === "voicePreference"
+      || field === "mood"
+      || field === "energy"
+    ) {
+      this.audioRequirements = audioRequirementsFromDirection(this.creativeDirection);
+    }
+    if (this.creativeStatus === "PLAN_READY" || this.creativeStatus === "VIDEO_READY") {
+      this.creativeStatus = "STALE";
+      this.markCreativeScenesStale();
+    }
+    this.scheduleEssentialsPersist();
+    this.emit();
+  }
+
+  async refreshCreativeCapabilities(): Promise<void> {
+    const snap = this.snapshot();
+    const views = Math.max(1, snap.imageCards.filter((c) => c.uploadStatus === "saved").length);
+    try {
+      const result = await fetchProductionCapabilities(views);
+      this.creativeCapabilities = (result.capabilities ?? []).map((cap) => {
+        const pmvMode = mapProductionToPmvMode(cap.mode);
+        return {
+          mode: pmvMode,
+          productionMode: cap.mode,
+          label: pmvMode === "EXACT_PRODUCT"
+            ? "Exact product"
+            : pmvMode === "CINEMATIC"
+              ? "Cinematic"
+              : "Advanced creative",
+          description: cap.description,
+          available: cap.available,
+          reason: cap.reason,
+          limitations: cap.limitations ?? [],
+          recommended: cap.recommended,
+        };
+      });
+      // Ensure Exact Product always surfaces even if API omits it.
+      if (!this.creativeCapabilities.some((c) => c.mode === "EXACT_PRODUCT")) {
+        this.creativeCapabilities.unshift({
+          mode: "EXACT_PRODUCT",
+          productionMode: "AI_PRODUCT_MOTION",
+          label: "Exact product",
+          description: "Controlled motion from your real product photos. Highest product fidelity.",
+          available: true,
+          reason: "Available",
+          limitations: [],
+          recommended: true,
+        });
+      }
+      this.emit();
+    } catch {
+      this.creativeCapabilities = [{
+        mode: "EXACT_PRODUCT",
+        productionMode: "AI_PRODUCT_MOTION",
+        label: "Exact product",
+        description: "Controlled motion from your real product photos.",
+        available: true,
+        reason: "Available",
+        limitations: [],
+        recommended: true,
+      }];
+      this.emit();
+    }
+  }
+
+  /** Step 3 — generate creative plan + storyboard (reuses CreativePlanningManager). */
+  async generateCreativePlan(regenerate = false): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.canGenerateCreativePlan || !snap.projectId) {
+      throw new Error(snap.creativeBlockedReason ?? "Confirm Product Identity Lock first.");
+    }
+    const modeCap = this.creativeCapabilities.find((c) => c.mode === this.creativeDirection.generationMode)
+      ?? this.creativeCapabilities.find((c) => c.mode === "EXACT_PRODUCT");
+    let productionMode = mapPmvModeToProduction(this.creativeDirection.generationMode);
+    if (modeCap && !modeCap.available) {
+      if (this.creativeDirection.generationMode === "CINEMATIC"
+        || this.creativeDirection.generationMode === "ADVANCED_CREATIVE") {
+        // Honest fallback only for Exact Product when cinematic/advanced unavailable.
+        productionMode = "AI_PRODUCT_MOTION";
+        this.creativeDirection = {
+          ...this.creativeDirection,
+          generationMode: "EXACT_PRODUCT",
+        };
+        this.creativeError = modeCap.reason
+          || `${pmvModeLabel(modeCap.mode)} is not configured. Using Exact Product mode instead.`;
+      } else {
+        throw new Error(modeCap.reason || "Selected generation mode is unavailable.");
+      }
+    }
+
+    this.creativeStatus = "PLANNING";
+    this.creativeError = this.creativeError && productionMode === "AI_PRODUCT_MOTION"
+      ? this.creativeError
+      : null;
+    this.emit();
+
+    try {
+      await this.flushPersist();
+      const duration = snap.videoSettings.durationSeconds || 15;
+      const plan = await generatePlanWithMode(
+        snap.projectId,
+        productionMode,
+        this.creativeDirection.creativeTone,
+        regenerate || Boolean(this.creativePlan),
+        duration,
+      );
+      this.creativePlan = plan;
+      this.creativePlanId = plan.id;
+      this.creativePlanStatus = plan.planStatus ?? "READY_FOR_REVIEW";
+      this.productionMode = (plan.productionMode as ProductionModeId) || productionMode;
+      this.creativeScenes = scenesFromPlan(plan).map((s) => ({ ...s, status: "READY" }));
+      this.audioRequirements = audioRequirementsFromDirection(this.creativeDirection);
+      this.creativeStatus = "PLAN_READY";
+      this.videoReady = false;
+      await this.flushPersist();
+      await persistWorkflowStep(snap.projectId, 3, 1);
+      this.emit();
+    } catch (error) {
+      this.creativeStatus = "FAILED";
+      this.creativeError = customerSafeError(error instanceof Error ? error.message : "Plan generation failed");
+      await this.flushPersist().catch(() => undefined);
+      this.emit();
+      throw new Error(this.creativeError);
+    }
+  }
+
+  /** Step 3 — finalize plan and render Exact Product (or available mode) video. */
+  async generateProductVideo(): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (!snap.canContinueToCreative) {
+      throw new Error(snap.identityLockBlockedReason ?? "Product Identity Lock required.");
+    }
+    if (!this.creativePlan?.scenes?.length) {
+      await this.generateCreativePlan(false);
+    }
+    if (!this.creativePlan?.scenes?.length) {
+      throw new Error("Creative plan has no scenes.");
+    }
+
+    this.creativeStatus = "GENERATING";
+    this.creativeError = null;
+    this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "GENERATING" }));
+    this.emit();
+
+    try {
+      await finalizeCreativePlan(snap.projectId);
+      await createVideoProject(snap.projectId);
+      const { job } = await startVideoRender(snap.projectId, "preview");
+      this.renderJobId = job.id;
+      await this.flushPersist();
+
+      // Poll job until complete (bounded).
+      let terminal = job;
+      for (let i = 0; i < 90; i += 1) {
+        if (terminal.status === "completed" || terminal.status === "failed" || terminal.status === "cancelled") {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+        const next = await getVideoJob(snap.projectId, terminal.id);
+        terminal = next.job;
+      }
+
+      if (terminal.status !== "completed") {
+        this.creativeStatus = "FAILED";
+        this.creativeError = customerSafeError(terminal.error ?? "Video render did not complete.");
+        this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "FAILED" }));
+        await this.flushPersist();
+        this.emit();
+        throw new Error(this.creativeError);
+      }
+
+      const output = await getVideoOutputDetails(snap.projectId).catch(() => null);
+      this.videoReady = Boolean(output?.output || terminal.status === "completed");
+      this.creativeStatus = "VIDEO_READY";
+      this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "GENERATED" }));
+      this.creativePlanStatus = "APPROVED_FOR_VIDEO";
+      await this.flushPersist();
+      await persistWorkflowStep(snap.projectId, 3, 2);
+      this.emit();
+    } catch (error) {
+      if (this.creativeStatus === "GENERATING") {
+        this.creativeStatus = "FAILED";
+        this.creativeError = customerSafeError(error instanceof Error ? error.message : "Video generation failed");
+        this.creativeScenes = this.creativeScenes.map((s) => (
+          s.status === "GENERATING" ? { ...s, status: "FAILED" } : s
+        ));
+        await this.flushPersist().catch(() => undefined);
+        this.emit();
+      }
+      throw error instanceof Error ? error : new Error(this.creativeError ?? "Video generation failed");
+    }
+  }
+
+  async refreshVideoOutput(): Promise<boolean> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return false;
+    try {
+      const { video } = await getVideoProject(projectId);
+      if (!video) return false;
+      const output = await getVideoOutputDetails(projectId).catch(() => null);
+      this.videoReady = Boolean(output?.output);
+      if (this.videoReady) this.creativeStatus = "VIDEO_READY";
+      this.emit();
+      return this.videoReady;
+    } catch {
+      return false;
+    }
+  }
+
   async saveDraft(): Promise<void> {
     await this.ensureProject();
     if (
@@ -741,6 +1039,16 @@ export class ProductSetupEngine {
       intelligenceAssetFingerprint: this.intelligenceAssetFingerprint,
       intelligenceError: this.intelligenceError,
       intelligenceReview: this.intelligenceReview,
+      creativeStatus: this.creativeStatus,
+      creativeDirection: this.creativeDirection,
+      creativePlanId: this.creativePlanId,
+      creativePlanVersion: this.creativePlan?.version ?? null,
+      creativePlanStatus: this.creativePlanStatus,
+      productionMode: this.productionMode,
+      renderJobId: this.renderJobId,
+      videoReady: this.videoReady,
+      creativeError: this.creativeError,
+      audioRequirements: this.audioRequirements,
     };
     const language = this.videoSettings.language.trim()
       || this.brandContact.language.trim()
@@ -961,6 +1269,45 @@ export class ProductSetupEngine {
     if (stored.intelligenceError !== undefined) {
       this.intelligenceError = stored.intelligenceError ?? null;
     }
+    if (stored.creativeStatus) this.creativeStatus = stored.creativeStatus;
+    if (stored.creativeDirection) {
+      this.creativeDirection = { ...DEFAULT_PMV_CREATIVE_DIRECTION(), ...stored.creativeDirection };
+    }
+    if (stored.creativePlanId !== undefined) this.creativePlanId = stored.creativePlanId ?? null;
+    if (stored.creativePlanStatus !== undefined) this.creativePlanStatus = stored.creativePlanStatus ?? null;
+    if (stored.productionMode) this.productionMode = stored.productionMode as ProductionModeId;
+    if (stored.renderJobId !== undefined) this.renderJobId = stored.renderJobId ?? null;
+    if (stored.videoReady !== undefined) this.videoReady = Boolean(stored.videoReady);
+    if (stored.creativeError !== undefined) this.creativeError = stored.creativeError ?? null;
+    if (stored.audioRequirements) this.audioRequirements = stored.audioRequirements;
+    else if (stored.creativeDirection) {
+      this.audioRequirements = audioRequirementsFromDirection(this.creativeDirection);
+    }
+  }
+
+  private async hydrateCreativePlan(projectId: string): Promise<void> {
+    try {
+      const { plan } = await getCreativePlan(projectId);
+      if (!plan) return;
+      this.creativePlan = plan;
+      this.creativePlanId = plan.id;
+      this.creativePlanStatus = plan.planStatus ?? this.creativePlanStatus;
+      this.productionMode = (plan.productionMode as ProductionModeId) || this.productionMode;
+      const sceneStatus = this.creativeStatus === "VIDEO_READY" ? "GENERATED"
+        : this.creativeStatus === "FAILED" ? "FAILED"
+          : this.creativeStatus === "STALE" ? "STALE"
+            : "READY";
+      this.creativeScenes = scenesFromPlan(plan).map((s) => ({ ...s, status: sceneStatus }));
+      await this.refreshVideoOutput();
+      this.emit();
+    } catch {
+      /* keep persisted summary */
+    }
+  }
+
+  private markCreativeScenesStale(): void {
+    this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "STALE" }));
+    this.videoReady = false;
   }
 
   private applyIdentityLock(workspaceSettings: Record<string, unknown> | undefined): void {
@@ -1051,6 +1398,14 @@ export class ProductSetupEngine {
     }
     this.intelligenceStatus = "STALE";
     this.intelligenceAssetFingerprint = this.currentAssetFingerprint();
+    if (
+      this.creativeStatus === "PLAN_READY"
+      || this.creativeStatus === "VIDEO_READY"
+      || this.creativeStatus === "PLANNING"
+    ) {
+      this.creativeStatus = "STALE";
+      this.markCreativeScenesStale();
+    }
     this.scheduleEssentialsPersist();
   }
 

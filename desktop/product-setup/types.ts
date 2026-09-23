@@ -7,6 +7,13 @@ import type {
   ProductIdentityLock,
   ProductIntelligenceReview,
 } from "../product-identity-lock/types";
+import type {
+  PmvAudioRequirements,
+  PmvCreativeDirection,
+  PmvCreativeStatus,
+  PmvModeCapabilityView,
+  PmvStoryboardSceneView,
+} from "../pmv-creative/types";
 
 export type AnalysisUiStatus =
   | "NOT_STARTED"
@@ -90,6 +97,17 @@ export interface PmvFoundationSettings {
   intelligenceAssetFingerprint?: string | null;
   intelligenceError?: string | null;
   intelligenceReview?: ProductIntelligenceReview | null;
+  /** Step 3 — creative plan / generation */
+  creativeStatus?: PmvCreativeStatus;
+  creativeDirection?: PmvCreativeDirection | null;
+  creativePlanId?: string | null;
+  creativePlanVersion?: number | null;
+  creativePlanStatus?: string | null;
+  productionMode?: string | null;
+  renderJobId?: string | null;
+  videoReady?: boolean;
+  creativeError?: string | null;
+  audioRequirements?: PmvAudioRequirements | null;
 }
 
 export interface DiscountInfo {
@@ -195,6 +213,20 @@ export interface ProductSetupSnapshot {
   canConfirmIdentityLock: boolean;
   canContinueToCreative: boolean;
   identityLockBlockedReason: string | null;
+  /** Step 3 — Creative Plan + Video Generation */
+  creativeStatus: PmvCreativeStatus;
+  creativeDirection: PmvCreativeDirection;
+  creativeScenes: PmvStoryboardSceneView[];
+  creativeCapabilities: PmvModeCapabilityView[];
+  creativePlanId: string | null;
+  creativePlanStatus: string | null;
+  creativeError: string | null;
+  videoReady: boolean;
+  renderJobId: string | null;
+  audioRequirements: PmvAudioRequirements | null;
+  canGenerateCreativePlan: boolean;
+  canGenerateVideo: boolean;
+  creativeBlockedReason: string | null;
 }
 
 export interface Step2HandoffPayload {
