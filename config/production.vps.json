@@ -49,7 +49,7 @@
     "bindLoopbackByDefault": true,
     "noSecretsInPackage": true,
     "envFile": ".env (not committed)",
-    "adminApi": "production defaults to require-admin-token when KWIZERA_ADMIN_API_TOKEN is set, otherwise require-admin-role"
+    "adminApi": "production defaults to require-admin-token; set KWIZERA_ADMIN_API_TOKEN in .env (spoofable role headers are not accepted)"
   },
   "commands": {
     "build": "npm run build:production",

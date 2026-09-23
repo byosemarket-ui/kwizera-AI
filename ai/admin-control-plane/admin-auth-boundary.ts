@@ -50,11 +50,10 @@ export function resolveAdminAuthMode(): AdminAuthMode {
   ) {
     return raw;
   }
-  // Production must not default to open Admin APIs.
+  // Production must not default to open or spoofable role-header-only access.
+  // Operators set KWIZERA_ADMIN_API_TOKEN in the server .env (never committed).
   if (isProductionEnv()) {
-    return process.env.KWIZERA_ADMIN_API_TOKEN?.trim()
-      ? "require-admin-token"
-      : "require-admin-role";
+    return "require-admin-token";
   }
   return "development-open";
 }
@@ -100,24 +99,21 @@ export function assertAdminAccess(ctx: AdminAccessContext): AdminAccessDecision 
         mayRevealSecrets: false,
       };
     }
-    if (tokenMatches(ctx.adminToken, expected) || hasAdminRole(ctx.roles)) {
+    if (tokenMatches(ctx.adminToken, expected)) {
       return {
         allowed: true,
-        reason: tokenMatches(ctx.adminToken, expected) ? "Admin API token accepted" : "Admin role granted",
+        reason: "Admin API token accepted",
         mayRevealSecrets: false,
       };
     }
-    return { allowed: false, reason: "Admin API token or admin role required", mayRevealSecrets: false };
+    return { allowed: false, reason: "Admin API token required", mayRevealSecrets: false };
   }
 
   if (mode === "require-admin-role") {
-    const ok = hasAdminRole(ctx.roles) || (
-      Boolean(process.env.KWIZERA_ADMIN_API_TOKEN?.trim())
-      && tokenMatches(ctx.adminToken, process.env.KWIZERA_ADMIN_API_TOKEN!.trim())
-    );
+    const ok = hasAdminRole(ctx.roles);
     return {
       allowed: ok,
-      reason: ok ? "Admin authorization granted" : "Admin role or API token required",
+      reason: ok ? "Admin role granted" : "Admin role required",
       mayRevealSecrets: false,
     };
   }

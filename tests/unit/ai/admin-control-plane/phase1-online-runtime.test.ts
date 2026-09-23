@@ -53,7 +53,7 @@ describe("Admin auth boundary — production defaults", () => {
     delete process.env.KWIZERA_ADMIN_AUTH_MODE;
     process.env.KWIZERA_ENV = "production";
     delete process.env.KWIZERA_ADMIN_API_TOKEN;
-    expect(resolveAdminAuthMode()).toBe("require-admin-role");
+    expect(resolveAdminAuthMode()).toBe("require-admin-token");
     expect(assertAdminAccess({
       roles: [],
       path: "/api/admin/providers",
@@ -63,12 +63,23 @@ describe("Admin auth boundary — production defaults", () => {
       roles: ["admin"],
       path: "/api/admin/providers",
       adminApi: true,
-    }).allowed).toBe(true);
+    }).allowed).toBe(false);
+    expect(assertAdminAccess({
+      roles: ["admin"],
+      path: "/api/admin/providers",
+      adminApi: true,
+      adminToken: "anything",
+    }).allowed).toBe(false);
   });
 
-  it("accepts Admin API token in require-admin-token mode", () => {
+  it("accepts Admin API token in require-admin-token mode and rejects spoofed roles", () => {
     process.env.KWIZERA_ADMIN_AUTH_MODE = "require-admin-token";
     process.env.KWIZERA_ADMIN_API_TOKEN = "phase1-test-admin-token";
+    expect(assertAdminAccess({
+      roles: ["admin"],
+      path: "/api/admin/providers",
+      adminApi: true,
+    }).allowed).toBe(false);
     expect(assertAdminAccess({
       roles: [],
       path: "/api/admin/providers",
