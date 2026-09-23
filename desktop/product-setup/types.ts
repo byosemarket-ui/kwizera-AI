@@ -21,6 +21,11 @@ import type {
   PmvMusicCapabilityView,
   PmvProduceStatus,
 } from "../pmv-final/types";
+import type {
+  PmvDeliveryStatus,
+  PmvTargetedRegeneration,
+  PmvVideoQaResult,
+} from "../pmv-qa/types";
 
 export type AnalysisUiStatus =
   | "NOT_STARTED"
@@ -124,6 +129,14 @@ export interface PmvFoundationSettings {
   beatSyncMode?: PmvBeatSyncMode;
   audioVolume?: number;
   selectedAudioAssetId?: string | null;
+  /** Step 5 — QA + delivery */
+  qaResult?: PmvVideoQaResult | null;
+  deliveryStatus?: PmvDeliveryStatus;
+  deliveredAt?: string | null;
+  approvedRenderJobId?: string | null;
+  approvedOutputAssetId?: string | null;
+  targetedRegeneration?: PmvTargetedRegeneration | null;
+  sceneRegenAttempts?: Record<string, number>;
 }
 
 export interface DiscountInfo {
@@ -268,6 +281,17 @@ export interface ProductSetupSnapshot {
   canSelectAudio: boolean;
   canStartFinalRender: boolean;
   produceBlockedReason: string | null;
+  /** Step 5 — Product Identity QA + delivery */
+  qaResult: PmvVideoQaResult | null;
+  deliveryStatus: PmvDeliveryStatus;
+  deliveredAt: string | null;
+  approvedRenderJobId: string | null;
+  approvedOutputAssetId: string | null;
+  targetedRegeneration: PmvTargetedRegeneration | null;
+  canRunQa: boolean;
+  canRegenerateFailedScene: boolean;
+  canMarkDelivered: boolean;
+  qaBlockedReason: string | null;
 }
 
 export interface Step2HandoffPayload {

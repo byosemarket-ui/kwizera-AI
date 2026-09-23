@@ -22,11 +22,12 @@ const ASPECTS = [
 ];
 
 /**
- * Product Marketing Video — Steps 1–4.
+ * Product Marketing Video — Steps 1–5.
  * Step 1: product assets, info, brand, settings.
  * Step 2: Product Intelligence + Product Identity Lock.
  * Step 3: Creative direction, plan/storyboard, Exact Product video generation.
  * Step 4: Audio selection, timeline, final standard render.
+ * Step 5: Product Identity QA, targeted scene regen, delivery.
  */
 export function ProductMarketingVideoWorkspace() {
   const { notify, switchWorkspace } = useShell();
@@ -248,7 +249,7 @@ export function ProductMarketingVideoWorkspace() {
       notify(
         "success",
         "Final video ready",
-        "Your advertisement MP4 was rendered with timeline, branding, and selected audio.",
+        "Your advertisement MP4 was rendered. Run quality checks before delivery.",
         "production-complete",
       );
     } catch (error) {
@@ -263,11 +264,65 @@ export function ProductMarketingVideoWorkspace() {
     }
   };
 
+  const onRunQa = async () => {
+    setBusy(true);
+    try {
+      const qa = await productSetupEngine.runProductVideoQa();
+      if (qa.overallStatus === "QA_PASSED") {
+        notify("success", "Quality checks passed", "Product, text, branding, and timing checks passed.", "production-complete");
+      } else if (qa.overallStatus === "NEEDS_REVIEW") {
+        notify("warning", "Needs review", qa.warnings[0] ?? "Some checks need human review.", "warnings");
+      } else {
+        notify("error", "Quality checks failed", qa.failures[0] ?? "One or more scenes failed QA.", "errors");
+      }
+    } catch (error) {
+      notify("error", "QA failed", error instanceof Error ? error.message : "Could not run quality checks.", "errors");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRegenerateFailedScene = async () => {
+    setBusy(true);
+    try {
+      const qa = await productSetupEngine.regenerateFailedScene();
+      if (qa.overallStatus === "QA_PASSED") {
+        notify("success", "Scene fixed", "Failed scene was regenerated and the final video passed QA.", "production-complete");
+      } else {
+        notify("warning", "Still needs work", qa.failures[0] ?? "QA did not fully pass after regeneration.", "warnings");
+      }
+    } catch (error) {
+      notify(
+        "error",
+        "Scene fix failed",
+        error instanceof Error ? error.message : "Could not regenerate the failed scene.",
+        "errors",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onMarkDelivered = async () => {
+    setBusy(true);
+    try {
+      await productSetupEngine.markDelivered();
+      notify("success", "Final video delivered", "Approved advertisement is saved in this project.", "production-complete");
+    } catch (error) {
+      notify("error", "Delivery failed", error instanceof Error ? error.message : "Could not mark as delivered.", "errors");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const savedCount = snap.intake.assets.filter((a) => a.processingStatus === "saved").length;
   const uploadingCount = snap.intake.assets.filter((a) => a.processingStatus === "uploading").length;
   const hasImages = savedCount > 0 || uploadingCount > 0 || snap.imageCards.length > 0;
   const currentStepId =
-    snap.produceStatus === "FINAL_READY" || snap.produceStatus === "RENDERING"
+    snap.produceStatus === "QA_PASSED" || snap.produceStatus === "DELIVERED"
+      || snap.produceStatus === "QA_FAILED" || snap.produceStatus === "NEEDS_REVIEW"
+      || snap.produceStatus === "QA_IN_PROGRESS" || snap.produceStatus === "REGENERATING"
+      || snap.produceStatus === "FINAL_READY" || snap.produceStatus === "RENDERING"
       || snap.produceStatus === "VALIDATING" || snap.produceStatus === "FAILED"
       || snap.produceStatus === "STALE" || snap.produceStatus === "AUDIO_READY"
       || snap.produceStatus === "TIMELINE_READY"
@@ -286,6 +341,12 @@ export function ProductMarketingVideoWorkspace() {
           : "upload";
 
   const statusLabel = (() => {
+    if (snap.produceStatus === "DELIVERED") return "Final video delivered";
+    if (snap.produceStatus === "QA_PASSED") return "QA passed";
+    if (snap.produceStatus === "QA_IN_PROGRESS") return "Checking video";
+    if (snap.produceStatus === "REGENERATING") return "Fixing one scene";
+    if (snap.produceStatus === "QA_FAILED") return "QA failed";
+    if (snap.produceStatus === "NEEDS_REVIEW") return "Needs review";
     if (snap.produceStatus === "FINAL_READY") return "Final video ready";
     if (snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING") return "Final rendering";
     if (snap.produceStatus === "FAILED") return "Final render failed";
@@ -344,20 +405,24 @@ export function ProductMarketingVideoWorkspace() {
       onCancel={() => switchWorkspace("home")}
       cancelLabel="Back to Home"
       footerNote={
-        snap.produceStatus === "FINAL_READY"
-          ? "Final advertisement is ready. Step 5 will cover product QA and delivery."
-          : snap.creativeStatus === "VIDEO_READY"
-            ? "Scenes are ready — select music, then render the final advertisement."
-            : snap.intelligenceStatus === "LOCKED"
-              ? "Product Identity Lock is active — build a creative plan and generate Exact Product video."
-              : "Step 2 locks product identity. Step 3 builds scenes. Step 4 finalizes audio and render."
+        snap.produceStatus === "DELIVERED"
+          ? "Final advertisement is delivered and saved in this project."
+          : snap.produceStatus === "QA_PASSED"
+            ? "Quality checks passed — mark as delivered when ready."
+            : snap.produceStatus === "FINAL_READY"
+              ? "Final advertisement is ready — run quality checks before delivery."
+              : snap.creativeStatus === "VIDEO_READY"
+                ? "Scenes are ready — select music, then render the final advertisement."
+                : snap.intelligenceStatus === "LOCKED"
+                  ? "Product Identity Lock is active — build a creative plan and generate Exact Product video."
+                  : "Step 2 locks product identity. Steps 3–4 produce the ad. Step 5 runs QA before delivery."
       }
     >
       <div className="pmv-foundation product-setup is-customer-mode" data-pmv-foundation="true" data-customer-mode="true">
         <header className="product-setup__header pmv-foundation__header">
           <div>
             <h1>Product Marketing Video</h1>
-            <p>Product → Intelligence → Lock → Creative → Storyboard → Audio → Timeline → Final video.</p>
+            <p>Product → Intelligence → Lock → Creative → Audio → Final → QA → Delivery.</p>
           </div>
           <div className="pmv-foundation__status-row">
             <span
@@ -470,7 +535,10 @@ export function ProductMarketingVideoWorkspace() {
             </strong>
           </li>
           <li data-state={
-            snap.produceStatus === "FINAL_READY" ? "READY"
+            snap.produceStatus === "FINAL_READY"
+              || snap.produceStatus === "QA_PASSED"
+              || snap.produceStatus === "DELIVERED"
+              ? "READY"
               : snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING" ? "WORKING"
                 : snap.produceStatus === "FAILED" || snap.produceStatus === "STALE" ? "ATTENTION"
                   : "PENDING"
@@ -478,11 +546,34 @@ export function ProductMarketingVideoWorkspace() {
           >
             <span>Final Video</span>
             <strong>
-              {snap.produceStatus === "FINAL_READY" ? "READY"
+              {snap.produceStatus === "FINAL_READY"
+                || snap.produceStatus === "QA_PASSED"
+                || snap.produceStatus === "DELIVERED"
+                ? "READY"
                 : snap.produceStatus === "RENDERING" || snap.produceStatus === "VALIDATING" ? "RENDERING"
                   : snap.produceStatus === "FAILED" ? "FAILED"
                     : snap.produceStatus === "STALE" ? "STALE"
                       : "PENDING"}
+            </strong>
+          </li>
+          <li data-state={
+            snap.produceStatus === "QA_PASSED" || snap.produceStatus === "DELIVERED" ? "READY"
+              : snap.produceStatus === "QA_IN_PROGRESS" || snap.produceStatus === "REGENERATING" ? "WORKING"
+                : snap.produceStatus === "QA_FAILED" || snap.produceStatus === "NEEDS_REVIEW" ? "ATTENTION"
+                  : snap.produceStatus === "FINAL_READY" ? "ATTENTION"
+                    : "PENDING"
+          }
+          >
+            <span>QA</span>
+            <strong>
+              {snap.produceStatus === "DELIVERED" ? "DELIVERED"
+                : snap.produceStatus === "QA_PASSED" ? "PASSED"
+                  : snap.produceStatus === "QA_IN_PROGRESS" ? "CHECKING"
+                    : snap.produceStatus === "REGENERATING" ? "FIXING SCENE"
+                      : snap.produceStatus === "QA_FAILED" ? "FAILED"
+                        : snap.produceStatus === "NEEDS_REVIEW" ? "REVIEW"
+                          : snap.produceStatus === "FINAL_READY" ? "READY TO CHECK"
+                            : "PENDING"}
             </strong>
           </li>
         </ol>
@@ -1411,20 +1502,162 @@ export function ProductMarketingVideoWorkspace() {
           )}
         </section>
 
-        {/* E. PROJECT SAVE / STATE */}
+        {/* E. QUALITY + DELIVERY (Step 5) */}
+        <section
+          className="product-setup__panel pmv-qa"
+          aria-labelledby="pmv-qa-heading"
+          data-qa-status={snap.qaResult?.overallStatus ?? "NOT_STARTED"}
+          data-delivery-status={snap.deliveryStatus}
+        >
+          <div className="product-setup__section-head">
+            <h2 id="pmv-qa-heading">Quality check &amp; delivery</h2>
+            <span className="product-setup__meta">
+              {snap.produceStatus === "DELIVERED" ? "Delivered"
+                : snap.produceStatus === "QA_PASSED" ? "QA passed"
+                  : snap.produceStatus === "QA_IN_PROGRESS" ? "Checking video"
+                    : snap.produceStatus === "REGENERATING" ? "Fixing one scene"
+                      : snap.produceStatus === "QA_FAILED" ? "QA failed"
+                        : snap.produceStatus === "NEEDS_REVIEW" ? "Needs review"
+                          : snap.finalVideoReady ? "Ready to check" : "Waiting for final video"}
+            </span>
+          </div>
+
+          {!snap.finalVideoReady && !snap.qaResult ? (
+            <p className="pmv-foundation__hint">
+              Render the final advertisement first. Quality checks verify product identity, text, branding, and timing before delivery.
+            </p>
+          ) : (
+            <>
+              <div className="pmv-qa__gates" role="list">
+                {[
+                  { label: "Product", status: snap.qaResult?.productIdentityStatus },
+                  { label: "Text", status: snap.qaResult?.textStatus },
+                  { label: "Branding", status: snap.qaResult?.brandingStatus },
+                  { label: "Timing", status: snap.qaResult?.timingStatus },
+                  { label: "Composition", status: snap.qaResult?.compositionStatus },
+                  { label: "Motion", status: snap.qaResult?.motionStatus },
+                  { label: "Technical", status: snap.qaResult?.technicalStatus },
+                ].map((gate) => (
+                  <div key={gate.label} className="pmv-qa__gate" data-status={gate.status ?? "SKIPPED"} role="listitem">
+                    <span>{gate.label}</span>
+                    <strong>{gate.status ?? "—"}</strong>
+                  </div>
+                ))}
+              </div>
+
+              {snap.qaResult?.failures.length ? (
+                <ul className="pmv-qa__issues" data-kind="failures">
+                  {snap.qaResult.failures.slice(0, 5).map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {snap.qaResult?.warnings.length ? (
+                <ul className="pmv-qa__issues" data-kind="warnings">
+                  {snap.qaResult.warnings.slice(0, 4).map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {snap.qaResult?.scenes.some((s) => s.status === "FAIL") ? (
+                <p className="pmv-foundation__hint" role="status">
+                  Only failed scenes will be regenerated. Successful scenes stay untouched.
+                </p>
+              ) : null}
+
+              {snap.targetedRegeneration ? (
+                <p className="pmv-foundation__hint">
+                  Last scene fix: scene {snap.creativeScenes.find((s) => s.sceneId === snap.targetedRegeneration?.sceneId)?.order
+                    ?? "?"} · attempt {snap.targetedRegeneration.attempt}/{snap.targetedRegeneration.maxAttempts}
+                  {" · "}{snap.targetedRegeneration.status}
+                </p>
+              ) : null}
+
+              {(snap.produceStatus === "QA_IN_PROGRESS" || snap.produceStatus === "REGENERATING") ? (
+                <p className="pmv-foundation__hint" role="status">
+                  {snap.produceStatus === "REGENERATING" ? "Fixing one scene…" : "Checking product, text, branding, and video quality…"}
+                </p>
+              ) : null}
+
+              <div className="pmv-intelligence__actions">
+                <button
+                  type="button"
+                  disabled={busy || !snap.canRunQa}
+                  onClick={() => void onRunQa()}
+                >
+                  {snap.produceStatus === "QA_IN_PROGRESS"
+                    ? <Loader2 size={14} className="spin" />
+                    : null}
+                  {snap.qaResult ? "Re-run quality checks" : "Run quality checks"}
+                </button>
+                <button
+                  type="button"
+                  className="is-secondary"
+                  disabled={busy || !snap.canRegenerateFailedScene}
+                  onClick={() => void onRegenerateFailedScene()}
+                >
+                  {snap.produceStatus === "REGENERATING"
+                    ? <Loader2 size={14} className="spin" />
+                    : null}
+                  Fix failed scene
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !snap.canMarkDelivered}
+                  onClick={() => void onMarkDelivered()}
+                >
+                  Mark as delivered
+                </button>
+              </div>
+
+              {snap.produceStatus === "DELIVERED" || snap.deliveryStatus === "DELIVERED" ? (
+                <div className="pmv-qa__delivered" data-pmv-delivered="true">
+                  <p className="pmv-intelligence__label">Delivered advertisement</p>
+                  <p className="pmv-foundation__hint">
+                    Product protected · QA passed · {snap.videoSettings.aspectRatio}
+                    {snap.finalDurationMs != null ? ` · ${(snap.finalDurationMs / 1000).toFixed(1)}s` : ""}
+                    {snap.deliveredAt ? ` · ${new Date(snap.deliveredAt).toLocaleString()}` : ""}
+                  </p>
+                  {snap.finalOutputUrl ? (
+                    <video
+                      key={`delivered-${snap.finalOutputUrl}`}
+                      controls
+                      preload="metadata"
+                      src={snap.finalOutputUrl}
+                      className="pmv-produce__player"
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!snap.canRunQa && snap.qaBlockedReason && !snap.qaResult ? (
+                <p className="pmv-foundation__blocked">{snap.qaBlockedReason}</p>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        {/* F. PROJECT SAVE / STATE */}
         <footer className="product-setup__footer pmv-foundation__footer">
           <div>
             <p className="pmv-foundation__footer-title">Project state</p>
             <p className="pmv-foundation__footer-copy">
-              {snap.produceStatus === "FINAL_READY"
-                ? "Final advertisement is ready for Step 5 (QA + delivery)."
-                : snap.creativeStatus === "VIDEO_READY"
-                  ? "Scenes are ready — select audio and render the final MP4."
-                  : snap.intelligenceStatus === "LOCKED"
-                    ? "Identity is locked. Create a plan and generate Exact Product video."
-                    : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
-                      ? "Foundation is ready — analyze and confirm Product Identity Lock."
-                      : "Save a draft anytime, or mark ready when product images and name are set."}
+              {snap.produceStatus === "DELIVERED"
+                ? "Final advertisement is delivered and saved in this project."
+                : snap.produceStatus === "QA_PASSED"
+                  ? "Quality checks passed — mark as delivered when ready."
+                  : snap.produceStatus === "FINAL_READY"
+                    ? "Final MP4 is ready — run quality checks before delivery."
+                    : snap.produceStatus === "QA_FAILED" || snap.produceStatus === "NEEDS_REVIEW"
+                      ? "Resolve QA issues or fix the failed scene before delivery."
+                      : snap.creativeStatus === "VIDEO_READY"
+                        ? "Scenes are ready — select audio and render the final MP4."
+                        : snap.intelligenceStatus === "LOCKED"
+                          ? "Identity is locked. Create a plan and generate Exact Product video."
+                          : snap.foundationStatus === "READY_FOR_INTELLIGENCE"
+                            ? "Foundation is ready — analyze and confirm Product Identity Lock."
+                            : "Save a draft anytime, or mark ready when product images and name are set."}
             </p>
             {snap.readyBlockedReason && snap.foundationStatus !== "READY_FOR_INTELLIGENCE" ? (
               <p className="pmv-foundation__blocked">{snap.readyBlockedReason}</p>

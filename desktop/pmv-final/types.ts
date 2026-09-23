@@ -18,6 +18,12 @@ export type PmvProduceStatus =
   | "RENDERING"
   | "VALIDATING"
   | "FINAL_READY"
+  | "QA_IN_PROGRESS"
+  | "QA_PASSED"
+  | "QA_FAILED"
+  | "NEEDS_REVIEW"
+  | "REGENERATING"
+  | "DELIVERED"
   | "FAILED"
   | "STALE";
 
@@ -141,6 +147,12 @@ export function mapIntelligence(
 
 export function produceStageLabel(progress: number, status: PmvProduceStatus): string {
   if (status === "FINAL_READY") return "Final video ready";
+  if (status === "QA_IN_PROGRESS") return "Checking product quality";
+  if (status === "QA_PASSED") return "Quality checks passed";
+  if (status === "QA_FAILED") return "Quality checks failed";
+  if (status === "NEEDS_REVIEW") return "Needs review";
+  if (status === "REGENERATING") return "Fixing one scene";
+  if (status === "DELIVERED") return "Final video delivered";
   if (status === "FAILED") return "Final render failed";
   if (status === "STALE") return "Final video stale";
   if (status === "NOT_STARTED") return "Audio & final render";

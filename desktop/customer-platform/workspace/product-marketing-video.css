@@ -403,6 +403,58 @@
   max-height: 420px;
 }
 
+.pmv-qa {
+  display: grid;
+  gap: 12px;
+}
+
+.pmv-qa__gates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.pmv-qa__gate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cp-surface-raised, #1a2230) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cp-border, #2a3548) 80%, transparent);
+}
+
+.pmv-qa__gate span {
+  font-size: 0.72rem;
+  color: var(--cp-text-muted, #9aa4b2);
+}
+
+.pmv-qa__gate strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.pmv-qa__gate[data-status="PASS"] strong { color: #3ecf8e; }
+.pmv-qa__gate[data-status="FAIL"] strong { color: #f07178; }
+.pmv-qa__gate[data-status="UNCERTAIN"],
+.pmv-qa__gate[data-status="UNAVAILABLE"] strong { color: #e6b450; }
+.pmv-qa__gate[data-status="SKIPPED"] strong { color: var(--cp-text-muted, #9aa4b2); }
+
+.pmv-qa__issues {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--cp-text-muted, #9aa4b2);
+}
+
+.pmv-qa__issues[data-kind="failures"] {
+  color: #f07178;
+}
+
+.pmv-qa__delivered {
+  margin-top: 4px;
+}
+
 @media (max-width: 820px) {
   .pmv-foundation__header {
     flex-direction: column;

@@ -76,17 +76,29 @@ import {
   type PmvProduceStatus,
 } from "../pmv-final";
 import {
+  PMV_SCENE_REGEN_MAX_ATTEMPTS,
+  buildTargetedRegeneration,
+  runDeterministicPmvQa,
+  type PmvDeliveryStatus,
+  type PmvTargetedRegeneration,
+  type PmvVideoQaResult,
+} from "../pmv-qa";
+import {
   fetchProductionCapabilities,
   finalizeCreativePlan,
   generatePlanWithMode,
   getCreativePlan,
+  updateCreativePlan,
 } from "../video-style/api";
 import {
+  CAMERA_OPTIONS,
+  MOTION_OPTIONS,
   createVideoProject,
   getVideoJob,
   getVideoOutputDetails,
   getVideoProject,
   startVideoRender,
+  updateVideoProject,
   validateVideoRender,
   VideoProductionApiError,
 } from "../video-production/api";
@@ -209,6 +221,13 @@ export class ProductSetupEngine {
   private finalHeight: number | null = null;
   private produceProgress = 0;
   private produceError: string | null = null;
+  private qaResult: PmvVideoQaResult | null = null;
+  private deliveryStatus: PmvDeliveryStatus = "NOT_DELIVERED";
+  private deliveredAt: string | null = null;
+  private approvedRenderJobId: string | null = null;
+  private approvedOutputAssetId: string | null = null;
+  private targetedRegeneration: PmvTargetedRegeneration | null = null;
+  private sceneRegenAttempts: Record<string, number> = {};
   private listeners = new Set<Listener>();
   private notify: NotifyFn | null = null;
   private saveState: SaveState = "saved";
@@ -437,17 +456,50 @@ export class ProductSetupEngine {
         && canContinueToCreative
         && this.videoReady
         && this.produceStatus !== "RENDERING"
+        && this.produceStatus !== "QA_IN_PROGRESS"
+        && this.produceStatus !== "REGENERATING"
         && !this.transitioning,
       canStartFinalRender: canContinueToCreative
         && this.videoReady
         && this.produceStatus !== "RENDERING"
         && this.produceStatus !== "VALIDATING"
+        && this.produceStatus !== "QA_IN_PROGRESS"
+        && this.produceStatus !== "REGENERATING"
         && !this.transitioning,
       produceBlockedReason: !canContinueToCreative
         ? (lockValidation.issues[0] ?? "Product Identity Lock required.")
         : !this.videoReady
           ? "Generate Exact Product scenes in Step 3 before final render."
           : this.produceError,
+      qaResult: this.qaResult ? { ...this.qaResult, scenes: this.qaResult.scenes.map((s) => ({ ...s })) } : null,
+      deliveryStatus: this.deliveryStatus,
+      deliveredAt: this.deliveredAt,
+      approvedRenderJobId: this.approvedRenderJobId,
+      approvedOutputAssetId: this.approvedOutputAssetId,
+      targetedRegeneration: this.targetedRegeneration ? { ...this.targetedRegeneration } : null,
+      canRunQa: canContinueToCreative
+        && this.finalVideoReady
+        && Boolean(this.finalOutputUrl)
+        && this.produceStatus !== "STALE"
+        && this.produceStatus !== "RENDERING"
+        && this.produceStatus !== "VALIDATING"
+        && this.produceStatus !== "QA_IN_PROGRESS"
+        && this.produceStatus !== "REGENERATING"
+        && !this.transitioning,
+      canRegenerateFailedScene: Boolean(this.qaResult?.scenes.some((s) => s.status === "FAIL"))
+        && this.produceStatus !== "RENDERING"
+        && this.produceStatus !== "QA_IN_PROGRESS"
+        && this.produceStatus !== "REGENERATING"
+        && !this.transitioning,
+      canMarkDelivered: this.produceStatus === "QA_PASSED"
+        && this.deliveryStatus !== "DELIVERED"
+        && Boolean(this.finalOutputAssetId || this.finalOutputUrl)
+        && !this.transitioning,
+      qaBlockedReason: !this.finalVideoReady || !this.finalOutputUrl
+        ? "Render a final video before quality checks."
+        : this.produceStatus === "STALE"
+          ? "Final video is stale — re-render before QA."
+          : this.qaResult?.failures[0] ?? this.produceError,
     };
   }
 
@@ -1014,8 +1066,13 @@ export class ProductSetupEngine {
     this.selectedAudioTitle = item?.title ?? null;
     this.audioEnabled = true;
     this.audioIntelligence = mapIntelligence(body.analysis?.intelligence ?? null);
-    if (this.produceStatus === "FINAL_READY") this.produceStatus = "STALE";
-    else if (this.produceStatus === "NOT_STARTED") this.produceStatus = "AUDIO_READY";
+    if (this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED"
+      || this.produceStatus === "QA_FAILED"
+      || this.produceStatus === "NEEDS_REVIEW") {
+      this.invalidateApprovedDelivery();
+    } else if (this.produceStatus === "NOT_STARTED") this.produceStatus = "AUDIO_READY";
     this.finalVideoReady = false;
     await this.flushPersist();
     this.emit();
@@ -1033,8 +1090,12 @@ export class ProductSetupEngine {
     this.selectedAudioTitle = null;
     this.audioEnabled = false;
     this.audioIntelligence = null;
-    if (this.produceStatus === "FINAL_READY" || this.produceStatus === "AUDIO_READY") {
+    if (this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED"
+      || this.produceStatus === "AUDIO_READY") {
       this.produceStatus = this.timelineReady ? "TIMELINE_READY" : "NOT_STARTED";
+      if (this.deliveryStatus === "DELIVERED") this.deliveryStatus = "STALE";
     }
     this.finalVideoReady = false;
     await this.flushPersist();
@@ -1055,9 +1116,10 @@ export class ProductSetupEngine {
     if (!res.ok) throw new Error(body.error ?? "Unable to update beat sync");
     const next = String(body.beatSyncMode ?? body.project?.beatSyncMode ?? mode).toUpperCase();
     this.beatSyncMode = next === "OFF" || next === "STRICT" ? next : "SMART";
-    if (this.produceStatus === "FINAL_READY") {
-      this.produceStatus = "STALE";
-      this.finalVideoReady = false;
+    if (this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED") {
+      this.invalidateApprovedDelivery();
     }
     await this.flushPersist();
     this.emit();
@@ -1069,9 +1131,25 @@ export class ProductSetupEngine {
     const clamped = Math.min(1, Math.max(0, volume));
     this.audioVolume = clamped;
     await updateProjectApi(projectId, { audioVolume: clamped });
-    if (this.produceStatus === "FINAL_READY") {
-      this.produceStatus = "STALE";
-      this.finalVideoReady = false;
+    if (this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED") {
+      this.invalidateApprovedDelivery();
+    }
+    await this.flushPersist();
+    this.emit();
+  }
+
+  async setAudioVolume(volume: number): Promise<void> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId) return;
+    const clamped = Math.min(1, Math.max(0, volume));
+    this.audioVolume = clamped;
+    await updateProjectApi(projectId, { audioVolume: clamped });
+    if (this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED") {
+      this.invalidateApprovedDelivery();
     }
     await this.flushPersist();
     this.emit();
@@ -1213,7 +1291,13 @@ export class ProductSetupEngine {
         this.finalWidth = typeof output.width === "number" ? output.width : null;
         this.finalHeight = typeof output.height === "number" ? output.height : null;
         this.finalVideoReady = true;
-        if (this.produceStatus !== "STALE") {
+        if (
+          this.produceStatus !== "STALE"
+          && this.produceStatus !== "QA_PASSED"
+          && this.produceStatus !== "DELIVERED"
+          && this.produceStatus !== "QA_FAILED"
+          && this.produceStatus !== "NEEDS_REVIEW"
+        ) {
           this.produceStatus = "FINAL_READY";
           this.produceProgress = 100;
         }
@@ -1221,13 +1305,277 @@ export class ProductSetupEngine {
         return true;
       }
       if (video?.outputStatus === "OUTDATED" && this.finalVideoReady) {
-        this.produceStatus = "STALE";
-        this.finalVideoReady = false;
+        this.invalidateApprovedDelivery();
         this.emit();
       }
       return false;
     } catch {
       return false;
+    }
+  }
+
+  /** Step 5 — Product Identity QA against final MP4 + identity lock. */
+  async runProductVideoQa(): Promise<PmvVideoQaResult> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (!this.finalVideoReady || !this.finalOutputUrl) {
+      throw new Error("Render a final video before quality checks.");
+    }
+    if (this.produceStatus === "STALE") {
+      throw new Error("Final video is stale — re-render before QA.");
+    }
+
+    this.produceStatus = "QA_IN_PROGRESS";
+    this.produceError = null;
+    this.emit();
+
+    try {
+      const details = await getVideoOutputDetails(snap.projectId);
+      const output = details.output;
+      if (!output?.url) throw new Error("Final MP4 is missing from project output.");
+
+      this.finalOutputUrl = output.url;
+      this.finalOutputAssetId = output.assetId ?? null;
+      this.finalDurationMs = typeof output.durationMs === "number" ? output.durationMs : null;
+      this.finalWidth = typeof output.width === "number" ? output.width : null;
+      this.finalHeight = typeof output.height === "number" ? output.height : null;
+      this.finalRenderJobId = output.renderJobId ?? this.finalRenderJobId;
+
+      const { video } = await getVideoProject(snap.projectId);
+      const timelineAssetIds = (video?.timeline ?? [])
+        .map((clip) => clip.assetId)
+        .filter((id): id is string => Boolean(id));
+
+      const productAssetIds = productIntakeEngine.snapshot().assets
+        .filter((a) => a.processingStatus === "saved")
+        .map((a) => a.assetId);
+
+      // Vision frame QA is optional; Exact Product Mode uses asset-lock identity.
+      // Do not fake PASS when vision is unavailable for generative modes.
+      const visionQaAvailable = false;
+
+      const qa = runDeterministicPmvQa({
+        projectId: snap.projectId,
+        lock: this.identityLock,
+        productAssetIds,
+        heroAssetId: this.heroAssetId,
+        brandName: this.brandContact.brandName || this.optional.brand || this.essentials.productName,
+        website: this.brandContact.websiteUrl || this.optional.website,
+        phone: this.brandContact.phone,
+        cta: this.videoSettings.cta || this.brandContact.cta || this.optional.productCta,
+        logoAssetId: this.brandContact.logoAssetId,
+        audioSelected: Boolean(this.selectedAudioAssetId),
+        productionMode: this.productionMode,
+        scenes: this.creativeScenes,
+        timelineAssetIds: timelineAssetIds.length
+          ? timelineAssetIds
+          : (output.sourceAssetIds ?? []),
+        output: {
+          assetId: output.assetId,
+          url: output.url,
+          width: output.width,
+          height: output.height,
+          durationMs: output.durationMs,
+          sizeBytes: output.sizeBytes,
+          validationStatus: output.validationStatus,
+          validationChecks: output.validationChecks ?? null,
+          qualityReview: output.qualityReview ?? null,
+          renderJobId: output.renderJobId,
+          textOverlay: output.textOverlay ?? null,
+          sceneCount: output.sceneCount,
+          endCardPresent: output.qualityReview?.checks?.endCardPresent
+            ?? output.validationChecks?.endCardPresent
+            ?? null,
+        },
+        visionQaAvailable,
+      });
+
+      this.qaResult = qa;
+      if (qa.overallStatus === "QA_PASSED") {
+        this.produceStatus = "QA_PASSED";
+        this.approvedRenderJobId = qa.renderJobId;
+        this.approvedOutputAssetId = qa.videoAssetId;
+      } else if (qa.overallStatus === "NEEDS_REVIEW") {
+        this.produceStatus = "NEEDS_REVIEW";
+      } else {
+        this.produceStatus = "QA_FAILED";
+      }
+      await this.flushPersist();
+      await persistWorkflowStep(snap.projectId, 5, qa.overallStatus === "QA_PASSED" ? 2 : 1);
+      this.emit();
+      return qa;
+    } catch (error) {
+      this.produceStatus = "QA_FAILED";
+      this.produceError = customerSafeError(
+        error instanceof Error ? error.message : "Quality check failed",
+      );
+      await this.flushPersist().catch(() => undefined);
+      this.emit();
+      throw error instanceof Error ? error : new Error(this.produceError);
+    }
+  }
+
+  /**
+   * Step 5 — regenerate ONLY the first failed scene, rebuild timeline, re-render, re-QA.
+   * Preserves Product Identity Lock and successful scenes.
+   */
+  async regenerateFailedScene(sceneId?: string): Promise<PmvVideoQaResult> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (!this.qaResult) throw new Error("Run quality checks before regenerating a scene.");
+
+    const failed = this.qaResult.scenes.find((s) =>
+      (sceneId ? s.sceneId === sceneId : true) && s.status === "FAIL",
+    );
+    if (!failed) throw new Error("No failed scene to regenerate.");
+
+    const scene = this.creativeScenes.find((s) => s.sceneId === failed.sceneId);
+    if (!scene) throw new Error("Failed scene is missing from the storyboard.");
+
+    const previousAttempt = this.sceneRegenAttempts[failed.sceneId] ?? 0;
+    if (previousAttempt >= PMV_SCENE_REGEN_MAX_ATTEMPTS) {
+      this.produceStatus = "NEEDS_REVIEW";
+      this.targetedRegeneration = {
+        ...buildTargetedRegeneration({
+          projectId: snap.projectId,
+          scene,
+          qa: this.qaResult,
+          lock: this.identityLock,
+          productionMode: this.productionMode,
+          creativePlanVersion: this.creativePlan?.version ?? null,
+          previousAttempt,
+        }),
+        status: "NEEDS_REVIEW",
+        attempt: previousAttempt,
+      };
+      await this.flushPersist();
+      this.emit();
+      throw new Error(
+        `Scene ${scene.order} needs review after ${PMV_SCENE_REGEN_MAX_ATTEMPTS} regeneration attempts.`,
+      );
+    }
+
+    const regen = buildTargetedRegeneration({
+      projectId: snap.projectId,
+      scene,
+      qa: this.qaResult,
+      lock: this.identityLock,
+      productionMode: this.productionMode,
+      creativePlanVersion: this.creativePlan?.version ?? null,
+      previousAttempt,
+    });
+    this.targetedRegeneration = { ...regen, status: "REGENERATING" };
+    this.produceStatus = "REGENERATING";
+    this.creativeScenes = this.creativeScenes.map((s) => (
+      s.sceneId === failed.sceneId ? { ...s, status: "GENERATING" } : s
+    ));
+    this.emit();
+
+    try {
+      // Preserve lock + other scenes; only adjust camera/motion on the failed clip.
+      const nextMotion = MOTION_OPTIONS[(previousAttempt + 1) % MOTION_OPTIONS.length] ?? "hold";
+      const nextCamera = CAMERA_OPTIONS[(previousAttempt + 2) % CAMERA_OPTIONS.length] ?? "hero";
+
+      if (this.creativePlan?.scenes?.length) {
+        const scenes = this.creativePlan.scenes.map((planScene) => (
+          planScene.id === failed.sceneId
+            ? {
+              ...planScene,
+              motion: nextMotion,
+              camera: nextCamera,
+              cameraDirection: nextCamera,
+              animation: nextMotion,
+              userEdited: true,
+            }
+            : planScene
+        ));
+        const updated = await updateCreativePlan(snap.projectId, { scenes });
+        this.creativePlan = updated.plan;
+        this.creativeScenes = scenesFromPlan(updated.plan).map((s) => {
+          const prior = this.creativeScenes.find((c) => c.sceneId === s.sceneId);
+          if (s.sceneId === failed.sceneId) {
+            return { ...s, status: "GENERATED", motion: nextMotion, camera: nextCamera };
+          }
+          return { ...s, status: prior?.status === "FAILED" ? "GENERATED" : (prior?.status ?? "GENERATED") };
+        });
+      }
+
+      await updateVideoProject(snap.projectId, {
+        clip: {
+          id: failed.sceneId,
+          motion: nextMotion as import("../../ai/video-production/types").VideoMotionId,
+          camera: nextCamera as import("../../ai/video-production/types").VideoCameraId,
+        },
+      }).catch(async () => {
+        // Rebuild timeline from plan if clip update path needs refresh.
+        await createVideoProject(snap.projectId);
+      });
+
+      this.targetedRegeneration = {
+        ...this.targetedRegeneration,
+        status: "REPLACED",
+        updatedAt: new Date().toISOString(),
+      };
+      this.sceneRegenAttempts = {
+        ...this.sceneRegenAttempts,
+        [failed.sceneId]: previousAttempt + 1,
+      };
+      this.deliveryStatus = this.deliveryStatus === "DELIVERED" ? "STALE" : this.deliveryStatus;
+      this.finalVideoReady = false;
+      await this.flushPersist();
+
+      await this.startFinalRender(true);
+      const qa = await this.runProductVideoQa();
+      return qa;
+    } catch (error) {
+      this.produceStatus = "QA_FAILED";
+      this.targetedRegeneration = this.targetedRegeneration
+        ? { ...this.targetedRegeneration, status: "FAILED", updatedAt: new Date().toISOString() }
+        : null;
+      this.creativeScenes = this.creativeScenes.map((s) => (
+        s.sceneId === failed.sceneId ? { ...s, status: "FAILED" } : s
+      ));
+      this.produceError = customerSafeError(
+        error instanceof Error ? error.message : "Scene regeneration failed",
+      );
+      await this.flushPersist().catch(() => undefined);
+      this.emit();
+      throw error instanceof Error ? error : new Error(this.produceError);
+    }
+  }
+
+  /** Step 5 — mark QA-passed final as delivered (current approved output). */
+  async markDelivered(): Promise<void> {
+    const snap = this.snapshot();
+    if (!snap.projectId) throw new Error("Create or open a project first.");
+    if (this.produceStatus !== "QA_PASSED") {
+      throw new Error("Final video must pass QA before delivery.");
+    }
+    if (!this.finalOutputAssetId && !this.finalOutputUrl) {
+      throw new Error("No approved final video asset to deliver.");
+    }
+    this.deliveryStatus = "DELIVERED";
+    this.deliveredAt = new Date().toISOString();
+    this.approvedRenderJobId = this.qaResult?.renderJobId ?? this.finalRenderJobId;
+    this.approvedOutputAssetId = this.qaResult?.videoAssetId ?? this.finalOutputAssetId;
+    this.produceStatus = "DELIVERED";
+    await this.flushPersist();
+    await persistWorkflowStep(snap.projectId, 5, 3);
+    this.emit();
+  }
+
+  private invalidateApprovedDelivery(): void {
+    const wasApproved = this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED"
+      || this.produceStatus === "QA_FAILED"
+      || this.produceStatus === "NEEDS_REVIEW"
+      || this.produceStatus === "FINAL_READY"
+      || this.deliveryStatus === "DELIVERED";
+    if (!wasApproved && !this.finalVideoReady) return;
+    this.produceStatus = "STALE";
+    this.finalVideoReady = false;
+    if (this.deliveryStatus === "DELIVERED" || this.qaResult?.overallStatus === "QA_PASSED") {
+      this.deliveryStatus = "STALE";
     }
   }
 
@@ -1419,6 +1767,13 @@ export class ProductSetupEngine {
       beatSyncMode: this.beatSyncMode,
       audioVolume: this.audioVolume,
       selectedAudioAssetId: this.selectedAudioAssetId,
+      qaResult: this.qaResult,
+      deliveryStatus: this.deliveryStatus,
+      deliveredAt: this.deliveredAt,
+      approvedRenderJobId: this.approvedRenderJobId,
+      approvedOutputAssetId: this.approvedOutputAssetId,
+      targetedRegeneration: this.targetedRegeneration,
+      sceneRegenAttempts: { ...this.sceneRegenAttempts },
     };
     const language = this.videoSettings.language.trim()
       || this.brandContact.language.trim()
@@ -1663,6 +2018,19 @@ export class ProductSetupEngine {
     if (stored.selectedAudioAssetId !== undefined) {
       this.selectedAudioAssetId = stored.selectedAudioAssetId ?? null;
     }
+    if (stored.qaResult) this.qaResult = stored.qaResult;
+    if (stored.deliveryStatus) this.deliveryStatus = stored.deliveryStatus;
+    if (stored.deliveredAt !== undefined) this.deliveredAt = stored.deliveredAt ?? null;
+    if (stored.approvedRenderJobId !== undefined) {
+      this.approvedRenderJobId = stored.approvedRenderJobId ?? null;
+    }
+    if (stored.approvedOutputAssetId !== undefined) {
+      this.approvedOutputAssetId = stored.approvedOutputAssetId ?? null;
+    }
+    if (stored.targetedRegeneration) this.targetedRegeneration = stored.targetedRegeneration;
+    if (stored.sceneRegenAttempts && typeof stored.sceneRegenAttempts === "object") {
+      this.sceneRegenAttempts = { ...stored.sceneRegenAttempts };
+    }
   }
 
   private applyProjectAudio(project: Awaited<ReturnType<typeof openProjectApi>>): void {
@@ -1699,9 +2067,15 @@ export class ProductSetupEngine {
   private markCreativeScenesStale(): void {
     this.creativeScenes = this.creativeScenes.map((s) => ({ ...s, status: "STALE" }));
     this.videoReady = false;
-    if (this.produceStatus === "FINAL_READY" || this.finalVideoReady) {
-      this.produceStatus = "STALE";
-      this.finalVideoReady = false;
+    if (
+      this.produceStatus === "FINAL_READY"
+      || this.produceStatus === "QA_PASSED"
+      || this.produceStatus === "DELIVERED"
+      || this.produceStatus === "QA_FAILED"
+      || this.produceStatus === "NEEDS_REVIEW"
+      || this.finalVideoReady
+    ) {
+      this.invalidateApprovedDelivery();
     }
   }
 

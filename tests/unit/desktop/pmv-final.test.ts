@@ -41,5 +41,7 @@ describe("PMV final Step 4 helpers", () => {
     expect(produceStageLabel(100, "FINAL_READY")).toMatch(/ready/i);
     expect(produceStageLabel(50, "RENDERING")).toBe(resolveStageByProgress(50).label);
     expect(produceStageLabel(0, "FAILED")).toMatch(/failed/i);
+    expect(produceStageLabel(0, "QA_PASSED")).toMatch(/passed/i);
+    expect(produceStageLabel(0, "DELIVERED")).toMatch(/delivered/i);
   });
 });
