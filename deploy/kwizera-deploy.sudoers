@@ -10,3 +10,5 @@ kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase2-online-visi
 kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase3-creative-reasoning-verify.sh
 kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase4-online-i2v-verify.sh
 kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase5-audio-timeline-verify.sh
+kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase6-qa-delivery-verify.sh
+kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase6-qa-delivery-verify.sh

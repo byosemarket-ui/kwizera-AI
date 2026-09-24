@@ -78,13 +78,16 @@ import {
 import {
   PMV_SCENE_REGEN_MAX_ATTEMPTS,
   buildTargetedRegeneration,
+  classifyPmvQaFailure,
   runDeterministicPmvQa,
   type PmvDeliveryStatus,
   type PmvTargetedRegeneration,
   type PmvVideoQaResult,
+  type PmvVisionIdentityEvidence,
 } from "../pmv-qa";
 import {
   fetchProductionCapabilities,
+  fetchVisionIdentityQa,
   finalizeCreativePlan,
   generatePlanWithMode,
   getCreativePlan,
@@ -1378,7 +1381,43 @@ export class ProductSetupEngine {
 
       // Vision frame QA is optional; Exact Product Mode uses asset-lock identity.
       // Do not fake PASS when vision is unavailable for generative modes.
-      const visionQaAvailable = false;
+      let visionQaAvailable = false;
+      let visionIdentity: PmvVisionIdentityEvidence | null = null;
+      try {
+        const caps = await fetchProductionCapabilities(
+          Math.max(1, this.creativeScenes.length || projectImageIds.length || 1),
+        );
+        visionQaAvailable = Boolean(caps.qa?.visionQaAvailable);
+      } catch {
+        visionQaAvailable = false;
+      }
+
+      const exactProductMode = !this.productionMode || this.productionMode === "AI_PRODUCT_MOTION";
+      if (visionQaAvailable && !exactProductMode && this.identityLock?.status === "LOCKED") {
+        try {
+          const vision = await fetchVisionIdentityQa(snap.projectId);
+          visionQaAvailable = vision.visionQaAvailable;
+          if (vision.visionIdentity) {
+            visionIdentity = {
+              status: vision.visionIdentity.status,
+              onlineExecuted: vision.visionIdentity.onlineExecuted,
+              failures: vision.visionIdentity.failures,
+              warnings: vision.visionIdentity.warnings,
+              evidence: vision.visionIdentity.evidence,
+              confidence: vision.visionIdentity.confidence,
+            };
+          }
+        } catch {
+          visionIdentity = {
+            status: "UNCERTAIN",
+            onlineExecuted: false,
+            failures: [],
+            warnings: ["Vision identity QA could not be completed for this check."],
+            evidence: [],
+            confidence: 0.2,
+          };
+        }
+      }
 
       const qa = runDeterministicPmvQa({
         projectId: snap.projectId,
@@ -1414,7 +1453,13 @@ export class ProductSetupEngine {
             ?? null,
         },
         visionQaAvailable,
+        visionIdentity,
       });
+
+      const route = classifyPmvQaFailure(qa);
+      if (route.domain !== "none" && route.recommendedAction) {
+        qa.recommendedActions = [...new Set([route.recommendedAction, ...qa.recommendedActions])].slice(0, 8);
+      }
 
       this.qaResult = qa;
       if (qa.overallStatus === "QA_PASSED") {
@@ -1449,6 +1494,17 @@ export class ProductSetupEngine {
     const snap = this.snapshot();
     if (!snap.projectId) throw new Error("Create or open a project first.");
     if (!this.qaResult) throw new Error("Run quality checks before regenerating a scene.");
+
+    const route = classifyPmvQaFailure(this.qaResult);
+    if (route.domain === "audio") {
+      throw new Error("Audio issue detected — rebuild audio/remux instead of regenerating scenes.");
+    }
+    if (route.domain === "text" || route.domain === "branding" || route.domain === "timeline") {
+      throw new Error("Timeline/text/branding issue detected — rebuild timeline instead of regenerating scenes.");
+    }
+    if (route.domain === "render") {
+      throw new Error("Render issue detected — re-render the final video instead of regenerating a single scene.");
+    }
 
     const failed = this.qaResult.scenes.find((s) =>
       (sceneId ? s.sceneId === sceneId : true) && s.status === "FAIL",

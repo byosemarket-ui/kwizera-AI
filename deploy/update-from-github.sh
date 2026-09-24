@@ -267,6 +267,14 @@ if [[ -f "$APP_DIR/deploy/phase5-audio-timeline-verify.sh" ]]; then
   fi
 fi
 
+if [[ -f "$APP_DIR/deploy/phase6-qa-delivery-verify.sh" ]]; then
+  echo "[KWIZERA] Phase 6 QA delivery verification"
+  chmod +x "$APP_DIR/deploy/phase6-qa-delivery-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase6-qa-delivery-verify.sh"; then
+    echo "[KWIZERA] phase6 QA delivery verification failed (non-fatal — deploy remains live)" >&2
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"

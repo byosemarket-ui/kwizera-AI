@@ -1533,6 +1533,7 @@ export function ProductMarketingVideoWorkspace() {
                   { label: "Product", status: snap.qaResult?.productIdentityStatus },
                   { label: "Text", status: snap.qaResult?.textStatus },
                   { label: "Branding", status: snap.qaResult?.brandingStatus },
+                  { label: "Audio", status: snap.qaResult?.audioStatus },
                   { label: "Timing", status: snap.qaResult?.timingStatus },
                   { label: "Composition", status: snap.qaResult?.compositionStatus },
                   { label: "Motion", status: snap.qaResult?.motionStatus },
@@ -1609,6 +1610,16 @@ export function ProductMarketingVideoWorkspace() {
                 >
                   Mark as delivered
                 </button>
+                {snap.finalOutputUrl && (snap.produceStatus === "QA_PASSED" || snap.produceStatus === "DELIVERED" || snap.deliveryStatus === "DELIVERED") ? (
+                  <a
+                    className="button is-secondary"
+                    href={snap.finalOutputUrl}
+                    download={`kwizera-pmv-${snap.projectId ?? "video"}.mp4`}
+                    data-pmv-download="true"
+                  >
+                    Download final video
+                  </a>
+                ) : null}
               </div>
 
               {snap.produceStatus === "DELIVERED" || snap.deliveryStatus === "DELIVERED" ? (

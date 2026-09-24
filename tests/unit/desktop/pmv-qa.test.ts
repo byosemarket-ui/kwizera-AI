@@ -8,6 +8,7 @@ import {
 import {
   PMV_SCENE_REGEN_MAX_ATTEMPTS,
   buildTargetedRegeneration,
+  classifyPmvQaFailure,
   qaCustomerLabel,
   runDeterministicPmvQa,
 } from "../../../desktop/pmv-qa/index.ts";
@@ -297,5 +298,182 @@ describe("PMV QA Step 5", () => {
     expect(produceStageLabel(0, "DELIVERED")).toMatch(/delivered/i);
     expect(qaCustomerLabel("QA_PASSED")).toMatch(/passed/i);
     expect(qaCustomerLabel("NEEDS_REVIEW")).toMatch(/review/i);
+  });
+
+  it("Phase 6 — Exact Product still PASSes when extra project images exist", () => {
+    const qa = runDeterministicPmvQa({
+      projectId: "proj-1",
+      lock: locked(),
+      productAssetIds: ["hero-1", "side-1", "extra-new-upload"],
+      heroAssetId: "hero-1",
+      brandName: "Kwizera",
+      website: "https://example.com",
+      phone: "",
+      cta: "Shop now",
+      logoAssetId: null,
+      audioSelected: false,
+      productionMode: "AI_PRODUCT_MOTION",
+      scenes: scenes(),
+      timelineAssetIds: ["hero-1", "side-1", "hero-1"],
+      output: {
+        assetId: "out-1",
+        url: "/api/video/out-1",
+        sizeBytes: 2_000_000,
+        validationStatus: "TECHNICALLY_VALIDATED",
+        validationChecks: {
+          fileNonEmpty: true,
+          hasVideoStream: true,
+          durationValid: true,
+          durationConsistent: true,
+          productClear: true,
+          productShownEarly: true,
+          pacingOk: true,
+          endCardPresent: true,
+        },
+        qualityReview: {
+          score: 88,
+          suggestions: [],
+          checks: { ctaPresent: true, hasCtaScene: true, productClear: true, pacingOk: true },
+          source: "deterministic",
+          reviewedAt: new Date().toISOString(),
+          blocking: false,
+        },
+        textOverlay: "applied",
+      },
+      visionQaAvailable: false,
+    });
+    expect(qa.overallStatus).toBe("QA_PASSED");
+    expect(qa.productIdentityStatus).toBe("PASS");
+    expect(qa.evidence.some((e) => /locked asset set/i.test(e))).toBe(true);
+  });
+
+  it("Phase 6 — audio hard-fails when required stream is missing", () => {
+    const qa = runDeterministicPmvQa({
+      projectId: "proj-1",
+      lock: locked(),
+      productAssetIds: ["hero-1", "side-1"],
+      heroAssetId: "hero-1",
+      brandName: "Kwizera",
+      website: "",
+      phone: "",
+      cta: "Buy",
+      logoAssetId: null,
+      audioSelected: true,
+      productionMode: "AI_PRODUCT_MOTION",
+      scenes: scenes(),
+      timelineAssetIds: ["hero-1", "side-1"],
+      output: {
+        url: "/v.mp4",
+        sizeBytes: 1000,
+        validationStatus: "TECHNICALLY_VALIDATED",
+        validationChecks: {
+          fileNonEmpty: true,
+          hasVideoStream: true,
+          audioPresentWhenRequired: false,
+        },
+        textOverlay: "applied",
+      },
+      visionQaAvailable: false,
+    });
+    expect(qa.audioStatus).toBe("FAIL");
+    expect(qa.overallStatus).toBe("QA_FAILED");
+    const route = classifyPmvQaFailure(qa);
+    expect(route.domain).toBe("audio");
+    expect(route.customerMessage).toMatch(/improvement pass/i);
+  });
+
+  it("Phase 6 — generative identity uses online vision evidence without inventing PASS", () => {
+    const withoutVision = runDeterministicPmvQa({
+      projectId: "proj-1",
+      lock: locked(),
+      productAssetIds: ["hero-1", "side-1"],
+      heroAssetId: "hero-1",
+      brandName: "Kwizera",
+      website: "",
+      phone: "",
+      cta: "Buy",
+      logoAssetId: null,
+      audioSelected: false,
+      productionMode: "CINEMATIC_3D",
+      scenes: scenes(),
+      timelineAssetIds: ["hero-1"],
+      output: {
+        url: "/v.mp4",
+        sizeBytes: 1000,
+        validationStatus: "TECHNICALLY_VALIDATED",
+        validationChecks: { fileNonEmpty: true, hasVideoStream: true },
+        textOverlay: "applied",
+      },
+      visionQaAvailable: false,
+    });
+    expect(withoutVision.productIdentityStatus).toBe("UNCERTAIN");
+    expect(withoutVision.overallStatus).toBe("NEEDS_REVIEW");
+
+    const withVisionPass = runDeterministicPmvQa({
+      projectId: "proj-1",
+      lock: locked(),
+      productAssetIds: ["hero-1", "side-1"],
+      heroAssetId: "hero-1",
+      brandName: "Kwizera",
+      website: "",
+      phone: "",
+      cta: "Buy",
+      logoAssetId: null,
+      audioSelected: false,
+      productionMode: "CINEMATIC_3D",
+      scenes: scenes(),
+      timelineAssetIds: ["hero-1"],
+      output: {
+        url: "/v.mp4",
+        sizeBytes: 1000,
+        validationStatus: "TECHNICALLY_VALIDATED",
+        validationChecks: { fileNonEmpty: true, hasVideoStream: true, endCardPresent: true },
+        textOverlay: "applied",
+      },
+      visionQaAvailable: true,
+      visionIdentity: {
+        status: "PASS",
+        onlineExecuted: true,
+        failures: [],
+        warnings: [],
+        evidence: ["Online VISION_ANALYSIS confirmed protected product identity attributes."],
+        confidence: 0.9,
+      },
+    });
+    expect(withVisionPass.productIdentityStatus).toBe("PASS");
+    expect(withVisionPass.visionQaStatus).toBe("PASS");
+    expect(JSON.stringify(withVisionPass)).not.toMatch(/api.?key|sk-/i);
+  });
+
+  it("Phase 6 — scene failure routes to targeted scene regen domain", () => {
+    const badScenes = scenes();
+    badScenes[1] = { ...badScenes[1]!, assetId: "foreign-asset", status: "GENERATED" };
+    const qa = runDeterministicPmvQa({
+      projectId: "proj-1",
+      lock: locked(),
+      productAssetIds: ["hero-1", "side-1"],
+      heroAssetId: "hero-1",
+      brandName: "Kwizera",
+      website: "",
+      phone: "",
+      cta: "Buy",
+      logoAssetId: null,
+      audioSelected: false,
+      productionMode: "AI_PRODUCT_MOTION",
+      scenes: badScenes,
+      timelineAssetIds: ["hero-1", "foreign-asset", "hero-1"],
+      output: {
+        url: "/v.mp4",
+        sizeBytes: 1000,
+        validationStatus: "TECHNICALLY_VALIDATED",
+        validationChecks: { fileNonEmpty: true },
+        textOverlay: "applied",
+      },
+      visionQaAvailable: false,
+    });
+    const route = classifyPmvQaFailure(qa);
+    expect(route.domain).toBe("scene");
+    expect(route.sceneId).toBe("s2");
+    expect(qa.scenes.filter((s) => s.status === "PASS").map((s) => s.sceneId)).toEqual(["s1", "s3"]);
   });
 });

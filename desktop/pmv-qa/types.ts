@@ -56,6 +56,15 @@ export interface PmvTargetedRegeneration {
   updatedAt: string;
 }
 
+export interface PmvVisionIdentityEvidence {
+  status: PmvQaGateStatus;
+  onlineExecuted: boolean;
+  failures: string[];
+  warnings: string[];
+  evidence: string[];
+  confidence: number;
+}
+
 export interface PmvVideoQaResult {
   projectId: string;
   renderJobId: string | null;
@@ -68,6 +77,7 @@ export interface PmvVideoQaResult {
   compositionStatus: PmvQaGateStatus;
   motionStatus: PmvQaGateStatus;
   timingStatus: PmvQaGateStatus;
+  audioStatus: PmvQaGateStatus;
   marketingQualityStatus: PmvQaGateStatus;
   technicalStatus: PmvQaGateStatus;
   visionQaAvailable: boolean;
@@ -98,6 +108,7 @@ export function emptyQaResult(projectId: string): PmvVideoQaResult {
     compositionStatus: "SKIPPED",
     motionStatus: "SKIPPED",
     timingStatus: "SKIPPED",
+    audioStatus: "SKIPPED",
     marketingQualityStatus: "SKIPPED",
     technicalStatus: "SKIPPED",
     visionQaAvailable: false,
@@ -163,6 +174,8 @@ export function runDeterministicPmvQa(input: {
     endCardPresent?: boolean | null;
   } | null;
   visionQaAvailable: boolean;
+  /** Optional online vision identity evidence (never invent PASS without this for generative modes). */
+  visionIdentity?: PmvVisionIdentityEvidence | null;
 }): PmvVideoQaResult {
   const failures: string[] = [];
   const warnings: string[] = [];
@@ -186,27 +199,57 @@ export function runDeterministicPmvQa(input: {
   if (!technicalOk) failures.push("Final MP4 failed technical validation.");
   else evidence.push("Technical MP4 validation present.");
 
-  if (input.audioSelected && checks.audioPresentWhenRequired === false) {
-    failures.push("Audio was selected but the final MP4 did not include a required audio stream.");
+  let audioStatus: PmvQaGateStatus = "SKIPPED";
+  if (input.audioSelected) {
+    if (checks.audioPresentWhenRequired === false) {
+      audioStatus = "FAIL";
+      failures.push("Audio was selected but the final MP4 did not include a required audio stream.");
+    } else if (checks.audioPresentWhenRequired === true || checks.hasAudioStream === true) {
+      audioStatus = "PASS";
+      evidence.push("Required audio stream present when music/voice was enabled.");
+    } else {
+      audioStatus = "UNCERTAIN";
+      warnings.push("Audio was enabled but stream presence was not explicitly confirmed in validation checks.");
+    }
   }
+
+  const lockedAssetSet = new Set(input.lock?.productAssetIds ?? []);
+  const projectAssetSet = new Set(input.productAssetIds);
+  const lockAssetsIntact = Boolean(
+    input.lock
+    && input.lock.status === "LOCKED"
+    && input.lock.productAssetIds.every((id) => projectAssetSet.has(id))
+    && (!input.lock.heroAssetId || projectAssetSet.has(input.lock.heroAssetId)),
+  );
+  // Exact Product QA: validate against the locked asset set when still intact,
+  // so extra project images do not falsely invalidate a valid lock fingerprint.
+  const lockValidationAssets = lockAssetsIntact && input.lock
+    ? input.lock.productAssetIds
+    : input.productAssetIds;
+  const lockValidationHero = lockAssetsIntact && input.lock
+    ? input.lock.heroAssetId
+    : input.heroAssetId;
 
   const lockValidation = validateIdentityLock({
     lock: input.lock,
     projectId: input.projectId,
-    productAssetIds: input.productAssetIds,
-    heroAssetId: input.heroAssetId,
+    productAssetIds: lockValidationAssets,
+    heroAssetId: lockValidationHero,
   });
   const lockOk = Boolean(input.lock && input.lock.status === "LOCKED" && lockValidation.ok);
   if (!lockOk) {
     failures.push(lockValidation.issues[0] ?? "Product Identity Lock is not valid for QA.");
   } else {
     evidence.push("Product Identity Lock is LOCKED and valid.");
+    if (lockAssetsIntact && input.productAssetIds.length > (input.lock?.productAssetIds.length ?? 0)) {
+      evidence.push("Additional project images present; Exact Product QA used locked asset set.");
+    }
   }
 
-  const lockedAssetSet = new Set(input.lock?.productAssetIds ?? []);
   const timelineUsesLockedAssets = input.timelineAssetIds.length > 0
     && input.timelineAssetIds.every((id) => lockedAssetSet.has(id) || id === input.lock?.heroAssetId);
   const exactProductMode = !input.productionMode || input.productionMode === "AI_PRODUCT_MOTION";
+  const visionIdentity = input.visionIdentity ?? null;
 
   let productIdentityStatus: PmvQaGateStatus = "FAIL";
   if (!lockOk) {
@@ -214,19 +257,37 @@ export function runDeterministicPmvQa(input: {
   } else if (exactProductMode && timelineUsesLockedAssets) {
     productIdentityStatus = "PASS";
     evidence.push("Exact Product Mode timeline uses locked product assets only.");
+    evidence.push("Allowed creative changes (background/lighting/camera/motion) are not identity failures.");
   } else if (exactProductMode && input.timelineAssetIds.length === 0) {
     productIdentityStatus = "UNCERTAIN";
     warnings.push("Timeline asset list unavailable; product identity marked UNCERTAIN.");
+  } else if (visionIdentity?.status === "PASS" && visionIdentity.onlineExecuted) {
+    productIdentityStatus = "PASS";
+    evidence.push(...visionIdentity.evidence);
+  } else if (visionIdentity?.status === "FAIL" && visionIdentity.onlineExecuted) {
+    productIdentityStatus = "FAIL";
+    failures.push(...(visionIdentity.failures.length
+      ? visionIdentity.failures
+      : ["Vision QA reported a product identity failure."]));
   } else if (!input.visionQaAvailable) {
     productIdentityStatus = "UNCERTAIN";
     warnings.push("Vision QA is unavailable; generative product identity cannot be fully confirmed.");
     recommendedActions.push("Configure vision QA in Admin, or use Exact Product Mode.");
+  } else if (visionIdentity?.status === "UNCERTAIN" || visionIdentity?.status === "UNAVAILABLE") {
+    productIdentityStatus = "UNCERTAIN";
+    warnings.push(...(visionIdentity.warnings.length
+      ? visionIdentity.warnings
+      : ["Vision QA ran without a confident identity verdict."]));
   } else {
     productIdentityStatus = "UNCERTAIN";
-    warnings.push("Vision QA available but frame inspection is not yet attached to this path.");
+    warnings.push("Vision QA is configured but identity evidence was not attached for this check.");
   }
 
-  const visionQaStatus: PmvQaGateStatus = input.visionQaAvailable ? "UNCERTAIN" : "UNAVAILABLE";
+  const visionQaStatus: PmvQaGateStatus = !input.visionQaAvailable
+    ? "UNAVAILABLE"
+    : (visionIdentity?.status ?? "UNCERTAIN");
+  if (visionIdentity?.evidence?.length) evidence.push(...visionIdentity.evidence);
+  if (visionIdentity?.warnings?.length) warnings.push(...visionIdentity.warnings);
 
   const hasCta = Boolean(input.cta.trim())
     || checks.hasCtaScene === true
@@ -311,12 +372,14 @@ export function runDeterministicPmvQa(input: {
     || productIdentityStatus === "FAIL"
     || textStatus === "FAIL"
     || brandingStatus === "FAIL"
+    || audioStatus === "FAIL"
     || sceneResults.some((s) => s.status === "FAIL");
   const needsReview = !hardFail && (
     productIdentityStatus === "UNCERTAIN"
     || visionQaStatus === "UNAVAILABLE" && !exactProductMode
     || compositionStatus === "UNCERTAIN"
     || marketingQualityStatus === "UNCERTAIN"
+    || audioStatus === "UNCERTAIN"
     || sceneResults.some((s) => s.status === "UNCERTAIN")
   );
 
@@ -324,7 +387,7 @@ export function runDeterministicPmvQa(input: {
   if (hardFail) overallStatus = "QA_FAILED";
   else if (needsReview) {
     // Exact Product + valid lock + technical OK may still deliver with vision unavailable.
-    if (exactProductMode && lockOk && technicalOk && productIdentityStatus === "PASS") {
+    if (exactProductMode && lockOk && technicalOk && productIdentityStatus === "PASS" && audioStatus !== "FAIL") {
       overallStatus = "QA_PASSED";
       warnings.push("Vision frame QA unavailable; Exact Product asset-lock QA was used instead.");
     } else {
@@ -338,7 +401,7 @@ export function runDeterministicPmvQa(input: {
   }
 
   const confidence = overallStatus === "QA_PASSED"
-    ? (exactProductMode ? 0.88 : 0.7)
+    ? (exactProductMode ? 0.88 : Math.max(0.7, visionIdentity?.confidence ?? 0.7))
     : overallStatus === "NEEDS_REVIEW" ? 0.5 : 0.25;
 
   return {
@@ -353,6 +416,7 @@ export function runDeterministicPmvQa(input: {
     compositionStatus: worst(compositionStatus),
     motionStatus,
     timingStatus,
+    audioStatus,
     marketingQualityStatus,
     technicalStatus,
     visionQaAvailable: input.visionQaAvailable,
@@ -361,7 +425,7 @@ export function runDeterministicPmvQa(input: {
     failures: [...new Set(failures)],
     warnings: [...new Set(warnings)],
     confidence,
-    evidence,
+    evidence: [...new Set(evidence)],
     recommendedActions: [...new Set(recommendedActions)].slice(0, 8),
     qualityReview: review,
     checkedAt: new Date().toISOString(),

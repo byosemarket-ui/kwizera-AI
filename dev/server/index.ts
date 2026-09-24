@@ -4312,9 +4312,143 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         sceneComposition: getSceneCompositionDiagnostics(),
         engine1Final: getEngine1FinalDiagnostics(),
         workspaceIntegration: getWorkspaceIntegrationDiagnostics(),
+        qa: {
+          visionQaAvailable: (() => {
+            try {
+              const admin = getAdminControlPlaneManager();
+              const view = admin?.getCapabilityRuntime()?.describe("VISION_ANALYSIS");
+              return Boolean(
+                view
+                && view.source === "ONLINE"
+                && (view.status === "READY" || view.status === "FALLBACK"),
+              );
+            } catch {
+              return false;
+            }
+          })(),
+        },
       });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Unable to read production capabilities" });
+    }
+    return;
+  }
+
+  const visionIdentityQaMatch = url.pathname.match(
+    /^\/api\/video-production\/projects\/([^/]+)\/qa\/vision-identity$/,
+  );
+  if (visionIdentityQaMatch && req.method === "POST") {
+    try {
+      const projectId = visionIdentityQaMatch[1];
+      const workspace = getWorkspaceManager();
+      const admin = getAdminControlPlaneManager();
+      const runtime = admin?.getCapabilityRuntime?.() ?? null;
+      const { probeVisionQaAvailable, runVisionIdentityCheck } = await import(
+        "../../ai/pmv-qa/vision-identity-check.js"
+      );
+      const visionQaAvailable = await probeVisionQaAvailable(runtime);
+      if (!visionQaAvailable) {
+        sendJson(res, 200, {
+          visionQaAvailable: false,
+          visionIdentity: {
+            status: "UNAVAILABLE",
+            onlineExecuted: false,
+            failures: [],
+            warnings: ["Online VISION_ANALYSIS is not configured for identity QA."],
+            evidence: [],
+            confidence: 0,
+          },
+        });
+        return;
+      }
+      if (!workspace) {
+        sendJson(res, 503, { error: "Workspace is not ready" });
+        return;
+      }
+      const project = await workspace.getProject(projectId);
+      if (!project) {
+        sendJson(res, 404, { error: "Project not found" });
+        return;
+      }
+      const { PMV_IDENTITY_LOCK_KEY } = await import("../../desktop/product-identity-lock/types.js");
+      const lock = project.workspaceSettings?.[PMV_IDENTITY_LOCK_KEY] as
+        | import("../../desktop/product-identity-lock/types.js").ProductIdentityLock
+        | undefined;
+      if (!lock || lock.status !== "LOCKED") {
+        sendJson(res, 200, {
+          visionQaAvailable: true,
+          visionIdentity: {
+            status: "UNCERTAIN",
+            onlineExecuted: false,
+            failures: [],
+            warnings: ["Product Identity Lock is not LOCKED for vision QA."],
+            evidence: [],
+            confidence: 0.2,
+          },
+        });
+        return;
+      }
+      const heroId = lock.heroAssetId
+        || project.productImages[0]?.id
+        || null;
+      if (!heroId) {
+        sendJson(res, 200, {
+          visionQaAvailable: true,
+          visionIdentity: {
+            status: "UNCERTAIN",
+            onlineExecuted: false,
+            failures: [],
+            warnings: ["No hero product image available for vision identity QA."],
+            evidence: [],
+            confidence: 0.2,
+          },
+        });
+        return;
+      }
+      const imagePath = await workspace.getOriginalImagePath(projectId, heroId)
+        ?? await workspace.getAssetImagePath(projectId, heroId);
+      if (!imagePath) {
+        sendJson(res, 200, {
+          visionQaAvailable: true,
+          visionIdentity: {
+            status: "UNCERTAIN",
+            onlineExecuted: false,
+            failures: [],
+            warnings: ["Hero product image file could not be resolved for vision QA."],
+            evidence: [],
+            confidence: 0.2,
+          },
+        });
+        return;
+      }
+      const bytes = await fs.promises.readFile(imagePath);
+      const heroMeta = project.productImages.find((img) => img.id === heroId) as
+        | { mimeType?: string }
+        | undefined;
+      const ext = path.extname(imagePath).toLowerCase();
+      const mimeType = heroMeta?.mimeType
+        || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg");
+      const visionIdentity = await runVisionIdentityCheck({
+        runtime,
+        lock,
+        projectId,
+        imageBase64: bytes.toString("base64"),
+        mimeType,
+      });
+      const safe = JSON.parse(JSON.stringify(visionIdentity)) as typeof visionIdentity;
+      const leaked = JSON.stringify(safe);
+      if (/sk-[a-zA-Z0-9]|api[_-]?key|Bearer\s+\S+/i.test(leaked)) {
+        sendJson(res, 500, { error: "Vision QA response rejected for safety" });
+        return;
+      }
+      sendJson(res, 200, {
+        visionQaAvailable: true,
+        visionIdentity: safe,
+      });
+    } catch (error) {
+      sendJson(res, 500, {
+        error: error instanceof Error ? error.message : "Vision identity QA failed",
+      });
     }
     return;
   }
