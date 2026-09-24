@@ -98,12 +98,18 @@ describe("STEP 2B audio asset helpers", () => {
       enabled: false,
       volume: 1,
       beatSyncMode: "SMART",
+      selectedVoiceAssetId: null,
+      voiceEnabled: false,
+      voiceVolume: 1,
     });
     expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 2 })).toEqual({
       selectedAudioAssetId: "a1",
       enabled: true,
       volume: 1,
       beatSyncMode: "SMART",
+      selectedVoiceAssetId: null,
+      voiceEnabled: false,
+      voiceVolume: 1,
     });
     expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 1, beatSyncMode: "STRICT" }).beatSyncMode).toBe("STRICT");
     expect(normalizeProjectAudio({ selectedAudioAssetId: "a1", enabled: true, volume: 1, beatSyncMode: "weird" as "OFF" }).beatSyncMode).toBe("SMART");
