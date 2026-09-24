@@ -4353,112 +4353,73 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       const workspace = getWorkspaceManager();
       const admin = getAdminControlPlaneManager();
       const runtime = admin?.getCapabilityRuntime?.() ?? null;
-      const { probeVisionQaAvailable, runVisionIdentityCheck } = await import(
-        "../../ai/pmv-qa/vision-identity-check.js"
-      );
-      const visionQaAvailable = await probeVisionQaAvailable(runtime);
-      if (!visionQaAvailable) {
-        sendJson(res, 200, {
-          visionQaAvailable: false,
-          visionIdentity: {
-            status: "UNAVAILABLE",
-            onlineExecuted: false,
-            failures: [],
-            warnings: ["Online VISION_ANALYSIS is not configured for identity QA."],
-            evidence: [],
-            confidence: 0,
-          },
-        });
-        return;
+      const [{ checkProjectHeroVisionIdentity, probeVisionQaAvailable }, { PMV_IDENTITY_LOCK_KEY }] = await Promise.all([
+        import("../../ai/pmv-qa/vision-identity-check.js"),
+        import("../../ai/pmv-shared/identity-lock-types.js"),
+      ]);
+      if (await probeVisionQaAvailable(runtime)) {
+        if (!workspace) {
+          sendJson(res, 503, { error: "Workspace is not ready" });
+          return;
+        }
+        if (!(await workspace.getProject(projectId))) {
+          sendJson(res, 404, { error: "Project not found" });
+          return;
+        }
       }
-      if (!workspace) {
-        sendJson(res, 503, { error: "Workspace is not ready" });
-        return;
-      }
-      const project = await workspace.getProject(projectId);
-      if (!project) {
-        sendJson(res, 404, { error: "Project not found" });
-        return;
-      }
-      const { PMV_IDENTITY_LOCK_KEY } = await import("../../desktop/product-identity-lock/types.js");
-      const lock = project.workspaceSettings?.[PMV_IDENTITY_LOCK_KEY] as
-        | import("../../desktop/product-identity-lock/types.js").ProductIdentityLock
-        | undefined;
-      if (!lock || lock.status !== "LOCKED") {
-        sendJson(res, 200, {
-          visionQaAvailable: true,
-          visionIdentity: {
-            status: "UNCERTAIN",
-            onlineExecuted: false,
-            failures: [],
-            warnings: ["Product Identity Lock is not LOCKED for vision QA."],
-            evidence: [],
-            confidence: 0.2,
-          },
-        });
-        return;
-      }
-      const heroId = lock.heroAssetId
-        || project.productImages[0]?.id
-        || null;
-      if (!heroId) {
-        sendJson(res, 200, {
-          visionQaAvailable: true,
-          visionIdentity: {
-            status: "UNCERTAIN",
-            onlineExecuted: false,
-            failures: [],
-            warnings: ["No hero product image available for vision identity QA."],
-            evidence: [],
-            confidence: 0.2,
-          },
-        });
-        return;
-      }
-      const imagePath = await workspace.getOriginalImagePath(projectId, heroId)
-        ?? await workspace.getAssetImagePath(projectId, heroId);
-      if (!imagePath) {
-        sendJson(res, 200, {
-          visionQaAvailable: true,
-          visionIdentity: {
-            status: "UNCERTAIN",
-            onlineExecuted: false,
-            failures: [],
-            warnings: ["Hero product image file could not be resolved for vision QA."],
-            evidence: [],
-            confidence: 0.2,
-          },
-        });
-        return;
-      }
-      const bytes = await fs.promises.readFile(imagePath);
-      const heroMeta = project.productImages.find((img) => img.id === heroId) as
-        | { mimeType?: string }
-        | undefined;
-      const ext = path.extname(imagePath).toLowerCase();
-      const mimeType = heroMeta?.mimeType
-        || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg");
-      const visionIdentity = await runVisionIdentityCheck({
+      const result = await checkProjectHeroVisionIdentity({
         runtime,
-        lock,
+        workspace: workspace!,
         projectId,
-        imageBase64: bytes.toString("base64"),
-        mimeType,
+        lockKey: PMV_IDENTITY_LOCK_KEY,
       });
-      const safe = JSON.parse(JSON.stringify(visionIdentity)) as typeof visionIdentity;
-      const leaked = JSON.stringify(safe);
-      if (/sk-[a-zA-Z0-9]|api[_-]?key|Bearer\s+\S+/i.test(leaked)) {
-        sendJson(res, 500, { error: "Vision QA response rejected for safety" });
-        return;
-      }
-      sendJson(res, 200, {
-        visionQaAvailable: true,
-        visionIdentity: safe,
-      });
+      sendJson(res, 200, result);
     } catch (error) {
       sendJson(res, 500, {
         error: error instanceof Error ? error.message : "Vision identity QA failed",
       });
+    }
+    return;
+  }
+
+  const pmvWorkflowMatch = url.pathname.match(/^\/api\/pmv\/projects\/([^/]+)\/workflow$/);
+  if (pmvWorkflowMatch && (req.method === "GET" || req.method === "POST")) {
+    try {
+      const projectId = decodeURIComponent(pmvWorkflowMatch[1]);
+      const [{ getPmvOrchestrator }, { toCustomerSummary }] = await Promise.all([
+        import("../../ai/pmv-orchestrator/registry.js"),
+        import("../../ai/pmv-orchestrator/views.js"),
+      ]);
+      const orchestrator = getPmvOrchestrator();
+      const workspace = getWorkspaceManager();
+      if (!orchestrator || !workspace) {
+        sendJson(res, 503, { error: "Automated production is not available right now" });
+        return;
+      }
+      if (!(await workspace.getProject(projectId))) {
+        sendJson(res, 404, { error: "Project not found" });
+        return;
+      }
+      if (req.method === "GET") {
+        const latest = orchestrator.getLatest(projectId);
+        sendJson(res, 200, { workflow: latest ? toCustomerSummary(latest) : null });
+        return;
+      }
+      const body = JSON.parse((await readBody(req)) || "{}") as { action?: string };
+      const action = body.action ?? "start";
+      let record;
+      if (action === "start") record = await orchestrator.start(projectId);
+      else if (action === "resume") record = await orchestrator.resume(projectId);
+      else if (action === "retry") record = await orchestrator.retry(projectId);
+      else if (action === "cancel") record = await orchestrator.cancel(projectId);
+      else {
+        sendJson(res, 400, { error: "Unknown workflow action" });
+        return;
+      }
+      sendJson(res, 202, { workflow: record ? toCustomerSummary(record) : null });
+    } catch (error) {
+      console.warn("[KWIZERA] pmv workflow request failed", (error as { code?: string })?.code ?? "UNKNOWN");
+      sendJson(res, 500, { error: "Unable to update production. Please try again." });
     }
     return;
   }

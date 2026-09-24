@@ -3,7 +3,7 @@
  * Never claims online PASS when vision is unavailable or unparsable.
  */
 import type { CapabilityRuntime } from "../admin-control-plane/capability-runtime.js";
-import type { ProductIdentityLock } from "../../desktop/product-identity-lock/types.js";
+import type { ProductIdentityLock } from "../pmv-shared/identity-lock-types.js";
 
 export type VisionIdentityQaStatus = "PASS" | "FAIL" | "UNCERTAIN" | "UNAVAILABLE";
 
@@ -221,4 +221,91 @@ export async function runVisionIdentityCheck(input: {
     evidence: ["Online VISION_ANALYSIS confirmed protected product identity attributes."],
     onlineExecuted: true,
   };
+}
+
+export interface HeroVisionIdentityEvidence {
+  status: VisionIdentityQaStatus;
+  onlineExecuted: boolean;
+  failures: string[];
+  warnings: string[];
+  evidence: string[];
+  confidence: number;
+}
+
+interface HeroVisionWorkspace {
+  getProject(projectId: string): Promise<{
+    productImages: Array<{ id: string; mimeType?: string }>;
+    workspaceSettings?: Record<string, unknown>;
+  } | null>;
+  getOriginalImagePath(projectId: string, imageId: string): Promise<string | null>;
+  getAssetImagePath(projectId: string, imageId: string): Promise<string | null>;
+}
+
+function uncertain(warning: string): HeroVisionIdentityEvidence {
+  return { status: "UNCERTAIN", onlineExecuted: false, failures: [], warnings: [warning], evidence: [], confidence: 0.2 };
+}
+
+/**
+ * Vision identity QA for a project's locked hero image (used by the QA route and the PMV workflow).
+ * Returns customer-safe evidence only; never raw provider output.
+ */
+export async function checkProjectHeroVisionIdentity(input: {
+  runtime: CapabilityRuntime | null;
+  workspace: HeroVisionWorkspace;
+  projectId: string;
+  lockKey: string;
+}): Promise<{ visionQaAvailable: boolean; visionIdentity: HeroVisionIdentityEvidence }> {
+  const { runtime, workspace, projectId } = input;
+  if (!(await probeVisionQaAvailable(runtime))) {
+    return {
+      visionQaAvailable: false,
+      visionIdentity: {
+        status: "UNAVAILABLE",
+        onlineExecuted: false,
+        failures: [],
+        warnings: ["Online VISION_ANALYSIS is not configured for identity QA."],
+        evidence: [],
+        confidence: 0,
+      },
+    };
+  }
+  const project = await workspace.getProject(projectId);
+  if (!project) throw new Error("Project not found");
+  const lock = project.workspaceSettings?.[input.lockKey] as ProductIdentityLock | undefined;
+  if (!lock || lock.status !== "LOCKED") {
+    return { visionQaAvailable: true, visionIdentity: uncertain("Product Identity Lock is not LOCKED for vision QA.") };
+  }
+  const heroId = lock.heroAssetId || project.productImages[0]?.id || null;
+  if (!heroId) {
+    return { visionQaAvailable: true, visionIdentity: uncertain("No hero product image available for vision identity QA.") };
+  }
+  const imagePath = await workspace.getOriginalImagePath(projectId, heroId)
+    ?? await workspace.getAssetImagePath(projectId, heroId);
+  if (!imagePath) {
+    return { visionQaAvailable: true, visionIdentity: uncertain("Hero product image file could not be resolved for vision QA.") };
+  }
+  const [{ readFile }, { extname }] = await Promise.all([import("node:fs/promises"), import("node:path")]);
+  const bytes = await readFile(imagePath);
+  const ext = extname(imagePath).toLowerCase();
+  const mimeType = project.productImages.find((img) => img.id === heroId)?.mimeType
+    || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg");
+  const result = await runVisionIdentityCheck({
+    runtime,
+    lock,
+    projectId,
+    imageBase64: bytes.toString("base64"),
+    mimeType,
+  });
+  const visionIdentity: HeroVisionIdentityEvidence = {
+    status: result.status,
+    onlineExecuted: result.onlineExecuted,
+    failures: result.failures,
+    warnings: result.warnings,
+    evidence: result.evidence,
+    confidence: result.confidence,
+  };
+  if (/sk-[a-zA-Z0-9]|api[_-]?key|Bearer\s+\S+/i.test(JSON.stringify(visionIdentity))) {
+    throw new Error("Vision QA response rejected for safety");
+  }
+  return { visionQaAvailable: true, visionIdentity };
 }

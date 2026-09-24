@@ -26,6 +26,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: "credits", label: "Credits", path: "/admin/credits", implemented: false, group: "business", groupLabel: "Business" },
   { id: "payments", label: "Payments", path: "/admin/payments", implemented: false, group: "business", groupLabel: "Business" },
   { id: "system", label: "System Health", path: "/admin/system", implemented: true, group: "system", groupLabel: "System" },
+  { id: "workflows", label: "Workflows", path: "/admin/workflows", implemented: true, group: "system", groupLabel: "System" },
   { id: "logs", label: "Logs", path: "/admin/logs", implemented: false, group: "system", groupLabel: "System" },
   { id: "storage", label: "Storage", path: "/admin/storage", implemented: false, group: "system", groupLabel: "System" },
   { id: "database", label: "Database", path: "/admin/database", implemented: false, group: "system", groupLabel: "System" },

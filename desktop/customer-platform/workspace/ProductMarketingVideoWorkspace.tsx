@@ -8,6 +8,7 @@ import type { ProductSetupSnapshot } from "../../product-setup/types";
 import { parsePriceInput } from "../../product-setup/discount";
 import { ACCEPT_ATTR, classifyFormat } from "../../product-intake/formats";
 import { desktopPicksToFiles } from "../../product-intake/desktop-import";
+import { PmvAutomationPanel } from "../../pmv-workflow/PmvAutomationPanel";
 import { ServiceWorkspace } from "./ServiceWorkspace";
 import { VIDEO_SERVICE_STEPS } from "./types";
 import "../../product-setup/product-setup.css";
@@ -577,6 +578,8 @@ export function ProductMarketingVideoWorkspace() {
             </strong>
           </li>
         </ol>
+
+        <PmvAutomationPanel projectId={snap.projectId || null} />
 
         {/* A. PRODUCT */}
         <section className="product-setup__panel" aria-labelledby="pmv-product-heading">

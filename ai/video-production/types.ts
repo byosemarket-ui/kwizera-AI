@@ -46,6 +46,15 @@ export type VideoCameraId =
   | "reveal";
 export type VideoTransitionId = "cut" | "fade";
 
+export const VIDEO_CAMERA_OPTIONS: VideoCameraId[] = [
+  "close-up", "medium", "wide", "hero", "macro", "top-down", "side", "front", "rear",
+  "orbit", "push-in", "pull-out", "pan", "tilt", "reveal",
+];
+
+export const VIDEO_MOTION_OPTIONS: VideoMotionId[] = [
+  "slow-zoom", "zoom-out", "pan-left", "pan-right", "pan-up", "pan-down", "image-reveal", "hold",
+];
+
 /** Renderer-facing typography payload carried on timeline text layers. */
 export interface VideoTextTypography {
   fontId: string;

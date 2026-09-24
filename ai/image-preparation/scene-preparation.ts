@@ -8,7 +8,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { CapabilityRuntime } from "../admin-control-plane/capability-runtime.js";
 import type { I2vIdentityConstraints } from "../video-production/i2v-prompt.js";
-import type { ProductIdentityLock } from "../../desktop/product-identity-lock/types.js";
+import type { ProductIdentityLock } from "../pmv-shared/identity-lock-types.js";
 import { runVisionIdentityCheck } from "../pmv-qa/vision-identity-check.js";
 import { decideImagePreparation, imagePrepFingerprint, needsImagePreparation } from "./decision.js";
 import { describeImagePrepAvailability, runImagePreparation, type IdentityVerdict, type ImagePrepDeps } from "./pipeline.js";

@@ -334,6 +334,40 @@ export async function handleAdminApi(
       ok(deps.sendJson, res, manager.resolveFeatureExecution(feature) as unknown as Record<string, unknown>);
       return true;
     }
+    const adminWorkflowMatch = url.pathname.match(/^\/api\/admin\/workflows(?:\/([^/]+))?$/);
+    if (adminWorkflowMatch && req.method === "GET") {
+      const [{ getPmvOrchestrator }, { toAdminView }] = await Promise.all([
+        import("../../ai/pmv-orchestrator/registry.js"),
+        import("../../ai/pmv-orchestrator/views.js"),
+      ]);
+      const orchestrator = getPmvOrchestrator();
+      if (!orchestrator) {
+        fail(deps.sendJson, res, 503, "WORKFLOWS_NOT_READY", "PMV workflow orchestrator is not ready");
+        return true;
+      }
+      const runtime = manager.getCapabilityRuntime();
+      const describe = (capability: string) => {
+        try {
+          const view = runtime.describe(capability as Parameters<typeof runtime.describe>[0]);
+          return { capability, status: view.status, source: view.source, providerId: view.providerId, modelId: view.modelId };
+        } catch {
+          return null;
+        }
+      };
+      if (adminWorkflowMatch[1]) {
+        const record = orchestrator.get(decodeURIComponent(adminWorkflowMatch[1]));
+        if (!record) {
+          fail(deps.sendJson, res, 404, "WORKFLOW_NOT_FOUND", "Workflow not found");
+          return true;
+        }
+        ok(deps.sendJson, res, { workflow: toAdminView(record, describe) });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit")) || 100;
+      ok(deps.sendJson, res, { items: orchestrator.list(limit).map((record) => toAdminView(record, describe)) });
+      return true;
+    }
+
     if (url.pathname === "/api/admin/runtime/describe" && req.method === "GET") {
       const feature = url.searchParams.get("feature") ?? "ONLINE_API_PROBE";
       const runtime = manager.getCapabilityRuntime();

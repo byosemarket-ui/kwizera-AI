@@ -9,6 +9,7 @@ import { AiModelManager } from "../../ai/model-management/ai-model-manager.js";
 import { AdminControlPlaneManager } from "../../ai/admin-control-plane/admin-control-plane-manager.js";
 import { VideoAudioGenerationManager } from "../../ai/video-audio-generation/video-audio-generation-manager.js";
 import { VideoProductionManager } from "../../ai/video-production/video-production-manager.js";
+import { setPmvOrchestrator } from "../../ai/pmv-orchestrator/registry.js";
 import { AudioIntelligenceManager } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { AiSoundManager } from "../../ai/ai-sound/ai-sound-manager.js";
 import { AudioVisualCreativeDirector } from "../../ai/audio-visual-director/director-manager.js";
@@ -1137,6 +1138,24 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         if (avCreativeDirector) {
           videoProductionManager.attachAudioVisualDirector(avCreativeDirector);
         }
+        try {
+          const { bootstrapPmvOrchestrator } = await import("../../ai/pmv-orchestrator/bootstrap.js");
+          await bootstrapPmvOrchestrator({
+            storageRoot,
+            workspace: workspaceManager,
+            planning: planningManager,
+            production: videoProductionManager,
+            intelligence: productIntelligenceManager,
+            canonical: canonicalProductManager,
+            admin: () => adminControlPlaneManager,
+          });
+          console.log("[KWIZERA] PMV workflow orchestrator initialized");
+        } catch (orchestratorError) {
+          console.warn(
+            "[KWIZERA] PMV workflow orchestrator deferred:",
+            orchestratorError instanceof Error ? orchestratorError.message : "unknown error",
+          );
+        }
         businessIntelligenceManager = new BusinessIntelligenceManager(manager, workspaceManager, productIntelligenceManager, marketingIntelligenceManager, decisionIntelligenceManager);
         await businessIntelligenceManager.initialize(storageRoot);
         console.log("[KWIZERA] Initializing learning intelligence runtime");
@@ -1287,6 +1306,7 @@ export async function shutdownPersistentRuntime(): Promise<void> {
   imageGenerationManager = null;
   videoAudioGenerationManager = null;
   videoProductionManager = null;
+  setPmvOrchestrator(null);
   audioIntelligenceManager = null;
   aiSoundManager = null;
   commercialVideoManager = null;

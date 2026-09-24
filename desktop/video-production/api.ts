@@ -10,6 +10,7 @@ import type {
   VideoTransitionId,
 } from "../../ai/video-production/types";
 import { VIDEO_PLATFORM_OPTIONS } from "../../ai/video-production/platform-profiles.js";
+import { VIDEO_CAMERA_OPTIONS, VIDEO_MOTION_OPTIONS } from "../../ai/video-production/types.js";
 
 export type {
   VideoAspectRatio,
@@ -124,14 +125,9 @@ export async function getVideoVersions(projectId: string): Promise<{ versions: i
   return readJson(response);
 }
 
-export const CAMERA_OPTIONS: VideoCameraId[] = [
-  "close-up", "medium", "wide", "hero", "macro", "top-down", "side", "front", "rear",
-  "orbit", "push-in", "pull-out", "pan", "tilt", "reveal",
-];
+export const CAMERA_OPTIONS: VideoCameraId[] = VIDEO_CAMERA_OPTIONS;
 
-export const MOTION_OPTIONS: VideoMotionId[] = [
-  "slow-zoom", "zoom-out", "pan-left", "pan-right", "pan-up", "pan-down", "image-reveal", "hold",
-];
+export const MOTION_OPTIONS: VideoMotionId[] = VIDEO_MOTION_OPTIONS;
 
 export const TRANSITION_OPTIONS: VideoTransitionId[] = ["cut", "fade"];
 export const ASPECT_OPTIONS: VideoAspectRatio[] = ["16:9", "9:16", "1:1"];

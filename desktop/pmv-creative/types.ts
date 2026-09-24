@@ -4,7 +4,12 @@
  */
 
 import type { CreativeToneId, ProductionModeId } from "../../ai/video-production/production-mode-types";
-import type { CreativePlanDto, CreativePlanSceneDto } from "../deep-intelligence/live-api";
+import type { CreativePlanDto } from "../deep-intelligence/live-api";
+import { scenesFromPlan as sharedScenesFromPlan, type PmvStoryboardSceneView } from "../../ai/pmv-shared/scenes.js";
+
+import { mapPmvModeToProduction, mapProductionToPmvMode, type PmvGenerationMode } from "../../ai/pmv-shared/modes.js";
+
+export type { PmvStoryboardSceneView };
 
 export type PmvCreativeGoal =
   | "product_showcase"
@@ -18,10 +23,7 @@ export type PmvCreativeEnergy =
   | "energetic"
   | "aggressive";
 
-export type PmvGenerationMode =
-  | "EXACT_PRODUCT"
-  | "CINEMATIC"
-  | "ADVANCED_CREATIVE";
+export type { PmvGenerationMode };
 
 export type PmvCreativeStatus =
   | "NOT_STARTED"
@@ -56,20 +58,6 @@ export interface PmvModeCapabilityView {
   reason: string;
   limitations: string[];
   recommended?: boolean;
-}
-
-export interface PmvStoryboardSceneView {
-  sceneId: string;
-  order: number;
-  durationSeconds: number;
-  purpose: string;
-  visual: string;
-  camera: string;
-  motion: string;
-  transition: string;
-  text: string;
-  assetId: string | null;
-  status: "PLANNED" | "READY" | "GENERATING" | "GENERATED" | "FAILED" | "STALE";
 }
 
 /** Structured audio prep for Step 4 — not full audio production. */
@@ -117,17 +105,7 @@ export const DEFAULT_PMV_CREATIVE_DIRECTION = (): PmvCreativeDirection => ({
   creativeRequest: "",
 });
 
-export function mapPmvModeToProduction(mode: PmvGenerationMode): ProductionModeId {
-  if (mode === "CINEMATIC") return "CINEMATIC_3D";
-  if (mode === "ADVANCED_CREATIVE") return "CLASSIC_SHOWCASE";
-  return "AI_PRODUCT_MOTION";
-}
-
-export function mapProductionToPmvMode(mode: ProductionModeId | null | undefined): PmvGenerationMode {
-  if (mode === "CINEMATIC_3D") return "CINEMATIC";
-  if (mode === "CLASSIC_SHOWCASE") return "ADVANCED_CREATIVE";
-  return "EXACT_PRODUCT";
-}
+export { mapPmvModeToProduction, mapProductionToPmvMode };
 
 export function pmvModeLabel(mode: PmvGenerationMode): string {
   if (mode === "CINEMATIC") return "Cinematic";
@@ -144,25 +122,7 @@ export function toneFromEnergy(energy: PmvCreativeEnergy, goal: PmvCreativeGoal)
 }
 
 export function scenesFromPlan(plan: CreativePlanDto | null): PmvStoryboardSceneView[] {
-  if (!plan?.scenes?.length) return [];
-  return plan.scenes.map((scene: CreativePlanSceneDto) => ({
-    sceneId: scene.id,
-    order: scene.order,
-    durationSeconds: scene.durationSeconds
-      || (scene.durationMs ? Math.round(scene.durationMs / 1000) : 0),
-    purpose: scene.purpose || scene.beat || "Scene",
-    visual: scene.visual || scene.visualPurpose || "",
-    camera: scene.camera || scene.cameraDirection || "",
-    motion: scene.motion || scene.animation || "",
-    transition: scene.transition || "cut",
-    text: scene.text
-      || scene.copy?.headline
-      || scene.copy?.callToAction
-      || scene.narration
-      || "",
-    assetId: scene.assetId ?? null,
-    status: "PLANNED",
-  }));
+  return sharedScenesFromPlan(plan);
 }
 
 export function customerSafeError(raw: string): string {

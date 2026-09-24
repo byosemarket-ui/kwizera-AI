@@ -340,6 +340,84 @@
   color: var(--cp-warning, #e8b86d);
 }
 
+.pmv-automation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--cp-border, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  background: var(--cp-surface-glass, rgba(255, 255, 255, 0.03));
+}
+
+.pmv-automation__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pmv-automation__head h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.pmv-automation__head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--cp-text-muted, #9aa4b2);
+}
+
+.pmv-automation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pmv-automation__message {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cp-warning, #e8b86d);
+}
+
+.pmv-automation__message[data-tone="error"] {
+  color: var(--cp-danger, #f08a8a);
+}
+
+.pmv-automation__stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pmv-automation__stages li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--cp-border, rgba(255, 255, 255, 0.1));
+  color: var(--cp-text-muted, #9aa4b2);
+}
+
+.pmv-automation__stages li[data-state="done"] {
+  color: var(--cp-success, #7ddea2);
+}
+
+.pmv-automation__stages li[data-state="active"] {
+  color: var(--cp-accent, #b9f2cc);
+}
+
+.pmv-automation__stages li[data-state="waiting"],
+.pmv-automation__stages li[data-state="failed"] {
+  color: var(--cp-warning, #e8b86d);
+}
+
 .pmv-produce {
   display: flex;
   flex-direction: column;

@@ -101,6 +101,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("tests/unit/desktop/pmv-qa.test.ts");
     expect(yml).toContain("tests/unit/ai/pmv-qa/phase6-vision-identity.test.ts");
     expect(yml).toContain("tests/unit/ai/image-preparation/phase7-image-preparation.test.ts");
+    expect(yml).toContain("tests/unit/ai/pmv-orchestrator");
     expect(yml).toContain("tests/unit/ai/video-production/step2a-brand-identity.test.ts");
     expect(yml).toContain("tests/unit/ai/audio-visual-director/step2f-av-director.test.ts");
     expect(yml).toContain("tests/unit/ai/video-production/final-hardening.test.ts");

@@ -5,6 +5,9 @@ import type {
   FeatureMappingView,
   TypedSetting,
 } from "./types";
+import type { toAdminView } from "../../ai/pmv-orchestrator/views";
+
+export type AdminWorkflowView = ReturnType<typeof toAdminView>;
 
 const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
 
@@ -77,6 +80,8 @@ export const adminApi = {
     features?: number;
     settings?: number;
   }>("/api/admin/health"),
+  workflows: (limit = 50) =>
+    adminFetch<{ items: AdminWorkflowView[] }>(`/api/admin/workflows?limit=${encodeURIComponent(String(limit))}`),
   providers: () => adminFetch<{
     items: AdminProviderPublicView[];
     credentialVault?: { attached: boolean; unlocked: boolean };
