@@ -690,6 +690,29 @@ export class AdminControlPlaneManager {
         updatedAt: now(),
       });
     }
+    // Phase 3: ensure CREATIVE_REASONING exists (seed add) — already handled by featureByKey seed loop.
+    // Promote CREATIVE_REASONING if an older custom row still points at Ollama-only without phase3 flag.
+    const creativeMapping = featureByKey.get("CREATIVE_REASONING");
+    if (
+      creativeMapping
+      && creativeMapping.primaryModelId === "model-local-llm"
+      && (creativeMapping.providerId === "provider-ollama-local" || !creativeMapping.providerId)
+      && creativeMapping.metadata?.phase3CreativeReasoning !== true
+    ) {
+      featureByKey.set("CREATIVE_REASONING", {
+        ...creativeMapping,
+        primaryModelId: "model-openai-gpt-4o-mini",
+        fallbackModelId: creativeMapping.fallbackModelId || "model-local-llm",
+        providerId: "provider-openai",
+        metadata: {
+          ...creativeMapping.metadata,
+          phase: "phase3-creative-director",
+          phase3CreativeReasoning: true,
+          migratedFrom: "model-local-llm",
+        },
+        updatedAt: now(),
+      });
+    }
     const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
     for (const seed of createDefaultSettings()) {
       if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);

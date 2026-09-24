@@ -17,6 +17,7 @@ import { buildProductionScript, type ProductionScript } from "./script-builder.j
 import { purposeToBeat, parseDurationMs, type StoryBeatId } from "./story-structure.js";
 import { buildProductionManifest, type ProductionManifest } from "./production-manifest.js";
 import { generateCreativeScenes } from "./ai-creative-planner.js";
+import { extractIdentityLockFromProject } from "./creative-director-prompt.js";
 import type { PlanReviewItem, ProductionDecisionTrace } from "../ai-director/ai-director-types.js";
 import { buildInputFingerprint } from "../ai-director/decision-trace.js";
 import type { CreativeToneId, ProductionModeId } from "../video-production/production-mode-types.js";
@@ -389,6 +390,7 @@ export class CreativePlanningManager {
       canonical,
       commercial,
       existingScenes: opts?.existingScenes ?? existing?.scenes ?? [],
+      productIdentityLock: extractIdentityLockFromProject(project.workspaceSettings),
     }, (existing?.version ?? 0) + 1);
     const directorInputFingerprint = buildInputFingerprint({
       project,

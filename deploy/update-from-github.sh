@@ -243,6 +243,14 @@ if [[ -f "$APP_DIR/deploy/phase2-online-vision-verify.sh" ]]; then
   fi
 fi
 
+if [[ -f "$APP_DIR/deploy/phase3-creative-reasoning-verify.sh" ]]; then
+  echo "[KWIZERA] Phase 3 creative reasoning verification"
+  chmod +x "$APP_DIR/deploy/phase3-creative-reasoning-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase3-creative-reasoning-verify.sh"; then
+    echo "[KWIZERA] phase3 creative reasoning verification failed (non-fatal — deploy remains live)" >&2
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"

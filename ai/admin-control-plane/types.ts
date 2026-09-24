@@ -135,6 +135,7 @@ export type FeatureKey =
   | "VIDEO_QA"
   | "LLM_CHAT"
   | "LLM_REASONING"
+  | "CREATIVE_REASONING"
   | "EMBEDDING"
   | "IMAGE_SEGMENTATION"
   | "ONLINE_API_PROBE"

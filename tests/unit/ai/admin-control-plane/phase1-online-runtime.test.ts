@@ -236,7 +236,9 @@ describe("Phase 1 online capability runtime", () => {
     const features = manager.listFeatureMappings().map((item) => item.feature);
     for (const key of [
       "VISION_ANALYSIS",
+      "LLM_CHAT",
       "LLM_REASONING",
+      "CREATIVE_REASONING",
       "IMAGE_GENERATION",
       "IMAGE_EDITING",
       "IMAGE_SEGMENTATION",

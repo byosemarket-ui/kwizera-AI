@@ -786,24 +786,32 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         canonical: canonicalProductManager!,
         assets: productAssetPreparationManager,
       });
-      // Vision: Admin-routed online VISION_ANALYSIS first; optional Ollama local fallback.
+      // Vision + Creative Director: Admin-routed online first; optional Ollama local fallback.
       // Never block Core readiness on LLM/Ollama load.
       const registerVisionProviders = async () => {
         try {
           const { AdminRuntimeVisionProvider } = await import("../../ai/ai-provider/admin-runtime-vision-provider.js");
           const { CascadingVisionProvider } = await import("../../ai/ai-provider/cascading-vision-provider.js");
           const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
+          const { AdminRuntimeCreativeReasoningProvider } = await import("../../ai/creative-planning/admin-runtime-creative-reasoning-provider.js");
+          const { CascadingCreativeReasoningProvider } = await import("../../ai/creative-planning/cascading-creative-reasoning-provider.js");
           const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
           const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
           const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
 
-          const adminVision = new AdminRuntimeVisionProvider(() => {
+          const getRuntime = () => {
             try {
               return adminControlPlaneManager?.getCapabilityRuntime() ?? null;
             } catch {
               return null;
             }
-          });
+          };
+
+          const adminVision = new AdminRuntimeVisionProvider(getRuntime);
+          const adminCreative = new AdminRuntimeCreativeReasoningProvider(getRuntime);
+          const creativeChain: import("../../ai/creative-planning/ai-creative-planner.js").CreativeReasoningProvider[] = [
+            adminCreative,
+          ];
 
           const chain: import("../../ai/ai-provider/vision-capabilities.js").VisionProvider[] = [adminVision];
           let ollamaVision: InstanceType<typeof OllamaVisionProvider> | null = null;
@@ -813,12 +821,10 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
             new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
           ]);
           if (!readiness) {
-            console.warn("[KWIZERA] Ollama readiness timed out during boot — online Admin vision + deterministic Creative Director active.");
-            setCreativeReasoningProvider(null);
+            console.warn("[KWIZERA] Ollama readiness timed out during boot — Admin online vision/creative + deterministic fallbacks active.");
           } else {
             ollamaVision = new OllamaVisionProvider();
             if (await ollamaVision.isAvailable()) {
-              // Mark local fallback source for status when used via cascade.
               const localWrapped: import("../../ai/ai-provider/vision-capabilities.js").VisionProvider = {
                 id: ollamaVision.id,
                 capabilities: ollamaVision.capabilities,
@@ -837,15 +843,18 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
                 model: readiness.selectedModel,
               });
               if (await director.isAvailable()) {
-                setCreativeReasoningProvider(director);
-                console.log("[KWIZERA] Ollama Creative Director registered:", readiness.selectedModel);
-              } else {
-                setCreativeReasoningProvider(null);
+                creativeChain.push(director);
+                console.log("[KWIZERA] Ollama Creative Director cascade member:", readiness.selectedModel);
               }
-            } else {
-              setCreativeReasoningProvider(null);
             }
           }
+
+          const cascadingCreative = new CascadingCreativeReasoningProvider(creativeChain);
+          setCreativeReasoningProvider(cascadingCreative);
+          console.log(
+            "[KWIZERA] Creative Director providers registered:",
+            creativeChain.map((p) => p.id).join(" → "),
+          );
 
           const cascading = new CascadingVisionProvider(chain);
           imageIntelligenceManager?.setVisionProvider(cascading);
@@ -856,9 +865,15 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           );
         } catch (error) {
           console.warn(
-            "[KWIZERA] Vision provider registration skipped:",
+            "[KWIZERA] Vision/Creative provider registration skipped:",
             error instanceof Error ? error.message : error,
           );
+          try {
+            const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
+            setCreativeReasoningProvider(null);
+          } catch {
+            /* ignore */
+          }
         }
       };
       void registerVisionProviders();

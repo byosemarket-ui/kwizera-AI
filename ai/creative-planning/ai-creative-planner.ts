@@ -10,6 +10,7 @@ import type { AuthoritativeMarketingBrief } from "../marketing-brief/types.js";
 import type { CreativeToneId, ProductionModeId } from "../video-production/production-mode-types.js";
 import type { ConfirmedCommercial } from "./commercial.js";
 import type { PlanScene } from "./creative-planning-manager.js";
+import type { CreativeIdentityLockContext } from "./creative-director-prompt.js";
 import { planProductScenes } from "./scene-planner.js";
 import { validateAiPlannerOutput } from "./plan-validator.js";
 import { buildVerifiedFactsContext } from "./verified-facts-context.js";
@@ -32,6 +33,8 @@ export interface AiCreativePlannerInput {
   canonical?: CanonicalProduct | null;
   commercial?: ConfirmedCommercial | null;
   existingScenes?: PlanScene[];
+  /** Optional Product Identity Lock summary — Creative Director must respect protected attributes. */
+  productIdentityLock?: CreativeIdentityLockContext | null;
 }
 
 export interface AiCreativePlannerResult {
@@ -123,6 +126,9 @@ const NON_RETRYABLE_CODES = new Set([
   "OLLAMA_DISABLED",
   "PROJECT_CONTEXT_MISSING",
   "MODEL_NOT_FOUND",
+  "AUTHENTICATION_FAILED",
+  "CONFIGURATION_ERROR",
+  "NOT_IMPLEMENTED",
 ]);
 
 function plannerErrorCode(error: unknown): string | undefined {

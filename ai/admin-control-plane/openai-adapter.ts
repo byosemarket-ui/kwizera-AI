@@ -209,14 +209,15 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
       Math.max(3_000, request.timeoutMs ?? model.timeoutMs ?? 30_000),
     );
     const visionMode = isVisionMode(request.input);
+    const chatMode = request.input?.mode === "chat" || visionMode;
     const messages = normalizeMessages(request.input);
     const body: Record<string, unknown> = {
       model: model.modelId,
       messages,
-      max_tokens: visionMode ? 2_048 : 16,
-      temperature: 0,
+      max_tokens: visionMode ? 2_048 : chatMode ? 1_024 : 16,
+      temperature: chatMode ? 0.2 : 0,
     };
-    if (visionMode) {
+    if (chatMode) {
       body.response_format = { type: "json_object" };
     }
 
@@ -230,7 +231,7 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
             Authorization: `Bearer ${secret}`,
             "Content-Type": "application/json",
             Accept: "application/json",
-            "User-Agent": "KWIZERA-AI-STUDIO/phase2",
+            "User-Agent": "KWIZERA-AI-STUDIO/phase3",
           },
           body: JSON.stringify(body),
         },
@@ -340,9 +341,14 @@ function normalizeMessages(input?: CapabilityExecuteInput): RuntimeChatMessage[]
   }
 
   return [
-    { role: "system", content: visionMode
-      ? "You are a product vision analyst for KWIZERA. Reply with JSON only."
-      : "You are a connectivity probe. Reply briefly." },
+    {
+      role: "system",
+      content: visionMode
+        ? "You are a product vision analyst for KWIZERA. Reply with JSON only."
+        : input?.mode === "chat"
+          ? "You are the Creative Director for KWIZERA AI STUDIO. Reply with JSON only."
+          : "You are a connectivity probe. Reply briefly.",
+    },
     { role: "user", content: prompt },
   ];
 }

@@ -288,14 +288,18 @@ export async function handleAdminApi(
       const feature = typeof body.feature === "string" && body.feature.trim()
         ? body.feature.trim()
         : "ONLINE_API_PROBE";
-      // Phase 1 probe + Phase 2 vision — no other features until later phases.
-      if (feature !== "ONLINE_API_PROBE" && feature !== "VISION_ANALYSIS") {
+      // Phase 1 probe + Phase 2 vision + Phase 3 creative reasoning.
+      if (
+        feature !== "ONLINE_API_PROBE"
+        && feature !== "VISION_ANALYSIS"
+        && feature !== "CREATIVE_REASONING"
+      ) {
         fail(
           deps.sendJson,
           res,
           400,
           "FEATURE_NOT_ALLOWED",
-          "Admin runtime execute allows ONLINE_API_PROBE and VISION_ANALYSIS only",
+          "Admin runtime execute allows ONLINE_API_PROBE, VISION_ANALYSIS, and CREATIVE_REASONING only",
         );
         return true;
       }
@@ -312,7 +316,11 @@ export async function handleAdminApi(
       const result = await runtime.execute(feature, {
         prompt: typeof body.prompt === "string" ? body.prompt : undefined,
         messages: Array.isArray(body.messages) ? body.messages : undefined,
-        mode: body.mode === "vision" || feature === "VISION_ANALYSIS" ? "vision" : body.mode,
+        mode: body.mode === "vision" || feature === "VISION_ANALYSIS"
+          ? "vision"
+          : body.mode === "chat" || feature === "CREATIVE_REASONING"
+            ? "chat"
+            : body.mode,
         images,
         projectId: typeof body.projectId === "string" ? body.projectId : undefined,
       });
