@@ -76,6 +76,11 @@ export interface ProjectAudioSelection {
   volume: number;
   /** STEP 2D — Off | Smart | Strict */
   beatSyncMode: BeatSyncMode;
+  /** Phase 5 — optional voice-over asset from library / TTS */
+  selectedVoiceAssetId?: string | null;
+  voiceEnabled?: boolean;
+  /** 0–1 voice gain; default 1 */
+  voiceVolume?: number;
 }
 
 export const DEFAULT_PROJECT_AUDIO: ProjectAudioSelection = {
@@ -83,6 +88,9 @@ export const DEFAULT_PROJECT_AUDIO: ProjectAudioSelection = {
   enabled: false,
   volume: 1,
   beatSyncMode: "SMART",
+  selectedVoiceAssetId: null,
+  voiceEnabled: false,
+  voiceVolume: 1,
 };
 
 export function normalizeBeatSyncMode(raw: unknown): BeatSyncMode {
@@ -186,11 +194,21 @@ export function normalizeProjectAudio(
     ? Math.min(1, Math.max(0, raw.volume))
     : 1;
   const enabled = Boolean(raw.enabled) && Boolean(id);
+  const voiceId = typeof raw.selectedVoiceAssetId === "string" && raw.selectedVoiceAssetId.trim()
+    ? raw.selectedVoiceAssetId.trim()
+    : null;
+  const voiceVolume = typeof raw.voiceVolume === "number" && Number.isFinite(raw.voiceVolume)
+    ? Math.min(1, Math.max(0, raw.voiceVolume))
+    : 1;
+  const voiceEnabled = Boolean(raw.voiceEnabled) && Boolean(voiceId);
   return {
     selectedAudioAssetId: id,
     enabled,
     volume,
     beatSyncMode: normalizeBeatSyncMode((raw as { beatSyncMode?: unknown }).beatSyncMode),
+    selectedVoiceAssetId: voiceId,
+    voiceEnabled,
+    voiceVolume,
   };
 }
 

@@ -83,7 +83,7 @@ describe("Phase 4 — Admin-routed VIDEO_IMAGE_TO_VIDEO", () => {
     const view = runtime.describe("VIDEO_IMAGE_TO_VIDEO");
     expect(view.source).toBe("ONLINE");
     expect(view.providerId).toBe("provider-fal");
-    expect(view.adapterId).toBe("fal-i2v");
+    expect(view.adapterId).toBe("fal");
     expect(JSON.stringify(view)).not.toContain("fal-desc-key");
   });
 
@@ -267,7 +267,7 @@ describe("Phase 4 — Admin-routed VIDEO_IMAGE_TO_VIDEO", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    expect(adapter?.id).toBe("fal-i2v");
+    expect(adapter?.id).toBe("fal");
   });
 
   it("malformed / auth-failed fal response falls back safely (no fake success)", async () => {

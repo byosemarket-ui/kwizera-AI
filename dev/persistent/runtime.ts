@@ -799,6 +799,11 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
           const { AdminRuntimeImageToVideoProvider } = await import("../../ai/video-production/admin-runtime-image-to-video-provider.js");
           const { setVideoGenerationProvider } = await import("../../ai/video-production/video-generation-provider.js");
+          const { AdminRuntimeMusicGenerationProvider } = await import("../../ai/ai-sound/admin-runtime-music-provider.js");
+          const {
+            AdminRuntimeTtsProvider,
+            setAdminRuntimeTtsProvider,
+          } = await import("../../ai/video-production/admin-runtime-tts-provider.js");
           const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
 
           const getRuntime = () => {
@@ -817,6 +822,19 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           void adminI2v.isAvailable().then((ok) => {
             console.log("[KWIZERA] Admin-routed VIDEO_IMAGE_TO_VIDEO online:", ok);
           }).catch(() => undefined);
+
+          const adminMusic = new AdminRuntimeMusicGenerationProvider(getRuntime);
+          aiSoundManager?.setProvider(adminMusic);
+          void adminMusic.isAvailable().then((ok) => {
+            console.log("[KWIZERA] Admin-routed MUSIC_GENERATION online:", ok);
+          }).catch(() => undefined);
+
+          const adminTts = new AdminRuntimeTtsProvider(getRuntime);
+          setAdminRuntimeTtsProvider(adminTts);
+          void adminTts.isAvailable().then((ok) => {
+            console.log("[KWIZERA] Admin-routed TEXT_TO_SPEECH online:", ok);
+          }).catch(() => undefined);
+
           const creativeChain: import("../../ai/creative-planning/ai-creative-planner.js").CreativeReasoningProvider[] = [
             adminCreative,
           ];

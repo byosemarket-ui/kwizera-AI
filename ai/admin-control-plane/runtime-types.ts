@@ -65,17 +65,22 @@ export interface CapabilityExecuteInput {
   /**
    * Hint for adapters:
    * probe — connectivity; vision — structured analysis; chat — creative JSON;
-   * image-to-video — async I2V generation.
+   * image-to-video — async I2V; music-generation — instrumental bed;
+   * tts — text-to-speech audio.
    */
-  mode?: "probe" | "vision" | "chat" | "image-to-video";
-  /** Target clip duration for I2V (seconds). */
+  mode?: "probe" | "vision" | "chat" | "image-to-video" | "music-generation" | "tts";
+  /** Target clip duration for I2V / music (seconds). */
   durationSeconds?: number;
   aspectRatio?: string;
   resolution?: string;
   motionHint?: string;
   cameraHint?: string;
   seed?: number;
-  /** Server-local path where the adapter should write the downloaded MP4. */
+  /** TTS voice id when provider supports named voices (e.g. OpenAI alloy). */
+  voice?: string;
+  /** TTS speaking rate if supported (provider-specific, optional). */
+  speakingRate?: number;
+  /** Server-local path where the adapter should write the downloaded media. */
   outputPath?: string;
   sceneId?: string;
   sourceAssetId?: string;

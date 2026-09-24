@@ -182,15 +182,18 @@ export interface VideoTimelineClip {
 }
 
 export interface VideoAudioPlan {
-  backgroundMusic: "none" | "library";
-  voiceover: "none";
+  backgroundMusic: "none" | "library" | "generated";
+  voiceover: "none" | "library" | "generated";
   soundEffects: "none";
   status: "UNAVAILABLE" | "planned" | "selected";
   message: string;
   /** STEP 2B — reference into studio Audio Library */
   selectedAudioAssetId?: string | null;
+  /** Phase 5 — optional voice-over asset */
+  selectedVoiceAssetId?: string | null;
   enabled?: boolean;
   volume?: number;
+  voiceVolume?: number;
   /** STEP 2D */
   beatSyncMode?: import("./beat-sync-timing.js").BeatSyncMode;
   beatSyncMessage?: string;

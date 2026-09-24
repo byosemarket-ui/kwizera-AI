@@ -748,6 +748,60 @@ export class AdminControlPlaneManager {
         });
       }
     }
+    // Phase 5: seed music + TTS models and promote stub feature mappings.
+    for (const modelId of ["model-fal-stable-audio", "model-openai-tts-1"] as const) {
+      if (!modelById.has(modelId)) {
+        const seed = createDefaultModels().find((m) => m.id === modelId);
+        if (seed) {
+          modelById.set(seed.id, {
+            ...seed,
+            inputTypes: seed.inputTypes ?? [seed.inputType],
+            outputTypes: seed.outputTypes ?? [seed.outputType],
+            costModel: normalizeCostModel(seed.costModel, seed.currency),
+          });
+        }
+      }
+    }
+    const musicMapping = featureByKey.get("MUSIC_GENERATION");
+    if (
+      musicMapping
+      && (!musicMapping.primaryModelId || musicMapping.metadata?.pendingProvider === true)
+      && musicMapping.metadata?.phase5AudioTimeline !== true
+    ) {
+      featureByKey.set("MUSIC_GENERATION", {
+        ...musicMapping,
+        primaryModelId: "model-fal-stable-audio",
+        providerId: "provider-fal",
+        enabled: true,
+        metadata: {
+          ...musicMapping.metadata,
+          phase: "phase5-audio-timeline",
+          phase5AudioTimeline: true,
+          pendingProvider: false,
+        },
+        updatedAt: now(),
+      });
+    }
+    const ttsMapping = featureByKey.get("TEXT_TO_SPEECH");
+    if (
+      ttsMapping
+      && (!ttsMapping.primaryModelId || ttsMapping.metadata?.pendingProvider === true)
+      && ttsMapping.metadata?.phase5AudioTimeline !== true
+    ) {
+      featureByKey.set("TEXT_TO_SPEECH", {
+        ...ttsMapping,
+        primaryModelId: "model-openai-tts-1",
+        providerId: "provider-openai",
+        enabled: true,
+        metadata: {
+          ...ttsMapping.metadata,
+          phase: "phase5-audio-timeline",
+          phase5AudioTimeline: true,
+          pendingProvider: false,
+        },
+        updatedAt: now(),
+      });
+    }
     const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
     for (const seed of createDefaultSettings()) {
       if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);

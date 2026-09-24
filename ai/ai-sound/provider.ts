@@ -1,6 +1,7 @@
 /**
  * STEP 2E — Music Generation Provider abstraction.
- * Production default: Unavailable (honest). Test mock only when explicitly enabled.
+ * Production default: Unavailable (honest). Admin-routed when CapabilityRuntime is ONLINE.
+ * Test mock only when explicitly enabled.
  */
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -12,6 +13,8 @@ import type {
   MusicProviderHealth,
   MusicGenerationProviderStatus,
 } from "./types.js";
+import type { CapabilityRuntime } from "../admin-control-plane/capability-runtime.js";
+import { AdminRuntimeMusicGenerationProvider } from "./admin-runtime-music-provider.js";
 
 export interface MusicGenerationProvider {
   readonly id: string;
@@ -47,9 +50,9 @@ export class UnavailableMusicGenerationProvider implements MusicGenerationProvid
       modelVersion: null,
       capabilities: [],
       reason:
-        "No local music-generation model/provider is configured. "
+        "No music-generation provider is configured. "
         + "Upload or extract audio remains available. "
-        + "Ollama text models cannot generate audio.",
+        + "Configure Admin MUSIC_GENERATION for online generation.",
       resourceStatus: {
         ramFreeMb: Math.round(os.freemem() / 1024 / 1024),
         storageFreeMb: undefined,
@@ -69,7 +72,6 @@ export class UnavailableMusicGenerationProvider implements MusicGenerationProvid
 /**
  * Test-only provider — writes a real short WAV for pipeline unit tests.
  * NEVER selected in production unless KWIZERA_AI_SOUND_TEST_PROVIDER=1
- * (local automated tests / intentional lab only).
  */
 export class TestFixtureMusicGenerationProvider implements MusicGenerationProvider {
   readonly id = "music-provider-test-fixture";
@@ -140,11 +142,15 @@ export class TestFixtureMusicGenerationProvider implements MusicGenerationProvid
   }
 }
 
-export function resolveProductionMusicProvider(): MusicGenerationProvider {
+export function resolveProductionMusicProvider(
+  getRuntime?: () => CapabilityRuntime | null,
+): MusicGenerationProvider {
   if (process.env.KWIZERA_AI_SOUND_TEST_PROVIDER === "1") {
     return new TestFixtureMusicGenerationProvider();
   }
-  // Future: detect real local music providers here (never invent availability).
+  if (getRuntime) {
+    return new AdminRuntimeMusicGenerationProvider(getRuntime);
+  }
   return new UnavailableMusicGenerationProvider();
 }
 

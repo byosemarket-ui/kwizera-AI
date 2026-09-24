@@ -74,9 +74,14 @@ export class AiSoundManager {
     this.intelligence = manager;
   }
 
+  /** Inject production provider (Admin-routed music). Safe to call after initialize. */
+  setProvider(provider: MusicGenerationProvider): void {
+    this.provider = provider;
+  }
+
   /** Test injection only. */
   setProviderForTests(provider: MusicGenerationProvider): void {
-    this.provider = provider;
+    this.setProvider(provider);
   }
 
   isInitialized(): boolean {

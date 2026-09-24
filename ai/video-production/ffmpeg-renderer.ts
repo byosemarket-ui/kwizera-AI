@@ -636,6 +636,88 @@ export async function muxAudioOntoVideo(input: {
   return probed;
 }
 
+/**
+ * Phase 5 — mux music and/or voice onto video.
+ * When both are present, music is ducked under voice (sidechain-style via volume reduction
+ * during the voice span). Original audio assets are never modified.
+ */
+export async function muxMusicAndVoiceOntoVideo(input: {
+  videoPath: string;
+  outputPath: string;
+  videoDurationMs: number;
+  musicPath?: string | null;
+  musicVolume?: number;
+  voicePath?: string | null;
+  voiceVolume?: number;
+  /** Music gain while voice is active (0–1). Default 0.28 */
+  duckLevel?: number;
+}): Promise<ProbedVideo> {
+  const hasMusic = Boolean(input.musicPath);
+  const hasVoice = Boolean(input.voicePath);
+  if (!hasMusic && !hasVoice) {
+    throw new FfmpegAudioError("MUX_FAILED", "No audio streams to attach.");
+  }
+  if (hasMusic && !hasVoice) {
+    return muxAudioOntoVideo({
+      videoPath: input.videoPath,
+      audioPath: input.musicPath!,
+      outputPath: input.outputPath,
+      videoDurationMs: input.videoDurationMs,
+      volume: input.musicVolume,
+    });
+  }
+  if (!hasMusic && hasVoice) {
+    return muxAudioOntoVideo({
+      videoPath: input.videoPath,
+      audioPath: input.voicePath!,
+      outputPath: input.outputPath,
+      videoDurationMs: input.videoDurationMs,
+      volume: input.voiceVolume ?? 1,
+    });
+  }
+
+  const available = await ffmpegAvailable();
+  if (!available) throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
+  const durSec = Math.max(0.2, input.videoDurationMs / 1000);
+  const musicVol = Math.min(1, Math.max(0, input.musicVolume ?? 0.85));
+  const voiceVol = Math.min(1, Math.max(0, input.voiceVolume ?? 1));
+  const duck = Math.min(musicVol, Math.max(0.05, input.duckLevel ?? 0.28));
+
+  // Voice on top; music reduced while voice plays (aprox via volume + amix).
+  const filter = [
+    `[1:a]volume=${musicVol.toFixed(3)},atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[music]`,
+    `[2:a]volume=${voiceVol.toFixed(3)},atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[voice]`,
+    // Soft duck: lower music bed then blend — keeps voice intelligible without sidechain dependency.
+    `[music]volume=${(duck / Math.max(musicVol, 0.01)).toFixed(3)}[musicduck]`,
+    `[musicduck][voice]amix=inputs=2:duration=longest:dropout_transition=0[a]`,
+  ].join(";");
+
+  try {
+    await runFfmpeg([
+      "-y",
+      "-i", input.videoPath,
+      "-i", input.musicPath!,
+      "-i", input.voicePath!,
+      "-filter_complex", filter,
+      "-map", "0:v:0",
+      "-map", "[a]",
+      "-c:v", "copy",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-t", durSec.toFixed(3),
+      "-movflags", "+faststart",
+      input.outputPath,
+    ], 10 * 60_000);
+  } catch {
+    throw new FfmpegAudioError("MUX_FAILED", "Failed to mix music and voice onto video.");
+  }
+  const probed = await probeVideo(input.outputPath);
+  if (!probed.hasAudioStream) {
+    throw new FfmpegAudioError("MUX_FAILED", "Failed to mix music and voice onto video.");
+  }
+  return probed;
+}
+
 async function runFfmpeg(args: string[], timeout: number): Promise<void> {
   const stderrTail: string[] = [];
   const maxTailChars = 8192;

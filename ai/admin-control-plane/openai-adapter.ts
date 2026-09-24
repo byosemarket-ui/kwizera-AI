@@ -203,6 +203,10 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
       throw new ProviderRuntimeError("CONFIGURATION_ERROR", "Provider credential is not configured");
     }
 
+    if (request.input?.mode === "tts") {
+      return this.executeTts(request, secret);
+    }
+
     const base = resolveBaseUrl(provider);
     const timeoutMs = Math.min(
       120_000,
@@ -285,6 +289,120 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
       if (error instanceof ProviderRuntimeError) throw error;
       if (error instanceof Error && error.name === "AbortError") {
         throw new ProviderRuntimeError("TIMEOUT", "OpenAI request timed out", { retryable: true });
+      }
+      throw new ProviderRuntimeError(
+        "NETWORK_ERROR",
+        sanitizeRuntimeMessage(error instanceof Error ? error.message : "Network error"),
+        { retryable: true },
+      );
+    }
+  }
+
+  private async executeTts(
+    request: ProviderAdapterExecuteRequest,
+    secret: string,
+  ): Promise<{
+    ok: boolean;
+    outputText?: string;
+    output?: unknown;
+    httpStatus?: number;
+  }> {
+    const provider = request.provider;
+    const model = request.model;
+    const input = request.input;
+    const text = (input?.prompt ?? "").trim();
+    if (!text) {
+      throw new ProviderRuntimeError("INVALID_REQUEST", "TTS requires script text");
+    }
+    if (text.length > 4_000) {
+      throw new ProviderRuntimeError("INVALID_REQUEST", "TTS script exceeds maximum length");
+    }
+
+    const base = resolveBaseUrl(provider);
+    const timeoutMs = Math.min(
+      90_000,
+      Math.max(5_000, request.timeoutMs ?? model.timeoutMs ?? 45_000),
+    );
+    const voice = (input?.voice?.trim() || "alloy").slice(0, 32);
+    const body = {
+      model: model.modelId || "tts-1",
+      input: text,
+      voice,
+      response_format: "mp3",
+    };
+    const started = Date.now();
+    try {
+      const response = await fetchWithTimeout(
+        `${base}/v1/audio/speech`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${secret}`,
+            "Content-Type": "application/json",
+            Accept: "audio/mpeg, application/json",
+            "User-Agent": "KWIZERA-AI-STUDIO/phase5",
+          },
+          body: JSON.stringify(body),
+        },
+        timeoutMs,
+      );
+      const httpStatus = response.status;
+      console.info("[KWIZERA][online-tts]", JSON.stringify(safeLogMeta({
+        event: "provider_tts_execute",
+        requestId: request.requestId,
+        providerId: provider.id,
+        modelId: model.modelId,
+        adapterId: this.id,
+        endpointHost: endpointHost(base),
+        httpStatus,
+        durationMs: Date.now() - started,
+        ok: response.ok,
+      })));
+
+      if (!response.ok) {
+        let parsed: unknown = null;
+        try {
+          parsed = JSON.parse(await response.text());
+        } catch {
+          parsed = null;
+        }
+        throw new ProviderRuntimeError(
+          mapHttpStatusToErrorCode(httpStatus),
+          extractOpenAiErrorMessage(parsed) ?? `OpenAI TTS HTTP ${httpStatus}`,
+          { httpStatus, retryable: httpStatus === 429 || httpStatus >= 500 },
+        );
+      }
+
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (bytes.length < 128) {
+        throw new ProviderRuntimeError("PROVIDER_UNAVAILABLE", "OpenAI TTS returned empty audio");
+      }
+
+      let audioPath: string | null = null;
+      const outputPath = input?.outputPath?.trim();
+      if (outputPath) {
+        const { mkdir, writeFile } = await import("node:fs/promises");
+        const { dirname } = await import("node:path");
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeFile(outputPath, bytes);
+        audioPath = outputPath;
+      }
+
+      return {
+        ok: true,
+        outputText: "VOICE_READY",
+        output: {
+          mimeType: "audio/mpeg",
+          audioPath,
+          byteLength: bytes.length,
+          voice,
+        },
+        httpStatus,
+      };
+    } catch (error) {
+      if (error instanceof ProviderRuntimeError) throw error;
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new ProviderRuntimeError("TIMEOUT", "OpenAI TTS request timed out", { retryable: true });
       }
       throw new ProviderRuntimeError(
         "NETWORK_ERROR",

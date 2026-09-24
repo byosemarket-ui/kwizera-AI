@@ -13,7 +13,7 @@ import {
   concatClips,
   ffmpegAvailable,
   ffprobeAvailable,
-  muxAudioOntoVideo,
+  muxMusicAndVoiceOntoVideo,
   probeVideo,
   renderStillClip,
   resolveFontFile,
@@ -1171,37 +1171,57 @@ export class VideoProductionManager {
         });
       }
 
-      // STEP 2B — mux selected library audio onto silent concat (does not invent looping).
+      // STEP 2B / Phase 5 — mux music and optional voice onto silent concat.
       let audioWorkspaceProject = await this.workspace!.getProject(job.projectId);
       const audioSelection = audioWorkspaceProject
         ? this.workspace!.getProjectAudioSelection(audioWorkspaceProject)
         : null;
-      if (audioSelection?.enabled && audioSelection.selectedAudioAssetId) {
+      const hasMusic = Boolean(audioSelection?.enabled && audioSelection.selectedAudioAssetId);
+      const hasVoice = Boolean(audioSelection?.voiceEnabled && audioSelection.selectedVoiceAssetId);
+      if (hasMusic || hasVoice) {
         await this.writeJob(job.id, {
           ...started,
           stage: "encoding",
           progress: 85,
           sceneCount: renderClips.length,
-          stageMessage: "Attaching selected audio",
+          stageMessage: hasVoice && hasMusic
+            ? "Mixing music and voice"
+            : hasVoice
+              ? "Attaching voice-over"
+              : "Attaching selected audio",
           endCardRendered,
           endCardDurationMs: endCardDurationMs || undefined,
         });
-        const audioPath = await this.workspace!.getAudioFilePath(audioSelection.selectedAudioAssetId);
-        if (!audioPath) {
+        const musicPath = hasMusic
+          ? await this.workspace!.getAudioFilePath(audioSelection!.selectedAudioAssetId!)
+          : null;
+        const voicePath = hasVoice
+          ? await this.workspace!.getAudioFilePath(audioSelection!.selectedVoiceAssetId!)
+          : null;
+        if (hasMusic && !musicPath) {
           throw new VideoProductionError(
             "AUDIO_MISSING",
             "Selected audio asset is missing from the Audio Library",
             400,
           );
         }
+        if (hasVoice && !voicePath) {
+          throw new VideoProductionError(
+            "VOICE_MISSING",
+            "Selected voice asset is missing from the Audio Library",
+            400,
+          );
+        }
         const silentProbe = await probeVideo(outputPath);
         const muxedPath = path.join(tmpDir, "output-with-audio.mp4");
-        await muxAudioOntoVideo({
+        await muxMusicAndVoiceOntoVideo({
           videoPath: outputPath,
-          audioPath,
           outputPath: muxedPath,
           videoDurationMs: silentProbe.durationMs,
-          volume: audioSelection.volume,
+          musicPath,
+          musicVolume: audioSelection?.volume ?? 0.85,
+          voicePath,
+          voiceVolume: audioSelection?.voiceVolume ?? 1,
         });
         await fs.copyFile(muxedPath, outputPath);
       }
@@ -1216,7 +1236,7 @@ export class VideoProductionManager {
       });
       await this.patchVideo(job.projectId, { qualityGate: "TECHNICAL_VALIDATION" });
       const probed = await probeVideo(outputPath);
-      const audioRequired = Boolean(audioSelection?.enabled && audioSelection.selectedAudioAssetId);
+      const audioRequired = hasMusic || hasVoice;
       const qc = validateRenderedOutput({
         probed,
         plannedDurationMs,
@@ -1605,15 +1625,48 @@ export class VideoProductionManager {
     if (selection.enabled && selection.selectedAudioAssetId) {
       const asset = await this.workspace!.getAudioAsset(selection.selectedAudioAssetId);
       if (asset?.status === "READY") {
+        let voiceover: "none" | "library" | "generated" = "none";
+        let selectedVoiceAssetId: string | null = null;
+        if (selection.voiceEnabled && selection.selectedVoiceAssetId) {
+          const voice = await this.workspace!.getAudioAsset(selection.selectedVoiceAssetId);
+          if (voice?.status === "READY") {
+            voiceover = voice.sourceType === "AI_GENERATED" ? "generated" : "library";
+            selectedVoiceAssetId = voice.assetId;
+          }
+        }
         return {
-          backgroundMusic: "library",
-          voiceover: "none",
+          backgroundMusic: asset.sourceType === "AI_GENERATED" ? "generated" : "library",
+          voiceover,
           soundEffects: "none",
           status: "selected",
           message: AUDIO_MESSAGE_SELECTED,
           selectedAudioAssetId: asset.assetId,
+          selectedVoiceAssetId,
           enabled: true,
           volume: selection.volume,
+          voiceVolume: selection.voiceVolume ?? 1,
+          beatSyncMode: mode,
+          beatSyncMessage: beatPlan?.message ?? `Beat sync ${mode}`,
+          audioAnalysisStatus: analysisStatus,
+          bpm,
+          bpmConfidence,
+        };
+      }
+    }
+    if (selection.voiceEnabled && selection.selectedVoiceAssetId) {
+      const voice = await this.workspace!.getAudioAsset(selection.selectedVoiceAssetId);
+      if (voice?.status === "READY") {
+        return {
+          backgroundMusic: "none",
+          voiceover: voice.sourceType === "AI_GENERATED" ? "generated" : "library",
+          soundEffects: "none",
+          status: "selected",
+          message: "Voice-over selected. Music optional.",
+          selectedAudioAssetId: null,
+          selectedVoiceAssetId: voice.assetId,
+          enabled: false,
+          volume: selection.volume,
+          voiceVolume: selection.voiceVolume ?? 1,
           beatSyncMode: mode,
           beatSyncMessage: beatPlan?.message ?? `Beat sync ${mode}`,
           audioAnalysisStatus: analysisStatus,
@@ -1629,8 +1682,10 @@ export class VideoProductionManager {
       status: "UNAVAILABLE",
       message: `${AUDIO_MESSAGE_NONE} ${AUDIO_MESSAGE_PROVIDER}`,
       selectedAudioAssetId: null,
+      selectedVoiceAssetId: null,
       enabled: false,
       volume: selection.volume,
+      voiceVolume: selection.voiceVolume ?? 1,
       beatSyncMode: mode,
       beatSyncMessage: "No audio selected — storyboard timing used.",
       audioAnalysisStatus: analysisStatus,

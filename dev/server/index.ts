@@ -5055,6 +5055,96 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  // Phase 5 — Admin-routed TTS → Audio Library voice asset (optional).
+  const ttsGenerateMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/tts\/generate$/);
+  if (ttsGenerateMatch && req.method === "POST") {
+    const workspace = requireWorkspace(res);
+    if (!workspace) return;
+    try {
+      const {
+        getAdminRuntimeTtsProvider,
+        buildVoiceScriptFromPlan,
+      } = await import("../../ai/video-production/admin-runtime-tts-provider.js");
+      const tts = getAdminRuntimeTtsProvider();
+      if (!tts || !(await tts.isAvailable())) {
+        sendJson(res, 503, {
+          error: "Voice generation is not configured in Admin.",
+          code: "TTS_UNAVAILABLE",
+          available: false,
+        });
+        return;
+      }
+      const projectId = ttsGenerateMatch[1];
+      const body = JSON.parse(await readBody(req) || "{}") as {
+        script?: string;
+        voiceStyle?: string;
+        language?: string;
+        usePlanNarration?: boolean;
+      };
+      let script = typeof body.script === "string" ? body.script.trim() : "";
+      if (!script && body.usePlanNarration !== false) {
+        const project = await workspace.getProject(projectId);
+        const planning = getPlanningManager();
+        const creative = planning ? await planning.getPlan(projectId).catch(() => null) : null;
+        script = buildVoiceScriptFromPlan({
+          scenes: creative?.scenes?.map((s) => ({
+            narration: s.narration,
+            purpose: s.purpose,
+          })),
+          callToAction: project?.campaignInformation?.callToAction
+            || (project?.productInformation as { callToAction?: string } | undefined)?.callToAction
+            || null,
+          productName: project?.productInformation?.name ?? null,
+        });
+      }
+      if (!script) {
+        sendJson(res, 400, {
+          error: "No voice script available. Provide a script or add scene narration in the Creative Plan.",
+          code: "SCRIPT_MISSING",
+        });
+        return;
+      }
+      await workspace.setProjectVoiceScript(projectId, script);
+      const generated = await tts.generate({
+        projectId,
+        script,
+        voiceStyle: typeof body.voiceStyle === "string" ? body.voiceStyle : undefined,
+        language: typeof body.language === "string" ? body.language : undefined,
+      });
+      if (!generated.ok || !generated.audioPath) {
+        sendJson(res, 502, {
+          error: generated.error ?? "Voice generation failed",
+          code: generated.errorCode ?? "TTS_FAILED",
+        });
+        return;
+      }
+      const fs = await import("node:fs/promises");
+      const data = await fs.readFile(generated.audioPath);
+      const registered = await workspace.registerAiGeneratedAudio(projectId, {
+        title: "AI Voice-over",
+        mimeType: generated.mimeType ?? "audio/mpeg",
+        data,
+        generation: {
+          aiSoundVersion: "phase5-tts-v1",
+          providerId: "admin-runtime-tts",
+          modelId: null,
+          modelVersion: null,
+          spec: { kind: "tts", scriptLength: script.length },
+        },
+      });
+      await workspace.selectProjectVoice(projectId, registered.audio.assetId);
+      sendJson(res, 200, {
+        audio: registered.audio,
+        reused: registered.reused,
+        scriptLength: script.length,
+        source: "ADMIN_RUNTIME",
+      });
+    } catch (error) {
+      sendWorkspaceError(res, error);
+    }
+    return;
+  }
+
   const aiSoundGenerateMatch = url.pathname.match(/^\/api\/workspace\/projects\/([^/]+)\/ai-sound\/generate$/);
   if (aiSoundGenerateMatch && req.method === "POST") {
     const sound = getAiSoundManager();

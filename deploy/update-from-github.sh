@@ -259,6 +259,14 @@ if [[ -f "$APP_DIR/deploy/phase4-online-i2v-verify.sh" ]]; then
   fi
 fi
 
+if [[ -f "$APP_DIR/deploy/phase5-audio-timeline-verify.sh" ]]; then
+  echo "[KWIZERA] Phase 5 audio timeline verification"
+  chmod +x "$APP_DIR/deploy/phase5-audio-timeline-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase5-audio-timeline-verify.sh"; then
+    echo "[KWIZERA] phase5 audio timeline verification failed (non-fatal — deploy remains live)" >&2
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"

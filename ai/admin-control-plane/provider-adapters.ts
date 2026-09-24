@@ -8,7 +8,7 @@
 import type { AdminProviderRecord, HealthStatus } from "./types.js";
 import { inferProviderKind } from "./provider-kind.js";
 import { OpenAiProviderAdapter } from "./openai-adapter.js";
-import { FalImageToVideoAdapter } from "./fal-i2v-adapter.js";
+import { FalProviderAdapter } from "./fal-music-adapter.js";
 import type {
   ProviderAdapter,
   ProviderAdapterRequest,
@@ -72,9 +72,9 @@ export function createDefaultAdapterRegistry(): ProviderAdapterRegistry {
   registry.register(new ExternalApiAdapter("alibaba"));
   registry.register(new ExternalApiAdapter("google"));
   registry.register(new ExternalApiAdapter("anthropic"));
-  // Phase 4 online I2V (registers before any fal placeholder).
-  registry.register(new FalImageToVideoAdapter());
-  // Phase 1–3 reference online chat/vision adapter.
+  // Phase 4–5 online fal (I2V + music).
+  registry.register(new FalProviderAdapter());
+  // Phase 1–3 / Phase 5 TTS reference online adapter.
   registry.register(new OpenAiProviderAdapter());
   registry.register(new LocalRuntimeAdapter());
   registry.register(new OllamaAdapter());

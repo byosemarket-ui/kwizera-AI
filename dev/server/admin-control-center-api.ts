@@ -281,7 +281,7 @@ export async function handleAdminApi(
         feature?: string;
         prompt?: string;
         negativePrompt?: string;
-        mode?: "probe" | "vision" | "chat" | "image-to-video";
+        mode?: "probe" | "vision" | "chat" | "image-to-video" | "music-generation" | "tts";
         messages?: Array<{ role: "system" | "user" | "assistant"; content: string }>;
         images?: Array<{ mimeType?: string; base64?: string }>;
         projectId?: string;
@@ -291,23 +291,26 @@ export async function handleAdminApi(
         outputPath?: string;
         sceneId?: string;
         sourceAssetId?: string;
+        voice?: string;
       };
       const feature = typeof body.feature === "string" && body.feature.trim()
         ? body.feature.trim()
         : "ONLINE_API_PROBE";
-      // Phase 1 probe + Phase 2 vision + Phase 3 creative reasoning + Phase 4 I2V.
+      // Phase 1 probe + Phase 2 vision + Phase 3 creative + Phase 4 I2V + Phase 5 music/TTS.
       if (
         feature !== "ONLINE_API_PROBE"
         && feature !== "VISION_ANALYSIS"
         && feature !== "CREATIVE_REASONING"
         && feature !== "VIDEO_IMAGE_TO_VIDEO"
+        && feature !== "MUSIC_GENERATION"
+        && feature !== "TEXT_TO_SPEECH"
       ) {
         fail(
           deps.sendJson,
           res,
           400,
           "FEATURE_NOT_ALLOWED",
-          "Admin runtime execute allows ONLINE_API_PROBE, VISION_ANALYSIS, CREATIVE_REASONING, and VIDEO_IMAGE_TO_VIDEO only",
+          "Admin runtime execute allows ONLINE_API_PROBE, VISION_ANALYSIS, CREATIVE_REASONING, VIDEO_IMAGE_TO_VIDEO, MUSIC_GENERATION, and TEXT_TO_SPEECH only",
         );
         return true;
       }
@@ -331,9 +334,13 @@ export async function handleAdminApi(
             ? "chat"
             : body.mode === "image-to-video" || feature === "VIDEO_IMAGE_TO_VIDEO"
               ? "image-to-video"
-              : body.mode === "probe"
-                ? "probe"
-                : body.mode,
+              : body.mode === "music-generation" || feature === "MUSIC_GENERATION"
+                ? "music-generation"
+                : body.mode === "tts" || feature === "TEXT_TO_SPEECH"
+                  ? "tts"
+                  : body.mode === "probe"
+                    ? "probe"
+                    : body.mode,
         images,
         durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : undefined,
         aspectRatio: typeof body.aspectRatio === "string" ? body.aspectRatio : undefined,
@@ -341,6 +348,7 @@ export async function handleAdminApi(
         outputPath: typeof body.outputPath === "string" ? body.outputPath : undefined,
         sceneId: typeof body.sceneId === "string" ? body.sceneId : undefined,
         sourceAssetId: typeof body.sourceAssetId === "string" ? body.sourceAssetId : undefined,
+        voice: typeof body.voice === "string" ? body.voice : undefined,
         projectId: typeof body.projectId === "string" ? body.projectId : undefined,
       });
       ok(deps.sendJson, res, result as unknown as Record<string, unknown>);

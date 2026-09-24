@@ -190,6 +190,12 @@ export interface CreativeProject {
   audioVolume?: number;
   /** STEP 2D — Off | Smart | Strict (default Smart). */
   beatSyncMode?: import("./audio-asset.js").BeatSyncMode;
+  /** Phase 5 — optional voice-over selection (library / TTS-derived asset). */
+  selectedVoiceAssetId?: string | null;
+  voiceEnabled?: boolean;
+  voiceVolume?: number;
+  /** Approved voice script used for TTS (facts from plan/product only). */
+  voiceScript?: string | null;
   /** STEP 2F — Audio-Visual Creative Director settings (project-isolated). */
   avCreativeMode?: import("../audio-visual-director/types.js").AvCreativeMode;
   avDirectorOverrides?: import("../audio-visual-director/types.js").AvDirectorOverrides;
@@ -566,6 +572,50 @@ export class CreativeWorkspaceManager {
       enabled: project.audioEnabled,
       volume: project.audioVolume,
       beatSyncMode: project.beatSyncMode,
+      selectedVoiceAssetId: project.selectedVoiceAssetId,
+      voiceEnabled: project.voiceEnabled,
+      voiceVolume: project.voiceVolume,
+    });
+  }
+
+  async selectProjectVoice(projectId: string, assetId: string): Promise<{
+    project: CreativeProject;
+    audio: AudioAsset;
+  }> {
+    return this.enqueueProject(projectId, async () => {
+      const asset = await this.getAudioAsset(assetId);
+      if (!asset || asset.status !== "READY") {
+        throw new CreativeWorkspaceError("ASSET_NOT_FOUND", audioUserError("ASSET_NOT_FOUND", "Audio asset not found."), 404);
+      }
+      const project = await this.requireProject(projectId);
+      project.selectedVoiceAssetId = asset.assetId;
+      project.voiceEnabled = true;
+      if (typeof project.voiceVolume !== "number") project.voiceVolume = 1;
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      return { project: this.hydrateProject(project), audio: asset };
+    });
+  }
+
+  async clearProjectVoice(projectId: string): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      project.selectedVoiceAssetId = null;
+      project.voiceEnabled = false;
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      return this.hydrateProject(project);
+    });
+  }
+
+  async setProjectVoiceScript(projectId: string, script: string | null): Promise<CreativeProject> {
+    return this.enqueueProject(projectId, async () => {
+      const project = await this.requireProject(projectId);
+      const trimmed = typeof script === "string" ? script.trim().slice(0, 3_500) : "";
+      project.voiceScript = trimmed || null;
+      project.modifiedAt = new Date().toISOString();
+      await this.writeProjectRecord(project);
+      return this.hydrateProject(project);
     });
   }
 
