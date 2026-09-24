@@ -49,15 +49,26 @@ export function enrichProductIntelligence(
   const visionUnavailable = imageProfiles.some(
     (item) => item.aiVisionStatus === "IMAGE_ANALYSIS_UNAVAILABLE" || item.aiVisionStatus === "not-configured",
   );
+  const visionCompleted = imageProfiles.some((item) => item.aiVisionStatus === "completed");
+  const visionOnline = imageProfiles.some(
+    (item) => item.aiVisionStatus === "completed" && item.metadata?.visionSource === "ONLINE",
+  );
   const hasPartial = !userFacts.length || !imageObservations.length || profile.missingInformation.some((item) => item.severity === "critical");
   const analysisState = hasPartial ? "partial" : "ready";
+  const aiInferenceStatus = visionUnavailable
+    ? "IMAGE_ANALYSIS_UNAVAILABLE"
+    : visionOnline
+      ? "vision-online"
+      : visionCompleted
+        ? "vision-enriched"
+        : "deterministic-only";
 
   return {
     ...profile,
     productId: profile.productId || project.id,
     analysisState,
     analysisVersion: PRODUCT_INTELLIGENCE_VERSION,
-    aiInferenceStatus: visionUnavailable ? "IMAGE_ANALYSIS_UNAVAILABLE" : "deterministic-only",
+    aiInferenceStatus,
     userFacts,
     imageObservations,
     inferences,

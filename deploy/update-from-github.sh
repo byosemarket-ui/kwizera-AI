@@ -235,6 +235,14 @@ if [[ -f "$APP_DIR/deploy/phase1-online-verify.sh" ]]; then
   fi
 fi
 
+if [[ -f "$APP_DIR/deploy/phase2-online-vision-verify.sh" ]]; then
+  echo "[KWIZERA] Phase 2 online vision verification"
+  chmod +x "$APP_DIR/deploy/phase2-online-vision-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase2-online-vision-verify.sh"; then
+    echo "[KWIZERA] phase2 online vision verification failed (non-fatal — deploy remains live)" >&2
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"

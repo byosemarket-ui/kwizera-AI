@@ -111,10 +111,13 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(sudoers).toContain("!requiretty");
     expect(sudoers).toContain("/opt/kwizera-ai/deploy/update-from-github.sh");
     expect(sudoers).toContain("phase1-online-verify.sh");
+    expect(sudoers).toContain("phase2-online-vision-verify.sh");
     expect(sudoers).toMatch(/\[A-Fa-f0-9\]\*/);
     const update = read("deploy/update-from-github.sh");
     expect(update).toContain("phase1-online-verify.sh");
+    expect(update).toContain("phase2-online-vision-verify.sh");
     expect(read("deploy/phase1-online-verify.sh")).toContain("ONLINE_API_PROBE");
+    expect(read("deploy/phase2-online-vision-verify.sh")).toContain("VISION_ANALYSIS");
   });
 
   it("AI Me reads real /api/deployment and does not invent Live", () => {

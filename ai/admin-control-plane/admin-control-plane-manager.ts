@@ -668,6 +668,28 @@ export class AdminControlPlaneManager {
     for (const seed of createDefaultFeatureMappings()) {
       if (!featureByKey.has(seed.feature)) featureByKey.set(seed.feature, seed);
     }
+    // Phase 2 additive migration: promote VISION_ANALYSIS to online OpenAI when still on seed Ollama-only mapping.
+    const visionMapping = featureByKey.get("VISION_ANALYSIS");
+    if (
+      visionMapping
+      && visionMapping.primaryModelId === "model-local-vision"
+      && (visionMapping.providerId === "provider-ollama-local" || !visionMapping.providerId)
+      && visionMapping.metadata?.phase2OnlineVision !== true
+    ) {
+      featureByKey.set("VISION_ANALYSIS", {
+        ...visionMapping,
+        primaryModelId: "model-openai-gpt-4o-mini",
+        fallbackModelId: visionMapping.fallbackModelId || "model-local-vision",
+        providerId: "provider-openai",
+        metadata: {
+          ...visionMapping.metadata,
+          phase: "phase2-online-vision",
+          phase2OnlineVision: true,
+          migratedFrom: "model-local-vision",
+        },
+        updatedAt: now(),
+      });
+    }
     const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
     for (const seed of createDefaultSettings()) {
       if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);

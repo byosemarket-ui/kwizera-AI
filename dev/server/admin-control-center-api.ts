@@ -280,26 +280,41 @@ export async function handleAdminApi(
       const body = (await parseJsonBody(req, deps.readBody)) as {
         feature?: string;
         prompt?: string;
+        mode?: "probe" | "vision" | "chat";
         messages?: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+        images?: Array<{ mimeType?: string; base64?: string }>;
+        projectId?: string;
       };
       const feature = typeof body.feature === "string" && body.feature.trim()
         ? body.feature.trim()
         : "ONLINE_API_PROBE";
-      // Phase 1: only allow the lightweight online probe capability from Admin.
-      if (feature !== "ONLINE_API_PROBE") {
+      // Phase 1 probe + Phase 2 vision — no other features until later phases.
+      if (feature !== "ONLINE_API_PROBE" && feature !== "VISION_ANALYSIS") {
         fail(
           deps.sendJson,
           res,
           400,
           "FEATURE_NOT_ALLOWED",
-          "Admin runtime execute currently allows ONLINE_API_PROBE only",
+          "Admin runtime execute allows ONLINE_API_PROBE and VISION_ANALYSIS only",
         );
         return true;
       }
       const runtime = manager.getCapabilityRuntime();
+      const images = Array.isArray(body.images)
+        ? body.images
+            .filter((item) => item && typeof item.base64 === "string" && item.base64.trim())
+            .map((item) => ({
+              mimeType: typeof item.mimeType === "string" ? item.mimeType : "image/png",
+              base64: String(item.base64).trim(),
+            }))
+            .slice(0, 4)
+        : undefined;
       const result = await runtime.execute(feature, {
         prompt: typeof body.prompt === "string" ? body.prompt : undefined,
         messages: Array.isArray(body.messages) ? body.messages : undefined,
+        mode: body.mode === "vision" || feature === "VISION_ANALYSIS" ? "vision" : body.mode,
+        images,
+        projectId: typeof body.projectId === "string" ? body.projectId : undefined,
       });
       ok(deps.sendJson, res, result as unknown as Record<string, unknown>);
       return true;

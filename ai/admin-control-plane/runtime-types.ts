@@ -33,15 +33,34 @@ export type NormalizedProviderErrorCode =
   | "NOT_IMPLEMENTED"
   | "UNKNOWN";
 
+/** OpenAI-compatible multimodal content parts (vision). */
+export type RuntimeChatContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+
 export interface RuntimeChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | RuntimeChatContentPart[];
+}
+
+export interface CapabilityExecuteImage {
+  /** MIME type, e.g. image/jpeg */
+  mimeType: string;
+  /** Raw base64 without data-URL prefix */
+  base64: string;
 }
 
 export interface CapabilityExecuteInput {
   /** Lightweight chat probe / LLM messages. */
   messages?: RuntimeChatMessage[];
   prompt?: string;
+  /**
+   * Optional images for vision-capable models (Admin-routed VISION_ANALYSIS).
+   * Adapters attach these server-side; never logged as raw bytes.
+   */
+  images?: CapabilityExecuteImage[];
+  /** Hint for adapters: probe uses tiny max_tokens; vision uses structured analysis. */
+  mode?: "probe" | "vision" | "chat";
   /** Optional correlation id for logs. */
   requestId?: string;
   /** Override timeout (ms); otherwise model/provider default. */

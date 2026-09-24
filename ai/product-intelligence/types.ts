@@ -183,7 +183,12 @@ export interface ProductIntelligenceProfile {
   analysisState?: ProductAnalysisState;
   analysisVersion?: string;
   analysisError?: string;
-  aiInferenceStatus?: "deterministic-only" | "IMAGE_ANALYSIS_UNAVAILABLE" | "not-configured";
+  aiInferenceStatus?:
+    | "deterministic-only"
+    | "IMAGE_ANALYSIS_UNAVAILABLE"
+    | "not-configured"
+    | "vision-online"
+    | "vision-enriched";
   userFacts?: ProvenanceStatement[];
   imageObservations?: ProvenanceStatement[];
   inferences?: ProvenanceStatement[];

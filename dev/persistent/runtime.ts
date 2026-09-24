@@ -786,46 +786,82 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
         canonical: canonicalProductManager!,
         assets: productAssetPreparationManager,
       });
-      // Ollama registration is deferred (resource-aware). Never block Core readiness on LLM load.
-      const registerOllamaProviders = async () => {
+      // Vision: Admin-routed online VISION_ANALYSIS first; optional Ollama local fallback.
+      // Never block Core readiness on LLM/Ollama load.
+      const registerVisionProviders = async () => {
         try {
+          const { AdminRuntimeVisionProvider } = await import("../../ai/ai-provider/admin-runtime-vision-provider.js");
+          const { CascadingVisionProvider } = await import("../../ai/ai-provider/cascading-vision-provider.js");
           const { OllamaVisionProvider } = await import("../../ai/ai-provider/ollama-vision-provider.js");
           const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
           const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
           const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
+
+          const adminVision = new AdminRuntimeVisionProvider(() => {
+            try {
+              return adminControlPlaneManager?.getCapabilityRuntime() ?? null;
+            } catch {
+              return null;
+            }
+          });
+
+          const chain: import("../../ai/ai-provider/vision-capabilities.js").VisionProvider[] = [adminVision];
+          let ollamaVision: InstanceType<typeof OllamaVisionProvider> | null = null;
+
           const readiness = await Promise.race([
             assessOllamaReadiness(),
             new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
           ]);
           if (!readiness) {
-            console.warn("[KWIZERA] Ollama readiness timed out during boot — deterministic Creative Director active.");
+            console.warn("[KWIZERA] Ollama readiness timed out during boot — online Admin vision + deterministic Creative Director active.");
             setCreativeReasoningProvider(null);
-            return;
-          }
-          const ollamaVision = new OllamaVisionProvider();
-          if (await ollamaVision.isAvailable()) {
-            imageIntelligenceManager?.setVisionProvider(ollamaVision);
-            mediaIntelligenceManager?.setVisionProvider(ollamaVision);
-          }
-          if (readiness.ready && readiness.selectedModel) {
-            const director = new OllamaCreativeReasoningProvider({
-              model: readiness.selectedModel,
-            });
-            if (await director.isAvailable()) {
-              setCreativeReasoningProvider(director);
-              console.log("[KWIZERA] Ollama Creative Director registered:", readiness.selectedModel);
-              return;
+          } else {
+            ollamaVision = new OllamaVisionProvider();
+            if (await ollamaVision.isAvailable()) {
+              // Mark local fallback source for status when used via cascade.
+              const localWrapped: import("../../ai/ai-provider/vision-capabilities.js").VisionProvider = {
+                id: ollamaVision.id,
+                capabilities: ollamaVision.capabilities,
+                isAvailable: () => ollamaVision!.isAvailable(),
+                analyzeImage: async (input) => {
+                  const result = await ollamaVision!.analyzeImage(input);
+                  return result.available
+                    ? { ...result, source: result.source ?? "LOCAL_FALLBACK" }
+                    : result;
+                },
+              };
+              chain.push(localWrapped);
+            }
+            if (readiness.ready && readiness.selectedModel) {
+              const director = new OllamaCreativeReasoningProvider({
+                model: readiness.selectedModel,
+              });
+              if (await director.isAvailable()) {
+                setCreativeReasoningProvider(director);
+                console.log("[KWIZERA] Ollama Creative Director registered:", readiness.selectedModel);
+              } else {
+                setCreativeReasoningProvider(null);
+              }
+            } else {
+              setCreativeReasoningProvider(null);
             }
           }
-          setCreativeReasoningProvider(null);
+
+          const cascading = new CascadingVisionProvider(chain);
+          imageIntelligenceManager?.setVisionProvider(cascading);
+          mediaIntelligenceManager?.setVisionProvider(cascading);
+          console.log(
+            "[KWIZERA] Vision providers registered:",
+            chain.map((p) => p.id).join(" → "),
+          );
         } catch (error) {
           console.warn(
-            "[KWIZERA] Ollama optional registration skipped:",
+            "[KWIZERA] Vision provider registration skipped:",
             error instanceof Error ? error.message : error,
           );
         }
       };
-      void registerOllamaProviders();
+      void registerVisionProviders();
       productScenePlanningManager = new ProductScenePlanningManager();
       await productScenePlanningManager.initialize(storageRoot, {
         core: manager,

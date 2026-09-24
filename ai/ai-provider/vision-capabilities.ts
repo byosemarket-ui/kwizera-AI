@@ -26,14 +26,27 @@ export interface VisionViewGuess {
   confidence: number;
 }
 
+/** Optional structured product observations from online/local vision. */
+export interface VisionProductObservation {
+  field: string;
+  value: string;
+  confidence: number;
+  /** True when the model marked the value unknown/uncertain or confidence is low. */
+  uncertain?: boolean;
+}
+
 export interface VisionAnalysisResult {
   provider: string;
   model: string | null;
   available: boolean;
+  /** Execution source for status reporting (never secrets). */
+  source?: "ONLINE" | "LOCAL_FALLBACK" | "DETERMINISTIC" | "UNAVAILABLE" | "CONFIGURATION_ERROR";
   views?: VisionViewGuess[];
   dominantColors?: Array<{ name: string; confidence: number }>;
   backgroundType?: { type: string; confidence: number };
   productCategory?: { category: string; confidence: number };
+  /** Extra product-identity observations (shape, material, logo, …). */
+  productObservations?: VisionProductObservation[];
   notes: string[];
 }
 

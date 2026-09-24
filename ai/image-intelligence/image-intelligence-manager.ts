@@ -431,6 +431,35 @@ export class ImageIntelligenceManager {
           ...(profile.colors ?? []),
         ].slice(0, 5);
       }
+      if (vision.productCategory?.category) {
+        profile.objects = [
+          {
+            label: vision.productCategory.category,
+            confidence: vision.productCategory.confidence,
+            kind: "observed-from-image" as ObservationKind,
+          },
+          ...(profile.objects ?? []),
+        ].slice(0, 8);
+      }
+      if (vision.productObservations?.length) {
+        const obs = profile.observations ?? [];
+        for (const item of vision.productObservations) {
+          if (!item.value || item.uncertain) continue;
+          obs.push({
+            field: item.field,
+            value: item.value,
+            kind: "observed-from-image",
+            confidence: Math.max(0, Math.min(1, item.confidence)),
+          });
+        }
+        profile.observations = obs;
+      }
+      if (vision.source) {
+        profile.metadata = {
+          ...profile.metadata,
+          visionSource: vision.source,
+        };
+      }
     } catch {
       profile.aiVisionStatus = profile.aiVisionStatus ?? "IMAGE_ANALYSIS_UNAVAILABLE";
     }

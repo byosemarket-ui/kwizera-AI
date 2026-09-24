@@ -6,3 +6,4 @@ Defaults:kwizera !requiretty
 kwizera ALL=(root) NOPASSWD:SETENV: /opt/kwizera-ai/deploy/update-from-github.sh
 kwizera ALL=(root) NOPASSWD:SETENV: /opt/kwizera-ai/deploy/update-from-github.sh [A-Fa-f0-9]*
 kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase1-online-verify.sh
+kwizera ALL=(root) NOPASSWD: /bin/bash /opt/kwizera-ai/deploy/phase2-online-vision-verify.sh

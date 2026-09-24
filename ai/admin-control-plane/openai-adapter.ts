@@ -208,13 +208,17 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
       120_000,
       Math.max(3_000, request.timeoutMs ?? model.timeoutMs ?? 30_000),
     );
+    const visionMode = isVisionMode(request.input);
     const messages = normalizeMessages(request.input);
-    const body = {
+    const body: Record<string, unknown> = {
       model: model.modelId,
       messages,
-      max_tokens: 16,
+      max_tokens: visionMode ? 2_048 : 16,
       temperature: 0,
     };
+    if (visionMode) {
+      body.response_format = { type: "json_object" };
+    }
 
     const started = Date.now();
     try {
@@ -226,7 +230,7 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
             Authorization: `Bearer ${secret}`,
             "Content-Type": "application/json",
             Accept: "application/json",
-            "User-Agent": "KWIZERA-AI-STUDIO/phase1",
+            "User-Agent": "KWIZERA-AI-STUDIO/phase2",
           },
           body: JSON.stringify(body),
         },
@@ -290,11 +294,55 @@ export class OpenAiProviderAdapter implements ExecutableProviderAdapter {
   }
 }
 
+function isVisionMode(input?: CapabilityExecuteInput): boolean {
+  if (!input) return false;
+  if (input.mode === "vision") return true;
+  return Array.isArray(input.images) && input.images.length > 0;
+}
+
+function sanitizeMime(mimeType: string | undefined): string {
+  const raw = (mimeType ?? "image/jpeg").trim().toLowerCase();
+  if (raw === "image/png" || raw === "image/jpeg" || raw === "image/jpg" || raw === "image/webp" || raw === "image/gif") {
+    return raw === "image/jpg" ? "image/jpeg" : raw;
+  }
+  return "image/jpeg";
+}
+
 function normalizeMessages(input?: CapabilityExecuteInput): RuntimeChatMessage[] {
   if (input?.messages?.length) return input.messages;
-  const prompt = input?.prompt?.trim() || "Reply with exactly: OK";
+  const visionMode = isVisionMode(input);
+  const prompt = input?.prompt?.trim()
+    || (visionMode ? "Analyze the product image and reply with JSON only." : "Reply with exactly: OK");
+
+  if (visionMode && input?.images?.length) {
+    const parts: Array<
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string; detail: "low" | "high" | "auto" } }
+    > = [{ type: "text", text: prompt }];
+    for (const image of input.images.slice(0, 4)) {
+      const b64 = image.base64?.trim();
+      if (!b64) continue;
+      // Cap individual image payload (~3.5MB base64 ≈ ~2.6MB binary).
+      if (b64.length > 3_500_000) continue;
+      const mime = sanitizeMime(image.mimeType);
+      parts.push({
+        type: "image_url",
+        image_url: { url: `data:${mime};base64,${b64}`, detail: "low" },
+      });
+    }
+    return [
+      {
+        role: "system",
+        content: "You are a product vision analyst for KWIZERA. Reply with JSON only. Never invent product attributes.",
+      },
+      { role: "user", content: parts },
+    ];
+  }
+
   return [
-    { role: "system", content: "You are a connectivity probe. Reply briefly." },
+    { role: "system", content: visionMode
+      ? "You are a product vision analyst for KWIZERA. Reply with JSON only."
+      : "You are a connectivity probe. Reply briefly." },
     { role: "user", content: prompt },
   ];
 }
