@@ -98,11 +98,18 @@ export async function getVideoOutputDetails(projectId: string): Promise<{ output
   return readJson(response);
 }
 
-export async function startVideoRender(projectId: string, preset: "preview" | "standard" = "preview"): Promise<{ job: VideoRenderJob; video: VideoProject }> {
+export async function startVideoRender(
+  projectId: string,
+  preset: "preview" | "standard" = "preview",
+  opts?: { regenerateSceneIds?: string[] },
+): Promise<{ job: VideoRenderJob; video: VideoProject }> {
   const response = await fetch(`/api/video-production/projects/${projectId}/render`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ preset }),
+    body: JSON.stringify({
+      preset,
+      regenerateSceneIds: opts?.regenerateSceneIds,
+    }),
   });
   return readJson(response);
 }

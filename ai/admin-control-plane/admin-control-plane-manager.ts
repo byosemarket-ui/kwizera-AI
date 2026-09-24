@@ -713,6 +713,41 @@ export class AdminControlPlaneManager {
         updatedAt: now(),
       });
     }
+    // Phase 4: promote VIDEO_IMAGE_TO_VIDEO from local-deterministic-only seed to fal Wan I2V.
+    const i2vMapping = featureByKey.get("VIDEO_IMAGE_TO_VIDEO");
+    if (
+      i2vMapping
+      && i2vMapping.primaryModelId === "model-deterministic-video"
+      && (i2vMapping.providerId === "provider-kwizera-local" || !i2vMapping.providerId)
+      && i2vMapping.metadata?.phase4OnlineI2v !== true
+    ) {
+      featureByKey.set("VIDEO_IMAGE_TO_VIDEO", {
+        ...i2vMapping,
+        primaryModelId: "model-fal-wan-i2v",
+        fallbackModelId: i2vMapping.fallbackModelId || "model-deterministic-video",
+        providerId: "provider-fal",
+        enabled: true,
+        metadata: {
+          ...i2vMapping.metadata,
+          phase: "phase4-online-i2v",
+          phase4OnlineI2v: true,
+          migratedFrom: "model-deterministic-video",
+        },
+        updatedAt: now(),
+      });
+    }
+    // Ensure fal Wan model exists on older stores.
+    if (!modelById.has("model-fal-wan-i2v")) {
+      const seed = createDefaultModels().find((m) => m.id === "model-fal-wan-i2v");
+      if (seed) {
+        modelById.set(seed.id, {
+          ...seed,
+          inputTypes: seed.inputTypes ?? [seed.inputType],
+          outputTypes: seed.outputTypes ?? [seed.outputType],
+          costModel: normalizeCostModel(seed.costModel, seed.currency),
+        });
+      }
+    }
     const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
     for (const seed of createDefaultSettings()) {
       if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);

@@ -797,6 +797,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           const { CascadingCreativeReasoningProvider } = await import("../../ai/creative-planning/cascading-creative-reasoning-provider.js");
           const { OllamaCreativeReasoningProvider } = await import("../../ai/creative-planning/ollama-creative-reasoning-provider.js");
           const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
+          const { AdminRuntimeImageToVideoProvider } = await import("../../ai/video-production/admin-runtime-image-to-video-provider.js");
+          const { setVideoGenerationProvider } = await import("../../ai/video-production/video-generation-provider.js");
           const { assessOllamaReadiness } = await import("../../ai/media-intelligence/ollama-readiness.js");
 
           const getRuntime = () => {
@@ -809,6 +811,12 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
 
           const adminVision = new AdminRuntimeVisionProvider(getRuntime);
           const adminCreative = new AdminRuntimeCreativeReasoningProvider(getRuntime);
+          const adminI2v = new AdminRuntimeImageToVideoProvider(getRuntime);
+          if (workspaceManager) adminI2v.attachWorkspace(workspaceManager);
+          setVideoGenerationProvider(adminI2v);
+          void adminI2v.isAvailable().then((ok) => {
+            console.log("[KWIZERA] Admin-routed VIDEO_IMAGE_TO_VIDEO online:", ok);
+          }).catch(() => undefined);
           const creativeChain: import("../../ai/creative-planning/ai-creative-planner.js").CreativeReasoningProvider[] = [
             adminCreative,
           ];
@@ -865,12 +873,18 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           );
         } catch (error) {
           console.warn(
-            "[KWIZERA] Vision/Creative provider registration skipped:",
+            "[KWIZERA] Vision/Creative/I2V provider registration skipped:",
             error instanceof Error ? error.message : error,
           );
           try {
             const { setCreativeReasoningProvider } = await import("../../ai/creative-planning/ai-creative-planner.js");
             setCreativeReasoningProvider(null);
+          } catch {
+            /* ignore */
+          }
+          try {
+            const { setVideoGenerationProvider } = await import("../../ai/video-production/video-generation-provider.js");
+            setVideoGenerationProvider(null);
           } catch {
             /* ignore */
           }

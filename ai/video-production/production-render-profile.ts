@@ -29,11 +29,11 @@ export function resolveProductionRenderProfile(mode?: ProductionModeId | null): 
     const generative = cinematicProviderConfigured();
     return {
       mode: resolved,
-      motionStyle: generative ? "dynamic" : "dynamic",
+      motionStyle: "dynamic",
       preferFadeTransitions: true,
       providerHonestLabel: generative
-        ? "Cinematic provider configured"
-        : "Cinematic 3D unavailable — using professional FFmpeg motion (not synthetic 3D)",
+        ? "Cinematic image-to-video (Admin-routed)"
+        : "Cinematic I2V unavailable — Exact Product / FFmpeg path only",
       usesGenerativeVideo: generative,
     };
   }

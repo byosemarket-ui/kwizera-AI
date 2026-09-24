@@ -251,6 +251,14 @@ if [[ -f "$APP_DIR/deploy/phase3-creative-reasoning-verify.sh" ]]; then
   fi
 fi
 
+if [[ -f "$APP_DIR/deploy/phase4-online-i2v-verify.sh" ]]; then
+  echo "[KWIZERA] Phase 4 online I2V verification"
+  chmod +x "$APP_DIR/deploy/phase4-online-i2v-verify.sh" || true
+  if ! bash "$APP_DIR/deploy/phase4-online-i2v-verify.sh"; then
+    echo "[KWIZERA] phase4 online I2V verification failed (non-fatal — deploy remains live)" >&2
+  fi
+fi
+
 record_status live success "Production deploy verified"
 echo "[KWIZERA] requestedCommit=$REQUESTED"
 echo "[KWIZERA] deployedCommit=$DEPLOYED"

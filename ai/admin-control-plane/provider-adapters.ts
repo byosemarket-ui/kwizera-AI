@@ -1,12 +1,14 @@
 /**
  * Provider adapter boundary.
- * OpenAI is the Phase 1 reference EXTERNAL_API adapter (real HTTPS).
+ * OpenAI is the Phase 1–3 reference EXTERNAL_API adapter (chat/vision HTTPS).
+ * fal.ai is the Phase 4 image-to-video executable adapter.
  * Other external types remain placeholders until later phases.
  * Existing Ollama integration remains the local runtime — this adapter does not replace it.
  */
 import type { AdminProviderRecord, HealthStatus } from "./types.js";
 import { inferProviderKind } from "./provider-kind.js";
 import { OpenAiProviderAdapter } from "./openai-adapter.js";
+import { FalImageToVideoAdapter } from "./fal-i2v-adapter.js";
 import type {
   ProviderAdapter,
   ProviderAdapterRequest,
@@ -66,12 +68,13 @@ export class ProviderAdapterRegistry {
 export function createDefaultAdapterRegistry(): ProviderAdapterRegistry {
   const registry = new ProviderAdapterRegistry();
   // Placeholders for future phases (not yet real HTTPS callers).
-  registry.register(new ExternalApiAdapter("fal"));
   registry.register(new ExternalApiAdapter("replicate"));
   registry.register(new ExternalApiAdapter("alibaba"));
   registry.register(new ExternalApiAdapter("google"));
   registry.register(new ExternalApiAdapter("anthropic"));
-  // Phase 1 reference online adapter.
+  // Phase 4 online I2V (registers before any fal placeholder).
+  registry.register(new FalImageToVideoAdapter());
+  // Phase 1–3 reference online chat/vision adapter.
   registry.register(new OpenAiProviderAdapter());
   registry.register(new LocalRuntimeAdapter());
   registry.register(new OllamaAdapter());

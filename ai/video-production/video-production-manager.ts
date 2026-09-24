@@ -46,6 +46,10 @@ import { applyMotionDirectionToTimeline, directClipMotion } from "./motion-direc
 import { applySmartCameraToTimeline, buildSmartCameraPlan, type SmartCameraPlan } from "./smart-camera.js";
 import { applyCompositionToTimeline, compositionHintForTypography, preferredTextSidesForBias } from "./scene-composition.js";
 import type { CreativeToneId } from "./production-mode-types.js";
+import { getVideoGenerationProvider } from "./video-generation-provider.js";
+import { validateI2vSceneClip } from "./i2v-scene-validate.js";
+import { buildI2vMotionPrompt, buildI2vNegativePrompt } from "./i2v-prompt.js";
+import { extractIdentityLockFromProject } from "../creative-planning/creative-director-prompt.js";
 import type { FramingInspection } from "../product-asset-preparation/framing.js";
 import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
 import { validateBeforeRender, validateRenderedOutput, validateEngine1FinalPlan } from "./render-validation.js";
@@ -352,8 +356,9 @@ export class VideoProductionManager {
       productionMode: repairedPlan.productionMode,
       creativeTone: repairedPlan.creativeTone,
       productionRenderLabel: renderProfile.providerHonestLabel,
-      videoGenerationProvider: "UNAVAILABLE",
+      videoGenerationProvider: renderProfile.usesGenerativeVideo ? "ADMIN_RUNTIME" : "UNAVAILABLE",
       videoGenerationProviderMessage: renderProfile.providerHonestLabel,
+      i2vSceneClips: existing?.i2vSceneClips,
       userEdited: existing?.userEdited,
       foundationKnowledgeIds: existing?.foundationKnowledgeIds,
       textOverlay: existing?.textOverlay,
@@ -509,7 +514,11 @@ export class VideoProductionManager {
     return updated;
   }
 
-  async startRender(projectId: string, preset: "preview" | "standard" = "preview"): Promise<{ job: VideoRenderJob; video: VideoProject }> {
+  async startRender(
+    projectId: string,
+    preset: "preview" | "standard" = "preview",
+    opts?: { regenerateSceneIds?: string[] },
+  ): Promise<{ job: VideoRenderJob; video: VideoProject }> {
     this.ensureInitialized();
     if (!(await ffmpegAvailable())) {
       throw new VideoProductionError("FFMPEG_UNAVAILABLE", "FFmpeg is not available on this host", 503);
@@ -543,6 +552,19 @@ export class VideoProductionManager {
       }
     }
     const renderProfile = resolveProductionRenderProfile(video.productionMode);
+    if (renderProfile.usesGenerativeVideo) {
+      const i2v = getVideoGenerationProvider();
+      if (!(await i2v.isAvailable()) || typeof i2v.generateVideoClip !== "function") {
+        throw new VideoProductionError(
+          "I2V_UNAVAILABLE",
+          "Cinematic image-to-video is not configured. Use Exact Product mode or configure Admin VIDEO_IMAGE_TO_VIDEO.",
+          503,
+        );
+      }
+    }
+    const regenerateSceneIds = Array.isArray(opts?.regenerateSceneIds)
+      ? [...new Set(opts!.regenerateSceneIds!.map((id) => String(id).trim()).filter(Boolean))]
+      : [];
     const now = new Date().toISOString();
     const job: VideoRenderJob = {
       id: randomUUID(),
@@ -556,6 +578,7 @@ export class VideoProductionManager {
       preset,
       productionMode: video.productionMode ?? renderProfile.mode,
       engineLabel: renderProfile.providerHonestLabel,
+      regenerateSceneIds: regenerateSceneIds.length ? regenerateSceneIds : undefined,
     };
     video = {
       ...video,
@@ -564,6 +587,8 @@ export class VideoProductionManager {
       renderState: "queued",
       activeJobId: job.id,
       modifiedAt: now,
+      videoGenerationProvider: renderProfile.usesGenerativeVideo ? "ADMIN_RUNTIME" : "UNAVAILABLE",
+      videoGenerationProviderMessage: renderProfile.providerHonestLabel,
     };
     await this.writeJson(this.jobFile(job.id), job);
     await this.writeJson(this.projectFile(projectId), video);
@@ -637,7 +662,7 @@ export class VideoProductionManager {
     await fs.mkdir(tmpDir, { recursive: true });
     let overlay: VideoTextOverlayStatus | undefined;
     try {
-      const video = videoEarly ?? await this.getVideoProject(job.projectId);
+      let video = videoEarly ?? await this.getVideoProject(job.projectId);
       if (!video) throw new VideoProductionError("PROJECT_NOT_FOUND", "Video project missing during render", 404);
       const preset = job.preset ?? video.renderPlan.preset ?? "preview";
       const renderClips = sliceTimelineForRender(video.timeline, preset);
@@ -828,8 +853,191 @@ export class VideoProductionManager {
         const imagePath = resolved?.path ?? null;
         if (!imagePath) throw new VideoProductionError("MISSING_ASSET", `Asset ${productionClip.assetId} is not on disk`, 422);
         const clipPath = path.join(tmpDir, `clip-${index + 1}.mp4`);
-        const rendered = await renderStillClip({ clip: productionClip, imagePath }, renderPlan, clipPath, fontFile);
-        overlays.push(rendered.overlay);
+
+        if (renderProfile.usesGenerativeVideo) {
+          const forceRegen = Array.isArray(job.regenerateSceneIds)
+            && job.regenerateSceneIds.includes(productionClip.sceneId);
+          const i2vDir = path.join(this.root, "i2v", job.projectId);
+          await fs.mkdir(i2vDir, { recursive: true });
+          const fileName = `scene-${productionClip.sceneId}.mp4`;
+          const cachedPath = path.join(i2vDir, fileName);
+          const prior = video.i2vSceneClips?.[productionClip.sceneId];
+          let usedCache = false;
+
+          if (
+            !forceRegen
+            && prior?.status === "ACCEPTED"
+            && prior.sourceAssetId === productionClip.assetId
+            && prior.fileName === fileName
+          ) {
+            const cachedStat = await fs.stat(cachedPath).catch(() => null);
+            if (cachedStat?.isFile() && cachedStat.size > 1_024) {
+              await fs.copyFile(cachedPath, clipPath);
+              usedCache = true;
+              await this.writeJob(job.id, {
+                ...started,
+                stage: "rendering",
+                progress: Math.min(80, 12 + Math.round(((index + 1) / typedClips.length) * 68)),
+                sceneIndex: index + 1,
+                sceneCount: typedClips.length,
+                stageMessage: `Using accepted cinematic scene ${index + 1} of ${typedClips.length}`,
+              });
+            }
+          }
+
+          if (!usedCache) {
+            await this.writeJob(job.id, {
+              ...started,
+              stage: "rendering",
+              progress: Math.min(78, 12 + Math.round((index / typedClips.length) * 66)),
+              sceneIndex: index + 1,
+              sceneCount: typedClips.length,
+              stageMessage: forceRegen
+                ? `Regenerating cinematic scene ${index + 1} of ${typedClips.length}`
+                : `Generating cinematic scene ${index + 1} of ${typedClips.length}`,
+            });
+
+            const provider = getVideoGenerationProvider();
+            if (typeof provider.generateVideoClip !== "function") {
+              throw new VideoProductionError(
+                "I2V_UNAVAILABLE",
+                "Cinematic image-to-video provider is not available",
+                503,
+              );
+            }
+
+            const workspaceForLock = await this.workspace!.getProject(job.projectId);
+            const identity = extractIdentityLockFromProject(workspaceForLock?.workspaceSettings);
+            const durationSeconds = Math.max(2, Math.min(10, productionClip.durationMs / 1000));
+            const attempt = forceRegen ? (prior?.attempt ?? 0) + 1 : (prior?.attempt ?? 0);
+            const handle = await provider.generateVideoClip({
+              projectId: job.projectId,
+              sceneId: productionClip.sceneId,
+              sourceAssetId: productionClip.assetId,
+              sourceImagePath: imagePath,
+              durationSeconds,
+              motionHint: productionClip.motion,
+              cameraHint: productionClip.camera,
+              purpose: productionClip.purpose,
+              lighting: productionClip.lighting,
+              background: productionClip.background,
+              aspectRatio: renderPlan.aspectRatio,
+              outputPath: cachedPath,
+              attempt,
+              identityConstraints: identity
+                ? {
+                  protectedAttributes: identity.protectedAttributes,
+                  allowedCreativeChanges: identity.allowedCreativeChanges,
+                  productName: identity.productName,
+                  category: identity.category,
+                  colors: identity.colors,
+                  materials: identity.materials,
+                  distinctiveDetails: identity.distinctiveDetails,
+                }
+                : null,
+              prompt: buildI2vMotionPrompt({
+                purpose: productionClip.purpose,
+                durationSeconds,
+                motionHint: productionClip.motion,
+                cameraHint: productionClip.camera,
+                lighting: productionClip.lighting,
+                background: productionClip.background,
+                identity: identity
+                  ? {
+                    protectedAttributes: identity.protectedAttributes,
+                    allowedCreativeChanges: identity.allowedCreativeChanges,
+                    productName: identity.productName,
+                    category: identity.category,
+                    colors: identity.colors,
+                    materials: identity.materials,
+                    distinctiveDetails: identity.distinctiveDetails,
+                  }
+                  : null,
+              }),
+              negativePrompt: buildI2vNegativePrompt(identity
+                ? {
+                  protectedAttributes: identity.protectedAttributes,
+                  allowedCreativeChanges: identity.allowedCreativeChanges,
+                }
+                : null),
+            });
+
+            if (handle.status !== "completed" || !handle.outputPath) {
+              throw new VideoProductionError(
+                "I2V_SCENE_FAILED",
+                handle.error || `Cinematic scene ${index + 1} generation failed`,
+                502,
+              );
+            }
+
+            await this.writeJob(job.id, {
+              ...started,
+              stage: "rendering",
+              progress: Math.min(79, 12 + Math.round(((index + 0.5) / typedClips.length) * 68)),
+              sceneIndex: index + 1,
+              sceneCount: typedClips.length,
+              stageMessage: `Checking cinematic scene ${index + 1} of ${typedClips.length}`,
+            });
+
+            const validation = await validateI2vSceneClip({
+              videoPath: handle.outputPath,
+              expectedDurationSeconds: durationSeconds,
+            });
+            if (!validation.ok) {
+              await this.patchVideo(job.projectId, {
+                i2vSceneClips: {
+                  ...(video.i2vSceneClips ?? {}),
+                  [productionClip.sceneId]: {
+                    sceneId: productionClip.sceneId,
+                    sourceAssetId: productionClip.assetId,
+                    fileName,
+                    status: "FAILED",
+                    attempt: attempt + 1,
+                    durationMs: validation.durationMs ?? undefined,
+                    generatedAt: new Date().toISOString(),
+                    validationOk: false,
+                    validationIssues: validation.issues,
+                  },
+                },
+              });
+              video = await this.getVideoProject(job.projectId) ?? video;
+              throw new VideoProductionError(
+                "I2V_SCENE_INVALID",
+                validation.issues.join(" ") || `Cinematic scene ${index + 1} failed validation`,
+                422,
+              );
+            }
+
+            if (path.resolve(handle.outputPath) !== path.resolve(cachedPath)) {
+              await fs.copyFile(handle.outputPath, cachedPath);
+            }
+            await fs.copyFile(cachedPath, clipPath);
+            await this.patchVideo(job.projectId, {
+              i2vSceneClips: {
+                ...(video.i2vSceneClips ?? {}),
+                [productionClip.sceneId]: {
+                  sceneId: productionClip.sceneId,
+                  sourceAssetId: productionClip.assetId,
+                  fileName,
+                  status: "ACCEPTED",
+                  attempt: attempt + 1,
+                  durationMs: validation.durationMs ?? undefined,
+                  generatedAt: new Date().toISOString(),
+                  validationOk: true,
+                  validationIssues: validation.warnings,
+                },
+              },
+            });
+            video = await this.getVideoProject(job.projectId) ?? video;
+          }
+
+          // I2V clips are already motion video — skip FFmpeg still zoompan overlays.
+          overlays.push("skipped");
+        } else {
+          const rendered = await renderStillClip({ clip: productionClip, imagePath }, renderPlan, clipPath, fontFile);
+          overlays.push(rendered.overlay);
+        }
+
         clipPaths.push(clipPath);
         // Keep directed motion on the in-memory clip list for continuity of subsequent scenes.
         typedClips[index] = productionClip;

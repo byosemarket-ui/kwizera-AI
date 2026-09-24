@@ -31,6 +31,17 @@ export const MODE_COPY: Record<ProductionModeId, { label: string; description: s
   },
 };
 
+/** Set from Admin CapabilityRuntime when VIDEO_IMAGE_TO_VIDEO is ONLINE. */
+let adminOnlineImageToVideo = false;
+
+export function setAdminOnlineImageToVideoAvailable(available: boolean): void {
+  adminOnlineImageToVideo = Boolean(available);
+}
+
+export function isAdminOnlineImageToVideoAvailable(): boolean {
+  return adminOnlineImageToVideo;
+}
+
 export function recommendProductionMode(
   capabilities: ProductionModeCapability[],
   uniqueViewCount: number,
@@ -59,7 +70,13 @@ export function recommendCreativeTone(
   return "Modern";
 }
 
+/**
+ * Cinematic / generative I2V is available when Admin maps VIDEO_IMAGE_TO_VIDEO
+ * to an online executable provider with credentials, or when the legacy env
+ * override is explicitly set (not "none"/"unavailable").
+ */
 export function cinematicProviderConfigured(): boolean {
+  if (adminOnlineImageToVideo) return true;
   const provider = (process.env.KWIZERA_IMAGE_TO_VIDEO_PROVIDER ?? "").trim().toLowerCase();
   return provider.length > 0 && provider !== "none" && provider !== "unavailable";
 }

@@ -1177,7 +1177,7 @@ export class ProductSetupEngine {
   }
 
   /** Step 4 — validate + render final advertisement (standard preset). */
-  async startFinalRender(force = false): Promise<void> {
+  async startFinalRender(force = false, opts?: { regenerateSceneIds?: string[] }): Promise<void> {
     const snap = this.snapshot();
     if (!snap.projectId) throw new Error("Create or open a project first.");
     if (!snap.canContinueToCreative) {
@@ -1213,7 +1213,13 @@ export class ProductSetupEngine {
 
       this.produceProgress = 15;
       this.emit();
-      const { job } = await startVideoRender(snap.projectId, "standard");
+      const { job } = await startVideoRender(
+        snap.projectId,
+        "standard",
+        opts?.regenerateSceneIds?.length
+          ? { regenerateSceneIds: opts.regenerateSceneIds }
+          : undefined,
+      );
       this.finalRenderJobId = job.id;
       await this.flushPersist();
 
@@ -1544,7 +1550,7 @@ export class ProductSetupEngine {
       this.finalVideoReady = false;
       await this.flushPersist();
 
-      await this.startFinalRender(true);
+      await this.startFinalRender(true, { regenerateSceneIds: [failed.sceneId] });
       const qa = await this.runProductVideoQa();
       return qa;
     } catch (error) {

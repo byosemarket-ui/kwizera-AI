@@ -4294,8 +4294,20 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     try {
       const { getProductionCapabilities, getSmartCameraDiagnostics, getSceneCompositionDiagnostics, getEngine1FinalDiagnostics, getWorkspaceIntegrationDiagnostics } = await import("../../ai/video-production/production-capabilities.js");
       const uniqueViewCount = Number(url.searchParams.get("views") ?? "0") || 0;
+      let isCinematicOnline = false;
+      try {
+        const admin = getAdminControlPlaneManager();
+        const view = admin?.getCapabilityRuntime()?.describe("VIDEO_IMAGE_TO_VIDEO");
+        isCinematicOnline = Boolean(
+          view
+          && view.source === "ONLINE"
+          && (view.status === "READY" || view.status === "FALLBACK"),
+        );
+      } catch {
+        isCinematicOnline = false;
+      }
       sendJson(res, 200, {
-        capabilities: await getProductionCapabilities({ uniqueViewCount }),
+        capabilities: await getProductionCapabilities({ uniqueViewCount, isCinematicOnline }),
         smartCamera: getSmartCameraDiagnostics(),
         sceneComposition: getSceneCompositionDiagnostics(),
         engine1Final: getEngine1FinalDiagnostics(),
@@ -4403,8 +4415,18 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     const production = requireVideoProduction(res);
     if (!production) return;
     try {
-      const body = JSON.parse(await readBody(req) || "{}") as { preset?: "preview" | "standard" };
-      const result = await production.startRender(videoRenderMatch[1], body.preset === "standard" ? "standard" : "preview");
+      const body = JSON.parse(await readBody(req) || "{}") as {
+        preset?: "preview" | "standard";
+        regenerateSceneIds?: string[];
+      };
+      const regenerateSceneIds = Array.isArray(body.regenerateSceneIds)
+        ? body.regenerateSceneIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        : undefined;
+      const result = await production.startRender(
+        videoRenderMatch[1],
+        body.preset === "standard" ? "standard" : "preview",
+        regenerateSceneIds?.length ? { regenerateSceneIds } : undefined,
+      );
       sendJson(res, 202, result);
     } catch (error) {
       sendVideoProductionError(res, error);

@@ -280,26 +280,34 @@ export async function handleAdminApi(
       const body = (await parseJsonBody(req, deps.readBody)) as {
         feature?: string;
         prompt?: string;
-        mode?: "probe" | "vision" | "chat";
+        negativePrompt?: string;
+        mode?: "probe" | "vision" | "chat" | "image-to-video";
         messages?: Array<{ role: "system" | "user" | "assistant"; content: string }>;
         images?: Array<{ mimeType?: string; base64?: string }>;
         projectId?: string;
+        durationSeconds?: number;
+        aspectRatio?: string;
+        resolution?: string;
+        outputPath?: string;
+        sceneId?: string;
+        sourceAssetId?: string;
       };
       const feature = typeof body.feature === "string" && body.feature.trim()
         ? body.feature.trim()
         : "ONLINE_API_PROBE";
-      // Phase 1 probe + Phase 2 vision + Phase 3 creative reasoning.
+      // Phase 1 probe + Phase 2 vision + Phase 3 creative reasoning + Phase 4 I2V.
       if (
         feature !== "ONLINE_API_PROBE"
         && feature !== "VISION_ANALYSIS"
         && feature !== "CREATIVE_REASONING"
+        && feature !== "VIDEO_IMAGE_TO_VIDEO"
       ) {
         fail(
           deps.sendJson,
           res,
           400,
           "FEATURE_NOT_ALLOWED",
-          "Admin runtime execute allows ONLINE_API_PROBE, VISION_ANALYSIS, and CREATIVE_REASONING only",
+          "Admin runtime execute allows ONLINE_API_PROBE, VISION_ANALYSIS, CREATIVE_REASONING, and VIDEO_IMAGE_TO_VIDEO only",
         );
         return true;
       }
@@ -315,13 +323,24 @@ export async function handleAdminApi(
         : undefined;
       const result = await runtime.execute(feature, {
         prompt: typeof body.prompt === "string" ? body.prompt : undefined,
+        negativePrompt: typeof body.negativePrompt === "string" ? body.negativePrompt : undefined,
         messages: Array.isArray(body.messages) ? body.messages : undefined,
         mode: body.mode === "vision" || feature === "VISION_ANALYSIS"
           ? "vision"
           : body.mode === "chat" || feature === "CREATIVE_REASONING"
             ? "chat"
-            : body.mode,
+            : body.mode === "image-to-video" || feature === "VIDEO_IMAGE_TO_VIDEO"
+              ? "image-to-video"
+              : body.mode === "probe"
+                ? "probe"
+                : body.mode,
         images,
+        durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : undefined,
+        aspectRatio: typeof body.aspectRatio === "string" ? body.aspectRatio : undefined,
+        resolution: typeof body.resolution === "string" ? body.resolution : undefined,
+        outputPath: typeof body.outputPath === "string" ? body.outputPath : undefined,
+        sceneId: typeof body.sceneId === "string" ? body.sceneId : undefined,
+        sourceAssetId: typeof body.sourceAssetId === "string" ? body.sourceAssetId : undefined,
         projectId: typeof body.projectId === "string" ? body.projectId : undefined,
       });
       ok(deps.sendJson, res, result as unknown as Record<string, unknown>);

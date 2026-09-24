@@ -54,13 +54,31 @@ export interface CapabilityExecuteInput {
   /** Lightweight chat probe / LLM messages. */
   messages?: RuntimeChatMessage[];
   prompt?: string;
+  /** Negative prompt for I2V providers that support it. */
+  negativePrompt?: string;
   /**
-   * Optional images for vision-capable models (Admin-routed VISION_ANALYSIS).
+   * Optional images for vision-capable models (Admin-routed VISION_ANALYSIS)
+   * or image-to-video source frames (VIDEO_IMAGE_TO_VIDEO).
    * Adapters attach these server-side; never logged as raw bytes.
    */
   images?: CapabilityExecuteImage[];
-  /** Hint for adapters: probe uses tiny max_tokens; vision uses structured analysis. */
-  mode?: "probe" | "vision" | "chat";
+  /**
+   * Hint for adapters:
+   * probe — connectivity; vision — structured analysis; chat — creative JSON;
+   * image-to-video — async I2V generation.
+   */
+  mode?: "probe" | "vision" | "chat" | "image-to-video";
+  /** Target clip duration for I2V (seconds). */
+  durationSeconds?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  motionHint?: string;
+  cameraHint?: string;
+  seed?: number;
+  /** Server-local path where the adapter should write the downloaded MP4. */
+  outputPath?: string;
+  sceneId?: string;
+  sourceAssetId?: string;
   /** Optional correlation id for logs. */
   requestId?: string;
   /** Override timeout (ms); otherwise model/provider default. */

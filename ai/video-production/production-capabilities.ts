@@ -15,8 +15,14 @@ export { recommendCreativeTone, recommendProductionMode } from "./production-mod
 
 export async function getProductionCapabilities(opts?: {
   uniqueViewCount?: number;
+  /** When provided by the server, overrides/refreshes Admin ONLINE I2V detection. */
+  isCinematicOnline?: boolean;
 }): Promise<ProductionModeCapability[]> {
   const ffmpeg = await ffmpegAvailable();
+  if (typeof opts?.isCinematicOnline === "boolean") {
+    const { setAdminOnlineImageToVideoAvailable } = await import("./production-mode-types.js");
+    setAdminOnlineImageToVideoAvailable(opts.isCinematicOnline);
+  }
   const cinematic = cinematicProviderConfigured();
   const views = opts?.uniqueViewCount ?? 0;
   const recommendMotion = ffmpeg && views >= 2;
@@ -39,13 +45,14 @@ export async function getProductionCapabilities(opts?: {
       mode: "CINEMATIC_3D",
       ...MODE_COPY.CINEMATIC_3D,
       available: cinematic,
-      provider: cinematic ? (process.env.KWIZERA_IMAGE_TO_VIDEO_PROVIDER ?? "configured") : "none",
+      // Customer-safe label — never expose provider/model IDs.
+      provider: cinematic ? "online-i2v" : "none",
       reason: cinematic
-        ? "Image-to-video provider is configured."
-        : "Unavailable — no configured 3D or image-to-video provider.",
+        ? "Cinematic image-to-video is configured through Admin."
+        : "Unavailable — cinematic image-to-video is not configured in Admin.",
       limitations: cinematic
-        ? ["Provider-dependent quality and duration limits"]
-        : ["No GPU model installed", "No image-to-video provider configured"],
+        ? ["Generative motion per scene", "Provider-dependent quality and duration limits"]
+        : ["No online image-to-video credential mapped", "Exact Product Mode remains available"],
     },
     {
       mode: "CLASSIC_SHOWCASE",

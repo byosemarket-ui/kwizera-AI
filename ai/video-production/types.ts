@@ -317,6 +317,8 @@ export interface VideoRenderJob {
   productionMode?: ProductionModeId;
   /** Honest render label from production-render-profile. */
   engineLabel?: string;
+  /** When set, cinematic I2V reuses accepted scene clips except these scene ids. */
+  regenerateSceneIds?: string[];
   /** STEP 11 — end card was rendered into the concatenated output. */
   endCardRendered?: boolean;
   endCardDurationMs?: number;
@@ -344,8 +346,27 @@ export interface VideoProject {
   outputSourceFingerprint?: string;
   outputValidation?: Record<string, boolean>;
   versions?: VideoVersion[];
-  videoGenerationProvider: "UNAVAILABLE";
+  /**
+   * Customer-safe provider status for generative video.
+   * Never includes API keys, model IDs, or vault details.
+   */
+  videoGenerationProvider: "UNAVAILABLE" | "ADMIN_RUNTIME" | "CONFIGURED";
   videoGenerationProviderMessage: string;
+  /**
+   * Derived I2V scene clips (file names under video-production/i2v/{projectId}/).
+   * Original product assets are never overwritten.
+   */
+  i2vSceneClips?: Record<string, {
+    sceneId: string;
+    sourceAssetId: string;
+    fileName: string;
+    status: "GENERATED" | "ACCEPTED" | "FAILED" | "REGENERATING";
+    attempt: number;
+    durationMs?: number;
+    generatedAt: string;
+    validationOk?: boolean;
+    validationIssues?: string[];
+  }>;
   userEdited?: boolean;
   memoryStatus?: "linked" | "unavailable" | "error";
   memoryMessage?: string;
