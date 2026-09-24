@@ -802,6 +802,35 @@ export class AdminControlPlaneManager {
         updatedAt: now(),
       });
     }
+    // Phase 7: promote untouched image-preparation stubs; Admin-customized rows are left alone.
+    const phase7Seeds = createDefaultFeatureMappings();
+    for (const feature of ["IMAGE_SEGMENTATION", "IMAGE_EDITING", "IMAGE_UPSCALE"] as const) {
+      const current = featureByKey.get(feature);
+      const seed = phase7Seeds.find((item) => item.feature === feature);
+      if (
+        current
+        && seed
+        && !current.primaryModelId
+        && current.metadata?.pendingProvider === true
+        && current.metadata?.phase7ImagePreparation !== true
+      ) {
+        featureByKey.set(feature, {
+          ...current,
+          description: seed.description,
+          label: seed.label,
+          primaryModelId: seed.primaryModelId,
+          providerId: seed.providerId,
+          enabled: true,
+          metadata: {
+            ...current.metadata,
+            ...seed.metadata,
+            pendingProvider: false,
+            comingSoon: false,
+          },
+          updatedAt: now(),
+        });
+      }
+    }
     const settingsByKey = new Map((Array.isArray(raw.settings) ? raw.settings : []).map((item) => [item.key, item]));
     for (const seed of createDefaultSettings()) {
       if (!settingsByKey.has(seed.key)) settingsByKey.set(seed.key, seed);

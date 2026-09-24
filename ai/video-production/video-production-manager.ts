@@ -48,7 +48,12 @@ import { applyCompositionToTimeline, compositionHintForTypography, preferredText
 import type { CreativeToneId } from "./production-mode-types.js";
 import { getVideoGenerationProvider } from "./video-generation-provider.js";
 import { validateI2vSceneClip } from "./i2v-scene-validate.js";
-import { buildI2vMotionPrompt, buildI2vNegativePrompt } from "./i2v-prompt.js";
+import { buildI2vMotionPrompt, buildI2vNegativePrompt, type I2vIdentityConstraints } from "./i2v-prompt.js";
+import { prepareSceneImage, readCreativeRequest } from "../image-preparation/scene-preparation.js";
+import { getImagePreparationRuntime } from "../image-preparation/runtime-registry.js";
+import { readGrayRaster, reencodeJpeg, writeEditableRegionMask } from "../image-preparation/ffmpeg-image-ops.js";
+import { readDimensions } from "../image-preparation/validation.js";
+import type { ImagePreparationRecord } from "../image-preparation/types.js";
 import { extractIdentityLockFromProject } from "../creative-planning/creative-director-prompt.js";
 import type { FramingInspection } from "../product-asset-preparation/framing.js";
 import type { ProductionRoleDecision } from "../product-asset-preparation/production-roles.js";
@@ -864,11 +869,48 @@ export class VideoProductionManager {
           const prior = video.i2vSceneClips?.[productionClip.sceneId];
           let usedCache = false;
 
+          const workspaceForLock = await this.workspace!.getProject(job.projectId);
+          const identity = extractIdentityLockFromProject(workspaceForLock?.workspaceSettings);
+          const identityConstraints = identity
+            ? {
+              protectedAttributes: identity.protectedAttributes,
+              allowedCreativeChanges: identity.allowedCreativeChanges,
+              productName: identity.productName,
+              category: identity.category,
+              colors: identity.colors,
+              materials: identity.materials,
+              distinctiveDetails: identity.distinctiveDetails,
+            }
+            : null;
+
+          const prepared = await this.prepareCinematicSource({
+            projectId: job.projectId,
+            assetId: productionClip.assetId,
+            sourcePath: imagePath,
+            workspaceSettings: workspaceForLock?.workspaceSettings,
+            identity: identityConstraints,
+            video,
+            onProgress: (message) => this.writeJob(job.id, {
+              ...started,
+              stage: "rendering",
+              progress: Math.min(78, 12 + Math.round((index / typedClips.length) * 66)),
+              sceneIndex: index + 1,
+              sceneCount: typedClips.length,
+              stageMessage: `${message} for scene ${index + 1} of ${typedClips.length}`,
+            }),
+          });
+          if (prepared.record) video = await this.getVideoProject(job.projectId) ?? video;
+          const i2vSourcePath = prepared.imagePath;
+          const imagePrepKey = prepared.key && prepared.record
+            ? `${prepared.key}#${prepared.record.finalFileName ?? "original"}`
+            : null;
+
           if (
             !forceRegen
             && prior?.status === "ACCEPTED"
             && prior.sourceAssetId === productionClip.assetId
             && prior.fileName === fileName
+            && (prior.imagePrepKey ?? null) === imagePrepKey
           ) {
             const cachedStat = await fs.stat(cachedPath).catch(() => null);
             if (cachedStat?.isFile() && cachedStat.size > 1_024) {
@@ -906,15 +948,13 @@ export class VideoProductionManager {
               );
             }
 
-            const workspaceForLock = await this.workspace!.getProject(job.projectId);
-            const identity = extractIdentityLockFromProject(workspaceForLock?.workspaceSettings);
             const durationSeconds = Math.max(2, Math.min(10, productionClip.durationMs / 1000));
             const attempt = forceRegen ? (prior?.attempt ?? 0) + 1 : (prior?.attempt ?? 0);
             const handle = await provider.generateVideoClip({
               projectId: job.projectId,
               sceneId: productionClip.sceneId,
               sourceAssetId: productionClip.assetId,
-              sourceImagePath: imagePath,
+              sourceImagePath: i2vSourcePath,
               durationSeconds,
               motionHint: productionClip.motion,
               cameraHint: productionClip.camera,
@@ -924,17 +964,7 @@ export class VideoProductionManager {
               aspectRatio: renderPlan.aspectRatio,
               outputPath: cachedPath,
               attempt,
-              identityConstraints: identity
-                ? {
-                  protectedAttributes: identity.protectedAttributes,
-                  allowedCreativeChanges: identity.allowedCreativeChanges,
-                  productName: identity.productName,
-                  category: identity.category,
-                  colors: identity.colors,
-                  materials: identity.materials,
-                  distinctiveDetails: identity.distinctiveDetails,
-                }
-                : null,
+              identityConstraints,
               prompt: buildI2vMotionPrompt({
                 purpose: productionClip.purpose,
                 durationSeconds,
@@ -942,17 +972,7 @@ export class VideoProductionManager {
                 cameraHint: productionClip.camera,
                 lighting: productionClip.lighting,
                 background: productionClip.background,
-                identity: identity
-                  ? {
-                    protectedAttributes: identity.protectedAttributes,
-                    allowedCreativeChanges: identity.allowedCreativeChanges,
-                    productName: identity.productName,
-                    category: identity.category,
-                    colors: identity.colors,
-                    materials: identity.materials,
-                    distinctiveDetails: identity.distinctiveDetails,
-                  }
-                  : null,
+                identity: identityConstraints,
               }),
               negativePrompt: buildI2vNegativePrompt(identity
                 ? {
@@ -997,6 +1017,7 @@ export class VideoProductionManager {
                     generatedAt: new Date().toISOString(),
                     validationOk: false,
                     validationIssues: validation.issues,
+                    imagePrepKey,
                   },
                 },
               });
@@ -1025,6 +1046,7 @@ export class VideoProductionManager {
                   generatedAt: new Date().toISOString(),
                   validationOk: true,
                   validationIssues: validation.warnings,
+                  imagePrepKey,
                 },
               },
             });
@@ -1702,6 +1724,56 @@ export class VideoProductionManager {
       return decision?.role ?? null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Phase 7 — optional segmentation / editing / enhancement before I2V.
+   * Any failure falls back to the original photo; originals are never modified.
+   */
+  private async prepareCinematicSource(input: {
+    projectId: string;
+    assetId: string;
+    sourcePath: string;
+    workspaceSettings: Record<string, unknown> | undefined;
+    identity: I2vIdentityConstraints | null;
+    video: VideoProject;
+    onProgress: (message: string) => Promise<unknown>;
+  }): Promise<{ imagePath: string; key: string | null; record: ImagePreparationRecord | null }> {
+    try {
+      if (!readCreativeRequest(input.workspaceSettings).trim()) {
+        const dims = readDimensions(await fs.readFile(input.sourcePath).catch(() => null));
+        if (!dims || Math.min(dims.width, dims.height) >= 720) {
+          return { imagePath: input.sourcePath, key: null, record: null };
+        }
+      }
+      await input.onProgress("Preparing product image");
+      const occupied = await this.resolveProductOccupiedRegion(input.projectId, input.assetId);
+      const result = await prepareSceneImage({
+        root: this.root,
+        projectId: input.projectId,
+        sourceAssetId: input.assetId,
+        sourcePath: input.sourcePath,
+        workspaceSettings: input.workspaceSettings,
+        identity: input.identity,
+        productRegion: occupied?.region ?? null,
+        prior: input.video.imagePreparations ?? null,
+        runtime: getImagePreparationRuntime(),
+        ops: { readRaster: (file) => readGrayRaster(file), writeEditMask: writeEditableRegionMask, reencodeJpeg },
+      });
+      if (result.record && result.key) {
+        const latest = await this.getVideoProject(input.projectId);
+        await this.patchVideo(input.projectId, {
+          imagePreparations: {
+            ...(latest?.imagePreparations ?? input.video.imagePreparations ?? {}),
+            [result.key]: result.record,
+          },
+        });
+      }
+      return result;
+    } catch (error) {
+      console.warn("[KWIZERA][image-prep] preparation skipped:", error instanceof Error ? error.name : "error");
+      return { imagePath: input.sourcePath, key: null, record: null };
     }
   }
 

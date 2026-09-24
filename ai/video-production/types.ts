@@ -1,5 +1,6 @@
 import type { CreativeToneId, ProductionModeId } from "./production-mode-types.js";
 import type { OutputQualityGate, QualityReviewResult } from "../ai-director/ai-director-types.js";
+import type { ImagePreparationRecord } from "../image-preparation/types.js";
 
 export const VIDEO_PRODUCTION_VERSION = "step12-workspace-final-v1";
 
@@ -369,7 +370,14 @@ export interface VideoProject {
     generatedAt: string;
     validationOk?: boolean;
     validationIssues?: string[];
+    /** `${imagePreparations key}#${final file | "original"}` used as the I2V source (absent = no preparation). */
+    imagePrepKey?: string | null;
   }>;
+  /**
+   * Derived image preparations (files under video-production/image-prep/{projectId}/), keyed by
+   * `${assetId}:${fingerprint}`. Lineage and status only — no prompts or provider details.
+   */
+  imagePreparations?: Record<string, ImagePreparationRecord>;
   userEdited?: boolean;
   memoryStatus?: "linked" | "unavailable" | "error";
   memoryMessage?: string;

@@ -819,6 +819,8 @@ export async function bootPersistentRuntime(host: string, port: number): Promise
           const adminI2v = new AdminRuntimeImageToVideoProvider(getRuntime);
           if (workspaceManager) adminI2v.attachWorkspace(workspaceManager);
           setVideoGenerationProvider(adminI2v);
+          const { setImagePreparationRuntime } = await import("../../ai/image-preparation/runtime-registry.js");
+          setImagePreparationRuntime(getRuntime);
           void adminI2v.isAvailable().then((ok) => {
             console.log("[KWIZERA] Admin-routed VIDEO_IMAGE_TO_VIDEO online:", ok);
           }).catch(() => undefined);

@@ -43,6 +43,8 @@ export interface PmvCreativeDirection {
   musicPreference: string;
   voicePreference: string;
   desiredMotion: string;
+  /** Customer description of the desired scene (Cinematic only), e.g. "luxury studio with cinematic lighting". */
+  creativeRequest?: string;
 }
 
 export interface PmvModeCapabilityView {
@@ -112,6 +114,7 @@ export const DEFAULT_PMV_CREATIVE_DIRECTION = (): PmvCreativeDirection => ({
   musicPreference: "Light marketing bed (Step 4)",
   voicePreference: "Optional narration (Step 4)",
   desiredMotion: "Controlled product motion",
+  creativeRequest: "",
 });
 
 export function mapPmvModeToProduction(mode: PmvGenerationMode): ProductionModeId {

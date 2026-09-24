@@ -68,7 +68,22 @@ export interface CapabilityExecuteInput {
    * image-to-video — async I2V; music-generation — instrumental bed;
    * tts — text-to-speech audio.
    */
-  mode?: "probe" | "vision" | "chat" | "image-to-video" | "music-generation" | "tts";
+  mode?:
+    | "probe"
+    | "vision"
+    | "chat"
+    | "image-to-video"
+    | "music-generation"
+    | "tts"
+    | "image-segmentation"
+    | "image-editing"
+    | "image-enhancement";
+  /** Editable-region mask for mask-guided image editing (white = editable). */
+  maskImage?: CapabilityExecuteImage;
+  /** Target point (pixels) identifying the product for segmentation. */
+  targetPoint?: { x: number; y: number };
+  /** Upscale factor for enhancement (2 or 4). */
+  upscaleFactor?: number;
   /** Target clip duration for I2V / music (seconds). */
   durationSeconds?: number;
   aspectRatio?: string;
@@ -142,4 +157,6 @@ export interface SafeRuntimeExecutionView {
   source: RuntimeExecutionSource;
   fallbackAvailable: boolean;
   reason?: string;
+  /** Selected model consumes an editable-region mask (model metadata, never secrets). */
+  acceptsMask?: boolean;
 }

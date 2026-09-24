@@ -4327,6 +4327,15 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
             }
           })(),
         },
+        imagePreparation: await (async () => {
+          try {
+            const { describeImagePrepAvailability } = await import("../../ai/image-preparation/pipeline.js");
+            const availability = describeImagePrepAvailability(getAdminControlPlaneManager()?.getCapabilityRuntime() ?? null);
+            return { editingAvailable: availability.editing, enhancementAvailable: availability.enhancement };
+          } catch {
+            return { editingAvailable: false, enhancementAvailable: false };
+          }
+        })(),
       });
     } catch (error) {
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Unable to read production capabilities" });

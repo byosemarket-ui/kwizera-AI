@@ -1227,6 +1227,22 @@ export function ProductMarketingVideoWorkspace() {
                     placeholder="Controlled product motion"
                   />
                 </label>
+                {direction.generationMode === "CINEMATIC" ? (
+                  <label className="product-setup__field" data-pmv-creative-request="true">
+                    <span>Describe the scene (optional)</span>
+                    <textarea
+                      rows={3}
+                      maxLength={600}
+                      value={direction.creativeRequest ?? ""}
+                      onChange={(e) => productSetupEngine.setCreativeDirectionField("creativeRequest", e.target.value)}
+                      placeholder="Put the shoes in a luxury studio environment with cinematic lighting"
+                    />
+                    <small className="pmv-foundation__hint">
+                      Only the surroundings change — your product stays locked. If scene preparation is not possible,
+                      your original photo is used.
+                    </small>
+                  </label>
+                ) : null}
                 <label className="product-setup__field">
                   <span>Music preference (Step 4)</span>
                   <input

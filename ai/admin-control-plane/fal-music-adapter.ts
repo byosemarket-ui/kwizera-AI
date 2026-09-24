@@ -15,6 +15,7 @@ import {
 } from "./runtime-errors.js";
 import type { ProviderHealthResult } from "./runtime-types.js";
 import { FalImageToVideoAdapter } from "./fal-i2v-adapter.js";
+import { executeFalImageOperation } from "./fal-image-adapter.js";
 
 const DEFAULT_FAL_QUEUE = "https://queue.fal.run";
 const DEFAULT_MUSIC_MODEL = "fal-ai/stable-audio-25/text-to-audio";
@@ -124,10 +125,13 @@ export class FalProviderAdapter implements ExecutableProviderAdapter {
     if (mode === "image-to-video" || mode === "probe") {
       return this.i2v.execute(request);
     }
+    if (mode === "image-segmentation" || mode === "image-editing" || mode === "image-enhancement") {
+      return executeFalImageOperation(request, this.id);
+    }
     if (mode !== "music-generation") {
       throw new ProviderRuntimeError(
         "INVALID_REQUEST",
-        "fal adapter supports image-to-video, music-generation, or probe",
+        "fal adapter supports image-to-video, music-generation, image operations, or probe",
       );
     }
     return this.executeMusic(request);

@@ -58,6 +58,7 @@ export class CapabilityRuntime {
       source,
       fallbackAvailable: Boolean(resolution.mapping?.fallbackModelId),
       reason: resolution.reason,
+      acceptsMask: model?.metadata?.acceptsMask === true,
     };
   }
 
