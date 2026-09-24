@@ -494,6 +494,27 @@ describe("Phase 7 — I. Security", () => {
   });
 });
 
+describe("Phase 7 — I2. Public verification summary", () => {
+  it("exposes only booleans, error codes and dimensions", async () => {
+    const { loadImagePrepVerification } = await import("../../../../dev/server/deployment-status.js");
+    const root = await tempDir();
+    await fs.mkdir(path.join(root, "deployment"), { recursive: true });
+    await fs.writeFile(path.join(root, "deployment", "phase7-verify.json"), JSON.stringify({
+      commit: "3d8a0b605b2c67c077d53bb72ecb9c41a0e98570",
+      checkedAt: "2026-09-24T20:00:00.000Z",
+      stages: {
+        SEGMENTATION: { ok: true, onlineExecuted: true, errorCode: null, width: 1024, height: 1024, modelId: "fal-ai/sam2/image" },
+        EDITING: { ok: false, onlineExecuted: true, errorCode: "AUTH <sk-secret>", providerId: "provider-fal" },
+      },
+    }));
+    const summary = loadImagePrepVerification(root);
+    const json = JSON.stringify(summary);
+    expect(summary?.stages.SEGMENTATION).toEqual({ ok: true, onlineExecuted: true, errorCode: null, width: 1024, height: 1024 });
+    expect(summary?.stages.EDITING?.errorCode).toBe("AUTH");
+    expect(json).not.toMatch(/fal-ai|sk-secret|provider/i);
+  });
+});
+
 describe("Phase 7 — J. Regression", () => {
   it("Exact Product mode never triggers image preparation or generative video", () => {
     setAdminOnlineImageToVideoAvailable(true);

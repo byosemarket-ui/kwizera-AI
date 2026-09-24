@@ -76,5 +76,24 @@ run_stage SEGMENTATION seg.json
 run_stage EDITING edit.json
 run_stage ENHANCEMENT up.json
 
+STORAGE_ROOT="${KWIZERA_STORAGE_ROOT:-/var/lib/kwizera-ai-studio}"
+from_env="$(grep -E '^KWIZERA_STORAGE_ROOT=' "$ENV_FILE" | tail -n1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+[[ -n "$from_env" ]] && STORAGE_ROOT="$from_env"
+mkdir -p "$STORAGE_ROOT/deployment"
+node -e '
+const fs=require("fs");
+const [w, out, commit]=process.argv.slice(1);
+const stages={};
+for (const name of ["SEGMENTATION","EDITING","ENHANCEMENT"]) {
+  let r={};
+  try { r=JSON.parse(fs.readFileSync(w+"/out-"+name+".json","utf8")||"{}"); } catch {}
+  const o=r.output||{};
+  stages[name]={ ok:r.ok===true, onlineExecuted:r.source==="ONLINE" && (r.ok===true || typeof r.httpStatus==="number"),
+    errorCode:r.errorCode||null, width:o.width??null, height:o.height??null };
+}
+fs.writeFileSync(out, JSON.stringify({ commit, checkedAt:new Date().toISOString(), stages }, null, 2));
+' "$WORK" "$STORAGE_ROOT/deployment/phase7-verify.json" "$(git rev-parse HEAD)"
+chmod 644 "$STORAGE_ROOT/deployment/phase7-verify.json" || true
+
 unset ADMIN_TOKEN
 echo "[phase7] done — see per-stage ok= lines (failures are reported, never faked)"

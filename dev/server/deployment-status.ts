@@ -63,6 +63,47 @@ function readJsonFile(filePath: string): Partial<DeploymentRecord> | null {
   }
 }
 
+export interface StageVerification {
+  ok: boolean;
+  onlineExecuted: boolean;
+  errorCode: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+/** Public, secret-free post-deploy verification summary (no providers, models, or prompts). */
+export function loadImagePrepVerification(storageRoot: string): {
+  commit: string | null;
+  checkedAt: string | null;
+  stages: Record<string, StageVerification>;
+} | null {
+  try {
+    const file = path.join(storageRoot, "deployment", "phase7-verify.json");
+    if (!fs.existsSync(file)) return null;
+    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+    const stages: Record<string, StageVerification> = {};
+    const rawStages = (raw.stages ?? {}) as Record<string, Record<string, unknown>>;
+    for (const name of ["SEGMENTATION", "EDITING", "ENHANCEMENT"]) {
+      const s = rawStages[name];
+      if (!s) continue;
+      stages[name] = {
+        ok: s.ok === true,
+        onlineExecuted: s.onlineExecuted === true,
+        errorCode: typeof s.errorCode === "string" ? s.errorCode.replace(/[^A-Z_]/g, "").slice(0, 40) : null,
+        width: typeof s.width === "number" ? s.width : null,
+        height: typeof s.height === "number" ? s.height : null,
+      };
+    }
+    return {
+      commit: typeof raw.commit === "string" && /^[0-9a-f]{7,40}$/i.test(raw.commit) ? raw.commit : null,
+      checkedAt: typeof raw.checkedAt === "string" ? raw.checkedAt.slice(0, 40) : null,
+      stages,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function loadDeploymentRecord(
   storageRoot: string,
   projectRoot: string,

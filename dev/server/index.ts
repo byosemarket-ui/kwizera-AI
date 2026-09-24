@@ -16,7 +16,7 @@ import { onlineKnowledgeEngine } from "./online-knowledge-engine.js";
 import { systemHealthCenter } from "./system-health-center.js";
 import { resolvePublicUiFile } from "./static-ui.js";
 import { handleAdminApi } from "./admin-control-center-api.js";
-import { isVerifiedLive, loadDeploymentRecord } from "./deployment-status.js";
+import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
 import { AiSoundError } from "../../ai/ai-sound/types.js";
@@ -1220,6 +1220,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     sendJson(res, 200, {
       ...record,
       verifiedLive: isVerifiedLive(record),
+      verification: { imagePreparation: loadImagePrepVerification(storageRoot) },
     });
     return;
   }
