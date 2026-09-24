@@ -1146,21 +1146,6 @@ export class ProductSetupEngine {
     this.emit();
   }
 
-  async setAudioVolume(volume: number): Promise<void> {
-    const projectId = productIntakeEngine.snapshot().projectId;
-    if (!projectId) return;
-    const clamped = Math.min(1, Math.max(0, volume));
-    this.audioVolume = clamped;
-    await updateProjectApi(projectId, { audioVolume: clamped });
-    if (this.produceStatus === "FINAL_READY"
-      || this.produceStatus === "QA_PASSED"
-      || this.produceStatus === "DELIVERED") {
-      this.invalidateApprovedDelivery();
-    }
-    await this.flushPersist();
-    this.emit();
-  }
-
   async ensureTimeline(): Promise<void> {
     const snap = this.snapshot();
     if (!snap.projectId) throw new Error("Create or open a project first.");
