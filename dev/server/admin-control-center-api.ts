@@ -73,6 +73,70 @@ async function parseJsonBody(req: IncomingMessage, readBody: ReadBody): Promise<
   return JSON.parse(raw) as unknown;
 }
 
+/**
+ * Phase 7 — Admin verification of image preparation capabilities.
+ * The output path is always server-controlled (never taken from the request) and removed after inspection.
+ */
+async function executeAdminImageVerification(
+  manager: AdminControlPlaneManager,
+  feature: "IMAGE_SEGMENTATION" | "IMAGE_EDITING" | "IMAGE_UPSCALE",
+  body: Record<string, unknown>,
+  res: ServerResponse,
+  sendJson: SendJson,
+): Promise<void> {
+  const [{ randomUUID }, fs, os, path, { readDimensions }] = await Promise.all([
+    import("node:crypto"),
+    import("node:fs/promises"),
+    import("node:os"),
+    import("node:path"),
+    import("../../ai/image-preparation/validation.js"),
+  ]);
+  const asImage = (value: unknown) => {
+    if (!value || typeof value !== "object") return undefined;
+    const item = value as { mimeType?: unknown; base64?: unknown };
+    if (typeof item.base64 !== "string" || !item.base64.trim()) return undefined;
+    return { mimeType: typeof item.mimeType === "string" ? item.mimeType : "image/png", base64: item.base64.trim() };
+  };
+  const images = Array.isArray(body.images) ? body.images.map(asImage).filter(Boolean).slice(0, 1) : [];
+  const point = body.targetPoint as { x?: unknown; y?: unknown } | undefined;
+  const mode = feature === "IMAGE_SEGMENTATION"
+    ? "image-segmentation"
+    : feature === "IMAGE_EDITING" ? "image-editing" : "image-enhancement";
+  const dir = path.join(os.tmpdir(), "kwizera-admin-image-verify");
+  await fs.mkdir(dir, { recursive: true });
+  const outputPath = path.join(dir, `${randomUUID()}.${feature === "IMAGE_EDITING" ? "jpg" : "png"}`);
+  try {
+    const result = await manager.getCapabilityRuntime().execute(feature, {
+      mode,
+      images: images as Array<{ mimeType: string; base64: string }>,
+      maskImage: asImage(body.maskImage),
+      prompt: typeof body.prompt === "string" ? body.prompt.slice(0, 2_000) : undefined,
+      targetPoint: point && typeof point.x === "number" && typeof point.y === "number"
+        ? { x: point.x, y: point.y }
+        : undefined,
+      upscaleFactor: body.upscaleFactor === 4 ? 4 : 2,
+      outputPath,
+    });
+    const bytes = await fs.readFile(outputPath).catch(() => null);
+    const dims = readDimensions(bytes);
+    ok(sendJson, res, {
+      ok: result.ok,
+      feature,
+      source: result.source,
+      providerId: result.providerId,
+      modelId: result.modelId,
+      adapterId: result.adapterId,
+      requestId: result.requestId,
+      httpStatus: result.httpStatus,
+      errorCode: result.errorCode,
+      errorMessage: result.errorMessage,
+      output: bytes ? { sizeBytes: bytes.length, width: dims?.width ?? null, height: dims?.height ?? null } : null,
+    });
+  } finally {
+    await fs.rm(outputPath, { force: true }).catch(() => undefined);
+  }
+}
+
 function looksLikeSecret(value: string): boolean {
   return /^(sk-|rk-|Bearer\s|api[_-]?key)/i.test(value.trim()) || value.trim().length > 80;
 }
@@ -296,6 +360,10 @@ export async function handleAdminApi(
       const feature = typeof body.feature === "string" && body.feature.trim()
         ? body.feature.trim()
         : "ONLINE_API_PROBE";
+      if (feature === "IMAGE_SEGMENTATION" || feature === "IMAGE_EDITING" || feature === "IMAGE_UPSCALE") {
+        await executeAdminImageVerification(manager, feature, body as Record<string, unknown>, res, deps.sendJson);
+        return true;
+      }
       // Phase 1 probe + Phase 2 vision + Phase 3 creative + Phase 4 I2V + Phase 5 music/TTS.
       if (
         feature !== "ONLINE_API_PROBE"
