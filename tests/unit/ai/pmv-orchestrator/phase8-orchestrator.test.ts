@@ -644,9 +644,9 @@ describe("Phase 8 — O. regression and wiring", () => {
     const admin = readFileSync(path.resolve("dev/server/admin-control-center-api.ts"), "utf8");
     expect(admin).toContain("/api\\/admin\\/workflows");
     const pmv = readFileSync(path.resolve("desktop/customer-platform/workspace/ProductMarketingVideoWorkspace.tsx"), "utf8");
-    expect(pmv).toContain("<PmvAutomationPanel");
-    const panel = readFileSync(path.resolve("desktop/pmv-workflow/PmvAutomationPanel.tsx"), "utf8");
-    expect(panel).not.toMatch(/admin|providerId|modelId|toAdminView/i);
+    expect(pmv).toContain("usePmvWorkflow");
+    const hook = readFileSync(path.resolve("desktop/pmv-workflow/usePmvWorkflow.ts"), "utf8");
+    expect(hook).not.toMatch(/admin|providerId|modelId|toAdminView/i);
     const nav = readFileSync(path.resolve("desktop/admin-control-center/admin-routes.ts"), "utf8");
     expect(nav).toMatch(/id: "workflows"[^\n]*implemented: true/);
   });

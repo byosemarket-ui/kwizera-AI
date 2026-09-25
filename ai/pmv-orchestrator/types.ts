@@ -185,14 +185,14 @@ export interface WorkflowRecord {
 
 /** Customer-safe progress labels (no providers/models/capabilities/costs). */
 export const CUSTOMER_STEP_LABELS: Record<WorkflowStepId, string> = {
-  PRODUCT_INTELLIGENCE: "Preparing product",
-  PRODUCT_LOCK: "Preparing product",
-  CREATIVE_PLANNING: "Planning video",
+  PRODUCT_INTELLIGENCE: "Understanding your product",
+  PRODUCT_LOCK: "Understanding your product",
+  CREATIVE_PLANNING: "Planning the video",
   MEDIA_PREPARATION: "Preparing visuals",
-  VIDEO_GENERATION: "Creating cinematic scenes",
-  AUDIO: "Preparing audio",
-  TIMELINE: "Building timeline",
-  RENDER: "Rendering video",
+  VIDEO_GENERATION: "Creating scenes",
+  AUDIO: "Adding music",
+  TIMELINE: "Assembling the video",
+  RENDER: "Rendering final video",
   QA: "Checking quality",
   REPAIR: "Checking quality",
   DELIVERY: "Finalizing",

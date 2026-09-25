@@ -78,10 +78,10 @@ describe("Customer service workspace foundation", () => {
     );
     expect(pmv).toContain('serviceKey: "product-marketing-video"');
     expect(pmv).toContain("productSetupEngine");
-    expect(pmv).toContain("setHeroImage");
-    expect(pmv).toContain("markReadyForIntelligence");
-    expect(pmv).toContain("Brand &");
+    expect(pmv).toContain("PmvProductStep");
     expect(pmv).not.toMatch(/Ollama|API key|provider credential|Admin Control/i);
+    const photos = fs.readFileSync(path.resolve("desktop/customer-platform/workspace/pmv/PmvPhotoGrid.tsx"), "utf8");
+    expect(photos).toContain("setHeroImage");
 
     const editPhoto = fs.readFileSync(
       path.resolve("desktop/customer-platform/workspace/EditPhotoServiceWorkspace.tsx"),
