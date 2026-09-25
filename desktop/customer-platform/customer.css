@@ -1059,6 +1059,8 @@
   --shell-left-collapsed: 64px;
   grid-template-columns: var(--shell-left-width) minmax(0, 1fr);
   grid-template-rows: var(--top) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
 }
 
 .layout-engine-shell.customer-surface.left-collapsed {

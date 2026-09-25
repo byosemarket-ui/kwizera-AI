@@ -147,4 +147,18 @@ describe("Phase 9 — customer-facing PMV surface stays free of internals", () =
     expect(container).not.toContain("product-setup.css");
     expect(container.match(/<h1/g)).toBeNull();
   });
+
+  it("keeps the responsive foundation: square thumbnails, compact stepper, compact header, dynamic viewport", () => {
+    const css = fs.readFileSync(path.join(workspaceDir, "product-marketing-video.css"), "utf8");
+    expect(css).toMatch(/\.pmv-photo__thumb \{[^}]*aspect-ratio: 1;[^}]*overflow: hidden;/);
+    expect(css).toMatch(/\.pmv-photo__thumb img \{[^}]*position: absolute;[^}]*object-fit: cover;/);
+    expect(css).toContain("@container pmv (max-width: 519px)");
+    expect(css).toContain(".pmv-steps button:not(.is-active) .pmv-steps__label");
+    expect(css).toMatch(/@media \(max-width: 1024px\) \{\s*\.cp-service-workspace\[data-service-key="product-marketing-video"\]/);
+    expect(css).toMatch(/@media \(max-width: 600px\)[\s\S]*\.cp-sw-title-block \{ display: contents; \}/);
+    expect(css).toContain("68dvh");
+    expect(css).not.toMatch(/\b100vh\b/);
+    const customerCss = fs.readFileSync(path.join(workspaceDir, "..", "customer.css"), "utf8");
+    expect(customerCss).toMatch(/\.layout-engine-shell\.customer-surface \{[^}]*height: 100dvh;/);
+  });
 });

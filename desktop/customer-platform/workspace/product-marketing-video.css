@@ -147,6 +147,7 @@
 
 .pmv-step__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--cp-space-2);
@@ -642,6 +643,12 @@
   border-radius: 6px;
 }
 
+.pmv-confirm > div {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .pmv-confirm strong { font-size: 13px; }
 .pmv-confirm .pmv-muted { margin-top: 2px; }
 
@@ -717,6 +724,10 @@
   background: #000;
 }
 
+@supports (height: 1dvh) {
+  .pmv-player video { width: min(100%, calc(min(68dvh, 640px) * var(--pmv-ratio, 0.5625))); }
+}
+
 .pmv-result-meta {
   display: flex;
   flex-wrap: wrap;
@@ -733,6 +744,91 @@
 @media (prefers-reduced-motion: reduce) {
   .pmv-spin { animation-duration: 2s; }
   .pmv-disclosure svg { transition: none; }
+}
+
+/* Workspace frame + header (shared ServiceWorkspace, scoped to PMV) */
+
+.cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title,
+.cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block .cp-body {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .cp-service-workspace[data-service-key="product-marketing-video"] {
+    gap: var(--cp-space-3);
+    padding: var(--cp-space-3);
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 10px;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-back,
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-header .cp-icon-button {
+    min-height: 40px;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-header .cp-icon-button { width: 40px; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block { gap: 2px; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block .cp-label { display: none; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block .cp-body {
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+}
+
+@media (max-width: 600px) {
+  .cp-service-workspace[data-service-key="product-marketing-video"] {
+    gap: 10px;
+    padding: 10px 10px max(16px, env(safe-area-inset-bottom));
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-main { padding: 10px; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-back {
+    position: relative;
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-back span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block { display: contents; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 16px;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-header .cp-icon-button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-title-block .cp-body {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cp-service-workspace[data-service-key="product-marketing-video"] { padding-inline: 8px; }
+  .cp-service-workspace[data-service-key="product-marketing-video"] .cp-sw-main { padding: 8px; }
+}
+
+@media (pointer: coarse) {
+  .pmv-photo__bar button { height: 34px; }
+  .pmv-disclosure,
+  .pmv-link { min-height: 40px; }
+  .pmv-field input:not([type="range"]),
+  .pmv-field select { min-height: 40px; }
 }
 
 /* Container-driven layout */
