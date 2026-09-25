@@ -164,7 +164,7 @@ export function ProductMarketingVideoWorkspace() {
                       onClick={() => go(s.id)}
                     >
                       <span className="pmv-steps__index" aria-hidden>{done ? <Check size={11} /> : index + 1}</span>
-                      <span>{s.label}</span>
+                      <span className="pmv-steps__label">{s.label}</span>
                     </button>
                   </li>
                 );

@@ -100,6 +100,22 @@
   min-width: 140px;
 }
 
+@media (max-width: 420px) {
+  .workspace-header .header-project-block {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .workspace-header .header-project-block .project-switcher,
+  .workspace-header .header-project-block .project-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .header-workspace-name {
   display: flex;
   flex-direction: column;

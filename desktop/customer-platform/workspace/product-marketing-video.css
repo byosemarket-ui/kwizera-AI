@@ -10,7 +10,7 @@
   gap: var(--cp-space-3);
   width: 100%;
   max-width: 1120px;
-  margin-inline: auto;
+  margin-inline: 0;
   min-width: 0;
   color: var(--cp-text);
 }
@@ -320,10 +320,13 @@
 .pmv-photo__thumb {
   position: relative;
   aspect-ratio: 1;
+  overflow: hidden;
   background: var(--cp-surface);
 }
 
 .pmv-photo__thumb img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -739,6 +742,21 @@
   .pmv-save { display: none; }
   .pmv-actions > * { flex: 1 1 auto; }
   .pmv-actions--start > * { flex: 1 1 calc(50% - 4px); }
+}
+
+@container pmv (max-width: 519px) {
+  .pmv-steps li { flex: 0 0 auto; }
+  .pmv-steps li:has(.is-active) { flex: 1 0 auto; }
+  .pmv-steps button { position: relative; min-height: 40px; }
+  .pmv-steps button:not(.is-active) { justify-content: center; min-width: 40px; padding: 0 10px; }
+  .pmv-steps button:not(.is-active) .pmv-steps__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 
 @container pmv (max-width: 359px) {
