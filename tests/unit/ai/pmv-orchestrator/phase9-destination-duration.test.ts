@@ -253,5 +253,7 @@ describe("Phase 9 Step 2 — persistence and wiring", () => {
     expect(style).toContain("<span>Minutes</span>");
     expect(style).toContain("<span>Seconds</span>");
     expect(style).toMatch(/validateStyle\(\{[\s\S]*platform: destination\.platform[\s\S]*durationSeconds: settings\.durationSeconds/);
+    expect(style).toMatch(/setVideoSettingsField\("aspectRatio", next\.formats\[0\]!\.aspectRatio\)/);
+    expect(style).toMatch(/if \(id === destination\.platform\) return;/);
   });
 });

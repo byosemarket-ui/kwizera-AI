@@ -68,10 +68,9 @@ export function PmvStyleStep({
   const showMusic = snap.audioLibrary.length > 0 || Boolean(snap.selectedAudioAssetId);
 
   const choosePlatform = (id: PmvPlatform) => {
-    if (id === settings.platform) return;
+    if (id === destination.platform) return;
     const next = PMV_PLATFORMS.find((p) => p.id === id)!;
-    const keep = next.formats.some((f) => f.aspectRatio === destination.format.aspectRatio);
-    productSetupEngine.setVideoSettingsField("aspectRatio", keep ? destination.format.aspectRatio : next.formats[0]!.aspectRatio);
+    productSetupEngine.setVideoSettingsField("aspectRatio", next.formats[0]!.aspectRatio);
     productSetupEngine.setVideoSettingsField("platform", id);
   };
 
