@@ -106,6 +106,8 @@ import {
   VideoProductionApiError,
 } from "../video-production/api";
 import type { ProductionModeId } from "../../ai/video-production/production-mode-types";
+import { profileForPlatform } from "../../ai/video-production/platform-profiles.js";
+import { isPmvPlatform, resolvePmvDestination, sceneBudgetSeconds } from "../../ai/pmv-shared/destination.js";
 import type { CreativePlanDto } from "../deep-intelligence/live-api";
 
 export const SETUP_HANDOFF_KEY = "kwizera.product-setup.handoff.v1";
@@ -157,22 +159,15 @@ const emptyBrandContact = (): PmvBrandContact => ({
 
 const emptyVideoSettings = (): PmvVideoSettings => ({
   durationSeconds: 15,
+  durationCustom: false,
   aspectRatio: "9:16",
+  platform: null,
   language: "en",
   cta: "",
 });
 
-function aspectToPlatform(aspect: PmvAspectRatio): string {
-  if (aspect === "1:1") return "instagram-feed";
-  if (aspect === "16:9") return "youtube";
-  return "tiktok";
-}
-
 function platformToAspect(platform: string | undefined): PmvAspectRatio {
-  const p = (platform ?? "").toLowerCase();
-  if (p.includes("feed") || p.includes("1:1") || p.includes("square")) return "1:1";
-  if (p.includes("youtube") || p.includes("16:9") || p.includes("landscape")) return "16:9";
-  return "9:16";
+  return platform?.trim() ? profileForPlatform(platform).aspectRatio : "9:16";
 }
 
 export class ProductSetupEngine {
@@ -892,7 +887,7 @@ export class ProductSetupEngine {
 
     try {
       await this.flushPersist();
-      const duration = snap.videoSettings.durationSeconds || 15;
+      const duration = sceneBudgetSeconds(snap.videoSettings.durationSeconds || 15, this.creativeDirection.generationMode);
       const plan = await generatePlanWithMode(
         snap.projectId,
         productionMode,
@@ -1802,12 +1797,15 @@ export class ProductSetupEngine {
     const benefits = this.optional.benefits.trim()
       ? this.optional.benefits.split(/[,;\n]/).map((s) => s.trim()).filter(Boolean)
       : undefined;
+    const destination = resolvePmvDestination(this.videoSettings.platform, this.videoSettings.aspectRatio);
     const pmvSettings: PmvFoundationSettings = {
       foundationStatus: this.foundationStatus,
       heroAssetId: this.heroAssetId,
       assetOrder: [...this.assetOrder],
       durationSeconds: this.videoSettings.durationSeconds,
-      aspectRatio: this.videoSettings.aspectRatio,
+      durationCustom: this.videoSettings.durationCustom,
+      aspectRatio: destination.format.aspectRatio,
+      ...(this.videoSettings.platform ? { platform: this.videoSettings.platform } : {}),
       intelligenceStatus: this.intelligenceStatus,
       intelligenceProfileId: this.intelligenceReview?.profileId ?? this.identityLock?.profileId ?? null,
       intelligenceAnalysisVersion: this.intelligenceReview?.analysisVersion
@@ -1845,7 +1843,7 @@ export class ProductSetupEngine {
     const language = this.videoSettings.language.trim()
       || this.brandContact.language.trim()
       || "en";
-    const platform = aspectToPlatform(this.videoSettings.aspectRatio);
+    const platform = destination.profile.id;
     await updateProjectApi(intake.projectId, {
       name: intake.projectName.trim() || undefined,
       language,
@@ -2039,7 +2037,9 @@ export class ProductSetupEngine {
         : 15);
     return {
       durationSeconds: Number.isFinite(duration) && duration > 0 ? duration : 15,
+      durationCustom: stored?.durationCustom === true,
       aspectRatio: stored?.aspectRatio ?? platformToAspect(project.platform),
+      platform: isPmvPlatform(stored?.platform) ? stored.platform : null,
       language: project.language?.trim() || "en",
       cta: campaign?.callToAction?.trim() || "",
     };
@@ -2052,7 +2052,9 @@ export class ProductSetupEngine {
     this.heroAssetId = stored.heroAssetId ?? null;
     this.assetOrder = Array.isArray(stored.assetOrder) ? stored.assetOrder.map(String) : [];
     if (stored.durationSeconds) this.videoSettings.durationSeconds = stored.durationSeconds;
+    if (typeof stored.durationCustom === "boolean") this.videoSettings.durationCustom = stored.durationCustom;
     if (stored.aspectRatio) this.videoSettings.aspectRatio = stored.aspectRatio;
+    if (isPmvPlatform(stored.platform)) this.videoSettings.platform = stored.platform;
     if (stored.intelligenceStatus) this.intelligenceStatus = stored.intelligenceStatus;
     if (stored.intelligenceReview) this.intelligenceReview = stored.intelligenceReview;
     if (stored.intelligenceAssetFingerprint !== undefined) {

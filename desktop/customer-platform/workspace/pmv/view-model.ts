@@ -5,6 +5,12 @@
  */
 import type { CustomerWorkflowSummary } from "../../../../ai/pmv-orchestrator/views";
 import type { PmvGenerationMode } from "../../../../ai/pmv-shared/modes.js";
+import {
+  formatDuration,
+  resolvePmvDestination,
+  validateDuration,
+  type PmvPlatform,
+} from "../../../../ai/pmv-shared/destination.js";
 
 export type PmvCustomerStep = "product" | "style" | "create" | "preview" | "final";
 
@@ -35,6 +41,9 @@ export interface PmvViewInput {
   uploadingPhotoCount: number;
   generationMode: PmvGenerationMode;
   cinematicAvailable: boolean | null;
+  platform: PmvPlatform | null;
+  aspectRatio: string;
+  durationSeconds: number;
   finalOutputUrl: string | null;
   deliveryStatus: string;
   produceStatus: string;
@@ -101,12 +110,15 @@ export function validateProduct(input: Pick<PmvViewInput, "productName" | "saved
   return null;
 }
 
-export function validateStyle(input: Pick<PmvViewInput, "generationMode" | "cinematicAvailable">): string | null {
+export function validateStyle(
+  input: Pick<PmvViewInput, "generationMode" | "cinematicAvailable" | "platform" | "aspectRatio" | "durationSeconds">,
+): string | null {
   const id = selectedStyleId(input.generationMode);
   if (!id) return "Please choose a video style.";
   const option = videoStyleOptions(input.cinematicAvailable).find((o) => o.id === id);
   if (!option || option.availability !== "available") return "One of the selected video styles is not available yet.";
-  return null;
+  const destination = resolvePmvDestination(input.platform, input.aspectRatio);
+  return validateDuration(input.durationSeconds, destination, input.generationMode);
 }
 
 export function validateForCreate(input: PmvViewInput): string | null {
@@ -151,14 +163,6 @@ export const LANGUAGE_OPTIONS = [
   { value: "sw", label: "Swahili" },
 ] as const;
 
-export const DURATION_OPTIONS = [15, 30, 45, 60] as const;
-
-export const FORMAT_OPTIONS = [
-  { value: "9:16", label: "9:16 Vertical" },
-  { value: "1:1", label: "1:1 Square" },
-  { value: "16:9", label: "16:9 Landscape" },
-] as const;
-
 export const CTA_SUGGESTIONS = ["Buy Now", "Shop Now", "Order on WhatsApp", "Call Now", "Learn More"] as const;
 
 export const CURRENCY_OPTIONS = ["RWF", "USD", "EUR", "GBP", "KES", "UGX", "TZS"] as const;
@@ -168,12 +172,13 @@ export function formatLabel(width: number | null, height: number | null, fallbac
   if (!width || !height) return fallback;
   const ratio = width / height;
   if (Math.abs(ratio - 1) < 0.05) return "1:1";
+  if (Math.abs(ratio - 0.8) < 0.05) return "4:5";
   return ratio < 1 ? "9:16" : "16:9";
 }
 
 export function durationLabel(durationMs: number | null, fallbackSeconds: number): string {
   const seconds = durationMs != null && durationMs > 0 ? Math.round(durationMs / 1000) : fallbackSeconds;
-  return `${seconds} sec`;
+  return seconds < 60 ? `${seconds} sec` : formatDuration(seconds);
 }
 
 export function formatPrice(price: number | null, currency: string): string | null {

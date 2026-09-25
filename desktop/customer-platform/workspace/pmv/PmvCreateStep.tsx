@@ -4,9 +4,11 @@ import { productSetupEngine } from "../../../product-setup/product-setup-engine"
 import type { ProductSetupSnapshot } from "../../../product-setup/types";
 import type { PmvWorkflowState } from "../../../pmv-workflow/usePmvWorkflow";
 import type { CustomerStageState } from "../../../../ai/pmv-orchestrator/views";
+import { resolvePmvDestination } from "../../../../ai/pmv-shared/destination.js";
 import {
   LANGUAGE_OPTIONS,
   customerStatus,
+  durationLabel,
   formatPrice,
   isVideoDelivered,
   selectedStyleId,
@@ -58,6 +60,7 @@ export function PmvCreateStep({
   const hero = snap.imageCards.find((c) => c.assetId === snap.heroAssetId) ?? snap.imageCards[0];
   const style = videoStyleOptions(cinematicAvailable).find((o) => o.id === selectedStyleId(snap.creativeDirection.generationMode));
   const price = formatPrice(snap.essentials.currentPrice, snap.essentials.currency);
+  const destination = resolvePmvDestination(snap.videoSettings.platform, snap.videoSettings.aspectRatio);
   const language = LANGUAGE_OPTIONS.find((l) => l.value === (snap.videoSettings.language || "en"))?.label ?? snap.videoSettings.language;
   const inProgress = status === "CREATING" || status === "PROCESSING";
   const waitingForLock = workflow?.status === "WAITING_FOR_USER"
@@ -113,8 +116,9 @@ export function PmvCreateStep({
               <div><dt>Photos</dt><dd>{view.savedPhotoCount}</dd></div>
               {price ? <div><dt>Price</dt><dd>{price}</dd></div> : null}
               <div><dt>Video</dt><dd>{style?.title ?? "Not selected"}</dd></div>
-              <div><dt>Duration</dt><dd>{snap.videoSettings.durationSeconds} seconds</dd></div>
-              <div><dt>Format</dt><dd>{snap.videoSettings.aspectRatio}</dd></div>
+              <div><dt>Platform</dt><dd>{destination.platformLabel}</dd></div>
+              <div><dt>Format</dt><dd>{destination.format.label}</dd></div>
+              <div><dt>Duration</dt><dd>{durationLabel(null, snap.videoSettings.durationSeconds)}</dd></div>
               <div><dt>Language</dt><dd>{language}</dd></div>
               {snap.selectedAudioTitle ? <div><dt>Music</dt><dd>{snap.selectedAudioTitle}</dd></div> : null}
             </dl>

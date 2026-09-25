@@ -242,10 +242,18 @@ export function planProductScenes(
   });
   const prices = commercial ? priceSceneCopy(commercial) : {};
   const used = new Set<string>();
+  const beatSeen = new Map<StoryBeatId, number>();
   let cursor = 0;
   const generated: PlanScene[] = [];
 
   beats.forEach((beat, index) => {
+    const occurrence = (beatSeen.get(beat) ?? 0) + 1;
+    beatSeen.set(beat, occurrence);
+    if (originals.length > 1 && used.size >= originals.length) {
+      used.clear();
+      const previous = generated[generated.length - 1]?.assetId;
+      if (previous) used.add(previous);
+    }
     const pick = pickAsset(originals, VIEW_FOR_BEAT[beat], used, beat, imageProfiles);
     used.add(pick.assetId);
     const camera = cameraFor(pick.view, beat);
@@ -277,7 +285,9 @@ export function planProductScenes(
     const copy: SceneCopy = {};
     let text = "";
     let narration = script.narration[index] || "";
-    if (beat === "HOOK") {
+    if (occurrence > 1 && beat !== "CTA" && beat !== "PRICE") {
+      narration = "";
+    } else if (beat === "HOOK") {
       copy.headline = script.hook;
       text = script.hook;
     } else if (beat === "PRODUCT_REVEAL") {

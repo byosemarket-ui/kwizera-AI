@@ -22,6 +22,9 @@ const base: PmvViewInput = {
   uploadingPhotoCount: 0,
   generationMode: "EXACT_PRODUCT",
   cinematicAvailable: false,
+  platform: null,
+  aspectRatio: "9:16",
+  durationSeconds: 15,
   finalOutputUrl: null,
   deliveryStatus: "NOT_DELIVERED",
   produceStatus: "NOT_STARTED",
@@ -91,8 +94,8 @@ describe("Phase 9 — PMV customer workflow model", () => {
     expect(videoStyleOptions(true).find((o) => o.id === "cinematic")?.availability).toBe("available");
     expect(videoStyleOptions(false).find((o) => o.id === "cinematic")?.availability).toBe("unavailable");
     expect(videoStyleOptions(null).find((o) => o.id === "cinematic")?.availability).toBe("unavailable");
-    expect(validateStyle({ generationMode: "CINEMATIC", cinematicAvailable: false })).toMatch(/not available yet/);
-    expect(validateStyle({ generationMode: "ADVANCED_CREATIVE", cinematicAvailable: true })).toMatch(/choose a video style/i);
+    expect(validateStyle({ ...base, generationMode: "CINEMATIC", cinematicAvailable: false })).toMatch(/not available yet/);
+    expect(validateStyle({ ...base, generationMode: "ADVANCED_CREATIVE", cinematicAvailable: true })).toMatch(/choose a video style/i);
     expect(validateForCreate(base)).toBeNull();
   });
 

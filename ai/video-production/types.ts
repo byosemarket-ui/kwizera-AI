@@ -12,7 +12,8 @@ export type VideoPlatformId =
   | "instagram_portrait"
   | "youtube_shorts"
   | "youtube"
-  | "facebook_feed";
+  | "facebook_feed"
+  | "facebook_reels";
 
 export type VideoRenderJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
 export type VideoRenderStage = "queued" | "preparing" | "processing" | "rendering" | "encoding" | "validating" | "registering" | "completed" | "failed";

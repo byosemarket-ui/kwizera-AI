@@ -13,6 +13,7 @@ import { checkProjectHeroVisionIdentity, probeVisionQaAvailable } from "../pmv-q
 import { buildProductIdentityLock, buildProductIntelligenceReview, computeAssetFingerprint } from "../pmv-shared/build-lock.js";
 import { classifyPmvQaFailure } from "../pmv-shared/classify-failure.js";
 import { PMV_IDENTITY_LOCK_KEY, type ProductIdentityLock } from "../pmv-shared/identity-lock-types.js";
+import { isPmvPlatform, resolvePmvDestination, sceneBudgetSeconds, validateDuration } from "../pmv-shared/destination.js";
 import { mapPmvModeToProduction, type PmvGenerationMode } from "../pmv-shared/modes.js";
 import {
   buildTargetedRegeneration,
@@ -65,6 +66,7 @@ interface ProjectState {
   creativeTone: CreativeToneId;
   durationSeconds: number;
   aspectRatio: string;
+  platform: string | null;
   creativeRequest: string;
   brandName: string;
   website: string;
@@ -109,6 +111,7 @@ async function loadProjectState(m: ExecutorManagers, projectId: string): Promise
     creativeTone: (str(direction.creativeTone) || "Modern") as CreativeToneId,
     durationSeconds: duration > 0 ? duration : 15,
     aspectRatio: str(pmv.aspectRatio) || "9:16",
+    platform: str(pmv.platform) || null,
     creativeRequest: readCreativeRequest(project.workspaceSettings),
     brandName: str(project.brandInformation?.name) || str(info?.brand) || str(info?.name),
     website: str(project.brandInformation?.website) || str(info?.website),
@@ -145,6 +148,7 @@ export async function loadWorkflowSnapshot(m: ExecutorManagers, projectId: strin
     creativeTone: s.creativeTone,
     durationSeconds: s.durationSeconds,
     aspectRatio: s.aspectRatio,
+    platform: s.platform ? `${s.platform}:${s.project.platform ?? ""}` : null,
     creativeRequest: s.creativeRequest,
     text: { brandName: s.brandName, cta: s.cta, website: s.website, phone: s.phone, logoAssetId: s.logoAssetId, language: s.project.language ?? "" },
     audio: {
@@ -331,6 +335,11 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       return { kind: "REUSED", refs: { planId: plan.id, planVersion: plan.version } };
     }
     const project = s.project;
+    const destination = resolvePmvDestination(isPmvPlatform(s.platform) ? s.platform : null, s.aspectRatio, project.platform);
+    const durationProblem = validateDuration(s.durationSeconds, destination, s.generationMode);
+    if (durationProblem) {
+      throw new WorkflowStepError("USER_INPUT_ERROR", "DURATION_NOT_SUPPORTED", durationProblem);
+    }
     const validation = m.planning.validateForPlan(project);
     if (!validation.valid) {
       throw new WorkflowStepError("USER_INPUT_ERROR", "PLAN_INPUTS_MISSING", validation.errors[0] ?? "Complete your product details before planning.");
@@ -340,7 +349,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       productionMode,
       creativeTone: s.creativeTone,
       regenerate: Boolean(plan),
-      durationSeconds: s.durationSeconds,
+      durationSeconds: sceneBudgetSeconds(s.durationSeconds, s.generationMode),
     });
     if (!result.plan) {
       throw new WorkflowStepError("USER_INPUT_ERROR", "PLAN_INPUTS_MISSING", result.validation.errors[0] ?? "Complete your product details before planning.");

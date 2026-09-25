@@ -645,5 +645,6 @@ function platformGuidance(platform: string): { format: string; tone: string; pac
     linkedin: { format: "professional social video", tone: "credible and considered", pacing: "Use a concise business-relevant hook and evidence-led value.", analysis: "LinkedIn responds to credible insight, professional presentation, and a clear strategic outcome." },
     youtube: { format: "video content", tone: "informative and engaging", pacing: "Open with value, then progress through a clear narrative arc.", analysis: "YouTube benefits from clear narrative structure, sustained value, and a memorable closing." },
   };
-  return guidance[platform] ?? guidance.instagram;
+  const family = Object.keys(guidance).find((key) => (platform ?? "").toLowerCase().includes(key));
+  return guidance[family ?? ""] ?? guidance.instagram;
 }

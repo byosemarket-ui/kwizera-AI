@@ -59,7 +59,29 @@ export function planStoryBeats(input: {
     beats.splice(beats.indexOf("MESSAGE"), 1);
   }
   beats.push("CTA");
-  return beats;
+  return extendForLongForm(beats, ms);
+}
+
+/**
+ * Longer videos keep scenes readable (and within timeline beat-sync bounds) by adding
+ * visual content beats before the closing beats instead of stretching a handful of scenes.
+ */
+export const LONG_FORM_MAX_AVERAGE_SCENE_MS = 6_000;
+export const LONG_FORM_TARGET_SCENE_MS = 4_500;
+const LONG_FORM_FILLER: StoryBeatId[] = ["EXPLORATION", "DETAIL", "FEATURE"];
+
+function extendForLongForm(beats: StoryBeatId[], ms: number): StoryBeatId[] {
+  if (ms / beats.length <= LONG_FORM_MAX_AVERAGE_SCENE_MS) return beats;
+  const target = Math.ceil(ms / LONG_FORM_TARGET_SCENE_MS);
+  const closingStart = beats.findIndex((beat) => beat === "PRICE" || beat === "CTA");
+  const head = beats.slice(0, closingStart);
+  const closing = beats.slice(closingStart);
+  let fill = 0;
+  while (head.length + closing.length < target) {
+    head.push(LONG_FORM_FILLER[fill % LONG_FORM_FILLER.length]!);
+    fill += 1;
+  }
+  return [...head, ...closing];
 }
 
 export function allocateDurations(totalMs: number, beats: StoryBeatId[], platform: string): number[] {

@@ -3,8 +3,17 @@ import { ArrowLeft, ArrowRight, Box, Check, ChevronDown, Clapperboard, Images } 
 import { productSetupEngine } from "../../../product-setup/product-setup-engine";
 import type { ProductSetupSnapshot } from "../../../product-setup/types";
 import {
-  DURATION_OPTIONS,
-  FORMAT_OPTIONS,
+  PMV_DURATION_PRESETS,
+  PMV_PLATFORMS,
+  durationFromParts,
+  formatDuration,
+  maxDurationSeconds,
+  resolvePmvDestination,
+  validateDuration,
+  type PmvFormat,
+  type PmvPlatform,
+} from "../../../../ai/pmv-shared/destination.js";
+import {
   LANGUAGE_OPTIONS,
   STYLE_PRESETS,
   selectedStyleId,
@@ -40,9 +49,52 @@ export function PmvStyleStep({
   const settings = snap.videoSettings;
   const options = videoStyleOptions(cinematicAvailable);
   const selected = selectedStyleId(direction.generationMode);
-  const validation = validateStyle({ generationMode: direction.generationMode, cinematicAvailable });
+  const destination = resolvePmvDestination(settings.platform, settings.aspectRatio);
+  const platformOption = PMV_PLATFORMS.find((p) => p.id === destination.platform)!;
+  const maxSeconds = maxDurationSeconds(destination);
+  const [customMinutes, setCustomMinutes] = useState(() => String(Math.floor(settings.durationSeconds / 60)));
+  const [customSeconds, setCustomSeconds] = useState(() => String(settings.durationSeconds % 60));
+  const customParts = settings.durationCustom ? durationFromParts(customMinutes, customSeconds) : null;
+  const durationProblem = customParts?.error
+    ?? validateDuration(settings.durationSeconds, destination, direction.generationMode);
+  const validation = customParts?.error ?? validateStyle({
+    generationMode: direction.generationMode,
+    cinematicAvailable,
+    platform: destination.platform,
+    aspectRatio: destination.format.aspectRatio,
+    durationSeconds: settings.durationSeconds,
+  });
   const preset = stylePresetFromTone(direction.creativeTone);
   const showMusic = snap.audioLibrary.length > 0 || Boolean(snap.selectedAudioAssetId);
+
+  const choosePlatform = (id: PmvPlatform) => {
+    if (id === settings.platform) return;
+    const next = PMV_PLATFORMS.find((p) => p.id === id)!;
+    const keep = next.formats.some((f) => f.aspectRatio === destination.format.aspectRatio);
+    productSetupEngine.setVideoSettingsField("aspectRatio", keep ? destination.format.aspectRatio : next.formats[0]!.aspectRatio);
+    productSetupEngine.setVideoSettingsField("platform", id);
+  };
+
+  const choosePresetDuration = (seconds: number) => {
+    if (settings.durationCustom) productSetupEngine.setVideoSettingsField("durationCustom", false);
+    if (seconds !== settings.durationSeconds) productSetupEngine.setVideoSettingsField("durationSeconds", seconds);
+  };
+
+  const chooseCustomDuration = () => {
+    if (settings.durationCustom) return;
+    setCustomMinutes(String(Math.floor(settings.durationSeconds / 60)));
+    setCustomSeconds(String(settings.durationSeconds % 60));
+    productSetupEngine.setVideoSettingsField("durationCustom", true);
+  };
+
+  const changeCustom = (minutes: string, seconds: string) => {
+    setCustomMinutes(minutes);
+    setCustomSeconds(seconds);
+    const parts = durationFromParts(minutes, seconds);
+    if (parts.total != null && parts.total !== settings.durationSeconds) {
+      productSetupEngine.setVideoSettingsField("durationSeconds", parts.total);
+    }
+  };
 
   const choosePreset = (id: StylePresetId) => {
     const next = STYLE_PRESETS.find((p) => p.id === id);
@@ -138,24 +190,110 @@ export function PmvStyleStep({
             </select>
           </label>
         ) : null}
-        <label className="pmv-field">
-          <span>Duration</span>
-          <select
-            value={settings.durationSeconds}
-            onChange={(ev) => productSetupEngine.setVideoSettingsField("durationSeconds", Number(ev.target.value))}
+      </div>
+
+      <div className="pmv-field-group" data-pmv-destination={destination.profile.id}>
+        <span className="pmv-field-label" id="pmv-platform-label">Where will this video be used?</span>
+        <div className="pmv-chips" role="radiogroup" aria-labelledby="pmv-platform-label">
+          {PMV_PLATFORMS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={destination.platform === p.id}
+              className={`pmv-chip${destination.platform === p.id ? " is-selected" : ""}`}
+              data-platform={p.id}
+              onClick={() => choosePlatform(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="pmv-form pmv-form--settings">
+          <label className="pmv-field">
+            <span>Format</span>
+            <select
+              value={destination.format.aspectRatio}
+              disabled={platformOption.formats.length < 2}
+              onChange={(ev) => productSetupEngine.setVideoSettingsField("aspectRatio", ev.target.value as PmvFormat)}
+            >
+              {platformOption.formats.map((f) => <option key={f.aspectRatio} value={f.aspectRatio}>{f.label}</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="pmv-field-group">
+        <span className="pmv-field-label" id="pmv-duration-label">Video length</span>
+        <div className="pmv-chips" role="radiogroup" aria-labelledby="pmv-duration-label">
+          {PMV_DURATION_PRESETS.map((seconds) => {
+            const tooLong = seconds > maxSeconds;
+            const isSelected = !settings.durationCustom && settings.durationSeconds === seconds;
+            return (
+              <button
+                key={seconds}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                disabled={tooLong && !isSelected}
+                className={`pmv-chip${isSelected ? " is-selected" : ""}`}
+                data-duration={seconds}
+                onClick={() => choosePresetDuration(seconds)}
+              >
+                {seconds < 60 ? `${seconds}s` : formatDuration(seconds)}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={settings.durationCustom}
+            className={`pmv-chip${settings.durationCustom ? " is-selected" : ""}`}
+            data-duration="custom"
+            onClick={chooseCustomDuration}
           >
-            {DURATION_OPTIONS.map((d) => <option key={d} value={d}>{d} sec</option>)}
-          </select>
-        </label>
-        <label className="pmv-field">
-          <span>Format</span>
-          <select
-            value={settings.aspectRatio}
-            onChange={(ev) => productSetupEngine.setVideoSettingsField("aspectRatio", ev.target.value as typeof settings.aspectRatio)}
-          >
-            {FORMAT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select>
-        </label>
+            Custom
+          </button>
+        </div>
+        {settings.durationCustom ? (
+          <div className="pmv-duration-custom">
+            <label className="pmv-field">
+              <span>Minutes</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={customMinutes}
+                aria-invalid={Boolean(customParts?.error)}
+                onChange={(ev) => changeCustom(ev.target.value, customSeconds)}
+              />
+            </label>
+            <label className="pmv-field">
+              <span>Seconds</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={59}
+                step={1}
+                value={customSeconds}
+                aria-invalid={Boolean(customParts?.error)}
+                onChange={(ev) => changeCustom(customMinutes, ev.target.value)}
+              />
+            </label>
+            <output className="pmv-duration-total" aria-live="polite">
+              {customParts?.total != null ? formatDuration(customParts.total) : "—"}
+            </output>
+          </div>
+        ) : null}
+        {durationProblem ? (
+          <small className="pmv-field-error" role="status">{durationProblem}</small>
+        ) : (
+          <small className="pmv-muted">
+            {destination.platformLabel} {destination.format.label}: up to {formatDuration(maxSeconds)}.
+          </small>
+        )}
       </div>
 
       <button

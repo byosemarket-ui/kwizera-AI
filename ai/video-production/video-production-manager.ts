@@ -65,6 +65,7 @@ import {
   validateEndCardPlan,
   writeEndCardBackground,
 } from "./end-card.js";
+import { I2V_MAX_CLIP_SECONDS, I2V_MIN_CLIP_SECONDS } from "./duration-limits.js";
 import {
   VIDEO_PRODUCTION_VERSION,
   VideoProductionError,
@@ -948,7 +949,7 @@ export class VideoProductionManager {
               );
             }
 
-            const durationSeconds = Math.max(2, Math.min(10, productionClip.durationMs / 1000));
+            const durationSeconds = Math.max(I2V_MIN_CLIP_SECONDS, Math.min(I2V_MAX_CLIP_SECONDS, productionClip.durationMs / 1000));
             const attempt = forceRegen ? (prior?.attempt ?? 0) + 1 : (prior?.attempt ?? 0);
             const handle = await provider.generateVideoClip({
               projectId: job.projectId,

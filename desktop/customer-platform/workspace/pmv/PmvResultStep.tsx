@@ -37,8 +37,8 @@ export function PmvResultStep({
     && (delivered || snap.produceStatus === "QA_PASSED")
     && !outdated;
   const format = formatLabel(snap.finalWidth, snap.finalHeight, snap.videoSettings.aspectRatio);
-  const aspect = format === "1:1" ? "1 / 1" : format === "16:9" ? "16 / 9" : "9 / 16";
-  const ratio = format === "1:1" ? 1 : format === "16:9" ? 16 / 9 : 9 / 16;
+  const aspect = format === "1:1" ? "1 / 1" : format === "4:5" ? "4 / 5" : format === "16:9" ? "16 / 9" : "9 / 16";
+  const ratio = format === "1:1" ? 1 : format === "4:5" ? 4 / 5 : format === "16:9" ? 16 / 9 : 9 / 16;
 
   const regenerate = async () => {
     setWorking("regenerate");

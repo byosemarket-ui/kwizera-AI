@@ -26,6 +26,7 @@ import type {
   PmvTargetedRegeneration,
   PmvVideoQaResult,
 } from "../pmv-qa/types";
+import type { PmvFormat, PmvPlatform } from "../../ai/pmv-shared/destination.js";
 
 export type AnalysisUiStatus =
   | "NOT_STARTED"
@@ -77,11 +78,15 @@ export interface PmvBrandContact {
   logoFileName: string | null;
 }
 
-export type PmvAspectRatio = "9:16" | "1:1" | "16:9";
+export type PmvAspectRatio = PmvFormat;
 
 export interface PmvVideoSettings {
   durationSeconds: number;
+  /** true when the customer entered minutes/seconds instead of picking a preset. */
+  durationCustom: boolean;
   aspectRatio: PmvAspectRatio;
+  /** Explicit destination; null on projects saved before the choice existed (derived from the format). */
+  platform: PmvPlatform | null;
   language: string;
   cta: string;
 }
@@ -101,7 +106,9 @@ export interface PmvFoundationSettings {
   heroAssetId: string | null;
   assetOrder: string[];
   durationSeconds: number;
+  durationCustom?: boolean;
   aspectRatio: PmvAspectRatio;
+  platform?: PmvPlatform;
   /** Step 2 — Product Intelligence lifecycle */
   intelligenceStatus?: PmvIntelligenceStatus;
   intelligenceProfileId?: string | null;

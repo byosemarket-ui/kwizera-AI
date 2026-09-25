@@ -144,7 +144,7 @@ function mergeValidatedScenes(
 ): AiCreativePlannerResult["scenes"] {
   const deterministic = buildDeterministicPlan(input);
   const allowed = allowedAssetIds(input);
-  return deterministic.map((scene, index) => {
+  const merged = deterministic.map((scene, index) => {
     const aiScene = parsed.scenes[index];
     if (!aiScene) return scene;
     const assetId = aiScene.assetId && allowed.has(aiScene.assetId) ? aiScene.assetId : scene.assetId;
@@ -167,6 +167,29 @@ function mergeValidatedScenes(
         ? `AI background strategy: ${aiScene.backgroundStrategy}`
         : scene.selectionReason,
     };
+  });
+  return fitScenesToDuration(merged, input.videoSettings.durationSeconds);
+}
+
+/** Keep the requested total: AI-suggested scene lengths are scaled proportionally to the target duration. */
+export function fitScenesToDuration<T extends { durationMs?: number; durationSeconds: number; userEdited?: boolean }>(
+  scenes: T[],
+  targetSeconds: number,
+): T[] {
+  const targetMs = Math.round(targetSeconds * 1000);
+  const msOf = (scene: T) => scene.durationMs ?? Math.round(scene.durationSeconds * 1000);
+  const total = scenes.reduce((sum, scene) => sum + msOf(scene), 0);
+  if (!(targetMs >= 4_000) || total <= 0 || Math.abs(total - targetMs) <= 500) return scenes;
+  const locked = scenes.filter((scene) => scene.userEdited).reduce((sum, scene) => sum + msOf(scene), 0);
+  const scalable = total - locked;
+  if (scalable <= 0 || targetMs <= locked) return scenes;
+  const factor = (targetMs - locked) / scalable;
+  let cursor = 0;
+  return scenes.map((scene) => {
+    const durationMs = scene.userEdited ? msOf(scene) : Math.max(800, Math.round(msOf(scene) * factor));
+    const next = { ...scene, durationMs, durationSeconds: durationMs / 1000, startMs: cursor };
+    cursor += durationMs;
+    return next;
   });
 }
 

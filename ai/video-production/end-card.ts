@@ -16,11 +16,12 @@ import {
 } from "../creative-workspace/brand-identity.js";
 import { ffmpegBinary } from "./ffmpeg-renderer.js";
 import type { VideoRenderPlan, VideoTextLayer, VideoTimelineClip } from "./types.js";
+import { END_CARD_DURATION_MS } from "./duration-limits.js";
 
 const execFileAsync = promisify(execFile);
 
+export { END_CARD_DURATION_MS };
 export const END_CARD_VERSION = "step2a-end-card-v1";
-export const END_CARD_DURATION_MS = 5000;
 export const END_CARD_SCENE_ID = "__engine1-end-card__";
 
 export interface EndCardPlan {

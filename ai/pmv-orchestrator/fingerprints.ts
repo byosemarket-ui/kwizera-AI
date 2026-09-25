@@ -16,6 +16,8 @@ export interface FingerprintInputs {
   creativeTone: string;
   durationSeconds: number;
   aspectRatio: string;
+  /** Explicit customer destination; absent on projects that predate the platform choice. */
+  platform?: string | null;
   creativeRequest: string;
   text: {
     brandName: string;
@@ -41,7 +43,10 @@ function h(...parts: unknown[]): string {
 export function computeStepFingerprints(input: FingerprintInputs): Record<WorkflowStepId, string> {
   const intelligence = h("pi", input.assetFingerprint);
   const lock = h("lock", intelligence);
-  const plan = h("plan", lock, input.lockVersion, input.mode, input.creativeTone, input.durationSeconds, input.aspectRatio);
+  const plan = h(
+    "plan", lock, input.lockVersion, input.mode, input.creativeTone, input.durationSeconds, input.aspectRatio,
+    ...(input.platform ? [input.platform] : []),
+  );
   const planRef = h("planRef", plan, input.planId, input.planVersion);
   const media = h("media", planRef, input.creativeRequest);
   const scenes = h("scenes", media);
