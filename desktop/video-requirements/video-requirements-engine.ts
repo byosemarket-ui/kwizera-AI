@@ -8,6 +8,7 @@ import { fetchMediaIntelligence, formatMediaStatusLabel, prepareMediaIntelligenc
 import type { VideoPlatformId } from "../../ai/video-production/platform-profiles.js";
 import { VIDEO_PLATFORM_PROFILES } from "../../ai/video-production/platform-profiles.js";
 import { normalizeWebsiteUrl } from "../../ai/creative-workspace/brand-identity.js";
+import { audioPreview } from "../audio-preview/audio-preview";
 import type { ProductImageSet } from "../image-organization/types";
 import type { Step2HandoffPayload } from "../product-setup/types";
 import {
@@ -196,7 +197,7 @@ export class VideoRequirementsEngine {
   private brandLogo: BrandLogoState = emptyLogo();
   private audio: ProjectAudioState = emptyAudio();
   private platformId: VideoPlatformId = "tiktok";
-  private previewAudioEl: HTMLAudioElement | null = null;
+  private previewUnsubscribe: (() => void) | null = null;
   private intelPollTimer: ReturnType<typeof setTimeout> | null = null;
   private duration: DurationOption = "30s";
   private customDurationSeconds: number | null = null;
@@ -1217,40 +1218,31 @@ export class VideoRequirementsEngine {
       this.stopAudioPreview();
       return;
     }
-    this.stopAudioPreview();
-    const el = new Audio(item.playbackUrl);
-    this.previewAudioEl = el;
+    this.watchAudioPreview();
+    audioPreview.toggle(item.assetId, item.playbackUrl);
     this.audio.playingAssetId = item.assetId;
     this.emit();
-    el.onended = () => {
+  }
+
+  private watchAudioPreview(): void {
+    if (this.previewUnsubscribe) return;
+    this.previewUnsubscribe = audioPreview.subscribe(() => {
+      const playing = this.audio.playingAssetId;
+      if (!playing) return;
+      const state = audioPreview.getState();
+      if (state.assetId === playing && state.status !== "paused" && state.status !== "error") return;
+      if (state.assetId === playing && state.status === "error") this.audio.error = "Audio playback failed.";
       this.audio.playingAssetId = null;
-      this.previewAudioEl = null;
-      this.emit();
-    };
-    el.onerror = () => {
-      this.audio.playingAssetId = null;
-      this.previewAudioEl = null;
-      this.audio.error = "Audio playback failed.";
-      this.emit();
-    };
-    void el.play().catch(() => {
-      this.audio.playingAssetId = null;
-      this.previewAudioEl = null;
-      this.audio.error = "Audio playback failed.";
       this.emit();
     });
   }
 
   stopAudioPreview(): void {
-    if (this.previewAudioEl) {
-      this.previewAudioEl.pause();
-      this.previewAudioEl.src = "";
-      this.previewAudioEl = null;
-    }
-    if (this.audio.playingAssetId) {
-      this.audio.playingAssetId = null;
-      this.emit();
-    }
+    const playing = this.audio.playingAssetId;
+    if (!playing) return;
+    this.audio.playingAssetId = null;
+    if (audioPreview.getState().assetId === playing) audioPreview.stop();
+    this.emit();
   }
 
   private schedulePersist(): void {

@@ -53,6 +53,12 @@ export interface PmvAudioLibraryItem {
   bpm: number | null;
   bpmConfidence: number | null;
   analysisStatus: string | null;
+  sourceType: "UPLOADED_AUDIO" | "EXTRACTED_FROM_VIDEO" | "AI_GENERATED";
+  ownerProjectId: string | null;
+  /** Produced by the test-only music fixture, not a real generation. */
+  testFixture: boolean;
+  /** Voice-over / narration asset (kept out of the music picker). */
+  voice: boolean;
 }
 
 export interface PmvAudioIntelligenceView {
@@ -62,6 +68,20 @@ export interface PmvAudioIntelligenceView {
   beatCount: number;
   energyLabel: string | null;
   message: string | null;
+}
+
+export type PmvAudioTaskKind = "UPLOAD" | "EXTRACT" | "AI_MUSIC";
+
+/** One music add/create action in flight (upload, sound from a video, or AI music). */
+export interface PmvAudioTask {
+  kind: PmvAudioTaskKind;
+  status: "RUNNING" | "DONE" | "FAILED";
+  /** Raw job stage (AI music); mapped to customer text in the UI. */
+  stage: string | null;
+  progress: number;
+  errorCode: string | null;
+  /** Library asset produced by the task. */
+  assetId: string | null;
 }
 
 export interface PmvMusicCapabilityView {
@@ -110,7 +130,21 @@ export function mapLibraryItem(raw: Record<string, unknown>): PmvAudioLibraryIte
     bpm: typeof meta.bpm === "number" ? meta.bpm : null,
     bpmConfidence: typeof meta.bpmConfidence === "number" ? meta.bpmConfidence : null,
     analysisStatus: typeof meta.analysisStatus === "string" ? meta.analysisStatus : null,
+    sourceType: raw.sourceType === "EXTRACTED_FROM_VIDEO" || raw.sourceType === "AI_GENERATED"
+      ? raw.sourceType
+      : "UPLOADED_AUDIO",
+    ownerProjectId: typeof raw.ownerProjectId === "string" && raw.ownerProjectId ? raw.ownerProjectId : null,
+    testFixture: meta.providerId === "music-provider-test-fixture",
+    voice: (typeof meta.aiSoundVersion === "string" && meta.aiSoundVersion.includes("tts"))
+      || (Boolean(meta.generationSpec) && (meta.generationSpec as { kind?: unknown }).kind === "tts"),
   };
+}
+
+/** Same threshold the timeline uses before SMART beat sync follows the beat. */
+export const SMART_BEAT_MIN_BPM_CONFIDENCE = 0.2;
+
+export function hasSteadyBeat(intel: Pick<PmvAudioIntelligenceView, "bpmConfidence">): boolean {
+  return (intel.bpmConfidence ?? 0) >= SMART_BEAT_MIN_BPM_CONFIDENCE;
 }
 
 export function energyLabel(mean: number | null | undefined): string | null {
@@ -133,7 +167,10 @@ export function mapIntelligence(
   const bpmConfidence = typeof intel.bpmConfidence === "number"
     ? intel.bpmConfidence
     : (typeof tempo.confidence === "number" ? tempo.confidence : null);
-  const beats = Array.isArray(intel.beats) ? intel.beats : [];
+  const technical = intel.technical && typeof intel.technical === "object"
+    ? intel.technical as Record<string, unknown>
+    : {};
+  const beats = Array.isArray(intel.beats) && technical.silent !== true ? intel.beats : [];
   const meanEnergy = typeof intel.meanEnergy === "number" ? intel.meanEnergy : null;
   return {
     status: String(intel.status ?? "PENDING"),

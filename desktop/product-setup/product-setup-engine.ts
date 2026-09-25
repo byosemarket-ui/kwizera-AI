@@ -71,10 +71,12 @@ import {
   produceStageLabel,
   type PmvAudioIntelligenceView,
   type PmvAudioLibraryItem,
+  type PmvAudioTask,
   type PmvBeatSyncMode,
   type PmvMusicCapabilityView,
   type PmvProduceStatus,
 } from "../pmv-final";
+import { fileToBase64 } from "../product-intake/hash";
 import {
   PMV_SCENE_REGEN_MAX_ATTEMPTS,
   buildTargetedRegeneration,
@@ -113,6 +115,19 @@ import type { CreativePlanDto } from "../deep-intelligence/live-api";
 export const SETUP_HANDOFF_KEY = "kwizera.product-setup.handoff.v1";
 
 type Listener = (snap: ProductSetupSnapshot) => void;
+
+interface AiMusicJobDto {
+  jobId: string;
+  status: string;
+  progress?: number;
+  audioAssetId?: string | null;
+  errorCode?: string | null;
+}
+
+const AI_MUSIC_TERMINAL = new Set(["READY", "FAILED", "CANCELLED", "TIMEOUT"]);
+const AI_MUSIC_POLL_MS = 2000;
+const AI_MUSIC_MAX_WAIT_MS = 5 * 60 * 1000;
+
 type NotifyFn = (
   tone: "success" | "warning" | "error" | "info",
   title: string,
@@ -209,6 +224,10 @@ export class ProductSetupEngine {
     status: "UNAVAILABLE",
     reason: "Not checked yet",
   };
+  private voiceSelected = false;
+  private audioTask: PmvAudioTask | null = null;
+  private addedAudioAssetIds: string[] = [];
+  private aiMusicJobId: string | null = null;
   private timelineReady = false;
   private finalRenderJobId: string | null = null;
   private finalVideoReady = false;
@@ -438,6 +457,9 @@ export class ProductSetupEngine {
       beatSyncMode: this.beatSyncMode,
       audioIntelligence: this.audioIntelligence ? { ...this.audioIntelligence } : null,
       musicCapability: { ...this.musicCapability },
+      voiceSelected: this.voiceSelected,
+      audioTask: this.audioTask ? { ...this.audioTask } : null,
+      addedAudioAssetIds: [...this.addedAudioAssetIds],
       timelineReady: this.timelineReady,
       finalRenderJobId: this.finalRenderJobId,
       finalVideoReady: this.finalVideoReady,
@@ -1138,6 +1160,158 @@ export class ProductSetupEngine {
       this.invalidateApprovedDelivery();
     }
     await this.flushPersist();
+    this.emit();
+  }
+
+  /** Beat analysis for the selected music (existing Audio Intelligence; runs analysis if missing). */
+  async refreshSelectedAudioAnalysis(): Promise<void> {
+    const assetId = this.selectedAudioAssetId;
+    if (!assetId) return;
+    try {
+      const res = await fetch(`/api/workspace/audio-library/${encodeURIComponent(assetId)}/intelligence`);
+      if (!res.ok) return;
+      const body = await res.json() as { intelligence?: Record<string, unknown> | null; status?: string };
+      if (this.selectedAudioAssetId !== assetId) return;
+      this.audioIntelligence = mapIntelligence(body.intelligence ?? null)
+        ?? { status: String(body.status ?? "PENDING"), bpm: null, bpmConfidence: null, beatCount: 0, energyLabel: null, message: null };
+      this.emit();
+    } catch {
+      /* keep last known analysis */
+    }
+  }
+
+  /** Add music to the library through the existing audio upload (does not change the selection). */
+  async uploadProjectAudio(file: File): Promise<string | null> {
+    return this.runAudioFileTask("UPLOAD", file, "audio");
+  }
+
+  /** Take the sound from a video through the existing extraction (does not change the selection). */
+  async extractProjectAudio(file: File): Promise<string | null> {
+    return this.runAudioFileTask("EXTRACT", file, "audio/extract");
+  }
+
+  private async runAudioFileTask(kind: "UPLOAD" | "EXTRACT", file: File, route: string): Promise<string | null> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId || this.audioTask?.status === "RUNNING") return null;
+    this.audioTask = { kind, status: "RUNNING", stage: null, progress: 0, errorCode: null, assetId: null };
+    this.emit();
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const res = await fetch(`/api/workspace/projects/${projectId}/${route}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, mimeType: file.type, dataBase64 }),
+      });
+      const body = await res.json().catch(() => ({})) as { audio?: Record<string, unknown>; code?: string };
+      if (!res.ok || !body.audio) {
+        const code = body.code ?? (res.status === 413 ? "PAYLOAD_TOO_LARGE" : null);
+        this.audioTask = { kind, status: "FAILED", stage: null, progress: 0, errorCode: code, assetId: null };
+        this.emit();
+        return null;
+      }
+      const item = mapLibraryItem(body.audio);
+      this.rememberAddedAudio(item);
+      this.audioTask = { kind, status: "DONE", stage: null, progress: 1, errorCode: null, assetId: item.assetId };
+      this.emit();
+      await this.refreshAudioLibrary();
+      return item.assetId;
+    } catch {
+      this.audioTask = { kind, status: "FAILED", stage: null, progress: 0, errorCode: null, assetId: null };
+      this.emit();
+      return null;
+    }
+  }
+
+  private rememberAddedAudio(item: PmvAudioLibraryItem): void {
+    if (!this.addedAudioAssetIds.includes(item.assetId)) this.addedAudioAssetIds.push(item.assetId);
+    if (!this.audioLibrary.some((a) => a.assetId === item.assetId)) this.audioLibrary = [item, ...this.audioLibrary];
+  }
+
+  /**
+   * Create music with the existing AI Sound job (routing and credentials stay server-side).
+   * The finished track is saved to the library and becomes the project's music.
+   */
+  async generateAiMusic(options: {
+    mood: string;
+    energy: string;
+    tempo: string;
+    durationSeconds: number;
+  }): Promise<string | null> {
+    const projectId = productIntakeEngine.snapshot().projectId;
+    if (!projectId || this.audioTask?.status === "RUNNING") return null;
+    this.audioTask = { kind: "AI_MUSIC", status: "RUNNING", stage: "QUEUED", progress: 0, errorCode: null, assetId: null };
+    this.emit();
+    const fail = (errorCode: string | null) => {
+      this.aiMusicJobId = null;
+      this.audioTask = { kind: "AI_MUSIC", status: "FAILED", stage: null, progress: 0, errorCode, assetId: null };
+      this.emit();
+      return null;
+    };
+    try {
+      const res = await fetch(`/api/workspace/projects/${projectId}/ai-sound/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...options, instrumental: true }),
+      });
+      const body = await res.json().catch(() => ({})) as { job?: AiMusicJobDto; code?: string };
+      if (!res.ok || !body.job) {
+        if (body.code === "MUSIC_GENERATION_UNAVAILABLE" || body.code === "NOT_READY") {
+          this.musicCapability = { available: false, status: "UNAVAILABLE", reason: null };
+        }
+        return fail(body.code ?? null);
+      }
+      const jobId = body.job.jobId;
+      this.aiMusicJobId = jobId;
+      const deadline = Date.now() + AI_MUSIC_MAX_WAIT_MS;
+      let job: AiMusicJobDto = body.job;
+      while (!AI_MUSIC_TERMINAL.has(job.status)) {
+        if (this.aiMusicJobId !== jobId) return null;
+        if (Date.now() > deadline) {
+          await fetch(`/api/workspace/ai-sound/jobs/${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
+          return fail("TIMEOUT");
+        }
+        this.audioTask = {
+          kind: "AI_MUSIC", status: "RUNNING", stage: job.status, progress: Number(job.progress) || 0, errorCode: null, assetId: null,
+        };
+        this.emit();
+        await new Promise((resolve) => setTimeout(resolve, AI_MUSIC_POLL_MS));
+        const poll = await fetch(`/api/workspace/ai-sound/jobs/${encodeURIComponent(jobId)}`);
+        if (!poll.ok) continue;
+        const polled = await poll.json() as { job?: AiMusicJobDto };
+        if (polled.job) job = polled.job;
+      }
+      if (this.aiMusicJobId !== jobId) return null;
+      this.aiMusicJobId = null;
+      if (job.status !== "READY" || !job.audioAssetId) {
+        return fail(job.status === "READY" ? null : (job.errorCode ?? job.status));
+      }
+      const assetId = job.audioAssetId;
+      await this.refreshAudioLibrary();
+      const item = this.audioLibrary.find((a) => a.assetId === assetId);
+      if (item) this.rememberAddedAudio(item);
+      else if (!this.addedAudioAssetIds.includes(assetId)) this.addedAudioAssetIds.push(assetId);
+      await this.selectProjectAudio(assetId);
+      this.audioTask = { kind: "AI_MUSIC", status: "DONE", stage: "READY", progress: 1, errorCode: null, assetId };
+      this.emit();
+      return assetId;
+    } catch {
+      return fail(null);
+    }
+  }
+
+  /** Stop waiting for (and cancel) the running AI music job. */
+  async cancelAiMusic(): Promise<void> {
+    const jobId = this.aiMusicJobId;
+    if (!jobId) return;
+    this.aiMusicJobId = null;
+    this.audioTask = { kind: "AI_MUSIC", status: "FAILED", stage: null, progress: 0, errorCode: "CANCELLED", assetId: null };
+    this.emit();
+    await fetch(`/api/workspace/ai-sound/jobs/${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
+  }
+
+  dismissAudioTask(): void {
+    if (this.audioTask?.status === "RUNNING") return;
+    this.audioTask = null;
     this.emit();
   }
 
@@ -2106,11 +2280,13 @@ export class ProductSetupEngine {
     const selected = typeof project.selectedAudioAssetId === "string"
       ? project.selectedAudioAssetId
       : this.selectedAudioAssetId;
+    if ((selected || null) !== this.selectedAudioAssetId) this.audioIntelligence = null;
     this.selectedAudioAssetId = selected || null;
     this.audioEnabled = Boolean(project.audioEnabled ?? this.selectedAudioAssetId);
     if (typeof project.audioVolume === "number") this.audioVolume = project.audioVolume;
     const mode = String(project.beatSyncMode ?? this.beatSyncMode).toUpperCase();
     this.beatSyncMode = mode === "OFF" || mode === "STRICT" ? mode : "SMART";
+    this.voiceSelected = Boolean(project.voiceEnabled && project.selectedVoiceAssetId);
   }
 
   private async hydrateCreativePlan(projectId: string): Promise<void> {

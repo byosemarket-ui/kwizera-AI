@@ -17,6 +17,7 @@ import type {
 import type {
   PmvAudioIntelligenceView,
   PmvAudioLibraryItem,
+  PmvAudioTask,
   PmvBeatSyncMode,
   PmvMusicCapabilityView,
   PmvProduceStatus,
@@ -273,6 +274,11 @@ export interface ProductSetupSnapshot {
   beatSyncMode: PmvBeatSyncMode;
   audioIntelligence: PmvAudioIntelligenceView | null;
   musicCapability: PmvMusicCapabilityView;
+  /** A voice-over is on for this project (music is mixed under it). */
+  voiceSelected: boolean;
+  audioTask: PmvAudioTask | null;
+  /** Music added by the customer this session (always listed). */
+  addedAudioAssetIds: string[];
   timelineReady: boolean;
   finalRenderJobId: string | null;
   finalVideoReady: boolean;

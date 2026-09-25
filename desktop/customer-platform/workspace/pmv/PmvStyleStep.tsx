@@ -23,6 +23,7 @@ import {
   type PmvVideoStyleId,
   type StylePresetId,
 } from "./view-model";
+import { PmvAudioSection } from "./PmvAudioSection";
 
 const STYLE_ICONS: Record<PmvVideoStyleId, typeof Images> = {
   slideshow: Images,
@@ -65,7 +66,6 @@ export function PmvStyleStep({
     durationSeconds: settings.durationSeconds,
   });
   const preset = stylePresetFromTone(direction.creativeTone);
-  const showMusic = snap.audioLibrary.length > 0 || Boolean(snap.selectedAudioAssetId);
 
   const choosePlatform = (id: PmvPlatform) => {
     if (id === destination.platform) return;
@@ -100,12 +100,6 @@ export function PmvStyleStep({
     if (!next || id === preset) return;
     if (direction.goal !== next.goal) productSetupEngine.setCreativeDirectionField("goal", next.goal);
     if (direction.energy !== next.energy) productSetupEngine.setCreativeDirectionField("energy", next.energy);
-  };
-
-  const chooseMusic = (assetId: string) => {
-    if (assetId === (snap.selectedAudioAssetId ?? "")) return;
-    const task = assetId ? productSetupEngine.selectProjectAudio(assetId) : productSetupEngine.clearProjectAudio();
-    void task.catch(() => onError("Could not update the music. Please try again."));
   };
 
   return (
@@ -180,15 +174,6 @@ export function PmvStyleStep({
             ) : null}
           </select>
         </label>
-        {showMusic ? (
-          <label className="pmv-field">
-            <span>Music</span>
-            <select value={snap.selectedAudioAssetId ?? ""} onChange={(ev) => chooseMusic(ev.target.value)}>
-              <option value="">No music</option>
-              {snap.audioLibrary.map((a) => <option key={a.assetId} value={a.assetId}>{a.title}</option>)}
-            </select>
-          </label>
-        ) : null}
       </div>
 
       <div className="pmv-field-group" data-pmv-destination={destination.profile.id}>
@@ -295,6 +280,8 @@ export function PmvStyleStep({
         )}
       </div>
 
+      <PmvAudioSection snap={snap} onError={onError} />
+
       <button
         type="button"
         className="pmv-disclosure"
@@ -316,35 +303,6 @@ export function PmvStyleStep({
               placeholder="Young professionals"
             />
           </label>
-          {snap.selectedAudioAssetId ? (
-            <>
-              <label className="pmv-field">
-                <span>Music timing</span>
-                <select
-                  value={snap.beatSyncMode}
-                  onChange={(ev) => {
-                    void productSetupEngine.setBeatSyncMode(ev.target.value as "OFF" | "SMART" | "STRICT")
-                      .catch(() => onError("Could not update music timing. Please try again."));
-                  }}
-                >
-                  <option value="SMART">Match the beat</option>
-                  <option value="STRICT">Strictly on beat</option>
-                  <option value="OFF">Free timing</option>
-                </select>
-              </label>
-              <label className="pmv-field">
-                <span>Music volume</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={Math.round(snap.audioVolume * 100)}
-                  onChange={(ev) => { void productSetupEngine.setAudioVolume(Number(ev.target.value) / 100).catch(() => undefined); }}
-                  aria-valuetext={`${Math.round(snap.audioVolume * 100)}%`}
-                />
-              </label>
-            </>
-          ) : null}
         </div>
       ) : null}
 

@@ -68,6 +68,8 @@ export interface CreativeProjectDto {
   audioEnabled?: boolean;
   audioVolume?: number;
   beatSyncMode?: "OFF" | "SMART" | "STRICT";
+  selectedVoiceAssetId?: string | null;
+  voiceEnabled?: boolean;
 }
 
 export interface WorkspaceApiPayload {
