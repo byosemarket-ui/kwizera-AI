@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productSetupEngine } from "../product-setup/product-setup-engine";
+import { displayPercent } from "../customer-platform/workspace/pmv/progress-model";
 import { getPmvWorkflow, sendPmvWorkflowAction, type CustomerWorkflowSummary, type PmvWorkflowAction } from "./api";
 
 const POLL_MS = 4_000;
@@ -9,6 +10,10 @@ export interface PmvWorkflowState {
   loaded: boolean;
   pending: PmvWorkflowAction | null;
   error: string | null;
+  /** Client clock when `workflow` was received (for elapsed time between polls). */
+  receivedAt: number;
+  /** Percentage to show for the current run (never rewinds within a run). */
+  percent: number;
   act: (action: PmvWorkflowAction) => Promise<CustomerWorkflowSummary | null>;
 }
 
@@ -18,10 +23,16 @@ export function usePmvWorkflow(projectId: string | null): PmvWorkflowState {
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState<PmvWorkflowAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [receivedAt, setReceivedAt] = useState(0);
+  const [percent, setPercent] = useState(0);
   const lastSeen = useRef<string | null>(null);
+  const shown = useRef<{ key: string; percent: number } | null>(null);
 
   const apply = useCallback((next: CustomerWorkflowSummary | null) => {
     setWorkflow(next);
+    setReceivedAt(Date.now());
+    shown.current = next ? displayPercent(shown.current, next) : null;
+    setPercent(shown.current?.percent ?? 0);
     const marker = next ? `${next.workflowId}:${next.status}:${next.progress.completed}` : null;
     if (lastSeen.current !== null && marker !== lastSeen.current) {
       void productSetupEngine.hydrateFromServer();
@@ -31,7 +42,9 @@ export function usePmvWorkflow(projectId: string | null): PmvWorkflowState {
 
   useEffect(() => {
     lastSeen.current = null;
+    shown.current = null;
     setWorkflow(null);
+    setPercent(0);
     setLoaded(false);
     setError(null);
     if (!projectId) return;
@@ -69,5 +82,5 @@ export function usePmvWorkflow(projectId: string | null): PmvWorkflowState {
     }
   }, [projectId, apply]);
 
-  return { workflow, loaded, pending, error, act };
+  return { workflow, loaded, pending, error, receivedAt, percent, act };
 }

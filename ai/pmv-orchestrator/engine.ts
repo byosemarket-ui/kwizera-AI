@@ -179,6 +179,7 @@ export class PmvWorkflowOrchestrator {
       createdAt: now,
       updatedAt: now,
       completedAt: null,
+      runStartedAt: now,
     };
     this.records.set(record.id, record);
     this.latestByProject.set(projectId, record.id);
@@ -211,6 +212,7 @@ export class PmvWorkflowOrchestrator {
     latest.status = "QUEUED";
     latest.completedAt = null;
     latest.updatedAt = nowIso();
+    latest.runStartedAt = latest.updatedAt;
     await this.persist(latest);
     this.enqueue(latest.id);
     return latest;
@@ -561,6 +563,7 @@ export function migrateRecord(raw: WorkflowRecord): WorkflowRecord {
   record.pendingRegenerateSceneIds = Array.isArray(raw.pendingRegenerateSceneIds) ? raw.pendingRegenerateSceneIds : [];
   record.forcedSteps = Array.isArray(raw.forcedSteps) ? raw.forcedSteps : [];
   record.repairAttempts = raw.repairAttempts && typeof raw.repairAttempts === "object" ? raw.repairAttempts : {};
+  record.runStartedAt = typeof raw.runStartedAt === "string" ? raw.runStartedAt : null;
   record.steps = (raw.steps ?? []).map((step) => ({
     ...step,
     history: Array.isArray(step.history) ? step.history : [],

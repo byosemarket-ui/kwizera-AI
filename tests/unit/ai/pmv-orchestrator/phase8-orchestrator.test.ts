@@ -553,7 +553,7 @@ describe("Phase 8 — M. no secrets", () => {
     const record = await runToIdle(h, () => h.orchestrator.start("p1"));
     const summary = toCustomerSummary(record);
     expect(Object.keys(summary).sort()).toEqual(
-      ["canCancel", "canResume", "canRetry", "delivered", "label", "message", "progress", "stages", "status", "updatedAt", "workflowId"].sort(),
+      ["activeStagePercent", "canCancel", "canResume", "canRetry", "completedAt", "delivered", "etaSeconds", "label", "message", "observedAt", "progress", "stages", "startedAt", "status", "updatedAt", "workflowId"].sort(),
     );
     const allowed = new Set(Object.values(CUSTOMER_STEP_LABELS));
     for (const stage of summary.stages) expect(allowed.has(stage.label)).toBe(true);

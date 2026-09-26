@@ -4402,7 +4402,16 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       }
       if (req.method === "GET") {
         const latest = orchestrator.getLatest(projectId);
-        sendJson(res, 200, { workflow: latest ? toCustomerSummary(latest) : null });
+        let live: { progress: number; startedAt: string | null } | null = null;
+        if (latest?.status === "RUNNING" && (latest.currentStep === "RENDER" || latest.currentStep === "VIDEO_GENERATION")) {
+          const production = getVideoProductionManager();
+          const video = production ? await production.getVideoProject(projectId).catch(() => null) : null;
+          const job = production && video?.activeJobId ? await production.getJob(video.activeJobId, projectId).catch(() => null) : null;
+          if (job && (job.status === "queued" || job.status === "processing") && Number.isFinite(job.progress)) {
+            live = { progress: job.progress, startedAt: job.startedAt ?? null };
+          }
+        }
+        sendJson(res, 200, { workflow: latest ? toCustomerSummary(latest, live) : null });
         return;
       }
       const body = JSON.parse((await readBody(req)) || "{}") as { action?: string };

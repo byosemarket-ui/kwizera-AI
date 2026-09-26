@@ -181,6 +181,8 @@ export interface WorkflowRecord {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  /** When the customer last started/resumed this run (null on records written before it existed). */
+  runStartedAt?: string | null;
 }
 
 /** Customer-safe progress labels (no providers/models/capabilities/costs). */

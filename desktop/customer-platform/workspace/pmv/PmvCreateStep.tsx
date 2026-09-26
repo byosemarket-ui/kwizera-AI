@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, ArrowLeft, Check, Circle, Loader2, Pause, Sparkles } from "lucide-react";
 import { productSetupEngine } from "../../../product-setup/product-setup-engine";
 import type { ProductSetupSnapshot } from "../../../product-setup/types";
 import type { PmvWorkflowState } from "../../../pmv-workflow/usePmvWorkflow";
+import type { CustomerWorkflowSummary } from "../../../pmv-workflow/api";
+import { elapsedMs, etaText, formatElapsed, isRunActive, runStatusLine } from "./progress-model";
 import type { CustomerStageState } from "../../../../ai/pmv-orchestrator/views";
 import { resolvePmvDestination } from "../../../../ai/pmv-shared/destination.js";
 import {
@@ -34,6 +36,46 @@ const STAGE_STATE_TEXT: Record<CustomerStageState, string> = {
   failed: "stopped",
   cancelled: "cancelled",
 };
+
+/** Overall bar, current activity, elapsed time and (only when measurable) time left — all from the server's run state. */
+function RunProgress({ workflow, percent, receivedAt }: { workflow: CustomerWorkflowSummary; percent: number; receivedAt: number }) {
+  const active = isRunActive(workflow);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+  const elapsed = elapsedMs(workflow, receivedAt, active ? now : receivedAt);
+  const eta = active ? etaText(workflow.etaSeconds) : null;
+  const line = runStatusLine(workflow);
+  return (
+    <div className="pmv-run" data-pmv-run={workflow.status}>
+      <div className="pmv-run__top">
+        <strong className="pmv-run__percent" data-pmv-percent={percent}>{percent}%</strong>
+        <span className="pmv-run__status" role="status" aria-live="polite">{line}</span>
+      </div>
+      <div
+        className={`pmv-run__bar${workflow.status === "FAILED" ? " is-failed" : ""}`}
+        role="progressbar"
+        aria-label="Video progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={`${percent}% — ${line}`}
+      >
+        <i style={{ width: `${percent}%` }} />
+      </div>
+      {elapsed !== null || eta ? (
+        <div className="pmv-run__meta">
+          {elapsed !== null ? <span>Elapsed {formatElapsed(elapsed)}</span> : null}
+          {eta ? <span data-pmv-eta="true">{eta}</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function PmvCreateStep({
   snap,
@@ -146,14 +188,14 @@ export function PmvCreateStep({
         <>
           <div className="pmv-step__head">
             <h2 id="pmv-create-title">
-              {inProgress ? "Creating your video" : status === "REVIEW" ? "Your input is needed" : "Video paused"}
+              {inProgress ? "Creating your video"
+                : status === "REVIEW" ? "Your input is needed"
+                : status === "FAILED" ? "Your video could not be completed"
+                : "Video paused"}
             </h2>
-            {workflow ? (
-              <span className="pmv-muted" aria-live="polite">
-                {workflow.progress.completed} of {workflow.progress.total} done
-              </span>
-            ) : null}
           </div>
+
+          {workflow ? <RunProgress workflow={workflow} percent={flow.percent} receivedAt={flow.receivedAt} /> : null}
 
           {workflow ? (
             <ol className="pmv-progress" aria-label="Video progress">
