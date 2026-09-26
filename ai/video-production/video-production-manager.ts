@@ -45,6 +45,7 @@ import { applyProductionModeToClip, resolveProductionRenderProfile } from "./pro
 import { applyMotionDirectionToTimeline, directClipMotion } from "./motion-direction.js";
 import { applySmartCameraToTimeline, buildSmartCameraPlan, type SmartCameraPlan } from "./smart-camera.js";
 import { applyCompositionToTimeline, compositionHintForTypography, preferredTextSidesForBias } from "./scene-composition.js";
+import { applyCanvasFitToClip, planCanvasFit } from "./canvas-fit.js";
 import type { CreativeToneId } from "./production-mode-types.js";
 import { getVideoGenerationProvider } from "./video-generation-provider.js";
 import { validateI2vSceneClip } from "./i2v-scene-validate.js";
@@ -87,7 +88,7 @@ import { recordVideoProductionFoundation } from "./video-production-foundation.j
 
 const PROVIDER_MESSAGE = "VIDEO GENERATION PROVIDER UNAVAILABLE. Deterministic FFmpeg still-to-video remains available.";
 const AUDIO_MESSAGE_NONE = "No audio selected. Video will render without an audio stream.";
-const AUDIO_MESSAGE_SELECTED = "Selected library audio will be muxed onto the final MP4 (trimmed to video duration; no looping).";
+const AUDIO_MESSAGE_SELECTED = "Selected library audio is fitted to the video length (loops with crossfades when shorter, fades out with the video when longer).";
 const AUDIO_MESSAGE_PROVIDER = "AI audio generation is not configured. Use Audio Library selection (STEP 2B).";
 
 export class VideoProductionManager {
@@ -840,6 +841,7 @@ export class VideoProductionManager {
           previousPlan: previousCameraPlan,
         });
         previousCameraPlan = cameraPlan;
+        let stillClip: VideoTimelineClip | null = null;
         const productionClip = {
           ...directed.clip,
           cameraPlan,
@@ -850,8 +852,8 @@ export class VideoProductionManager {
             focusY: cameraPlan.renderParams.focusY,
             cropFocusX: cameraPlan.cropFocusX,
             cropFocusY: cameraPlan.cropFocusY,
-            safetyAdjusted: cameraPlan.safetyAdjusted || directed.clip.motionParams?.safetyAdjusted,
-            fallbackUsed: cameraPlan.fallbackUsed || directed.clip.motionParams?.fallbackUsed,
+            safetyAdjusted: Boolean(cameraPlan.safetyAdjusted || directed.clip.motionParams?.safetyAdjusted),
+            fallbackUsed: Boolean(cameraPlan.fallbackUsed || directed.clip.motionParams?.fallbackUsed),
           },
         };
         await this.writeJob(job.id, {
@@ -1064,13 +1066,31 @@ export class VideoProductionManager {
           // I2V clips are already motion video — skip FFmpeg still zoompan overlays.
           overlays.push("skipped");
         } else {
-          const rendered = await renderStillClip({ clip: productionClip, imagePath }, renderPlan, clipPath, fontFile);
+          let dims = framingInspection?.sourceWidth && framingInspection.sourceHeight
+            ? { width: framingInspection.sourceWidth, height: framingInspection.sourceHeight }
+            : null;
+          if (!dims) dims = readDimensions(await fs.readFile(imagePath).catch(() => null));
+          const canvasPlan = planCanvasFit({
+            sceneId: productionClip.sceneId,
+            assetId: productionClip.assetId,
+            sourceWidth: dims?.width ?? 0,
+            sourceHeight: dims?.height ?? 0,
+            frameWidth: renderPlan.width,
+            frameHeight: renderPlan.height,
+            targetAspect: renderPlan.aspectRatio,
+            framing: framingInspection,
+            cropFocusX: productionClip.motionParams?.cropFocusX,
+            cropFocusY: productionClip.motionParams?.cropFocusY,
+            forceSafe: Array.isArray(job.regenerateSceneIds) && job.regenerateSceneIds.includes(productionClip.sceneId),
+          });
+          stillClip = applyCanvasFitToClip<VideoTimelineClip>(productionClip, canvasPlan, Boolean(framingInspection?.nearEdge));
+          const rendered = await renderStillClip({ clip: stillClip, imagePath }, renderPlan, clipPath, fontFile);
           overlays.push(rendered.overlay);
         }
 
         clipPaths.push(clipPath);
         // Keep directed motion on the in-memory clip list for continuity of subsequent scenes.
-        typedClips[index] = productionClip;
+        typedClips[index] = stillClip ?? productionClip;
         await this.writeJob(job.id, {
           ...started,
           stage: "rendering",
@@ -1107,6 +1127,7 @@ export class VideoProductionManager {
               motionParams: directed.motionParams,
               cameraPlan: directed.cameraPlan,
               compositionPlan: directed.compositionPlan,
+              canvasPlan: directed.canvasPlan,
               text: directed.text?.length ? directed.text : clip.text,
             };
           }),
@@ -1244,7 +1265,10 @@ export class VideoProductionManager {
         }
         const silentProbe = await probeVideo(outputPath);
         const muxedPath = path.join(tmpDir, "output-with-audio.mp4");
-        await muxMusicAndVoiceOntoVideo({
+        const musicAnalysis = hasMusic && this.audioIntelligence?.isInitialized()
+          ? await this.audioIntelligence.getAnalysis(audioSelection!.selectedAudioAssetId!).catch(() => null)
+          : null;
+        const muxed = await muxMusicAndVoiceOntoVideo({
           videoPath: outputPath,
           outputPath: muxedPath,
           videoDurationMs: silentProbe.durationMs,
@@ -1252,8 +1276,10 @@ export class VideoProductionManager {
           musicVolume: audioSelection?.volume ?? 0.85,
           voicePath,
           voiceVolume: audioSelection?.voiceVolume ?? 1,
+          musicAnalysis: musicAnalysis?.status === "READY" ? musicAnalysis : null,
         });
         await fs.copyFile(muxedPath, outputPath);
+        await this.patchVideo(job.projectId, { audioFitPlan: { ...muxed.audioFit, renderJobId: job.id } });
       }
 
       await this.writeJob(job.id, {

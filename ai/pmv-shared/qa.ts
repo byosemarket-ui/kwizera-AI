@@ -176,6 +176,10 @@ export function runDeterministicPmvQa(input: {
   visionQaAvailable: boolean;
   /** Optional online vision identity evidence (never invent PASS without this for generative modes). */
   visionIdentity?: PmvVisionIdentityEvidence | null;
+  /** Phase 16 — canvas decision each still scene was rendered with (geometry check, not vision). */
+  sceneCanvas?: Array<{ sceneId: string; strategy: string; cropRisk: string; basis: string }>;
+  /** Phase 16 — how the selected music was fitted to the rendered output. */
+  audioFit?: { strategy: string; sourceDurationSec: number; targetDurationSec: number; coveredDurationSec: number } | null;
 }): PmvVideoQaResult {
   const failures: string[] = [];
   const warnings: string[] = [];
@@ -210,6 +214,18 @@ export function runDeterministicPmvQa(input: {
     } else {
       audioStatus = "UNCERTAIN";
       warnings.push("Audio was enabled but stream presence was not explicitly confirmed in validation checks.");
+    }
+    const fit = input.audioFit ?? null;
+    if (fit && audioStatus !== "FAIL") {
+      const gap = fit.targetDurationSec - fit.coveredDurationSec;
+      if (fit.strategy === "PAD_SILENCE") {
+        warnings.push(`Selected audio (${fit.sourceDurationSec.toFixed(1)}s) is too short to loop and plays once.`);
+      } else if (gap > 0.5) {
+        audioStatus = "FAIL";
+        failures.push("Audio ends before the video.");
+      } else {
+        evidence.push(`Audio fitted to video length (${fit.strategy}).`);
+      }
     }
   }
 
@@ -341,6 +357,14 @@ export function runDeterministicPmvQa(input: {
       identity = "FAIL";
       sceneFailures.push("Scene marked FAILED.");
     }
+    let sceneComposition = compositionStatus;
+    const canvas = input.sceneCanvas?.find((c) => c.sceneId === scene.sceneId);
+    if (canvas?.strategy === "COVER_CROP" && canvas.cropRisk === "UNSAFE") {
+      sceneComposition = "FAIL";
+      sceneFailures.push("Product is cropped by the frame in this scene.");
+    } else if (canvas?.strategy === "SOFT_EXTEND") {
+      sceneWarnings.push("Full photo kept inside the frame to avoid cropping the product.");
+    }
     const status = sceneFailures.length ? "FAIL" : identity === "UNCERTAIN" ? "UNCERTAIN" : "PASS";
     return {
       sceneId: scene.sceneId,
@@ -350,7 +374,7 @@ export function runDeterministicPmvQa(input: {
       productIdentityStatus: identity,
       textStatus: /cta|end/i.test(scene.purpose) ? textStatus : "PASS",
       brandingStatus: /cta|end|brand/i.test(scene.purpose) ? brandingStatus : "PASS",
-      compositionStatus,
+      compositionStatus: sceneComposition,
       motionStatus,
       timingStatus: scene.durationSeconds > 0 ? "PASS" : "UNCERTAIN",
       failures: sceneFailures,

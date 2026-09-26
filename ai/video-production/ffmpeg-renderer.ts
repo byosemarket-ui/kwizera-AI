@@ -4,6 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { VideoMotionId, VideoRenderPlan, VideoTextOverlayStatus, VideoTimelineClip, VideoTransitionId } from "./types.js";
 import { sanitizeRenderText } from "./ffmpeg-sanitize.js";
+import { buildAudioFitFilter, planAudioFit, type AudioFitAnalysis, type AudioFitPlan } from "./audio-fit.js";
+import { canvasFitFilter } from "./canvas-fit.js";
 
 export { sanitizeRenderText } from "./ffmpeg-sanitize.js";
 
@@ -227,11 +229,13 @@ export async function stillFilter(
       ?? input.clip.cameraPlan?.cropFocusY
       ?? 0.5,
   );
-  // STEP 9 — subject-aware cover crop (not fixed center).
-  const parts = [
-    `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase`,
-    `crop=${plan.width}:${plan.height}:(iw-ow)*${cropFocusX.toFixed(3)}:(ih-oh)*${cropFocusY.toFixed(3)}`,
-  ];
+  // Phase 16 — SOFT_EXTEND keeps the whole photo; otherwise STEP 9 subject-aware cover crop.
+  const parts = input.clip.canvasPlan?.strategy === "SOFT_EXTEND"
+    ? [canvasFitFilter(plan.width, plan.height)]
+    : [
+      `scale=${plan.width}:${plan.height}:force_original_aspect_ratio=increase`,
+      `crop=${plan.width}:${plan.height}:(iw-ow)*${cropFocusX.toFixed(3)}:(ih-oh)*${cropFocusY.toFixed(3)}`,
+    ];
   if (options.motion) {
     parts.push(zoompan(input.clip.motion, frames, plan.width, plan.height, input.clip.motionParams));
   }
@@ -592,11 +596,17 @@ async function probeVideoHasAudio(filePath: string): Promise<{ hasAudio: boolean
   }
 }
 
+async function planFitForFile(audioPath: string, targetSec: number, analysis: AudioFitAnalysis | null | undefined, allowLoop: boolean): Promise<AudioFitPlan> {
+  const sourceSec = await probeAudio(audioPath).then((a) => a.durationMs / 1000).catch(() => 0);
+  return planAudioFit({ sourceDurationSec: sourceSec, targetDurationSec: targetSec, analysis, allowLoop });
+}
+
 /**
  * Mux selected library audio onto a silent (or existing) MP4.
- * Behavior:
- * - Audio longer than video → trimmed to video duration.
- * - Audio shorter than video → padded with silence (no looping).
+ * Phase 16 — the track is fitted to the video length (see audio-fit.ts):
+ * - Audio longer than video → fades out and ends with the video (beat-aligned when analysis exists).
+ * - Audio shorter than video → loops with crossfades (downbeat/bar-aligned when analysis exists);
+ *   voice (`allowLoop: false`) and very short clips play once instead.
  */
 export async function muxAudioOntoVideo(input: {
   videoPath: string;
@@ -604,13 +614,14 @@ export async function muxAudioOntoVideo(input: {
   outputPath: string;
   videoDurationMs: number;
   volume?: number;
-}): Promise<ProbedVideo> {
+  analysis?: AudioFitAnalysis | null;
+  allowLoop?: boolean;
+}): Promise<ProbedVideo & { audioFit: AudioFitPlan }> {
   const available = await ffmpegAvailable();
   if (!available) throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
   const durSec = Math.max(0.2, input.videoDurationMs / 1000);
-  const volume = Math.min(1, Math.max(0, input.volume ?? 1));
-  const volFilter = volume === 1 ? "" : `volume=${volume.toFixed(3)},`;
-  const filter = `[1:a]${volFilter}atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[a]`;
+  const audioFit = await planFitForFile(input.audioPath, durSec, input.analysis, input.allowLoop !== false);
+  const filter = buildAudioFitFilter(audioFit, "[1:a]", "[a]", { volume: input.volume ?? 1 });
   try {
     await runFfmpeg([
       "-y",
@@ -633,7 +644,7 @@ export async function muxAudioOntoVideo(input: {
   if (!probed.hasAudioStream) {
     throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
   }
-  return probed;
+  return { ...probed, audioFit };
 }
 
 /**
@@ -651,7 +662,9 @@ export async function muxMusicAndVoiceOntoVideo(input: {
   voiceVolume?: number;
   /** Music gain while voice is active (0–1). Default 0.28 */
   duckLevel?: number;
-}): Promise<ProbedVideo> {
+  /** Audio Intelligence result for the music track (beats/downbeats/bpm), when analysed. */
+  musicAnalysis?: AudioFitAnalysis | null;
+}): Promise<ProbedVideo & { audioFit: AudioFitPlan }> {
   const hasMusic = Boolean(input.musicPath);
   const hasVoice = Boolean(input.voicePath);
   if (!hasMusic && !hasVoice) {
@@ -664,6 +677,7 @@ export async function muxMusicAndVoiceOntoVideo(input: {
       outputPath: input.outputPath,
       videoDurationMs: input.videoDurationMs,
       volume: input.musicVolume,
+      analysis: input.musicAnalysis,
     });
   }
   if (!hasMusic && hasVoice) {
@@ -673,6 +687,7 @@ export async function muxMusicAndVoiceOntoVideo(input: {
       outputPath: input.outputPath,
       videoDurationMs: input.videoDurationMs,
       volume: input.voiceVolume ?? 1,
+      allowLoop: false,
     });
   }
 
@@ -682,11 +697,13 @@ export async function muxMusicAndVoiceOntoVideo(input: {
   const musicVol = Math.min(1, Math.max(0, input.musicVolume ?? 0.85));
   const voiceVol = Math.min(1, Math.max(0, input.voiceVolume ?? 1));
   const duck = Math.min(musicVol, Math.max(0.05, input.duckLevel ?? 0.28));
+  const audioFit = await planFitForFile(input.musicPath!, durSec, input.musicAnalysis, true);
+  const voiceFit = await planFitForFile(input.voicePath!, durSec, null, false);
 
   // Voice on top; music reduced while voice plays (aprox via volume + amix).
   const filter = [
-    `[1:a]volume=${musicVol.toFixed(3)},atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[music]`,
-    `[2:a]volume=${voiceVol.toFixed(3)},atrim=0:${durSec.toFixed(3)},asetpts=PTS-STARTPTS,apad=whole_dur=${durSec.toFixed(3)}[voice]`,
+    buildAudioFitFilter(audioFit, "[1:a]", "[music]", { volume: musicVol, labelPrefix: "m" }),
+    buildAudioFitFilter(voiceFit, "[2:a]", "[voice]", { volume: voiceVol, labelPrefix: "v" }),
     // Soft duck: lower music bed then blend — keeps voice intelligible without sidechain dependency.
     `[music]volume=${(duck / Math.max(musicVol, 0.01)).toFixed(3)}[musicduck]`,
     `[musicduck][voice]amix=inputs=2:duration=longest:dropout_transition=0[a]`,
@@ -715,7 +732,7 @@ export async function muxMusicAndVoiceOntoVideo(input: {
   if (!probed.hasAudioStream) {
     throw new FfmpegAudioError("MUX_FAILED", "Failed to mix music and voice onto video.");
   }
-  return probed;
+  return { ...probed, audioFit };
 }
 
 async function runFfmpeg(args: string[], timeout: number): Promise<void> {

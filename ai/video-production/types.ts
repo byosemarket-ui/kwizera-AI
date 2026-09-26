@@ -190,6 +190,8 @@ export interface VideoTimelineClip {
     warnings: string[];
     version: string;
   };
+  /** Phase 16 — crop-risk decision and canvas layout used for this still scene. */
+  canvasPlan?: import("./canvas-fit.js").CanvasFitPlan;
 }
 
 export interface VideoAudioPlan {
@@ -423,6 +425,8 @@ export interface VideoProject {
   /** STEP 2F — Audio-Visual Creative Director plan (decision layer only). */
   avCreativePlan?: import("../audio-visual-director/types.js").AudioVisualCreativePlan;
   avCreativeMode?: import("../audio-visual-director/types.js").AvCreativeMode;
+  /** Phase 16 — how the selected audio was fitted to the last rendered output. */
+  audioFitPlan?: import("./audio-fit.js").AudioFitPlan & { renderJobId: string };
 }
 
 export class VideoProductionError extends Error {

@@ -611,6 +611,10 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       },
       visionQaAvailable,
       visionIdentity,
+      sceneCanvas: (video?.timeline ?? []).flatMap((clip) => clip.canvasPlan
+        ? [{ sceneId: clip.sceneId, strategy: clip.canvasPlan.strategy, cropRisk: clip.canvasPlan.cropRisk, basis: clip.canvasPlan.basis }]
+        : []),
+      audioFit: video?.audioFitPlan && video.audioFitPlan.renderJobId === output.renderJobId ? video.audioFitPlan : null,
     });
     const route = classifyPmvQaFailure(qa);
     if (route.domain !== "none" && route.recommendedAction) {
