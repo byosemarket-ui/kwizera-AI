@@ -81,6 +81,8 @@ export interface KnowledgeSearchHit {
 export interface KnowledgeSearchResult {
   mode: "KEYWORD" | "HYBRID_SEMANTIC";
   hits: KnowledgeSearchHit[];
+  /** Relevant guidance-bearing hits left out by the diversity cap or limit (guidance resolution only, no excerpts). */
+  guidanceHits?: KnowledgeSearchHit[];
   consideredCount: number;
   durationMs: number;
   cached: boolean;
@@ -308,9 +310,12 @@ export class HybridKnowledgeIndex {
       selected.push(hit);
       if (selected.length >= limit) break;
     }
+    const chosen = new Set(selected.map((h) => h.doc.id));
+    const guidanceHits = hits.filter((h) => !chosen.has(h.doc.id) && h.doc.guidance?.length).slice(0, 5);
     const result: KnowledgeSearchResult = {
       mode: semantic ? "HYBRID_SEMANTIC" : "KEYWORD",
       hits: selected,
+      guidanceHits,
       consideredCount: candidates.size,
       durationMs: Date.now() - started,
       cached: false,

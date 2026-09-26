@@ -371,6 +371,13 @@ describe("Phase 17 — retrieval", () => {
     expect(typography.items[0]?.domain).toBe("TYPOGRAPHY");
     expect(typography.guidance[0]).toMatchObject({ key: "typography.maxItemsPerScene", basis: "KNOWLEDGE", value: 3 });
 
+    const productionQuery = await pipeline.retrieve({
+      task: "TYPOGRAPHY_PLAN", query: "Beverage Studio Bottle product video text hierarchy readability contrast placement tiktok 9:16",
+      guidanceSpecs: [{ key: "typography.maxItemsPerScene", min: 2, max: 3, default: 3 }],
+    });
+    expect(productionQuery.guidance[0].basis).toBe("KNOWLEDGE");
+    expect(productionQuery.guidance[0].sourceItemIds.length).toBeGreaterThan(0);
+
     const code = await pipeline.retrieve({ task: "CODE_ASSIST", query: "typescript relative imports js extension tests" });
     expect(code.items[0]?.domain).toBe("SOFTWARE_ENGINEERING");
     expect(code.items[0]?.title).toMatch(/engineering conventions/);

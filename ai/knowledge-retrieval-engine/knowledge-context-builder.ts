@@ -77,7 +77,7 @@ export function buildTaskKnowledgeContext(input: {
     });
   }
   const allowed = profile.guidancePrefixes;
-  const candidates: GuidanceCandidate[] = input.result.hits
+  const candidates: GuidanceCandidate[] = [...input.result.hits, ...(input.result.guidanceHits ?? [])]
     .filter((hit) => hit.doc.guidance?.length)
     .map((hit) => ({
       itemId: hit.doc.id,
