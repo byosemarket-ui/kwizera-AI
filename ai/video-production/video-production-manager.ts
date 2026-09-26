@@ -862,7 +862,7 @@ export class VideoProductionManager {
           progress: Math.min(78, 12 + Math.round(((index) / typedClips.length) * 66)),
           sceneIndex: index + 1,
           sceneCount: typedClips.length,
-          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length} (${directed.diagnostics.directedType}/${cameraPlan.mode})`,
+          stageMessage: `Preparing scene ${index + 1} of ${typedClips.length}`,
         });
         const resolved = await resolveProductionImagePath(this.workspace!, job.projectId, productionClip.assetId);
         const imagePath = resolved?.path ?? null;
