@@ -254,6 +254,13 @@ describe("Phase 16 — audio fit (duration reconciliation)", () => {
     const { stdout } = await execFileAsync("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=duration", "-of", "csv=p=0", path.join(root, "o.mp4")]).catch(() => ({ stdout: "" }));
     if (stdout.trim()) expect(Number(stdout.trim())).toBeGreaterThan(8.5);
   }, 60_000);
+
+  it("the completed render record keeps the audio fit plan", async () => {
+    const src = await fs.readFile(path.resolve("ai/video-production/video-production-manager.ts"), "utf8");
+    const finalWrite = src.slice(src.indexOf("const updatedVideo = this.decorateVideo({"));
+    expect(finalWrite.slice(0, 1200)).toContain("audioFitPlan: audioFitPlan ?? video.audioFitPlan");
+    expect(src).not.toMatch(/stageMessage: `Preparing scene[^`]*\(\$\{/);
+  });
 });
 
 describe("Phase 16 — QA and targeted repair", () => {

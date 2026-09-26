@@ -1229,6 +1229,7 @@ export class VideoProductionManager {
         : null;
       const hasMusic = Boolean(audioSelection?.enabled && audioSelection.selectedAudioAssetId);
       const hasVoice = Boolean(audioSelection?.voiceEnabled && audioSelection.selectedVoiceAssetId);
+      let audioFitPlan: VideoProject["audioFitPlan"];
       if (hasMusic || hasVoice) {
         await this.writeJob(job.id, {
           ...started,
@@ -1279,7 +1280,8 @@ export class VideoProductionManager {
           musicAnalysis: musicAnalysis?.status === "READY" ? musicAnalysis : null,
         });
         await fs.copyFile(muxedPath, outputPath);
-        await this.patchVideo(job.projectId, { audioFitPlan: { ...muxed.audioFit, renderJobId: job.id } });
+        audioFitPlan = { ...muxed.audioFit, renderJobId: job.id };
+        await this.patchVideo(job.projectId, { audioFitPlan });
       }
 
       await this.writeJob(job.id, {
@@ -1423,6 +1425,7 @@ export class VideoProductionManager {
         qualityReview: qualityReview ?? undefined,
         versions: [...(video.versions ?? []), version],
         endCardPlan: endCardPlanPublic ?? video.endCardPlan,
+        audioFitPlan: audioFitPlan ?? video.audioFitPlan,
       });
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
       await this.writeJson(this.jobFile(job.id), completed);
