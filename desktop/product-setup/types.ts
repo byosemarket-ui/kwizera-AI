@@ -255,6 +255,8 @@ export interface ProductSetupSnapshot {
   creativeDirection: PmvCreativeDirection;
   creativeScenes: PmvStoryboardSceneView[];
   creativeCapabilities: PmvModeCapabilityView[];
+  /** Backend-decided video-mode availability (customer-safe); null while loading. */
+  videoModes: import("../../ai/pmv-shared/video-mode-resolver").PmvModeAvailability[] | null;
   creativePlanId: string | null;
   creativePlanStatus: string | null;
   creativeError: string | null;

@@ -30,6 +30,7 @@ const STEP_ROUTE: Record<WorkflowStepId, FailureRoute> = {
   CREATIVE_PLANNING: "creative_planning",
   MEDIA_PREPARATION: "media_preparation",
   VIDEO_GENERATION: "video_generation",
+  PRODUCT_3D_GENERATION: "video_generation",
   AUDIO: "audio",
   TIMELINE: "timeline",
   RENDER: "render",
@@ -42,7 +43,7 @@ export function customerMessageFor(failureClass: FailureClass): string {
   switch (failureClass) {
     case "CONFIGURATION_ERROR":
     case "AUTHENTICATION_ERROR":
-      return "This production option is unavailable right now. Try Exact product mode or try again later.";
+      return "This video style is unavailable right now. Choose Product Slideshow or try again later.";
     case "PROVIDER_ERROR":
     case "RATE_LIMIT":
     case "TIMEOUT":

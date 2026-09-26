@@ -145,6 +145,13 @@ export interface ProviderHealthResult {
   endpointHost?: string;
 }
 
+/** Executable readiness of a feature — states only, never provider/model identifiers or secrets. */
+export interface CapabilityExecutionReadiness {
+  feature: FeatureKey;
+  state: "READY" | "NOT_CONFIGURED" | "DISABLED" | "NOT_IMPLEMENTED" | "CREDENTIAL_MISSING" | "AUTH_FAILED" | "PROVIDER_ERROR" | "UNVERIFIED";
+  executable: boolean;
+}
+
 export interface SafeRuntimeExecutionView {
   feature: FeatureKey;
   status: string;

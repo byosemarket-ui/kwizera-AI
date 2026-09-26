@@ -7,7 +7,13 @@ import type { CreativeToneId, ProductionModeId } from "../../ai/video-production
 import type { CreativePlanDto } from "../deep-intelligence/live-api";
 import { scenesFromPlan as sharedScenesFromPlan, type PmvStoryboardSceneView } from "../../ai/pmv-shared/scenes.js";
 
-import { mapPmvModeToProduction, mapProductionToPmvMode, type PmvGenerationMode } from "../../ai/pmv-shared/modes.js";
+import {
+  DEFAULT_PMV_VIDEO_MODE,
+  mapPmvModeToProduction,
+  mapProductionToPmvMode,
+  type PmvGenerationMode,
+  type PmvVideoMode,
+} from "../../ai/pmv-shared/modes.js";
 
 export type { PmvStoryboardSceneView };
 
@@ -23,7 +29,7 @@ export type PmvCreativeEnergy =
   | "energetic"
   | "aggressive";
 
-export type { PmvGenerationMode };
+export type { PmvGenerationMode, PmvVideoMode };
 
 export type PmvCreativeStatus =
   | "NOT_STARTED"
@@ -40,6 +46,9 @@ export interface PmvCreativeDirection {
   mood: string;
   energy: PmvCreativeEnergy;
   visualStyle: string;
+  /** Canonical customer-selected video mode (authoritative). */
+  videoMode: PmvVideoMode;
+  /** Legacy mirror of `videoMode` for pre-Phase-10 readers; never read to decide the route. */
   generationMode: PmvGenerationMode;
   creativeTone: CreativeToneId;
   musicPreference: string;
@@ -97,6 +106,7 @@ export const DEFAULT_PMV_CREATIVE_DIRECTION = (): PmvCreativeDirection => ({
   mood: "Premium and clear",
   energy: "balanced",
   visualStyle: "Product-focused",
+  videoMode: DEFAULT_PMV_VIDEO_MODE,
   generationMode: "EXACT_PRODUCT",
   creativeTone: "Modern",
   musicPreference: "Light marketing bed (Step 4)",

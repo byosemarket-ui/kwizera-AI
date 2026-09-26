@@ -53,9 +53,7 @@ import {
   DEFAULT_PMV_CREATIVE_DIRECTION,
   audioRequirementsFromDirection,
   customerSafeError,
-  mapPmvModeToProduction,
   mapProductionToPmvMode,
-  pmvModeLabel,
   scenesFromPlan,
   toneFromEnergy,
   type PmvAudioRequirements,
@@ -110,6 +108,17 @@ import {
 import type { ProductionModeId } from "../../ai/video-production/production-mode-types";
 import { profileForPlatform } from "../../ai/video-production/platform-profiles.js";
 import { isPmvPlatform, resolvePmvDestination, sceneBudgetSeconds } from "../../ai/pmv-shared/destination.js";
+import {
+  PMV_VIDEO_MODE_COPY,
+  isPmvVideoMode,
+  legacyGenerationMode,
+  productionModeForVideoMode,
+  resolveStoredVideoMode,
+  videoModeFromGenerationMode,
+  type PmvVideoMode,
+} from "../../ai/pmv-shared/modes.js";
+import type { PmvModeAvailability } from "../../ai/pmv-shared/video-mode-resolver.js";
+import { fetchPmvVideoModes } from "../pmv-workflow/api";
 import type { CreativePlanDto } from "../deep-intelligence/live-api";
 
 export const SETUP_HANDOFF_KEY = "kwizera.product-setup.handoff.v1";
@@ -203,6 +212,8 @@ export class ProductSetupEngine {
   private creativeDirection: PmvCreativeDirection = DEFAULT_PMV_CREATIVE_DIRECTION();
   private creativeScenes: PmvStoryboardSceneView[] = [];
   private creativeCapabilities: PmvModeCapabilityView[] = [];
+  /** Backend-decided mode availability; null until the server answers. */
+  private videoModes: PmvModeAvailability[] | null = null;
   private creativePlan: CreativePlanDto | null = null;
   private creativePlanId: string | null = null;
   private creativePlanStatus: string | null = null;
@@ -430,6 +441,7 @@ export class ProductSetupEngine {
       creativeDirection: { ...this.creativeDirection },
       creativeScenes: this.creativeScenes.map((s) => ({ ...s })),
       creativeCapabilities: this.creativeCapabilities.map((c) => ({ ...c })),
+      videoModes: this.videoModes ? this.videoModes.map((m) => ({ ...m })) : null,
       creativePlanId: this.creativePlanId,
       creativePlanStatus: this.creativePlanStatus,
       creativeError: this.creativeError,
@@ -806,8 +818,10 @@ export class ProductSetupEngine {
         this.creativeDirection.goal,
       );
     }
-    if (field === "generationMode") {
-      this.productionMode = mapPmvModeToProduction(value as PmvGenerationMode);
+    if (field === "videoMode") {
+      this.applyVideoMode(value as PmvVideoMode);
+    } else if (field === "generationMode") {
+      this.applyVideoMode(videoModeFromGenerationMode(value));
     }
     if (
       field === "musicPreference"
@@ -822,6 +836,35 @@ export class ProductSetupEngine {
       this.markCreativeScenesStale();
     }
     this.scheduleEssentialsPersist();
+    this.emit();
+  }
+
+  /** Mode is canonical; the legacy field is mirrored only where an equivalent exists. */
+  private applyVideoMode(mode: PmvVideoMode): void {
+    const legacy = legacyGenerationMode(mode);
+    this.creativeDirection = {
+      ...this.creativeDirection,
+      videoMode: mode,
+      generationMode: legacy ?? this.creativeDirection.generationMode,
+    };
+    this.productionMode = productionModeForVideoMode(mode);
+  }
+
+  /**
+   * Switch video mode. Product, photos, brand, platform, duration and audio are untouched;
+   * only mode-derived state (plan, scenes, render readiness) is invalidated.
+   */
+  setVideoMode(mode: PmvVideoMode): void {
+    if (!isPmvVideoMode(mode) || mode === this.creativeDirection.videoMode) return;
+    this.setCreativeDirectionField("videoMode", mode);
+  }
+
+  async refreshVideoModes(): Promise<void> {
+    try {
+      this.videoModes = await fetchPmvVideoModes();
+    } catch {
+      this.videoModes = null;
+    }
     this.emit();
   }
 
@@ -882,34 +925,27 @@ export class ProductSetupEngine {
     if (!snap.canGenerateCreativePlan || !snap.projectId) {
       throw new Error(snap.creativeBlockedReason ?? "Confirm Product Identity Lock first.");
     }
-    const modeCap = this.creativeCapabilities.find((c) => c.mode === this.creativeDirection.generationMode)
-      ?? this.creativeCapabilities.find((c) => c.mode === "EXACT_PRODUCT");
-    let productionMode = mapPmvModeToProduction(this.creativeDirection.generationMode);
-    if (modeCap && !modeCap.available) {
-      if (this.creativeDirection.generationMode === "CINEMATIC"
-        || this.creativeDirection.generationMode === "ADVANCED_CREATIVE") {
-        // Honest fallback only for Exact Product when cinematic/advanced unavailable.
-        productionMode = "AI_PRODUCT_MOTION";
-        this.creativeDirection = {
-          ...this.creativeDirection,
-          generationMode: "EXACT_PRODUCT",
-        };
-        this.creativeError = modeCap.reason
-          || `${pmvModeLabel(modeCap.mode)} is not configured. Using Exact Product mode instead.`;
-      } else {
-        throw new Error(modeCap.reason || "Selected generation mode is unavailable.");
-      }
+    const videoMode = this.creativeDirection.videoMode;
+    const label = PMV_VIDEO_MODE_COPY[videoMode].label;
+    const availability = this.videoModes?.find((m) => m.mode === videoMode);
+    const productionMode = productionModeForVideoMode(videoMode);
+    // Never switch the customer's mode behind their back: an unavailable mode is refused, not replaced.
+    if (!productionMode || (availability && !availability.selectable)) {
+      const message = availability?.availability === "COMING_SOON" || !productionMode
+        ? `${label} is coming soon. Choose another video style.`
+        : `${label} is not available yet. Choose another video style.`;
+      this.creativeError = message;
+      this.emit();
+      throw new Error(message);
     }
 
     this.creativeStatus = "PLANNING";
-    this.creativeError = this.creativeError && productionMode === "AI_PRODUCT_MOTION"
-      ? this.creativeError
-      : null;
+    this.creativeError = null;
     this.emit();
 
     try {
       await this.flushPersist();
-      const duration = sceneBudgetSeconds(snap.videoSettings.durationSeconds || 15, this.creativeDirection.generationMode);
+      const duration = sceneBudgetSeconds(snap.videoSettings.durationSeconds || 15, videoMode);
       const plan = await generatePlanWithMode(
         snap.projectId,
         productionMode,
@@ -2239,7 +2275,10 @@ export class ProductSetupEngine {
     }
     if (stored.creativeStatus) this.creativeStatus = stored.creativeStatus;
     if (stored.creativeDirection) {
-      this.creativeDirection = { ...DEFAULT_PMV_CREATIVE_DIRECTION(), ...stored.creativeDirection };
+      const merged = { ...DEFAULT_PMV_CREATIVE_DIRECTION(), ...stored.creativeDirection };
+      // Legacy projects have no videoMode: derive it from what they saved, never from the default.
+      merged.videoMode = resolveStoredVideoMode(stored.creativeDirection);
+      this.creativeDirection = merged;
     }
     if (stored.creativePlanId !== undefined) this.creativePlanId = stored.creativePlanId ?? null;
     if (stored.creativePlanStatus !== undefined) this.creativePlanStatus = stored.creativePlanStatus ?? null;

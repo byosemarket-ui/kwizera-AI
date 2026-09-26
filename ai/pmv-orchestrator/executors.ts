@@ -14,7 +14,15 @@ import { buildProductIdentityLock, buildProductIntelligenceReview, computeAssetF
 import { classifyPmvQaFailure } from "../pmv-shared/classify-failure.js";
 import { PMV_IDENTITY_LOCK_KEY, type ProductIdentityLock } from "../pmv-shared/identity-lock-types.js";
 import { isPmvPlatform, resolvePmvDestination, sceneBudgetSeconds, validateDuration } from "../pmv-shared/destination.js";
-import { mapPmvModeToProduction, type PmvGenerationMode } from "../pmv-shared/modes.js";
+import {
+  legacyGenerationMode,
+  PMV_VIDEO_MODE_COPY,
+  productionModeForVideoMode,
+  resolveStoredVideoMode,
+  type PmvVideoMode,
+} from "../pmv-shared/modes.js";
+import { buildVideoModeExecutionPlan, type VideoModeExecutionPlan } from "../pmv-shared/video-mode-resolver.js";
+import type { ModeReadinessProbe } from "./mode-readiness.js";
 import {
   buildTargetedRegeneration,
   PMV_SCENE_REGEN_MAX_ATTEMPTS,
@@ -25,7 +33,7 @@ import {
 import { scenesFromPlan } from "../pmv-shared/scenes.js";
 import { validateIdentityLock } from "../pmv-shared/validate-lock.js";
 import type { ProductIntelligenceProfile } from "../product-intelligence/types.js";
-import type { CreativeToneId } from "../video-production/production-mode-types.js";
+import type { CreativeToneId, ProductionModeId } from "../video-production/production-mode-types.js";
 import {
   VIDEO_CAMERA_OPTIONS,
   VIDEO_MOTION_OPTIONS,
@@ -49,6 +57,8 @@ export interface ExecutorManagers {
   runtime: () => CapabilityRuntime | null;
   /** Whether cinematic image-to-video can execute (Admin VIDEO_IMAGE_TO_VIDEO routing). */
   i2vAvailable: () => Promise<boolean>;
+  /** Executable readiness of every mode capability; without it no mode route is attached to the snapshot. */
+  modeReadiness?: ModeReadinessProbe;
   pollIntervalMs?: number;
   renderTimeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
@@ -62,7 +72,8 @@ interface ProjectState {
   lock: ProductIdentityLock | null;
   productAssetIds: string[];
   heroAssetId: string | null;
-  generationMode: PmvGenerationMode;
+  videoMode: PmvVideoMode;
+  narrationRequested: boolean;
   creativeTone: CreativeToneId;
   durationSeconds: number;
   aspectRatio: string;
@@ -89,6 +100,11 @@ function readPmv(project: CreativeProject): Pmv {
 async function loadProjectState(m: ExecutorManagers, projectId: string): Promise<ProjectState> {
   const project = await m.workspace.getProject(projectId);
   if (!project) throw new WorkflowStepError("USER_INPUT_ERROR", "PROJECT_NOT_FOUND", "Open an existing project to start production.", { waitingForUser: false });
+  return { ...readProjectState(project), plan: await m.planning.getPlan(projectId) };
+}
+
+/** The saved PMV production configuration of a project (pure; no plan lookup). */
+export function readProjectState(project: CreativeProject): Omit<ProjectState, "plan"> {
   const pmv = readPmv(project);
   const rawLock = project.workspaceSettings?.[PMV_IDENTITY_LOCK_KEY];
   const lock = rawLock && typeof rawLock === "object" ? rawLock as ProductIdentityLock : null;
@@ -96,8 +112,7 @@ async function loadProjectState(m: ExecutorManagers, projectId: string): Promise
   const storedHero = str(pmv.heroAssetId);
   const heroAssetId = storedHero && productAssetIds.includes(storedHero) ? storedHero : productAssetIds[0] ?? null;
   const direction = (pmv.creativeDirection && typeof pmv.creativeDirection === "object" ? pmv.creativeDirection : {}) as Record<string, unknown>;
-  const mode = str(direction.generationMode);
-  const generationMode: PmvGenerationMode = mode === "CINEMATIC" || mode === "ADVANCED_CREATIVE" ? mode : "EXACT_PRODUCT";
+  const videoMode = resolveStoredVideoMode(direction);
   const info = project.productInformation as unknown as Record<string, unknown>;
   const campaign = project.campaignInformation as unknown as Record<string, unknown>;
   const duration = Number(pmv.durationSeconds) || Number(campaign?.customDurationSeconds) || 15;
@@ -107,7 +122,8 @@ async function loadProjectState(m: ExecutorManagers, projectId: string): Promise
     lock,
     productAssetIds,
     heroAssetId,
-    generationMode,
+    videoMode,
+    narrationRequested: /narrat|voice|speak/i.test(str(direction.voicePreference)) && !/optional/i.test(str(direction.voicePreference)),
     creativeTone: (str(direction.creativeTone) || "Modern") as CreativeToneId,
     durationSeconds: duration > 0 ? duration : 15,
     aspectRatio: str(pmv.aspectRatio) || "9:16",
@@ -119,8 +135,39 @@ async function loadProjectState(m: ExecutorManagers, projectId: string): Promise
     cta: str(campaign?.callToAction) || str(info?.callToAction) || str(info?.cta),
     logoAssetId: str(project.brandInformation?.logoAssetId) || null,
     selectedAudioAssetId: str(project.selectedAudioAssetId) || null,
-    plan: await m.planning.getPlan(projectId),
   };
+}
+
+function productionConfiguration(s: Omit<ProjectState, "plan"> & { plan?: CreativePlan | null }) {
+  return {
+    projectId: s.project.id,
+    mode: s.videoMode,
+    sourceAssetIds: s.productAssetIds,
+    heroAssetId: s.heroAssetId,
+    identityLock: { version: s.lock?.identityVersion ?? null, status: s.lock?.status ?? null },
+    platform: isPmvPlatform(s.platform) ? s.platform : null,
+    aspectRatio: s.aspectRatio,
+    projectPlatform: s.project.platform ?? null,
+    durationSeconds: s.durationSeconds,
+    audio: {
+      selectedAudioAssetId: s.selectedAudioAssetId,
+      beatSyncMode: String(s.project.beatSyncMode ?? "SMART"),
+      volume: typeof s.project.audioVolume === "number" ? s.project.audioVolume : null,
+    },
+    voice: { narrationRequested: s.narrationRequested },
+    creativePlan: { id: s.plan?.id ?? null, version: s.plan?.version ?? null },
+    creativeRequest: s.creativeRequest,
+  };
+}
+
+/** Mode route + production configuration for a saved project — what the backend would execute. */
+export function modePlanForProject(
+  project: CreativeProject,
+  plan: { id: string; version: number } | null,
+  readiness: Awaited<ReturnType<ModeReadinessProbe>>,
+): VideoModeExecutionPlan {
+  const s = readProjectState(project);
+  return buildVideoModeExecutionPlan(productionConfiguration({ ...s, plan: plan as CreativePlan | null }), readiness);
 }
 
 /** Merge into the project's PMV settings through existing project persistence (other keys untouched). */
@@ -144,7 +191,8 @@ export async function loadWorkflowSnapshot(m: ExecutorManagers, projectId: strin
     assetFingerprint: computeAssetFingerprint(s.productAssetIds, s.heroAssetId),
     lockVersion: s.lock?.identityVersion ?? null,
     lockStatus: s.lock?.status ?? null,
-    mode: s.generationMode,
+    // Legacy value where one exists so pre-Phase-10 fingerprints stay valid (no needless re-planning).
+    mode: legacyGenerationMode(s.videoMode) ?? s.videoMode,
     creativeTone: s.creativeTone,
     durationSeconds: s.durationSeconds,
     aspectRatio: s.aspectRatio,
@@ -161,9 +209,10 @@ export async function loadWorkflowSnapshot(m: ExecutorManagers, projectId: strin
   });
   return {
     fingerprints,
+    modePlan: m.modeReadiness ? buildVideoModeExecutionPlan(productionConfiguration(s), await m.modeReadiness()) : null,
     planInput: {
       projectId,
-      generationMode: s.generationMode,
+      videoMode: s.videoMode,
       creativeRequest: s.creativeRequest,
       heroWidth: hero?.width ?? null,
       heroHeight: hero?.height ?? null,
@@ -173,6 +222,20 @@ export async function loadWorkflowSnapshot(m: ExecutorManagers, projectId: strin
       visionQaAvailable: await probeVisionQaAvailable(runtime),
     },
   };
+}
+
+/** Render engine of the selected mode; a mode without one stops here instead of rendering something else. */
+function renderEngineFor(mode: PmvVideoMode): ProductionModeId {
+  const engine = productionModeForVideoMode(mode);
+  if (!engine) {
+    throw new WorkflowStepError(
+      "CONFIGURATION_ERROR",
+      "MODE_NOT_EXECUTABLE",
+      `${PMV_VIDEO_MODE_COPY[mode].label} is not available yet. Choose another video style.`,
+      { retryable: false },
+    );
+  }
+  return engine;
 }
 
 const PLAN_NOT_REUSABLE = new Set(["STALE", "FAILED", "PLANNING", "NOT_STARTED"]);
@@ -186,8 +249,9 @@ function reusedOrCompleted(ctx: StepExecutionContext): "REUSED" | "COMPLETED" {
   return ctx.priorFingerprint === ctx.fingerprint || !ctx.priorFingerprint ? "REUSED" : "COMPLETED";
 }
 
-function qaSummary(qa: PmvVideoQaResult): WorkflowQaSummary {
+function qaSummary(qa: PmvVideoQaResult, expectedMode: PmvVideoMode): WorkflowQaSummary {
   return {
+    expectedMode,
     overallStatus: qa.overallStatus,
     renderJobId: qa.renderJobId,
     videoAssetId: qa.videoAssetId,
@@ -324,7 +388,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
   const CREATIVE_PLANNING: StepExecutor = async (ctx): Promise<StepOutcome> => {
     const projectId = ctx.workflow.projectId;
     const s = await loadProjectState(m, projectId);
-    const productionMode = mapPmvModeToProduction(s.generationMode);
+    const productionMode = renderEngineFor(s.videoMode);
     const plan = s.plan;
     const planModeMatches = (plan?.productionMode ?? "AI_PRODUCT_MOTION") === productionMode;
     const planUsable = Boolean(plan?.scenes.length && plan.scenes.every((scene) => scene.assetId));
@@ -336,7 +400,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     }
     const project = s.project;
     const destination = resolvePmvDestination(isPmvPlatform(s.platform) ? s.platform : null, s.aspectRatio, project.platform);
-    const durationProblem = validateDuration(s.durationSeconds, destination, s.generationMode);
+    const durationProblem = validateDuration(s.durationSeconds, destination, s.videoMode);
     if (durationProblem) {
       throw new WorkflowStepError("USER_INPUT_ERROR", "DURATION_NOT_SUPPORTED", durationProblem);
     }
@@ -349,7 +413,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       productionMode,
       creativeTone: s.creativeTone,
       regenerate: Boolean(plan),
-      durationSeconds: sceneBudgetSeconds(s.durationSeconds, s.generationMode),
+      durationSeconds: sceneBudgetSeconds(s.durationSeconds, s.videoMode),
     });
     if (!result.plan) {
       throw new WorkflowStepError("USER_INPUT_ERROR", "PLAN_INPUTS_MISSING", result.validation.errors[0] ?? "Complete your product details before planning.");
@@ -422,7 +486,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       throw new WorkflowStepError(
         "CONFIGURATION_ERROR",
         "I2V_UNAVAILABLE",
-        "Cinematic scenes are unavailable right now. Choose Exact product mode or try again later.",
+        "Cinematic scenes are unavailable right now. Choose Product Slideshow or try again later.",
       );
     }
     const output = await m.production.getOutputDetails(projectId);
@@ -446,6 +510,16 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
         preparationFallbacks: preps.filter((p) => p.fallbackUsed).length,
       },
     };
+  };
+
+  // No 3D generation pipeline exists yet: the step exists so the route is real, and it stops truthfully.
+  const PRODUCT_3D_GENERATION: StepExecutor = async () => {
+    throw new WorkflowStepError(
+      "CONFIGURATION_ERROR",
+      "THREE_D_UNAVAILABLE",
+      "3D Product Showcase is coming soon. Choose another video style.",
+      { retryable: false },
+    );
   };
 
   const RENDER: StepExecutor = async (ctx): Promise<StepOutcome> => {
@@ -474,7 +548,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     }
     const prior = s.pmv.qaResult as PmvVideoQaResult | undefined;
     if (prior?.overallStatus === "QA_PASSED" && prior.renderJobId === output.renderJobId && !ctx.forced) {
-      return { kind: "REUSED", qa: qaSummary(prior), refs: { renderJobId: output.renderJobId, qaStatus: prior.overallStatus } };
+      return { kind: "REUSED", qa: qaSummary(prior, s.videoMode), refs: { renderJobId: output.renderJobId, qaStatus: prior.overallStatus, expectedMode: s.videoMode } };
     }
     await patchPmv(m, projectId, { produceStatus: "QA_IN_PROGRESS" });
     const video = await m.production.getVideoProject(projectId);
@@ -488,7 +562,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     const runtime = m.runtime();
     let visionQaAvailable = await probeVisionQaAvailable(runtime);
     let visionIdentity: PmvVisionIdentityEvidence | null = null;
-    const productionMode = mapPmvModeToProduction(s.generationMode);
+    const productionMode = renderEngineFor(s.videoMode);
     const exactProductMode = productionMode === "AI_PRODUCT_MOTION";
     if (visionQaAvailable && !exactProductMode && s.lock?.status === "LOCKED") {
       try {
@@ -548,7 +622,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       produceStatus: passed ? "QA_PASSED" : qa.overallStatus === "NEEDS_REVIEW" ? "NEEDS_REVIEW" : "QA_FAILED",
       ...(passed ? { approvedRenderJobId: qa.renderJobId, approvedOutputAssetId: qa.videoAssetId } : {}),
     });
-    return { kind: "COMPLETED", qa: qaSummary(qa), refs: { renderJobId: output.renderJobId, qaStatus: qa.overallStatus } };
+    return { kind: "COMPLETED", qa: qaSummary(qa, s.videoMode), refs: { renderJobId: output.renderJobId, qaStatus: qa.overallStatus, expectedMode: s.videoMode } };
   };
 
   const REPAIR: StepExecutor = async (ctx): Promise<StepOutcome> => {
@@ -576,7 +650,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
         scene,
         qa,
         lock: s.lock,
-        productionMode: mapPmvModeToProduction(s.generationMode),
+        productionMode: renderEngineFor(s.videoMode),
         creativePlanVersion: s.plan.version,
         previousAttempt: previous,
       });
@@ -637,6 +711,13 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       sourceAssetIds: [...(output.sourceAssetIds ?? [])],
       qaCheckedAt: qa.checkedAt,
       deliveredAt,
+      videoMode: s.videoMode,
+      platform: s.platform,
+      aspectRatio: s.aspectRatio,
+      durationSeconds: s.durationSeconds,
+      audioAssetId: s.selectedAudioAssetId,
+      beatSyncMode: s.selectedAudioAssetId ? String(s.project.beatSyncMode ?? "SMART") : null,
+      qaStatus: qa.overallStatus,
     };
     if (already) return { kind: "REUSED", delivery, refs: { outputAssetId: output.assetId, renderJobId: output.renderJobId } };
     await patchPmv(m, projectId, {
@@ -658,6 +739,7 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     CREATIVE_PLANNING,
     MEDIA_PREPARATION,
     VIDEO_GENERATION,
+    PRODUCT_3D_GENERATION,
     AUDIO,
     TIMELINE,
     RENDER,

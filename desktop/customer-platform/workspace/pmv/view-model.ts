@@ -4,7 +4,8 @@
  * Pure functions only: no network, no engine access.
  */
 import type { CustomerWorkflowSummary } from "../../../../ai/pmv-orchestrator/views";
-import type { PmvGenerationMode } from "../../../../ai/pmv-shared/modes.js";
+import { PMV_VIDEO_MODES, PMV_VIDEO_MODE_COPY, isPmvVideoMode, type PmvVideoMode } from "../../../../ai/pmv-shared/modes.js";
+import type { PmvModeAvailability } from "../../../../ai/pmv-shared/video-mode-resolver.js";
 import {
   formatDuration,
   resolvePmvDestination,
@@ -24,14 +25,15 @@ export const PMV_CUSTOMER_STEPS: Array<{ id: PmvCustomerStep; label: string }> =
 
 export type PmvCustomerStatus = "READY" | "CREATING" | "PROCESSING" | "REVIEW" | "COMPLETED" | "FAILED";
 
-export type PmvVideoStyleId = "slideshow" | "showcase3d" | "cinematic";
+export type PmvVideoStyleAvailability = "available" | "unavailable" | "coming_soon" | "checking";
 
 export interface PmvVideoStyleOption {
-  id: PmvVideoStyleId;
+  id: PmvVideoMode;
   title: string;
   description: string;
-  generationMode: PmvGenerationMode | null;
-  availability: "available" | "unavailable" | "coming_soon";
+  availability: PmvVideoStyleAvailability;
+  /** Customer-safe badge text for a card that cannot be chosen. */
+  note: string | null;
 }
 
 /** Minimal slice of the PMV snapshot the customer UI reasons about. */
@@ -39,8 +41,9 @@ export interface PmvViewInput {
   productName: string;
   savedPhotoCount: number;
   uploadingPhotoCount: number;
-  generationMode: PmvGenerationMode;
-  cinematicAvailable: boolean | null;
+  videoMode: PmvVideoMode;
+  /** Backend-decided availability; null while it is being checked. */
+  videoModes: PmvModeAvailability[] | null;
   platform: PmvPlatform | null;
   aspectRatio: string;
   durationSeconds: number;
@@ -67,36 +70,24 @@ export function customerStatus(workflow: CustomerWorkflowSummary | null, input: 
   return "READY";
 }
 
-export function videoStyleOptions(cinematicAvailable: boolean | null): PmvVideoStyleOption[] {
-  return [
-    {
-      id: "slideshow",
-      title: "Product Slideshow",
-      description: "Turn your product photos into a polished promotional video with transitions, text and music.",
-      generationMode: "EXACT_PRODUCT",
-      availability: "available",
-    },
-    {
-      id: "showcase3d",
-      title: "3D Product Showcase",
-      description: "Create a product-focused 3D/360-style presentation when the required 3D capability is available.",
-      generationMode: null,
-      availability: "coming_soon",
-    },
-    {
-      id: "cinematic",
-      title: "Cinematic AI Advertisement",
-      description: "Create cinematic product scenes using AI video generation when the required online capability is available.",
-      generationMode: "CINEMATIC",
-      availability: cinematicAvailable ? "available" : "unavailable",
-    },
-  ];
-}
+const AVAILABILITY: Record<PmvModeAvailability["availability"], PmvVideoStyleAvailability> = {
+  READY: "available",
+  UNAVAILABLE: "unavailable",
+  COMING_SOON: "coming_soon",
+};
 
-export function selectedStyleId(mode: PmvGenerationMode): PmvVideoStyleId | null {
-  if (mode === "EXACT_PRODUCT") return "slideshow";
-  if (mode === "CINEMATIC") return "cinematic";
-  return null;
+/** Mode cards in canonical order; availability comes only from the backend. */
+export function videoStyleOptions(videoModes: PmvModeAvailability[] | null): PmvVideoStyleOption[] {
+  return PMV_VIDEO_MODES.map((mode) => {
+    const server = videoModes?.find((m) => m.mode === mode);
+    return {
+      id: mode,
+      title: PMV_VIDEO_MODE_COPY[mode].label,
+      description: PMV_VIDEO_MODE_COPY[mode].description,
+      availability: server ? AVAILABILITY[server.availability] : "checking",
+      note: server ? server.note : "Checking…",
+    };
+  });
 }
 
 export function validateProduct(input: Pick<PmvViewInput, "productName" | "savedPhotoCount" | "uploadingPhotoCount">): string | null {
@@ -111,14 +102,15 @@ export function validateProduct(input: Pick<PmvViewInput, "productName" | "saved
 }
 
 export function validateStyle(
-  input: Pick<PmvViewInput, "generationMode" | "cinematicAvailable" | "platform" | "aspectRatio" | "durationSeconds">,
+  input: Pick<PmvViewInput, "videoMode" | "videoModes" | "platform" | "aspectRatio" | "durationSeconds">,
 ): string | null {
-  const id = selectedStyleId(input.generationMode);
-  if (!id) return "Please choose a video style.";
-  const option = videoStyleOptions(input.cinematicAvailable).find((o) => o.id === id);
-  if (!option || option.availability !== "available") return "One of the selected video styles is not available yet.";
+  if (!isPmvVideoMode(input.videoMode)) return "Please choose a video style.";
+  const option = videoStyleOptions(input.videoModes).find((o) => o.id === input.videoMode)!;
+  if (option.availability === "checking") return "Checking which video styles are available…";
+  if (option.availability === "coming_soon") return `${option.title} is coming soon. Choose another video style.`;
+  if (option.availability !== "available") return `${option.title} is not available yet. Choose another video style.`;
   const destination = resolvePmvDestination(input.platform, input.aspectRatio);
-  return validateDuration(input.durationSeconds, destination, input.generationMode);
+  return validateDuration(input.durationSeconds, destination, input.videoMode);
 }
 
 export function validateForCreate(input: PmvViewInput): string | null {

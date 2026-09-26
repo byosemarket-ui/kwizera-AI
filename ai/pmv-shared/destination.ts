@@ -10,7 +10,7 @@ import {
   type VideoPlatformProfile,
 } from "../video-production/platform-profiles.js";
 import { END_CARD_DURATION_MS, I2V_MIN_CLIP_SECONDS } from "../video-production/duration-limits.js";
-import type { PmvGenerationMode } from "./modes.js";
+import type { PmvGenerationMode, PmvVideoMode } from "./modes.js";
 
 export type PmvPlatform = "tiktok" | "instagram" | "facebook" | "youtube";
 export type PmvFormat = "9:16" | "1:1" | "4:5" | "16:9";
@@ -110,21 +110,24 @@ export const PMV_DURATION_PRESETS = [15, 30, 45, 60, 90, 120] as const;
 /** The planner ignores scene targets below this, so it is the smallest usable scene budget. */
 const MIN_SCENE_BUDGET_SECONDS = 4;
 
-function endCardSeconds(mode: PmvGenerationMode): number {
-  return mode === "EXACT_PRODUCT" ? END_CARD_DURATION_MS / 1000 : 0;
+/** Canonical video modes and the legacy values stored before them. */
+type DurationMode = PmvGenerationMode | PmvVideoMode;
+
+function endCardSeconds(mode: DurationMode): number {
+  return mode === "EXACT_PRODUCT" || mode === "PRODUCT_SLIDESHOW" ? END_CARD_DURATION_MS / 1000 : 0;
 }
 
 /**
  * Seconds of product scenes to plan so the finished video matches the requested total:
- * Exact Product renders append the end card after the scenes.
+ * slideshow renders append the end card after the scenes.
  */
-export function sceneBudgetSeconds(totalSeconds: number, mode: PmvGenerationMode): number {
+export function sceneBudgetSeconds(totalSeconds: number, mode: DurationMode): number {
   const budget = totalSeconds - endCardSeconds(mode);
   return budget >= MIN_SCENE_BUDGET_SECONDS ? budget : totalSeconds;
 }
 
-export function minDurationSeconds(mode: PmvGenerationMode): number {
-  if (mode === "CINEMATIC") return Math.max(MIN_SCENE_BUDGET_SECONDS, 3 * I2V_MIN_CLIP_SECONDS);
+export function minDurationSeconds(mode: DurationMode): number {
+  if (mode === "CINEMATIC" || mode === "CINEMATIC_AI") return Math.max(MIN_SCENE_BUDGET_SECONDS, 3 * I2V_MIN_CLIP_SECONDS);
   return MIN_SCENE_BUDGET_SECONDS + endCardSeconds(mode);
 }
 
@@ -148,7 +151,7 @@ export function durationFromParts(minutes: string | number, seconds: string | nu
 }
 
 /** Customer-safe duration problem for the chosen destination and style, or null when valid. */
-export function validateDuration(totalSeconds: number, destination: PmvDestination, mode: PmvGenerationMode): string | null {
+export function validateDuration(totalSeconds: number, destination: PmvDestination, mode: DurationMode): string | null {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "Please choose how long the video should be.";
   const min = minDurationSeconds(mode);
   if (totalSeconds < min) return `Videos must be at least ${formatDuration(min)} long.`;

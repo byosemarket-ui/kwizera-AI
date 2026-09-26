@@ -14,6 +14,7 @@ import {
 import { inferProviderKind } from "./provider-kind.js";
 import { ProviderRuntimeError, safeLogMeta } from "./runtime-errors.js";
 import type {
+  CapabilityExecutionReadiness,
   CapabilityExecuteInput,
   CapabilityExecuteResult,
   ProviderHealthResult,
@@ -60,6 +61,33 @@ export class CapabilityRuntime {
       reason: resolution.reason,
       acceptsMask: model?.metadata?.acceptsMask === true,
     };
+  }
+
+  /**
+   * Whether a feature can actually execute now — not merely mapped. Combines the Admin resolution with
+   * the provider's enabled state, an executable adapter, a usable vault secret, and the provider health
+   * recorded by Admin connection tests. A mapped provider that was never tested is UNVERIFIED (not executable).
+   */
+  readiness(feature: FeatureKey): CapabilityExecutionReadiness {
+    const resolution = this.manager.resolveFeatureExecution(feature);
+    if ((resolution.status !== "READY" && resolution.status !== "FALLBACK") || !resolution.selectedModel || !resolution.providerId) {
+      return { feature, state: "NOT_CONFIGURED", executable: false };
+    }
+    const provider = this.manager.getProviderRecord(resolution.providerId);
+    if (!provider) return { feature, state: "NOT_CONFIGURED", executable: false };
+    if (!provider.enabled) return { feature, state: "DISABLED", executable: false };
+    const kind = inferProviderKind(provider);
+    if (kind === "LOCAL" || kind === "INTERNAL") {
+      const failing = provider.healthStatus === "unhealthy" || provider.healthStatus === "degraded";
+      return { feature, state: failing ? "PROVIDER_ERROR" : "READY", executable: !failing };
+    }
+    const adapter = this.adapters.resolve(provider);
+    if (!adapter || !isExecutableAdapter(adapter)) return { feature, state: "NOT_IMPLEMENTED", executable: false };
+    if (!this.credentials?.has(provider.id)) return { feature, state: "CREDENTIAL_MISSING", executable: false };
+    if (provider.healthStatus === "unhealthy") return { feature, state: "AUTH_FAILED", executable: false };
+    if (provider.healthStatus === "degraded") return { feature, state: "PROVIDER_ERROR", executable: false };
+    if (provider.healthStatus !== "healthy") return { feature, state: "UNVERIFIED", executable: false };
+    return { feature, state: "READY", executable: true };
   }
 
   async healthCheckProvider(providerId: string, opts?: { timeoutMs?: number }): Promise<ProviderHealthResult> {

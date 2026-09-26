@@ -4,12 +4,15 @@
  * Admin view: full orchestration detail plus Admin-routing metadata — still never credentials.
  */
 import { orderedStepIds } from "./plan.js";
-import { CUSTOMER_STEP_LABELS, type WorkflowRecord, type WorkflowStatus, type WorkflowStepId } from "./types.js";
+import type { PmvVideoMode } from "../pmv-shared/modes.js";
+import { customerStepLabel, type WorkflowRecord, type WorkflowStatus, type WorkflowStepId } from "./types.js";
 
 export type CustomerStageState = "done" | "active" | "pending" | "waiting" | "failed" | "cancelled";
 
 export interface CustomerWorkflowSummary {
   workflowId: string;
+  /** Video mode this run produces (stages below are the ones that exist for it). */
+  videoMode: PmvVideoMode;
   status: WorkflowStatus;
   label: string;
   message: string | null;
@@ -49,6 +52,7 @@ function stepWeight(id: WorkflowStepId, generative: boolean): number {
     case "CREATIVE_PLANNING": return 10;
     case "MEDIA_PREPARATION": return 2;
     case "VIDEO_GENERATION": return 60;
+    case "PRODUCT_3D_GENERATION": return 60;
     case "AUDIO": return 4;
     case "TIMELINE": return 4;
     case "RENDER": return generative ? 5 : 60;
@@ -100,7 +104,8 @@ export function toCustomerSummary(
   now: Date = new Date(),
 ): CustomerWorkflowSummary {
   const order = orderedStepIds(record.plan).filter((id) => id !== "REPAIR" || record.steps.some((s) => s.id === "REPAIR" && s.status === "RUNNING"));
-  const generative = record.plan.steps.some((s) => s.id === "VIDEO_GENERATION");
+  const generative = record.plan.steps.some((s) => s.id === "VIDEO_GENERATION" || s.id === "PRODUCT_3D_GENERATION");
+  const videoMode = record.videoMode;
   const running = record.status === "RUNNING";
   const activeStep = running && record.currentStep
     ? record.steps.find((s) => s.id === record.currentStep && s.status === "RUNNING") ?? null
@@ -126,17 +131,18 @@ export function toCustomerSummary(
   for (const id of order) {
     const step = record.steps.find((s) => s.id === id);
     if (!step) continue;
-    const label = CUSTOMER_STEP_LABELS[id as WorkflowStepId];
+    const label = customerStepLabel(id as WorkflowStepId, videoMode);
     const state = stageState(step.status);
     const existing = stages.find((s) => s.label === label);
     if (!existing) stages.push({ label, state });
     else if (STATE_RANK[state] > STATE_RANK[existing.state]) existing.state = state;
   }
   const completed = stages.filter((s) => s.state === "done").length;
-  const current = record.currentStep ? CUSTOMER_STEP_LABELS[record.currentStep] : null;
+  const current = record.currentStep ? customerStepLabel(record.currentStep, videoMode) : null;
   const label = record.status === "RUNNING" && current ? current : STATUS_LABEL[record.status];
   return {
     workflowId: record.id,
+    videoMode,
     status: record.status,
     label,
     message: record.customerMessage,
@@ -173,7 +179,17 @@ export function toAdminView(record: WorkflowRecord, describe?: (capability: stri
     workflowVersion: record.workflowVersion,
     projectId: record.projectId,
     mode: record.mode,
+    videoMode: record.videoMode,
     generationMode: record.generationMode,
+    modeRoute: record.modePlan
+      ? {
+        availability: record.modePlan.availability,
+        sceneStrategy: record.modePlan.sceneStrategy,
+        renderStrategy: record.modePlan.renderStrategy,
+        fallbackPolicy: record.modePlan.fallbackPolicy,
+        capabilityReadiness: record.modePlan.capabilityReadiness,
+      }
+      : null,
     status: record.status,
     currentStep: record.currentStep,
     requiredCapabilities: record.plan.requiredCapabilities,

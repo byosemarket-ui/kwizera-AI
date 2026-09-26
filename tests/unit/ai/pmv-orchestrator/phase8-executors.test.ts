@@ -148,7 +148,7 @@ describe("Phase 8 executors over existing managers", () => {
   it("builds a snapshot from project state without contacting providers", async () => {
     const { m } = fakeManagers();
     const snapshot = await loadWorkflowSnapshot(m, "p1");
-    expect(snapshot.planInput).toMatchObject({ projectId: "p1", generationMode: "EXACT_PRODUCT", heroWidth: 1600, visionQaAvailable: false });
-    expect(Object.keys(snapshot.fingerprints)).toHaveLength(11);
+    expect(snapshot.planInput).toMatchObject({ projectId: "p1", videoMode: "PRODUCT_SLIDESHOW", heroWidth: 1600, visionQaAvailable: false });
+    expect(Object.keys(snapshot.fingerprints)).toHaveLength(12);
   });
 });

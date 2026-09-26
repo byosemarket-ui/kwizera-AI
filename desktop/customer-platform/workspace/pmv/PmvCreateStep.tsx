@@ -14,7 +14,6 @@ import {
   durationLabel,
   formatPrice,
   isVideoDelivered,
-  selectedStyleId,
   validateForCreate,
   videoStyleOptions,
   workflowErrorMessage,
@@ -84,7 +83,6 @@ export function PmvCreateStep({
   snap,
   view,
   flow,
-  cinematicAvailable,
   onEditProduct,
   onEditStyle,
   onViewVideo,
@@ -92,7 +90,6 @@ export function PmvCreateStep({
   snap: ProductSetupSnapshot;
   view: PmvViewInput;
   flow: PmvWorkflowState;
-  cinematicAvailable: boolean | null;
   onEditProduct: () => void;
   onEditStyle: () => void;
   onViewVideo: () => void;
@@ -103,7 +100,7 @@ export function PmvCreateStep({
   const status = customerStatus(workflow, view);
   const busy = working || pending !== null;
   const hero = snap.imageCards.find((c) => c.assetId === snap.heroAssetId) ?? snap.imageCards[0];
-  const style = videoStyleOptions(cinematicAvailable).find((o) => o.id === selectedStyleId(snap.creativeDirection.generationMode));
+  const style = videoStyleOptions(snap.videoModes).find((o) => o.id === snap.creativeDirection.videoMode);
   const price = formatPrice(snap.essentials.currentPrice, snap.essentials.currency);
   const destination = resolvePmvDestination(snap.videoSettings.platform, snap.videoSettings.aspectRatio);
   const language = LANGUAGE_OPTIONS.find((l) => l.value === (snap.videoSettings.language || "en"))?.label ?? snap.videoSettings.language;

@@ -4298,12 +4298,7 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       let isCinematicOnline = false;
       try {
         const admin = getAdminControlPlaneManager();
-        const view = admin?.getCapabilityRuntime()?.describe("VIDEO_IMAGE_TO_VIDEO");
-        isCinematicOnline = Boolean(
-          view
-          && view.source === "ONLINE"
-          && (view.status === "READY" || view.status === "FALLBACK"),
-        );
+        isCinematicOnline = Boolean(admin?.getCapabilityRuntime()?.readiness("VIDEO_IMAGE_TO_VIDEO").executable);
       } catch {
         isCinematicOnline = false;
       }
@@ -4382,6 +4377,22 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (url.pathname === "/api/pmv/video-modes" && req.method === "GET") {
+    try {
+      const [{ getPmvModeReadiness }, { listModeAvailability }] = await Promise.all([
+        import("../../ai/pmv-orchestrator/registry.js"),
+        import("../../ai/pmv-shared/video-mode-resolver.js"),
+      ]);
+      const probe = getPmvModeReadiness();
+      const readiness = probe ? await probe() : {};
+      sendJson(res, 200, { modes: listModeAvailability(readiness) });
+    } catch (error) {
+      console.warn("[KWIZERA] pmv video modes failed", (error as { code?: string })?.code ?? "UNKNOWN");
+      sendJson(res, 200, { modes: (await import("../../ai/pmv-shared/video-mode-resolver.js")).listModeAvailability({}) });
+    }
+    return;
+  }
+
   const pmvWorkflowMatch = url.pathname.match(/^\/api\/pmv\/projects\/([^/]+)\/workflow$/);
   if (pmvWorkflowMatch && (req.method === "GET" || req.method === "POST")) {
     try {
@@ -4418,8 +4429,29 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
         sendJson(res, 200, { workflow: latest ? toCustomerSummary(latest, live) : null });
         return;
       }
-      const body = JSON.parse((await readBody(req)) || "{}") as { action?: string };
+      let body: { action?: string; mode?: unknown };
+      try {
+        body = JSON.parse((await readBody(req)) || "{}") as { action?: string; mode?: unknown };
+      } catch {
+        sendJson(res, 400, { error: "Invalid request", code: "INVALID_REQUEST" });
+        return;
+      }
       const action = body.action ?? "start";
+      if (body.mode !== undefined && (action === "start" || action === "resume" || action === "retry")) {
+        const [{ isPmvVideoMode }, { readProjectState }] = await Promise.all([
+          import("../../ai/pmv-shared/modes.js"),
+          import("../../ai/pmv-orchestrator/executors.js"),
+        ]);
+        if (!isPmvVideoMode(body.mode)) {
+          sendJson(res, 400, { error: "Choose a valid video style.", code: "INVALID_VIDEO_MODE" });
+          return;
+        }
+        const saved = readProjectState((await workspace.getProject(projectId))!).videoMode;
+        if (saved !== body.mode) {
+          sendJson(res, 409, { error: "Your video style changed. Save your selection and try again.", code: "VIDEO_MODE_MISMATCH" });
+          return;
+        }
+      }
       let record;
       if (action === "start") record = await orchestrator.start(projectId);
       else if (action === "resume") record = await orchestrator.resume(projectId);
@@ -4431,6 +4463,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
       }
       sendJson(res, 202, { workflow: record ? toCustomerSummary(record) : null });
     } catch (error) {
+      const { WorkflowStartBlockedError } = await import("../../ai/pmv-orchestrator/engine.js");
+      if (error instanceof WorkflowStartBlockedError) {
+        sendJson(res, 409, { error: error.customerMessage, code: error.code });
+        return;
+      }
       console.warn("[KWIZERA] pmv workflow request failed", (error as { code?: string })?.code ?? "UNKNOWN");
       sendJson(res, 500, { error: "Unable to update production. Please try again." });
     }

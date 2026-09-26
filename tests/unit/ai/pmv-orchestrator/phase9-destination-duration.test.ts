@@ -239,10 +239,10 @@ describe("Phase 9 Step 2 — persistence and wiring", () => {
   });
 
   it("the workflow plans the scene budget and rejects unsupported durations server-side", () => {
-    expect(executors).toMatch(/durationSeconds: sceneBudgetSeconds\(s\.durationSeconds, s\.generationMode\)/);
+    expect(executors).toMatch(/durationSeconds: sceneBudgetSeconds\(s\.durationSeconds, s\.videoMode\)/);
     expect(executors).toMatch(/"DURATION_NOT_SUPPORTED"/);
     expect(executors).toMatch(/resolvePmvDestination\(/);
-    expect(engine).toMatch(/sceneBudgetSeconds\(snap\.videoSettings\.durationSeconds \|\| 15, this\.creativeDirection\.generationMode\)/);
+    expect(engine).toMatch(/sceneBudgetSeconds\(snap\.videoSettings\.durationSeconds \|\| 15, videoMode\)/);
   });
 
   it("the Style step offers platform chips, presets and custom minutes/seconds", () => {

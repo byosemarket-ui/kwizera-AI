@@ -60,6 +60,7 @@ export function computeStepFingerprints(input: FingerprintInputs): Record<Workfl
     CREATIVE_PLANNING: plan,
     MEDIA_PREPARATION: media,
     VIDEO_GENERATION: scenes,
+    PRODUCT_3D_GENERATION: scenes,
     AUDIO: audio,
     TIMELINE: timeline,
     RENDER: render,

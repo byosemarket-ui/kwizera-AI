@@ -558,6 +558,13 @@ export class VideoProductionManager {
       }
     }
     const renderProfile = resolveProductionRenderProfile(video.productionMode);
+    if (renderProfile.mode === "CINEMATIC_3D" && !renderProfile.usesGenerativeVideo) {
+      throw new VideoProductionError(
+        "I2V_UNAVAILABLE",
+        "Cinematic AI Advertisement is not available right now. Choose Product Slideshow or try again later.",
+        503,
+      );
+    }
     if (renderProfile.usesGenerativeVideo) {
       const i2v = getVideoGenerationProvider();
       if (!(await i2v.isAvailable()) || typeof i2v.generateVideoClip !== "function") {

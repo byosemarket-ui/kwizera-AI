@@ -14,14 +14,28 @@ import {
   type PmvViewInput,
 } from "../../../desktop/customer-platform/workspace/pmv/view-model.ts";
 import { CUSTOMER_STEP_LABELS } from "../../../ai/pmv-orchestrator/types.ts";
+import {
+  listModeAvailability,
+  type CapabilityReadinessMap,
+  type PmvModeAvailability,
+} from "../../../ai/pmv-shared/video-mode-resolver.ts";
 import type { CustomerWorkflowSummary } from "../../../ai/pmv-orchestrator/views.ts";
+
+function serverModes(cinematicReady: boolean): PmvModeAvailability[] {
+  const ready = (capability: string) => ({ capability, state: "READY", executable: true });
+  const map = Object.fromEntries(
+    ["PRODUCT_INTELLIGENCE", "PRODUCT_IDENTITY_LOCK", "TEXT_RENDERING", "VIDEO_RENDERING", "QA", "CREATIVE_REASONING",
+      ...(cinematicReady ? ["VIDEO_IMAGE_TO_VIDEO"] : [])].map((c) => [c, ready(c)]),
+  ) as CapabilityReadinessMap;
+  return listModeAvailability(map);
+}
 
 const base: PmvViewInput = {
   productName: "Red Sneakers",
   savedPhotoCount: 3,
   uploadingPhotoCount: 0,
-  generationMode: "EXACT_PRODUCT",
-  cinematicAvailable: false,
+  videoMode: "PRODUCT_SLIDESHOW",
+  videoModes: serverModes(false),
   platform: null,
   aspectRatio: "9:16",
   durationSeconds: 15,
@@ -83,19 +97,21 @@ describe("Phase 9 — PMV customer workflow model", () => {
     expect(validateProduct(base)).toBeNull();
   });
 
-  it("never presents 3D as available and gates cinematic on the real capability", () => {
-    for (const available of [true, false, null]) {
-      const options = videoStyleOptions(available);
-      expect(options.map((o) => o.id)).toEqual(["slideshow", "showcase3d", "cinematic"]);
-      expect(options.find((o) => o.id === "showcase3d")?.availability).toBe("coming_soon");
-      expect(options.find((o) => o.id === "showcase3d")?.generationMode).toBeNull();
-      expect(options.find((o) => o.id === "slideshow")?.availability).toBe("available");
+  it("never presents 3D as available and gates cinematic on the backend decision", () => {
+    for (const cinematicReady of [true, false]) {
+      const options = videoStyleOptions(serverModes(cinematicReady));
+      expect(options.map((o) => o.id)).toEqual(["PRODUCT_SLIDESHOW", "PRODUCT_3D_SHOWCASE", "CINEMATIC_AI"]);
+      expect(options.find((o) => o.id === "PRODUCT_3D_SHOWCASE")).toMatchObject({ availability: "coming_soon", note: "Coming soon" });
+      expect(options.find((o) => o.id === "PRODUCT_SLIDESHOW")?.availability).toBe("available");
     }
-    expect(videoStyleOptions(true).find((o) => o.id === "cinematic")?.availability).toBe("available");
-    expect(videoStyleOptions(false).find((o) => o.id === "cinematic")?.availability).toBe("unavailable");
-    expect(videoStyleOptions(null).find((o) => o.id === "cinematic")?.availability).toBe("unavailable");
-    expect(validateStyle({ ...base, generationMode: "CINEMATIC", cinematicAvailable: false })).toMatch(/not available yet/);
-    expect(validateStyle({ ...base, generationMode: "ADVANCED_CREATIVE", cinematicAvailable: true })).toMatch(/choose a video style/i);
+    expect(videoStyleOptions(serverModes(true)).find((o) => o.id === "CINEMATIC_AI")?.availability).toBe("available");
+    expect(videoStyleOptions(serverModes(false)).find((o) => o.id === "CINEMATIC_AI")).toMatchObject({ availability: "unavailable", note: "Not available yet" });
+    // Until the backend answers nothing is presented as available.
+    expect(videoStyleOptions(null).every((o) => o.availability === "checking")).toBe(true);
+    expect(validateStyle({ ...base, videoMode: "CINEMATIC_AI", videoModes: serverModes(false) })).toMatch(/not available yet/);
+    expect(validateStyle({ ...base, videoMode: "PRODUCT_3D_SHOWCASE" })).toMatch(/coming soon/);
+    expect(validateStyle({ ...base, videoModes: null })).toMatch(/Checking/);
+    expect(validateStyle({ ...base, videoMode: "ADVANCED_CREATIVE" as never })).toMatch(/choose a video style/i);
     expect(validateForCreate(base)).toBeNull();
   });
 

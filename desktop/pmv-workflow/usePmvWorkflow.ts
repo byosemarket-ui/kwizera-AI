@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { productSetupEngine } from "../product-setup/product-setup-engine";
 import { displayPercent } from "../customer-platform/workspace/pmv/progress-model";
-import { getPmvWorkflow, sendPmvWorkflowAction, type CustomerWorkflowSummary, type PmvWorkflowAction } from "./api";
+import {
+  PmvWorkflowRejectedError,
+  getPmvWorkflow,
+  sendPmvWorkflowAction,
+  type CustomerWorkflowSummary,
+  type PmvWorkflowAction,
+} from "./api";
 
 const POLL_MS = 4_000;
 
@@ -78,11 +84,13 @@ export function usePmvWorkflow(projectId: string | null): PmvWorkflowState {
     setError(null);
     try {
       if (action !== "cancel") await productSetupEngine.flushPersist().catch(() => undefined);
-      const next = await sendPmvWorkflowAction(projectId, action);
+      const next = await sendPmvWorkflowAction(projectId, action, productSetupEngine.snapshot().creativeDirection.videoMode);
       apply(next);
       return next;
-    } catch {
-      setError("Video generation is temporarily unavailable. Please try again.");
+    } catch (err) {
+      setError(err instanceof PmvWorkflowRejectedError
+        ? err.message
+        : "Video generation is temporarily unavailable. Please try again.");
       return null;
     } finally {
       setPending(null);

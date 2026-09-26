@@ -13,7 +13,8 @@ import {
 import { WorkflowStepError, classifyRenderJobFailure, classifyWorkflowError } from "../../../../ai/pmv-orchestrator/failure.js";
 import { computeStepFingerprints, type FingerprintInputs } from "../../../../ai/pmv-orchestrator/fingerprints.js";
 import { buildExecutionPlan, orderedStepIds, type PlanInput } from "../../../../ai/pmv-orchestrator/plan.js";
-import { CUSTOMER_STEP_LABELS, type WorkflowRecord, type WorkflowStepId } from "../../../../ai/pmv-orchestrator/types.js";
+import { CUSTOMER_STEP_LABELS, MODE_STEP_LABELS, type WorkflowRecord, type WorkflowStepId } from "../../../../ai/pmv-orchestrator/types.js";
+import { videoModeFromGenerationMode, type PmvGenerationMode } from "../../../../ai/pmv-shared/modes.js";
 import { toAdminView, toCustomerSummary, type CustomerWorkflowSummary } from "../../../../ai/pmv-orchestrator/views.js";
 
 const roots: string[] = [];
@@ -30,7 +31,8 @@ async function tempRoot(): Promise<string> {
 interface FakeState {
   assets: string;
   lockStatus: "LOCKED" | "PENDING_CONFIRMATION";
-  mode: PlanInput["generationMode"];
+  /** Legacy mode value — it is what fingerprints key on, so existing projects are not re-planned. */
+  mode: PmvGenerationMode;
   creativeRequest: string;
   cta: string;
   brand: string;
@@ -140,7 +142,7 @@ async function harness(state = baseState(), root?: string): Promise<Harness> {
       fingerprints: fingerprintsFor(h.state),
       planInput: {
         projectId,
-        generationMode: h.state.mode,
+        videoMode: videoModeFromGenerationMode(h.state.mode),
         creativeRequest: h.state.creativeRequest,
         heroWidth: h.state.heroWidth,
         heroHeight: h.state.heroWidth,
@@ -172,7 +174,7 @@ function stepStatus(record: WorkflowRecord, id: WorkflowStepId): string | undefi
 function planInput(overrides: Partial<PlanInput> = {}): PlanInput {
   return {
     projectId: "p1",
-    generationMode: "EXACT_PRODUCT",
+    videoMode: "PRODUCT_SLIDESHOW",
     creativeRequest: "",
     heroWidth: 1600,
     heroHeight: 1600,
@@ -228,7 +230,7 @@ describe("Phase 8 — B. dependency ordering", () => {
   });
 
   it("orders every plan topologically and declares the required gates", () => {
-    const plan = buildExecutionPlan(planInput({ generationMode: "CINEMATIC", creativeRequest: "on a marble table" }));
+    const plan = buildExecutionPlan(planInput({ videoMode: "CINEMATIC_AI", creativeRequest: "on a marble table" }));
     const order = orderedStepIds(plan);
     for (const step of plan.steps) {
       for (const dep of step.dependsOn) expect(order.indexOf(dep)).toBeLessThan(order.indexOf(step.id));
@@ -244,11 +246,11 @@ describe("Phase 8 — C. capability routing", () => {
   it("requests Admin capabilities by requirement, never models or providers", () => {
     const exact = buildExecutionPlan(planInput());
     expect(exact.requiredCapabilities).toEqual([]);
-    const cinematic = buildExecutionPlan(planInput({ generationMode: "CINEMATIC" }));
+    const cinematic = buildExecutionPlan(planInput({ videoMode: "CINEMATIC_AI" }));
     expect(cinematic.mode).toBe("CINEMATIC");
     expect(cinematic.requiredCapabilities).toEqual(expect.arrayContaining(["VIDEO_IMAGE_TO_VIDEO", "VISION_ANALYSIS"]));
     expect(cinematic.requiredCapabilities).not.toContain("IMAGE_EDITING");
-    const full = buildExecutionPlan(planInput({ generationMode: "CINEMATIC", creativeRequest: "on a marble table with soft lighting", editorAcceptsMask: true, heroWidth: 500, heroHeight: 500 }));
+    const full = buildExecutionPlan(planInput({ videoMode: "CINEMATIC_AI", creativeRequest: "on a marble table with soft lighting", editorAcceptsMask: true, heroWidth: 500, heroHeight: 500 }));
     expect(full.mode).toBe("FULL_CREATIVE");
     expect(full.requiredCapabilities).toEqual(expect.arrayContaining(["IMAGE_SEGMENTATION", "IMAGE_EDITING", "IMAGE_UPSCALE", "VIDEO_IMAGE_TO_VIDEO"]));
     for (const plan of [exact, cinematic, full]) {
@@ -292,7 +294,7 @@ describe("Phase 8 — D. conditional skip", () => {
   });
 
   it("cinematic without an environment request skips media preparation", () => {
-    const plan = buildExecutionPlan(planInput({ generationMode: "CINEMATIC", creativeRequest: "" }));
+    const plan = buildExecutionPlan(planInput({ videoMode: "CINEMATIC_AI", creativeRequest: "" }));
     expect(plan.steps.map((s) => s.id)).not.toContain("MEDIA_PREPARATION");
     expect(plan.estimatedOperations).toBe(4 + 1);
   });
@@ -553,9 +555,12 @@ describe("Phase 8 — M. no secrets", () => {
     const record = await runToIdle(h, () => h.orchestrator.start("p1"));
     const summary = toCustomerSummary(record);
     expect(Object.keys(summary).sort()).toEqual(
-      ["activeStagePercent", "canCancel", "canResume", "canRetry", "completedAt", "delivered", "etaSeconds", "label", "message", "observedAt", "progress", "stages", "startedAt", "status", "updatedAt", "workflowId"].sort(),
+      ["activeStagePercent", "canCancel", "canResume", "canRetry", "completedAt", "delivered", "etaSeconds", "label", "message", "observedAt", "progress", "stages", "startedAt", "status", "updatedAt", "videoMode", "workflowId"].sort(),
     );
-    const allowed = new Set(Object.values(CUSTOMER_STEP_LABELS));
+    const allowed = new Set([
+      ...Object.values(CUSTOMER_STEP_LABELS),
+      ...Object.values(MODE_STEP_LABELS).flatMap((labels) => Object.values(labels)),
+    ]);
     for (const stage of summary.stages) expect(allowed.has(stage.label)).toBe(true);
     const text = JSON.stringify(summary);
     expect(text).not.toMatch(/VIDEO_IMAGE_TO_VIDEO|IMAGE_EDITING|VISION_ANALYSIS|PRODUCT_INTELLIGENCE|providerId|modelId|estimatedOperations|cost/i);

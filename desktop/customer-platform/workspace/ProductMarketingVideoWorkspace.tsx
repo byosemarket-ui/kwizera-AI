@@ -42,6 +42,7 @@ export function ProductMarketingVideoWorkspace() {
     const unsub = productSetupEngine.subscribe(setSnap);
     void productSetupEngine.hydrateFromServer().finally(() => {
       setHydrated(true);
+      void productSetupEngine.refreshVideoModes();
       void productSetupEngine.refreshCreativeCapabilities();
       void productSetupEngine.refreshAudioLibrary();
     });
@@ -55,22 +56,19 @@ export function ProductMarketingVideoWorkspace() {
   const flow = usePmvWorkflow(snap.projectId || null);
   const savedCount = snap.imageCards.filter((c) => c.uploadStatus === "saved").length;
   const uploadingCount = snap.imageCards.filter((c) => c.uploadStatus === "uploading").length;
-  const cinematicCap = snap.creativeCapabilities.find((c) => c.mode === "CINEMATIC");
-  const cinematicAvailable = cinematicCap ? cinematicCap.available : null;
-
   const view: PmvViewInput = useMemo(() => ({
     productName: snap.essentials.productName,
     savedPhotoCount: savedCount,
     uploadingPhotoCount: uploadingCount,
-    generationMode: snap.creativeDirection.generationMode,
-    cinematicAvailable,
+    videoMode: snap.creativeDirection.videoMode,
+    videoModes: snap.videoModes,
     platform: snap.videoSettings.platform,
     aspectRatio: snap.videoSettings.aspectRatio,
     durationSeconds: snap.videoSettings.durationSeconds,
     finalOutputUrl: snap.finalOutputUrl,
     deliveryStatus: snap.deliveryStatus,
     produceStatus: snap.produceStatus,
-  }), [snap, savedCount, uploadingCount, cinematicAvailable]);
+  }), [snap, savedCount, uploadingCount]);
 
   const reachable = reachableSteps(flow.workflow, view);
 
@@ -196,7 +194,6 @@ export function ProductMarketingVideoWorkspace() {
         {step === "style" ? (
           <PmvStyleStep
             snap={snap}
-            cinematicAvailable={cinematicAvailable}
             onBack={() => go("product")}
             onContinue={() => go("create")}
             onError={showError}
@@ -208,7 +205,6 @@ export function ProductMarketingVideoWorkspace() {
             snap={snap}
             view={view}
             flow={flow}
-            cinematicAvailable={cinematicAvailable}
             onEditProduct={() => go("product")}
             onEditStyle={() => go("style")}
             onViewVideo={() => go(isVideoDelivered(view) ? "final" : "preview")}

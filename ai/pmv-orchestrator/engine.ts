@@ -8,6 +8,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { readJsonSafe, writeJsonAtomic } from "../../storage/safe-json.js";
 import { classifyWorkflowError, retryDelayMs } from "./failure.js";
+import { legacyGenerationMode, resolveStoredVideoMode } from "../pmv-shared/modes.js";
+import type { VideoModeExecutionPlan } from "../pmv-shared/video-mode-resolver.js";
 import { buildExecutionPlan, orderedStepIds, type PlanInput } from "./plan.js";
 import {
   PMV_WORKFLOW_VERSION,
@@ -26,6 +28,25 @@ import { toCustomerSummary, type CustomerWorkflowSummary } from "./views.js";
 export interface WorkflowSnapshot {
   fingerprints: Record<WorkflowStepId, string>;
   planInput: PlanInput;
+  /** Mode route + production configuration; when present, a mode that is not READY never starts. */
+  modePlan?: VideoModeExecutionPlan | null;
+}
+
+/** The saved configuration cannot start production (unavailable mode, invalid duration…). Nothing was queued. */
+export class WorkflowStartBlockedError extends Error {
+  constructor(readonly code: string, readonly customerMessage: string) {
+    super(customerMessage);
+    this.name = "WorkflowStartBlockedError";
+  }
+}
+
+function assertStartable(snapshot: WorkflowSnapshot): void {
+  const plan = snapshot.modePlan;
+  if (!plan) return;
+  if (plan.availability !== "READY") {
+    throw new WorkflowStartBlockedError("MODE_UNAVAILABLE", plan.customerMessage ?? "This video style is not available yet.");
+  }
+  if (plan.duration.problem) throw new WorkflowStartBlockedError("DURATION_NOT_SUPPORTED", plan.duration.problem);
 }
 
 export interface StepExecutionContext {
@@ -60,7 +81,7 @@ export interface OrchestratorDeps {
 
 const DONE: ReadonlySet<string> = new Set(["COMPLETED", "REUSED", "SKIPPED"]);
 const ACTIVE: ReadonlySet<WorkflowStatus> = new Set(["QUEUED", "RUNNING"]);
-const EXPENSIVE: ReadonlySet<WorkflowStepId> = new Set(["VIDEO_GENERATION", "RENDER", "MEDIA_PREPARATION"]);
+const EXPENSIVE: ReadonlySet<WorkflowStepId> = new Set(["VIDEO_GENERATION", "PRODUCT_3D_GENERATION", "RENDER", "MEDIA_PREPARATION"]);
 /** A step executing this many times in one run means its inputs never settle. */
 const MAX_EXECUTIONS_PER_RUN = 6;
 const MAX_HISTORY = 30;
@@ -155,6 +176,7 @@ export class PmvWorkflowOrchestrator {
     if (latest && ACTIVE.has(latest.status)) return latest;
     if (latest && latest.status !== "COMPLETED") return this.resume(projectId);
     const snapshot = await deps.loadSnapshot(projectId);
+    assertStartable(snapshot);
     const plan = buildExecutionPlan(snapshot.planInput);
     const now = nowIso();
     const seed = latest ?? null;
@@ -163,7 +185,10 @@ export class PmvWorkflowOrchestrator {
       id: randomUUID(),
       projectId,
       mode: plan.mode,
-      generationMode: snapshot.planInput.generationMode,
+      videoMode: snapshot.planInput.videoMode,
+      generationMode: legacyGenerationMode(snapshot.planInput.videoMode) ?? snapshot.planInput.videoMode,
+      modePlan: snapshot.modePlan ?? null,
+      previousWorkflowId: seed?.id ?? null,
       pendingRegenerateSceneIds: [],
       forcedSteps: [],
       status: "QUEUED",
@@ -195,10 +220,13 @@ export class PmvWorkflowOrchestrator {
     if (ACTIVE.has(latest.status)) return latest;
     // Re-plan so a changed mode or creative request adds/removes only the affected steps.
     const snapshot = await this.requireDeps().loadSnapshot(projectId);
+    assertStartable(snapshot);
     const plan = buildExecutionPlan(snapshot.planInput);
     latest.plan = plan;
     latest.mode = plan.mode;
-    latest.generationMode = snapshot.planInput.generationMode;
+    latest.videoMode = snapshot.planInput.videoMode;
+    latest.generationMode = legacyGenerationMode(snapshot.planInput.videoMode) ?? snapshot.planInput.videoMode;
+    latest.modePlan = snapshot.modePlan ?? null;
     latest.steps = stepsForPlan(plan, latest.steps, true);
     for (const step of latest.steps) {
       if (!DONE.has(step.status)) {
@@ -560,6 +588,8 @@ export function migrateRecord(raw: WorkflowRecord): WorkflowRecord {
   const record = { ...raw } as WorkflowRecord;
   record.workflowVersion = typeof raw.workflowVersion === "number" ? raw.workflowVersion : 1;
   record.generationMode = raw.generationMode ?? "EXACT_PRODUCT";
+  record.videoMode = resolveStoredVideoMode(raw);
+  record.modePlan = raw.modePlan ?? null;
   record.pendingRegenerateSceneIds = Array.isArray(raw.pendingRegenerateSceneIds) ? raw.pendingRegenerateSceneIds : [];
   record.forcedSteps = Array.isArray(raw.forcedSteps) ? raw.forcedSteps : [];
   record.repairAttempts = raw.repairAttempts && typeof raw.repairAttempts === "object" ? raw.repairAttempts : {};

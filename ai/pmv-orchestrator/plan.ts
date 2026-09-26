@@ -4,6 +4,7 @@
  * never by what happens to be configured in Admin.
  */
 import { decideImagePreparation } from "../image-preparation/decision.js";
+import type { PmvVideoMode } from "../pmv-shared/modes.js";
 import type {
   ExecutionPlan,
   ExecutionPlanStep,
@@ -14,8 +15,8 @@ import type {
 
 export interface PlanInput {
   projectId: string;
-  /** Customer-selected PMV generation mode. */
-  generationMode: "EXACT_PRODUCT" | "CINEMATIC" | "ADVANCED_CREATIVE";
+  /** Canonical customer-selected video mode. */
+  videoMode: PmvVideoMode;
   creativeRequest: string;
   heroWidth: number | null;
   heroHeight: number | null;
@@ -27,12 +28,13 @@ export interface PlanInput {
   visionQaAvailable: boolean;
 }
 
-export function isGenerativeMode(mode: PlanInput["generationMode"]): boolean {
-  return mode === "CINEMATIC";
+export function isGenerativeMode(mode: PmvVideoMode): boolean {
+  return mode === "CINEMATIC_AI";
 }
 
 export function buildExecutionPlan(input: PlanInput): ExecutionPlan {
-  const generative = isGenerativeMode(input.generationMode);
+  const generative = isGenerativeMode(input.videoMode);
+  const threeD = input.videoMode === "PRODUCT_3D_SHOWCASE";
   const decision = decideImagePreparation({
     generativeVideo: generative,
     creativeRequest: input.creativeRequest,
@@ -46,7 +48,7 @@ export function buildExecutionPlan(input: PlanInput): ExecutionPlan {
   if (decision.enhancementRequired) mediaCaps.push("IMAGE_UPSCALE");
   const needsMedia = mediaCaps.length > 0;
 
-  const mode: WorkflowMode = !generative ? "EXACT" : needsMedia ? "FULL_CREATIVE" : "CINEMATIC";
+  const mode: WorkflowMode = threeD ? "THREE_D" : !generative ? "EXACT" : needsMedia ? "FULL_CREATIVE" : "CINEMATIC";
   const scenes = Math.max(1, input.estimatedSceneCount);
 
   const steps: ExecutionPlanStep[] = [
@@ -82,10 +84,20 @@ export function buildExecutionPlan(input: PlanInput): ExecutionPlan {
       reason: "CINEMATIC_MODE_SELECTED",
     });
   }
+  if (threeD) {
+    steps.push({
+      id: "PRODUCT_3D_GENERATION",
+      dependsOn: ["PRODUCT_LOCK", "CREATIVE_PLANNING", "TIMELINE"],
+      capabilities: ["PRODUCT_3D_GENERATION"],
+      required: true,
+      reason: "THREE_D_MODE_SELECTED",
+    });
+  }
+  const sceneStep: WorkflowStepId | null = generative ? "VIDEO_GENERATION" : threeD ? "PRODUCT_3D_GENERATION" : null;
   steps.push(
     {
       id: "RENDER",
-      dependsOn: generative ? ["TIMELINE", "VIDEO_GENERATION"] : ["TIMELINE"],
+      dependsOn: sceneStep ? ["TIMELINE", sceneStep] : ["TIMELINE"],
       capabilities: [],
       required: true,
       reason: "FINAL_MP4_REQUIRED",
@@ -106,6 +118,7 @@ export function buildExecutionPlan(input: PlanInput): ExecutionPlan {
   const estimatedOperations =
     (needsMedia ? perSceneMediaOps * scenes : 0)
     + (generative ? scenes : 0)
+    + (threeD ? 1 : 0)
     + (input.musicGenerationRequested ? 1 : 0)
     + (generative && input.visionQaAvailable ? 1 : 0);
 

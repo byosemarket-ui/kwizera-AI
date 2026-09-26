@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildExecutionPlan } from "../../../ai/pmv-orchestrator/plan.js";
+import { videoModeFromGenerationMode } from "../../../ai/pmv-shared/modes.js";
 import { migrateRecord } from "../../../ai/pmv-orchestrator/engine.js";
 import { estimateRenderSecondsLeft, toCustomerSummary } from "../../../ai/pmv-orchestrator/views.js";
 import type { StepStatus, WorkflowRecord, WorkflowStepId } from "../../../ai/pmv-orchestrator/types.js";
@@ -30,7 +31,7 @@ function makeRecord(
 ): WorkflowRecord {
   const plan = buildExecutionPlan({
     projectId: "p1",
-    generationMode: mode,
+    videoMode: videoModeFromGenerationMode(mode),
     creativeRequest: "",
     heroWidth: 2000,
     heroHeight: 2000,
@@ -61,6 +62,7 @@ function makeRecord(
     projectId: "p1",
     mode: plan.mode,
     generationMode: mode,
+    videoMode: videoModeFromGenerationMode(mode),
     pendingRegenerateSceneIds: [],
     forcedSteps: [],
     status: running ? "RUNNING" : "QUEUED",
@@ -98,22 +100,22 @@ describe("Step 4 — 1/2. progress state and step completion mapping", () => {
   it("maps real step states to customer stages (done / active / pending) in execution order", () => {
     const summary = toCustomerSummary(makeRecord("EXACT_PRODUCT", { ...BEFORE_RENDER, RENDER: "RUNNING" }), null, at(30));
     expect(summary.stages.map((s) => s.label)).toEqual([
-      "Understanding your product",
-      "Planning the video",
+      "Preparing product",
+      "Planning slideshow",
       "Adding music",
-      "Assembling the video",
-      "Rendering final video",
-      "Checking quality",
+      "Building timeline",
+      "Rendering",
+      "Checking",
       "Finalizing",
     ]);
     expect(summary.stages.map((s) => s.state)).toEqual(["done", "done", "done", "done", "active", "pending", "pending"]);
     expect(summary.progress.completed).toBe(4);
-    expect(runStatusLine(summary)).toBe("Rendering final video…");
+    expect(runStatusLine(summary)).toBe("Rendering…");
   });
 
   it("merges product understanding + product check into one stage that is done only when both are", () => {
     const summary = toCustomerSummary(makeRecord("EXACT_PRODUCT", { PRODUCT_INTELLIGENCE: "COMPLETED", PRODUCT_LOCK: "RUNNING" }));
-    expect(summary.stages[0]).toEqual({ label: "Understanding your product", state: "active" });
+    expect(summary.stages[0]).toEqual({ label: "Preparing product", state: "active" });
   });
 });
 
@@ -178,7 +180,7 @@ describe("Step 4 — 5. failure stops progress", () => {
     );
     expect(failed.activeStagePercent).toBeNull();
     expect(failed.etaSeconds).toBeNull();
-    expect(failed.stages.find((s) => s.label === "Rendering final video")?.state).toBe("failed");
+    expect(failed.stages.find((s) => s.label === "Rendering")?.state).toBe("failed");
     expect(displayPercent(shown, failed).percent).toBe(shown.percent);
     expect(runStatusLine(failed)).toBe("Stopped");
     expect(elapsedMs(failed, 0, 999_999)).toBe(45_000);
@@ -269,8 +271,10 @@ describe("Step 4 — 9. progress follows the selected mode", () => {
   it("Slideshow never shows scene creation; Cinematic shows it", () => {
     const exact = toCustomerSummary(makeRecord("EXACT_PRODUCT", {})).stages.map((s) => s.label);
     const cinematic = toCustomerSummary(makeRecord("CINEMATIC", {})).stages.map((s) => s.label);
-    expect(exact).not.toContain("Creating scenes");
-    expect(cinematic).toContain("Creating scenes");
+    expect(exact).not.toContain("Generating scenes");
+    expect(exact).toContain("Planning slideshow");
+    expect(cinematic).toContain("Generating scenes");
+    expect(cinematic).toContain("Planning cinematic scenes");
     for (const labels of [exact, cinematic]) expect(labels.join(" ")).not.toMatch(/3D/i);
   });
 
@@ -282,7 +286,7 @@ describe("Step 4 — 9. progress follows the selected mode", () => {
     });
     const summary = toCustomerSummary(record, { progress: 30, startedAt: T0 }, at(60));
     expect(summary.activeStagePercent).toBe(30);
-    expect(runStatusLine(summary)).toBe("Creating scenes…");
+    expect(runStatusLine(summary)).toBe("Generating scenes…");
   });
 });
 

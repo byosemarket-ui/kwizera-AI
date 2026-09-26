@@ -13,33 +13,30 @@ import {
   type PmvFormat,
   type PmvPlatform,
 } from "../../../../ai/pmv-shared/destination.js";
+import type { PmvVideoMode } from "../../../../ai/pmv-shared/modes.js";
 import {
   LANGUAGE_OPTIONS,
   STYLE_PRESETS,
-  selectedStyleId,
   stylePresetFromTone,
   validateStyle,
   videoStyleOptions,
-  type PmvVideoStyleId,
   type StylePresetId,
 } from "./view-model";
 import { PmvAudioSection } from "./PmvAudioSection";
 
-const STYLE_ICONS: Record<PmvVideoStyleId, typeof Images> = {
-  slideshow: Images,
-  showcase3d: Box,
-  cinematic: Clapperboard,
+const STYLE_ICONS: Record<PmvVideoMode, typeof Images> = {
+  PRODUCT_SLIDESHOW: Images,
+  PRODUCT_3D_SHOWCASE: Box,
+  CINEMATIC_AI: Clapperboard,
 };
 
 export function PmvStyleStep({
   snap,
-  cinematicAvailable,
   onBack,
   onContinue,
   onError,
 }: {
   snap: ProductSetupSnapshot;
-  cinematicAvailable: boolean | null;
   onBack: () => void;
   onContinue: () => void;
   onError: (message: string) => void;
@@ -48,8 +45,8 @@ export function PmvStyleStep({
   const [attempted, setAttempted] = useState(false);
   const direction = snap.creativeDirection;
   const settings = snap.videoSettings;
-  const options = videoStyleOptions(cinematicAvailable);
-  const selected = selectedStyleId(direction.generationMode);
+  const options = videoStyleOptions(snap.videoModes);
+  const selected = direction.videoMode;
   const destination = resolvePmvDestination(settings.platform, settings.aspectRatio);
   const platformOption = PMV_PLATFORMS.find((p) => p.id === destination.platform)!;
   const maxSeconds = maxDurationSeconds(destination);
@@ -57,10 +54,10 @@ export function PmvStyleStep({
   const [customSeconds, setCustomSeconds] = useState(() => String(settings.durationSeconds % 60));
   const customParts = settings.durationCustom ? durationFromParts(customMinutes, customSeconds) : null;
   const durationProblem = customParts?.error
-    ?? validateDuration(settings.durationSeconds, destination, direction.generationMode);
+    ?? validateDuration(settings.durationSeconds, destination, direction.videoMode);
   const validation = customParts?.error ?? validateStyle({
-    generationMode: direction.generationMode,
-    cinematicAvailable,
+    videoMode: direction.videoMode,
+    videoModes: snap.videoModes,
     platform: destination.platform,
     aspectRatio: destination.format.aspectRatio,
     durationSeconds: settings.durationSeconds,
@@ -125,8 +122,8 @@ export function PmvStyleStep({
               data-style={option.id}
               data-availability={option.availability}
               onClick={() => {
-                if (!available || !option.generationMode || isSelected) return;
-                productSetupEngine.setCreativeDirectionField("generationMode", option.generationMode);
+                if (!available || isSelected) return;
+                productSetupEngine.setVideoMode(option.id);
               }}
             >
               <span className="pmv-style__icon" aria-hidden><Icon size={18} /></span>
@@ -134,17 +131,14 @@ export function PmvStyleStep({
                 <strong>{option.title}</strong>
                 <span>{option.description}</span>
               </span>
-              {available ? (
-                isSelected ? <span className="pmv-style__check" aria-hidden><Check size={14} /></span> : null
-              ) : (
-                <span className="pmv-badge">{option.availability === "coming_soon" ? "Coming soon" : "Not available"}</span>
-              )}
+              {isSelected ? <span className="pmv-style__check" aria-hidden><Check size={14} /></span> : null}
+              {!available && option.note ? <span className="pmv-badge">{option.note}</span> : null}
             </button>
           );
         })}
       </div>
 
-      {selected === "cinematic" ? (
+      {selected === "CINEMATIC_AI" ? (
         <label className="pmv-field">
           <span>Describe the scene <em>optional</em></span>
           <textarea
