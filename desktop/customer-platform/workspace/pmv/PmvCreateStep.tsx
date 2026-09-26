@@ -5,6 +5,7 @@ import type { ProductSetupSnapshot } from "../../../product-setup/types";
 import type { PmvWorkflowState } from "../../../pmv-workflow/usePmvWorkflow";
 import type { CustomerWorkflowSummary } from "../../../pmv-workflow/api";
 import { elapsedMs, etaText, formatElapsed, isRunActive, runStatusLine } from "./progress-model";
+import { audioDisplayTitle } from "./audio-model";
 import type { CustomerStageState } from "../../../../ai/pmv-orchestrator/views";
 import { resolvePmvDestination } from "../../../../ai/pmv-shared/destination.js";
 import {
@@ -164,7 +165,7 @@ export function PmvCreateStep({
               <div><dt>Format</dt><dd>{destination.format.label}</dd></div>
               <div><dt>Duration</dt><dd>{durationLabel(null, snap.videoSettings.durationSeconds)}</dd></div>
               <div><dt>Language</dt><dd>{language}</dd></div>
-              {snap.selectedAudioTitle ? <div><dt>Music</dt><dd>{snap.selectedAudioTitle}</dd></div> : null}
+              {snap.selectedAudioTitle ? <div><dt>Music</dt><dd>{audioDisplayTitle({ title: snap.selectedAudioTitle, sourceType: "UPLOADED_AUDIO" })}</dd></div> : null}
             </dl>
           </div>
           {delivered ? (

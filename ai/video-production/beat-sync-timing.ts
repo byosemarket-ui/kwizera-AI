@@ -259,7 +259,8 @@ export function applyBeatSyncTiming(input: {
     const baseDuration = clip.durationMs;
     const hasText = (clip.text?.length ?? 0) > 0;
     const minMs = minDuration(clip.purpose, hasText);
-    const maxMs = maxDuration(clip.purpose, mode);
+    // Pacing caps never cut a scene below the length the storyboard gave it for the chosen video duration.
+    const maxMs = Math.max(maxDuration(clip.purpose, mode), Math.round(baseDuration + windowSec * 1000));
     const remaining = clips.slice(i + 1);
     const remainingMin = remaining.reduce((sum, c) => {
       if (c.userEdited) return sum + c.durationMs;
@@ -441,6 +442,18 @@ export function applyBeatSyncTiming(input: {
       confidence,
       transitionTime: (startMs + durationMs) / 1000,
     });
+  }
+
+  // The customer's chosen video length is a contract: settle any drift on the latest unlocked scenes.
+  const targetTotalMs = input.clips.reduce((s, c) => s + c.durationMs, 0);
+  let driftMs = targetTotalMs - clips.reduce((s, c) => s + c.durationMs, 0);
+  for (let i = clips.length - 1; i >= 0 && driftMs !== 0; i--) {
+    const c = clips[i]!;
+    if (c.userEdited) continue;
+    const floor = minDuration(c.purpose, (c.text?.length ?? 0) > 0);
+    const durationMs = Math.max(floor, c.durationMs + driftMs);
+    driftMs -= durationMs - c.durationMs;
+    clips[i] = { ...c, durationMs };
   }
 
   const timed = recompute(clips);

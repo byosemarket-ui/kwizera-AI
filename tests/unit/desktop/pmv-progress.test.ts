@@ -301,6 +301,12 @@ describe("Step 4 — 10/11. platform, duration and audio are preserved", () => {
     expect(src).toContain("durationLabel(null, snap.videoSettings.durationSeconds)");
     expect(src).toContain("snap.selectedAudioTitle");
   });
+
+  it("the Create summary shows a friendly music name, never a raw file name", () => {
+    const src = read("desktop/customer-platform/workspace/pmv/PmvCreateStep.tsx");
+    expect(src).toContain('audioDisplayTitle({ title: snap.selectedAudioTitle, sourceType: "UPLOADED_AUDIO" })');
+    expect(src).not.toMatch(/<dd>\{snap\.selectedAudioTitle\}<\/dd>/);
+  });
 });
 
 describe("Step 4 — 12. customer-safe progress", () => {

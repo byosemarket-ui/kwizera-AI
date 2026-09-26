@@ -316,6 +316,80 @@ describe("STEP 2D beat sync timing", () => {
     }
   });
 
+  it("keeps the selected video length exactly for 15/30/45/60s storyboards", () => {
+    const longIntel = intel({ duration: 40 });
+    for (const target of [15_000, 30_000, 45_000, 60_000]) {
+      const scale = target / 15_000;
+      const clips = storyboard15s().map((c) => ({ ...c, durationMs: Math.round(c.durationMs * scale) }));
+      const drift = target - clips.reduce((s, c) => s + c.durationMs, 0);
+      clips[clips.length - 1] = { ...clips[clips.length - 1]!, durationMs: clips[clips.length - 1]!.durationMs + drift };
+      for (const mode of ["SMART", "STRICT"] as const) {
+        const result = applyBeatSyncTiming({ clips, mode, intelligence: longIntel });
+        const total = result.clips.reduce((s, c) => s + c.durationMs, 0);
+        expect(total).toBe(target);
+        expect(result.plan.videoDurationMs).toBe(target);
+        const last = result.clips[result.clips.length - 1]!;
+        expect(last.startMs + last.durationMs).toBe(target);
+      }
+    }
+  });
+
+  it("does not shrink long storyboard scenes to pacing caps", () => {
+    const clips = [
+      clip({ purpose: "HOOK", durationMs: 7000, order: 1 }),
+      clip({ purpose: "FEATURE", durationMs: 12000, order: 2 }),
+      clip({ purpose: "CTA", durationMs: 8000, order: 3 }),
+    ];
+    const result = applyBeatSyncTiming({ clips, mode: "STRICT", intelligence: intel({ duration: 40 }) });
+    expect(result.clips.reduce((s, c) => s + c.durationMs, 0)).toBe(27000);
+  });
+
+  it("keeps total length with a customer-edited scene and never goes below minimums", () => {
+    const base = storyboard15s();
+    base[2] = { ...base[2]!, userEdited: true };
+    const result = applyBeatSyncTiming({ clips: base, mode: "STRICT", intelligence: intel() });
+    expect(result.clips[2]!.durationMs).toBe(base[2]!.durationMs);
+    expect(result.clips.reduce((s, c) => s + c.durationMs, 0)).toBe(15000);
+    for (const scene of result.plan.scenes) expect(scene.durationMs).toBeGreaterThanOrEqual(800);
+  });
+
+  it("keeps the selected video length exactly for 15/30/45/60s storyboards", () => {
+    const longIntel = intel({ duration: 40 });
+    for (const target of [15_000, 30_000, 45_000, 60_000]) {
+      const scale = target / 15_000;
+      const clips = storyboard15s().map((c) => ({ ...c, durationMs: Math.round(c.durationMs * scale) }));
+      const drift = target - clips.reduce((s, c) => s + c.durationMs, 0);
+      clips[clips.length - 1] = { ...clips[clips.length - 1]!, durationMs: clips[clips.length - 1]!.durationMs + drift };
+      for (const mode of ["SMART", "STRICT"] as const) {
+        const result = applyBeatSyncTiming({ clips, mode, intelligence: longIntel });
+        const total = result.clips.reduce((s, c) => s + c.durationMs, 0);
+        expect(total).toBe(target);
+        expect(result.plan.videoDurationMs).toBe(target);
+        const last = result.clips[result.clips.length - 1]!;
+        expect(last.startMs + last.durationMs).toBe(target);
+      }
+    }
+  });
+
+  it("does not shrink long storyboard scenes to pacing caps", () => {
+    const clips = [
+      clip({ purpose: "HOOK", durationMs: 7000, order: 1 }),
+      clip({ purpose: "FEATURE", durationMs: 12000, order: 2 }),
+      clip({ purpose: "CTA", durationMs: 8000, order: 3 }),
+    ];
+    const result = applyBeatSyncTiming({ clips, mode: "STRICT", intelligence: intel({ duration: 40 }) });
+    expect(result.clips.reduce((s, c) => s + c.durationMs, 0)).toBe(27000);
+  });
+
+  it("keeps total length with a customer-edited scene and never goes below minimums", () => {
+    const base = storyboard15s();
+    base[2] = { ...base[2]!, userEdited: true };
+    const result = applyBeatSyncTiming({ clips: base, mode: "STRICT", intelligence: intel() });
+    expect(result.clips[2]!.durationMs).toBe(base[2]!.durationMs);
+    expect(result.clips.reduce((s, c) => s + c.durationMs, 0)).toBe(15000);
+    for (const scene of result.plan.scenes) expect(scene.durationMs).toBeGreaterThanOrEqual(800);
+  });
+
   it("project isolation via distinct audioAssetId in plan", () => {
     const base = storyboard15s();
     const a = applyBeatSyncTiming({ clips: base, mode: "SMART", intelligence: intel({ audioAssetId: "A" }), audioAssetId: "A" });
