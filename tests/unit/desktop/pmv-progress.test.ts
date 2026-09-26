@@ -244,6 +244,25 @@ describe("Step 4 — 8. refresh / reconnect recovery", () => {
     expect(server).toMatch(/toCustomerSummary\(latest, live\)/);
     expect(server).toMatch(/job\.status === "queued" \|\| job\.status === "processing"/);
   });
+
+  it("a render that just finished for this step keeps its share instead of dipping, but a stale job never counts", () => {
+    const server = read("dev/server/index.ts");
+    expect(server).toContain('job?.status === "completed" && Boolean(stepStartedAt) && job.createdAt >= stepStartedAt!');
+    const record = makeRecord("EXACT_PRODUCT", { ...BEFORE_RENDER, RENDER: "RUNNING" });
+    expect(toCustomerSummary(record, { progress: 100, startedAt: T0 }, at(60)).progress.percent).toBe(89);
+  });
+
+  it("catches up immediately when a throttled background tab becomes visible again", () => {
+    const hook = read("desktop/pmv-workflow/usePmvWorkflow.ts");
+    expect(hook).toContain('document.addEventListener("visibilitychange", onVisible)');
+    expect(hook).toContain('window.addEventListener("focus", refresh)');
+    expect(hook).toContain('document.removeEventListener("visibilitychange", onVisible)');
+  });
+
+  it("does not show a meaningless elapsed time while waiting for the customer", () => {
+    const src = read("desktop/customer-platform/workspace/pmv/PmvCreateStep.tsx");
+    expect(src).toContain('workflow.status === "WAITING_FOR_USER" || workflow.status === "CANCELLED"');
+  });
 });
 
 describe("Step 4 — 9. progress follows the selected mode", () => {

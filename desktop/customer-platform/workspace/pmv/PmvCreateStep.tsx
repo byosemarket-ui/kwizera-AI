@@ -47,7 +47,9 @@ function RunProgress({ workflow, percent, receivedAt }: { workflow: CustomerWork
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [active]);
-  const elapsed = elapsedMs(workflow, receivedAt, active ? now : receivedAt);
+  const elapsed = workflow.status === "WAITING_FOR_USER" || workflow.status === "CANCELLED"
+    ? null
+    : elapsedMs(workflow, receivedAt, active ? now : receivedAt);
   const eta = active ? etaText(workflow.etaSeconds) : null;
   const line = runStatusLine(workflow);
   return (

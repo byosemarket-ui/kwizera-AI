@@ -59,10 +59,17 @@ export function usePmvWorkflow(projectId: string | null): PmvWorkflowState {
   const active = workflow?.status === "QUEUED" || workflow?.status === "RUNNING";
   useEffect(() => {
     if (!projectId || !active) return;
-    const timer = window.setInterval(() => {
-      void getPmvWorkflow(projectId).then(apply).catch(() => undefined);
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
+    const refresh = () => { void getPmvWorkflow(projectId).then(apply).catch(() => undefined); };
+    // Background tabs throttle timers; catch up as soon as the customer looks again.
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    const timer = window.setInterval(refresh, POLL_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
+    };
   }, [projectId, active, apply]);
 
   const act = useCallback(async (action: PmvWorkflowAction) => {

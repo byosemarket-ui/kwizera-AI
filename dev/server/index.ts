@@ -4407,8 +4407,12 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
           const production = getVideoProductionManager();
           const video = production ? await production.getVideoProject(projectId).catch(() => null) : null;
           const job = production && video?.activeJobId ? await production.getJob(video.activeJobId, projectId).catch(() => null) : null;
+          const stepStartedAt = latest.steps.find((s) => s.id === latest.currentStep)?.startedAt ?? null;
+          const finishedForThisStep = job?.status === "completed" && Boolean(stepStartedAt) && job.createdAt >= stepStartedAt!;
           if (job && (job.status === "queued" || job.status === "processing") && Number.isFinite(job.progress)) {
             live = { progress: job.progress, startedAt: job.startedAt ?? null };
+          } else if (job && finishedForThisStep) {
+            live = { progress: 100, startedAt: job.startedAt ?? null };
           }
         }
         sendJson(res, 200, { workflow: latest ? toCustomerSummary(latest, live) : null });
