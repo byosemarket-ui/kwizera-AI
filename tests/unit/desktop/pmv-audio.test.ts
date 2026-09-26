@@ -71,6 +71,14 @@ describe("Step 3 — audio library loading", () => {
     expect(audioDisplayTitle({ title: "my_song_final", sourceType: "UPLOADED_AUDIO" })).toBe("my song final");
     expect(audioDisplayTitle({ title: "Promo clip — Extracted Audio", sourceType: "EXTRACTED_FROM_VIDEO" })).toBe("Promo clip");
   });
+
+  it("never prints an internal/test name even for a kept (selected) track", () => {
+    expect(audioDisplayTitle({ title: "step2e-regression", sourceType: "UPLOADED_AUDIO" })).toBe("Uploaded music");
+    expect(audioDisplayTitle({ title: "beat-120", sourceType: "UPLOADED_AUDIO" })).toBe("Uploaded music");
+    expect(audioDisplayTitle({ title: "audit-beat", sourceType: "AI_GENERATED" })).toBe("AI music");
+    expect(audioDisplayTitle({ title: "3863ae0b-2891-4397-8969-040f37de2ebc", sourceType: "EXTRACTED_FROM_VIDEO" })).toBe("Music from a video");
+    expect(audioDisplayTitle({ title: "Summer Beats", sourceType: "UPLOADED_AUDIO" })).toBe("Summer Beats");
+  });
 });
 
 describe("Step 3 — no internal/test audio in the customer picker", () => {

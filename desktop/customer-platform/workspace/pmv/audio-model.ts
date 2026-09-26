@@ -50,7 +50,10 @@ export function customerMusicLibrary(
 export function audioDisplayTitle(item: Pick<PmvAudioLibraryItem, "title" | "sourceType">): string {
   let title = item.title.replace(/_+/g, " ").replace(/\s+/g, " ").trim();
   if (item.sourceType === "EXTRACTED_FROM_VIDEO") title = title.replace(/\s*[—-]\s*Extracted Audio$/i, "").trim();
-  return title || (item.sourceType === "AI_GENERATED" ? "AI music" : "Music");
+  if (title && !looksLikeTestAudio(title)) return title;
+  if (item.sourceType === "AI_GENERATED") return "AI music";
+  if (item.sourceType === "EXTRACTED_FROM_VIDEO") return "Music from a video";
+  return "Uploaded music";
 }
 
 export function audioSourceLabel(item: Pick<PmvAudioLibraryItem, "sourceType">): string {
