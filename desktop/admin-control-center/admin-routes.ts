@@ -14,6 +14,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: "providers", label: "Providers", path: "/admin/providers", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "models", label: "Models", path: "/admin/models", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "features", label: "Feature Mapping", path: "/admin/features", implemented: true, group: "ai", groupLabel: "AI Control" },
+  { id: "knowledge", label: "Knowledge", path: "/admin/knowledge", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "api-access", label: "API Access", path: "/admin/api-access", implemented: true, group: "security", groupLabel: "Security" },
   { id: "video", label: "Video", path: "/admin/video", implemented: false, group: "creative", groupLabel: "Creative" },
   { id: "image", label: "Image", path: "/admin/image", implemented: false, group: "creative", groupLabel: "Creative" },

@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { VideoMotionId, VideoRenderPlan, VideoTextOverlayStatus, VideoTimelineClip, VideoTransitionId } from "./types.js";
 import { sanitizeRenderText } from "./ffmpeg-sanitize.js";
-import { buildAudioFitFilter, planAudioFit, type AudioFitAnalysis, type AudioFitPlan } from "./audio-fit.js";
+import { buildAudioFitFilter, planAudioFit, type AudioFitAnalysis, type AudioFitGuidance, type AudioFitPlan } from "./audio-fit.js";
 import { canvasFitFilter } from "./canvas-fit.js";
 
 export { sanitizeRenderText } from "./ffmpeg-sanitize.js";
@@ -596,9 +596,15 @@ async function probeVideoHasAudio(filePath: string): Promise<{ hasAudio: boolean
   }
 }
 
-async function planFitForFile(audioPath: string, targetSec: number, analysis: AudioFitAnalysis | null | undefined, allowLoop: boolean): Promise<AudioFitPlan> {
+async function planFitForFile(
+  audioPath: string,
+  targetSec: number,
+  analysis: AudioFitAnalysis | null | undefined,
+  allowLoop: boolean,
+  guidance?: AudioFitGuidance | null,
+): Promise<AudioFitPlan> {
   const sourceSec = await probeAudio(audioPath).then((a) => a.durationMs / 1000).catch(() => 0);
-  return planAudioFit({ sourceDurationSec: sourceSec, targetDurationSec: targetSec, analysis, allowLoop });
+  return planAudioFit({ sourceDurationSec: sourceSec, targetDurationSec: targetSec, analysis, allowLoop, guidance });
 }
 
 /**
@@ -616,11 +622,12 @@ export async function muxAudioOntoVideo(input: {
   volume?: number;
   analysis?: AudioFitAnalysis | null;
   allowLoop?: boolean;
+  guidance?: AudioFitGuidance | null;
 }): Promise<ProbedVideo & { audioFit: AudioFitPlan }> {
   const available = await ffmpegAvailable();
   if (!available) throw new FfmpegAudioError("MUX_FAILED", "Failed to attach audio to video.");
   const durSec = Math.max(0.2, input.videoDurationMs / 1000);
-  const audioFit = await planFitForFile(input.audioPath, durSec, input.analysis, input.allowLoop !== false);
+  const audioFit = await planFitForFile(input.audioPath, durSec, input.analysis, input.allowLoop !== false, input.guidance);
   const filter = buildAudioFitFilter(audioFit, "[1:a]", "[a]", { volume: input.volume ?? 1 });
   try {
     await runFfmpeg([
@@ -664,6 +671,8 @@ export async function muxMusicAndVoiceOntoVideo(input: {
   duckLevel?: number;
   /** Audio Intelligence result for the music track (beats/downbeats/bpm), when analysed. */
   musicAnalysis?: AudioFitAnalysis | null;
+  /** Retrieved audio knowledge (bounded crossfade/fade lengths) for the music track. */
+  musicGuidance?: AudioFitGuidance | null;
 }): Promise<ProbedVideo & { audioFit: AudioFitPlan }> {
   const hasMusic = Boolean(input.musicPath);
   const hasVoice = Boolean(input.voicePath);
@@ -678,6 +687,7 @@ export async function muxMusicAndVoiceOntoVideo(input: {
       videoDurationMs: input.videoDurationMs,
       volume: input.musicVolume,
       analysis: input.musicAnalysis,
+      guidance: input.musicGuidance,
     });
   }
   if (!hasMusic && hasVoice) {
@@ -697,7 +707,7 @@ export async function muxMusicAndVoiceOntoVideo(input: {
   const musicVol = Math.min(1, Math.max(0, input.musicVolume ?? 0.85));
   const voiceVol = Math.min(1, Math.max(0, input.voiceVolume ?? 1));
   const duck = Math.min(musicVol, Math.max(0.05, input.duckLevel ?? 0.28));
-  const audioFit = await planFitForFile(input.musicPath!, durSec, input.musicAnalysis, true);
+  const audioFit = await planFitForFile(input.musicPath!, durSec, input.musicAnalysis, true, input.musicGuidance);
   const voiceFit = await planFitForFile(input.voicePath!, durSec, null, false);
 
   // Voice on top; music reduced while voice plays (aprox via volume + amix).

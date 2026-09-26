@@ -222,6 +222,17 @@ export class PersistentMemoryCenter {
     return this.bootError;
   }
 
+  /** Phase 17 — the canonical knowledge record store shared with the knowledge pipeline. */
+  getKnowledgeStorageEngine(): AiKnowledgeStorageEngine {
+    this.ensureReady();
+    return this.knowledgeEngine;
+  }
+
+  getKnowledgeRoot(): string {
+    this.ensureReady();
+    return this.knowledgeRoot;
+  }
+
   health(): PersistentMemoryHealth {
     const issues: string[] = [];
     if (!this.ready) issues.push(this.bootError ?? "Center not ready");

@@ -216,6 +216,11 @@ export async function composeTypographyDecision(
     }
   }
 
+  const bounded = (value: number | undefined, min: number, max: number, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value) ? Math.round(Math.min(max, Math.max(min, value))) : fallback;
+  const maxItems = bounded(input.guidance?.maxItemsPerScene, 2, 3, 3);
+  const maxItemsCta = bounded(input.guidance?.maxItemsCtaScene, 2, 4, 4);
+
   const scenes: TypographyScenePlan[] = [];
   for (const scene of input.scenes) {
     const occupied: PlacementRegion[] = [];
@@ -234,7 +239,7 @@ export async function composeTypographyDecision(
       occupied.push(item.layout.region);
       draft.push(item);
     }
-    const densified = controlSceneDensity(draft, /cta|call|closing|end|final|contact/i.test(scene.purpose ?? "") ? 4 : 3);
+    const densified = controlSceneDensity(draft, /cta|call|closing|end|final|contact/i.test(scene.purpose ?? "") ? maxItemsCta : maxItems);
     warnings.push(...densified.warnings);
     const collided = resolveTextCollisions(densified.items);
     warnings.push(...collided.warnings);

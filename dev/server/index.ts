@@ -4393,6 +4393,19 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  if (/^\/api\/workspace\/projects\/[^/]+\/knowledge(\/search)?$/.test(url.pathname)) {
+    const { handleProjectKnowledgeApi } = await import("./knowledge-base-api.js");
+    await handleProjectKnowledgeApi(req, res, url, {
+      sendJson,
+      readBody,
+      projectExists: async (projectId) => {
+        const workspace = getWorkspaceManager();
+        return Boolean(workspace && await workspace.getProject(projectId).catch(() => null));
+      },
+    });
+    return;
+  }
+
   const pmvWorkflowMatch = url.pathname.match(/^\/api\/pmv\/projects\/([^/]+)\/workflow$/);
   if (pmvWorkflowMatch && (req.method === "GET" || req.method === "POST")) {
     try {
@@ -6037,6 +6050,11 @@ async function main(): Promise<void> {
         await persistentMemoryCenter.boot(storageRoot);
       } catch (err) {
         console.error("[KWIZERA] Persistent Memory Center boot error:", err);
+      }
+      if (persistentMemoryCenter.isReady()) {
+        void import("./knowledge-base-api.js")
+          .then(({ bootKnowledgePipeline }) => bootKnowledgePipeline())
+          .catch((err) => console.error("[KWIZERA] Knowledge Base boot error:", err instanceof Error ? err.message : err));
       }
       await new Promise<void>((resolve) => setImmediate(resolve));
       void onlineKnowledgeEngine.boot(storageRoot).catch((err) => {

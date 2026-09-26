@@ -84,7 +84,12 @@ export function planCanvasFit(input: {
   cropFocusY?: number;
   /** Targeted repair for this scene — always take the product-preserving layout. */
   forceSafe?: boolean;
+  /** Retrieved composition guidance; clamped to 0.7–0.9 so knowledge cannot disable crop protection. */
+  minSafeCoverage?: number | null;
 }): CanvasFitPlan {
+  const minCoverage = typeof input.minSafeCoverage === "number" && Number.isFinite(input.minSafeCoverage)
+    ? Math.min(0.9, Math.max(0.7, input.minSafeCoverage))
+    : MIN_SAFE_COVERAGE_ESTIMATED;
   const framing = input.framing ?? null;
   const formatPlan = framing?.formats?.[input.targetAspect as PrepAspectRatio];
   const basis = formatPlan?.analysisBasis ?? (framing ? "estimated-center" : "unavailable");
@@ -127,7 +132,7 @@ export function planCanvasFit(input: {
 
   let cropRisk: CanvasCropRisk;
   if (productKeptRatio !== null) cropRisk = productKeptRatio >= MIN_PRODUCT_KEPT ? "SAFE" : "UNSAFE";
-  else cropRisk = sourceCoverage >= MIN_SAFE_COVERAGE_ESTIMATED ? "SAFE" : "UNCERTAIN";
+  else cropRisk = sourceCoverage >= minCoverage ? "SAFE" : "UNCERTAIN";
 
   const extend = Boolean(input.forceSafe) || cropRisk === "UNSAFE" || cropRisk === "UNCERTAIN";
   if (!extend) {

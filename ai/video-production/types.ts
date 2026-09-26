@@ -427,6 +427,13 @@ export interface VideoProject {
   avCreativeMode?: import("../audio-visual-director/types.js").AvCreativeMode;
   /** Phase 16 — how the selected audio was fitted to the last rendered output. */
   audioFitPlan?: import("./audio-fit.js").AudioFitPlan & { renderJobId: string };
+  /** Phase 17 — knowledge retrieved for planning (citations + guidance; no excerpts or storage paths). */
+  knowledgeContexts?: {
+    slideshow?: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
+    typography?: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
+    audio?: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
+    renderJobId?: string;
+  };
 }
 
 export class VideoProductionError extends Error {

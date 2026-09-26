@@ -154,6 +154,11 @@ export async function handleAdminApi(
 
   if (!guard(req, res, deps.sendJson, url.pathname)) return true;
 
+  if (url.pathname.startsWith("/api/admin/knowledge")) {
+    const { handleAdminKnowledgeApi } = await import("./knowledge-base-api.js");
+    return handleAdminKnowledgeApi(req, res, url, { sendJson: deps.sendJson, readBody: deps.readBody });
+  }
+
   const manager = requireManager(deps, res);
   if (!manager) return true;
 

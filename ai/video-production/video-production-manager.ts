@@ -85,6 +85,27 @@ import {
 } from "./types.js";
 import { isEquivalentKnowledgeMessage } from "../product-intelligence/normalize-profile.js";
 import { recordVideoProductionFoundation } from "./video-production-foundation.js";
+import { retrieveTaskKnowledge } from "../knowledge-acquisition-engine/knowledge-pipeline-registry.js";
+import { summarizeKnowledgeContext, type KnowledgeContextSummary } from "../knowledge-retrieval-engine/knowledge-context-builder.js";
+import { AUDIO_FIT_GUIDANCE_SPECS, type AudioFitGuidance } from "./audio-fit.js";
+
+const SLIDESHOW_GUIDANCE_SPECS = [{ key: "composition.minSafeCoverage", min: 0.7, max: 0.9, default: 0.8 }];
+const TYPOGRAPHY_GUIDANCE_SPECS = [
+  { key: "typography.maxItemsPerScene", min: 2, max: 3, default: 3 },
+  { key: "typography.maxItemsCtaScene", min: 2, max: 4, default: 4 },
+];
+
+/** Guidance value only when it came from knowledge (defaults leave the engine's own behaviour untouched). */
+function knowledgeNumber(summary: KnowledgeContextSummary | null | undefined, key: string): number | undefined {
+  const found = summary?.guidance.find((g) => g.key === key && g.basis === "KNOWLEDGE");
+  return typeof found?.value === "number" ? found.value : undefined;
+}
+
+function typographyGuidanceFrom(summary: KnowledgeContextSummary | null | undefined) {
+  const maxItemsPerScene = knowledgeNumber(summary, "typography.maxItemsPerScene");
+  const maxItemsCtaScene = knowledgeNumber(summary, "typography.maxItemsCtaScene");
+  return maxItemsPerScene === undefined && maxItemsCtaScene === undefined ? null : { maxItemsPerScene, maxItemsCtaScene };
+}
 
 const PROVIDER_MESSAGE = "VIDEO GENERATION PROVIDER UNAVAILABLE. Deterministic FFmpeg still-to-video remains available.";
 const AUDIO_MESSAGE_NONE = "No audio selected. Video will render without an audio stream.";
@@ -373,7 +394,14 @@ export class VideoProductionManager {
       beatSyncMode,
       avCreativePlan,
       avCreativeMode,
+      audioFitPlan: existing?.audioFitPlan,
     };
+    const planKnowledge = await this.retrieveProductionKnowledge(projectId, {
+      productionMode: repairedPlan.productionMode,
+      platform: profile.id,
+      aspectRatio: renderPlan.aspectRatio,
+    });
+    video.knowledgeContexts = { ...(existing?.knowledgeContexts ?? {}), ...planKnowledge };
     try {
       const { composeTypographyDecision } = await import("../typography/typography-engine.js");
       const { composeInputFromProject } = await import("../typography/from-plan.js");
@@ -404,15 +432,18 @@ export class VideoProductionManager {
             : undefined,
         });
       }));
-      const decision = await composeTypographyDecision(composeInputFromProject({
-        project: workspaceProject,
-        plan: repairedPlan,
-        width: renderPlan.width,
-        height: renderPlan.height,
-        aspectRatio: renderPlan.aspectRatio,
-        platform: profile.id,
-        images,
-      }));
+      const decision = await composeTypographyDecision({
+        ...composeInputFromProject({
+          project: workspaceProject,
+          plan: repairedPlan,
+          width: renderPlan.width,
+          height: renderPlan.height,
+          aspectRatio: renderPlan.aspectRatio,
+          platform: profile.id,
+          images,
+        }),
+        guidance: typographyGuidanceFrom(planKnowledge.typography),
+      });
       if (decision.projectId === projectId && decision.scenes.length) {
         timeline = applyTypographyDecisionToTimeline(timeline, decision);
         const occupiedMap = new Map<string, { x: number; y: number; width: number; height: number } | null>();
@@ -683,6 +714,12 @@ export class VideoProductionManager {
       const renderProfile = resolveProductionRenderProfile(video.productionMode);
       const profile = profileForPlatform(video.platform ?? "youtube");
       const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(renderClips), preset);
+      const renderKnowledge = await this.retrieveProductionKnowledge(job.projectId, {
+        productionMode: video.productionMode,
+        platform: profile.id,
+        aspectRatio: renderPlan.aspectRatio,
+      });
+      const minSafeCoverage = knowledgeNumber(renderKnowledge.slideshow, "composition.minSafeCoverage") ?? null;
       let plannedDurationMs = timelineDurationMs(renderClips);
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
@@ -772,15 +809,18 @@ export class VideoProductionManager {
                 : undefined,
             });
           }));
-          const decision = await composeTypographyDecision(composeInputFromProject({
-            project: workspaceProject,
-            plan: creativePlan,
-            width: renderPlan.width,
-            height: renderPlan.height,
-            aspectRatio: renderPlan.aspectRatio,
-            platform: profile.id,
-            images,
-          }));
+          const decision = await composeTypographyDecision({
+            ...composeInputFromProject({
+              project: workspaceProject,
+              plan: creativePlan,
+              width: renderPlan.width,
+              height: renderPlan.height,
+              aspectRatio: renderPlan.aspectRatio,
+              platform: profile.id,
+              images,
+            }),
+            guidance: typographyGuidanceFrom(renderKnowledge.typography),
+          });
           if (decision.projectId === job.projectId && decision.scenes.length) {
             typedClips = applyTypographyDecisionToTimeline(renderClips, decision);
             await this.patchVideo(job.projectId, {
@@ -1082,6 +1122,7 @@ export class VideoProductionManager {
             cropFocusX: productionClip.motionParams?.cropFocusX,
             cropFocusY: productionClip.motionParams?.cropFocusY,
             forceSafe: Array.isArray(job.regenerateSceneIds) && job.regenerateSceneIds.includes(productionClip.sceneId),
+            minSafeCoverage,
           });
           stillClip = applyCanvasFitToClip<VideoTimelineClip>(productionClip, canvasPlan, Boolean(framingInspection?.nearEdge));
           const rendered = await renderStillClip({ clip: stillClip, imagePath }, renderPlan, clipPath, fontFile);
@@ -1230,6 +1271,7 @@ export class VideoProductionManager {
       const hasMusic = Boolean(audioSelection?.enabled && audioSelection.selectedAudioAssetId);
       const hasVoice = Boolean(audioSelection?.voiceEnabled && audioSelection.selectedVoiceAssetId);
       let audioFitPlan: VideoProject["audioFitPlan"];
+      let audioKnowledgeSummary: KnowledgeContextSummary | null = null;
       if (hasMusic || hasVoice) {
         await this.writeJob(job.id, {
           ...started,
@@ -1269,6 +1311,11 @@ export class VideoProductionManager {
         const musicAnalysis = hasMusic && this.audioIntelligence?.isInitialized()
           ? await this.audioIntelligence.getAnalysis(audioSelection!.selectedAudioAssetId!).catch(() => null)
           : null;
+        const readyAnalysis = musicAnalysis?.status === "READY" ? musicAnalysis : null;
+        const audioKnowledge = hasMusic
+          ? await this.retrieveAudioKnowledge(job.projectId, readyAnalysis?.bpm ?? null)
+          : { summary: null, guidance: null };
+        audioKnowledgeSummary = audioKnowledge.summary;
         const muxed = await muxMusicAndVoiceOntoVideo({
           videoPath: outputPath,
           outputPath: muxedPath,
@@ -1277,7 +1324,8 @@ export class VideoProductionManager {
           musicVolume: audioSelection?.volume ?? 0.85,
           voicePath,
           voiceVolume: audioSelection?.voiceVolume ?? 1,
-          musicAnalysis: musicAnalysis?.status === "READY" ? musicAnalysis : null,
+          musicAnalysis: readyAnalysis,
+          musicGuidance: audioKnowledge.guidance,
         });
         await fs.copyFile(muxedPath, outputPath);
         audioFitPlan = { ...muxed.audioFit, renderJobId: job.id };
@@ -1426,6 +1474,11 @@ export class VideoProductionManager {
         versions: [...(video.versions ?? []), version],
         endCardPlan: endCardPlanPublic ?? video.endCardPlan,
         audioFitPlan: audioFitPlan ?? video.audioFitPlan,
+        knowledgeContexts: {
+          ...renderKnowledge,
+          audio: audioKnowledgeSummary,
+          renderJobId: job.id,
+        },
       });
       await this.writeJson(this.projectFile(job.projectId), updatedVideo);
       await this.writeJson(this.jobFile(job.id), completed);
@@ -1466,6 +1519,53 @@ export class VideoProductionManager {
 
   private async writeJob(jobId: string, job: VideoRenderJob): Promise<void> {
     await this.writeJson(this.jobFile(jobId), { ...job, updatedAt: new Date().toISOString() });
+  }
+
+  /** Phase 17 — task-aware knowledge for the slideshow/cinematic plan and typography plan of a project. */
+  private async retrieveProductionKnowledge(projectId: string, input: {
+    productionMode?: string;
+    platform?: string;
+    aspectRatio?: string;
+  }): Promise<{ slideshow: KnowledgeContextSummary | null; typography: KnowledgeContextSummary | null }> {
+    const project = await this.workspace!.getProject(projectId).catch(() => null);
+    const product = [project?.productInformation?.category, project?.productInformation?.name].filter(Boolean).join(" ");
+    const cinematic = input.productionMode === "CINEMATIC_3D";
+    const format = [input.platform, input.aspectRatio].filter(Boolean).join(" ");
+    const [slideshow, typography] = await Promise.all([
+      retrieveTaskKnowledge({
+        task: cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW",
+        query: `${product} product ${cinematic ? "cinematic video camera movement pacing" : "slideshow composition crop safe canvas motion scene timing transitions"} ${format}`,
+        projectId,
+        guidanceSpecs: SLIDESHOW_GUIDANCE_SPECS,
+        caller: "video-production.plan",
+      }),
+      retrieveTaskKnowledge({
+        task: "TYPOGRAPHY_PLAN",
+        query: `${product} product video text hierarchy readability contrast placement ${format}`,
+        projectId,
+        guidanceSpecs: TYPOGRAPHY_GUIDANCE_SPECS,
+        caller: "video-production.typography",
+      }),
+    ]);
+    return { slideshow: summarizeKnowledgeContext(slideshow), typography: summarizeKnowledgeContext(typography) };
+  }
+
+  private async retrieveAudioKnowledge(projectId: string, bpm: number | null): Promise<{ summary: KnowledgeContextSummary | null; guidance: AudioFitGuidance | null }> {
+    const context = await retrieveTaskKnowledge({
+      task: "AUDIO_PLAN",
+      query: `music loop crossfade fade out beat sync${bpm ? ` measured tempo ${Math.round(bpm)} bpm` : ""}`,
+      projectId,
+      guidanceSpecs: [...AUDIO_FIT_GUIDANCE_SPECS],
+      caller: "video-production.audio",
+    });
+    const summary = summarizeKnowledgeContext(context);
+    const loopCrossfadeSec = knowledgeNumber(summary, "audio.loopCrossfadeSec");
+    const fadeOutSec = knowledgeNumber(summary, "audio.fadeOutSec");
+    const sourceItemIds = summary?.guidance.filter((g) => g.basis === "KNOWLEDGE").flatMap((g) => g.sourceItemIds) ?? [];
+    return {
+      summary,
+      guidance: loopCrossfadeSec === undefined && fadeOutSec === undefined ? null : { loopCrossfadeSec, fadeOutSec, sourceItemIds: [...new Set(sourceItemIds)] },
+    };
   }
 
   private async patchVideo(projectId: string, patch: Partial<VideoProject>): Promise<void> {

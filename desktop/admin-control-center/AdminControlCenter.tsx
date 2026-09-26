@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard, Boxes, Cable, Waypoints, Clapperboard, Image, AudioLines, Mic,
   Users, FolderKanban, Activity, Coins, Wallet, CreditCard, HeartPulse, ScrollText,
-  HardDrive, Database, Settings, Menu, X, ArrowLeft, KeyRound, Workflow,
+  HardDrive, Database, Settings, Menu, X, ArrowLeft, KeyRound, Workflow, BookOpen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ADMIN_GROUP_ORDER, ADMIN_NAV, parseAdminRouteFromLocation, syncAdminUrl } from "./admin-routes";
@@ -16,6 +16,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { SystemPage } from "./pages/SystemPage";
 import { ApiAccessPage } from "./pages/ApiAccessPage";
 import { WorkflowsPage } from "./pages/WorkflowsPage";
+import { KnowledgePage } from "./pages/KnowledgePage";
 import "./admin.css";
 
 const ICONS: Record<AdminRouteId, LucideIcon> = {
@@ -23,6 +24,7 @@ const ICONS: Record<AdminRouteId, LucideIcon> = {
   models: Boxes,
   providers: Cable,
   features: Waypoints,
+  knowledge: BookOpen,
   "api-access": KeyRound,
   video: Clapperboard,
   image: Image,
@@ -92,6 +94,7 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
   else if (route === "settings") content = <SettingsPage onGoToApiAccess={goToApiAccess} />;
   else if (route === "system") content = <SystemPage onOpenStudioHealth={onOpenStudioHealth} onGoToApiAccess={goToApiAccess} />;
   else if (route === "workflows") content = <WorkflowsPage onGoToApiAccess={goToApiAccess} />;
+  else if (route === "knowledge") content = <KnowledgePage onGoToApiAccess={goToApiAccess} />;
 
   return (
     <div className="acc-shell" data-admin-route={route}>

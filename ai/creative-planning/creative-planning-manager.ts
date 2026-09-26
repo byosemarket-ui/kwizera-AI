@@ -125,6 +125,11 @@ export interface CreativePlan {
   decisionTrace?: ProductionDecisionTrace;
   directorInputFingerprint?: string;
   directorStale?: boolean;
+  /** Phase 17 — knowledge retrieved while planning (citations + guidance only). */
+  knowledgeContext?: {
+    creative: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
+    copy: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
+  };
 }
 
 export interface PlanResult {
@@ -218,6 +223,7 @@ export class CreativePlanningManager {
       existingScenes: preserveExisting,
       durationSeconds: opts?.durationSeconds,
     });
+    plan.knowledgeContext = await this.retrievePlanningKnowledge(project, plan);
     this.transition(project.id, ProjectState.Modified);
     this.transition(project.id, ProjectState.Saving);
     await this.writeJson(this.planPath(project.id), plan);
@@ -225,6 +231,31 @@ export class CreativePlanningManager {
     this.transition(project.id, ProjectState.Saved);
     return { plan, validation };
     });
+  }
+
+  private async retrievePlanningKnowledge(project: CreativeProject, plan: CreativePlan): Promise<CreativePlan["knowledgeContext"]> {
+    const [{ retrieveTaskKnowledge }, { summarizeKnowledgeContext }] = await Promise.all([
+      import("../knowledge-acquisition-engine/knowledge-pipeline-registry.js"),
+      import("../knowledge-retrieval-engine/knowledge-context-builder.js"),
+    ]);
+    const product = `${project.productInformation.category} ${project.productInformation.name}`.trim();
+    const format = `${project.platform ?? ""} ${plan.aspectRatio ?? ""}`.trim();
+    const cinematic = plan.productionMode === "CINEMATIC_3D";
+    const [creative, copy] = await Promise.all([
+      retrieveTaskKnowledge({
+        task: cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW",
+        query: `${product} product scene order hero opening composition motion transitions cta ${format}`,
+        projectId: project.id,
+        caller: "creative-planning",
+      }),
+      retrieveTaskKnowledge({
+        task: "COPYWRITING",
+        query: `${product} headline benefit offer price cta ${format}`,
+        projectId: project.id,
+        caller: "creative-planning.copy",
+      }),
+    ]);
+    return { creative: summarizeKnowledgeContext(creative), copy: summarizeKnowledgeContext(copy) };
   }
 
   async updatePlan(projectId: string, changes: Partial<Omit<CreativePlan, "id" | "projectId" | "createdAt" | "modifiedAt" | "version">>): Promise<CreativePlan> {

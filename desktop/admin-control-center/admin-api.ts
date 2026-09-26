@@ -6,8 +6,28 @@ import type {
   TypedSetting,
 } from "./types";
 import type { toAdminView } from "../../ai/pmv-orchestrator/views";
+import type { KnowledgePipeline, KnowledgeRetrievalLogEntry, publicSourceView } from "../../ai/knowledge-acquisition-engine/knowledge-pipeline";
+import type { TaskKnowledgeContext } from "../../ai/knowledge-retrieval-engine/knowledge-context-builder";
 
 export type AdminWorkflowView = ReturnType<typeof toAdminView>;
+export type AdminKnowledgeSource = ReturnType<typeof publicSourceView>;
+export type AdminKnowledgeOverview = ReturnType<KnowledgePipeline["overview"]>;
+export type AdminKnowledgeItem = ReturnType<KnowledgePipeline["listSourceItems"]>[number];
+export type AdminKnowledgeRetrieval = KnowledgeRetrievalLogEntry;
+export type AdminKnowledgeContext = TaskKnowledgeContext;
+export interface AdminKnowledgeJob {
+  jobId: string;
+  sourceId: string;
+  kind: "INGEST" | "REFRESH";
+  status: string;
+  stage: string;
+  history: Array<{ stage: string; at: string; note?: string }>;
+  attempts: number;
+  error: { code: string; message: string } | null;
+  result: { version: number; stored: number; linked: number; rejected: number; needsReview: number } | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
 
@@ -149,4 +169,26 @@ export const adminApi = {
   saveSetting: (key: string, value: unknown) =>
     adminFetch<TypedSetting>("/api/admin/settings", { method: "POST", body: JSON.stringify({ key, value }) }),
   usage: () => adminFetch<{ items: unknown[]; note?: string }>("/api/admin/usage"),
+  knowledgeOverview: () => adminFetch<{ overview: AdminKnowledgeOverview }>("/api/admin/knowledge/overview"),
+  knowledgeDomains: () =>
+    adminFetch<{ domains: Array<{ id: string; label: string; builtIn: boolean }>; sourceTypes: string[]; tasks: string[] }>("/api/admin/knowledge/domains"),
+  knowledgeSources: () => adminFetch<{ items: AdminKnowledgeSource[] }>("/api/admin/knowledge/sources"),
+  knowledgeSource: (id: string) =>
+    adminFetch<{ source: AdminKnowledgeSource; items: AdminKnowledgeItem[]; jobs: AdminKnowledgeJob[] }>(`/api/admin/knowledge/sources/${encodeURIComponent(id)}`),
+  registerKnowledgeSource: (body: Record<string, unknown>) =>
+    adminFetch<{ source: AdminKnowledgeSource; job: AdminKnowledgeJob }>("/api/admin/knowledge/sources", { method: "POST", body: JSON.stringify(body) }),
+  knowledgeSourceAction: (id: string, action: "approve" | "reject" | "disable" | "enable" | "refresh" | "trust", body: Record<string, unknown> = {}) =>
+    adminFetch<{ source: AdminKnowledgeSource; job: AdminKnowledgeJob | null }>(`/api/admin/knowledge/sources/${encodeURIComponent(id)}/${action}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  knowledgeJobs: () => adminFetch<{ items: AdminKnowledgeJob[] }>("/api/admin/knowledge/jobs"),
+  retryKnowledgeJob: (id: string) =>
+    adminFetch<{ job: AdminKnowledgeJob }>(`/api/admin/knowledge/jobs/${encodeURIComponent(id)}/retry`, { method: "POST", body: "{}" }),
+  reindexKnowledge: () =>
+    adminFetch<{ result: { indexed: number; legacy: number; durationMs: number } }>("/api/admin/knowledge/reindex", { method: "POST", body: "{}" }),
+  refreshStaleKnowledge: () => adminFetch<{ jobs: AdminKnowledgeJob[] }>("/api/admin/knowledge/refresh-stale", { method: "POST", body: "{}" }),
+  knowledgeRetrievals: () => adminFetch<{ items: AdminKnowledgeRetrieval[] }>("/api/admin/knowledge/retrievals"),
+  searchKnowledge: (body: { query: string; task?: string; projectId?: string }) =>
+    adminFetch<{ context: AdminKnowledgeContext }>("/api/admin/knowledge/search", { method: "POST", body: JSON.stringify(body) }),
 };

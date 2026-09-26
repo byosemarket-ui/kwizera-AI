@@ -40,7 +40,21 @@ export interface AudioFitPlan {
   /** True only when beat/downbeat/tempo analysis determined a boundary. */
   beatAnalysisUsed: boolean;
   reason: string;
+  /** Knowledge-base guidance that set crossfade/fade lengths (measured beats still choose the boundaries). */
+  knowledgeGuidance?: { loopCrossfadeSec?: number; fadeOutSec?: number; sourceItemIds: string[] };
 }
+
+/** Bounded suggestions from retrieved audio knowledge. Out-of-range values are clamped. */
+export interface AudioFitGuidance {
+  loopCrossfadeSec?: number;
+  fadeOutSec?: number;
+  sourceItemIds?: string[];
+}
+
+export const AUDIO_FIT_GUIDANCE_SPECS = [
+  { key: "audio.loopCrossfadeSec", min: 0.03, max: 0.25, default: 0.08 },
+  { key: "audio.fadeOutSec", min: 1, max: 3, default: 2 },
+] as const;
 
 const EXACT_TOLERANCE_SEC = 0.25;
 /** Below this a loop would repeat so often it stops sounding like music. */
@@ -91,10 +105,22 @@ export function planAudioFit(input: {
   analysis?: AudioFitAnalysis | null;
   /** Voice/narration must never repeat. */
   allowLoop?: boolean;
+  guidance?: AudioFitGuidance | null;
 }): AudioFitPlan {
   const source = Math.max(0, input.sourceDurationSec);
   const target = Math.max(0.2, input.targetDurationSec);
   const allowLoop = input.allowLoop !== false;
+  const g = input.guidance ?? null;
+  const guidedFade = typeof g?.fadeOutSec === "number" && Number.isFinite(g.fadeOutSec)
+    ? Math.min(3, Math.max(1, g.fadeOutSec), target / 4)
+    : null;
+  const guidedCrossfade = typeof g?.loopCrossfadeSec === "number" && Number.isFinite(g.loopCrossfadeSec)
+    ? Math.min(0.25, Math.max(0.03, g.loopCrossfadeSec))
+    : null;
+  const knowledgeGuidance = (used: { loopCrossfadeSec?: number; fadeOutSec?: number }) =>
+    g && (used.loopCrossfadeSec !== undefined || used.fadeOutSec !== undefined)
+      ? { knowledgeGuidance: { ...used, sourceItemIds: g.sourceItemIds ?? [] } }
+      : {};
   const base = {
     version: AUDIO_FIT_VERSION,
     sourceDurationSec: round(source),
@@ -119,7 +145,7 @@ export function planAudioFit(input: {
   }
 
   if (source > target) {
-    let fadeOutSec = Math.max(1, Math.min(3, target * 0.08));
+    let fadeOutSec = guidedFade ?? Math.max(1, Math.min(3, target * 0.08));
     let basis: AudioBoundaryBasis = "duration";
     const beat = nearestBeat(target - fadeOutSec, input.analysis, 0.75);
     if (beat && beat.time > 0 && beat.time < target - 0.4) {
@@ -137,6 +163,7 @@ export function planAudioFit(input: {
       reason: basis === "duration"
         ? "Audio is longer than the video; it fades out and ends with the video."
         : `Audio is longer than the video; the fade-out starts on a ${basis} and ends with the video.`,
+      ...knowledgeGuidance(guidedFade !== null ? { fadeOutSec: round(guidedFade) } : {}),
     };
   }
 
@@ -159,10 +186,10 @@ export function planAudioFit(input: {
   const { end, basis } = loopBoundary(source, input.analysis);
   const musical = basis !== "duration";
   // Musical boundaries get a short crossfade that keeps the beat; arbitrary ones need a longer blend.
-  const crossfadeSec = musical ? Math.min(0.08, end / 8) : Math.min(1, end / 4);
+  const crossfadeSec = musical ? Math.min(guidedCrossfade ?? 0.08, end / 8) : Math.min(1, end / 4);
   const repeats = Math.min(MAX_REPEATS, Math.max(2, Math.ceil((target - crossfadeSec) / Math.max(0.1, end - crossfadeSec))));
   const covered = Math.min(target, repeats * end - (repeats - 1) * crossfadeSec);
-  const fadeOutSec = Math.max(1, Math.min(2, target * 0.06));
+  const fadeOutSec = guidedFade ?? Math.max(1, Math.min(2, target * 0.06));
   return {
     ...base,
     strategy: "LOOP_EXTEND",
@@ -177,6 +204,10 @@ export function planAudioFit(input: {
     reason: musical
       ? `Audio is shorter than the video; it loops on a ${basis} boundary with a short crossfade.`
       : "Audio is shorter than the video; it loops with a crossfade (no beat analysis available).",
+    ...knowledgeGuidance({
+      ...(musical && guidedCrossfade !== null ? { loopCrossfadeSec: round(crossfadeSec) } : {}),
+      ...(guidedFade !== null ? { fadeOutSec: round(guidedFade) } : {}),
+    }),
   };
 }
 

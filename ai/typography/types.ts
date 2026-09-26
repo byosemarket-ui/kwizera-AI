@@ -238,6 +238,8 @@ export interface TypographyComposeInput {
   }>;
   brandColors?: string[];
   useOllama?: boolean;
+  /** Retrieved typography knowledge, clamped by the engine (2–3 items; 2–4 on closing scenes). */
+  guidance?: { maxItemsPerScene?: number; maxItemsCtaScene?: number } | null;
 }
 
 export interface PublicTypographyDiagnostics {

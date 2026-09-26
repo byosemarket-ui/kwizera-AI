@@ -150,7 +150,7 @@ export interface ResearchHistoryEntry {
   message: string;
 }
 
-function httpGetText(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<{ ok: boolean; status: number; body: string; error?: string }> {
+function httpGetText(url: string, timeoutMs = FETCH_TIMEOUT_MS, redirectsLeft = 3): Promise<{ ok: boolean; status: number; body: string; error?: string }> {
   return new Promise((resolve) => {
     let parsed: URL;
     try {
@@ -178,8 +178,18 @@ function httpGetText(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<{ ok: b
         // Follow one redirect safely
         if (status >= 300 && status < 400 && res.headers.location) {
           res.resume();
-          const next = new URL(res.headers.location, url).toString();
-          void httpGetText(next, timeoutMs).then(resolve);
+          let nextUrl: URL;
+          try {
+            nextUrl = new URL(res.headers.location, url);
+          } catch {
+            resolve({ ok: false, status, body: "", error: "Invalid redirect" });
+            return;
+          }
+          if (redirectsLeft <= 0 || !hostAllowed(nextUrl.hostname)) {
+            resolve({ ok: false, status, body: "", error: "Redirect blocked" });
+            return;
+          }
+          void httpGetText(nextUrl.toString(), timeoutMs, redirectsLeft - 1).then(resolve);
           return;
         }
         const chunks: Buffer[] = [];
