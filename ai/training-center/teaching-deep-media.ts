@@ -7,6 +7,10 @@
  */
 import { execFile } from "node:child_process";
 import type { AudioMeasurement, MediaAnalysis } from "./training-types.js";
+import {
+  buildObservations, classifyCamera, classifyTransition, globalMotion, gradualTransitionCandidates, textLikeRegions,
+  type GlobalMotion, type SceneExtras, type TextPresence, type TransitionKind, type TransitionObservation, type VideoLearningObservation,
+} from "./video-observations.js";
 
 export interface SubjectExtent {
   /** false when the content fills the frame and no subject separates from a background. */
@@ -66,6 +70,21 @@ export interface VideoDeepAnalysis {
   sync: SyncMeasurement | null;
   unavailable: string[];
   notes: string[];
+  /** Phase 18C — structured per-scene observations (absent in analyses stored before 18C). */
+  observations?: VideoLearningObservation[];
+  /** Phase 18C — counts per measured transition kind (dense sampling). */
+  transitionKinds?: Partial<Record<TransitionKind, number>>;
+  /** Phase 18C — boundaries found by the coarse gradual-transition pass that the cut detector missed. */
+  gradualBoundaries?: number[];
+}
+
+export interface MediaProgress {
+  scenesTotal?: number;
+  scenesProcessed?: number;
+  framesTotal?: number;
+  framesProcessed?: number;
+  boundariesTotal?: number;
+  boundariesProcessed?: number;
 }
 
 export interface ImageDeepAnalysis {
@@ -94,7 +113,7 @@ export interface TeachingAi {
 }
 
 export interface DeepMediaAnalyzer {
-  video(filePath: string, base: MediaAnalysis, opts: { ai: TeachingAi | null; onProgress?: (stage: string, detail: string) => void }): Promise<VideoDeepAnalysis>;
+  video(filePath: string, base: MediaAnalysis, opts: { ai: TeachingAi | null; sourceId?: string; onProgress?: (stage: string, detail: string, media?: MediaProgress) => void }): Promise<VideoDeepAnalysis>;
   image(filePath: string, opts: { ai: TeachingAi | null }): Promise<ImageDeepAnalysis>;
 }
 
@@ -221,6 +240,35 @@ async function jpegAt(filePath: string, t: number | null): Promise<Buffer | null
   return ffmpeg(args, 30_000, 8 * 1024 * 1024).then((b) => (b.length ? b : null)).catch(() => null);
 }
 
+const DENSE_FPS = 16;
+const MAX_DENSE_BOUNDARIES = 20;
+const MAX_KEYFRAME_SCENES = 20;
+
+/** 1.5 s of small gray frames at DENSE_FPS centred on a boundary (input seek; bounded buffer and time). */
+async function denseWindow(filePath: string, t: number, duration: number, width: number, height: number): Promise<{ frames: Buffer[]; w: number; h: number }> {
+  const { w, h } = frameSize(width, height, 96);
+  const start = Math.max(0, t - 0.75);
+  const len = Math.min(1.5, Math.max(0.2, duration - start));
+  const raw = await ffmpeg(["-ss", start.toFixed(3), "-t", len.toFixed(3), "-i", filePath, "-an", "-vf", `fps=${DENSE_FPS},scale=${w}:${h}:flags=area,format=gray`, "-frames:v", "30", "-f", "rawvideo", "pipe:1"],
+    30_000, w * h * 32);
+  const size = w * h;
+  return { frames: Array.from({ length: Math.floor(raw.length / size) }, (_, i) => raw.subarray(i * size, (i + 1) * size)), w, h };
+}
+
+/** Up to three gray keyframes across a scene at 192 px width, with their absolute times. */
+async function sceneKeyframes(filePath: string, start: number, end: number, width: number, height: number): Promise<{ frames: Buffer[]; times: number[]; w: number; h: number }> {
+  const { w, h } = frameSize(width, height, 192);
+  const inner = Math.max(0.05, end - start - 0.2);
+  const n = inner >= 0.9 ? 3 : 1;
+  const from = start + Math.min(0.1, (end - start) / 4);
+  const rate = n / inner;
+  const raw = await ffmpeg(["-ss", from.toFixed(3), "-t", inner.toFixed(3), "-i", filePath, "-an", "-vf", `fps=${rate.toFixed(4)},scale=${w}:${h}:flags=area,format=gray`, "-frames:v", String(n), "-f", "rawvideo", "pipe:1"],
+    30_000, w * h * (n + 1));
+  const size = w * h;
+  const frames = Array.from({ length: Math.floor(raw.length / size) }, (_, i) => raw.subarray(i * size, (i + 1) * size));
+  return { frames, times: frames.map((_, i) => from + (i + 0.5) / rate), w, h };
+}
+
 export function measureSync(cuts: number[], audio: AudioMeasurement | null | undefined): SyncMeasurement | null {
   if (!audio?.bpm || !audio.beatTimes?.length || cuts.length < 2) return null;
   const period = 60 / audio.bpm;
@@ -246,7 +294,7 @@ function pearson(a: number[], b: number[]): number | null {
 
 export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
   return {
-    async video(filePath, base, { ai, onProgress }) {
+    async video(filePath, base, { ai, sourceId, onProgress }) {
       const notes: string[] = [];
       const unavailable: string[] = ["Speech transcription — no speech-to-text runtime is available on this server."];
       const duration = base.durationSec ?? 0;
@@ -255,14 +303,15 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       if (!duration || !width || !height) throw new Error("Video metadata is missing");
       const fps = round(Math.min(4, Math.max(0.5, 240 / duration)), 2);
       const { w, h } = frameSize(width, height, 64);
-      onProgress?.("SAMPLING_FRAMES", `${fps} frames per second at ${w}×${h}`);
+      const framesTotal = Math.min(240, Math.max(1, Math.floor(duration * fps)));
+      onProgress?.("FRAME_ANALYSIS", `Coarse pass: ${fps} frames per second at ${w}×${h}`, { framesTotal, framesProcessed: 0 });
       const raw = await ffmpeg(["-i", filePath, "-an", "-vf", `fps=${fps},scale=${w}:${h}:flags=area,format=gray`, "-frames:v", "240", "-f", "rawvideo", "pipe:1"],
         Math.round(Math.min(240_000, 30_000 + duration * 2_000)), w * h * 260);
       const size = w * h;
       const count = Math.floor(raw.length / size);
       if (count < 2) throw new Error("Too few frames could be decoded");
       const frames = Array.from({ length: count }, (_, i) => raw.subarray(i * size, (i + 1) * size));
-      onProgress?.("ANALYZING_VISUALS", `${count} frames`);
+      onProgress?.("FRAME_ANALYSIS", `${count} frames decoded`, { framesTotal: count, framesProcessed: count });
       const stats = frames.map((f) => lumaStats(f, size, 1));
       const subjects = frames.map((f) => measureSubject(f, w, h, 1));
       const diffs = frames.map((f, i) => {
@@ -272,8 +321,11 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
         for (let k = 0; k < size; k += 1) sum += Math.abs(f[k]! - prev[k]!);
         return sum / size / 255;
       });
-      const cutsRaw = base.sceneChanges ?? [];
-      const bounds = [0, ...cutsRaw.filter((t) => t > 0.2 && t < duration - 0.2), duration];
+      const detected = (base.sceneChanges ?? []).filter((t) => t > 0.2 && t < duration - 0.2);
+      const gradual = gradualTransitionCandidates(frames, w, h, fps, detected, duration);
+      const cutsRaw = [...detected, ...gradual].sort((a, b) => a - b);
+      const bounds = [0, ...cutsRaw, duration];
+      onProgress?.("SCENE_DETECTION", `${detected.length} cut(s) from the scene detector${gradual.length ? ` + ${gradual.length} gradual transition(s) from the coarse pass` : ""}`, { scenesTotal: bounds.length - 1, scenesProcessed: 0 });
       const idxAt = (t: number) => Math.min(count - 1, Math.max(0, Math.round(t * fps)));
       const audio = base.audio ?? null;
       const energyAt = (s: number, e: number) => {
@@ -283,12 +335,19 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       const period = audio?.bpm ? 60 / audio.bpm : null;
       const tol = period ? Math.min(0.08, period * 0.15) : 0;
       const scenes: SceneMeasurement[] = [];
+      const cameraPairs: GlobalMotion[][] = [];
+      const subjectCenters: number[][] = [];
+      onProgress?.("MOTION_ANALYSIS", "Global camera motion per scene (block matching and scale search)");
       for (let s = 0; s < bounds.length - 1; s += 1) {
         const start = bounds[s]!;
         const end = bounds[s + 1]!;
         if (end - start < 0.05) continue;
         const i0 = idxAt(start);
         const i1 = Math.max(i0, idxAt(end) - 1);
+        const pairs: GlobalMotion[] = [];
+        for (let k = i0 + 1; k <= i1; k += 1) pairs.push(globalMotion(frames[k - 1]!, frames[k]!, w, h));
+        cameraPairs.push(pairs);
+        subjectCenters.push(subjects.slice(i0, i1 + 1).filter((x) => x.separable).map((x) => x.centerX));
         const inner = diffs.slice(i0 + 1, i1 + 1);
         const motion = inner.length ? inner.reduce((a, b) => a + b, 0) / inner.length : 0;
         const subj = subjects.slice(i0, i1 + 1).filter((x) => x.separable);
@@ -319,32 +378,85 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
         });
       }
       if (!cutsRaw.length) notes.push("No scene cuts were detected; the video was measured as one continuous shot.");
-      notes.push(`Frames sampled at ${fps} fps: transitions shorter than ${round(1 / fps, 2)} s cannot be told apart from cuts.`);
+      notes.push(`Coarse pass at ${fps} fps; each boundary was re-sampled at ${DENSE_FPS} fps to classify the transition and its duration.`);
       const startsFromBlack = (stats[0]?.mean ?? 255) < 18;
       const endsInBlack = (stats[count - 1]?.mean ?? 255) < 18;
 
+      // Adaptive deep sampling: dense frames only around scene boundaries (bounded).
+      const denseTargets = scenes.slice(1).slice(0, MAX_DENSE_BOUNDARIES);
+      const transitionsDense = new Map<number, TransitionObservation>();
+      for (const [n, scene] of denseTargets.entries()) {
+        onProgress?.("TRANSITION_ANALYSIS", `Boundary ${n + 1} of ${denseTargets.length} at ${scene.start.toFixed(2)} s`, { boundariesTotal: denseTargets.length, boundariesProcessed: n });
+        const dense = await denseWindow(filePath, scene.start, duration, width, height).catch(() => null);
+        if (dense) transitionsDense.set(scene.index, classifyTransition(dense.frames, dense.w, dense.h, DENSE_FPS));
+      }
+      onProgress?.("TRANSITION_ANALYSIS", `${transitionsDense.size} boundary transition(s) classified`, { boundariesTotal: denseTargets.length, boundariesProcessed: denseTargets.length });
+      if (scenes.length - 1 > denseTargets.length) notes.push(`Only the first ${MAX_DENSE_BOUNDARIES} boundaries were densely sampled; later ones keep the coarse classification.`);
+      for (const scene of scenes) {
+        const t = transitionsDense.get(scene.index);
+        if (!t) continue;
+        scene.transitionIn = t.type === "CUT" ? "CUT" : t.type === "FADE_THROUGH_BLACK" ? "FADE_THROUGH_BLACK" : "SOFT";
+      }
+
+      // Keyframes per scene (higher resolution) for composition and text-like regions — presence only, never read.
+      const keySubjects: Array<SubjectExtent | null> = [];
+      const texts: TextPresence[] = [];
+      const keyTargets = scenes.slice(0, MAX_KEYFRAME_SCENES);
+      for (const [n, scene] of keyTargets.entries()) {
+        onProgress?.("TEXT_ANALYSIS", `Scene ${n + 1} of ${keyTargets.length}: composition and text-like regions`, { scenesTotal: scenes.length, scenesProcessed: n });
+        const keys = await sceneKeyframes(filePath, scene.start, scene.end, width, height).catch(() => null);
+        if (!keys || !keys.frames.length) { keySubjects.push(null); texts.push({ presence: "UNAVAILABLE", method: "keyframe decode failed", regions: [], seenAtSec: [], readable: false }); continue; }
+        const midFrame = keys.frames[Math.floor(keys.frames.length / 2)]!;
+        keySubjects.push(measureSubject(midFrame, keys.w, keys.h, 1));
+        const found = keys.frames.map((f, i) => ({ t: keys.times[i]!, regions: textLikeRegions(f, keys.w, keys.h) }));
+        const withText = found.filter((x) => x.regions.length);
+        texts.push({
+          presence: withText.length ? "DETECTED" : "NOT_DETECTED",
+          method: `Edge-density bands on ${keys.frames.length} keyframe(s) at ${keys.w}px (presence and location only; no OCR)`,
+          regions: withText[0]?.regions ?? [], seenAtSec: withText.map((x) => round(x.t, 2)), readable: false,
+        });
+      }
+      onProgress?.("TEXT_ANALYSIS", `${texts.filter((t) => t.presence === "DETECTED").length} scene(s) with text-like regions`, { scenesTotal: scenes.length, scenesProcessed: keyTargets.length });
+      for (let i = keyTargets.length; i < scenes.length; i += 1) {
+        keySubjects.push(null);
+        texts.push({ presence: "UNAVAILABLE", method: `Not sampled (only the first ${MAX_KEYFRAME_SCENES} scenes get keyframes)`, regions: [], seenAtSec: [], readable: false });
+      }
+
       if (ai) {
-        onProgress?.("ANALYZING_VISUALS", "Vision layout analysis of scene keyframes");
+        onProgress?.("VISION_ANALYSIS", "Vision layout analysis of scene keyframes (Admin-routed)");
         for (const scene of scenes.slice(0, 8)) {
           scene.vision = await visionFacts(ai, await jpegAt(filePath, (scene.start + scene.end) / 2), notes);
           if (!scene.vision) break;
         }
       } else {
-        unavailable.push("On-screen text and typography — Admin VISION_ANALYSIS is not executable, so text in frames was not read.");
+        onProgress?.("VISION_ANALYSIS", "Unavailable — Admin VISION_ANALYSIS is not executable");
+        unavailable.push("On-screen text content and typography — Admin VISION_ANALYSIS is not executable, so text in frames was located but not read.");
       }
       if (!ai || scenes.every((s) => !s.vision)) unavailable.push("Font identification — fonts are never guessed from pixels.");
+      unavailable.push("Benefit and offer content — needs readable text (OCR/vision) or a transcript; only their on-screen position is measured.");
 
       let sync: SyncMeasurement | null = null;
+      onProgress?.("AUDIO_ANALYSIS", audio ? "Cuts and scenes against the measured beat grid and energy" : "No analysable audio track");
       if (audio) {
-        onProgress?.("ANALYZING_SYNC", "Cuts against the measured beat grid");
         sync = measureSync(bounds.slice(1, -1), audio);
         if (sync) sync.durationEnergyCorrelation = pearson(scenes.map((s) => s.durationSec), scenes.map((s) => s.energy ?? 0));
         else if (!audio.bpm) unavailable.push("Beat synchronisation — no reliable tempo was measured in the soundtrack.");
       } else unavailable.push("Audio/beat analysis — the video has no analysable audio track.");
 
+      const extras: SceneExtras[] = scenes.map((scene, i) => ({
+        camera: classifyCamera(cameraPairs[i] ?? [], fps, w, h, subjectCenters[i] ?? []),
+        transition: transitionsDense.get(scene.index) ?? null,
+        keySubject: keySubjects[i] ?? null,
+        text: texts[i]!,
+      }));
+      const observations = buildObservations({ sourceId: sourceId ?? "", scenes, extras, audio, visionUsed: Boolean(ai && scenes.some((s) => s.vision)) });
+      onProgress?.("CREATIVE_PATTERN_ANALYSIS", `${observations.length} scene observation(s)`, { scenesTotal: scenes.length, scenesProcessed: scenes.length });
+
       const transitions = { START: 0, CUT: 0, FADE_THROUGH_BLACK: 0, SOFT: 0 };
       for (const s of scenes) transitions[s.transitionIn] += 1;
-      return { sampledFps: fps, frames: count, scenes, transitions, startsFromBlack, endsInBlack, sync, unavailable, notes };
+      const transitionKinds: Partial<Record<TransitionKind, number>> = {};
+      for (const o of observations) if (o.transition && o.transition.type !== "START") transitionKinds[o.transition.type] = (transitionKinds[o.transition.type] ?? 0) + 1;
+      return { sampledFps: fps, frames: count, scenes, transitions, startsFromBlack, endsInBlack, sync, unavailable, notes, observations, transitionKinds, gradualBoundaries: gradual };
     },
 
     async image(filePath, { ai }) {

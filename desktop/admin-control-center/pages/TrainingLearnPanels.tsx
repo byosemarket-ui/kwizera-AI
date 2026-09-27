@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   adminApi,
   type AdminLearnedKnowledgeItem,
+  type AdminTeachingCapability,
   type AdminTeachingCommitResult,
   type AdminTeachingSessionDetail,
   type AdminTeachingSource,
@@ -43,10 +44,54 @@ const SOURCE_TYPES: Array<{ value: string; label: string; accept: string }> = [
 ];
 
 const RETENTION = [
-  { value: "KEEP_SOURCE", label: "Keep the source file" },
-  { value: "DELETE_AFTER_SUCCESSFUL_EXTRACTION", label: "Delete the file after successful extraction (knowledge and fingerprint kept)" },
-  { value: "ARCHIVE_SOURCE", label: "Archive the source after extraction" },
+  { value: "KEEP_SOURCE", label: "Keep source" },
+  { value: "ARCHIVE_SOURCE", label: "Archive source (after extraction)" },
+  { value: "DELETE_SOURCE_AFTER_LEARNING", label: "Delete source after learning (only after evaluation and activation succeed; fingerprint and provenance kept)" },
 ];
+const RETENTION_LABEL: Record<string, string> = {
+  KEEP_SOURCE: "Keep source", ARCHIVE_SOURCE: "Archive source", DELETE_SOURCE_AFTER_LEARNING: "Delete after learning", DELETE_AFTER_SUCCESSFUL_EXTRACTION: "Delete after learning",
+};
+const RETENTION_STATE: Record<string, string> = {
+  RETAINED: "retained", PENDING_ACTIVATION: "kept until activation", DELETED_AFTER_LEARNING: "deleted after learning", ARCHIVED: "archived", DELETED_BY_ADMIN: "deleted by Admin",
+};
+const PATTERN_FAMILIES = ["HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING"];
+
+type Observation = {
+  sceneIndex: number; startSec: number; endSec: number;
+  storytelling?: { role?: string };
+  camera?: { movement?: string; confidence?: number };
+  transition?: { type?: string; durationSec?: number; confidence?: number } | null;
+  product?: { prominence?: string; cropRisk?: string; locationBand?: string } | null;
+  text?: { presence?: string; regions?: unknown[] };
+  audio?: { music?: string };
+};
+
+function ObservationsView({ artifact }: { artifact: Record<string, unknown> & { title?: string } }) {
+  const observations = Array.isArray(artifact.observations) ? artifact.observations as Observation[] : [];
+  if (artifact.missing) return <p className="acc-muted" style={{ fontSize: 12 }}>{artifact.title}: observation artifact is no longer stored.</p>;
+  return (
+    <details style={{ fontSize: 12, marginBottom: 6 }}>
+      <summary>{artifact.title}: {observations.length} per-scene observation(s)</summary>
+      <table style={{ fontSize: 12, borderCollapse: "collapse" }}>
+        <thead><tr>{["Scene", "Time", "Role", "Camera", "Transition in", "Product", "Text", "Audio"].map((h) => <th key={h} style={{ textAlign: "left", paddingRight: 10 }}>{h}</th>)}</tr></thead>
+        <tbody>
+          {observations.map((o) => (
+            <tr key={o.sceneIndex}>
+              <td>{o.sceneIndex + 1}</td>
+              <td>{o.startSec.toFixed(2)}–{o.endSec.toFixed(2)}s</td>
+              <td>{o.storytelling?.role ?? "—"}</td>
+              <td>{o.camera?.movement ?? "—"}{o.camera?.confidence != null ? ` (${o.camera.confidence.toFixed(2)})` : ""}</td>
+              <td>{o.transition ? `${o.transition.type}${o.transition.durationSec ? ` ${o.transition.durationSec.toFixed(2)}s` : ""}` : "—"}</td>
+              <td>{o.product ? `${o.product.prominence ?? ""} · ${o.product.locationBand ?? ""} · crop ${o.product.cropRisk ?? "?"}` : "not isolated"}</td>
+              <td>{o.text?.presence ?? "—"}{o.text?.regions?.length ? ` (${o.text.regions.length})` : ""}</td>
+              <td>{o.audio?.music ?? "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
 
 const NOVELTY = ["NEW", "PARTIALLY_NEW", "KNOWN", "DUPLICATE", "CONTRADICTORY", "LOW_CONFIDENCE", "REQUIRES_REVIEW"];
 const KNOWLEDGE_TYPES = ["rule", "principle", "example", "pattern", "workflow", "style", "constraint", "heuristic", "relationship", "multimodal_pattern"];
@@ -132,9 +177,13 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
   const [evaluation, setEvaluation] = useState<{ status: string; passed: number; failed: number; skipped: number } | null>(null);
   const [activated, setActivated] = useState(false);
   const [runtime, setRuntime] = useState<AdminTrainingRuntimeTest | null>(null);
+  const [teachingCaps, setTeachingCaps] = useState<AdminTeachingCapability[] | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const mounted = useRef(true);
   useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => {
+    adminApi.teachingCapabilities().then(({ items }) => { if (mounted.current) setTeachingCaps(items); }).catch(() => undefined);
+  }, []);
 
   const capabilities = catalog.capabilities.filter((c) => c.target === target);
   const capability = catalog.capabilities.find((c) => c.id === capabilityId);
@@ -385,6 +434,14 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           >
             <textarea rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Learn the scene order, framing and transitions. Ignore the music." />
           </FormField>
+          {teachingCaps ? (
+            <details style={{ fontSize: 12 }}>
+              <summary>What this server can analyse ({teachingCaps.filter((c) => c.executable).length} of {teachingCaps.length} capabilities executable)</summary>
+              <ul>
+                {teachingCaps.map((c) => <li key={c.capability}><StatusBadge status={c.state} /> <strong>{c.label}</strong> — {c.reason}</li>)}
+              </ul>
+            </details>
+          ) : null}
           <div>
             <button type="button" className="acc-button" disabled={!capabilityId || !pending.length || Boolean(busy) || running || (scope === "PROJECT" && !projectId.trim())} onClick={() => void learn()}>
               Learn from this material
@@ -406,6 +463,14 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
             {p.etaSec !== null ? ` · about ${formatSec(p.etaSec)} remaining` : running ? " · no reliable time estimate yet" : ""}
           </p>
           {p.percent !== null ? <progress max={100} value={p.percent} style={{ width: "100%", maxWidth: 560 }} /> : null}
+          {p.media && (p.media.framesTotal || p.media.scenesTotal) ? (
+            <p style={{ fontSize: 12 }}>
+              Video: scenes {p.media.scenesProcessed}/{p.media.scenesTotal} · frames {p.media.framesProcessed}/{p.media.framesTotal}
+              {p.media.boundariesTotal ? ` · transitions ${p.media.boundariesProcessed}/${p.media.boundariesTotal}` : ""}
+              {p.media.observations ? ` · ${p.media.observations} observations` : ""}{p.media.patterns ? ` · ${p.media.patterns} creative patterns` : ""}
+            </p>
+          ) : null}
+          {p.unavailableCapabilities?.length ? <p className="acc-muted" style={{ fontSize: 12 }}>Unavailable on this server: {p.unavailableCapabilities.join(" · ")}</p> : null}
           <p style={{ fontSize: 12 }}>
             Extracted {p.counts.extracted} · new {p.counts.new} · partially new {p.counts.partiallyNew} · known {p.counts.known} · duplicate {p.counts.duplicate}
             {" "}· contradictory {p.counts.contradictory} · low confidence {p.counts.lowConfidence} · needs review {p.counts.requiresReview}
@@ -416,7 +481,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           </p>
           {session.analysis.perSource.map((s) => (
             <details key={s.sourceId} style={{ fontSize: 12, marginBottom: 6 }}>
-              <summary><StatusBadge status={s.status} /> {s.title}{s.unavailable.length ? ` — ${s.unavailable.length} aspect(s) unavailable` : ""}</summary>
+              <summary><StatusBadge status={s.learningStatus ?? s.status} /> {s.title}{s.unavailable.length ? ` — ${s.unavailable.length} aspect(s) unavailable` : ""}</summary>
               <ul>
                 {s.notes.map((n) => <li key={n}>{n}</li>)}
                 {s.unavailable.map((u) => <li key={u}><StatusBadge status="UNAVAILABLE" /> {u}</li>)}
@@ -424,8 +489,17 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
             </details>
           ))}
           {session.analysis.notes.length ? <ul style={{ fontSize: 12 }}>{session.analysis.notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
+          {"artifacts" in session && Array.isArray(session.artifacts) ? session.artifacts.map((a) => <ObservationsView key={a.sourceId} artifact={a as Record<string, unknown> & { title?: string }} />) : null}
+          {session.analysis.capabilities?.length ? (
+            <details style={{ fontSize: 12, marginBottom: 6 }}>
+              <summary>Capabilities used for this analysis ({session.analysis.capabilities.filter((c) => c.executable).length} of {session.analysis.capabilities.length} executable)</summary>
+              <ul>
+                {session.analysis.capabilities.map((c) => <li key={c.capability}><StatusBadge status={c.state} /> <strong>{c.label}</strong> — {c.reason} <span className="acc-muted">({c.route})</span></li>)}
+              </ul>
+            </details>
+          ) : null}
           <p style={{ fontSize: 12 }}>
-            Sources: {session.sources.map((s) => s && `${s.title} (${s.kind}, ${s.retained ? s.status.toLowerCase() : "file not retained — fingerprint kept"})`).filter(Boolean).join(" · ")}
+            Sources: {session.sources.map((s) => s && `${s.title} (${s.kind}, ${s.retained ? s.status.toLowerCase() : "file not retained — fingerprint kept"}${s.retentionState && s.retentionState !== "RETAINED" ? `, ${RETENTION_STATE[s.retentionState] ?? s.retentionState}` : ""})`).filter(Boolean).join(" · ")}
           </p>
           {session.status === "FAILED" ? <button type="button" className="acc-button ghost" onClick={() => adminApi.rerunTeachingSession(session.sessionId).then(({ session: s }) => setSessionId(s.sessionId)).catch((err: unknown) => setError(errorText(err, "Re-run failed")))}>Run the analysis again</button> : null}
         </SectionCard>
@@ -456,7 +530,10 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
                 k: (
                   <details>
                     <summary><strong>{k.title}</strong>{k.recommended ? " · recommended" : ""}</summary>
-                    <p style={{ fontSize: 12 }}>{k.statement}</p>
+                    <p style={{ fontSize: 12 }}>{k.canonicalStatement ?? k.statement}</p>
+                    {k.language && k.language.code !== "en" && k.language.code !== "und" ? (
+                      <p className="acc-muted" style={{ fontSize: 12 }}>Original ({k.language.name}, {k.language.normalization.toLowerCase().replace(/_/g, " ")}): {k.originalEvidence?.statement ?? k.statement}</p>
+                    ) : null}
                     {k.evidence.length ? <ul style={{ fontSize: 12 }}>{k.evidence.slice(0, 4).map((e, i) => <li key={i}>{e.kind.toLowerCase()}{e.location ? ` (${e.location})` : ""}: {e.text}</li>)}</ul> : null}
                     {k.scopeNote ? <p className="acc-muted" style={{ fontSize: 12 }}>{k.scopeNote}</p> : null}
                     {k.suggestedGuidance.length ? <p style={{ fontSize: 12 }}>Planner guidance: {k.suggestedGuidance.map((g) => `${g.key}=${g.value}`).join(", ")}</p> : null}
@@ -527,7 +604,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
 
 /** Every learned knowledge unit, filterable, with provenance down to page / chapter / scene. */
 export function KnowledgeLibrary({ catalog, refreshKey }: { catalog: AdminTrainingCatalog; refreshKey: number }) {
-  const [filters, setFilters] = useState<Record<string, string>>({ target: "", capability: "", type: "", sourceKind: "", minConfidence: "", status: "", version: "", active: "", novelty: "", from: "", to: "", q: "" });
+  const [filters, setFilters] = useState<Record<string, string>>({ target: "", capability: "", type: "", sourceKind: "", minConfidence: "", status: "", version: "", active: "", novelty: "", patternFamily: "", language: "", from: "", to: "", q: "" });
   const [items, setItems] = useState<AdminLearnedKnowledgeItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const set = (key: string) => (value: string) => setFilters((f) => ({ ...f, [key]: value }));
@@ -554,6 +631,8 @@ export function KnowledgeLibrary({ catalog, refreshKey }: { catalog: AdminTraini
         <Select label="Status" value={filters.status!} onChange={set("status")} options={[any, ...["ACTIVE", "PUBLISHED", "DRAFT", "CANDIDATE", "REJECTED"].map((s) => ({ value: s, label: s }))]} />
         <Select label="Active" value={filters.active!} onChange={set("active")} options={[any, { value: "1", label: "Active only" }, { value: "0", label: "Not active" }]} />
         <Select label="Novelty" value={filters.novelty!} onChange={set("novelty")} options={[any, ...NOVELTY.map((n) => ({ value: n, label: n }))]} />
+        <Select label="Creative pattern" value={filters.patternFamily!} onChange={set("patternFamily")} options={[any, ...PATTERN_FAMILIES.map((f) => ({ value: f, label: f.replace(/_/g, " ").toLowerCase() }))]} />
+        <FormField label="Language"><input style={{ width: 50 }} maxLength={3} value={filters.language} onChange={(e) => set("language")(e.target.value.toLowerCase().replace(/[^a-z]/g, ""))} placeholder="en" /></FormField>
         <FormField label="Version"><input style={{ width: 70 }} value={filters.version} onChange={(e) => set("version")(e.target.value.replace(/\D/g, ""))} /></FormField>
         <FormField label="From"><input type="date" value={filters.from} onChange={(e) => set("from")(e.target.value)} /></FormField>
         <FormField label="To"><input type="date" value={filters.to} onChange={(e) => set("to")(e.target.value)} /></FormField>
@@ -568,8 +647,10 @@ export function KnowledgeLibrary({ catalog, refreshKey }: { catalog: AdminTraini
           cells: {
             k: (
               <details>
-                <summary><strong>{i.record.title}</strong> <span className="acc-muted" style={{ fontSize: 11 }}>{i.record.knowledgeType.replace("_", " ")} · {i.record.method.toLowerCase().replace("_", " ")}</span></summary>
-                <p style={{ fontSize: 12 }}>{i.record.statement}</p>
+                <summary><strong>{i.record.title}</strong> <span className="acc-muted" style={{ fontSize: 11 }}>{i.record.knowledgeType.replace("_", " ")} · {i.record.method.toLowerCase().replace("_", " ")}{i.record.domain ? ` · ${i.record.domain}` : ""}{i.record.language ? ` · ${i.record.language.code}` : ""}</span></summary>
+                <p style={{ fontSize: 12 }}>{i.record.canonicalStatement ?? i.record.statement}</p>
+                {i.record.timestampRange ? <p className="acc-muted" style={{ fontSize: 12 }}>Source time {i.record.timestampRange.startSec.toFixed(2)}–{i.record.timestampRange.endSec.toFixed(2)}s</p> : null}
+                {i.record.creativePattern ? <p style={{ fontSize: 12 }}>Creative pattern: {(i.record.creativePattern as { family?: string; name?: string }).family} · {(i.record.creativePattern as { family?: string; name?: string }).name}</p> : null}
                 {i.record.evidence.length ? <ul style={{ fontSize: 12 }}>{i.record.evidence.slice(0, 4).map((e, n) => <li key={n}>{e.location ? `${e.location}: ` : ""}{e.text}</li>)}</ul> : null}
                 {i.record.relationships.length ? <p style={{ fontSize: 12 }}>Related: {i.record.relationships.slice(0, 4).map((r) => `${r.type.toLowerCase()} "${r.targetTitle.slice(0, 50)}"`).join("; ")}</p> : null}
               </details>
@@ -628,7 +709,7 @@ export function MaterialLibrary({ refreshKey, notify, onChanged }: { refreshKey:
             kind: `${s.kind} · ${s.format}`,
             measured: <span style={{ fontSize: 12 }}>{measuredText(s.measured)}</span>,
             cap: <span style={{ fontSize: 12 }}>{s.capability}<br />{s.scope}{s.projectId ? ` (${s.projectId})` : ""}</span>,
-            retention: <span style={{ fontSize: 12 }}>{RETENTION.find((r) => r.value === s.retention)?.label.split(" (")[0] ?? s.retention}</span>,
+            retention: <span style={{ fontSize: 12 }} title={s.retentionNote ?? undefined}>{RETENTION_LABEL[s.retention] ?? s.retention}{s.retentionState ? <><br /><span className="acc-muted">{RETENTION_STATE[s.retentionState] ?? s.retentionState}</span></> : null}</span>,
             status: <>
               <StatusBadge status={s.status} />
               {!s.retained ? <><br /><span className="acc-muted" style={{ fontSize: 11 }}>file not retained · fingerprint {s.contentHash.slice(0, 16)}…</span></> : null}

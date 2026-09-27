@@ -434,6 +434,15 @@ export interface VideoProject {
     audio?: import("../knowledge-retrieval-engine/knowledge-context-builder.js").KnowledgeContextSummary | null;
     renderJobId?: string;
   };
+  /** Phase 18C — learned creative patterns (active Training Center versions) applied to this timeline, with provenance. */
+  learnedCreativeDirection?: {
+    version: "learned-direction-v1";
+    planVersion: number;
+    seed: string;
+    appliedAt: string;
+    selected: Array<{ patternId: string; family: string; name: string; reason: string; alternatives: string[] }>;
+    decisions: import("../creative-planning/learned-creative-patterns.js").LearnedDirectionDecision[];
+  } | null;
 }
 
 export class VideoProductionError extends Error {

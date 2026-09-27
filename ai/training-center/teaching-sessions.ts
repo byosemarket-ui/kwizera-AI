@@ -14,12 +14,12 @@ import { MEDIA_LIMITS, MediaAnalysisError, type TeachingMediaAnalyzer } from "./
 import type { DeepMediaAnalyzer, TeachingAi, VideoDeepAnalysis } from "./teaching-deep-media.js";
 import {
   aiAssistedExtraction, codeLanguage, correlateSources, extractFromAudio, extractFromCode, extractFromImage, extractFromUnits,
-  extractFromVideo, parseInstructions, type ExtractionContext,
+  extractFromVideo, normalizeLanguage, parseInstructions, type ExtractionContext,
 } from "./knowledge-extraction.js";
 import { assessNovelty, type ComparisonItem } from "./knowledge-novelty.js";
 import { detectServerPaths } from "./teaching-validation.js";
 import type {
-  KnowledgeRecord, MediaAnalysis, RecordKnowledge, RetentionPolicy, SessionProgress, SessionStage, SourceKind, TeachingDataset,
+  CapabilityAvailability, KnowledgeRecord, MediaAnalysis, MediaCounters, RecordKnowledge, RetentionPolicy, SessionProgress, SessionStage, SourceKind, TeachingDataset,
   TeachingRecord, TeachingSession, TeachingSource, TeachingType, TrainingJob, TrainingJobKind,
 } from "./training-types.js";
 
@@ -58,10 +58,13 @@ export interface SessionHost {
   versionRecords(): Array<{ dataset: TeachingDataset; version: number; records: TeachingRecord[] }>;
   latestEvaluationId(datasetId: string, version: number): string | null;
   latestActivationId(datasetId: string, version: number): string | null;
+  /** Phase 18C — capability availability (implemented / configured / executable, with exact reasons). */
+  capabilities?(): CapabilityAvailability[];
 }
 
 const TEACHING_TYPES: TeachingType[] = ["KNOWLEDGE", "EXAMPLE", "STYLE", "INSTRUCTION", "WORKFLOW", "BEST_PRACTICE", "PATTERN", "MULTIMODAL_EXAMPLE"];
-const RETENTION: RetentionPolicy[] = ["KEEP_SOURCE", "DELETE_AFTER_SUCCESSFUL_EXTRACTION", "ARCHIVE_SOURCE"];
+const RETENTION: RetentionPolicy[] = ["KEEP_SOURCE", "DELETE_SOURCE_AFTER_LEARNING", "DELETE_AFTER_SUCCESSFUL_EXTRACTION", "ARCHIVE_SOURCE"];
+const deletesAfterLearning = (p: RetentionPolicy) => p === "DELETE_SOURCE_AFTER_LEARNING" || p === "DELETE_AFTER_SUCCESSFUL_EXTRACTION";
 const MODE_FOR_TYPE: Record<TeachingType, TeachingMode> = {
   KNOWLEDGE: "KNOWLEDGE", EXAMPLE: "EXAMPLE", STYLE: "STYLE", INSTRUCTION: "INSTRUCTION", WORKFLOW: "INSTRUCTION",
   BEST_PRACTICE: "KNOWLEDGE", PATTERN: "STYLE", MULTIMODAL_EXAMPLE: "EXAMPLE",
@@ -80,9 +83,23 @@ export const STAGE_LABELS: Record<SessionStage, string> = {
   EXTRACTING_KNOWLEDGE: "Extracting knowledge", CHECKING_NOVELTY: "Checking what is new", DEDUPLICATING: "Removing duplicates", VALIDATING: "Validating knowledge",
   READY_FOR_REVIEW: "Ready for review", CREATING_DATASET_VERSION: "Creating dataset version", EVALUATING: "Evaluating", READY_TO_ACTIVATE: "Ready to activate",
   ACTIVATING: "Activating", COMPLETED: "Completed", FAILED: "Failed", CANCELLED: "Cancelled",
+  UPLOADING: "Uploading", MEDIA_METADATA: "Reading media metadata", SCENE_DETECTION: "Detecting scenes",
+  FRAME_ANALYSIS: "Analysing frames", VISION_ANALYSIS: "Vision analysis", AUDIO_ANALYSIS: "Analysing audio", TRANSCRIPT_ANALYSIS: "Transcript analysis",
+  TEXT_ANALYSIS: "On-screen text and composition", MOTION_ANALYSIS: "Camera and motion analysis", TRANSITION_ANALYSIS: "Transition analysis",
+  CREATIVE_PATTERN_ANALYSIS: "Creative pattern analysis", KNOWLEDGE_EXTRACTION: "Extracting knowledge", LANGUAGE_NORMALIZATION: "Language normalisation",
+  NOVELTY_CHECK: "Checking what is new", CONSOLIDATION: "Consolidating duplicates", VALIDATION: "Validating knowledge",
 };
 
-const STEPS_PER_KIND: Record<SourceKind, number> = { TEXT: 3, DOCUMENT: 3, BOOK: 3, CODE: 3, URL: 3, IMAGE: 3, AUDIO: 3, VIDEO: 6 };
+/** Video analysis stages; each advances progress once, on its first occurrence for a source. */
+const VIDEO_STAGES: SessionStage[] = [
+  "MEDIA_METADATA", "SCENE_DETECTION", "FRAME_ANALYSIS", "MOTION_ANALYSIS", "TRANSITION_ANALYSIS", "TEXT_ANALYSIS",
+  "VISION_ANALYSIS", "AUDIO_ANALYSIS", "TRANSCRIPT_ANALYSIS", "CREATIVE_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION",
+];
+const STEPS_PER_KIND: Record<SourceKind, number> = { TEXT: 3, DOCUMENT: 3, BOOK: 3, CODE: 3, URL: 3, IMAGE: 3, AUDIO: 3, VIDEO: VIDEO_STAGES.length };
+
+function emptyMedia(): MediaCounters {
+  return { scenesTotal: 0, scenesProcessed: 0, framesTotal: 0, framesProcessed: 0, boundariesTotal: 0, boundariesProcessed: 0, observations: 0, patterns: 0 };
+}
 
 const str = (v: unknown, max = 500): string => (typeof v === "string" ? v.replace(/\u0000/g, "").trim().slice(0, max) : "");
 
@@ -182,13 +199,14 @@ export class TeachingSessionService {
 
   async addSource(input: Record<string, unknown>, by: string): Promise<{ source: TeachingSource; reused: boolean }> {
     const scope = await this.resolveScope(input);
-    const retention = (str(input.retention, 40) || "KEEP_SOURCE") as RetentionPolicy;
-    if (!RETENTION.includes(retention)) throw new SessionInputError("INVALID_RETENTION", "Unknown retention policy.");
+    const requestedRetention = (str(input.retention, 40) || "KEEP_SOURCE") as RetentionPolicy;
+    if (!RETENTION.includes(requestedRetention)) throw new SessionInputError("INVALID_RETENTION", "Unknown retention policy.");
+    const retention: RetentionPolicy = deletesAfterLearning(requestedRetention) ? "DELETE_SOURCE_AFTER_LEARNING" : requestedRetention;
     const requested = str(input.kind, 20).toUpperCase();
     const now = this.host.iso();
     const base = {
       sourceId: randomUUID(), title: "", description: str(input.description, 1_000), target: scope.target, capability: scope.capability,
-      scope: scope.scope, projectId: scope.projectId, retention, retained: true, status: "STORED" as const, measured: {}, knowledgeExtracted: 0,
+      scope: scope.scope, projectId: scope.projectId, retention, retained: true, retentionState: "RETAINED" as const, retentionNote: null, status: "STORED" as const, measured: {}, knowledgeExtracted: 0,
       sessionIds: [], error: null, createdBy: by, createdAt: now, updatedAt: now, deletedAt: null,
     };
     const rawUrl = str(input.url, 2_000);
@@ -275,10 +293,30 @@ export class TeachingSessionService {
     }
     source.retained = false;
     source.status = "DELETED";
+    source.retentionState = reason === "RETENTION" ? "DELETED_AFTER_LEARNING" : "DELETED_BY_ADMIN";
     source.deletedAt = this.host.iso();
     source.updatedAt = source.deletedAt;
     this.host.persist();
     return source;
+  }
+
+  /**
+   * DELETE_SOURCE_AFTER_LEARNING: called after a dataset version is activated. A pending source's file is removed
+   * only when knowledge learned from it is part of that activated version (processing, extraction, validation,
+   * evaluation and activation have all succeeded). The fingerprint and provenance stay.
+   */
+  applyDeferredRetention(activatedRecords: TeachingRecord[], label: string): string[] {
+    const learned = new Set(activatedRecords.flatMap((r) => r.knowledge?.sourceIds ?? []));
+    const deleted: string[] = [];
+    for (const source of this.host.sources()) {
+      if (source.retentionState !== "PENDING_ACTIVATION" || !source.retained || !learned.has(source.sourceId)) continue;
+      if (this.host.sessions().some((s) => s.sourceAssetIds.includes(source.sourceId) && (s.status === "QUEUED" || s.status === "ANALYZING"))) continue;
+      this.deleteSource(source.sourceId, "RETENTION");
+      source.retentionNote = `Deleted after its knowledge was activated in ${label}; fingerprint and provenance kept.`;
+      deleted.push(source.sourceId);
+    }
+    if (deleted.length) this.host.persist();
+    return deleted;
   }
 
   private archiveSource(source: TeachingSource): void {
@@ -291,6 +329,7 @@ export class TeachingSessionService {
       }
     }
     source.status = "ARCHIVED";
+    source.retentionState = "ARCHIVED";
     source.updatedAt = this.host.iso();
   }
 
@@ -345,6 +384,19 @@ export class TeachingSessionService {
     return session;
   }
 
+  private readonly seenVideoStages = new Map<string, Set<SessionStage>>();
+
+  /** Video stage: advances one step on its first occurrence for the source; media counters are only what was counted. */
+  private videoStage(job: TrainingJob, session: TeachingSession, sourceId: string, stage: SessionStage, item: string | null, media?: Partial<MediaCounters>): void {
+    const key = `${session.sessionId}:${sourceId}`;
+    const seen = this.seenVideoStages.get(key) ?? new Set<SessionStage>();
+    this.seenVideoStages.set(key, seen);
+    const first = VIDEO_STAGES.includes(stage) && !seen.has(stage);
+    seen.add(stage);
+    if (media) session.progress.media = { ...(session.progress.media ?? emptyMedia()), ...media };
+    this.stage(job, session, stage, item, first ? 1 : 0);
+  }
+
   private stage(job: TrainingJob, session: TeachingSession, stage: SessionStage, item: string | null = null, advance = 0): void {
     const p = session.progress;
     p.stage = stage;
@@ -378,6 +430,12 @@ export class TeachingSessionService {
     if (!visionAi) session.analysis.notes.push(`Vision analysis unavailable (${visionState.toLowerCase().replace(/_/g, " ")}): on-screen text, typography and layout semantics are not assessed.`);
     if (!reasonAi) session.analysis.notes.push(`AI-assisted text extraction unavailable (${reasoningState.toLowerCase().replace(/_/g, " ")}): rule-based extraction was used.`);
     session.analysis.notes.push("Speech transcription unavailable: no speech-to-text runtime is configured on this server.");
+    try {
+      session.analysis.capabilities = this.host.capabilities?.() ?? [];
+    } catch {
+      session.analysis.capabilities = [];
+    }
+    p.unavailableCapabilities = (session.analysis.capabilities ?? []).filter((c) => !c.executable).map((c) => c.label);
 
     const ctx: ExtractionContext = {
       sessionId: session.sessionId, target: session.targetAI, capability: session.capability, teachingType: session.teachingType,
@@ -401,6 +459,8 @@ export class TeachingSessionService {
       const notes: string[] = [];
       const unavailable: string[] = [];
       let summary: Record<string, unknown> = {};
+      if (source.kind === "VIDEO") p.media = emptyMedia();
+      else delete p.media;
       try {
         const out = await this.analyzeSource(job, session, source, ctx, { visionAi, reasonAi, notes, unavailable });
         all.push(...out.records);
@@ -408,7 +468,10 @@ export class TeachingSessionService {
         analysed.push({ source, analysis: out.analysis });
         source.status = "PROCESSED";
         source.error = null;
-        session.analysis.perSource.push({ sourceId: source.sourceId, title: source.title, status: "PROCESSED", notes, unavailable, summary });
+        const learningStatus = out.partial ? "PARTIALLY_ANALYZED" as const
+          : out.records.length ? (out.records.every((r) => r.flags.length) ? "REQUIRES_REVIEW" as const : "KNOWLEDGE_EXTRACTED" as const)
+            : unavailable.length ? "UNAVAILABLE_CAPABILITY" as const : "PROCESSED" as const;
+        session.analysis.perSource.push({ sourceId: source.sourceId, title: source.title, status: "PROCESSED", notes, unavailable, summary, learningStatus, artifact: out.artifact ?? null });
       } catch (err) {
         const code = err instanceof SessionInputError || err instanceof MediaAnalysisError || err instanceof DocumentExtractionError ? err.code : "ANALYSIS_FAILED";
         const raw = err instanceof Error ? err.message : "The source could not be analysed.";
@@ -416,7 +479,7 @@ export class TeachingSessionService {
         if (!(err instanceof SessionInputError || err instanceof MediaAnalysisError || err instanceof DocumentExtractionError)) console.error("[KWIZERA] Teaching source analysis failed:", raw);
         source.status = "FAILED";
         source.error = { code, message };
-        session.analysis.perSource.push({ sourceId: source.sourceId, title: source.title, status: "FAILED", notes: [...notes, message], unavailable, summary });
+        session.analysis.perSource.push({ sourceId: source.sourceId, title: source.title, status: "FAILED", notes: [...notes, message], unavailable, summary, learningStatus: "FAILED", artifact: null });
         job.counts.failed += 1;
       }
       p.completed = before + STEPS_PER_KIND[source.kind];
@@ -440,10 +503,17 @@ export class TeachingSessionService {
     }
     all.push(...correlateSources(all, analysed, ctx));
 
-    this.stage(job, session, "CHECKING_NOVELTY", `${all.length} candidate(s)`);
+    this.stage(job, session, "LANGUAGE_NORMALIZATION", `${all.filter((r) => r.language?.normalization === "NOT_TRANSLATED").length} non-English statement(s)`);
+    const lang = await normalizeLanguage(all, reasonAi);
+    if (lang.translated || lang.untranslated) {
+      session.analysis.notes.push(lang.untranslated
+        ? `${lang.untranslated} non-English statement(s) kept in their original language (${reasonAi ? `translation ${lang.failed ? `failed: ${lang.failed.slice(0, 60)}` : "incomplete"}` : "no executable reasoning capability to translate"}); ${lang.translated} normalised to English with the original kept as evidence.`
+        : `${lang.translated} non-English statement(s) normalised to English through the Admin-routed reasoning capability; originals kept as evidence.`);
+    }
+    this.stage(job, session, "NOVELTY_CHECK", `${all.length} candidate(s)`);
     const assessed = await this.assess(all, session);
-    this.stage(job, session, "DEDUPLICATING", null, 1);
-    this.stage(job, session, "VALIDATING", null, 0);
+    this.stage(job, session, "CONSOLIDATION", null, 1);
+    this.stage(job, session, "VALIDATION", null, 0);
     const counts = p.counts;
     for (const r of assessed) {
       const c = r.novelty.class;
@@ -463,14 +533,19 @@ export class TeachingSessionService {
     this.host.persist();
   }
 
+  /** Archive happens after extraction; deletion waits until the learned knowledge is activated (see applyDeferredRetention). */
   private applyRetention(source: TeachingSource, session: TeachingSession): void {
     if (source.status !== "PROCESSED" || session.status === "FAILED") return;
-    if (source.retention === "DELETE_AFTER_SUCCESSFUL_EXTRACTION") this.deleteSource(source.sourceId, "RETENTION");
-    else if (source.retention === "ARCHIVE_SOURCE") this.archiveSource(source);
+    if (deletesAfterLearning(source.retention)) {
+      if (source.retained) {
+        source.retentionState = "PENDING_ACTIVATION";
+        source.retentionNote = "Kept until the knowledge learned from it is evaluated and activated; kept for retry if any stage fails.";
+      }
+    } else if (source.retention === "ARCHIVE_SOURCE") this.archiveSource(source);
   }
 
   private async analyzeSource(job: TrainingJob, session: TeachingSession, source: TeachingSource, ctx: ExtractionContext,
-    opts: { visionAi: TeachingAi | null; reasonAi: TeachingAi | null; notes: string[]; unavailable: string[] }): Promise<{ records: KnowledgeRecord[]; analysis: MediaAnalysis | null; summary: Record<string, unknown> }> {
+    opts: { visionAi: TeachingAi | null; reasonAi: TeachingAi | null; notes: string[]; unavailable: string[] }): Promise<{ records: KnowledgeRecord[]; analysis: MediaAnalysis | null; summary: Record<string, unknown>; partial?: boolean; artifact?: { kind: "VIDEO_OBSERVATIONS"; observations: number; patterns: number } | null }> {
     const { notes, unavailable } = opts;
     this.stage(job, session, "VALIDATING_SOURCE", source.title);
     const textual = async (units: TextUnit[], label: string) => {
@@ -542,33 +617,72 @@ export class TeachingSessionService {
     }
 
     // VIDEO
-    this.stage(job, session, "EXTRACTING_METADATA", source.fileName);
-    this.stage(job, session, "DETECTING_SCENES", source.fileName, 1);
+    const vs = (stage: SessionStage, item: string | null, media?: Partial<MediaCounters>) => this.videoStage(job, session, source.sourceId, stage, item, media);
+    vs("MEDIA_METADATA", source.fileName);
     const base = await this.host.analyzer.analyze("VIDEO", file, source.mimeType);
     source.measured = { durationSec: base.durationSec, width: base.width, height: base.height };
     notes.push(...base.notes.filter((n) => !/^No transcript/.test(n)));
-    this.stage(job, session, base.hasAudioStream ? "EXTRACTING_AUDIO" : "SAMPLING_FRAMES", `${base.sceneCount ?? 0} scene(s)`, 1);
-    this.stage(job, session, "TRANSCRIBING", "Unavailable — no speech-to-text runtime", 0);
+    vs("SCENE_DETECTION", `${base.sceneCount ?? 0} scene(s) from the cut detector`, { scenesTotal: base.sceneCount ?? 0 });
+    vs("TRANSCRIPT_ANALYSIS", "Unavailable — no speech-to-text runtime is configured");
     let deep: VideoDeepAnalysis | null = null;
     try {
       deep = await this.host.deep.video(file, base, {
         ai: opts.visionAi,
-        onProgress: (stage, detail) => this.stage(job, session, (stage in STAGE_LABELS ? stage : "ANALYZING_VISUALS") as SessionStage, detail, stage === "ANALYZING_VISUALS" || stage === "ANALYZING_SYNC" ? 1 : 0),
+        sourceId: source.sourceId,
+        onProgress: (stage, detail, media) => vs((stage in STAGE_LABELS ? stage : "FRAME_ANALYSIS") as SessionStage, detail, media),
       });
       unavailable.push(...deep.unavailable);
       notes.push(...deep.notes);
     } catch (err) {
       const reason = err instanceof Error ? err.message.replace(/\S*[\\/]\S*/g, "<path>").slice(0, 120) : "unknown error";
       notes.push(`Frame analysis failed (${reason}); only duration, scenes and audio were measured.`);
-      unavailable.push("Per-scene motion, framing and transitions — frame analysis failed.");
+      unavailable.push("Per-scene motion, framing, transitions and composition — frame analysis failed.");
     }
-    this.stage(job, session, "EXTRACTING_KNOWLEDGE", source.fileName, 1);
+    const observations = deep?.observations ?? [];
+    for (const o of observations) o.sourceId = source.sourceId;
+    vs("KNOWLEDGE_EXTRACTION", source.fileName, { observations: observations.length });
     const { records, unavailableFocus } = extractFromVideo(source, base, deep, ctx);
+    const patterns = records.filter((r) => r.structuredData.creativePattern).length;
+    session.progress.media = { ...(session.progress.media ?? emptyMedia()), observations: observations.length, patterns };
     for (const f of unavailableFocus) unavailable.push(`Requested focus "${f}" — not measurable from this video on this server.`);
+    let artifact: { kind: "VIDEO_OBSERVATIONS"; observations: number; patterns: number } | null = null;
+    if (observations.length) {
+      this.writeArtifact(session.sessionId, source.sourceId, { kind: "VIDEO_OBSERVATIONS", sourceId: source.sourceId, sourceFingerprint: source.contentHash.slice(0, 16), observations, transitionKinds: deep?.transitionKinds ?? {}, gradualBoundaries: deep?.gradualBoundaries ?? [] });
+      artifact = { kind: "VIDEO_OBSERVATIONS", observations: observations.length, patterns };
+    }
     return {
-      records, analysis: base,
-      summary: { durationSec: base.durationSec, width: base.width, height: base.height, scenes: deep?.scenes.length ?? base.sceneCount ?? 0, bpm: base.audio?.bpm ?? null, transitions: deep?.transitions ?? null, framesAnalysed: deep?.frames ?? 0, sync: deep?.sync ?? null },
+      records, analysis: base, partial: !deep, artifact,
+      summary: {
+        durationSec: base.durationSec, width: base.width, height: base.height, scenes: deep?.scenes.length ?? base.sceneCount ?? 0, bpm: base.audio?.bpm ?? null,
+        transitions: deep?.transitions ?? null, transitionKinds: deep?.transitionKinds ?? null, framesAnalysed: deep?.frames ?? 0, sync: deep?.sync ?? null,
+        observations: observations.length, creativePatterns: patterns,
+        cameraMovements: [...new Set(observations.map((o) => o.camera.movement))], scenesWithTextLikeRegions: observations.filter((o) => o.text.presence === "DETECTED").length,
+      },
     };
+  }
+
+  // ---------- processing artifacts (Admin-only; separate from knowledge records) ----------
+
+  private artifactFile(sessionId: string, sourceId: string): string {
+    if (!/^[0-9a-f-]{36}$/.test(sessionId) || !/^[0-9a-f-]{36}$/.test(sourceId)) throw new Error("Invalid artifact id");
+    const dir = path.join(this.host.dataDir, "artifacts");
+    fs.mkdirSync(dir, { recursive: true });
+    return path.join(dir, `${sessionId}-${sourceId}.json`);
+  }
+
+  private writeArtifact(sessionId: string, sourceId: string, value: Record<string, unknown>): void {
+    const file = this.artifactFile(sessionId, sourceId);
+    const tmp = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(value), "utf8");
+    fs.renameSync(tmp, file);
+  }
+
+  readArtifact(sessionId: string, sourceId: string): Record<string, unknown> | null {
+    try {
+      return JSON.parse(fs.readFileSync(this.artifactFile(sessionId, sourceId), "utf8")) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 
   private comparisonPool(session: TeachingSession): ComparisonItem[] {
@@ -596,15 +710,16 @@ export class TeachingSessionService {
     const accepted: KnowledgeRecord[] = [];
     for (const record of ordered) {
       const kb: ComparisonItem[] = [];
+      const canonical = record.canonicalStatement && record.canonicalStatement !== record.statement ? record.canonicalStatement : null;
       if (pipeline) {
-        const result = await pipeline.index.search({ query: `${record.title} ${record.statement}`.slice(0, 480), task, projectId, tenantId: null, limit: 6 }).catch(() => null);
+        const result = await pipeline.index.search({ query: `${record.title} ${canonical ?? record.statement}`.slice(0, 480), task, projectId, tenantId: null, limit: 6 }).catch(() => null);
         for (const hit of result?.hits ?? []) {
           if (!hit.doc.active) continue;
           kb.push({ id: hit.doc.id, title: hit.doc.title, text: hit.doc.text.slice(0, 1_500), kind: "KNOWLEDGE_BASE", guidance: (hit.doc.guidance ?? []).filter((g) => typeof g.value === "number").map((g) => ({ key: g.key, value: g.value as number })) });
         }
       }
-      const sessionPool: ComparisonItem[] = accepted.filter((a) => a.novelty.class !== "DUPLICATE").map((a) => ({ id: a.id, title: a.title, text: a.statement, kind: "SESSION", guidance: a.suggestedGuidance }));
-      record.novelty = assessNovelty(record, [...sessionPool, ...base, ...kb]);
+      const sessionPool: ComparisonItem[] = accepted.filter((a) => a.novelty.class !== "DUPLICATE").map((a) => ({ id: a.id, title: a.title, text: a.canonicalStatement ?? a.statement, kind: "SESSION", guidance: a.suggestedGuidance }));
+      record.novelty = assessNovelty(canonical ? { ...record, statement: canonical } : record, [...sessionPool, ...base, ...kb]);
       const m = record.novelty.matched;
       if (m) {
         const type = record.novelty.class === "CONTRADICTORY" ? "CONTRADICTS" : record.novelty.class === "DUPLICATE" ? "DUPLICATES" : record.novelty.class === "KNOWN" ? "SUPPORTS" : record.novelty.class === "PARTIALLY_NEW" ? "EXTENDS" : null;
@@ -707,11 +822,13 @@ export class TeachingSessionService {
       const evidenceLine = r.evidence.slice(0, 3).map((e) => `${e.location ? `${e.location}: ` : ""}${e.text}`).join(" | ");
       const provenance = r.sourceLocations.slice(0, 4).map((l) => `${l.sourceTitle} — ${l.label}`).join("; ");
       const isWorkflow = r.knowledgeType === "workflow" && Array.isArray(r.structuredData.steps);
+      const canonical = r.canonicalStatement || r.statement;
+      const original = canonical !== r.statement ? `\nOriginal (${r.language?.name ?? "source language"}): ${r.statement}` : "";
       const recordInput: Record<string, unknown> = isWorkflow
-        ? { kind: "INSTRUCTION", title: r.title, instruction: r.statement, rules: (r.structuredData.steps as string[]).slice(0, 20), explanation: `Source: ${provenance}. Evidence: ${evidenceLine}`.slice(0, 3_900), guidance, tags: [r.knowledgeType, ...r.tags].slice(0, 10) }
+        ? { kind: "INSTRUCTION", title: r.title, instruction: canonical, rules: (r.structuredData.steps as string[]).slice(0, 20), explanation: `Source: ${provenance}. Evidence: ${evidenceLine}`.slice(0, 3_900), guidance, tags: [r.knowledgeType, ...r.tags].slice(0, 10) }
         : {
-          kind: "TEXT", title: r.title, text: `${r.statement}\nSource: ${provenance}.`,
-          rules: r.knowledgeType === "rule" || r.knowledgeType === "constraint" ? [r.statement.slice(0, 400)] : [],
+          kind: "TEXT", title: r.title, text: `${canonical}${original}\nSource: ${provenance}.`,
+          rules: r.knowledgeType === "rule" || r.knowledgeType === "constraint" ? [canonical.slice(0, 400)] : [],
           explanation: `Learned ${r.knowledgeType.replace("_", " ")} (${r.method.toLowerCase().replace("_", " ")}, confidence ${r.confidence.toFixed(2)}). Evidence: ${evidenceLine}`.slice(0, 3_900),
           guidance, tags: [r.knowledgeType.replace("_", "-"), ...r.tags].slice(0, 10),
         };
@@ -719,6 +836,7 @@ export class TeachingSessionService {
         sessionId, knowledgeId: r.id, knowledgeType: r.knowledgeType, statement: r.statement, structuredData: r.structuredData, sourceIds: r.sourceIds,
         sourceLocations: r.sourceLocations, evidence: r.evidence, confidence: r.confidence, method: r.method, novelty: r.novelty, relationships: r.relationships,
         conflictAccepted, revisions: [{ at, by, action: conflictAccepted ? "CONFLICT_ACCEPTED" : "CREATED", note: conflictAccepted ? r.novelty.reason : `From session ${sessionId.slice(0, 8)}` }],
+        domain: r.domain, canonicalStatement: canonical, language: r.language, originalEvidence: r.originalEvidence, timestampRange: r.timestampRange ?? null,
       };
       try {
         const record = this.host.addLearnedRecord(dataset, recordInput, knowledge, by);
@@ -763,7 +881,8 @@ export class TeachingSessionService {
     const sources = new Map(this.host.sources().map((s) => [s.sourceId, s]));
     return {
       ...session, ...links,
-      sources: session.sourceAssetIds.map((id) => { const s = sources.get(id); return s ? { sourceId: id, title: s.title, kind: s.kind, status: s.status, retained: s.retained, retention: s.retention, measured: s.measured } : null; }).filter(Boolean),
+      sources: session.sourceAssetIds.map((id) => { const s = sources.get(id); return s ? { sourceId: id, title: s.title, kind: s.kind, status: s.status, retained: s.retained, retention: s.retention, retentionState: s.retentionState ?? (s.retained ? "RETAINED" : "DELETED_BY_ADMIN"), retentionNote: s.retentionNote ?? null, measured: s.measured } : null; }).filter(Boolean),
+      ...(withCandidates ? { artifacts: session.analysis.perSource.filter((p) => p.artifact).map((p) => ({ sourceId: p.sourceId, title: p.title, ...(this.readArtifact(session.sessionId, p.sourceId) ?? { missing: true }) })) } : {}),
       summary: { candidates: list.length, recommended: list.filter((r) => r.recommended && !r.committedRecordId).length, accepted: list.filter((r) => r.decision === "ACCEPTED").length, rejected: list.filter((r) => r.decision === "REJECTED").length, committed: list.filter((r) => r.committedRecordId).length },
       ...(withCandidates ? { knowledge: list.map((r) => ({ ...r, sourceLocations: r.sourceLocations.map((l) => ({ ...l, sourceRetained: sources.get(l.sourceId)?.retained ?? false })) })) } : {}),
     };
@@ -781,7 +900,7 @@ export class TeachingSessionService {
   listKnowledge(filters: Record<string, string | undefined>) {
     const sources = new Map(this.host.sources().map((s) => [s.sourceId, s]));
     const datasets = new Map(this.host.datasets().map((d) => [d.datasetId, d]));
-    type Item = { id: string; knowledgeId: string; status: "ACTIVE" | "PUBLISHED" | "DRAFT" | "CANDIDATE" | "REJECTED"; version: number | null; datasetId: string | null; datasetKey: string | null; archived: boolean; record: { title: string; statement: string; knowledgeType: string; targetAI: string; capability: string; confidence: number; novelty: string; method: string; sourceIds: string[]; sourceLocations: KnowledgeRecord["sourceLocations"]; evidence: KnowledgeRecord["evidence"]; relationships: KnowledgeRecord["relationships"]; createdAt: string; sessionId: string; scope: string; projectId: string | null } };
+    type Item = { id: string; knowledgeId: string; status: "ACTIVE" | "PUBLISHED" | "DRAFT" | "CANDIDATE" | "REJECTED"; version: number | null; datasetId: string | null; datasetKey: string | null; archived: boolean; record: { title: string; statement: string; knowledgeType: string; targetAI: string; capability: string; confidence: number; novelty: string; method: string; sourceIds: string[]; sourceLocations: KnowledgeRecord["sourceLocations"]; evidence: KnowledgeRecord["evidence"]; relationships: KnowledgeRecord["relationships"]; createdAt: string; sessionId: string; scope: string; projectId: string | null; domain: string | null; canonicalStatement: string | null; language: KnowledgeRecord["language"] | null; timestampRange: KnowledgeRecord["timestampRange"] | null; creativePattern: unknown } };
     const rank = { ACTIVE: 5, PUBLISHED: 4, DRAFT: 3, CANDIDATE: 2, REJECTED: 1 } as const;
     const best = new Map<string, Item>();
     const put = (item: Item) => { const prev = best.get(item.knowledgeId); if (!prev || rank[item.status] > rank[prev.status] || (item.status === prev.status && (item.version ?? 0) > (prev.version ?? 0))) best.set(item.knowledgeId, item); };
@@ -789,6 +908,8 @@ export class TeachingSessionService {
       title: r.title, statement: r.knowledge!.statement, knowledgeType: r.knowledge!.knowledgeType, targetAI: d.target, capability: d.capability, confidence: r.knowledge!.confidence,
       novelty: r.knowledge!.novelty.class, method: r.knowledge!.method, sourceIds: r.knowledge!.sourceIds, sourceLocations: r.knowledge!.sourceLocations, evidence: r.knowledge!.evidence,
       relationships: r.knowledge!.relationships, createdAt: r.createdAt, sessionId: r.knowledge!.sessionId, scope: d.scope, projectId: d.projectId,
+      domain: r.knowledge!.domain ?? null, canonicalStatement: r.knowledge!.canonicalStatement ?? null, language: r.knowledge!.language ?? null,
+      timestampRange: r.knowledge!.timestampRange ?? null, creativePattern: r.knowledge!.structuredData?.creativePattern ?? null,
     });
     for (const v of this.host.versionRecords()) {
       for (const r of v.records) if (r.knowledge) put({ id: `${r.recordId}:v${v.version}`, knowledgeId: r.knowledge.knowledgeId, status: v.dataset.activeVersion === v.version ? "ACTIVE" : "PUBLISHED", version: v.version, datasetId: v.dataset.datasetId, datasetKey: v.dataset.key, archived: Boolean(v.dataset.archived), record: fromRecord(r, v.dataset) });
@@ -801,7 +922,8 @@ export class TeachingSessionService {
       for (const r of this.loadCandidates(s.sessionId)) {
         if (r.committedRecordId) continue;
         put({ id: r.id, knowledgeId: r.id, status: r.decision === "REJECTED" ? "REJECTED" : "CANDIDATE", version: null, datasetId: null, datasetKey: null, archived: false,
-          record: { title: r.title, statement: r.statement, knowledgeType: r.knowledgeType, targetAI: r.targetAI, capability: r.capability, confidence: r.confidence, novelty: r.novelty.class, method: r.method, sourceIds: r.sourceIds, sourceLocations: r.sourceLocations, evidence: r.evidence, relationships: r.relationships, createdAt: r.createdAt, sessionId: r.sessionId, scope: s.scope, projectId: s.projectId } });
+          record: { title: r.title, statement: r.statement, knowledgeType: r.knowledgeType, targetAI: r.targetAI, capability: r.capability, confidence: r.confidence, novelty: r.novelty.class, method: r.method, sourceIds: r.sourceIds, sourceLocations: r.sourceLocations, evidence: r.evidence, relationships: r.relationships, createdAt: r.createdAt, sessionId: r.sessionId, scope: s.scope, projectId: s.projectId,
+            domain: r.domain ?? null, canonicalStatement: r.canonicalStatement ?? null, language: r.language ?? null, timestampRange: r.timestampRange ?? null, creativePattern: r.structuredData?.creativePattern ?? null } });
       }
     }
     const f = filters;
@@ -824,13 +946,15 @@ export class TeachingSessionService {
       if (f.from && r.createdAt < f.from) return false;
       if (f.to && r.createdAt > `${f.to}~`) return false;
       if (f.projectId && r.projectId !== f.projectId) return false;
-      if (q && !`${r.title} ${r.statement}`.toLowerCase().includes(q)) return false;
+      if (q && !`${r.title} ${r.statement} ${r.canonicalStatement ?? ""}`.toLowerCase().includes(q)) return false;
+      if (f.language && (r.language?.code ?? "") !== f.language) return false;
+      if (f.patternFamily && (r.creativePattern as { family?: string } | null)?.family !== f.patternFamily) return false;
       return true;
     }).sort((a, b) => b.record.createdAt.localeCompare(a.record.createdAt)).slice(0, 500);
     return items.map((i) => ({
       ...i, datasetName: i.datasetId ? datasets.get(i.datasetId)?.name ?? null : null,
       record: { ...i.record, sourceLocations: i.record.sourceLocations.map((l) => ({ ...l, sourceRetained: sources.get(l.sourceId)?.retained ?? false })) },
-      sources: i.record.sourceIds.map((id) => { const s = sources.get(id); return s ? { sourceId: id, title: s.title, kind: s.kind, retained: s.retained, fingerprint: s.contentHash.slice(0, 16) } : null; }).filter(Boolean),
+      sources: i.record.sourceIds.map((id) => { const s = sources.get(id); return s ? { sourceId: id, title: s.title, kind: s.kind, retained: s.retained, retentionState: s.retentionState ?? (s.retained ? "RETAINED" : "DELETED_BY_ADMIN"), fingerprint: s.contentHash.slice(0, 16) } : null; }).filter(Boolean),
     }));
   }
 

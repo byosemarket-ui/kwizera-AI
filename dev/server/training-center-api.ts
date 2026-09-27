@@ -9,6 +9,8 @@ import { getKnowledgePipeline } from "../../ai/knowledge-acquisition-engine/know
 import { getIntelligenceLayer } from "../../ai/intelligence-layer/index.js";
 import { SessionInputError, TrainingCenter, TrainingInputError, type CuratedPatternSink } from "../../ai/training-center/training-center.js";
 import type { TeachingAi } from "../../ai/training-center/teaching-deep-media.js";
+import type { CapabilityAvailability } from "../../ai/training-center/training-types.js";
+import { registerCreativePatternProvider } from "../../ai/creative-planning/learned-creative-patterns.js";
 import { getAdminControlPlaneManager, getWorkspaceManager } from "../persistent/runtime.js";
 import { createKnowledgeFetcher, isOfficialKnowledgeHost, validateKnowledgeUrl } from "./knowledge-fetcher.js";
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
@@ -41,6 +43,55 @@ function teachingAi(): TeachingAi | null {
   };
 }
 
+const ROUTE_REASONS: Record<string, string> = {
+  NOT_CONFIGURED: "No Admin feature mapping resolves to an enabled provider model.",
+  DISABLED: "The mapped provider is disabled in Admin.",
+  NOT_IMPLEMENTED: "The mapped provider has no executable adapter on this server.",
+  CREDENTIAL_MISSING: "The mapped provider has no credential in the vault.",
+  AUTH_FAILED: "The mapped provider failed its last Admin connection test (unhealthy).",
+  PROVIDER_ERROR: "The mapped provider is degraded.",
+  UNVERIFIED: "The mapped provider has not passed an Admin connection test yet.",
+};
+
+/**
+ * Phase 18C — capability availability for teaching (Admin-only diagnostics). Routed capabilities follow
+ * CapabilityRuntime → Admin feature mapping → provider adapter → credential vault; measured capabilities run on
+ * the server's FFmpeg and Audio Intelligence. Reasons never contain credentials or provider secrets.
+ */
+function teachingCapabilities(): CapabilityAvailability[] {
+  const runtime = getAdminControlPlaneManager()?.getCapabilityRuntime() ?? null;
+  const routed = (feature: "VISION_ANALYSIS" | "LLM_REASONING", capability: string, label: string, use: string): CapabilityAvailability => {
+    const route = `CapabilityRuntime → ${feature} feature mapping → provider adapter → credential vault`;
+    if (!runtime) return { capability, label, implemented: true, configured: false, executable: false, state: "UNAVAILABLE", reason: "The Admin Control Plane is not ready.", route };
+    const base = runtime.readiness(feature);
+    const exec = runtime.executionReadiness(feature);
+    const configured = base.state !== "NOT_CONFIGURED" && base.state !== "DISABLED";
+    return {
+      capability, label, implemented: true, configured, executable: exec.executable,
+      state: exec.executable ? "EXECUTABLE" : exec.state === "NOT_IMPLEMENTED" ? "NOT_IMPLEMENTED" : configured ? "CONFIGURED" : "UNAVAILABLE",
+      reason: exec.executable ? `Executable: ${use}.` : `${ROUTE_REASONS[exec.state] ?? exec.state} Needed for ${use}.`, route,
+    };
+  };
+  const measured = (capability: string, label: string, reason: string): CapabilityAvailability =>
+    ({ capability, label, implemented: true, configured: true, executable: true, state: "EXECUTABLE", reason, route: "Server-side measurement (FFmpeg / Audio Intelligence); no provider" });
+  const missing = (capability: string, label: string, reason: string): CapabilityAvailability =>
+    ({ capability, label, implemented: false, configured: false, executable: false, state: "NOT_IMPLEMENTED", reason, route: "—" });
+  return [
+    measured("SCENE_DETECTION", "Scene and gradual-transition detection", "FFmpeg scene score plus a coarse-frame pass for dissolves the cut detector misses."),
+    measured("CAMERA_MOTION", "Camera motion (pan, tilt, push-in, pull-out, handheld, tracking)", "Global block matching and scale search on decoded frames."),
+    measured("TRANSITION_ANALYSIS", "Transition type and duration", "Dense 16 fps sampling around each boundary (cut, fade, dissolve, wipe)."),
+    measured("COMPOSITION", "Subject region, crop risk, negative space, text-safe regions", "Border-background separation on keyframes."),
+    measured("TEXT_PRESENCE", "On-screen text presence and location", "Edge-density bands on keyframes; text is located, not read."),
+    measured("AUDIO_ANALYSIS", "BPM, beats, downbeats, sections, energy, silence, fades", "Audio Intelligence on decoded PCM."),
+    measured("AV_SYNC", "Cut/beat synchronisation", "Scene boundaries against the measured beat grid."),
+    routed("VISION_ANALYSIS", "VISION", "On-screen text roles, layout and call-to-action (vision)", "reading text roles, layout and CTA in keyframes and images"),
+    routed("LLM_REASONING", "REASONING", "AI-assisted extraction and English normalisation", "grounded AI extraction and translating non-English knowledge"),
+    missing("SPEECH_TO_TEXT", "Speech transcription", "No speech-to-text execution path exists in the teaching pipeline; the SPEECH_TO_TEXT feature has no provider adapter."),
+    missing("OCR", "Reading on-screen text (OCR)", "No OCR engine is installed; text is located but not read unless vision is executable."),
+    missing("FONT_IDENTIFICATION", "Exact font identification", "Not implemented by design: fonts are never guessed from pixels."),
+  ];
+}
+
 /** URL learning is limited to the official knowledge library hosts plus hosts the operator allowlists. */
 function teachingUrlPolicy(raw: string): { ok: true; url: string } | { ok: false; code: string; message: string } {
   let url: URL;
@@ -66,6 +117,7 @@ export async function bootTrainingCenter(): Promise<TrainingCenter> {
     pipeline: () => getKnowledgePipeline(),
     patterns: patternSink,
     ai: teachingAi,
+    capabilities: teachingCapabilities,
     ...(onlineRetrieval ? { urlPolicy: teachingUrlPolicy, fetchUrl: createKnowledgeFetcher() } : {}),
     projectExists: async (projectId) => {
       const workspace = getWorkspaceManager();
@@ -85,6 +137,10 @@ export async function bootTrainingCenter(): Promise<TrainingCenter> {
   });
   next.boot();
   center = next;
+  registerCreativePatternProvider({
+    active: (query) => next.activeCreativePatterns(query),
+    recordUsage: (ids, projectId) => next.recordPatternUsage(ids, projectId),
+  });
   console.log(`[KWIZERA] Training Center ready (${next.listDatasets().length} datasets).`);
   return next;
 }
@@ -142,12 +198,17 @@ export async function handleAdminTrainingApi(
     if (method === "GET") {
       if (sub === "/overview") return reply({ overview: tc.overview() });
       if (sub === "/catalog") return reply({ catalog: tc.catalog() });
+      if (sub === "/capabilities") return reply({ items: tc.capabilityMatrix() });
+      if (sub === "/creative-patterns") {
+        const task = url.searchParams.get("task") === "CINEMATIC_VIDEO" ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW";
+        return reply({ items: tc.activeCreativePatterns({ task, projectId: str(url.searchParams.get("projectId"), 80) || null, context: [] }) });
+      }
       if (sub === "/datasets") return reply({ items: tc.listDatasets({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
       if (sub === "/sources") return reply({ items: tc.listSources({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
       if (sub === "/sessions") return reply({ items: tc.listSessions() });
       if (sub === "/knowledge") {
         const filters: Record<string, string | undefined> = {};
-        for (const key of ["target", "capability", "type", "sourceKind", "sourceId", "minConfidence", "status", "novelty", "active", "version", "from", "to", "q", "projectId", "includeArchived"]) {
+        for (const key of ["target", "capability", "type", "sourceKind", "sourceId", "minConfidence", "status", "novelty", "active", "version", "from", "to", "q", "projectId", "includeArchived", "language", "patternFamily"]) {
           const value = str(url.searchParams.get(key), 120);
           if (value) filters[key] = value;
         }

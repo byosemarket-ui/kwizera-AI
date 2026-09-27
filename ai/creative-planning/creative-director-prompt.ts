@@ -76,6 +76,12 @@ export async function buildCreativeDirectorContext(
     cinematic,
     projectId: full.projectId,
   }));
+  const { activeCreativePatterns, selectCreativePatterns, formatPatternsForPrompt } = await import("./learned-creative-patterns.js");
+  const patternContext = ["product-video", String(full.marketing.platform ?? "").toLowerCase()].filter(Boolean);
+  const learnedCreativePatterns = formatPatternsForPrompt(selectCreativePatterns(
+    activeCreativePatterns({ task: cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW", projectId: full.projectId, context: patternContext }),
+    { seed: `${full.projectId}:creative-director`, context: patternContext },
+  ));
 
   return {
     projectId: full.projectId,
@@ -128,6 +134,7 @@ export async function buildCreativeDirectorContext(
       transition: s.skill.execution.transitionHint ?? null,
     })),
     learnedPatterns,
+    learnedCreativePatterns,
     retrievedKnowledge: formatRetrieved(retrieved),
     knowledgeLineage: summarizeKnowledgeContext(retrieved),
   };
@@ -164,6 +171,7 @@ export function buildCreativeDirectorUserPrompt(context: Record<string, unknown>
       verifiedFacts: context.verifiedFacts,
       productIdentityLock: context.productIdentityLock,
       learned: context.learnedPatterns,
+      learnedCreativePatterns: context.learnedCreativePatterns,
       videoKnowledge: context.videoKnowledge,
     }),
     ...(typeof context.retrievedKnowledge === "string" && context.retrievedKnowledge ? [context.retrievedKnowledge] : []),

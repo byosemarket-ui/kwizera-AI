@@ -25,8 +25,9 @@ import { MEDIA_LIMITS, MediaAnalysisError, createTeachingMediaAnalyzer, type Tea
 import { computeRecordHash, redactRecordSecrets, validateDatasetRecords, validateRecord } from "./teaching-validation.js";
 import { createDeepMediaAnalyzer, type DeepMediaAnalyzer, type TeachingAi } from "./teaching-deep-media.js";
 import { SessionInputError, TeachingSessionService, type UrlFetchResult } from "./teaching-sessions.js";
+import type { ActiveCreativePattern, CreativePatternQuery, PatternFamily, PatternSelection } from "../creative-planning/learned-creative-patterns.js";
 import type {
-  ActivationRecord, DatasetVersion, EvaluationCase, GuidanceValue, MediaKind, MediaRole, RecordKnowledge, TeachingDataset,
+  ActivationRecord, CapabilityAvailability, DatasetVersion, EvaluationCase, GuidanceValue, MediaKind, MediaRole, RecordKnowledge, TeachingDataset,
   TeachingEvaluation, TeachingMediaRef, TeachingRecord, TeachingSession, TeachingSource, TrainingJob, TrainingJobKind, TrainingProfile, ValidationState,
 } from "./training-types.js";
 
@@ -61,6 +62,8 @@ export interface TrainingCenterOptions {
   /** Phase 18B: URL learning through the existing safe fetcher (SSRF-pinned, robots.txt) and allowlist. */
   urlPolicy?: (url: string) => { ok: true; url: string } | { ok: false; code: string; message: string };
   fetchUrl?: (url: string) => Promise<UrlFetchResult>;
+  /** Phase 18C: capability availability matrix (CapabilityRuntime → Admin feature mapping → adapter → vault). */
+  capabilities?: () => CapabilityAvailability[];
 }
 
 interface VersionFile {
@@ -95,7 +98,11 @@ interface CenterState {
   profiles: TrainingProfile[];
   sessions: TeachingSession[];
   sources: TeachingSource[];
+  /** Phase 18C — how often each learned creative pattern was applied by the video planner. */
+  patternUsage?: Record<string, { count: number; lastUsedAt: string; lastProjectId: string | null }>;
 }
+
+const PATTERN_FAMILIES = new Set(["HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING"]);
 
 const MAX_TEXT = 20_000;
 const MAX_DOCUMENT_CHARS = 400_000;
@@ -167,7 +174,12 @@ export class TrainingCenter {
       versionRecords: () => this.state.datasets.flatMap((d) => d.versions.map((v) => ({ dataset: d, version: v, records: this.readVersionFile(d.datasetId, v)?.records ?? [] }))),
       latestEvaluationId: (datasetId, version) => this.meta(datasetId, version).latestEvaluation?.evaluationId ?? null,
       latestActivationId: (datasetId, version) => [...this.state.activations].reverse().find((a) => a.datasetId === datasetId && a.version === version && a.action !== "DEACTIVATE")?.activationId ?? null,
+      capabilities: () => this.options.capabilities?.() ?? [],
     });
+  }
+
+  capabilityMatrix(): CapabilityAvailability[] {
+    return this.options.capabilities?.() ?? [];
   }
 
   isReady(): boolean {
@@ -189,6 +201,7 @@ export class TrainingCenter {
       profiles: loaded.profiles ?? [],
       sessions: loaded.sessions ?? [],
       sources: loaded.sources ?? [],
+      patternUsage: loaded.patternUsage ?? {},
     };
     this.sessions.recoverAfterRestart();
     const at = this.iso();
@@ -1144,6 +1157,10 @@ export class TrainingCenter {
     meta.activation = "ACTIVE";
     dataset.activeVersion = version;
     dataset.updatedAt = this.iso();
+    const learnedPatterns = file.records.filter((r) => this.patternFromRecord(r)).length;
+    if (learnedPatterns) delivery.push({ channel: "LEARNED_CREATIVE_PATTERNS", ref: `${dataset.datasetId}:v${version}`, detail: `${learnedPatterns} structured creative pattern(s) available to the video planner and Creative Director.` });
+    const deleted = this.sessions.applyDeferredRetention(file.records, `${dataset.key} v${version}`);
+    if (deleted.length) delivery.push({ channel: "SOURCE_RETENTION", ref: null, detail: `${deleted.length} source file(s) deleted after learning (fingerprints and provenance kept).` });
     const activation = this.recordActivation(dataset, version, action, previous, meta.latestEvaluation?.evaluationId ?? null, delivery, by);
     this.persist();
     job.counts.processed = 1;
@@ -1164,6 +1181,67 @@ export class TrainingCenter {
     return activation;
   }
 
+  // ---------- Phase 18C: learned creative patterns (runtime channel) ----------
+
+  /** Validates the stored pattern shape (stored data is still treated as untrusted). */
+  private patternFromRecord(r: TeachingRecord): Omit<ActiveCreativePattern, "patternId" | "provenance" | "usageCount"> | null {
+    const raw = r.knowledge?.structuredData?.creativePattern as Record<string, unknown> | undefined;
+    if (!raw || typeof raw !== "object" || !PATTERN_FAMILIES.has(String(raw.family))) return null;
+    const clean = (v: unknown, n = 200) => neutralizeTeachingText(String(v ?? "")).replace(/\s+/g, " ").trim().slice(0, n);
+    const parameters: Record<string, string | number | boolean | null> = {};
+    for (const [k, v] of Object.entries((raw.parameters ?? {}) as Record<string, unknown>).slice(0, 16)) {
+      if (!/^[A-Za-z][A-Za-z0-9]{0,40}$/.test(k)) continue;
+      if (typeof v === "number" && Number.isFinite(v)) parameters[k] = v;
+      else if (typeof v === "boolean" || v === null) parameters[k] = v;
+      else if (typeof v === "string") parameters[k] = clean(v, 80);
+    }
+    const list = (v: unknown, n: number) => (Array.isArray(v) ? v.slice(0, n).map((x) => clean(x, 120)).filter(Boolean) : []);
+    const confidence = typeof raw.confidence === "number" ? Math.max(0, Math.min(1, raw.confidence)) : 0.5;
+    return {
+      family: raw.family as PatternFamily, name: clean(raw.name, 140), description: clean(raw.description, 400), parameters,
+      compatibleContexts: list(raw.compatibleContexts, 12), variationOptions: list(raw.variationOptions, 8),
+      scenes: Array.isArray(raw.scenes) ? raw.scenes.filter((x): x is number => typeof x === "number").slice(0, 40) : [],
+      confidence, evidence: list(raw.evidence, 6),
+    };
+  }
+
+  /**
+   * Structured creative patterns from ACTIVE dataset versions only, matching the planner's task and scope
+   * (project-scoped datasets serve only their own project). Deactivated, archived, rejected or superseded versions
+   * are never returned; rollback changes the active version and therefore the patterns.
+   */
+  activeCreativePatterns(query: CreativePatternQuery): ActiveCreativePattern[] {
+    const out: ActiveCreativePattern[] = [];
+    const sources = new Map(this.state.sources.map((s) => [s.sourceId, s]));
+    for (const d of this.state.datasets) {
+      if (d.activeVersion === null || d.archived) continue;
+      if (capabilityById(d.capability)?.task !== query.task) continue;
+      if (d.scope === "PROJECT" ? d.projectId !== query.projectId : d.scope !== "ADMIN" && d.scope !== "SYSTEM") continue;
+      if (this.meta(d.datasetId, d.activeVersion).activation !== "ACTIVE") continue;
+      for (const r of this.readVersionFile(d.datasetId, d.activeVersion)?.records ?? []) {
+        const p = this.patternFromRecord(r);
+        if (!p) continue;
+        const bySource = new Map<string, string[]>();
+        for (const l of r.knowledge!.sourceLocations) bySource.set(l.sourceId, [...(bySource.get(l.sourceId) ?? []), l.label].slice(0, 6));
+        out.push({
+          ...p, patternId: r.recordId, usageCount: this.state.patternUsage?.[r.recordId]?.count ?? 0,
+          provenance: {
+            datasetId: d.datasetId, datasetKey: d.key, version: d.activeVersion, recordId: r.recordId,
+            sources: [...bySource.entries()].map(([sourceId, locations]) => ({ sourceId, title: sources.get(sourceId)?.title ?? "(source)", locations })),
+          },
+        });
+      }
+    }
+    return out.slice(0, 200);
+  }
+
+  recordPatternUsage(patternIds: string[], projectId: string | null): void {
+    const usage = (this.state.patternUsage ??= {});
+    const at = this.iso();
+    for (const id of patternIds.slice(0, 40)) usage[id] = { count: (usage[id]?.count ?? 0) + 1, lastUsedAt: at, lastProjectId: projectId };
+    this.persist();
+  }
+
   // ---------- runtime verification ----------
 
   /** Runs the capability's real runtime retrieval against the live Knowledge Base and reports what the planner receives. */
@@ -1182,7 +1260,7 @@ export class TrainingCenter {
     const canvas = minSafe
       ? planCanvasFit({ sceneId: "runtime-test", assetId: "runtime-test", sourceWidth: 1080, sourceHeight: 1080, frameWidth: 1080, frameHeight: 1920, targetAspect: "9:16", framing: null, minSafeCoverage: minSafe.basis === "KNOWLEDGE" ? Number(minSafe.value) : null })
       : null;
-    const consumption = await this.runtimeConsumption(task, projectId, context, activeItems, input.query);
+    const consumption = await this.runtimeConsumption(task, projectId, context, activeItems, input.query, dataset.datasetId);
     return {
       task, query, projectId, activeVersion: dataset.activeVersion, activeKnowledgeSourceId: activeSource,
       runtimeConsumers: capability.runtimeConsumers, runtimeWired: capability.runtimeWired, runtimeNote: capability.runtimeNote,
@@ -1198,10 +1276,33 @@ export class TrainingCenter {
    * What the real runtime consumers do with the retrieved teaching: the Creative Director prompt section is built with
    * the production request and formatter; audio and typography planners run with the resolved guidance.
    */
-  private async runtimeConsumption(task: string, projectId: string | null, context: Awaited<ReturnType<KnowledgePipeline["retrieve"]>>, activeItems: Set<string>, topic?: string) {
+  private async runtimeConsumption(task: string, projectId: string | null, context: Awaited<ReturnType<KnowledgePipeline["retrieve"]>>, activeItems: Set<string>, topic?: string, datasetId?: string) {
     const pipeline = this.requirePipeline();
     const out: Array<{ consumer: string; usesTeaching: boolean; detail: string; excerpts?: string[]; measured?: Record<string, unknown> }> = [];
     if (task === "PRODUCT_SLIDESHOW" || task === "CINEMATIC_VIDEO") {
+      const { selectCreativePatterns, applyLearnedPatternsToTimeline } = await import("../creative-planning/learned-creative-patterns.js");
+      const patterns = this.activeCreativePatterns({ task, projectId, context: ["product-video", "9:16", "vertical", "short-form"] });
+      const selections: PatternSelection[] = selectCreativePatterns(patterns, { seed: `runtime-test:${projectId ?? "global"}`, context: ["product-video", "9:16", "vertical", "short-form"] });
+      const base = [
+        { sceneId: "scene-1", order: 1, purpose: "HOOK", durationMs: 2500, motion: "slow-zoom", transitionIn: "cut" as const, transitionOut: "cut" as const },
+        { sceneId: "scene-2", order: 2, purpose: "REVEAL", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
+        { sceneId: "scene-3", order: 3, purpose: "FEATURE", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
+        { sceneId: "scene-4", order: 4, purpose: "CTA", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
+      ];
+      const applied = applyLearnedPatternsToTimeline(base, selections);
+      const own = applied.decisions.filter((d) => d.provenance.datasetId === datasetId);
+      const changed = own.filter((d) => d.applied);
+      out.push({
+        consumer: "Video Planner (learned creative direction)", usesTeaching: changed.length > 0,
+        detail: patterns.length
+          ? `${patterns.length} active pattern(s) (${own.length} from this dataset); ${changed.length} changed the plan: ${changed.map((d) => `${d.family.toLowerCase()} → ${d.change}`).join("; ") || "none"}.${own.filter((d) => !d.applied).map((d) => ` ${d.family.toLowerCase()}: ${d.reason}`).join("")}`
+          : "No active creative patterns for this task and scope.",
+        measured: {
+          before: base.map((c) => `${c.sceneId}:${c.motion}/${c.transitionOut}`),
+          after: applied.clips.map((c) => `${c.sceneId}:${c.motion}/${c.transitionOut}`),
+          decisions: applied.decisions.map((d) => ({ family: d.family, pattern: d.name, applied: d.applied, change: d.change, reason: d.reason, dataset: `${d.provenance.datasetKey} v${d.provenance.version}`, sources: d.provenance.sources.map((s) => s.title) })),
+        },
+      });
       const { creativeDirectorKnowledgeRequest } = await import("../creative-planning/creative-director-knowledge.js");
       const { formatKnowledgeForPrompt } = await import("../knowledge-retrieval-engine/knowledge-context-builder.js");
       const request = creativeDirectorKnowledgeRequest({ category: topic?.slice(0, 120) || null, platform: null, tone: null, cinematic: task === "CINEMATIC_VIDEO", projectId });
@@ -1231,6 +1332,14 @@ export class TrainingCenter {
         consumer: "Audio fit / render timeline (video-production.audio)", usesTeaching: used,
         detail: `Trim plan fades out over ${trim.fadeOutSec}s; loop plan crossfades ${loop.crossfadeSec}s on a ${loop.boundaryBasis} boundary${used ? " using this dataset's guidance" : ""}.`,
         measured: { fadeOutSec: trim.fadeOutSec, crossfadeSec: loop.crossfadeSec, strategy: loop.strategy },
+      });
+    }
+    if (task === "CODE_ASSIST") {
+      const teaching = context.items.filter((i) => activeItems.has(i.id));
+      out.push({
+        consumer: "CODE_AI (knowledge retrieval only)", usesTeaching: false,
+        detail: `${teaching.length} of ${context.items.length} retrieved CODE_ASSIST item(s) come from this dataset, but no code-planning runtime consumes CODE_ASSIST knowledge yet, so it does not change any output.`,
+        measured: { retrieved: context.items.length, fromThisDataset: teaching.length, runtimeConsumer: null },
       });
     }
     if (task === "TYPOGRAPHY_PLAN") {

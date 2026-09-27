@@ -227,7 +227,7 @@ export interface ActivationRecord {
   scope: TrainingScope;
   projectId: string | null;
   evaluationId: string | null;
-  delivery: Array<{ channel: "KNOWLEDGE_BASE" | "CREATIVE_PATTERNS"; ref: string | null; detail: string }>;
+  delivery: Array<{ channel: "KNOWLEDGE_BASE" | "CREATIVE_PATTERNS" | "LEARNED_CREATIVE_PATTERNS" | "SOURCE_RETENTION"; ref: string | null; detail: string }>;
   configuration: Record<string, unknown>;
   by: string;
   at: string;
@@ -251,7 +251,14 @@ export interface TrainingProfile {
 export type TeachingType = "KNOWLEDGE" | "EXAMPLE" | "STYLE" | "INSTRUCTION" | "WORKFLOW" | "BEST_PRACTICE" | "PATTERN" | "MULTIMODAL_EXAMPLE";
 export type SourceKind = "TEXT" | "DOCUMENT" | "BOOK" | "IMAGE" | "VIDEO" | "AUDIO" | "CODE" | "URL";
 export type SessionSourceType = SourceKind | "MULTIPLE";
-export type RetentionPolicy = "KEEP_SOURCE" | "DELETE_AFTER_SUCCESSFUL_EXTRACTION" | "ARCHIVE_SOURCE";
+/**
+ * DELETE_SOURCE_AFTER_LEARNING deletes the stored file only after the knowledge learned from it is in an evaluated,
+ * activated dataset version. DELETE_AFTER_SUCCESSFUL_EXTRACTION is the pre-18C name; it is accepted and stored as
+ * DELETE_SOURCE_AFTER_LEARNING (the file is no longer deleted at extraction time).
+ */
+export type RetentionPolicy = "KEEP_SOURCE" | "DELETE_SOURCE_AFTER_LEARNING" | "DELETE_AFTER_SUCCESSFUL_EXTRACTION" | "ARCHIVE_SOURCE";
+
+export type RetentionState = "RETAINED" | "PENDING_ACTIVATION" | "DELETED_AFTER_LEARNING" | "ARCHIVED" | "DELETED_BY_ADMIN";
 export type SourceStatus = "STORED" | "PROCESSING" | "PROCESSED" | "FAILED" | "DELETED" | "ARCHIVED";
 
 export interface TeachingSource {
@@ -273,6 +280,9 @@ export interface TeachingSource {
   projectId: string | null;
   retention: RetentionPolicy;
   retained: boolean;
+  /** Phase 18C — where the retention policy stands (optional for sources stored earlier). */
+  retentionState?: RetentionState;
+  retentionNote?: string | null;
   status: SourceStatus;
   measured: { pages?: number; chapters?: number; sections?: number; durationSec?: number; width?: number; height?: number; lines?: number; rows?: number };
   knowledgeExtracted: number;
@@ -357,6 +367,21 @@ export interface KnowledgeRecord {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Phase 18C (optional for records created earlier). */
+  domain?: string;
+  /** English canonical form used for retrieval; equals `statement` when the source is English or not translated. */
+  canonicalStatement?: string;
+  language?: KnowledgeLanguage;
+  /** The statement and evidence exactly as extracted from the source, before any normalisation. */
+  originalEvidence?: { statement: string; quotes: string[] };
+  timestampRange?: { startSec: number; endSec: number } | null;
+}
+
+export interface KnowledgeLanguage {
+  code: string;
+  name: string;
+  confidence: number;
+  normalization: "ORIGINAL_ENGLISH" | "TRANSLATED_BY_AI" | "NOT_TRANSLATED" | "GENERATED_FROM_MEASUREMENT";
 }
 
 export interface RecordKnowledge {
@@ -375,6 +400,12 @@ export interface RecordKnowledge {
   /** Admin accepted a CONTRADICTORY / REQUIRES_REVIEW item; the record still needs review approval before publishing. */
   conflictAccepted: boolean;
   revisions: Array<{ at: string; by: string; action: "CREATED" | "MERGED_PROVENANCE" | "CONFLICT_ACCEPTED"; note: string }>;
+  /** Phase 18C (optional for records created earlier). */
+  domain?: string;
+  canonicalStatement?: string;
+  language?: KnowledgeLanguage;
+  originalEvidence?: { statement: string; quotes: string[] };
+  timestampRange?: { startSec: number; endSec: number } | null;
 }
 
 export type SessionStatus = "QUEUED" | "ANALYZING" | "READY_FOR_REVIEW" | "COMMITTED" | "FAILED" | "CANCELLED";
@@ -383,7 +414,36 @@ export type SessionStage =
   | "QUEUED" | "UPLOADED" | "VALIDATING_SOURCE" | "EXTRACTING_METADATA" | "EXTRACTING_TEXT" | "SAMPLING_FRAMES"
   | "DETECTING_SCENES" | "EXTRACTING_AUDIO" | "TRANSCRIBING" | "ANALYZING_VISUALS" | "ANALYZING_AUDIO" | "ANALYZING_SYNC"
   | "EXTRACTING_KNOWLEDGE" | "CHECKING_NOVELTY" | "DEDUPLICATING" | "VALIDATING" | "READY_FOR_REVIEW"
-  | "CREATING_DATASET_VERSION" | "EVALUATING" | "READY_TO_ACTIVATE" | "ACTIVATING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  | "CREATING_DATASET_VERSION" | "EVALUATING" | "READY_TO_ACTIVATE" | "ACTIVATING" | "COMPLETED" | "FAILED" | "CANCELLED"
+  // Phase 18C — canonical multimodal stages
+  | "UPLOADING" | "VALIDATING" | "MEDIA_METADATA" | "SCENE_DETECTION" | "FRAME_ANALYSIS" | "VISION_ANALYSIS" | "AUDIO_ANALYSIS"
+  | "TRANSCRIPT_ANALYSIS" | "TEXT_ANALYSIS" | "MOTION_ANALYSIS" | "TRANSITION_ANALYSIS" | "CREATIVE_PATTERN_ANALYSIS"
+  | "KNOWLEDGE_EXTRACTION" | "LANGUAGE_NORMALIZATION" | "NOVELTY_CHECK" | "CONSOLIDATION" | "VALIDATION";
+
+export interface MediaCounters {
+  scenesTotal: number;
+  scenesProcessed: number;
+  framesTotal: number;
+  framesProcessed: number;
+  boundariesTotal: number;
+  boundariesProcessed: number;
+  observations: number;
+  patterns: number;
+}
+
+export type CapabilityState = "IMPLEMENTED" | "AVAILABLE" | "CONFIGURED" | "EXECUTABLE" | "UNAVAILABLE" | "NOT_IMPLEMENTED";
+
+export interface CapabilityAvailability {
+  capability: string;
+  label: string;
+  implemented: boolean;
+  configured: boolean;
+  executable: boolean;
+  state: CapabilityState;
+  /** Exact reason (Admin-only diagnostics; never contains credentials). */
+  reason: string;
+  route: string;
+}
 
 export interface SessionProgress {
   stage: SessionStage;
@@ -401,6 +461,10 @@ export interface SessionProgress {
   /** Only when a reliable estimate exists (same-kind sources with measured durations). */
   etaSec: number | null;
   counts: { extracted: number; new: number; partiallyNew: number; known: number; duplicate: number; contradictory: number; lowConfidence: number; requiresReview: number };
+  /** Phase 18C — measured media work for the current source (only what was actually counted). */
+  media?: MediaCounters;
+  /** Phase 18C — capabilities reported unavailable during this session. */
+  unavailableCapabilities?: string[];
 }
 
 export interface TeachingSession {
@@ -420,7 +484,15 @@ export interface TeachingSession {
   analysis: {
     ai: { vision: string; reasoning: string; transcription: string };
     notes: string[];
-    perSource: Array<{ sourceId: string; title: string; status: "PROCESSED" | "FAILED"; notes: string[]; unavailable: string[]; summary: Record<string, unknown> }>;
+    perSource: Array<{
+      sourceId: string; title: string; status: "PROCESSED" | "FAILED"; notes: string[]; unavailable: string[]; summary: Record<string, unknown>;
+      /** Phase 18C — truthful learning outcome for the source. */
+      learningStatus?: "KNOWLEDGE_EXTRACTED" | "PROCESSED" | "PARTIALLY_ANALYZED" | "REQUIRES_REVIEW" | "UNAVAILABLE_CAPABILITY" | "FAILED";
+      /** Phase 18C — processing artifact file holding structured observations (Admin view). */
+      artifact?: { kind: "VIDEO_OBSERVATIONS"; observations: number; patterns: number } | null;
+    }>;
+    /** Phase 18C — capability availability snapshot at session start (Admin-only diagnostics). */
+    capabilities?: CapabilityAvailability[];
   };
   jobId: string | null;
   datasetId: string | null;

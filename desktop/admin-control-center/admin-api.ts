@@ -27,6 +27,7 @@ export type AdminTeachingSessionSummary = ReturnType<TrainingCenter["listSession
 export type AdminTeachingSessionDetail = ReturnType<TrainingCenter["getSession"]>;
 export type AdminLearnedKnowledgeItem = ReturnType<TrainingCenter["listKnowledge"]>[number];
 export type AdminTeachingCommitResult = Awaited<ReturnType<TrainingCenter["commitSession"]>>;
+export type AdminTeachingCapability = ReturnType<TrainingCenter["capabilityMatrix"]>[number];
 export type {
   ActivationRecord as AdminTrainingActivation, DatasetVersion as AdminTrainingVersion, TeachingEvaluation as AdminTrainingEvaluation,
   TeachingRecord as AdminTrainingRecord, TrainingJob as AdminTrainingJob,
@@ -217,6 +218,7 @@ export const adminApi = {
 
   trainingOverview: () => adminFetch<{ overview: AdminTrainingOverview }>("/api/admin/training/overview"),
   trainingCatalog: () => adminFetch<{ catalog: AdminTrainingCatalog }>("/api/admin/training/catalog"),
+  teachingCapabilities: () => adminFetch<{ items: AdminTeachingCapability[] }>("/api/admin/training/capabilities"),
   trainingDatasets: (includeArchived = false) => adminFetch<{ items: AdminTrainingDataset[] }>(`/api/admin/training/datasets${includeArchived ? "?includeArchived=1" : ""}`),
   archiveTrainingDataset: (datasetId: string, archived: boolean) =>
     adminFetch<{ dataset: AdminTrainingDataset }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/archive`, { method: "POST", body: JSON.stringify({ archived }) }),

@@ -55,11 +55,11 @@ function scene(index: number, start: number, end: number, extra: Partial<SceneMe
 function fakeDeep(center: () => TrainingCenter | null): DeepMediaAnalyzer {
   return {
     async video(_file, _base, opts): Promise<VideoDeepAnalysis> {
-      opts.onProgress?.("SAMPLING_FRAMES", "48 frames");
+      opts.onProgress?.("FRAME_ANALYSIS", "48 frames");
       const c = center();
       if (c) for (const s of c.listSessions()) if (s.status === "ANALYZING") progressSeen.push(s.progress.percent);
-      opts.onProgress?.("ANALYZING_VISUALS", "4 scenes");
-      opts.onProgress?.("ANALYZING_SYNC", "3 cuts");
+      opts.onProgress?.("VISION_ANALYSIS", "4 scenes");
+      opts.onProgress?.("AUDIO_ANALYSIS", "3 cuts");
       return {
         sampledFps: 4, frames: 48, scenes: [scene(1, 0, 3), scene(2, 3, 6), scene(3, 6, 9), scene(4, 9, 12)],
         transitions: { START: 1, CUT: 2, FADE_THROUGH_BLACK: 1, SOFT: 0 }, startsFromBlack: false, endsInBlack: true,
@@ -347,7 +347,7 @@ describe("Phase 18B — media", () => {
     expect(session.analysis.ai.transcription).toBe("UNAVAILABLE");
     expect(session.analysis.notes.join(" ")).toMatch(/Speech transcription unavailable/);
     const stages = job.stages.map((s) => s.stage);
-    for (const s of ["DETECTING_SCENES", "TRANSCRIBING", "SAMPLING_FRAMES", "ANALYZING_VISUALS", "ANALYZING_SYNC", "EXTRACTING_KNOWLEDGE", "CHECKING_NOVELTY", "READY_FOR_REVIEW"]) expect(stages).toContain(s);
+    for (const s of ["MEDIA_METADATA", "SCENE_DETECTION", "TRANSCRIPT_ANALYSIS", "FRAME_ANALYSIS", "VISION_ANALYSIS", "AUDIO_ANALYSIS", "KNOWLEDGE_EXTRACTION", "NOVELTY_CHECK", "CONSOLIDATION", "VALIDATION", "READY_FOR_REVIEW"]) expect(stages).toContain(s);
     expect(k.every((r) => !/font name|helvetica|arial/i.test(r.statement))).toBe(true);
     expect(progressSeen.length).toBeGreaterThan(0);
     expect(progressSeen.every((p) => p === null || p < 100)).toBe(true);
@@ -603,18 +603,21 @@ describe("Phase 18B — lifecycle, retention and runtime", () => {
     expect(tp.detail).toMatch(/maxItemsPerScene=2 \(KNOWLEDGE\)/);
   });
 
-  it("retention: deleting after extraction or explicitly keeps knowledge and the fingerprint; archive moves the file", async () => {
+  it("retention: delete-after-learning waits for activation and keeps knowledge and the fingerprint; archive moves the file", { timeout: 120_000 }, async () => {
     const { center, dataDir } = await makeCenter();
     const del = await learn(center, "PRODUCT_VIDEO_TYPOGRAPHY", [{ text: TEXT_GUIDE, retention: "DELETE_AFTER_SUCCESSFUL_EXTRACTION", title: "Temp" }]);
+    const pending = center.listSources().find((s) => s.sourceId === del.sourceIds[0])!;
+    expect(pending).toMatchObject({ retained: true, retention: "DELETE_SOURCE_AFTER_LEARNING", retentionState: "PENDING_ACTIVATION" });
+    expect(existsSync(path.join(dataDir, "sources", `${pending.contentHash}.md`))).toBe(true);
+    await commitPublishActivate(center, del.session.sessionId);
     const src = center.listSources().find((s) => s.sourceId === del.sourceIds[0])!;
-    expect(src).toMatchObject({ retained: false, status: "DELETED" });
+    expect(src).toMatchObject({ retained: false, status: "DELETED", retentionState: "DELETED_AFTER_LEARNING" });
     expect(src.contentHash).toMatch(/^[0-9a-f]{64}$/);
     expect(existsSync(path.join(dataDir, "sources", `${src.contentHash}.md`))).toBe(false);
     const view = center.getSession(del.session.sessionId);
     expect(view.knowledge!.length).toBeGreaterThan(0);
     expect(view.knowledge![0]!.sourceLocations[0]!.sourceRetained).toBe(false);
     await expect(center.createSession({ capability: "PRODUCT_VIDEO_TYPOGRAPHY", sourceIds: [src.sourceId] }, "t")).rejects.toMatchObject({ code: "SOURCE_NOT_RETAINED" });
-    await center.commitSession(del.session.sessionId, {}, "t");
     const lib = center.listKnowledge({ sourceId: src.sourceId });
     expect(lib.length).toBeGreaterThan(0);
     expect(lib[0]!.sources[0]).toMatchObject({ retained: false, fingerprint: src.contentHash.slice(0, 16) });

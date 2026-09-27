@@ -355,6 +355,16 @@ export class VideoProductionManager {
       }
     }
 
+    // Phase 18C — learned creative patterns from active Training Center versions (guidance; user edits win).
+    const learnedDirection = await this.applyLearnedCreativeDirection(projectId, timeline, {
+      cinematic: repairedPlan.productionMode === "CINEMATIC_3D",
+      aspectRatio: profile.aspectRatio,
+      planVersion: repairedPlan.version,
+      previous: existing?.learnedCreativeDirection ?? null,
+      transitionsLocked: Object.keys((workspaceProject.avDirectorOverrides ?? {}) as Record<string, unknown>).some((k) => /transition/i.test(k)),
+    });
+    timeline = learnedDirection.clips;
+
     const now = new Date().toISOString();
     const audioPlan = await this.buildAudioPlan(projectId, beatSyncResult.plan);
     const renderPlan = buildRenderPlanForProfile(profile, timelineDurationMs(timeline), existing?.renderPlan.preset ?? "preview");
@@ -395,6 +405,7 @@ export class VideoProductionManager {
       avCreativePlan,
       avCreativeMode,
       audioFitPlan: existing?.audioFitPlan,
+      learnedCreativeDirection: learnedDirection.summary,
     };
     const planKnowledge = await this.retrieveProductionKnowledge(projectId, {
       productionMode: repairedPlan.productionMode,
@@ -1548,6 +1559,43 @@ export class VideoProductionManager {
       }),
     ]);
     return { slideshow: summarizeKnowledgeContext(slideshow), typography: summarizeKnowledgeContext(typography) };
+  }
+
+  /**
+   * Phase 18C — selects varied learned patterns (active versions only, task- and scope-aware) and applies what the
+   * renderer supports. The same plan version keeps its selection; usage history is recorded once per plan version.
+   */
+  private async applyLearnedCreativeDirection(projectId: string, clips: VideoTimelineClip[], opts: {
+    cinematic: boolean;
+    aspectRatio: string;
+    planVersion: number;
+    previous: VideoProject["learnedCreativeDirection"];
+    transitionsLocked: boolean;
+  }): Promise<{ clips: VideoTimelineClip[]; summary: VideoProject["learnedCreativeDirection"] }> {
+    try {
+      const { activeCreativePatterns, selectCreativePatterns, applyLearnedPatternsToTimeline, recordCreativePatternUsage } = await import("../creative-planning/learned-creative-patterns.js");
+      const context = ["product-video", opts.aspectRatio, ...(opts.aspectRatio === "9:16" || opts.aspectRatio === "4:5" ? ["vertical"] : opts.aspectRatio === "16:9" ? ["horizontal"] : []),
+        timelineDurationMs(clips) <= 30_000 ? "short-form" : "long-form"];
+      const patterns = activeCreativePatterns({ task: opts.cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW", projectId, context });
+      if (!patterns.length) return { clips, summary: null };
+      const samePlan = opts.previous?.planVersion === opts.planVersion;
+      const seed = `${projectId}:${opts.planVersion}`;
+      const selections = selectCreativePatterns(patterns, { seed, context, pinned: samePlan ? opts.previous!.selected.map((s) => s.patternId) : [] })
+        .filter((s) => !(opts.transitionsLocked && s.family === "TRANSITION"));
+      const result = applyLearnedPatternsToTimeline(clips, selections);
+      if (!samePlan) recordCreativePatternUsage(result.decisions.filter((d) => d.applied).map((d) => d.patternId), projectId);
+      return {
+        clips: result.clips,
+        summary: {
+          version: "learned-direction-v1", planVersion: opts.planVersion, seed, appliedAt: new Date().toISOString(),
+          selected: selections.map((s) => ({ patternId: s.selected.patternId, family: s.family, name: s.selected.name, reason: s.reason, alternatives: s.alternatives.map((a) => a.name) })),
+          decisions: result.decisions,
+        },
+      };
+    } catch (error) {
+      console.warn("[video-production] learned_direction_skipped", { projectId, error: error instanceof Error ? error.message : String(error) });
+      return { clips, summary: null };
+    }
   }
 
   private async retrieveAudioKnowledge(projectId: string, bpm: number | null): Promise<{ summary: KnowledgeContextSummary | null; guidance: AudioFitGuidance | null }> {
