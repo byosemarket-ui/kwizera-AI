@@ -655,7 +655,7 @@ export class TrainingCenter {
     const record = this.draftRecords(dataset).find((r) => r.recordId === recordId);
     if (!record) throw new TrainingInputError("RECORD_NOT_FOUND", "Record not found in this dataset draft.", 404);
     if (!record.media.length) throw new TrainingInputError("NO_MEDIA", "This record has no media to process.");
-    for (const m of record.media) if (m.status === "FAILED") { m.status = "PENDING"; m.error = null; }
+    for (const m of record.media) { m.status = "PENDING"; m.error = null; }
     this.persist();
     return this.enqueue("PROCESS_MEDIA", { datasetId, recordId, by, total: record.media.length }, (job) => this.runProcessMedia(job, recordId));
   }
@@ -862,7 +862,15 @@ export class TrainingCenter {
         .map((s) => s.sourceId)
       : [];
     const own = this.datasetSourceIds(dataset).filter((id) => id !== this.meta(dataset.datasetId, file.version).knowledgeSourceId);
-    return [...new Set([...core, ...own])];
+    // Project teaching is retrieved only for its own project, so overriding broader teaching cannot leak elsewhere.
+    const task = capabilityById(dataset.capability)?.task;
+    const broader = keys.size && dataset.scope === "PROJECT"
+      ? this.state.datasets
+        .filter((d) => d.datasetId !== dataset.datasetId && d.scope !== "PROJECT" && capabilityById(d.capability)?.task === task
+          && d.versions.some((v) => this.readVersionFile(d.datasetId, v)?.guidance.some((g) => keys.has(g.key))))
+        .flatMap((d) => this.datasetSourceIds(d))
+      : [];
+    return [...new Set([...core, ...own, ...broader])];
   }
 
   // ---------- evaluation ----------

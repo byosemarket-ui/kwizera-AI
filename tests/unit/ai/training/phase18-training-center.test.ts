@@ -281,6 +281,20 @@ describe("Phase 18 — teach, evaluate, activate, runtime, rollback", () => {
     expect((await slideshowGuidance(pipeline, null)).minSafe?.value).not.toBe(0.88);
   }, 120_000);
 
+  it("lets project teaching override active admin teaching only inside that project", async () => {
+    const { center, pipeline } = await makeCenter();
+    const admin = await center.createDataset({ key: "ADMIN_FRAMING", capability: "PRODUCT_SLIDESHOW", mode: "INSTRUCTION" }, "admin");
+    await center.addRecord(admin.datasetId, { kind: "INSTRUCTION", title: "Admin framing", instruction: TEACHING_TEXT, guidance: [{ key: "composition.minSafeCoverage", value: 0.85 }] }, "admin");
+    await publishEvaluateActivate(center, admin.datasetId);
+    const project = await center.createDataset({ key: "PROJECT_A_OVERRIDE", capability: "PRODUCT_SLIDESHOW", mode: "INSTRUCTION", scope: "PROJECT", projectId: "proj-a" }, "admin");
+    await center.addRecord(project.datasetId, { kind: "INSTRUCTION", title: "Project A keeps more", instruction: "For this brand keep at least 88 percent of each product photo before extending the canvas.", guidance: [{ key: "composition.minSafeCoverage", value: 0.88 }] }, "admin");
+    const { evaluation } = await publishEvaluateActivate(center, project.datasetId);
+    expect(evaluation.status).toBe("PASSED");
+    expect((await slideshowGuidance(pipeline, "proj-a")).minSafe?.value).toBe(0.88);
+    expect((await slideshowGuidance(pipeline, "proj-b")).minSafe?.value).toBe(0.85);
+    expect((await slideshowGuidance(pipeline, null)).minSafe?.value).toBe(0.85);
+  }, 120_000);
+
   it("stores code as data and never executes it", async () => {
     const { center, pipeline, root } = await makeCenter();
     const marker = path.join(root, "code-was-executed.txt");
