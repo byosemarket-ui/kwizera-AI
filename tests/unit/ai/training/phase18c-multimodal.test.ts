@@ -427,6 +427,26 @@ describe("Phase 18C — video teaching end-to-end", { timeout: 120_000 }, () => 
     expect(existsSync(path.join(dataDir, "sources", `${kept.contentHash}.mp4`))).toBe(true);
   });
 
+  it("non-English teaching text is extracted in its original language and never blindly translated", async () => {
+    const { center } = await makeCenter();
+    const text = [
+      "# Typographie",
+      "",
+      "Le produit doit toujours rester visible dans le cadre et les titres sont placés en haut de l'image.",
+      "Il faut toujours montrer le prix dans la dernière scène avec un texte court et lisible.",
+    ].join("\n");
+    const { session } = await learn(center, "PRODUCT_VIDEO_TYPOGRAPHY", [{ text, title: "Guide français" }], { teachingType: "KNOWLEDGE" });
+    const k = session.knowledge!;
+    expect(k.length).toBeGreaterThanOrEqual(2);
+    for (const r of k) {
+      expect(r.language).toMatchObject({ code: "fr", normalization: "NOT_TRANSLATED" });
+      expect(r.flags).toContain("NOT_TRANSLATED");
+      expect(r.canonicalStatement).toBe(r.statement);
+      expect(r.originalEvidence!.statement).toMatch(/[àéè]|doit|faut/);
+    }
+    expect(session.analysis.notes.join(" ")).toMatch(/kept in their original language/);
+  });
+
   it("CODE_AI knowledge is analysed statically and reported as retrieval-only at runtime", async () => {
     const { center } = await makeCenter();
     const code = [

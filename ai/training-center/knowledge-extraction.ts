@@ -257,9 +257,17 @@ function sentencesOf(text: string): string[] {
   return text.replace(/\s+/g, " ").split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/).map((s) => s.trim()).filter(Boolean);
 }
 
+const cue = (words: string) => new RegExp(`(?:^|[\\s,;:("'«])(?:${words})(?=$|[\\s,.;:!?)"'»])`, "i");
+/** Modal cues in other languages, used only for sentences not detected as English; never translated here. */
+const FOREIGN_CLASSIFIERS: Array<{ type: KnowledgeType; re: RegExp; confidence: number }> = [
+  { type: "constraint", re: cue("jamais|ne pas|éviter|évitez|pas plus de|au maximum|nunca|no debe|no deben|evitar|evite|no más de|como máximo|não deve|não devem|no máximo|niemals|nicht mehr als|vermeiden|höchstens|non deve|non devono|evitare|al massimo|nooit|niet meer dan|vermijd"), confidence: 0.66 },
+  { type: "rule", re: cue("doit|doivent|toujours|il faut|gardez|utilisez|placez|debe|deben|siempre|hay que|asegúrate|deve|devem|sempre|é preciso|muss|müssen|immer|sollte|sollten|devono|bisogna|moet|moeten|altijd"), confidence: 0.62 },
+];
+
 function classify(sentence: string): { type: KnowledgeType; confidence: number } | null {
   for (const c of CLASSIFIERS) if (c.re.test(sentence)) return { type: c.type, confidence: c.confidence };
   if (IMPERATIVE.test(sentence)) return { type: "rule", confidence: 0.7 };
+  if (detectLanguage(sentence).code !== "en") for (const c of FOREIGN_CLASSIFIERS) if (c.re.test(sentence)) return { type: c.type, confidence: c.confidence };
   return null;
 }
 
