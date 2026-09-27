@@ -90,7 +90,7 @@ async function analyzeAudioFile(filePath: string): Promise<AudioMeasurement> {
 /** Scene-change timestamps from FFmpeg's scene score (bounded; no frames are written). */
 async function detectSceneChanges(filePath: string, durationSec: number): Promise<number[]> {
   const { ffmpegBinary } = await import("../video-production/ffmpeg-renderer.js");
-  const timeout = Math.min(180_000, 20_000 + durationSec * 1_500);
+  const timeout = Math.round(Math.min(180_000, 20_000 + durationSec * 1_500));
   const stderr = await new Promise<string>((resolve) => {
     execFile(ffmpegBinary(), [
       "-nostdin", "-hide_banner", "-i", filePath,
