@@ -23,9 +23,11 @@ import { buildTeachingPackage, packageSafetyFlags, neutralizeTeachingText } from
 import { evaluateVersion, summarizeChecks } from "./teaching-evaluation.js";
 import { MEDIA_LIMITS, MediaAnalysisError, createTeachingMediaAnalyzer, type TeachingMediaAnalyzer } from "./teaching-media.js";
 import { computeRecordHash, redactRecordSecrets, validateDatasetRecords, validateRecord } from "./teaching-validation.js";
+import { createDeepMediaAnalyzer, type DeepMediaAnalyzer, type TeachingAi } from "./teaching-deep-media.js";
+import { SessionInputError, TeachingSessionService, type UrlFetchResult } from "./teaching-sessions.js";
 import type {
-  ActivationRecord, DatasetVersion, EvaluationCase, GuidanceValue, MediaKind, MediaRole, TeachingDataset,
-  TeachingEvaluation, TeachingMediaRef, TeachingRecord, TrainingJob, TrainingJobKind, TrainingProfile, ValidationState,
+  ActivationRecord, DatasetVersion, EvaluationCase, GuidanceValue, MediaKind, MediaRole, RecordKnowledge, TeachingDataset,
+  TeachingEvaluation, TeachingMediaRef, TeachingRecord, TeachingSession, TeachingSource, TrainingJob, TrainingJobKind, TrainingProfile, ValidationState,
 } from "./training-types.js";
 
 export class TrainingInputError extends Error {
@@ -34,6 +36,8 @@ export class TrainingInputError extends Error {
     this.name = "TrainingInputError";
   }
 }
+
+export { SessionInputError };
 
 export interface CuratedPatternSink {
   available(): boolean;
@@ -50,6 +54,13 @@ export interface TrainingCenterOptions {
   resolveProjectImage?: (projectId: string, assetId: string) => Promise<{ filePath: string; mimeType: string; fileName: string } | null>;
   loadFonts?: () => Promise<VerifiedFont[]>;
   now?: () => Date;
+  /** Phase 18B: measured frame/pixel analysis (FFmpeg); injectable for tests. */
+  deepAnalyzer?: DeepMediaAnalyzer;
+  /** Phase 18B: Admin-routed AI (CapabilityRuntime) used only when executable. */
+  ai?: () => TeachingAi | null;
+  /** Phase 18B: URL learning through the existing safe fetcher (SSRF-pinned, robots.txt) and allowlist. */
+  urlPolicy?: (url: string) => { ok: true; url: string } | { ok: false; code: string; message: string };
+  fetchUrl?: (url: string) => Promise<UrlFetchResult>;
 }
 
 interface VersionFile {
@@ -82,6 +93,8 @@ interface CenterState {
   evaluations: TeachingEvaluation[];
   activations: ActivationRecord[];
   profiles: TrainingProfile[];
+  sessions: TeachingSession[];
+  sources: TeachingSource[];
 }
 
 const MAX_TEXT = 20_000;
@@ -117,17 +130,44 @@ export class TrainingCenter {
   private readonly dataDir: string;
   private readonly now: () => Date;
   private readonly analyzer: TeachingMediaAnalyzer;
-  private state: CenterState = { schema: "training-center-v1", datasets: [], records: [], versionMeta: {}, evaluations: [], activations: [], profiles: [] };
+  private state: CenterState = { schema: "training-center-v1", datasets: [], records: [], versionMeta: {}, evaluations: [], activations: [], profiles: [], sessions: [], sources: [] };
   private jobs = new Map<string, TrainingJob>();
   private tail: Promise<void> = Promise.resolve();
   private readonly jobPromises = new Map<string, Promise<TrainingJob>>();
   private readonly versionCache = new Map<string, VersionFile>();
   private ready = false;
+  readonly sessions: TeachingSessionService;
 
   constructor(private readonly options: TrainingCenterOptions) {
     this.dataDir = options.dataDir;
     this.now = options.now ?? (() => new Date());
     this.analyzer = options.analyzer ?? createTeachingMediaAnalyzer();
+    this.sessions = new TeachingSessionService({
+      dataDir: this.dataDir,
+      iso: () => this.iso(),
+      sessions: () => this.state.sessions,
+      sources: () => this.state.sources,
+      datasets: () => this.state.datasets,
+      records: () => this.state.records,
+      persist: () => this.persist(),
+      persistJobs: () => this.persistJobs(),
+      enqueue: (kind, meta, run) => this.enqueue(kind, meta, run),
+      mark: (job, status, note, stage) => this.mark(job, status, note, stage),
+      pipeline: () => this.options.pipeline(),
+      analyzer: this.analyzer,
+      deep: options.deepAnalyzer ?? createDeepMediaAnalyzer(),
+      ai: () => this.options.ai?.() ?? null,
+      urlPolicy: options.urlPolicy,
+      fetchUrl: options.fetchUrl,
+      projectExists: options.projectExists,
+      requireDataset: (id) => this.requireDataset(id),
+      createDataset: (input, by) => this.createDataset(input, by),
+      addLearnedRecord: (dataset, input, knowledge, by) => this.addLearnedRecord(dataset, input, knowledge, by),
+      revalidate: (record, dataset) => this.revalidate(record, dataset),
+      versionRecords: () => this.state.datasets.flatMap((d) => d.versions.map((v) => ({ dataset: d, version: v, records: this.readVersionFile(d.datasetId, v)?.records ?? [] }))),
+      latestEvaluationId: (datasetId, version) => this.meta(datasetId, version).latestEvaluation?.evaluationId ?? null,
+      latestActivationId: (datasetId, version) => [...this.state.activations].reverse().find((a) => a.datasetId === datasetId && a.version === version && a.action !== "DEACTIVATE")?.activationId ?? null,
+    });
   }
 
   isReady(): boolean {
@@ -147,7 +187,10 @@ export class TrainingCenter {
       evaluations: loaded.evaluations ?? [],
       activations: loaded.activations ?? [],
       profiles: loaded.profiles ?? [],
+      sessions: loaded.sessions ?? [],
+      sources: loaded.sources ?? [],
     };
+    this.sessions.recoverAfterRestart();
     const at = this.iso();
     for (const record of this.state.records) {
       for (const media of record.media) {
@@ -279,8 +322,18 @@ export class TrainingCenter {
     };
   }
 
-  listDatasets() {
-    return this.state.datasets.map((d) => this.datasetSummary(d)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  listDatasets(opts: { includeArchived?: boolean } = {}) {
+    return this.state.datasets.filter((d) => opts.includeArchived || !d.archived).map((d) => this.datasetSummary(d)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  /** Hides (or restores) a dataset in the default lists. Nothing is deleted; active teaching cannot be archived. */
+  archiveDataset(datasetId: string, archived: boolean) {
+    const dataset = this.requireDataset(datasetId);
+    if (archived && dataset.activeVersion !== null) throw new TrainingInputError("DATASET_ACTIVE", "Deactivate the dataset before archiving it.", 409);
+    dataset.archived = archived;
+    dataset.updatedAt = this.iso();
+    this.persist();
+    return this.datasetSummary(dataset);
   }
 
   getDataset(datasetId: string) {
@@ -354,6 +407,16 @@ export class TrainingCenter {
       })),
       modelTraining: { available: false, reason: STRATEGIES.MODEL_TRAINING.unavailableReason },
       recentActivations: this.listActivations().slice(0, 10),
+      sessions: { total: this.state.sessions.length, byStatus: count(this.state.sessions.map((s) => s.status)) },
+      sources: { total: this.state.sources.length, retained: this.state.sources.filter((s) => s.retained).length, byKind: count(this.state.sources.map((s) => s.kind)) },
+      learnedRecords: this.state.records.filter((r) => r.knowledge).length,
+      archivedDatasets: this.state.datasets.filter((d) => d.archived).length,
+      analysis: {
+        vision: this.options.ai?.()?.visionState() ?? "NOT_CONFIGURED",
+        reasoning: this.options.ai?.()?.reasoningState() ?? "NOT_CONFIGURED",
+        transcription: "UNAVAILABLE",
+        urlLearning: Boolean(this.options.urlPolicy && this.options.fetchUrl),
+      },
     };
   }
 
@@ -552,6 +615,18 @@ export class TrainingCenter {
     return { record, pendingProjectAssets };
   }
 
+  /** Adds a record learned by a teaching session to a dataset draft (same validation as manual records). */
+  private addLearnedRecord(dataset: TeachingDataset, input: Record<string, unknown>, knowledge: RecordKnowledge, by: string): TeachingRecord {
+    if (dataset.draftRecordIds.length >= MAX_RECORDS_PER_DATASET) throw new TrainingInputError("DATASET_FULL", "The dataset has reached its record limit.");
+    const { record } = this.buildRecord(dataset, input, by);
+    record.knowledge = knowledge;
+    this.revalidate(record, dataset);
+    this.state.records.push(record);
+    dataset.draftRecordIds.push(record.recordId);
+    dataset.updatedAt = this.iso();
+    return record;
+  }
+
   private revalidate(record: TeachingRecord, dataset: TeachingDataset): void {
     record.contentHash = computeRecordHash(record);
     const result = validateRecord(record, capabilityById(dataset.capability));
@@ -707,6 +782,15 @@ export class TrainingCenter {
 
   private mark(job: TrainingJob, status: TrainingJob["status"], note?: string, stage?: string): void {
     job.status = status;
+    if (job.progress && (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED")) {
+      // 100% is reported only once the job itself has completed.
+      if (status === "COMPLETED") { job.progress.completed = job.progress.total; job.progress.percent = 100; }
+      if (status !== "COMPLETED" || job.progress.stage !== "READY_FOR_REVIEW") {
+        job.progress.stage = status;
+        job.progress.stageLabel = status === "COMPLETED" ? "Completed" : status === "FAILED" ? "Failed" : "Cancelled";
+      }
+      job.progress.currentItem = null;
+    }
     job.stages.push({ stage: stage ?? status, at: this.iso(), ...(note ? { note } : {}) });
     job.updatedAt = this.iso();
     this.persistJobs();
@@ -1098,6 +1182,7 @@ export class TrainingCenter {
     const canvas = minSafe
       ? planCanvasFit({ sceneId: "runtime-test", assetId: "runtime-test", sourceWidth: 1080, sourceHeight: 1080, frameWidth: 1080, frameHeight: 1920, targetAspect: "9:16", framing: null, minSafeCoverage: minSafe.basis === "KNOWLEDGE" ? Number(minSafe.value) : null })
       : null;
+    const consumption = await this.runtimeConsumption(task, projectId, context, activeItems, input.query);
     return {
       task, query, projectId, activeVersion: dataset.activeVersion, activeKnowledgeSourceId: activeSource,
       runtimeConsumers: capability.runtimeConsumers, runtimeWired: capability.runtimeWired, runtimeNote: capability.runtimeNote,
@@ -1105,8 +1190,81 @@ export class TrainingCenter {
       guidance: context.guidance.map((g) => ({ ...g, fromActiveTeaching: g.sourceItemIds.some((id) => activeItems.has(id)) })),
       teachingItemsRetrieved: context.items.filter((i) => activeItems.has(i.id)).length,
       canvasPlanWithRuntimeGuidance: canvas && { strategy: canvas.strategy, sourceCoverage: canvas.sourceCoverage, reason: canvas.reason },
+      consumption,
     };
   }
+
+  /**
+   * What the real runtime consumers do with the retrieved teaching: the Creative Director prompt section is built with
+   * the production request and formatter; audio and typography planners run with the resolved guidance.
+   */
+  private async runtimeConsumption(task: string, projectId: string | null, context: Awaited<ReturnType<KnowledgePipeline["retrieve"]>>, activeItems: Set<string>, topic?: string) {
+    const pipeline = this.requirePipeline();
+    const out: Array<{ consumer: string; usesTeaching: boolean; detail: string; excerpts?: string[]; measured?: Record<string, unknown> }> = [];
+    if (task === "PRODUCT_SLIDESHOW" || task === "CINEMATIC_VIDEO") {
+      const { creativeDirectorKnowledgeRequest } = await import("../creative-planning/creative-director-knowledge.js");
+      const { formatKnowledgeForPrompt } = await import("../knowledge-retrieval-engine/knowledge-context-builder.js");
+      const request = creativeDirectorKnowledgeRequest({ category: topic?.slice(0, 120) || null, platform: null, tone: null, cinematic: task === "CINEMATIC_VIDEO", projectId });
+      const ctx = await pipeline.retrieve({ ...request, caller: "training-center.runtime-test.creative-director" });
+      const prompt = formatKnowledgeForPrompt(ctx);
+      const teaching = ctx.items.filter((i) => activeItems.has(i.id));
+      const excerpts = teaching.map((i) => i.excerpt).filter((e) => prompt.includes(JSON.stringify(e).slice(1, -1).slice(0, 60))).map((e) => e.slice(0, 240));
+      out.push({
+        consumer: "Creative Director prompt (retrievedKnowledge)", usesTeaching: excerpts.length > 0,
+        detail: `${teaching.length} of ${ctx.items.length} knowledge items in the Creative Director prompt come from this dataset's active version (${prompt.length} characters).`,
+        excerpts, measured: { query: request.query, promptItems: ctx.items.length, teachingItems: teaching.length },
+      });
+    }
+    if (task === "AUDIO_PLAN") {
+      const { planAudioFit } = await import("../video-production/audio-fit.js");
+      const fade = context.guidance.find((g) => g.key === "audio.fadeOutSec");
+      const xf = context.guidance.find((g) => g.key === "audio.loopCrossfadeSec");
+      const guidance = {
+        ...(fade?.basis === "KNOWLEDGE" ? { fadeOutSec: Number(fade.value) } : {}),
+        ...(xf?.basis === "KNOWLEDGE" ? { loopCrossfadeSec: Number(xf.value) } : {}),
+        sourceItemIds: [...(fade?.sourceItemIds ?? []), ...(xf?.sourceItemIds ?? [])],
+      };
+      const trim = planAudioFit({ sourceDurationSec: 90, targetDurationSec: 30, guidance });
+      const loop = planAudioFit({ sourceDurationSec: 20, targetDurationSec: 45, analysis: { bpm: 120 }, guidance });
+      const used = [fade, xf].some((g) => g?.sourceItemIds.some((id) => activeItems.has(id)));
+      out.push({
+        consumer: "Audio fit / render timeline (video-production.audio)", usesTeaching: used,
+        detail: `Trim plan fades out over ${trim.fadeOutSec}s; loop plan crossfades ${loop.crossfadeSec}s on a ${loop.boundaryBasis} boundary${used ? " using this dataset's guidance" : ""}.`,
+        measured: { fadeOutSec: trim.fadeOutSec, crossfadeSec: loop.crossfadeSec, strategy: loop.strategy },
+      });
+    }
+    if (task === "TYPOGRAPHY_PLAN") {
+      const fonts = await (this.options.loadFonts ?? (async () => []))().catch(() => []);
+      const maxItems = context.guidance.find((g) => g.key === "typography.maxItemsPerScene");
+      const used = Boolean(maxItems?.sourceItemIds.some((id) => activeItems.has(id)));
+      if (!fonts.length) {
+        out.push({ consumer: "Typography plan (video-production.typography)", usesTeaching: used, detail: `Resolved maxItemsPerScene=${maxItems?.value ?? "default"} (${maxItems?.basis ?? "no guidance"}); no verified fonts are installed, so the planner was not run.` });
+      } else {
+        const { composeTypographyDecision } = await import("../typography/typography-engine.js");
+        const decision = await composeTypographyDecision({
+          projectId: "runtime-test", productName: "Aurora Earbuds", width: 1080, height: 1920, aspectRatio: "9:16", platform: "tiktok",
+          guidance: { maxItemsPerScene: maxItems?.basis === "KNOWLEDGE" ? Number(maxItems.value) : undefined },
+          scenes: [{ sceneId: "hook", purpose: "hook", texts: [{ role: "headline", text: "Aurora Earbuds" }, { role: "subtitle", text: "All-day comfort" }, { role: "benefit", text: "Clear calls" }, { role: "supporting", text: "Water resistant" }] }],
+        }, fonts);
+        const items = decision.scenes[0]?.items.length ?? 0;
+        out.push({ consumer: "Typography plan (video-production.typography)", usesTeaching: used, detail: `Hook scene placed ${items} text item(s) (limit ${maxItems?.value ?? 3}, ${maxItems?.basis ?? "default"}).`, measured: { items, limit: maxItems?.value ?? null } });
+      }
+    }
+    return out;
+  }
+
+  // ---------- Phase 18B: teaching sessions ----------
+
+  addSource(input: Record<string, unknown>, by: string) { return this.sessions.addSource(input, by); }
+  listSources(opts: { includeArchived?: boolean } = {}) { return this.sessions.listSources(opts); }
+  deleteSource(sourceId: string) { return this.sessions.deleteSource(sourceId, "EXPLICIT"); }
+  createSession(input: Record<string, unknown>, by: string) { return this.sessions.createSession(input, by).then((s) => this.sessions.view(s)); }
+  listSessions() { return this.sessions.listSessions(); }
+  getSession(sessionId: string) { return this.sessions.getSession(sessionId); }
+  decideKnowledge(sessionId: string, decisions: Array<{ id: string; decision: string }>, by: string) { this.sessions.decide(sessionId, decisions, by); return this.sessions.getSession(sessionId); }
+  commitSession(sessionId: string, input: Record<string, unknown>, by: string) { return this.sessions.commit(sessionId, input, by); }
+  rerunSession(sessionId: string, by: string) { return this.sessions.rerun(sessionId, by).then((s) => this.sessions.view(s)); }
+  listKnowledge(filters: Record<string, string | undefined>) { return this.sessions.listKnowledge(filters); }
 
   // ---------- profiles ----------
 

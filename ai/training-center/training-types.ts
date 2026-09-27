@@ -19,6 +19,14 @@ export type MediaRole = "SOURCE" | "REFERENCE_RESULT" | "BEFORE" | "AFTER" | "AU
 export type MediaKind = "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
 
 export interface AudioMeasurement {
+  /** Phase 18B detail (optional for records measured before it existed). */
+  beatTimes?: number[];
+  downbeatTimes?: number[];
+  energyTimeline?: Array<{ start: number; end: number; energy: number }>;
+  energyTransitions?: Array<{ time: number; type: string }>;
+  silences?: Array<{ start: number; end: number }>;
+  fadeInSec?: number | null;
+  fadeOutSec?: number | null;
   durationSec: number;
   sampleRate: number | null;
   channels: number | null;
@@ -109,6 +117,8 @@ export interface TeachingRecord {
   review: { decision: "APPROVED" | "REJECTED"; by: string; at: string; note: string } | null;
   /** Credential types that were redacted at intake; keeps the record INVALID even though the value is gone. */
   secretsRedacted?: string[];
+  /** Present when the record was learned from source material by a teaching session (Phase 18B). */
+  knowledge?: RecordKnowledge;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -151,12 +161,14 @@ export interface TeachingDataset {
   draftRecordIds: string[];
   versions: number[];
   activeVersion: number | null;
+  /** Archived datasets are hidden from the default lists (nothing is deleted); active datasets cannot be archived. */
+  archived?: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export type TrainingJobKind = "PROCESS_MEDIA" | "PUBLISH" | "EVALUATE" | "ACTIVATE" | "DEACTIVATE" | "ROLLBACK" | "MODEL_TRAINING";
+export type TrainingJobKind = "PROCESS_MEDIA" | "PUBLISH" | "EVALUATE" | "ACTIVATE" | "DEACTIVATE" | "ROLLBACK" | "MODEL_TRAINING" | "TEACHING_SESSION";
 export type TrainingJobStatus = "QUEUED" | "PREPARING" | "RUNNING" | "EVALUATING" | "COMPLETED" | "FAILED" | "CANCELLED" | "BLOCKED";
 
 export interface TrainingJob {
@@ -168,6 +180,8 @@ export interface TrainingJob {
   status: TrainingJobStatus;
   stages: Array<{ stage: string; at: string; note?: string }>;
   counts: { total: number; processed: number; failed: number };
+  /** Fine-grained progress of teaching sessions; percent is null unless the work is countable. */
+  progress?: SessionProgress;
   error: { code: string; message: string } | null;
   result: Record<string, unknown> | null;
   requestedBy: string;
@@ -181,7 +195,7 @@ export type CheckStatus = "PASSED" | "FAILED" | "SKIPPED";
 export interface EvaluationCheck {
   id: string;
   label: string;
-  category: "STRUCTURE" | "RETRIEVAL" | "GUIDANCE" | "ISOLATION" | "VIDEO" | "AUDIO" | "TYPOGRAPHY" | "TEXT" | "CODE" | "MEDIA" | "REGRESSION";
+  category: "STRUCTURE" | "RETRIEVAL" | "GUIDANCE" | "ISOLATION" | "VIDEO" | "AUDIO" | "TYPOGRAPHY" | "TEXT" | "CODE" | "MEDIA" | "REGRESSION" | "KNOWLEDGE";
   status: CheckStatus;
   detail: string;
   recordId?: string;
@@ -230,4 +244,193 @@ export interface TrainingProfile {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ---------- Phase 18B: teaching sessions, source library, learned knowledge ----------
+
+export type TeachingType = "KNOWLEDGE" | "EXAMPLE" | "STYLE" | "INSTRUCTION" | "WORKFLOW" | "BEST_PRACTICE" | "PATTERN" | "MULTIMODAL_EXAMPLE";
+export type SourceKind = "TEXT" | "DOCUMENT" | "BOOK" | "IMAGE" | "VIDEO" | "AUDIO" | "CODE" | "URL";
+export type SessionSourceType = SourceKind | "MULTIPLE";
+export type RetentionPolicy = "KEEP_SOURCE" | "DELETE_AFTER_SUCCESSFUL_EXTRACTION" | "ARCHIVE_SOURCE";
+export type SourceStatus = "STORED" | "PROCESSING" | "PROCESSED" | "FAILED" | "DELETED" | "ARCHIVED";
+
+export interface TeachingSource {
+  sourceId: string;
+  kind: SourceKind;
+  title: string;
+  description: string;
+  fileName: string;
+  mimeType: string;
+  format: string;
+  sizeBytes: number;
+  /** SHA-256 of the original bytes; kept after the file is deleted so re-uploads are recognised. */
+  contentHash: string;
+  storage: "training-store" | "url" | "none";
+  url: string | null;
+  target: TrainingTarget;
+  capability: string;
+  scope: TrainingScope;
+  projectId: string | null;
+  retention: RetentionPolicy;
+  retained: boolean;
+  status: SourceStatus;
+  measured: { pages?: number; chapters?: number; sections?: number; durationSec?: number; width?: number; height?: number; lines?: number; rows?: number };
+  knowledgeExtracted: number;
+  sessionIds: string[];
+  error: { code: string; message: string } | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export type KnowledgeType = "rule" | "principle" | "example" | "pattern" | "workflow" | "style" | "constraint" | "heuristic" | "relationship" | "multimodal_pattern";
+export type NoveltyClass = "KNOWN" | "NEW" | "PARTIALLY_NEW" | "DUPLICATE" | "CONTRADICTORY" | "LOW_CONFIDENCE" | "REQUIRES_REVIEW";
+export type ExtractionMethod = "RULE_BASED" | "MEASURED" | "AI_ASSISTED";
+
+export interface SourceLocation {
+  sourceId: string;
+  sourceTitle: string;
+  kind: SourceKind;
+  page?: number;
+  chapter?: string;
+  section?: string;
+  paragraph?: number;
+  line?: number;
+  scene?: number;
+  startSec?: number;
+  endSec?: number;
+  /** Human-readable, e.g. "Page 3 · Composition" or "Scene 7, 00:18–00:21". */
+  label: string;
+}
+
+export interface KnowledgeEvidence {
+  kind: "QUOTE" | "MEASUREMENT" | "VISION" | "CODE";
+  text: string;
+  location?: string;
+}
+
+export interface KnowledgeRelationship {
+  type: "EXTENDS" | "SUPPORTS" | "CONTRADICTS" | "DUPLICATES" | "CORRELATES";
+  targetId: string;
+  targetTitle: string;
+  targetKind: "SESSION" | "DATASET" | "KNOWLEDGE_BASE";
+  similarity?: number;
+}
+
+export interface NoveltyAssessment {
+  class: NoveltyClass;
+  similarity: number;
+  method: "LEXICAL_SEMANTIC";
+  matched: { id: string; title: string; kind: "SESSION" | "DATASET" | "KNOWLEDGE_BASE"; excerpt: string } | null;
+  reason: string;
+}
+
+/** A learned knowledge unit (candidate until committed to a dataset). */
+export interface KnowledgeRecord {
+  id: string;
+  sessionId: string;
+  targetAI: TrainingTarget;
+  capability: string;
+  knowledgeType: KnowledgeType;
+  title: string;
+  statement: string;
+  structuredData: Record<string, unknown>;
+  sourceIds: string[];
+  sourceLocations: SourceLocation[];
+  confidence: number;
+  evidence: KnowledgeEvidence[];
+  tags: string[];
+  relationships: KnowledgeRelationship[];
+  method: ExtractionMethod;
+  novelty: NoveltyAssessment;
+  /** False when the admin's instructions focus elsewhere; such items are shown but not recommended. */
+  inScope: boolean;
+  scopeNote: string | null;
+  suggestedGuidance: GuidanceValue[];
+  flags: string[];
+  recommended: boolean;
+  decision: "PENDING" | "ACCEPTED" | "REJECTED";
+  decisionBy: string | null;
+  decisionAt: string | null;
+  committedRecordId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface RecordKnowledge {
+  sessionId: string;
+  knowledgeId: string;
+  knowledgeType: KnowledgeType;
+  statement: string;
+  structuredData: Record<string, unknown>;
+  sourceIds: string[];
+  sourceLocations: SourceLocation[];
+  evidence: KnowledgeEvidence[];
+  confidence: number;
+  method: ExtractionMethod;
+  novelty: NoveltyAssessment;
+  relationships: KnowledgeRelationship[];
+  /** Admin accepted a CONTRADICTORY / REQUIRES_REVIEW item; the record still needs review approval before publishing. */
+  conflictAccepted: boolean;
+  revisions: Array<{ at: string; by: string; action: "CREATED" | "MERGED_PROVENANCE" | "CONFLICT_ACCEPTED"; note: string }>;
+}
+
+export type SessionStatus = "QUEUED" | "ANALYZING" | "READY_FOR_REVIEW" | "COMMITTED" | "FAILED" | "CANCELLED";
+
+export type SessionStage =
+  | "QUEUED" | "UPLOADED" | "VALIDATING_SOURCE" | "EXTRACTING_METADATA" | "EXTRACTING_TEXT" | "SAMPLING_FRAMES"
+  | "DETECTING_SCENES" | "EXTRACTING_AUDIO" | "TRANSCRIBING" | "ANALYZING_VISUALS" | "ANALYZING_AUDIO" | "ANALYZING_SYNC"
+  | "EXTRACTING_KNOWLEDGE" | "CHECKING_NOVELTY" | "DEDUPLICATING" | "VALIDATING" | "READY_FOR_REVIEW"
+  | "CREATING_DATASET_VERSION" | "EVALUATING" | "READY_TO_ACTIVATE" | "ACTIVATING" | "COMPLETED" | "FAILED" | "CANCELLED";
+
+export interface SessionProgress {
+  stage: SessionStage;
+  stageLabel: string;
+  /** Countable work: completed / total units (e.g. analysis steps, frames, pages). */
+  completed: number;
+  total: number;
+  unit: string;
+  /** Only when completed/total are measured; never 100 before the job has finished. */
+  percent: number | null;
+  currentSource: string | null;
+  currentItem: string | null;
+  startedAt: string | null;
+  elapsedSec: number;
+  /** Only when a reliable estimate exists (same-kind sources with measured durations). */
+  etaSec: number | null;
+  counts: { extracted: number; new: number; partiallyNew: number; known: number; duplicate: number; contradictory: number; lowConfidence: number; requiresReview: number };
+}
+
+export interface TeachingSession {
+  sessionId: string;
+  targetAI: TrainingTarget;
+  capability: string;
+  teachingType: TeachingType;
+  sourceType: SessionSourceType;
+  sourceAssetIds: string[];
+  sourceReferences: Array<{ sourceId: string; kind: SourceKind; title: string; fileName: string }>;
+  instructions: string;
+  requestedKnowledgeScope: { focus: string[]; types: KnowledgeType[]; exclude: string[]; mediaFocus: string[] };
+  scope: TrainingScope;
+  projectId: string | null;
+  status: SessionStatus;
+  progress: SessionProgress;
+  analysis: {
+    ai: { vision: string; reasoning: string; transcription: string };
+    notes: string[];
+    perSource: Array<{ sourceId: string; title: string; status: "PROCESSED" | "FAILED"; notes: string[]; unavailable: string[]; summary: Record<string, unknown> }>;
+  };
+  jobId: string | null;
+  datasetId: string | null;
+  datasetVersionId: string | null;
+  evaluationId: string | null;
+  activationId: string | null;
+  error: { code: string; message: string } | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }

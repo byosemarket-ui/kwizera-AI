@@ -22,6 +22,11 @@ export type AdminTrainingProfile = ReturnType<TrainingCenter["listProfiles"]>[nu
 export type AdminTrainingValidation = ReturnType<TrainingCenter["validateDraft"]>;
 export type AdminTrainingRuntimeTest = Awaited<ReturnType<TrainingCenter["runtimeTest"]>>;
 export type AdminTrainingDocumentPreview = Awaited<ReturnType<TrainingCenter["previewDocument"]>>;
+export type AdminTeachingSource = ReturnType<TrainingCenter["listSources"]>[number];
+export type AdminTeachingSessionSummary = ReturnType<TrainingCenter["listSessions"]>[number];
+export type AdminTeachingSessionDetail = ReturnType<TrainingCenter["getSession"]>;
+export type AdminLearnedKnowledgeItem = ReturnType<TrainingCenter["listKnowledge"]>[number];
+export type AdminTeachingCommitResult = Awaited<ReturnType<TrainingCenter["commitSession"]>>;
 export type {
   ActivationRecord as AdminTrainingActivation, DatasetVersion as AdminTrainingVersion, TeachingEvaluation as AdminTrainingEvaluation,
   TeachingRecord as AdminTrainingRecord, TrainingJob as AdminTrainingJob,
@@ -212,7 +217,28 @@ export const adminApi = {
 
   trainingOverview: () => adminFetch<{ overview: AdminTrainingOverview }>("/api/admin/training/overview"),
   trainingCatalog: () => adminFetch<{ catalog: AdminTrainingCatalog }>("/api/admin/training/catalog"),
-  trainingDatasets: () => adminFetch<{ items: AdminTrainingDataset[] }>("/api/admin/training/datasets"),
+  trainingDatasets: (includeArchived = false) => adminFetch<{ items: AdminTrainingDataset[] }>(`/api/admin/training/datasets${includeArchived ? "?includeArchived=1" : ""}`),
+  archiveTrainingDataset: (datasetId: string, archived: boolean) =>
+    adminFetch<{ dataset: AdminTrainingDataset }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/archive`, { method: "POST", body: JSON.stringify({ archived }) }),
+  teachingSources: (includeArchived = false) => adminFetch<{ items: AdminTeachingSource[] }>(`/api/admin/training/sources${includeArchived ? "?includeArchived=1" : ""}`),
+  addTeachingSource: (body: Record<string, unknown>) =>
+    adminFetch<{ source: AdminTeachingSource; reused: boolean }>("/api/admin/training/sources", { method: "POST", body: JSON.stringify(body) }),
+  deleteTeachingSource: (sourceId: string) =>
+    adminFetch<{ source: AdminTeachingSource; knowledgeKept: boolean }>(`/api/admin/training/sources/${encodeURIComponent(sourceId)}`, { method: "DELETE" }),
+  teachingSessions: () => adminFetch<{ items: AdminTeachingSessionSummary[] }>("/api/admin/training/sessions"),
+  teachingSession: (id: string) => adminFetch<{ session: AdminTeachingSessionDetail }>(`/api/admin/training/sessions/${encodeURIComponent(id)}`),
+  createTeachingSession: (body: Record<string, unknown>) =>
+    adminFetch<{ session: AdminTeachingSessionSummary }>("/api/admin/training/sessions", { method: "POST", body: JSON.stringify(body) }),
+  decideTeachingKnowledge: (id: string, decisions: Array<{ id: string; decision: "ACCEPTED" | "REJECTED" | "PENDING" }>) =>
+    adminFetch<{ session: AdminTeachingSessionDetail }>(`/api/admin/training/sessions/${encodeURIComponent(id)}/decisions`, { method: "POST", body: JSON.stringify({ decisions }) }),
+  commitTeachingSession: (id: string, body: Record<string, unknown>) =>
+    adminFetch<{ result: AdminTeachingCommitResult }>(`/api/admin/training/sessions/${encodeURIComponent(id)}/commit`, { method: "POST", body: JSON.stringify(body) }),
+  rerunTeachingSession: (id: string) =>
+    adminFetch<{ session: AdminTeachingSessionSummary }>(`/api/admin/training/sessions/${encodeURIComponent(id)}/rerun`, { method: "POST", body: "{}" }),
+  knowledgeLibrary: (filters: Record<string, string>) => {
+    const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v !== "")).toString();
+    return adminFetch<{ items: AdminLearnedKnowledgeItem[] }>(`/api/admin/training/knowledge${qs ? `?${qs}` : ""}`);
+  },
   trainingDataset: (id: string) => adminFetch<AdminTrainingDatasetDetail>(`/api/admin/training/datasets/${encodeURIComponent(id)}`),
   createTrainingDataset: (body: Record<string, unknown>) =>
     adminFetch<{ dataset: AdminTrainingDataset }>("/api/admin/training/datasets", { method: "POST", body: JSON.stringify(body) }),

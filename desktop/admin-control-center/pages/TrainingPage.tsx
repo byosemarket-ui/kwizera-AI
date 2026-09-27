@@ -20,9 +20,10 @@ import {
   AuthLockedState, DataTable, Drawer, EmptyState, ErrorState, FormField, LoadingState, PageHeader, SectionCard, Select,
   StatCard, StatusBadge, Tabs, Toast,
 } from "../components/ui";
+import { KnowledgeLibrary, LearnPanel, MaterialLibrary } from "./TrainingLearnPanels";
 
-type TabId = "overview" | "datasets" | "teach" | "examples" | "jobs" | "evaluations" | "versions" | "knowledge" | "settings";
-const TAB_IDS: TabId[] = ["overview", "datasets", "teach", "examples", "jobs", "evaluations", "versions", "knowledge", "settings"];
+type TabId = "overview" | "learn" | "datasets" | "teach" | "examples" | "materials" | "jobs" | "evaluations" | "versions" | "knowledge" | "settings";
+const TAB_IDS: TabId[] = ["overview", "learn", "datasets", "teach", "examples", "materials", "jobs", "evaluations", "versions", "knowledge", "settings"];
 type Capability = AdminTrainingCatalog["capabilities"][number];
 type Notify = (message: string, tone?: "info" | "success" | "error") => void;
 
@@ -118,6 +119,7 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
   const [overview, setOverview] = useState<AdminTrainingOverview | null>(null);
   const [catalog, setCatalog] = useState<AdminTrainingCatalog | null>(null);
   const [datasets, setDatasets] = useState<AdminTrainingDataset[]>([]);
+  const [archivedDatasets, setArchivedDatasets] = useState<AdminTrainingDataset[] | null>(null);
   const [jobs, setJobs] = useState<AdminTrainingJob[]>([]);
   const [evaluations, setEvaluations] = useState<AdminTrainingEvaluation[]>([]);
   const [versions, setVersions] = useState<AdminTrainingVersionItem[]>([]);
@@ -217,6 +219,7 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
         breadcrumbs={[{ label: "Admin" }, { label: "AI Control" }, { label: "AI Training" }]}
         actions={(
           <>
+            <button type="button" className="acc-button ghost" onClick={() => setTab("learn")}>Learn from material</button>
             <button type="button" className="acc-button ghost" onClick={() => setTab("teach")}>Teach AI</button>
             <button type="button" className="acc-button" onClick={() => void load()}>Reload</button>
           </>
@@ -231,9 +234,11 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
           <Tabs
             tabs={[
               { id: "overview", label: "Overview" },
+              { id: "learn", label: "Learn from material" },
               { id: "datasets", label: `Datasets (${datasets.length})` },
               { id: "teach", label: "Teach AI" },
               { id: "examples", label: "Examples & records" },
+              { id: "materials", label: `Material library (${overview.sources.retained})` },
               { id: "jobs", label: `Training jobs${hasActiveJobs ? " •" : ""}` },
               { id: "evaluations", label: `Evaluations (${evaluations.length})` },
               { id: "versions", label: "Models / versions" },
@@ -252,7 +257,17 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
                 <StatCard label="Evaluations" value={overview.evaluations.total} hint={Object.entries(overview.evaluations.byStatus).map(([k, v]) => `${k} ${v}`).join(" · ") || "none yet"} />
                 <StatCard label="Jobs" value={overview.jobs.total} hint={Object.entries(overview.jobs.byStatus).map(([k, v]) => `${k} ${v}`).join(" · ") || "none yet"} />
                 <StatCard label="Knowledge Base" value={overview.knowledgeBaseReady ? "Ready" : "Unavailable"} hint={overview.creativePatternsAvailable ? "Creative patterns available" : "Creative patterns unavailable"} />
+                <StatCard label="Learned knowledge" value={overview.learnedRecords} hint={`${overview.sessions.total} teaching sessions · ${overview.sources.total} sources`} />
               </div>
+              <SectionCard title="Material analysis" description="What the server can actually measure or interpret right now. Unavailable analysis is reported, never simulated.">
+                <p style={{ fontSize: 13 }}>
+                  Measured on the server: video scenes, motion, framing, transitions and pacing (FFmpeg); audio BPM, beats, energy, silence and fades; image composition, colour and contrast; document, book and code structure.
+                </p>
+                <p style={{ fontSize: 13 }}>
+                  Vision interpretation <StatusBadge status={overview.analysis.vision} /> · Reasoning-assisted extraction <StatusBadge status={overview.analysis.reasoning} /> · Speech transcription <StatusBadge status={overview.analysis.transcription} />
+                  {" "}· URL learning <StatusBadge status={overview.analysis.urlLearning ? "ENABLED" : "DISABLED"} />
+                </p>
+              </SectionCard>
               <SectionCard title="Model training / fine-tuning" description="Shown truthfully: nothing on this page changes model weights.">
                 <p><StatusBadge status="UNAVAILABLE" /> {overview.modelTraining.reason}</p>
               </SectionCard>
@@ -280,10 +295,34 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
             <SectionCard
               title="Teaching datasets"
               description="Draft records are editable; published versions are immutable. Each dataset teaches exactly one capability."
-              actions={<button type="button" className="acc-button" onClick={() => setTab("teach")}>New teaching</button>}
+              actions={(
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <label style={{ fontSize: 12 }}>
+                    <input
+                      type="checkbox"
+                      checked={archivedDatasets !== null}
+                      onChange={(e) => {
+                        if (!e.target.checked) { setArchivedDatasets(null); return; }
+                        adminApi.trainingDatasets(true)
+                          .then(({ items }) => setArchivedDatasets(items.filter((d) => d.archived)))
+                          .catch((err: unknown) => notify(errorText(err, "Archived datasets failed to load"), "error"));
+                      }}
+                    /> Include archived ({overview.archivedDatasets})
+                  </label>
+                  <button type="button" className="acc-button" onClick={() => setTab("teach")}>New teaching</button>
+                </div>
+              )}
             >
-              <DatasetTable datasets={datasets} onOpen={setSelectedDataset} />
+              <DatasetTable datasets={archivedDatasets ? [...datasets, ...archivedDatasets] : datasets} onOpen={setSelectedDataset} />
             </SectionCard>
+          )}
+
+          {tab === "learn" && (
+            <LearnPanel catalog={catalog} datasets={datasets} notify={notify} onChanged={() => void load(true)} onOpenDataset={setSelectedDataset} />
+          )}
+
+          {tab === "materials" && (
+            <MaterialLibrary refreshKey={refreshKey} notify={notify} onChanged={() => void load(true)} />
           )}
 
           {tab === "teach" && (
@@ -397,6 +436,8 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
             </>
           )}
 
+          {tab === "knowledge" && <KnowledgeLibrary catalog={catalog} refreshKey={refreshKey} />}
+
           {tab === "knowledge" && (
             <SectionCard
               title="Delivery to the Knowledge Base"
@@ -454,7 +495,7 @@ function DatasetTable({ datasets, onOpen }: { datasets: AdminTrainingDataset[]; 
       rows={datasets.map((d) => ({
         id: d.datasetId,
         cells: {
-          key: <><strong>{d.key}</strong><br /><span className="acc-muted">{d.name}</span></>,
+          key: <><strong>{d.key}</strong>{d.archived ? <> <StatusBadge status="ARCHIVED" /></> : null}<br /><span className="acc-muted">{d.name}</span></>,
           capability: d.capabilityLabel,
           mode: `${d.mode} · ${d.strategy}`,
           scope: d.projectId ? `${d.scope} (${d.projectId})` : d.scope,
@@ -668,6 +709,17 @@ function DatasetDetail({ datasetId, refreshKey, notify, onChanged, onOpenEvaluat
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button type="button" className="acc-button ghost" disabled={Boolean(busy) || datasetVersions.length < 2} onClick={() => runJob("Rollback", () => adminApi.rollbackTrainingDataset(datasetId))}>Roll back</button>
             <button type="button" className="acc-button ghost" disabled={Boolean(busy) || !dataset.activeVersion} onClick={() => runJob("Deactivate", () => adminApi.deactivateTrainingDataset(datasetId))}>Deactivate</button>
+            <button
+              type="button"
+              className="acc-button ghost"
+              disabled={Boolean(busy) || (!dataset.archived && dataset.activeVersion !== null)}
+              title={dataset.activeVersion !== null ? "Deactivate before archiving" : undefined}
+              onClick={() => adminApi.archiveTrainingDataset(datasetId, !dataset.archived)
+                .then(() => { notify(dataset.archived ? "Dataset restored" : "Dataset archived (hidden from libraries; nothing deleted)"); reload(); onChanged(); })
+                .catch((err: unknown) => notify(errorText(err, "Archive failed"), "error"))}
+            >
+              {dataset.archived ? "Restore" : "Archive"}
+            </button>
           </div>
         )}
       >
@@ -735,6 +787,14 @@ function RuntimeTestResult({ test }: { test: AdminTrainingRuntimeTest }) {
       {test.canvasPlanWithRuntimeGuidance ? (
         <p>Canvas plan (1:1 photo → 9:16): {test.canvasPlanWithRuntimeGuidance.strategy}, source coverage {test.canvasPlanWithRuntimeGuidance.sourceCoverage.toFixed(2)} — {test.canvasPlanWithRuntimeGuidance.reason}</p>
       ) : null}
+      {test.consumption.map((c) => (
+        <div key={c.consumer} style={{ marginTop: 8 }}>
+          <p><StatusBadge status={c.usesTeaching ? "USES TEACHING" : "NOT USING TEACHING"} /> <strong>{c.consumer}</strong> — {c.detail}</p>
+          {c.excerpts?.length ? (
+            <ul style={{ fontSize: 12 }}>{c.excerpts.slice(0, 5).map((e) => <li key={e}>{e}</li>)}</ul>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }

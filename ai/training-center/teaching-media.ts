@@ -62,6 +62,60 @@ export function measureLevels(samples: Float32Array): { rmsDbfs: number | null; 
   return { rmsDbfs: db(rms), peakDbfs: db(peak), clippedRatio: round(clipped / samples.length, 6) };
 }
 
+/** 50 ms RMS envelope in dBFS. */
+function rmsEnvelope(samples: Float32Array, sampleRate: number, windowSec = 0.05): number[] {
+  const size = Math.max(1, Math.round(sampleRate * windowSec));
+  const out: number[] = [];
+  for (let start = 0; start < samples.length; start += size) {
+    const end = Math.min(samples.length, start + size);
+    let sum = 0;
+    for (let i = start; i < end; i += 1) sum += (samples[i] ?? 0) ** 2;
+    const rms = Math.sqrt(sum / Math.max(1, end - start));
+    out.push(rms > 0 ? 20 * Math.log10(rms) : -120);
+  }
+  return out;
+}
+
+/** Silent stretches (≥ 0.3 s below −45 dBFS) measured on the envelope. */
+export function measureSilences(envelope: number[], windowSec = 0.05): Array<{ start: number; end: number }> {
+  const out: Array<{ start: number; end: number }> = [];
+  let runStart = -1;
+  for (let i = 0; i <= envelope.length; i += 1) {
+    const quiet = i < envelope.length && envelope[i]! < -45;
+    if (quiet && runStart < 0) runStart = i;
+    if (!quiet && runStart >= 0) {
+      if ((i - runStart) * windowSec >= 0.3) out.push({ start: round(runStart * windowSec, 2), end: round(i * windowSec, 2) });
+      runStart = -1;
+    }
+  }
+  return out.slice(0, 50);
+}
+
+/**
+ * Fade length at one end of the signal: the span over which a 0.5 s-smoothed envelope rises from ≥ 20 dB below
+ * the body level to it. Null when there is no such monotonic ramp (e.g. a hard stop).
+ */
+export function measureFade(envelope: number[], atEnd: boolean, windowSec = 0.05): number | null {
+  if (envelope.length < 40) return null;
+  const k = Math.max(1, Math.round(0.5 / windowSec));
+  const env = atEnd ? [...envelope].reverse() : envelope;
+  const smooth = env.map((_, i) => {
+    const s = env.slice(i, i + k);
+    return s.reduce((a, b) => a + b, 0) / s.length;
+  });
+  const sorted = [...smooth].sort((a, b) => a - b);
+  const body = sorted[Math.floor(sorted.length * 0.6)]!;
+  if (body < -50) return null;
+  if (smooth[0]! > body - 20) return null;
+  let i = 0;
+  while (i < smooth.length && smooth[i]! < body - 3) {
+    if (i > 0 && smooth[i]! < smooth[i - 1]! - 4) return null;
+    i += 1;
+  }
+  const sec = i * windowSec;
+  return sec >= 0.3 && sec <= Math.min(15, (envelope.length * windowSec) / 2) ? round(sec, 2) : null;
+}
+
 async function analyzeAudioFile(filePath: string): Promise<AudioMeasurement> {
   const { decodeAudioToMonoPcm } = await import("../audio-intelligence/pcm-decode.js");
   const { analyzeDecodedPcm } = await import("../audio-intelligence/analyze-signal.js");
@@ -70,7 +124,17 @@ async function analyzeAudioFile(filePath: string): Promise<AudioMeasurement> {
   const pcm = await decodeAudioToMonoPcm(filePath);
   const signal = analyzeDecodedPcm(pcm);
   const levels = measureLevels(pcm.samples);
+  const envelope = rmsEnvelope(pcm.samples, pcm.sampleRate);
+  const timeline = signal.energyTimeline;
+  const stride = Math.max(1, Math.ceil(timeline.length / 120));
   return {
+    beatTimes: signal.beats.slice(0, 1_000).map((b) => round(b.time)),
+    downbeatTimes: signal.downbeats.slice(0, 300).map((b) => round(b.time)),
+    energyTimeline: timeline.filter((_, i) => i % stride === 0).map((w) => ({ start: round(w.start, 2), end: round(w.end, 2), energy: round(w.energy) })),
+    energyTransitions: signal.energyTransitions.slice(0, 40).map((t) => ({ time: round(t.time, 2), type: t.type })),
+    silences: measureSilences(envelope),
+    fadeInSec: measureFade(envelope, false),
+    fadeOutSec: measureFade(envelope, true),
     durationSec: round(pcm.durationSec || probed.durationMs / 1000),
     sampleRate: probed.sampleRate,
     channels: probed.channels,

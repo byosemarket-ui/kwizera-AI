@@ -183,6 +183,13 @@ export function validateRecord(record: TeachingRecord, capability: CapabilityDef
     else if (bounded.clamped) add("GUIDANCE_OUT_OF_RANGE", "ERROR", `Guidance ${g.key}=${g.value} is outside the planner's safe range.`);
   }
 
+  if (record.knowledge) {
+    const k = record.knowledge;
+    if (!k.sourceLocations.length) add("KNOWLEDGE_NO_PROVENANCE", "ERROR", "Learned knowledge must keep at least one source location.");
+    if (k.conflictAccepted) add("KNOWLEDGE_CONFLICT", "REVIEW", `Accepted although: ${k.novelty.reason} Approve the record to publish it; the other knowledge is not overwritten.`);
+    if (k.confidence < 0.45) add("KNOWLEDGE_LOW_CONFIDENCE", "REVIEW", `Extraction confidence ${k.confidence.toFixed(2)} is low; approve the record to publish it.`);
+  }
+
   const secrets = [...new Set([...(record.secretsRedacted ?? []), ...detectSecrets(blob)])];
   if (secrets.length) add("SECRET_DETECTED", "ERROR", `Content contained what looks like a credential (${secrets.join(", ")}). The value was redacted and never stored; remove this record and add it again without the secret.`);
   const injection = detectInstructionLikeText(blob);

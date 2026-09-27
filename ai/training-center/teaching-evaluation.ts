@@ -440,6 +440,44 @@ export async function evaluateVersion(input: EvaluationInput): Promise<Evaluatio
     }));
   }
 
+  const learned = version.records.filter((r) => r.knowledge);
+  if (learned.length) {
+    const noProvenance = learned.filter((r) => !r.knowledge!.sourceLocations.length);
+    checks.push(check({
+      id: "KNOWLEDGE_PROVENANCE", label: "Learned knowledge keeps its source provenance", category: "KNOWLEDGE",
+      status: noProvenance.length ? "FAILED" : "PASSED",
+      detail: noProvenance.length ? `${noProvenance.length} learned record(s) have no source location.` : `${learned.length} learned record(s), ${learned.reduce((a, r) => a + r.knowledge!.sourceLocations.length, 0)} source locations.`,
+    }));
+    const unresolved = learned.filter((r) => r.knowledge!.conflictAccepted && r.review?.decision !== "APPROVED");
+    checks.push(check({
+      id: "KNOWLEDGE_CONFLICTS_REVIEWED", label: "Contradictions were reviewed before publishing", category: "KNOWLEDGE",
+      status: unresolved.length ? "FAILED" : "PASSED",
+      detail: unresolved.length ? `${unresolved.length} contradictory item(s) lack reviewer approval.` : `${learned.filter((r) => r.knowledge!.conflictAccepted).length} accepted contradiction(s), all approved.`,
+    }));
+    const missed: string[] = [];
+    for (const r of learned.slice(0, 25)) {
+      const ctx = await retrieveWithCandidate(index, task, `${r.title} ${r.knowledge!.statement}`.slice(0, 480), projectId, input.now);
+      const own = input.pkg.sections.find((s) => s.recordId === r.recordId)?.heading;
+      if (!ctx.items.some((i) => isCandidate(i.id) && (!own || i.citation.section === own || i.title.includes(own)))) missed.push(r.title);
+    }
+    const probed = Math.min(25, learned.length);
+    checks.push(check({
+      id: "KNOWLEDGE_RETRIEVABLE", label: "Learned statements are retrievable by their own content", category: "RETRIEVAL",
+      // Retrieval returns at most two items per source, so near-duplicates can shadow each other; ≥80% is required.
+      status: probed - missed.length >= Math.ceil(probed * 0.8) ? "PASSED" : "FAILED",
+      detail: missed.length ? `Not retrieved: ${missed.slice(0, 5).join("; ")}${missed.length > 5 ? ` and ${missed.length - 5} more` : ""}.` : `${Math.min(25, learned.length)} learned statement(s) retrieved for their own queries.`,
+    }));
+    const measured = learned.filter((r) => r.knowledge!.method === "MEASURED");
+    const unsupported = measured.filter((r) => !r.knowledge!.evidence.some((e) => e.kind === "MEASUREMENT"));
+    if (measured.length) {
+      checks.push(check({
+        id: "KNOWLEDGE_MEASURED_EVIDENCE", label: "Media knowledge is backed by measurements", category: "KNOWLEDGE",
+        status: unsupported.length ? "FAILED" : "PASSED",
+        detail: unsupported.length ? `${unsupported.length} media-derived item(s) have no measurement evidence.` : `${measured.length} media-derived item(s) carry measurement evidence.`,
+      }));
+    }
+  }
+
   for (const record of version.records) {
     if ((record.kind === "EXAMPLE" || record.kind === "INSTRUCTION") && record.expectedOutput.trim() && (record.input.trim() || record.instruction.trim())) {
       const invented = inventedClaims(`${record.input}\n${record.instruction}`, record.expectedOutput);

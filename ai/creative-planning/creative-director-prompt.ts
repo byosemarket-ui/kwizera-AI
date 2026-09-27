@@ -68,12 +68,14 @@ export async function buildCreativeDirectorContext(
     import("../knowledge-retrieval-engine/knowledge-context-builder.js"),
   ]);
   const cinematic = /cinematic|3d/i.test(String((full.style as Record<string, unknown>).productionMode ?? ""));
-  const retrieved = await retrieveTaskKnowledge({
-    task: cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW",
-    query: `${task} composition typography cta scene order`,
+  const { creativeDirectorKnowledgeRequest } = await import("./creative-director-knowledge.js");
+  const retrieved = await retrieveTaskKnowledge(creativeDirectorKnowledgeRequest({
+    category: full.product.category,
+    platform: full.marketing.platform,
+    tone: full.style.creativeTone,
+    cinematic,
     projectId: full.projectId,
-    caller: "creative-director",
-  });
+  }));
 
   return {
     projectId: full.projectId,

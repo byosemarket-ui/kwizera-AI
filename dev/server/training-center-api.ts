@@ -7,8 +7,10 @@ import path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { getKnowledgePipeline } from "../../ai/knowledge-acquisition-engine/knowledge-pipeline-registry.js";
 import { getIntelligenceLayer } from "../../ai/intelligence-layer/index.js";
-import { TrainingCenter, TrainingInputError, type CuratedPatternSink } from "../../ai/training-center/training-center.js";
-import { getWorkspaceManager } from "../persistent/runtime.js";
+import { SessionInputError, TrainingCenter, TrainingInputError, type CuratedPatternSink } from "../../ai/training-center/training-center.js";
+import type { TeachingAi } from "../../ai/training-center/teaching-deep-media.js";
+import { getAdminControlPlaneManager, getWorkspaceManager } from "../persistent/runtime.js";
+import { createKnowledgeFetcher, isOfficialKnowledgeHost, validateKnowledgeUrl } from "./knowledge-fetcher.js";
 import { persistentMemoryCenter } from "./persistent-memory-center.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -26,13 +28,45 @@ const patternSink: CuratedPatternSink = {
   retire: (refPrefix) => getIntelligenceLayer().retireCuratedPatterns(refPrefix),
 };
 
+/** Admin-routed AI for teaching analysis: CapabilityRuntime → feature mapping → adapter → vault. Only error codes leave this layer. */
+function teachingAi(): TeachingAi | null {
+  const runtime = getAdminControlPlaneManager()?.getCapabilityRuntime() ?? null;
+  if (!runtime) return null;
+  const safe = (r: { ok: boolean; outputText?: string | null; errorCode?: string }) => ({ ok: r.ok && Boolean(r.outputText), text: r.outputText ?? null, error: r.ok ? null : r.errorCode ?? "FAILED" });
+  return {
+    visionState: () => runtime.readiness("VISION_ANALYSIS").state,
+    reasoningState: () => runtime.readiness("LLM_REASONING").state,
+    vision: async (images, prompt) => safe(await runtime.execute("VISION_ANALYSIS", { mode: "vision", prompt, images, timeoutMs: 60_000 })),
+    reason: async (system, user) => safe(await runtime.execute("LLM_REASONING", { mode: "chat", messages: [{ role: "system", content: system }, { role: "user", content: user }], timeoutMs: 60_000 })),
+  };
+}
+
+/** URL learning is limited to the official knowledge library hosts plus hosts the operator allowlists. */
+function teachingUrlPolicy(raw: string): { ok: true; url: string } | { ok: false; code: string; message: string } {
+  let url: URL;
+  try {
+    url = validateKnowledgeUrl(raw);
+  } catch (err) {
+    return { ok: false, code: "URL_NOT_ALLOWED", message: err instanceof Error ? err.message : "URL not allowed." };
+  }
+  const extra = (process.env.KWIZERA_TEACHING_URL_ALLOWLIST ?? "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const host = url.hostname.toLowerCase();
+  if (!isOfficialKnowledgeHost(host) && !extra.some((h) => host === h || host.endsWith(`.${h}`))) {
+    return { ok: false, code: "URL_NOT_ALLOWLISTED", message: `${host} is not on the teaching allowlist. Upload the material as a file instead, or ask the operator to allowlist the host.` };
+  }
+  return { ok: true, url: url.toString() };
+}
+
 export async function bootTrainingCenter(): Promise<TrainingCenter> {
   if (center?.isReady()) return center;
   if (!persistentMemoryCenter.isReady()) throw new Error("Persistent Memory Center is not ready");
+  const onlineRetrieval = process.env.KWIZERA_KNOWLEDGE_ONLINE_RETRIEVAL !== "0";
   const next = new TrainingCenter({
     dataDir: path.join(persistentMemoryCenter.getKnowledgeRoot(), "training"),
     pipeline: () => getKnowledgePipeline(),
     patterns: patternSink,
+    ai: teachingAi,
+    ...(onlineRetrieval ? { urlPolicy: teachingUrlPolicy, fetchUrl: createKnowledgeFetcher() } : {}),
     projectExists: async (projectId) => {
       const workspace = getWorkspaceManager();
       return Boolean(workspace && await workspace.getProject(projectId).catch(() => null));
@@ -108,7 +142,19 @@ export async function handleAdminTrainingApi(
     if (method === "GET") {
       if (sub === "/overview") return reply({ overview: tc.overview() });
       if (sub === "/catalog") return reply({ catalog: tc.catalog() });
-      if (sub === "/datasets") return reply({ items: tc.listDatasets() });
+      if (sub === "/datasets") return reply({ items: tc.listDatasets({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
+      if (sub === "/sources") return reply({ items: tc.listSources({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
+      if (sub === "/sessions") return reply({ items: tc.listSessions() });
+      if (sub === "/knowledge") {
+        const filters: Record<string, string | undefined> = {};
+        for (const key of ["target", "capability", "type", "sourceKind", "sourceId", "minConfidence", "status", "novelty", "active", "version", "from", "to", "q", "projectId", "includeArchived"]) {
+          const value = str(url.searchParams.get(key), 120);
+          if (value) filters[key] = value;
+        }
+        return reply({ items: tc.listKnowledge(filters) });
+      }
+      const sessionMatch = sub.match(/^\/sessions\/([0-9a-f-]{36})$/);
+      if (sessionMatch) return reply({ session: tc.getSession(sessionMatch[1]!) });
       if (sub === "/versions") return reply({ items: tc.listVersions() });
       if (sub === "/evaluations") return reply({ items: tc.listEvaluations(str(url.searchParams.get("datasetId"), 40) || undefined) });
       if (sub === "/activations") return reply({ items: tc.listActivations() });
@@ -134,6 +180,8 @@ export async function handleAdminTrainingApi(
         tc.removeDraftRecord(recordMatch[1]!, recordMatch[2]!);
         return reply({ removed: true });
       }
+      const sourceMatch = sub.match(/^\/sources\/([0-9a-f-]{36})$/);
+      if (sourceMatch) return reply({ source: tc.deleteSource(sourceMatch[1]!), knowledgeKept: true });
       fail(sendJson, res, 405, "METHOD_NOT_ALLOWED", "Published versions, knowledge and memory are never deleted from here.");
       return true;
     }
@@ -146,6 +194,21 @@ export async function handleAdminTrainingApi(
     if (sub === "/datasets") return reply({ dataset: await tc.createDataset(body, by) }, 201);
     if (sub === "/preview/document") return reply({ preview: await tc.previewDocument(body) });
     if (sub === "/profiles") return reply({ profile: tc.createProfile(body, by) }, 201);
+    if (sub === "/sources") {
+      const result = await tc.addSource(body, by);
+      return reply(result, result.reused ? 200 : 201);
+    }
+    if (sub === "/sessions") return reply({ session: await tc.createSession(body, by) }, 202);
+    const sessionAction = sub.match(/^\/sessions\/([0-9a-f-]{36})\/(decisions|commit|rerun)$/);
+    if (sessionAction) {
+      const id = sessionAction[1]!;
+      if (sessionAction[2] === "decisions") {
+        const decisions = Array.isArray(body.decisions) ? body.decisions.map((d) => ({ id: str((d as Record<string, unknown>)?.id, 40), decision: str((d as Record<string, unknown>)?.decision, 20) })) : [];
+        return reply({ session: tc.decideKnowledge(id, decisions, by) });
+      }
+      if (sessionAction[2] === "commit") return reply({ result: await tc.commitSession(id, body, by) });
+      return reply({ session: await tc.rerunSession(id, by) }, 202);
+    }
     const profileActivate = sub.match(/^\/profiles\/([0-9a-f-]{36})\/activate$/);
     if (profileActivate) return reply({ jobs: tc.activateProfile(profileActivate[1]!, by) }, 202);
     const cancel = sub.match(/^\/jobs\/([0-9a-f-]{36})\/cancel$/);
@@ -166,6 +229,7 @@ export async function handleAdminTrainingApi(
         return reply({ job: tc.reprocessRecord(datasetId, recordAction[1]!, by) }, 202);
       }
       if (rest === "/publish") return reply({ job: tc.publish(datasetId, str(body.note, 500), by) }, 202);
+      if (rest === "/archive") return reply({ dataset: tc.archiveDataset(datasetId, body.archived !== false) });
       if (rest === "/deactivate") return reply({ job: tc.deactivate(datasetId, by) }, 202);
       if (rest === "/rollback") {
         const to = typeof body.toVersion === "number" ? body.toVersion : null;
@@ -188,7 +252,7 @@ export async function handleAdminTrainingApi(
     fail(sendJson, res, 404, "NOT_FOUND", "Unknown training endpoint.");
     return true;
   } catch (err) {
-    if (err instanceof TrainingInputError) {
+    if (err instanceof TrainingInputError || err instanceof SessionInputError) {
       fail(sendJson, res, err.status, err.code, err.message);
       return true;
     }
