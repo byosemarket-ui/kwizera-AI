@@ -34,8 +34,8 @@ function teachingAi(): TeachingAi | null {
   if (!runtime) return null;
   const safe = (r: { ok: boolean; outputText?: string | null; errorCode?: string }) => ({ ok: r.ok && Boolean(r.outputText), text: r.outputText ?? null, error: r.ok ? null : r.errorCode ?? "FAILED" });
   return {
-    visionState: () => runtime.readiness("VISION_ANALYSIS").state,
-    reasoningState: () => runtime.readiness("LLM_REASONING").state,
+    visionState: () => runtime.executionReadiness("VISION_ANALYSIS").state,
+    reasoningState: () => runtime.executionReadiness("LLM_REASONING").state,
     vision: async (images, prompt) => safe(await runtime.execute("VISION_ANALYSIS", { mode: "vision", prompt, images, timeoutMs: 60_000 })),
     reason: async (system, user) => safe(await runtime.execute("LLM_REASONING", { mode: "chat", messages: [{ role: "system", content: system }, { role: "user", content: user }], timeoutMs: 60_000 })),
   };

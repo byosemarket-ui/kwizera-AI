@@ -90,6 +90,20 @@ export class CapabilityRuntime {
     return { feature, state: "READY", executable: true };
   }
 
+  /**
+   * Whether `execute()` itself can serve the feature. Unlike `readiness()`, a LOCAL provider counts only
+   * when an executable adapter is registered for it — consumers that call Ollama directly keep using `readiness()`.
+   */
+  executionReadiness(feature: FeatureKey): CapabilityExecutionReadiness {
+    const base = this.readiness(feature);
+    if (!base.executable) return base;
+    const resolution = this.manager.resolveFeatureExecution(feature);
+    const provider = resolution.providerId ? this.manager.getProviderRecord(resolution.providerId) : null;
+    const adapter = provider ? this.adapters.resolve(provider) : null;
+    if (!adapter || !isExecutableAdapter(adapter)) return { feature, state: "NOT_IMPLEMENTED", executable: false };
+    return base;
+  }
+
   async healthCheckProvider(providerId: string, opts?: { timeoutMs?: number }): Promise<ProviderHealthResult> {
     const requestId = randomUUID();
     const started = Date.now();

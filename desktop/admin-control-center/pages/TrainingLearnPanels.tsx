@@ -412,7 +412,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           </p>
           {session.error ? <ErrorState title={session.error.code} detail={session.error.message} /> : null}
           <p className="acc-muted" style={{ fontSize: 12 }}>
-            Vision analysis: {session.analysis.ai.vision} · Reasoning: {session.analysis.ai.reasoning} · Speech transcription: {session.analysis.ai.transcription}
+            Vision analysis <StatusBadge status={session.analysis.ai.vision} /> · Reasoning <StatusBadge status={session.analysis.ai.reasoning} /> · Speech transcription <StatusBadge status={session.analysis.ai.transcription} />
           </p>
           {session.analysis.perSource.map((s) => (
             <details key={s.sourceId} style={{ fontSize: 12, marginBottom: 6 }}>

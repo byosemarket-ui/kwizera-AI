@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -15,6 +15,9 @@ import { assessNovelty } from "../../../../ai/training-center/knowledge-novelty.
 import { extractDocument } from "../../../../ai/training-center/teaching-documents.js";
 import { parseInstructions } from "../../../../ai/training-center/knowledge-extraction.js";
 import type { UrlFetchResult } from "../../../../ai/training-center/teaching-sessions.js";
+import { CapabilityRuntime } from "../../../../ai/admin-control-plane/capability-runtime.js";
+
+const read = (rel: string) => readFileSync(path.resolve(__dirname, "../../../..", rel), "utf8");
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -518,6 +521,21 @@ describe("Phase 18B — novelty, safety and AI assistance", () => {
     expect(session.analysis.perSource[0]!.notes.join(" ")).toMatch(/1 ungrounded statement/);
     expect(session.analysis.ai).toMatchObject({ vision: "AUTH_FAILED", reasoning: "READY", transcription: "UNAVAILABLE" });
     expect(session.analysis.notes.join(" ")).toMatch(/Vision analysis unavailable \(auth failed\)/);
+  });
+
+  it("teaching AI state reflects what execute() can serve: a local provider without an executable adapter is not ready", () => {
+    const runtimeFor = (provider: Record<string, unknown>, executable: boolean) => new CapabilityRuntime(
+      { resolveFeatureExecution: () => ({ status: "FALLBACK", selectedModel: { modelId: "m" }, providerId: provider.id, mapping: null, reason: "" }), getProviderRecord: () => provider } as never,
+      { has: () => true } as never,
+      { resolve: () => (executable ? { id: "a", execute: async () => ({}) } : { id: "ollama" }) } as never,
+    );
+    const ollama = { id: "provider-ollama-local", type: "ollama", enabled: true, healthStatus: "unchecked" };
+    expect(runtimeFor(ollama, false).readiness("VISION_ANALYSIS").state).toBe("READY");
+    expect(runtimeFor(ollama, false).executionReadiness("VISION_ANALYSIS")).toEqual({ feature: "VISION_ANALYSIS", state: "NOT_IMPLEMENTED", executable: false });
+    expect(runtimeFor(ollama, true).executionReadiness("VISION_ANALYSIS").state).toBe("READY");
+    const openai = { id: "provider-openai", type: "openai", enabled: true, healthStatus: "unhealthy" };
+    expect(runtimeFor(openai, true).executionReadiness("VISION_ANALYSIS").state).toBe("AUTH_FAILED");
+    expect(read("dev/server/training-center-api.ts")).toMatch(/visionState: \(\) => runtime\.executionReadiness\("VISION_ANALYSIS"\)/);
   });
 });
 
