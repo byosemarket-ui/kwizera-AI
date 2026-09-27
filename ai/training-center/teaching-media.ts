@@ -158,8 +158,10 @@ export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
         }
         try {
           const durationSec = round(probed.durationMs / 1000);
-          const sceneChanges = await detectSceneChanges(source, durationSec).catch(() => {
-            notes.push("Scene detection failed.");
+          const sceneChanges = await detectSceneChanges(source, durationSec).catch((err: unknown) => {
+            const code = (err as { code?: unknown } | null)?.code;
+            console.error("[KWIZERA] Teaching scene detection failed:", err instanceof Error ? err.message : err);
+            notes.push(`Scene detection failed${typeof code === "string" && /^[A-Z0-9_]{2,40}$/.test(code) ? ` (${code})` : ""}.`);
             return [] as number[];
           });
           const cuts = [0, ...sceneChanges, durationSec];
