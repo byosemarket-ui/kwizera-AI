@@ -336,6 +336,7 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       const tol = period ? Math.min(0.08, period * 0.15) : 0;
       const scenes: SceneMeasurement[] = [];
       const cameraPairs: GlobalMotion[][] = [];
+      const longCameraPairs: Array<Array<{ motion: GlobalMotion; spanSec: number }>> = [];
       const subjectCenters: number[][] = [];
       onProgress?.("MOTION_ANALYSIS", "Global camera motion per scene (block matching and scale search)");
       for (let s = 0; s < bounds.length - 1; s += 1) {
@@ -347,6 +348,10 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
         const pairs: GlobalMotion[] = [];
         for (let k = i0 + 1; k <= i1; k += 1) pairs.push(globalMotion(frames[k - 1]!, frames[k]!, w, h));
         cameraPairs.push(pairs);
+        const stride = Math.max(2, Math.round(fps * 1.5));
+        const long: Array<{ motion: GlobalMotion; spanSec: number }> = [];
+        for (let k = i0; k + stride <= i1 && long.length < 4; k += stride) long.push({ motion: globalMotion(frames[k]!, frames[k + stride]!, w, h), spanSec: stride / fps });
+        longCameraPairs.push(long);
         subjectCenters.push(subjects.slice(i0, i1 + 1).filter((x) => x.separable).map((x) => x.centerX));
         const inner = diffs.slice(i0 + 1, i1 + 1);
         const motion = inner.length ? inner.reduce((a, b) => a + b, 0) / inner.length : 0;
@@ -444,7 +449,7 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       } else unavailable.push("Audio/beat analysis — the video has no analysable audio track.");
 
       const extras: SceneExtras[] = scenes.map((scene, i) => ({
-        camera: classifyCamera(cameraPairs[i] ?? [], fps, w, h, subjectCenters[i] ?? []),
+        camera: classifyCamera(cameraPairs[i] ?? [], fps, w, h, subjectCenters[i] ?? [], longCameraPairs[i] ?? []),
         transition: transitionsDense.get(scene.index) ?? null,
         keySubject: keySubjects[i] ?? null,
         text: texts[i]!,

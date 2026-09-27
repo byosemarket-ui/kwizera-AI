@@ -184,6 +184,18 @@ describe("Phase 18C — video measurement primitives (synthetic frames)", () => 
     expect(classifyCamera([{ dx: 2, dy: 0, scale: 1, gain: 0.01 }, { dx: -1, dy: 1, scale: 1, gain: 0.02 }], 4, W, H).movement).toBe("UNCLASSIFIED");
   });
 
+  it("a slow push-in below the per-pair scale step is resolved by one-second pairs at the analysis resolution", () => {
+    const w = 36; const h = 64; const cx = (w - 1) / 2; const cy = (h - 1) / 2;
+    const tex = (x: number, y: number) => 128 + 70 * Math.sin(x * 0.8) * Math.sin(y * 0.6) + 40 * Math.sin(x * 0.31 - y * 0.47);
+    const at = (s: number) => frame((x, y) => tex(cx + (x - cx) / s, cy + (y - cy) / s), w, h);
+    const shortPairs = [1, 1.012, 1.024, 1.036, 1.048, 1.06].slice(1).map((s, i, arr) => globalMotion(at(i ? arr[i - 1]! : 1), at(s), w, h));
+    const long = [{ motion: globalMotion(at(1), at(1.075), w, h), spanSec: 1.5 }];
+    expect(long[0]!.motion.scale).toBeGreaterThan(1);
+    const cam = classifyCamera(shortPairs, 4, w, h, [], long);
+    expect(cam.movement).toBe("PUSH_IN");
+    expect(cam.evidence).toMatch(/one-second pairs/);
+  });
+
   it("transition type and duration: cut, dissolve, fade through black, wipe", () => {
     expect(classifyTransition([A, A, A, A, B, B, B, B], W, H, 16)).toMatchObject({ type: "CUT", durationSec: 0 });
     const dissolve = classifyTransition([A, A, blend(0.35), blend(0.45), blend(0.55), blend(0.65), B, B], W, H, 16);
@@ -211,6 +223,7 @@ describe("Phase 18C — video measurement primitives (synthetic frames)", () => 
     expect(comp.composition.productSafeRegion).toMatchObject({ x0: 0.25, x1: 0.75 });
     expect(compositionFromSubject({ ...subject(0.5), touchesEdge: true }).product).toMatchObject({ prominence: "HERO", cropRisk: "HIGH" });
     expect(compositionFromSubject(null).product.detected).toBe(false);
+    expect(compositionFromSubject({ ...subject(0.97), touchesEdge: true }).product.detected).toBe(false);
   });
 
   it("per-scene observations and creative patterns carry evidence; unavailable aspects stay unavailable", () => {

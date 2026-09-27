@@ -124,8 +124,11 @@ export function globalMotion(prev: Uint8Array | Buffer, cur: Uint8Array | Buffer
   return { dx: best.dx, dy: best.dy, scale, gain: round(gain) };
 }
 
-/** Classifies the camera for a scene from per-pair global motion (sampled at `fps`). */
-export function classifyCamera(pairs: GlobalMotion[], fps: number, w: number, h: number, subjectCentersX: number[] = []): Omit<VideoLearningObservation["camera"], "evidence"> & { evidence: string } {
+/**
+ * Classifies the camera for a scene from per-pair global motion (sampled at `fps`). `longPairs` (frames ~1 s apart)
+ * resolve slow zooms whose per-pair scale change is below the scale-search step.
+ */
+export function classifyCamera(pairs: GlobalMotion[], fps: number, w: number, h: number, subjectCentersX: number[] = [], longPairs: Array<{ motion: GlobalMotion; spanSec: number }> = []): Omit<VideoLearningObservation["camera"], "evidence"> & { evidence: string } {
   const valid = pairs.filter((p) => p.gain >= 0.08 || (p.dx === 0 && p.dy === 0 && p.scale === 1));
   if (!pairs.length) return { movement: "UNCLASSIFIED", confidence: 0, panPerSec: 0, tiltPerSec: 0, zoomPerSec: 0, evidence: "Scene too short for motion pairs." };
   const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
@@ -133,11 +136,14 @@ export function classifyCamera(pairs: GlobalMotion[], fps: number, w: number, h:
   const dys = valid.map((p) => p.dy);
   const panPerSec = round((mean(dxs) * fps) / w);
   const tiltPerSec = round((mean(dys) * fps) / h);
-  const zoomPerSec = round(mean(valid.map((p) => Math.log(p.scale))) * fps);
+  const shortZoom = mean(valid.map((p) => Math.log(p.scale))) * fps;
+  const longValid = longPairs.filter((l) => l.spanSec > 0 && l.motion.gain >= 0.15);
+  const longZoom = longValid.length >= Math.max(1, Math.ceil(longPairs.length / 2)) ? mean(longValid.map((l) => Math.log(l.motion.scale) / l.spanSec)) : 0;
+  const zoomPerSec = round(Math.abs(longZoom) > Math.abs(shortZoom) ? longZoom : shortZoom);
   const moving = valid.filter((p) => p.dx || p.dy);
   const signFlips = moving.slice(1).filter((p, i) => Math.sign(p.dx) !== Math.sign(moving[i]!.dx) || Math.sign(p.dy) !== Math.sign(moving[i]!.dy)).length;
   const coverage = valid.length / pairs.length;
-  const evidence = `${pairs.length} frame pairs at ${fps} fps: pan ${panPerSec} width/s, tilt ${tiltPerSec} height/s, zoom ${zoomPerSec} log-scale/s (${Math.round(coverage * 100)}% explained by global motion)`;
+  const evidence = `${pairs.length} frame pairs at ${fps} fps${longPairs.length ? ` and ${longPairs.length} one-second pairs` : ""}: pan ${panPerSec} width/s, tilt ${tiltPerSec} height/s, zoom ${zoomPerSec} log-scale/s (${Math.round(coverage * 100)}% explained by global motion)`;
   const conf = (x: number) => round(Math.max(0.3, Math.min(0.9, x * coverage)), 2);
   if (coverage < 0.5) return { movement: "UNCLASSIFIED", confidence: 0.3, panPerSec, tiltPerSec, zoomPerSec, evidence: `${evidence}; motion is local (subject or content), not a camera move.` };
   if (Math.abs(zoomPerSec) >= 0.03 && Math.abs(zoomPerSec) * 1.5 >= Math.max(Math.abs(panPerSec), Math.abs(tiltPerSec))) {
@@ -290,7 +296,7 @@ const bandLabel = (cx: number, cy: number) => `${cy < 0.34 ? "top" : cy > 0.66 ?
 
 export function compositionFromSubject(s: SubjectExtent | null): Pick<VideoLearningObservation, "product" | "composition"> {
   const method = "Separable subject against the border-estimated background (measured; not identified as a specific product)";
-  if (!s || !s.separable) {
+  if (!s || !s.separable || s.coverage >= 0.9) {
     return {
       product: { detected: false, method, boundingRegion: null, center: null, scale: null, prominence: null, cropRisk: null, location: null },
       composition: { negativeSpace: null, textSafeRegions: [], productSafeRegion: null },
