@@ -22,7 +22,7 @@ import {
 import { buildTeachingPackage, packageSafetyFlags, neutralizeTeachingText } from "./teaching-package.js";
 import { evaluateVersion, summarizeChecks } from "./teaching-evaluation.js";
 import { MEDIA_LIMITS, MediaAnalysisError, createTeachingMediaAnalyzer, type TeachingMediaAnalyzer } from "./teaching-media.js";
-import { computeRecordHash, validateDatasetRecords, validateRecord } from "./teaching-validation.js";
+import { computeRecordHash, redactRecordSecrets, validateDatasetRecords, validateRecord } from "./teaching-validation.js";
 import type {
   ActivationRecord, DatasetVersion, EvaluationCase, GuidanceValue, MediaKind, MediaRole, TeachingDataset,
   TeachingEvaluation, TeachingMediaRef, TeachingRecord, TrainingJob, TrainingJobKind, TrainingProfile, ValidationState,
@@ -548,6 +548,7 @@ export class TrainingCenter {
       contentHash: "", validation: { state: "PENDING", issues: [], checkedAt: null }, review: null,
       createdBy: by, createdAt: now, updatedAt: now,
     };
+    redactRecordSecrets(record);
     return { record, pendingProjectAssets };
   }
 
@@ -753,6 +754,7 @@ export class TrainingCenter {
           const pdf = await extractPdfText(fs.readFileSync(filePath));
           if (!pdf.ok) throw new MediaAnalysisError(pdf.errorCode ?? "PDF_INVALID", pdf.message ?? "The PDF could not be read.");
           record.document = { fileName: media.fileName, mimeType: "application/pdf", markdown: pdf.markdown.slice(0, MAX_DOCUMENT_CHARS), pages: pdf.pageCount, headings: pdf.headings, chars: pdf.chars, format: "pdf" };
+          redactRecordSecrets(record);
           media.analysis = { kind: "DOCUMENT", document: { pages: pdf.pageCount, pagesWithText: pdf.pagesWithText, headings: pdf.headings.slice(0, 50), chars: pdf.chars, format: "pdf" }, notes: pdf.pagesWithText < pdf.pageCount ? [`${pdf.pageCount - pdf.pagesWithText} page(s) contain no extractable text.`] : [] };
         } else {
           media.analysis = await this.analyzer.analyze(media.kind, filePath, media.mimeType);

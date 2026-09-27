@@ -36,6 +36,45 @@ export function detectSecrets(text: string): string[] {
   return SECRET_PATTERNS.filter((p) => p.re.test(text)).map((p) => p.id);
 }
 
+/** Replaces credential-looking values so the raw secret is never persisted or echoed back. */
+export function redactSecrets(text: string): { text: string; found: string[] } {
+  const found: string[] = [];
+  let out = text;
+  for (const p of SECRET_PATTERNS) {
+    const global = new RegExp(p.re.source, p.re.flags.includes("g") ? p.re.flags : `${p.re.flags}g`);
+    if (global.test(out)) {
+      found.push(p.id);
+      out = out.replace(global, `[REDACTED:${p.id}]`);
+    }
+  }
+  return { text: out, found };
+}
+
+/** Redacts every free-text field of a record in place; returns the credential types that were removed. */
+export function redactRecordSecrets(record: TeachingRecord): string[] {
+  const found = new Set<string>();
+  const clean = (value: string): string => {
+    if (!value) return value;
+    const result = redactSecrets(value);
+    result.found.forEach((id) => found.add(id));
+    return result.text;
+  };
+  record.title = clean(record.title);
+  record.text = clean(record.text);
+  record.instruction = clean(record.instruction);
+  record.input = clean(record.input);
+  record.expectedOutput = clean(record.expectedOutput);
+  record.explanation = clean(record.explanation);
+  record.rules = record.rules.map(clean);
+  if (record.code) {
+    record.code.code = clean(record.code.code);
+    if (record.code.expectedBehavior) record.code.expectedBehavior = clean(record.code.expectedBehavior);
+  }
+  if (record.document) record.document.markdown = clean(record.document.markdown);
+  if (found.size) record.secretsRedacted = [...new Set([...(record.secretsRedacted ?? []), ...found])];
+  return [...found];
+}
+
 export function detectServerPaths(text: string): boolean {
   return SERVER_PATH.test(text);
 }
@@ -144,8 +183,8 @@ export function validateRecord(record: TeachingRecord, capability: CapabilityDef
     else if (bounded.clamped) add("GUIDANCE_OUT_OF_RANGE", "ERROR", `Guidance ${g.key}=${g.value} is outside the planner's safe range.`);
   }
 
-  const secrets = detectSecrets(blob);
-  if (secrets.length) add("SECRET_DETECTED", "ERROR", `Content contains what looks like a credential (${secrets.join(", ")}). Remove it; secrets are never stored in datasets.`);
+  const secrets = [...new Set([...(record.secretsRedacted ?? []), ...detectSecrets(blob)])];
+  if (secrets.length) add("SECRET_DETECTED", "ERROR", `Content contained what looks like a credential (${secrets.join(", ")}). The value was redacted and never stored; remove this record and add it again without the secret.`);
   const injection = detectInstructionLikeText(blob);
   if (injection.length) add("INSTRUCTION_LIKE_TEXT", "REVIEW", `Instruction-like text found (${injection.join(", ")}). It will be treated as data and neutralised before indexing.`);
   if (detectServerPaths(blob)) add("SERVER_PATH", "REVIEW", "Content contains a server filesystem path.");

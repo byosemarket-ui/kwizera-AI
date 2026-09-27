@@ -107,6 +107,8 @@ export interface TeachingRecord {
   contentHash: string;
   validation: { state: ValidationState; issues: ValidationIssue[]; checkedAt: string | null };
   review: { decision: "APPROVED" | "REJECTED"; by: string; at: string; note: string } | null;
+  /** Credential types that were redacted at intake; keeps the record INVALID even though the value is gone. */
+  secretsRedacted?: string[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
