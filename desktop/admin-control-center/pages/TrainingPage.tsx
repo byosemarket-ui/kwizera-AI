@@ -238,7 +238,7 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
               { id: "datasets", label: `Datasets (${datasets.length})` },
               { id: "teach", label: "Teach AI" },
               { id: "examples", label: "Examples & records" },
-              { id: "materials", label: `Material library (${overview.sources.retained})` },
+              { id: "materials", label: `Material library (${overview.sources.total})` },
               { id: "jobs", label: `Training jobs${hasActiveJobs ? " •" : ""}` },
               { id: "evaluations", label: `Evaluations (${evaluations.length})` },
               { id: "versions", label: "Models / versions" },

@@ -1247,7 +1247,8 @@ export class TrainingCenter {
           scenes: [{ sceneId: "hook", purpose: "hook", texts: [{ role: "headline", text: "Aurora Earbuds" }, { role: "subtitle", text: "All-day comfort" }, { role: "benefit", text: "Clear calls" }, { role: "supporting", text: "Water resistant" }] }],
         }, fonts);
         const items = decision.scenes[0]?.items.length ?? 0;
-        out.push({ consumer: "Typography plan (video-production.typography)", usesTeaching: used, detail: `Hook scene placed ${items} text item(s) (limit ${maxItems?.value ?? 3}, ${maxItems?.basis ?? "default"}).`, measured: { items, limit: maxItems?.value ?? null } });
+        const scopeNote = used ? "" : " The planner applies only the numeric text-items-per-scene limit; this version does not set it, so its rules do not change the layout.";
+        out.push({ consumer: "Typography plan (video-production.typography)", usesTeaching: used, detail: `Hook scene placed ${items} text item(s) (limit ${maxItems?.value ?? 3}, ${maxItems?.basis ?? "default"}).${scopeNote}`, measured: { items, limit: maxItems?.value ?? null } });
       }
     }
     return out;
