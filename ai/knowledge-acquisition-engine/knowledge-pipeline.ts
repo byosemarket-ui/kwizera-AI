@@ -127,6 +127,10 @@ export interface KnowledgeSourceRecord {
   status: KnowledgeSourceStatus;
   supersedes: string[];
   guidanceBySection: Record<string, KnowledgeGuidance[]>;
+  /** Chunks are never linked to or from other sources (versioned packages that are enabled/disabled independently). */
+  isolateChunks?: boolean;
+  /** Guidance of this source applies only to these tasks. */
+  guidanceTasks?: string[];
   versions: KnowledgeSourceVersion[];
   currentVersion: number;
   lastRetrievedAt: string | null;
@@ -153,6 +157,8 @@ export interface RegisterKnowledgeSourceInput {
   officialHost?: boolean;
   /** Guidance attached to chunks under a heading (internal curated documents only). */
   guidanceBySection?: Record<string, KnowledgeGuidance[]>;
+  isolateChunks?: boolean;
+  guidanceTasks?: string[];
 }
 
 export type KnowledgeJobStage =
@@ -230,8 +236,12 @@ function legacyDomainFor(record: KnowledgeRecord): string {
   return "GENERAL";
 }
 
-function scopeKey(tenantId: string | null, projectId: string | null): string {
-  return `${tenantId ?? "*"}|${projectId ?? "*"}`;
+function scopeKey(tenantId: string | null, projectId: string | null, isolatedSourceId?: string | null): string {
+  return `${tenantId ?? "*"}|${projectId ?? "*"}${isolatedSourceId ? `|src:${isolatedSourceId}` : ""}`;
+}
+
+function sourceChunkScope(source: Pick<KnowledgeSourceRecord, "tenantId" | "projectId" | "sourceId" | "isolateChunks">): string {
+  return scopeKey(source.tenantId, source.projectId, source.isolateChunks ? source.sourceId : null);
 }
 
 function isoDate(value: string | null | undefined): string | null {
@@ -375,6 +385,8 @@ export class KnowledgePipeline {
       status: "ACTIVE",
       supersedes: input.supersedes ?? [],
       guidanceBySection: input.sourceType === "INTERNAL_DOCUMENT" ? input.guidanceBySection ?? {} : {},
+      ...(input.isolateChunks ? { isolateChunks: true } : {}),
+      ...(input.guidanceTasks?.length ? { guidanceTasks: input.guidanceTasks.map(String).slice(0, 12) } : {}),
       versions: [],
       currentVersion: 0,
       lastRetrievedAt: null,
@@ -539,7 +551,7 @@ export class KnowledgePipeline {
 
       const version = (current?.version ?? 0) + 1;
       const retrievedAt = this.now().toISOString();
-      const scope = scopeKey(source.tenantId, source.projectId);
+      const scope = sourceChunkScope(source);
       const reused: string[] = [];
       const linked: string[] = [];
       const fresh: Array<{ chunk: KnowledgeChunk; evidence: KnowledgeValidationEvidence }> = [];
@@ -649,7 +661,7 @@ export class KnowledgePipeline {
     });
     if (!result.ok || !result.id) return null;
     this.index.upsert(this.docFromKb(result.id, source.title, chunk.text, kb));
-    this.hashes.set(chunk.hash, { itemId: result.id, sourceId: source.sourceId, scope: scopeKey(source.tenantId, source.projectId) });
+    this.hashes.set(chunk.hash, { itemId: result.id, sourceId: source.sourceId, scope: sourceChunkScope(source) });
     return result.id;
   }
 
@@ -712,6 +724,7 @@ export class KnowledgePipeline {
       },
       guidance: Array.isArray(kb.guidance) ? kb.guidance as KnowledgeGuidance[] : [],
       supersedes: Array.isArray(kb.supersedes) ? kb.supersedes as string[] : [],
+      ...(source?.guidanceTasks?.length ? { guidanceTasks: source.guidanceTasks } : {}),
       active: kb.active !== false && (source ? source.status === "ACTIVE" : true),
     };
   }
@@ -756,7 +769,8 @@ export class KnowledgePipeline {
         const doc = this.docFromKb(id, record.title, record.description, kb);
         this.index.upsert(doc);
         if (doc.active && typeof kb.chunkHash === "string") {
-          this.hashes.set(kb.chunkHash, { itemId: id, sourceId: doc.sourceId, scope: scopeKey(doc.tenantId, doc.projectId) });
+          const owner = this.sources.get(doc.sourceId);
+          this.hashes.set(kb.chunkHash, { itemId: id, sourceId: doc.sourceId, scope: scopeKey(doc.tenantId, doc.projectId, owner?.isolateChunks ? owner.sourceId : null) });
         }
       } else if (record.description && record.description.length >= 12) {
         this.index.upsert(this.docFromLegacy(record));

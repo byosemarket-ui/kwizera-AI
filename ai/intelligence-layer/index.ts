@@ -97,6 +97,20 @@ export class IntelligenceLayerManager {
     return this.store.getPatterns(opts);
   }
 
+  async setCuratedPatterns(...args: Parameters<IntelligenceLearningStore["setCuratedPatterns"]>): Promise<KnowledgePattern[]> {
+    if (!this.ready) throw new Error("Intelligence Layer not ready");
+    return this.store.setCuratedPatterns(...args);
+  }
+
+  async retireCuratedPatterns(refPrefix: string): Promise<number> {
+    if (!this.ready) throw new Error("Intelligence Layer not ready");
+    return this.store.retireCuratedPatterns(refPrefix);
+  }
+
+  listCuratedPatterns(refPrefix?: string): KnowledgePattern[] {
+    return this.store.listCuratedPatterns(refPrefix);
+  }
+
   /**
    * Second-pass proof: decide after learning and report whether patterns were retrieved.
    */

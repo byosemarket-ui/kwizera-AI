@@ -17,6 +17,7 @@ export type AdminRouteId =
   | "system"
   | "workflows"
   | "knowledge"
+  | "training"
   | "logs"
   | "storage"
   | "database"

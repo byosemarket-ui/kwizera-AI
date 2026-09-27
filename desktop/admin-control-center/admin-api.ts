@@ -8,6 +8,24 @@ import type {
 import type { toAdminView } from "../../ai/pmv-orchestrator/views";
 import type { KnowledgePipeline, KnowledgeRetrievalLogEntry, publicSourceView } from "../../ai/knowledge-acquisition-engine/knowledge-pipeline";
 import type { TaskKnowledgeContext } from "../../ai/knowledge-retrieval-engine/knowledge-context-builder";
+import type { TrainingCenter } from "../../ai/training-center/training-center";
+import type {
+  ActivationRecord, DatasetVersion, TeachingEvaluation, TeachingRecord, TrainingJob,
+} from "../../ai/training-center/training-types";
+
+export type AdminTrainingOverview = ReturnType<TrainingCenter["overview"]>;
+export type AdminTrainingCatalog = ReturnType<TrainingCenter["catalog"]>;
+export type AdminTrainingDataset = ReturnType<TrainingCenter["listDatasets"]>[number];
+export type AdminTrainingDatasetDetail = ReturnType<TrainingCenter["getDataset"]>;
+export type AdminTrainingVersionItem = NonNullable<ReturnType<TrainingCenter["listVersions"]>[number]>;
+export type AdminTrainingProfile = ReturnType<TrainingCenter["listProfiles"]>[number];
+export type AdminTrainingValidation = ReturnType<TrainingCenter["validateDraft"]>;
+export type AdminTrainingRuntimeTest = Awaited<ReturnType<TrainingCenter["runtimeTest"]>>;
+export type AdminTrainingDocumentPreview = Awaited<ReturnType<TrainingCenter["previewDocument"]>>;
+export type {
+  ActivationRecord as AdminTrainingActivation, DatasetVersion as AdminTrainingVersion, TeachingEvaluation as AdminTrainingEvaluation,
+  TeachingRecord as AdminTrainingRecord, TrainingJob as AdminTrainingJob,
+};
 
 export type AdminWorkflowView = ReturnType<typeof toAdminView>;
 export type AdminKnowledgeSource = ReturnType<typeof publicSourceView>;
@@ -191,4 +209,52 @@ export const adminApi = {
   knowledgeRetrievals: () => adminFetch<{ items: AdminKnowledgeRetrieval[] }>("/api/admin/knowledge/retrievals"),
   searchKnowledge: (body: { query: string; task?: string; projectId?: string }) =>
     adminFetch<{ context: AdminKnowledgeContext }>("/api/admin/knowledge/search", { method: "POST", body: JSON.stringify(body) }),
+
+  trainingOverview: () => adminFetch<{ overview: AdminTrainingOverview }>("/api/admin/training/overview"),
+  trainingCatalog: () => adminFetch<{ catalog: AdminTrainingCatalog }>("/api/admin/training/catalog"),
+  trainingDatasets: () => adminFetch<{ items: AdminTrainingDataset[] }>("/api/admin/training/datasets"),
+  trainingDataset: (id: string) => adminFetch<AdminTrainingDatasetDetail>(`/api/admin/training/datasets/${encodeURIComponent(id)}`),
+  createTrainingDataset: (body: Record<string, unknown>) =>
+    adminFetch<{ dataset: AdminTrainingDataset }>("/api/admin/training/datasets", { method: "POST", body: JSON.stringify(body) }),
+  addTrainingRecord: (datasetId: string, body: Record<string, unknown>) =>
+    adminFetch<{ record: TeachingRecord; job: TrainingJob | null }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/records`, { method: "POST", body: JSON.stringify(body) }),
+  importTrainingRecords: (datasetId: string, jsonl: string) =>
+    adminFetch<{ result: { imported: number; errors: Array<{ line: number; message: string }> } }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/records/import`, { method: "POST", body: JSON.stringify({ jsonl }) }),
+  reviewTrainingRecord: (datasetId: string, recordId: string, decision: "APPROVED" | "REJECTED", note = "") =>
+    adminFetch<{ record: TeachingRecord }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/records/${encodeURIComponent(recordId)}/review`, { method: "POST", body: JSON.stringify({ decision, note }) }),
+  reprocessTrainingRecord: (datasetId: string, recordId: string) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/records/${encodeURIComponent(recordId)}/reprocess`, { method: "POST", body: "{}" }),
+  removeTrainingRecord: (datasetId: string, recordId: string) =>
+    adminFetch<{ removed: boolean }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/records/${encodeURIComponent(recordId)}`, { method: "DELETE" }),
+  trainingValidation: (datasetId: string) =>
+    adminFetch<{ validation: AdminTrainingValidation }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/validation`),
+  publishTrainingDataset: (datasetId: string, note: string) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/publish`, { method: "POST", body: JSON.stringify({ note }) }),
+  evaluateTrainingVersion: (datasetId: string, version: number) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/versions/${version}/evaluate`, { method: "POST", body: "{}" }),
+  activateTrainingVersion: (datasetId: string, version: number) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/versions/${version}/activate`, { method: "POST", body: "{}" }),
+  deactivateTrainingDataset: (datasetId: string) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/deactivate`, { method: "POST", body: "{}" }),
+  rollbackTrainingDataset: (datasetId: string, toVersion?: number) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/rollback`, { method: "POST", body: JSON.stringify(toVersion ? { toVersion } : {}) }),
+  trainingRuntimeTest: (datasetId: string, body: { query?: string; projectId?: string }) =>
+    adminFetch<{ test: AdminTrainingRuntimeTest }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/runtime-test`, { method: "POST", body: JSON.stringify(body) }),
+  requestModelTraining: (datasetId: string, version: number | null) =>
+    adminFetch<{ job: TrainingJob }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/model-training`, { method: "POST", body: JSON.stringify(version ? { version } : {}) }),
+  trainingVersion: (datasetId: string, version: number) =>
+    adminFetch<{ version: DatasetVersion; evaluations: TeachingEvaluation[] }>(`/api/admin/training/datasets/${encodeURIComponent(datasetId)}/versions/${version}`),
+  trainingVersions: () => adminFetch<{ items: AdminTrainingVersionItem[] }>("/api/admin/training/versions"),
+  trainingEvaluations: () => adminFetch<{ items: TeachingEvaluation[] }>("/api/admin/training/evaluations"),
+  trainingActivations: () => adminFetch<{ items: ActivationRecord[] }>("/api/admin/training/activations"),
+  trainingJobs: () => adminFetch<{ items: TrainingJob[] }>("/api/admin/training/jobs"),
+  trainingJob: (id: string) => adminFetch<{ job: TrainingJob }>(`/api/admin/training/jobs/${encodeURIComponent(id)}`),
+  cancelTrainingJob: (id: string) => adminFetch<{ job: TrainingJob }>(`/api/admin/training/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST", body: "{}" }),
+  trainingProfiles: () => adminFetch<{ items: AdminTrainingProfile[] }>("/api/admin/training/profiles"),
+  createTrainingProfile: (body: Record<string, unknown>) =>
+    adminFetch<{ profile: AdminTrainingProfile }>("/api/admin/training/profiles", { method: "POST", body: JSON.stringify(body) }),
+  activateTrainingProfile: (id: string) =>
+    adminFetch<{ jobs: TrainingJob[] }>(`/api/admin/training/profiles/${encodeURIComponent(id)}/activate`, { method: "POST", body: "{}" }),
+  previewTrainingDocument: (body: Record<string, unknown>) =>
+    adminFetch<{ preview: AdminTrainingDocumentPreview }>("/api/admin/training/preview/document", { method: "POST", body: JSON.stringify(body) }),
 };

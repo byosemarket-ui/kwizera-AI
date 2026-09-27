@@ -6054,7 +6054,9 @@ async function main(): Promise<void> {
       if (persistentMemoryCenter.isReady()) {
         void import("./knowledge-base-api.js")
           .then(({ bootKnowledgePipeline }) => bootKnowledgePipeline())
-          .catch((err) => console.error("[KWIZERA] Knowledge Base boot error:", err instanceof Error ? err.message : err));
+          .then(() => import("./training-center-api.js"))
+          .then(({ bootTrainingCenter }) => bootTrainingCenter())
+          .catch((err) => console.error("[KWIZERA] Knowledge Base / Training Center boot error:", err instanceof Error ? err.message : err));
       }
       await new Promise<void>((resolve) => setImmediate(resolve));
       void onlineKnowledgeEngine.boot(storageRoot).catch((err) => {

@@ -62,6 +62,7 @@ export class IntelligenceLearningStore {
   getPatterns(opts?: { projectId?: string; minConfidence?: number }): KnowledgePattern[] {
     const min = opts?.minConfidence ?? 0;
     return this.store.patterns.filter((p) => {
+      if (p.retiredAt) return false;
       if (p.confidence < min) return false;
       if (p.scope === "global-abstract") return true;
       if (opts?.projectId && p.projectId === opts.projectId) return true;
@@ -219,6 +220,67 @@ export class IntelligenceLearningStore {
 
     await this.persist();
     return { promoted, refused };
+  }
+
+  /**
+   * Replaces the curated patterns of one teaching ref. Previous patterns of the ref are retired, not deleted.
+   * Curated statements are abstract style rules written by an admin; project scope keeps them inside one project.
+   */
+  async setCuratedPatterns(ref: string, meta: { datasetKey: string; version: number }, patterns: Array<{
+    statement: string;
+    category: string;
+    applicability: string[];
+    projectId?: string | null;
+    confidence?: number;
+  }>): Promise<KnowledgePattern[]> {
+    const now = new Date().toISOString();
+    for (const p of this.store.patterns) if (p.curated?.ref === ref && !p.retiredAt) p.retiredAt = now;
+    const created = patterns.slice(0, 20).map<KnowledgePattern>((p) => {
+      const confidence = Math.min(0.9, Math.max(0.55, p.confidence ?? 0.8));
+      return {
+        patternId: randomUUID(),
+        category: p.category.slice(0, 60),
+        statement: p.statement.slice(0, 240),
+        confidence,
+        confidenceBand: confidenceBand(confidence),
+        applicability: p.applicability.slice(0, 8),
+        sourceEventIds: [],
+        sourceProjectCount: 0,
+        scope: p.projectId ? "project" : "global-abstract",
+        ...(p.projectId ? { projectId: p.projectId } : {}),
+        version: meta.version,
+        createdAt: now,
+        updatedAt: now,
+        promoted: true,
+        curated: { ref, datasetKey: meta.datasetKey, version: meta.version },
+      };
+    });
+    this.store.patterns.push(...created);
+    const retired = this.store.patterns.filter((p) => p.retiredAt);
+    if (retired.length > MAX_PATTERNS) {
+      const drop = new Set(retired.slice(0, retired.length - MAX_PATTERNS));
+      this.store.patterns = this.store.patterns.filter((p) => !drop.has(p));
+    }
+    await this.persist();
+    return created;
+  }
+
+  /** Retires every curated pattern whose ref starts with the prefix (a dataset or one dataset version). */
+  async retireCuratedPatterns(refPrefix: string): Promise<number> {
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const p of this.store.patterns) {
+      if (p.curated && p.curated.ref.startsWith(refPrefix) && !p.retiredAt) {
+        p.retiredAt = now;
+        count += 1;
+      }
+    }
+    if (count) await this.persist();
+    return count;
+  }
+
+  listCuratedPatterns(refPrefix?: string): KnowledgePattern[] {
+    return this.store.patterns.filter((p) => p.curated && (!refPrefix || p.curated.ref.startsWith(refPrefix)));
   }
 
   private async persist(): Promise<void> {

@@ -47,6 +47,8 @@ export interface KnowledgeIndexDoc {
   citation: KnowledgeCitation;
   guidance?: KnowledgeGuidance[];
   supersedes?: string[];
+  /** When set, guidance and supersedes apply only to these knowledge tasks (the text stays retrievable everywhere). */
+  guidanceTasks?: string[];
   active: boolean;
   legacy?: boolean;
 }

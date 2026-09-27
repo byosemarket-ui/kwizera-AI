@@ -74,6 +74,16 @@ async function jsonBody(req: IncomingMessage, readBody: ReadBody): Promise<Recor
 }
 
 const str = (v: unknown, max = 500): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** PDF uploads arrive as base64; their text layer becomes page/heading-structured markdown. */
+async function pdfBodyToText(body: Record<string, unknown>): Promise<{ content: string; mimeType: string; fileName: string } | { error: { code: string; message: string } } | null> {
+  const isPdf = str(body.mimeType, 80).toLowerCase() === "application/pdf" || /\.pdf$/i.test(str(body.fileName, 200));
+  if (!isPdf || typeof body.dataBase64 !== "string") return null;
+  const { extractPdfText } = await import("../../ai/knowledge-processing-engine/pdf-text.js");
+  const result = await extractPdfText(Buffer.from(body.dataBase64.replace(/^data:[^;]+;base64,/, ""), "base64"));
+  if (!result.ok) return { error: { code: result.errorCode ?? "PDF_INVALID", message: result.message ?? "The PDF could not be read." } };
+  return { content: result.markdown.slice(0, MAX_DOCUMENT_CHARS), mimeType: "text/markdown", fileName: `${str(body.fileName, 190).replace(/\.pdf$/i, "") || "document"}.md` };
+}
 const strList = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => str(x, 60)).filter(Boolean).slice(0, 12) : []);
 
 function handleError(err: unknown, sendJson: SendJson, res: ServerResponse): void {
@@ -152,7 +162,13 @@ export async function handleAdminKnowledgeApi(
         return true;
       }
       const rawUrl = str(body.url, 2_000);
-      const content = typeof body.content === "string" ? body.content.slice(0, MAX_DOCUMENT_CHARS + 1) : undefined;
+      const pdf = await pdfBodyToText(body);
+      if (pdf && "error" in pdf) {
+        fail(sendJson, res, 400, pdf.error.code, pdf.error.message);
+        return true;
+      }
+      if (pdf) Object.assign(body, { mimeType: pdf.mimeType, fileName: pdf.fileName });
+      const content = pdf ? pdf.content : typeof body.content === "string" ? body.content.slice(0, MAX_DOCUMENT_CHARS + 1) : undefined;
       let officialHost = false;
       if (rawUrl) {
         try {
@@ -317,7 +333,13 @@ export async function handleProjectKnowledgeApi(
     }
     if (!isSearch && req.method === "POST") {
       const body = await jsonBody(req, readBody);
-      const content = typeof body.content === "string" ? body.content : "";
+      const pdf = await pdfBodyToText(body);
+      if (pdf && "error" in pdf) {
+        fail(sendJson, res, 400, pdf.error.code, pdf.error.message);
+        return true;
+      }
+      if (pdf) Object.assign(body, { mimeType: pdf.mimeType, fileName: pdf.fileName });
+      const content = pdf ? pdf.content : typeof body.content === "string" ? body.content : "";
       if (!content.trim()) {
         fail(sendJson, res, 400, "CONTENT_REQUIRED", "Paste or upload the document text.");
         return true;

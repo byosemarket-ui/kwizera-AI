@@ -52,6 +52,7 @@ async function compactContext(input: AiCreativePlannerInput): Promise<Record<str
     if (layer.isReady()) {
       learnedPatterns = layer.getPatterns({ projectId: full.projectId, minConfidence: 0.55 })
         .filter((p) => p.promoted)
+        .sort((a, b) => Number(Boolean(b.curated)) - Number(Boolean(a.curated)) || b.confidence - a.confidence)
         .slice(0, 3)
         .map((p) => ({
           patternId: p.patternId,

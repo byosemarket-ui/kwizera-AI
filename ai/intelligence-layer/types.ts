@@ -65,6 +65,10 @@ export interface KnowledgePattern {
   updatedAt: string;
   promoted: boolean;
   refusalReason?: string;
+  /** Admin-curated pattern delivered by an activated teaching dataset version (ref = dataset/version). */
+  curated?: { ref: string; datasetKey: string; version: number };
+  /** Retired patterns are kept for lineage but never read by planners. */
+  retiredAt?: string;
 }
 
 export interface IntelligenceDecision {

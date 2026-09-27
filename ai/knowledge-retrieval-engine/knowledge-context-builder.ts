@@ -78,7 +78,7 @@ export function buildTaskKnowledgeContext(input: {
   }
   const allowed = profile.guidancePrefixes;
   const candidates: GuidanceCandidate[] = [...input.result.hits, ...(input.result.guidanceHits ?? [])]
-    .filter((hit) => hit.doc.guidance?.length)
+    .filter((hit) => hit.doc.guidance?.length && (!hit.doc.guidanceTasks || hit.doc.guidanceTasks.includes(String(input.task))))
     .map((hit) => ({
       itemId: hit.doc.id,
       sourceId: hit.doc.sourceId,

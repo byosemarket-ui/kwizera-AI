@@ -159,6 +159,11 @@ export async function handleAdminApi(
     return handleAdminKnowledgeApi(req, res, url, { sendJson: deps.sendJson, readBody: deps.readBody });
   }
 
+  if (url.pathname.startsWith("/api/admin/training")) {
+    const { handleAdminTrainingApi } = await import("./training-center-api.js");
+    return handleAdminTrainingApi(req, res, url, { sendJson: deps.sendJson, readBody: deps.readBody });
+  }
+
   const manager = requireManager(deps, res);
   if (!manager) return true;
 

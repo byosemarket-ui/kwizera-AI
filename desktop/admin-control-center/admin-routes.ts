@@ -15,6 +15,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: "models", label: "Models", path: "/admin/models", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "features", label: "Feature Mapping", path: "/admin/features", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "knowledge", label: "Knowledge", path: "/admin/knowledge", implemented: true, group: "ai", groupLabel: "AI Control" },
+  { id: "training", label: "AI Training", path: "/admin/training", implemented: true, group: "ai", groupLabel: "AI Control" },
   { id: "api-access", label: "API Access", path: "/admin/api-access", implemented: true, group: "security", groupLabel: "Security" },
   { id: "video", label: "Video", path: "/admin/video", implemented: false, group: "creative", groupLabel: "Creative" },
   { id: "image", label: "Image", path: "/admin/image", implemented: false, group: "creative", groupLabel: "Creative" },
@@ -56,7 +57,8 @@ export function adminPathFor(route: AdminRouteId): string {
 
 export function syncAdminUrl(route: AdminRouteId): void {
   const next = adminPathFor(route);
-  if (window.location.pathname !== next) {
+  const current = window.location.pathname;
+  if (current !== next && !current.startsWith(`${next}/`)) {
     window.history.replaceState({ adminRoute: route }, "", next);
   }
 }
