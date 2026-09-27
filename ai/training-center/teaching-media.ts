@@ -106,6 +106,15 @@ async function detectSceneChanges(filePath: string, durationSec: number): Promis
   return times;
 }
 
+/** Stream-copy remux (no re-encode) so containers without a duration header, e.g. browser MediaRecorder WebM, can be measured. */
+async function remuxForProbe(filePath: string, outPath: string): Promise<boolean> {
+  const { ffmpegBinary } = await import("../video-production/ffmpeg-renderer.js");
+  return new Promise<boolean>((resolve) => {
+    execFile(ffmpegBinary(), ["-nostdin", "-hide_banner", "-v", "error", "-y", "-i", filePath, "-map", "0", "-c", "copy", outPath],
+      { timeout: 60_000, windowsHide: true, maxBuffer: 1024 * 1024 }, (err) => resolve(!err));
+  });
+}
+
 export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
   return {
     async analyze(kind, filePath, mimeType) {
@@ -131,44 +140,59 @@ export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
       if (kind === "VIDEO") {
         const { probeVideo, extractAudioFromVideo } = await import("../video-production/ffmpeg-renderer.js");
         let probed;
+        let source = filePath;
+        let remuxed: string | null = null;
         try {
           probed = await probeVideo(filePath);
         } catch {
-          throw new MediaAnalysisError("VIDEO_UNREADABLE", "The video could not be read.");
-        }
-        const durationSec = round(probed.durationMs / 1000);
-        const sceneChanges = await detectSceneChanges(filePath, durationSec).catch(() => {
-          notes.push("Scene detection failed.");
-          return [] as number[];
-        });
-        const cuts = [0, ...sceneChanges, durationSec];
-        const shots = cuts.slice(1).map((t, i) => t - cuts[i]!).filter((d) => d > 0.05);
-        let audio: AudioMeasurement | null = null;
-        if (probed.hasAudioStream) {
-          const tmp = path.join(os.tmpdir(), `kwz-teach-${randomUUID()}.m4a`);
+          remuxed = path.join(os.tmpdir(), `kwz-teach-${randomUUID()}.mkv`);
           try {
-            await extractAudioFromVideo(filePath, tmp);
-            audio = await analyzeAudioFile(tmp);
+            if (!(await remuxForProbe(filePath, remuxed))) throw new Error("remux failed");
+            probed = await probeVideo(remuxed);
+            source = remuxed;
+            notes.push("The container had no duration header; measured after a lossless stream-copy remux.");
           } catch {
-            notes.push("The video's audio track could not be analysed.");
-          } finally {
-            await fs.rm(tmp, { force: true }).catch(() => undefined);
+            await fs.rm(remuxed, { force: true }).catch(() => undefined);
+            throw new MediaAnalysisError("VIDEO_UNREADABLE", "The video could not be read.");
           }
-        } else notes.push("The video has no audio track.");
-        return {
-          kind,
-          width: probed.width,
-          height: probed.height,
-          aspectRatio: aspectLabel(probed.width, probed.height),
-          durationSec,
-          codec: probed.codec,
-          hasAudioStream: probed.hasAudioStream,
-          sceneChanges,
-          sceneCount: shots.length,
-          meanShotSec: shots.length ? round(shots.reduce((a, b) => a + b, 0) / shots.length, 2) : null,
-          audio,
-          notes: [...notes, "No transcript: speech recognition is not installed on this server."],
-        };
+        }
+        try {
+          const durationSec = round(probed.durationMs / 1000);
+          const sceneChanges = await detectSceneChanges(source, durationSec).catch(() => {
+            notes.push("Scene detection failed.");
+            return [] as number[];
+          });
+          const cuts = [0, ...sceneChanges, durationSec];
+          const shots = cuts.slice(1).map((t, i) => t - cuts[i]!).filter((d) => d > 0.05);
+          let audio: AudioMeasurement | null = null;
+          if (probed.hasAudioStream) {
+            const tmp = path.join(os.tmpdir(), `kwz-teach-${randomUUID()}.m4a`);
+            try {
+              await extractAudioFromVideo(source, tmp);
+              audio = await analyzeAudioFile(tmp);
+            } catch {
+              notes.push("The video's audio track could not be analysed.");
+            } finally {
+              await fs.rm(tmp, { force: true }).catch(() => undefined);
+            }
+          } else notes.push("The video has no audio track.");
+          return {
+            kind,
+            width: probed.width,
+            height: probed.height,
+            aspectRatio: aspectLabel(probed.width, probed.height),
+            durationSec,
+            codec: probed.codec,
+            hasAudioStream: probed.hasAudioStream,
+            sceneChanges,
+            sceneCount: shots.length,
+            meanShotSec: shots.length ? round(shots.reduce((a, b) => a + b, 0) / shots.length, 2) : null,
+            audio,
+            notes: [...notes, "No transcript: speech recognition is not installed on this server."],
+          };
+        } finally {
+          if (remuxed) await fs.rm(remuxed, { force: true }).catch(() => undefined);
+        }
       }
       throw new MediaAnalysisError("UNSUPPORTED_MEDIA", `Unsupported media kind for ${mimeType}.`);
     },
