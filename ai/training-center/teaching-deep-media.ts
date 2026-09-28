@@ -528,10 +528,11 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       else unavailable.push("Text content and typography hierarchy — Admin VISION_ANALYSIS is not executable, so text in the image was not read.");
       const g = frameSize(dims.width, dims.height, 192);
       const gray = await ffmpeg(["-i", filePath, "-frames:v", "1", "-vf", `scale=${g.w}:${g.h}:flags=area,format=gray`, "-f", "rawvideo", "pipe:1"], 30_000, g.w * g.h + 1024).catch(() => null);
-      const subjectBox = subject.separable && subject.coverage < 0.9 ? { x0: subject.box.left, y0: subject.box.top, x1: subject.box.right, y1: subject.box.bottom, label: "subject" } : null;
+      // A subject box covering half the canvas or more usually has merged the text into it, so it is not excluded.
+      const subjectBox = subject.separable && subject.coverage < 0.5 ? { x0: subject.box.left, y0: subject.box.top, x1: subject.box.right, y1: subject.box.bottom, label: "subject" } : null;
       const textRegions = gray && gray.length >= g.w * g.h ? textLikeRegions(gray, g.w, g.h, subjectBox) : [];
       if (!gray) notes.push("Text-like region pass could not decode the image; text placement was not measured.");
-      else notes.push(`Text-like regions located on a ${g.w}px grey pass (edge-density bands outside the subject; presence and position only, no OCR).`);
+      else notes.push(`Text-like regions located on a ${g.w}px grey pass (edge-density bands${subjectBox ? " outside the subject" : ""}; presence and position only, no OCR).`);
       return {
         width: dims.width, height: dims.height, meanLuma: round(st.mean, 1), contrast: round(st.std / 128), dynamicRange: round((st.p95 - st.p5) / 255),
         subject, whitespaceShare: round(near / n), balance: { horizontal: round((massR - massL) / totalH), vertical: round((massB - massT) / totalV) },
