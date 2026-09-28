@@ -9,7 +9,7 @@
  */
 import http from "node:http";
 import https from "node:https";
-import net from "node:net";
+import net, { type LookupFunction } from "node:net";
 import { promises as dns } from "node:dns";
 import type { KnowledgeFetcher, KnowledgeFetchResult } from "../../ai/knowledge-acquisition-engine/knowledge-pipeline.js";
 import { TRUSTED_SOURCE_LIBRARY } from "../../ai/knowledge-source-manager/trusted-knowledge-source-library.js";
@@ -76,6 +76,14 @@ async function resolvePublic(hostname: string): Promise<{ address: string; famil
   return answers[0];
 }
 
+/** Node 20+ (autoSelectFamily) calls `lookup` with `{ all: true }` and expects an address list. */
+export function pinnedLookup(pinned: { address: string; family: number }): LookupFunction {
+  return (_host, opts, cb) => {
+    if (opts?.all) cb(null, [{ address: pinned.address, family: pinned.family }]);
+    else cb(null, pinned.address, pinned.family);
+  };
+}
+
 interface RawResponse { status: number; contentType: string; location: string | null; body: string; tooLarge: boolean }
 
 async function requestOnce(url: URL, timeoutMs: number): Promise<RawResponse> {
@@ -85,7 +93,7 @@ async function requestOnce(url: URL, timeoutMs: number): Promise<RawResponse> {
     const req = lib.get(url, {
       timeout: timeoutMs,
       headers: { "User-Agent": KNOWLEDGE_USER_AGENT, Accept: "text/html,text/plain,text/markdown;q=0.9,*/*;q=0.1" },
-      lookup: (_host, _opts, cb) => (cb as (err: Error | null, address: string, family: number) => void)(null, pinned.address, pinned.family),
+      lookup: pinnedLookup(pinned),
     }, (res) => {
       const status = res.statusCode ?? 0;
       const contentType = String(res.headers["content-type"] ?? "");

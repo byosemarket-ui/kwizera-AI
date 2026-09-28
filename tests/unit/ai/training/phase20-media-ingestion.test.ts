@@ -12,7 +12,8 @@ import { isInstructionLike, onlinePreflight, planResearch, RESEARCH_REGISTRY } f
 import type { TeachingMediaAnalyzer } from "../../../../ai/training-center/teaching-media.js";
 import type { DeepMediaAnalyzer } from "../../../../ai/training-center/teaching-deep-media.js";
 import type { AudioMeasurement, MediaAnalysis } from "../../../../ai/training-center/training-types.js";
-import { MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "../../../../desktop/admin-control-center/pages/TeachingObservations.js";
+import { LearningStateView, MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "../../../../desktop/admin-control-center/pages/TeachingObservations.js";
+import { pinnedLookup } from "../../../../dev/server/knowledge-fetcher.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -293,6 +294,23 @@ describe("Phase 20 — upload validation and stream-based kind", () => {
 });
 
 describe("Phase 20 — online pre-flight and task-aware research", () => {
+  it("the pinned DNS lookup answers both the single-address and the Node 20 `all: true` contract", () => {
+    const lookup = pinnedLookup({ address: "93.184.215.14", family: 4 });
+    const single: unknown[] = [];
+    lookup("example.org", {}, (...args: unknown[]) => single.push(...args));
+    expect(single).toEqual([null, "93.184.215.14", 4]);
+    const all: unknown[] = [];
+    lookup("example.org", { all: true }, (...args: unknown[]) => all.push(...args));
+    expect(all).toEqual([null, [{ address: "93.184.215.14", family: 4 }]]);
+  });
+
+  it("the learning state view never claims more than the state it is given", () => {
+    const html = renderToStaticMarkup(createElement(LearningStateView, { learning: { state: "ACTIVE_NOT_VERIFIED", note: "Active, but no runtime test has confirmed it." } }));
+    expect(html).toContain("ACTIVE_NOT_VERIFIED");
+    expect(html).not.toContain("LEARNED<");
+    expect(renderToStaticMarkup(createElement(LearningStateView, { learning: null }))).toBe("");
+  });
+
   it("plans different approved pages for different tasks and gaps, never the whole registry", () => {
     const video = planResearch({ target: "PRODUCT_VIDEO", capability: "PRODUCT_VIDEO_TYPOGRAPHY", mediaKinds: ["VIDEO"], focus: [], gaps: [], textRegionsSeen: true }, 3);
     const audio = planResearch({ target: "PRODUCT_VIDEO", capability: "AUDIO_BEAT_SYNC", mediaKinds: ["AUDIO"], focus: ["tempo"], gaps: [{ capability: "TEMPO", implemented: true, executable: true, status: "LOW_CONFIDENCE", detail: "" }], textRegionsSeen: false }, 3);
