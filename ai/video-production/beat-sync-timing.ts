@@ -65,6 +65,24 @@ export interface BeatSyncTimingPlan {
   createdAt: string;
   message: string;
   scenes: BeatSyncSceneTiming[];
+  /** Phase 18D — learned alignment from an ACTIVE teaching version (absent when none applies). */
+  learned?: BeatSyncLearnedUse | null;
+}
+
+export interface LearnedBeatAlignmentInput {
+  alignTo: "DOWNBEAT" | "BEAT" | "FREE";
+  patternId: string;
+  name: string;
+  dataset: string;
+}
+
+/** Stored on the customer-visible video project, so it carries no pattern ids or dataset keys. */
+export interface BeatSyncLearnedUse {
+  alignTo: LearnedBeatAlignmentInput["alignTo"];
+  name: string;
+  applied: boolean;
+  alignedToDownbeat: number;
+  note: string;
 }
 
 export interface BeatSyncApplyResult {
@@ -224,8 +242,33 @@ export function applyBeatSyncTiming(input: {
   mode: BeatSyncMode;
   intelligence: AudioTimingIntelligence | null;
   audioAssetId?: string | null;
+  /** Learned alignment preference; measured beats still decide every boundary. */
+  learned?: LearnedBeatAlignmentInput | null;
+}): BeatSyncApplyResult {
+  const result = applyBeatSyncTimingCore(input);
+  const learned = input.learned;
+  if (!learned) return result;
+  const down = result.plan.scenes.filter((s) => s.alignmentType === "DOWNBEAT").length;
+  const active = result.plan.mode !== "OFF" && Boolean(input.intelligence?.downbeats.length) && learned.alignTo === "DOWNBEAT";
+  result.plan.learned = {
+    alignTo: learned.alignTo, name: learned.name, applied: active, alignedToDownbeat: down,
+    note: result.plan.mode === "OFF" ? "Beat sync is off for this project; the learned alignment is not applied."
+      : learned.alignTo === "FREE" ? "The learned edit was not beat-aligned; the project's beat-sync mode is kept unchanged."
+        : learned.alignTo === "BEAT" ? "The learned edit cuts on beats, which matches the default beat alignment."
+          : active ? `Learned downbeat alignment: ${down} scene boundar${down === 1 ? "y" : "ies"} on a measured downbeat.` : "No measured downbeats in this track; the learned downbeat alignment cannot apply.",
+  };
+  return result;
+}
+
+function applyBeatSyncTimingCore(input: {
+  clips: VideoTimelineClip[];
+  mode: BeatSyncMode;
+  intelligence: AudioTimingIntelligence | null;
+  audioAssetId?: string | null;
+  learned?: LearnedBeatAlignmentInput | null;
 }): BeatSyncApplyResult {
   const mode = input.mode ?? "OFF";
+  const preferDownbeat = input.learned?.alignTo === "DOWNBEAT";
   const clips = input.clips.map((c) => ({ ...c }));
   const audioMeta = {
     audioAssetId: input.audioAssetId ?? input.intelligence?.audioAssetId ?? null,
@@ -322,12 +365,12 @@ export function applyBeatSyncTiming(input: {
         timeSec: beat.time,
         type,
         source,
-        score,
+        score: preferDownbeat && type === "DOWNBEAT" ? score + 0.15 : score,
         confidence: beat.confidence,
       });
     };
 
-    if (preferStrong) {
+    if (preferStrong || preferDownbeat) {
       pushCand(nearestStrong, "STRONG_BEAT", "STRONG_BEAT");
       pushCand(nextStrong, "STRONG_BEAT", "STRONG_BEAT");
       if (intel.downbeats.length) {
@@ -497,6 +540,7 @@ export function beatSyncCacheKey(input: {
   targetDurationMs: number;
   aspectRatio: string;
   mode: BeatSyncMode;
+  learnedKey?: string | null;
 }): string {
   return [
     input.projectId,
@@ -508,5 +552,6 @@ export function beatSyncCacheKey(input: {
     input.aspectRatio,
     input.mode,
     BEAT_SYNC_VERSION,
+    ...(input.learnedKey ? [`learned-${input.learnedKey}`] : []),
   ].join("|");
 }

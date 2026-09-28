@@ -11,7 +11,14 @@ import { createHash } from "node:crypto";
 
 export type PatternFamily =
   | "HOOK" | "REVEAL" | "SHOWCASE" | "BENEFIT" | "OFFER" | "CTA" | "PACING" | "CAMERA" | "TRANSITION"
-  | "TYPOGRAPHY_TIMING" | "AUDIO_SYNC" | "STORYTELLING";
+  | "TYPOGRAPHY_TIMING" | "AUDIO_SYNC" | "STORYTELLING"
+  // Phase 18D — audio, image/typography and cross-modal families.
+  | "MUSIC_TEMPO" | "MUSIC_STRUCTURE" | "LAYOUT" | "TYPOGRAPHY_LAYOUT" | "COLOR_CONTRAST" | "CREATIVE_PROFILE";
+
+export const PATTERN_FAMILY_LIST: PatternFamily[] = [
+  "HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING",
+  "MUSIC_TEMPO", "MUSIC_STRUCTURE", "LAYOUT", "TYPOGRAPHY_LAYOUT", "COLOR_CONTRAST", "CREATIVE_PROFILE",
+];
 
 export interface CreativePattern {
   family: PatternFamily;
@@ -32,11 +39,32 @@ export interface ActiveCreativePattern extends CreativePattern {
   usageCount: number;
 }
 
+export type PatternTask = "PRODUCT_SLIDESHOW" | "CINEMATIC_VIDEO" | "AUDIO_PLAN" | "TYPOGRAPHY_PLAN";
+
 export interface CreativePatternQuery {
-  task: "PRODUCT_SLIDESHOW" | "CINEMATIC_VIDEO";
+  task: PatternTask;
   projectId: string | null;
   context: string[];
+  /** Phase 18D — also read patterns taught to these tasks (e.g. typography reads layout learned by design teaching). */
+  alsoTasks?: PatternTask[];
+  /** Phase 18D — only these families (task-aware retrieval; nothing else is returned). */
+  families?: PatternFamily[];
 }
+
+/** Which tasks and families each runtime consumer reads. */
+export const RUNTIME_PATTERN_QUERIES = {
+  videoPlan: (cinematic: boolean): Omit<CreativePatternQuery, "projectId" | "context"> => ({
+    task: cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW",
+    alsoTasks: ["TYPOGRAPHY_PLAN", "AUDIO_PLAN"],
+    families: ["HOOK", "REVEAL", "SHOWCASE", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING", "LAYOUT", "TYPOGRAPHY_LAYOUT", "COLOR_CONTRAST", "CREATIVE_PROFILE", "MUSIC_TEMPO"],
+  }),
+  beatSync: (): Omit<CreativePatternQuery, "projectId" | "context"> => ({
+    task: "AUDIO_PLAN", alsoTasks: ["PRODUCT_SLIDESHOW", "CINEMATIC_VIDEO"], families: ["AUDIO_SYNC", "MUSIC_TEMPO", "MUSIC_STRUCTURE"],
+  }),
+  typography: (): Omit<CreativePatternQuery, "projectId" | "context"> => ({
+    task: "TYPOGRAPHY_PLAN", alsoTasks: ["PRODUCT_SLIDESHOW", "CINEMATIC_VIDEO"], families: ["LAYOUT", "TYPOGRAPHY_LAYOUT", "COLOR_CONTRAST"],
+  }),
+};
 
 export interface CreativePatternProvider {
   active(query: CreativePatternQuery): ActiveCreativePattern[];
@@ -189,9 +217,85 @@ export function applyLearnedPatternsToTimeline<T extends TimelineClipLike>(clips
         changed.length ? `Learned ${movement.toLowerCase().replace(/_/g, " ")} for ${role.toLowerCase()} scenes.` : `Already ${motion}.`);
       continue;
     }
+    if (s.family === "LAYOUT" || s.family === "TYPOGRAPHY_LAYOUT") { decide(s, false, "typography plan", null, "Applied by the typography planner (text-safe side and call-to-action placement), not by the timeline."); continue; }
+    if (s.family === "AUDIO_SYNC" || s.family === "MUSIC_TEMPO" || s.family === "MUSIC_STRUCTURE") { decide(s, false, "beat sync / audio plan", null, "Applied by beat-sync timing and the audio plan, not by scene motion or transitions."); continue; }
     decide(s, false, "creative director", null, "Supplied to the Creative Director as reference guidance; no deterministic timeline parameter for this family.");
   }
   return { clips: next, decisions };
+}
+
+export interface LearnedRuntimeUse<T> {
+  value: T;
+  patternId: string;
+  name: string;
+  reason: string;
+  provenance: ActiveCreativePattern["provenance"];
+}
+
+/**
+ * Beat-sync alignment learned from AUDIO_SYNC patterns: DOWNBEAT when at least half the measured cuts landed on a
+ * downbeat, BEAT when most landed on a beat, FREE when the edit ignored the beat (the project's mode is then kept).
+ */
+export function learnedBeatAlignment(selections: PatternSelection[]): LearnedRuntimeUse<"DOWNBEAT" | "BEAT" | "FREE"> | null {
+  const s = selections.find((x) => x.family === "AUDIO_SYNC");
+  if (!s) return null;
+  const p = s.selected.parameters;
+  const cuts = Math.max(1, s.selected.scenes.length || Number(p.cuts ?? 1));
+  const downRatio = typeof p.downbeatRatio === "number" ? p.downbeatRatio : Number(p.onDownbeat ?? 0) / cuts;
+  const onRatio = Number(p.onBeatRatio ?? 0);
+  const value = typeof p.alignTo === "string" && ["DOWNBEAT", "BEAT", "FREE"].includes(p.alignTo) ? p.alignTo as "DOWNBEAT" | "BEAT" | "FREE"
+    : downRatio >= 0.5 ? "DOWNBEAT" : onRatio >= 0.6 ? "BEAT" : "FREE";
+  return {
+    value, patternId: s.selected.patternId, name: s.selected.name, provenance: s.selected.provenance,
+    reason: `Learned from "${s.selected.name}": ${Math.round(onRatio * 100)}% of measured cuts on a beat, ${Math.round(downRatio * 100)}% on a downbeat.`,
+  };
+}
+
+export type TextSide = "left" | "right" | "top" | "bottom";
+
+/**
+ * Typography placement learned from LAYOUT (text-safe side next to the product) and TYPOGRAPHY_LAYOUT (where text
+ * bands sit). Per-scene measured product position always wins; the product-overlap check stays in force.
+ */
+export function learnedTypographyLayout(selections: PatternSelection[]): LearnedRuntimeUse<{ textSides: TextSide[]; ctaPlacement: "bottom" | "top" | null }> | null {
+  const layout = selections.find((x) => x.family === "LAYOUT");
+  const typo = selections.find((x) => x.family === "TYPOGRAPHY_LAYOUT");
+  const sides: TextSide[] = [];
+  const side = (v: unknown): TextSide | null => (v === "left" || v === "right" || v === "top" || v === "bottom" ? v : null);
+  const fromLayout = side(layout?.selected.parameters.textSafeSide);
+  if (fromLayout) sides.push(fromLayout);
+  const fromTypo = side(typo?.selected.parameters.textSide) ?? side(typo?.selected.parameters.headlinePosition);
+  if (fromTypo && !sides.includes(fromTypo)) sides.push(fromTypo);
+  const ctaBand = typo?.selected.parameters.ctaBand;
+  const ctaPlacement = ctaBand === "bottom" || ctaBand === "top" ? ctaBand : null;
+  const primary = layout ?? typo;
+  if (!primary || (!sides.length && !ctaPlacement)) return null;
+  return {
+    value: { textSides: sides, ctaPlacement }, patternId: primary.selected.patternId, name: primary.selected.name, provenance: primary.selected.provenance,
+    reason: `Learned layout: text ${sides.length ? `on the ${sides.join("/")} side` : "placement unchanged"}${ctaPlacement ? `, call to action at the ${ctaPlacement}` : ""} (${[layout, typo].filter(Boolean).map((x) => `"${x!.selected.name}"`).join(", ")}).`,
+  };
+}
+
+/**
+ * Music guidance learned from MUSIC_TEMPO/MUSIC_STRUCTURE for selecting or generating music. It is reference data
+ * for the audio plan; it never replaces measured BPM/beats of the chosen track.
+ */
+export function learnedMusicGuidance(selections: PatternSelection[]): LearnedRuntimeUse<{ bpmRange: [number, number] | null; energyLevel: string | null; structure: string | null; introSec: number | null }> | null {
+  const tempo = selections.find((x) => x.family === "MUSIC_TEMPO");
+  const structure = selections.find((x) => x.family === "MUSIC_STRUCTURE");
+  const primary = tempo ?? structure;
+  if (!primary) return null;
+  const bpm = typeof tempo?.selected.parameters.bpm === "number" ? tempo.selected.parameters.bpm : null;
+  return {
+    value: {
+      bpmRange: bpm ? [Math.round(bpm * 0.94), Math.round(bpm * 1.06)] : null,
+      energyLevel: typeof tempo?.selected.parameters.energyLevel === "string" ? tempo.selected.parameters.energyLevel : null,
+      structure: typeof structure?.selected.parameters.sequence === "string" ? structure.selected.parameters.sequence : null,
+      introSec: typeof structure?.selected.parameters.introSec === "number" ? structure.selected.parameters.introSec : null,
+    },
+    patternId: primary.selected.patternId, name: primary.selected.name, provenance: primary.selected.provenance,
+    reason: `Learned music profile from ${[tempo, structure].filter(Boolean).map((x) => `"${x!.selected.name}"`).join(" and ")}.`,
+  };
 }
 
 /** Compact, fenced reference data for LLM planners (untrusted; never instructions). */

@@ -331,7 +331,7 @@ export interface KnowledgeRelationship {
 export interface NoveltyAssessment {
   class: NoveltyClass;
   similarity: number;
-  method: "LEXICAL_SEMANTIC";
+  method: "LEXICAL_SEMANTIC" | "STRUCTURAL_PATTERN";
   matched: { id: string; title: string; kind: "SESSION" | "DATASET" | "KNOWLEDGE_BASE"; excerpt: string } | null;
   reason: string;
 }
@@ -399,7 +399,7 @@ export interface RecordKnowledge {
   relationships: KnowledgeRelationship[];
   /** Admin accepted a CONTRADICTORY / REQUIRES_REVIEW item; the record still needs review approval before publishing. */
   conflictAccepted: boolean;
-  revisions: Array<{ at: string; by: string; action: "CREATED" | "MERGED_PROVENANCE" | "CONFLICT_ACCEPTED"; note: string }>;
+  revisions: Array<{ at: string; by: string; action: "CREATED" | "MERGED_PROVENANCE" | "CONFLICT_ACCEPTED" | "ENRICHED"; note: string; previousStatement?: string }>;
   /** Phase 18C (optional for records created earlier). */
   domain?: string;
   canonicalStatement?: string;
@@ -418,7 +418,10 @@ export type SessionStage =
   // Phase 18C — canonical multimodal stages
   | "UPLOADING" | "VALIDATING" | "MEDIA_METADATA" | "SCENE_DETECTION" | "FRAME_ANALYSIS" | "VISION_ANALYSIS" | "AUDIO_ANALYSIS"
   | "TRANSCRIPT_ANALYSIS" | "TEXT_ANALYSIS" | "MOTION_ANALYSIS" | "TRANSITION_ANALYSIS" | "CREATIVE_PATTERN_ANALYSIS"
-  | "KNOWLEDGE_EXTRACTION" | "LANGUAGE_NORMALIZATION" | "NOVELTY_CHECK" | "CONSOLIDATION" | "VALIDATION";
+  | "KNOWLEDGE_EXTRACTION" | "LANGUAGE_NORMALIZATION" | "NOVELTY_CHECK" | "CONSOLIDATION" | "VALIDATION"
+  // Phase 18D — per-modality stages (each reports what was actually measured, or why it is unavailable)
+  | "SYNC_ANALYSIS" | "SPEECH_ANALYSIS" | "AUDIO_METADATA" | "WAVEFORM_ANALYSIS" | "BPM_ANALYSIS" | "BEAT_ANALYSIS" | "ENERGY_ANALYSIS"
+  | "PATTERN_ANALYSIS" | "IMAGE_METADATA" | "COMPOSITION_ANALYSIS" | "TYPOGRAPHY_ANALYSIS" | "DESIGN_PATTERN_ANALYSIS";
 
 export interface MediaCounters {
   scenesTotal: number;

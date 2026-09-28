@@ -13,10 +13,10 @@ import { documentFormat, DocumentExtractionError, extractDocument, type TextUnit
 import { MEDIA_LIMITS, MediaAnalysisError, type TeachingMediaAnalyzer } from "./teaching-media.js";
 import type { DeepMediaAnalyzer, TeachingAi, VideoDeepAnalysis } from "./teaching-deep-media.js";
 import {
-  aiAssistedExtraction, codeLanguage, correlateSources, extractFromAudio, extractFromCode, extractFromImage, extractFromUnits,
+  aiAssistedExtraction, audioUnavailable, codeLanguage, correlateSources, extractFromAudio, extractFromCode, extractFromImage, extractFromUnits,
   extractFromVideo, normalizeLanguage, parseInstructions, type ExtractionContext,
 } from "./knowledge-extraction.js";
-import { assessNovelty, type ComparisonItem } from "./knowledge-novelty.js";
+import { assessNovelty, enrichesStatement, type ComparisonItem, type PatternRef } from "./knowledge-novelty.js";
 import { detectServerPaths } from "./teaching-validation.js";
 import type {
   CapabilityAvailability, KnowledgeRecord, MediaAnalysis, MediaCounters, RecordKnowledge, RetentionPolicy, SessionProgress, SessionStage, SourceKind, TeachingDataset,
@@ -88,20 +88,31 @@ export const STAGE_LABELS: Record<SessionStage, string> = {
   TEXT_ANALYSIS: "On-screen text and composition", MOTION_ANALYSIS: "Camera and motion analysis", TRANSITION_ANALYSIS: "Transition analysis",
   CREATIVE_PATTERN_ANALYSIS: "Creative pattern analysis", KNOWLEDGE_EXTRACTION: "Extracting knowledge", LANGUAGE_NORMALIZATION: "Language normalisation",
   NOVELTY_CHECK: "Checking what is new", CONSOLIDATION: "Consolidating duplicates", VALIDATION: "Validating knowledge",
+  SYNC_ANALYSIS: "Audio/visual synchronisation", SPEECH_ANALYSIS: "Speech analysis", AUDIO_METADATA: "Reading audio metadata",
+  WAVEFORM_ANALYSIS: "Waveform, loudness and silence", BPM_ANALYSIS: "Tempo (BPM)", BEAT_ANALYSIS: "Beats and downbeats", ENERGY_ANALYSIS: "Energy and sections",
+  PATTERN_ANALYSIS: "Audio pattern analysis", IMAGE_METADATA: "Reading image metadata", COMPOSITION_ANALYSIS: "Composition and colour",
+  TYPOGRAPHY_ANALYSIS: "Typography analysis", DESIGN_PATTERN_ANALYSIS: "Design pattern analysis",
 };
 
 /** Video analysis stages; each advances progress once, on its first occurrence for a source. */
 const VIDEO_STAGES: SessionStage[] = [
   "MEDIA_METADATA", "SCENE_DETECTION", "FRAME_ANALYSIS", "MOTION_ANALYSIS", "TRANSITION_ANALYSIS", "TEXT_ANALYSIS",
-  "VISION_ANALYSIS", "AUDIO_ANALYSIS", "TRANSCRIPT_ANALYSIS", "CREATIVE_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION",
+  "VISION_ANALYSIS", "AUDIO_ANALYSIS", "SYNC_ANALYSIS", "TRANSCRIPT_ANALYSIS", "CREATIVE_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION",
 ];
-const STEPS_PER_KIND: Record<SourceKind, number> = { TEXT: 3, DOCUMENT: 3, BOOK: 3, CODE: 3, URL: 3, IMAGE: 3, AUDIO: 3, VIDEO: VIDEO_STAGES.length };
+const AUDIO_STAGES: SessionStage[] = ["AUDIO_METADATA", "WAVEFORM_ANALYSIS", "SPEECH_ANALYSIS", "BPM_ANALYSIS", "BEAT_ANALYSIS", "ENERGY_ANALYSIS", "PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION"];
+const IMAGE_STAGES: SessionStage[] = ["IMAGE_METADATA", "COMPOSITION_ANALYSIS", "TEXT_ANALYSIS", "TYPOGRAPHY_ANALYSIS", "DESIGN_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION"];
+const STEPS_PER_KIND: Record<SourceKind, number> = { TEXT: 3, DOCUMENT: 3, BOOK: 3, CODE: 3, URL: 3, IMAGE: IMAGE_STAGES.length, AUDIO: AUDIO_STAGES.length, VIDEO: VIDEO_STAGES.length };
 
 function emptyMedia(): MediaCounters {
   return { scenesTotal: 0, scenesProcessed: 0, framesTotal: 0, framesProcessed: 0, boundariesTotal: 0, boundariesProcessed: 0, observations: 0, patterns: 0 };
 }
 
 const str = (v: unknown, max = 500): string => (typeof v === "string" ? v.replace(/\u0000/g, "").trim().slice(0, max) : "");
+
+function patternOf(data: Record<string, unknown> | undefined): PatternRef | null {
+  const p = data?.creativePattern as { family?: unknown; parameters?: unknown } | undefined;
+  return p && typeof p.family === "string" ? { family: p.family, parameters: (p.parameters ?? {}) as Record<string, unknown> } : null;
+}
 
 export function safeFileName(name: string, fallback: string): string {
   const base = path.basename(String(name ?? "").replace(/\\/g, "/"))
@@ -391,7 +402,7 @@ export class TeachingSessionService {
     const key = `${session.sessionId}:${sourceId}`;
     const seen = this.seenVideoStages.get(key) ?? new Set<SessionStage>();
     this.seenVideoStages.set(key, seen);
-    const first = VIDEO_STAGES.includes(stage) && !seen.has(stage);
+    const first = (VIDEO_STAGES.includes(stage) || AUDIO_STAGES.includes(stage) || IMAGE_STAGES.includes(stage)) && !seen.has(stage);
     seen.add(stage);
     if (media) session.progress.media = { ...(session.progress.media ?? emptyMedia()), ...media };
     this.stage(job, session, stage, item, first ? 1 : 0);
@@ -594,26 +605,49 @@ export class TeachingSessionService {
     }
 
     const file = this.sourceFile(source);
+    const ms = (stage: SessionStage, item: string | null) => this.videoStage(job, session, source.sourceId, stage, item);
     if (source.kind === "IMAGE") {
-      this.stage(job, session, "EXTRACTING_METADATA", source.fileName);
+      ms("IMAGE_METADATA", source.fileName);
       const base = await this.host.analyzer.analyze("IMAGE", file, source.mimeType);
       source.measured = { width: base.width, height: base.height };
-      this.stage(job, session, "ANALYZING_VISUALS", `${base.width}×${base.height}`, 1);
+      ms("COMPOSITION_ANALYSIS", `${base.width}×${base.height}: subject, negative space, balance, colour and contrast`);
       const deep = await this.host.deep.image(file, { ai: opts.visionAi });
       unavailable.push(...deep.unavailable);
       notes.push(...deep.notes);
-      this.stage(job, session, "EXTRACTING_KNOWLEDGE", source.fileName, 1);
-      return { records: extractFromImage(source, deep, ctx), analysis: base, summary: { width: base.width, height: base.height, subjectCoverage: deep.subject.coverage, dominantColors: deep.dominantColors.slice(0, 3) } };
+      const bands = deep.textRegions ?? [];
+      ms("TEXT_ANALYSIS", deep.textRegions ? `${bands.length} text-like band(s) located (position only; not read)` : "Unavailable — text-like regions were not measured");
+      ms("TYPOGRAPHY_ANALYSIS", deep.vision ? `Vision read ${deep.vision.textItems.length} text role(s); fonts are never named` : "Unavailable — Admin VISION_ANALYSIS is not executable; only text band positions and size ratios were measured");
+      const records = extractFromImage(source, deep, ctx);
+      const patterns = records.filter((r) => r.structuredData.creativePattern).length;
+      ms("DESIGN_PATTERN_ANALYSIS", `${patterns} design pattern(s): layout, text placement, contrast`);
+      ms("KNOWLEDGE_EXTRACTION", source.fileName);
+      return {
+        records, analysis: base,
+        summary: { width: base.width, height: base.height, subjectCoverage: deep.subject.coverage, dominantColors: deep.dominantColors.slice(0, 3), textBands: bands.length, designPatterns: patterns, visionUsed: Boolean(deep.vision) },
+      };
     }
 
     if (source.kind === "AUDIO") {
-      this.stage(job, session, "ANALYZING_AUDIO", source.fileName);
+      ms("AUDIO_METADATA", source.fileName);
       const base = await this.host.analyzer.analyze("AUDIO", file, source.mimeType);
       source.measured = { durationSec: base.durationSec };
       notes.push(...base.notes);
+      const a = base.audio ?? null;
+      ms("WAVEFORM_ANALYSIS", a ? `${a.durationSec.toFixed(1)} s decoded; RMS ${a.rmsDbfs?.toFixed(1) ?? "n/a"} dBFS, peak ${a.peakDbfs?.toFixed(1) ?? "n/a"} dBFS, ${a.silences?.length ?? 0} silent gap(s)` : "No decodable audio stream");
+      ms("SPEECH_ANALYSIS", "Unavailable — no speech-to-text runtime is configured");
       unavailable.push("Speech transcription — no speech-to-text runtime is available on this server.");
-      this.stage(job, session, "EXTRACTING_KNOWLEDGE", source.fileName, 2);
-      return { records: extractFromAudio(source, base, ctx), analysis: base, summary: { durationSec: base.durationSec, bpm: base.audio?.bpm ?? null, tempoStatus: base.audio?.tempoStatus ?? null, sections: base.audio?.sections.length ?? 0 } };
+      ms("BPM_ANALYSIS", a?.bpm && a.tempoStatus === "available" ? `${Math.round(a.bpm)} BPM (confidence ${a.tempoConfidence.toFixed(2)})` : `Unavailable — ${a?.bpm ? "tempo confidence too low" : "no reliable tempo measured"}; BPM is not guessed`);
+      ms("BEAT_ANALYSIS", a && a.beatCount ? `${a.beatCount} beat(s), ${a.downbeatCount} downbeat(s)` : "No beats detected");
+      ms("ENERGY_ANALYSIS", a ? `${a.sections.length} section(s), ${(a.energyTransitions ?? []).length} energy transition(s)` : "Unavailable");
+      const records = extractFromAudio(source, base, ctx);
+      unavailable.push(...audioUnavailable(a).filter((u) => !/^Speech/.test(u)));
+      const patterns = records.filter((r) => r.structuredData.creativePattern).length;
+      ms("PATTERN_ANALYSIS", `${patterns} music pattern(s): tempo, structure`);
+      ms("KNOWLEDGE_EXTRACTION", source.fileName);
+      return {
+        records, analysis: base,
+        summary: { durationSec: base.durationSec, bpm: a?.bpm ?? null, tempoStatus: a?.tempoStatus ?? null, sections: a?.sections.length ?? 0, beats: a?.beatCount ?? 0, downbeats: a?.downbeatCount ?? 0, musicPatterns: patterns },
+      };
     }
 
     // VIDEO
@@ -692,11 +726,11 @@ export class TeachingSessionService {
     const drafts = new Set(this.host.datasets().filter(visible).flatMap((d) => d.draftRecordIds));
     for (const r of this.host.records()) {
       if (!drafts.has(r.recordId)) continue;
-      pool.push({ id: r.recordId, title: r.title, text: [r.text, r.instruction, ...r.rules, r.knowledge?.statement ?? ""].filter(Boolean).join(" ").slice(0, 2_000), kind: "DATASET", guidance: r.guidance });
+      pool.push({ id: r.recordId, title: r.title, text: [r.text, r.instruction, ...r.rules, r.knowledge?.statement ?? ""].filter(Boolean).join(" ").slice(0, 2_000), kind: "DATASET", guidance: r.guidance, pattern: patternOf(r.knowledge?.structuredData), statement: r.knowledge ? r.knowledge.canonicalStatement || r.knowledge.statement : undefined });
     }
     for (const v of this.host.versionRecords()) {
       if (!visible(v.dataset) || v.dataset.activeVersion !== v.version) continue;
-      for (const r of v.records) if (!drafts.has(r.recordId)) pool.push({ id: r.recordId, title: r.title, text: [r.text, r.instruction, ...r.rules].filter(Boolean).join(" ").slice(0, 2_000), kind: "DATASET", guidance: r.guidance });
+      for (const r of v.records) if (!drafts.has(r.recordId)) pool.push({ id: r.recordId, title: r.title, text: [r.text, r.instruction, ...r.rules].filter(Boolean).join(" ").slice(0, 2_000), kind: "DATASET", guidance: r.guidance, pattern: patternOf(r.knowledge?.structuredData) });
     }
     return pool;
   }
@@ -718,7 +752,7 @@ export class TeachingSessionService {
           kb.push({ id: hit.doc.id, title: hit.doc.title, text: hit.doc.text.slice(0, 1_500), kind: "KNOWLEDGE_BASE", guidance: (hit.doc.guidance ?? []).filter((g) => typeof g.value === "number").map((g) => ({ key: g.key, value: g.value as number })) });
         }
       }
-      const sessionPool: ComparisonItem[] = accepted.filter((a) => a.novelty.class !== "DUPLICATE").map((a) => ({ id: a.id, title: a.title, text: a.canonicalStatement ?? a.statement, kind: "SESSION", guidance: a.suggestedGuidance }));
+      const sessionPool: ComparisonItem[] = accepted.filter((a) => a.novelty.class !== "DUPLICATE").map((a) => ({ id: a.id, title: a.title, text: a.canonicalStatement ?? a.statement, kind: "SESSION", guidance: a.suggestedGuidance, pattern: patternOf(a.structuredData) }));
       record.novelty = assessNovelty(canonical ? { ...record, statement: canonical } : record, [...sessionPool, ...base, ...kb]);
       const m = record.novelty.matched;
       if (m) {
@@ -793,6 +827,7 @@ export class TeachingSessionService {
     }
     const created: string[] = [];
     const merged: string[] = [];
+    const enriched: string[] = [];
     const skipped: Array<{ id: string; reason: string }> = [];
     const guidanceOwner = new Map<string, KnowledgeRecord>();
     for (const r of [...selected].sort((a, b) => b.confidence - a.confidence)) {
@@ -815,6 +850,28 @@ export class TeachingSessionService {
         r.committedRecordId = existing.recordId;
         r.decision = "ACCEPTED";
         merged.push(existing.recordId);
+        continue;
+      }
+      const extended = r.novelty.class === "PARTIALLY_NEW" && r.novelty.matched?.kind === "DATASET" && draftIds.has(r.novelty.matched.id) && !patternOf(r.structuredData)
+        ? this.host.records().find((x) => x.recordId === r.novelty.matched!.id) : undefined;
+      const nextStatement = r.canonicalStatement || r.statement;
+      const previousStatement = extended?.knowledge ? (extended.knowledge.canonicalStatement || extended.knowledge.statement) : "";
+      if (extended?.knowledge && enrichesStatement(previousStatement, nextStatement)) {
+        const k = extended.knowledge;
+        for (const loc of r.sourceLocations) if (!k.sourceLocations.some((l) => l.label === loc.label && l.sourceId === loc.sourceId)) k.sourceLocations.push(loc);
+        k.sourceIds = [...new Set([...k.sourceIds, ...r.sourceIds])];
+        k.evidence = [...r.evidence, ...k.evidence].slice(0, 12);
+        k.statement = r.statement;
+        k.canonicalStatement = nextStatement;
+        k.revisions.push({ at, by, action: "ENRICHED", note: `Extended by "${r.title.slice(0, 80)}" (session ${sessionId.slice(0, 8)}); the previous wording stays in earlier published versions.`, previousStatement: previousStatement.slice(0, 600) });
+        const provenance = k.sourceLocations.slice(0, 4).map((l) => `${l.sourceTitle} — ${l.label}`).join("; ");
+        extended.text = `${nextStatement}\nSource: ${provenance}.`.slice(0, 3_900);
+        if (extended.rules.length) extended.rules = [nextStatement.slice(0, 400)];
+        extended.updatedAt = at;
+        this.host.revalidate(extended, dataset);
+        r.committedRecordId = extended.recordId;
+        r.decision = "ACCEPTED";
+        enriched.push(extended.recordId);
         continue;
       }
       const conflictAccepted = r.novelty.class === "CONTRADICTORY" || r.novelty.class === "REQUIRES_REVIEW";
@@ -858,7 +915,7 @@ export class TeachingSessionService {
     session.updatedAt = at;
     this.saveCandidates(sessionId, list);
     this.host.persist();
-    return { datasetId: dataset.datasetId, datasetKey: dataset.key, created: created.length, merged: merged.length, skipped, recordIds: created };
+    return { datasetId: dataset.datasetId, datasetKey: dataset.key, created: created.length, merged: merged.length, enriched: enriched.length, skipped, recordIds: created, enrichedRecordIds: enriched };
   }
 
   // ---------- views ----------

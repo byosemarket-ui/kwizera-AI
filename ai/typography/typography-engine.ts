@@ -45,6 +45,7 @@ async function buildItem(input: {
   occupied: PlacementRegion[];
   itemCountInScene: number;
   aiHint?: { personality?: TypographyItem["font"]["personality"]; region?: PlacementRegion };
+  learnedPlaced: { count: number };
 }): Promise<TypographyItem> {
   const text = keepCurrencyWithAmount(input.roleText.text);
   const importance = classifyTextImportance({
@@ -69,6 +70,11 @@ async function buildItem(input: {
   const weighted = mapWeightToInstalled(weightPref, baseFont, input.fonts);
   const productCentered = productLikelyCentered(input.scene.image);
   const productOccupiedRegion = input.scene.image?.productOccupiedRegion;
+  const learned = input.project.guidance?.learnedLayout ?? null;
+  const measuredSides = input.scene.image?.preferredTextSides;
+  const useLearned = Boolean(learned && !measuredSides?.length && learned.textSides.length);
+  const preferredTextSides = useLearned ? learned!.textSides : measuredSides;
+  const ctaPlacement = measuredSides?.length ? null : learned?.ctaPlacement ?? null;
   let region = input.aiHint?.region && !regionOverlapsProduct(input.aiHint.region, productCentered, productOccupiedRegion)
     ? input.aiHint.region
     : choosePlacement({
@@ -78,7 +84,8 @@ async function buildItem(input: {
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
       productOccupiedRegion,
-      preferredTextSides: input.scene.image?.preferredTextSides,
+      preferredTextSides,
+      ctaPlacement,
     });
   if (regionOverlapsProduct(region, productCentered, productOccupiedRegion)) {
     region = choosePlacement({
@@ -87,9 +94,11 @@ async function buildItem(input: {
       occupiedRegions: input.occupied,
       hierarchy: importance.hierarchy,
       productOccupiedRegion,
-      preferredTextSides: input.scene.image?.preferredTextSides,
+      preferredTextSides,
+      ctaPlacement,
     });
   }
+  if ((useLearned || ctaPlacement === "top") && !input.aiHint?.region) input.learnedPlaced.count += 1;
   const zone = platformSafeZone(input.project.platform, input.project.aspectRatio);
   const layout = clampToSafeZone(region, zone);
   const fitted = adaptiveFitText({
@@ -222,6 +231,7 @@ export async function composeTypographyDecision(
   const maxItemsCta = bounded(input.guidance?.maxItemsCtaScene, 2, 4, 4);
 
   const scenes: TypographyScenePlan[] = [];
+  const learnedPlaced = { count: 0 };
   for (const scene of input.scenes) {
     const occupied: PlacementRegion[] = [];
     const draft: TypographyItem[] = [];
@@ -235,6 +245,7 @@ export async function composeTypographyDecision(
         occupied,
         itemCountInScene: candidates.length,
         aiHint: sharedHint,
+        learnedPlaced,
       });
       occupied.push(item.layout.region);
       draft.push(item);
@@ -268,6 +279,9 @@ export async function composeTypographyDecision(
     scenes,
     warnings,
     createdAt: new Date().toISOString(),
+    learnedLayout: input.guidance?.learnedLayout
+      ? { name: input.guidance.learnedLayout.name, textSides: input.guidance.learnedLayout.textSides, ctaPlacement: input.guidance.learnedLayout.ctaPlacement, itemsPlaced: learnedPlaced.count }
+      : null,
   };
   const validated = validateTypographyDecision(decision, verified);
   if (!validated.valid) {

@@ -77,6 +77,8 @@ export function choosePlacement(input: {
   productOccupiedRegion?: { x: number; y: number; width: number; height: number } | null;
   /** STEP 10 — preferred sides from scene composition (product bias). */
   preferredTextSides?: Array<"left" | "right" | "top" | "bottom">;
+  /** Phase 18D — learned call-to-action placement (bottom is already the default). */
+  ctaPlacement?: "bottom" | "top" | null;
 }): PlacementRegion {
   const occupied = new Set(input.occupiedRegions ?? []);
   const productCx = input.productOccupiedRegion
@@ -94,7 +96,9 @@ export function choosePlacement(input: {
     || input.role === "productName";
 
   let candidates: PlacementRegion[];
-  if (input.preferredTextSides?.length) {
+  if (actionRole && input.ctaPlacement === "top") {
+    candidates = ["top-center", "upper-center", "top-left", "top-right", "bottom-center"];
+  } else if (input.preferredTextSides?.length) {
     candidates = [];
     for (const side of input.preferredTextSides) {
       if (side === "top") candidates.push("top-center", "upper-center", "top-left", "top-right");

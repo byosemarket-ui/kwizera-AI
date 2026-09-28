@@ -9,7 +9,7 @@ import { execFile } from "node:child_process";
 import type { AudioMeasurement, MediaAnalysis } from "./training-types.js";
 import {
   buildObservations, classifyCamera, classifyTransition, globalMotion, gradualTransitionCandidates, textLikeRegions,
-  type GlobalMotion, type SceneExtras, type TextPresence, type TransitionKind, type TransitionObservation, type VideoLearningObservation,
+  type GlobalMotion, type Region, type SceneExtras, type TextPresence, type TransitionKind, type TransitionObservation, type VideoLearningObservation,
 } from "./video-observations.js";
 
 export interface SubjectExtent {
@@ -100,6 +100,8 @@ export interface ImageDeepAnalysis {
   subjectBackgroundContrast: number | null;
   layoutBands: number;
   vision: VisionFrameFacts | null;
+  /** Phase 18D — text-like bands located (never read) on a 192-px grey pass; absent in analyses stored earlier. */
+  textRegions?: Region[];
   unavailable: string[];
   notes: string[];
 }
@@ -447,6 +449,9 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
         if (sync) sync.durationEnergyCorrelation = pearson(scenes.map((s) => s.durationSec), scenes.map((s) => s.energy ?? 0));
         else if (!audio.bpm) unavailable.push("Beat synchronisation — no reliable tempo was measured in the soundtrack.");
       } else unavailable.push("Audio/beat analysis — the video has no analysable audio track.");
+      onProgress?.("SYNC_ANALYSIS", sync
+        ? `${sync.onBeat} of ${sync.cuts} boundaries on a beat, ${sync.onDownbeat} on a downbeat (±${Math.round(sync.toleranceSec * 1000)} ms at ${sync.bpm} BPM)`
+        : `Unavailable — ${audio ? (audio.bpm ? "fewer than two boundaries to compare" : "no reliable tempo") : "no audio track"}`);
 
       const extras: SceneExtras[] = scenes.map((scene, i) => ({
         camera: classifyCamera(cameraPairs[i] ?? [], fps, w, h, subjectCenters[i] ?? [], longCameraPairs[i] ?? []),
@@ -521,10 +526,16 @@ export function createDeepMediaAnalyzer(): DeepMediaAnalyzer {
       let vision: VisionFrameFacts | null = null;
       if (ai) vision = await visionFacts(ai, await jpegAt(filePath, null), notes);
       else unavailable.push("Text content and typography hierarchy — Admin VISION_ANALYSIS is not executable, so text in the image was not read.");
+      const g = frameSize(dims.width, dims.height, 192);
+      const gray = await ffmpeg(["-i", filePath, "-frames:v", "1", "-vf", `scale=${g.w}:${g.h}:flags=area,format=gray`, "-f", "rawvideo", "pipe:1"], 30_000, g.w * g.h + 1024).catch(() => null);
+      const subjectBox = subject.separable && subject.coverage < 0.9 ? { x0: subject.box.left, y0: subject.box.top, x1: subject.box.right, y1: subject.box.bottom, label: "subject" } : null;
+      const textRegions = gray && gray.length >= g.w * g.h ? textLikeRegions(gray, g.w, g.h, subjectBox) : [];
+      if (!gray) notes.push("Text-like region pass could not decode the image; text placement was not measured.");
+      else notes.push(`Text-like regions located on a ${g.w}px grey pass (edge-density bands outside the subject; presence and position only, no OCR).`);
       return {
         width: dims.width, height: dims.height, meanLuma: round(st.mean, 1), contrast: round(st.std / 128), dynamicRange: round((st.p95 - st.p5) / 255),
         subject, whitespaceShare: round(near / n), balance: { horizontal: round((massR - massL) / totalH), vertical: round((massB - massT) / totalV) },
-        dominantColors, subjectBackgroundContrast: contrastRatio, layoutBands: bands, vision, unavailable, notes,
+        dominantColors, subjectBackgroundContrast: contrastRatio, layoutBands: bands, vision, textRegions, unavailable, notes,
       };
     },
   };

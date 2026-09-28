@@ -102,7 +102,8 @@ interface CenterState {
   patternUsage?: Record<string, { count: number; lastUsedAt: string; lastProjectId: string | null }>;
 }
 
-const PATTERN_FAMILIES = new Set(["HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING"]);
+const PATTERN_FAMILIES = new Set(["HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING",
+  "MUSIC_TEMPO", "MUSIC_STRUCTURE", "LAYOUT", "TYPOGRAPHY_LAYOUT", "COLOR_CONTRAST", "CREATIVE_PROFILE"]);
 
 const MAX_TEXT = 20_000;
 const MAX_DOCUMENT_CHARS = 400_000;
@@ -1213,14 +1214,16 @@ export class TrainingCenter {
   activeCreativePatterns(query: CreativePatternQuery): ActiveCreativePattern[] {
     const out: ActiveCreativePattern[] = [];
     const sources = new Map(this.state.sources.map((s) => [s.sourceId, s]));
+    const tasks = new Set<string>([query.task, ...(query.alsoTasks ?? [])]);
+    const families = query.families?.length ? new Set<string>(query.families) : null;
     for (const d of this.state.datasets) {
       if (d.activeVersion === null || d.archived) continue;
-      if (capabilityById(d.capability)?.task !== query.task) continue;
+      if (!tasks.has(capabilityById(d.capability)?.task ?? "")) continue;
       if (d.scope === "PROJECT" ? d.projectId !== query.projectId : d.scope !== "ADMIN" && d.scope !== "SYSTEM") continue;
       if (this.meta(d.datasetId, d.activeVersion).activation !== "ACTIVE") continue;
       for (const r of this.readVersionFile(d.datasetId, d.activeVersion)?.records ?? []) {
         const p = this.patternFromRecord(r);
-        if (!p) continue;
+        if (!p || (families && !families.has(p.family))) continue;
         const bySource = new Map<string, string[]>();
         for (const l of r.knowledge!.sourceLocations) bySource.set(l.sourceId, [...(bySource.get(l.sourceId) ?? []), l.label].slice(0, 6));
         out.push({
@@ -1360,6 +1363,67 @@ export class TrainingCenter {
         out.push({ consumer: "Typography plan (video-production.typography)", usesTeaching: used, detail: `Hook scene placed ${items} text item(s) (limit ${maxItems?.value ?? 3}, ${maxItems?.basis ?? "default"}).${scopeNote}`, measured: { items, limit: maxItems?.value ?? null } });
       }
     }
+    if (datasetId) out.push(...await this.multimodalConsumption(projectId, datasetId));
+    return out;
+  }
+
+  /**
+   * Phase 18D — the beat-sync planner, typography placement and audio plan run with and without this dataset's
+   * active audio/layout patterns on a fixed synthetic track and scene, so the difference is measured, not asserted.
+   */
+  private async multimodalConsumption(projectId: string | null, datasetId: string) {
+    const lp = await import("../creative-planning/learned-creative-patterns.js");
+    const out: Array<{ consumer: string; usesTeaching: boolean; detail: string; measured?: Record<string, unknown> }> = [];
+    const ctx = ["product-video", "9:16", "vertical", "short-form"];
+    const own = (q: Omit<CreativePatternQuery, "projectId" | "context">) =>
+      this.activeCreativePatterns({ ...q, projectId, context: ctx }).filter((p) => p.provenance.datasetId === datasetId);
+    const select = (patterns: ActiveCreativePattern[]) => lp.selectCreativePatterns(patterns, { seed: `runtime-test:${projectId ?? "global"}`, context: ctx });
+
+    const audioOwn = own(lp.RUNTIME_PATTERN_QUERIES.beatSync());
+    const alignment = lp.learnedBeatAlignment(select(audioOwn));
+    if (alignment) {
+      const { applyBeatSyncTiming } = await import("../video-production/beat-sync-timing.js");
+      const { intelligence, clips } = await syntheticBeatFixture();
+      const base = applyBeatSyncTiming({ clips, mode: "SMART", intelligence });
+      const learned = applyBeatSyncTiming({ clips, mode: "SMART", intelligence, learned: { alignTo: alignment.value, patternId: alignment.patternId, name: alignment.name, dataset: alignment.provenance.datasetKey } });
+      const boundaries = (plan: typeof base.plan) => plan.scenes.map((s) => `${s.sceneId}@${(s.endMs / 1000).toFixed(2)}s:${s.alignmentType}`);
+      const changed = JSON.stringify(boundaries(base.plan)) !== JSON.stringify(boundaries(learned.plan));
+      out.push({
+        consumer: "Beat-sync timing (learned alignment)", usesTeaching: changed,
+        detail: `${alignment.reason} ${learned.plan.learned?.note ?? ""}${changed ? "" : " Scene boundaries are identical with and without it on the test track."}`.trim(),
+        measured: { alignTo: alignment.value, pattern: alignment.name, before: boundaries(base.plan), after: boundaries(learned.plan) },
+      });
+    }
+
+    const layoutOwn = own(lp.RUNTIME_PATTERN_QUERIES.typography());
+    const layout = lp.learnedTypographyLayout(select(layoutOwn));
+    if (layout) {
+      const { choosePlacement } = await import("../typography/placement.js");
+      const scene = { productCentered: true, productOccupiedRegion: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 } };
+      const roles = ["headline", "benefit", "cta"] as const;
+      const place = (learnedSides: boolean) => roles.map((role, i) => `${role}:${choosePlacement({
+        role, hierarchy: i + 1, ...scene,
+        preferredTextSides: learnedSides && layout.value.textSides.length ? layout.value.textSides : undefined,
+        ctaPlacement: learnedSides ? layout.value.ctaPlacement : null,
+      })}`);
+      const before = place(false);
+      const after = place(true);
+      const changed = JSON.stringify(before) !== JSON.stringify(after);
+      out.push({
+        consumer: "Typography placement (learned layout)", usesTeaching: changed,
+        detail: `${layout.reason}${changed ? "" : " Placement is identical to the default for a centred product."}`,
+        measured: { pattern: layout.name, textSides: layout.value.textSides, ctaPlacement: layout.value.ctaPlacement, before, after },
+      });
+    }
+
+    const music = lp.learnedMusicGuidance(select(audioOwn));
+    if (music) {
+      out.push({
+        consumer: "Audio plan (learned music guidance)", usesTeaching: true,
+        detail: `${music.reason} Used as reference when choosing a track (tempo ${music.value.bpmRange ? `${music.value.bpmRange[0]}–${music.value.bpmRange[1]} BPM` : "not learned"}, energy ${music.value.energyLevel ?? "not learned"}, structure ${music.value.structure ?? "not learned"}). Music generation is UNAVAILABLE, so no music is generated from it.`,
+        measured: { ...music.value, musicGeneration: "UNAVAILABLE" },
+      });
+    }
     return out;
   }
 
@@ -1425,4 +1489,32 @@ export class TrainingCenter {
   static capabilityIds(): string[] {
     return CAPABILITIES.map((c) => c.id);
   }
+}
+
+/** Fixed 16 s, 120 BPM test track (downbeat every bar) and a four-scene storyboard for runtime verification. */
+async function syntheticBeatFixture() {
+  const { AUDIO_INTELLIGENCE_VERSION } = await import("../audio-intelligence/types.js");
+  type Intel = import("../audio-intelligence/types.js").AudioTimingIntelligence;
+  type Clip = import("../video-production/types.js").VideoTimelineClip;
+  const beats: Intel["beats"] = [];
+  for (let i = 1; i <= 31; i++) {
+    const down = i % 4 === 0;
+    beats.push({ time: i * 0.5, strength: down ? 0.92 : i % 2 === 0 ? 0.8 : 0.55, strengthClass: down || i % 2 === 0 ? "strong" : "normal", confidence: 0.85, type: down ? "downbeat" : "beat" });
+  }
+  const intelligence: Intel = {
+    audioAssetId: "runtime-test", contentHash: "runtime-test", analysisVersion: AUDIO_INTELLIGENCE_VERSION, status: "READY",
+    analyzedAt: new Date(0).toISOString(), analysisDurationMs: 0,
+    technical: { durationSec: 16, sampleRate: 22050, channels: 1, codec: "pcm", bitrate: null, format: "raw", silent: false, insufficientDuration: false },
+    tempo: { bpm: 120, primaryBpm: 120, alternativeBpm: 60, confidence: 0.8, method: "synthetic", status: "available" },
+    duration: 16, bpm: 120, bpmConfidence: 0.8, beats,
+    strongBeats: beats.filter((b) => b.strength >= 0.8), downbeats: beats.filter((b) => b.type === "downbeat"),
+    energyTimeline: [{ start: 0, end: 16, energy: 0.6, trend: "high" }], energyTransitions: [],
+    sections: [{ label: "SECTION_1", start: 0, end: 16, energy: 0.6, beatDensity: 2, confidence: 0.6 }],
+    beatDensity: [{ start: 0, end: 16, beatsPerSecond: 2, density: "normal" }], meanEnergy: 0.6,
+  };
+  const clip = (order: number, purpose: string, durationMs: number): Clip => ({
+    id: `clip-${order}`, sceneId: `scene-${order}`, order, purpose, assetId: "runtime-test", startMs: 0, durationMs, layer: "video",
+    camera: "medium", motion: "hold", lighting: "natural", background: "clean", transitionIn: "cut", transitionOut: "cut", text: [], audioDirection: "bed",
+  });
+  return { intelligence, clips: [clip(1, "FEATURE", 2300), clip(2, "FEATURE", 2300), clip(3, "BENEFIT", 2300), clip(4, "CTA", 2300)] };
 }

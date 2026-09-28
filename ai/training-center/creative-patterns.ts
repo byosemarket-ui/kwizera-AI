@@ -5,9 +5,12 @@
  * instead of being inferred.
  */
 import type { CreativePattern } from "../creative-planning/learned-creative-patterns.js";
+import type { ImageDeepAnalysis } from "./teaching-deep-media.js";
+import type { AudioMeasurement } from "./training-types.js";
 import type { VideoLearningObservation } from "./video-observations.js";
 
 const r2 = (n: number) => Number(n.toFixed(2));
+const pct = (n: number) => `${Math.round(n * 100)}%`;
 const lower = (s: string) => s.toLowerCase().replace(/_/g, " ");
 
 export function aspectContext(aspect: string | undefined): string[] {
@@ -143,7 +146,10 @@ export function extractCreativePatterns(obs: VideoLearningObservation[], meta: {
     patterns.push({
       family: "AUDIO_SYNC", name: on / synced.length >= 0.6 ? `Cuts on the beat (${on}/${synced.length})` : `Cuts independent of the beat (${on}/${synced.length})`,
       description: `${on} of ${synced.length} boundaries land on a beat${meta.bpm ? ` at ${Math.round(meta.bpm)} BPM` : ""}, ${down} on a downbeat${riseAtReveal ? "; music energy rises at the reveal" : ""}.`,
-      parameters: { onBeatRatio: r2(on / synced.length), onDownbeat: down, bpm: meta.bpm ?? null, energyRiseAtReveal: Boolean(riseAtReveal) },
+      parameters: {
+        onBeatRatio: r2(on / synced.length), onDownbeat: down, downbeatRatio: r2(down / synced.length), bpm: meta.bpm ?? null, energyRiseAtReveal: Boolean(riseAtReveal),
+        alignTo: down / synced.length >= 0.5 ? "DOWNBEAT" : on / synced.length >= 0.6 ? "BEAT" : "FREE",
+      },
       compatibleContexts: [...ctx, "music"], variationOptions: ["cut on every beat", "cut on downbeats only", "hold across the drop"],
       scenes: synced.map((o) => o.sceneIndex), confidence: 0.75, evidence: synced.slice(0, 6).map((o) => ev(o, o.synchronization!.evidence)),
     });
@@ -161,4 +167,152 @@ export function extractCreativePatterns(obs: VideoLearningObservation[], meta: {
 
   unavailable.push("Benefit and offer patterns — need readable on-screen text or speech; not inferred.");
   return { patterns, unavailable };
+}
+
+// ---------- Phase 18D: audio ----------
+
+/** Loudness band of the master (absolute), since Audio Intelligence energy is relative to the track's own peak. */
+export function loudnessLevel(rmsDbfs: number | null): "HIGH" | "MEDIUM" | "LOW" | null {
+  if (rmsDbfs === null || !Number.isFinite(rmsDbfs)) return null;
+  return rmsDbfs >= -11 ? "HIGH" : rmsDbfs >= -18 ? "MEDIUM" : "LOW";
+}
+
+export function extractAudioPatterns(a: AudioMeasurement, meta: { subject: string; context?: string[] }): { patterns: CreativePattern[]; unavailable: string[] } {
+  const patterns: CreativePattern[] = [];
+  const unavailable: string[] = [];
+  const ctx = [...(meta.context ?? []), "music"];
+  if (a.silent) return { patterns, unavailable: ["Music patterns — the audio is silent."] };
+  const at = (s: number, e?: number) => `${meta.subject} ${s.toFixed(1)}${e !== undefined ? `–${e.toFixed(1)}` : ""} s`;
+  const level = loudnessLevel(a.rmsDbfs);
+  const timeline = a.energyTimeline ?? [];
+  const dynamics = timeline.length ? r2(timeline.reduce((x, w) => x + w.energy, 0) / timeline.length) : null;
+  if (a.bpm && a.tempoStatus === "available") {
+    const period = 60 / a.bpm;
+    const beatsPerBar = a.downbeatCount > 1 && a.beatCount > a.downbeatCount ? Math.round(a.beatCount / a.downbeatCount) : null;
+    patterns.push({
+      family: "MUSIC_TEMPO", name: `${Math.round(a.bpm)} BPM${level ? `, ${level.toLowerCase()} loudness` : ""}`,
+      description: `Music at ${Math.round(a.bpm)} BPM (beat every ${period.toFixed(2)} s${beatsPerBar ? `, about ${beatsPerBar} beats per bar` : ""}) with ${a.beatCount} beats and ${a.downbeatCount} downbeats over ${a.durationSec.toFixed(1)} s${level ? `; mastered at ${a.rmsDbfs!.toFixed(1)} dBFS RMS (${level.toLowerCase()} loudness)` : ""}.`,
+      parameters: { bpm: r2(a.bpm), tempoConfidence: r2(a.tempoConfidence), beatPeriodSec: r2(period), beatsPerBar, energyLevel: level, dynamics, durationSec: r2(a.durationSec) },
+      compatibleContexts: ctx, variationOptions: ["half-time feel", "same tempo, lower energy", "±6% tempo"],
+      scenes: [], confidence: r2(Math.min(0.9, 0.5 + a.tempoConfidence * 0.4)),
+      evidence: [`${meta.subject}: first beats at ${a.firstBeats.slice(0, 6).map((t) => t.toFixed(2)).join(", ")} s`, ...(a.downbeatTimes?.length ? [`${meta.subject}: downbeats at ${a.downbeatTimes.slice(0, 6).map((t) => t.toFixed(2)).join(", ")} s`] : []), ...(level ? [`Loudness level from RMS ${a.rmsDbfs!.toFixed(1)} dBFS`] : [])],
+    });
+  } else unavailable.push(`Tempo pattern — ${a.bpm ? "tempo confidence was too low" : "no reliable tempo was measured"}; BPM is not guessed.`);
+  if (a.sections.length > 1) {
+    const intro = a.sections.find((s) => /intro/i.test(s.label));
+    const rises = (a.energyTransitions ?? []).filter((t) => t.type === "ENERGY_RISE" || t.type === "ENERGY_PEAK");
+    const peak = timeline.length ? timeline.reduce((m, w) => (w.energy > m.energy ? w : m), timeline[0]!) : null;
+    patterns.push({
+      family: "MUSIC_STRUCTURE", name: a.sections.slice(0, 6).map((s) => s.label.toLowerCase()).join(" → "),
+      description: `Structure ${a.sections.slice(0, 8).map((s) => `${s.label.toLowerCase()} ${s.start.toFixed(0)}–${s.end.toFixed(0)} s`).join(", ")}${intro ? `; intro lasts ${(intro.end - intro.start).toFixed(1)} s` : ""}${peak ? `; energy peaks around ${peak.start.toFixed(1)} s` : ""}${rises.length ? `; energy rises at ${rises.slice(0, 4).map((t) => `${t.time.toFixed(1)} s`).join(", ")}` : ""}.`,
+      parameters: { sequence: a.sections.slice(0, 8).map((s) => s.label.toUpperCase()).join(">"), sections: a.sections.length, introSec: intro ? r2(intro.end - intro.start) : null, peakAtSec: peak ? r2(peak.start) : null, firstRiseSec: rises[0] ? r2(rises[0].time) : null, durationSec: r2(a.durationSec) },
+      compatibleContexts: ctx, variationOptions: ["shorter intro", "reveal on the first energy rise", "end on the outro"],
+      scenes: [], confidence: 0.65,
+      evidence: a.sections.slice(0, 6).map((s) => `${at(s.start, s.end)}: ${s.label.toLowerCase()}`),
+    });
+  }
+  unavailable.push("Speech, transcript and sound-effect patterns — no speech-to-text or sound-event runtime is configured.");
+  return { patterns, unavailable };
+}
+
+// ---------- Phase 18D: image / design ----------
+
+const sideOf = (x: number) => (x < 0.42 ? "left" : x > 0.58 ? "right" : "center");
+
+export function extractImagePatterns(deep: ImageDeepAnalysis, meta: { context?: string[] } = {}): { patterns: CreativePattern[]; unavailable: string[] } {
+  const patterns: CreativePattern[] = [];
+  const unavailable: string[] = [];
+  const aspect = deep.height > deep.width * 1.2 ? "vertical" : deep.width > deep.height * 1.2 ? "horizontal" : "square";
+  const ctx = [...(meta.context ?? []), "design", aspect];
+  const s = deep.subject;
+  const dims = `${deep.width}×${deep.height}`;
+  if (s.separable) {
+    const placement = sideOf(s.centerX);
+    const free = { left: s.margins.left, right: s.margins.right, top: s.margins.top, bottom: s.margins.bottom };
+    const horizontal = free.left >= free.right ? "left" : "right";
+    const vertical = free.top >= free.bottom ? "top" : "bottom";
+    const textSafeSide = Math.max(free.left, free.right) >= 0.25 ? horizontal : Math.max(free.top, free.bottom) >= 0.2 ? vertical : null;
+    patterns.push({
+      family: "LAYOUT", name: `Product ${placement === "center" ? "centred" : `on the ${placement}`}${textSafeSide ? `, text-safe space on the ${textSafeSide}` : ""}`,
+      description: `The product ${placement === "center" ? "is centred" : `sits on the ${placement}`} (${pct(s.coverage)} of the canvas) with ${textSafeSide ? `${pct(free[textSafeSide])} free on the ${textSafeSide}` : "little free space around it"}; ${pct(deep.whitespaceShare)} of the canvas is plain background.`,
+      parameters: { subjectPlacement: placement, textSafeSide, subjectCoverage: r2(s.coverage), negativeSpace: r2(deep.whitespaceShare), marginLeft: r2(free.left), marginRight: r2(free.right), marginTop: r2(free.top), marginBottom: r2(free.bottom), touchesEdge: s.touchesEdge },
+      compatibleContexts: ctx, variationOptions: ["mirror the layout", "centre the product", "more negative space"],
+      scenes: [], confidence: 0.72,
+      evidence: [`Subject box ${JSON.stringify(s.box)} on ${dims}`, `Background share ${pct(deep.whitespaceShare)}`],
+    });
+  }
+  const bands = deep.textRegions ?? [];
+  if (bands.length) {
+    const top = bands.filter((b) => b.y1 <= 0.4);
+    const bottom = bands.filter((b) => b.y0 >= 0.6);
+    const cx = bands.reduce((a, b) => a + (b.x0 + b.x1) / 2, 0) / bands.length;
+    const headline = [...bands].sort((a, b) => (b.y1 - b.y0) - (a.y1 - a.y0))[0]!;
+    const headlinePosition = (headline.y0 + headline.y1) / 2 < 0.34 ? "top" : (headline.y0 + headline.y1) / 2 > 0.66 ? "bottom" : "middle";
+    const textSide = sideOf(cx);
+    const heights = bands.map((b) => b.y1 - b.y0);
+    const hierarchy = heights.length > 1 ? r2(Math.max(...heights) / Math.max(0.001, Math.min(...heights))) : null;
+    const vision = deep.vision?.textItems.length ? deep.vision : null;
+    const ctaPos = vision?.textItems.find((i) => i.role === "cta")?.position;
+    const ctaBand = ctaPos ? (/top|upper/.test(ctaPos) ? "top" : /bottom|lower/.test(ctaPos) ? "bottom" : null) : bottom.length && bands.length > 1 ? "bottom" : null;
+    patterns.push({
+      family: "TYPOGRAPHY_LAYOUT", name: `${bands.length} text band(s): largest at the ${headlinePosition}${textSide !== "center" ? `, text on the ${textSide}` : ""}${ctaBand ? `, closing line at the ${ctaBand}` : ""}`,
+      description: `${bands.length} text-like band(s) ${top.length ? `${top.length} in the top third` : ""}${top.length && bottom.length ? ", " : ""}${bottom.length ? `${bottom.length} in the bottom third` : ""}; the largest band (headline candidate) sits at the ${headlinePosition}${hierarchy ? ` and is ${hierarchy}× the height of the smallest (size hierarchy)` : ""}. ${vision ? `Vision roles: ${vision.textItems.map((i) => `${i.role} ${i.relativeSize} at ${i.position}`).join(", ")}.` : "Text is located, not read; fonts are never identified."}`,
+      parameters: { textBands: bands.length, headlinePosition, textSide, ctaBand, sizeHierarchy: hierarchy, topBands: top.length, bottomBands: bottom.length, readByVision: Boolean(vision) },
+      compatibleContexts: ctx, variationOptions: ["headline at the top, CTA at the bottom", "single headline only", "text beside the product"],
+      scenes: [], confidence: vision ? 0.66 : 0.5,
+      evidence: bands.slice(0, 5).map((b) => `${b.label} at y ${b.y0.toFixed(2)}–${b.y1.toFixed(2)}, x ${b.x0.toFixed(2)}–${b.x1.toFixed(2)}`),
+    });
+  } else unavailable.push("Typography layout — no text-like regions were found in the image.");
+  if (!deep.vision) unavailable.push("Typography hierarchy by role (headline/CTA reading) — Admin VISION_ANALYSIS is not executable; font names are never guessed.");
+  if (deep.subjectBackgroundContrast) {
+    const ratio = deep.subjectBackgroundContrast;
+    const contrastClass = ratio >= 7 ? "HIGH" : ratio >= 4.5 ? "MEDIUM" : "LOW";
+    patterns.push({
+      family: "COLOR_CONTRAST", name: `${contrastClass.toLowerCase()} foreground/background contrast (${ratio}:1)`,
+      description: `Foreground/background luminance contrast ${ratio}:1 (${contrastClass.toLowerCase()}); dominant colours ${deep.dominantColors.slice(0, 4).map((c) => `${c.hex} ${pct(c.share)}`).join(", ")}.`,
+      parameters: { contrastRatio: ratio, contrastClass, dominant: deep.dominantColors.slice(0, 3).map((c) => c.hex).join(","), dynamicRange: r2(deep.dynamicRange) },
+      compatibleContexts: ctx, variationOptions: ["same palette, lighter background", "higher contrast", "brand colour accent"],
+      scenes: [], confidence: 0.7,
+      evidence: [`WCAG-style luminance ratio between background and foreground pixels on ${dims}`],
+    });
+  }
+  return { patterns, unavailable };
+}
+
+// ---------- Phase 18D: cross-modal ----------
+
+export interface ModalPattern { modality: "VIDEO" | "AUDIO" | "IMAGE"; pattern: CreativePattern; sourceTitle: string }
+
+/**
+ * Combines patterns taught by different modalities into one production profile (visual + typography + motion +
+ * audio + synchronisation). Each component keeps its own record; the profile references them by name.
+ */
+export function buildCreativeProfile(items: ModalPattern[], crossSync: { onBeatRatio: number; downbeatRatio: number; bpm: number } | null): CreativePattern | null {
+  const modalities = new Set(items.map((i) => i.modality));
+  if (crossSync) { modalities.add("VIDEO"); modalities.add("AUDIO"); }
+  if (modalities.size < 2) return null;
+  const pick = (family: string, modality?: ModalPattern["modality"]) => items.filter((i) => i.pattern.family === family && (!modality || i.modality === modality)).sort((a, b) => b.pattern.confidence - a.pattern.confidence)[0];
+  const visual = pick("LAYOUT");
+  const typography = pick("TYPOGRAPHY_LAYOUT") ?? pick("TYPOGRAPHY_TIMING");
+  const motion = pick("CAMERA", "VIDEO");
+  const transition = pick("TRANSITION", "VIDEO");
+  const tempo = pick("MUSIC_TEMPO");
+  const sync = pick("AUDIO_SYNC");
+  const parts: Array<[string, ModalPattern | undefined]> = [["Visual", visual], ["Typography", typography], ["Motion", motion], ["Transition", transition], ["Audio", tempo], ["Synchronisation", sync]];
+  const present = parts.filter(([, p]) => p);
+  if (present.length < 2 && !crossSync) return null;
+  const syncText = crossSync ? `${Math.round(crossSync.onBeatRatio * 100)}% of cuts on the beat (${Math.round(crossSync.downbeatRatio * 100)}% on downbeats) at ${Math.round(crossSync.bpm)} BPM` : null;
+  const signature = present.map(([k, p]) => `${k}:${p!.pattern.name}`).join(";");
+  return {
+    family: "CREATIVE_PROFILE", name: present.map(([k, p]) => `${k.toLowerCase()} ${p!.pattern.name}`).slice(0, 3).join(" · ").slice(0, 120),
+    description: `Production profile combining ${[...modalities].map((m) => m.toLowerCase()).join(", ")} teaching: ${present.map(([k, p]) => `${k}: ${p!.pattern.name} (${p!.sourceTitle})`).join("; ")}${syncText ? `; Sync: ${syncText}` : ""}.`,
+    parameters: {
+      signature: signature.slice(0, 80), visual: visual?.pattern.name ?? null, typography: typography?.pattern.name ?? null, motion: motion?.pattern.name ?? null,
+      transition: transition?.pattern.name ?? null, audio: tempo?.pattern.name ?? null, sync: syncText, modalities: [...modalities].sort().join("+"),
+    },
+    compatibleContexts: [...new Set(items.flatMap((i) => i.pattern.compatibleContexts))].slice(0, 10),
+    variationOptions: ["use components independently", "swap the motion component", "swap the audio component"],
+    scenes: [], confidence: r2(Math.min(0.85, present.reduce((a, [, p]) => a + p!.pattern.confidence, 0) / Math.max(1, present.length))),
+    evidence: present.map(([k, p]) => `${k} from ${p!.sourceTitle}: ${p!.pattern.evidence[0] ?? p!.pattern.description.slice(0, 120)}`).slice(0, 6),
+  };
 }

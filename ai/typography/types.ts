@@ -198,6 +198,8 @@ export interface TypographyDecision {
   scenes: TypographyScenePlan[];
   warnings: string[];
   createdAt: string;
+  /** Phase 18D — how learned layout was used (items placed with it). */
+  learnedLayout?: { name: string; textSides: string[]; ctaPlacement: string | null; itemsPlaced: number } | null;
 }
 
 export interface TypographyComposeInput {
@@ -239,7 +241,12 @@ export interface TypographyComposeInput {
   brandColors?: string[];
   useOllama?: boolean;
   /** Retrieved typography knowledge, clamped by the engine (2–3 items; 2–4 on closing scenes). */
-  guidance?: { maxItemsPerScene?: number; maxItemsCtaScene?: number } | null;
+  guidance?: {
+    maxItemsPerScene?: number;
+    maxItemsCtaScene?: number;
+    /** Phase 18D — learned text placement from ACTIVE teaching; used only where the scene has no measured side bias. */
+    learnedLayout?: { textSides: Array<"left" | "right" | "top" | "bottom">; ctaPlacement: "bottom" | "top" | null; patternId: string; name: string; dataset: string } | null;
+  } | null;
 }
 
 export interface PublicTypographyDiagnostics {

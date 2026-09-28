@@ -149,6 +149,18 @@ function measuredText(m: AdminTeachingSource["measured"]): string {
   return parts.join(" · ") || "—";
 }
 
+const SUMMARY_LABELS: Record<string, string> = {
+  bpm: "BPM", beats: "beats", downbeats: "downbeats", sections: "sections", musicPatterns: "music patterns", textBands: "text bands",
+  designPatterns: "design patterns", visionUsed: "vision used", scenes: "scenes", observations: "observations", patterns: "patterns",
+};
+
+function summaryText(summary: Record<string, unknown>): string {
+  return Object.entries(SUMMARY_LABELS)
+    .filter(([k]) => typeof summary[k] === "number" || typeof summary[k] === "boolean")
+    .map(([k, label]) => (typeof summary[k] === "boolean" ? `${label}: ${summary[k] ? "yes" : "no"}` : k === "bpm" ? `${Math.round(Number(summary[k]))} BPM` : `${summary[k]} ${label}`))
+    .join(" · ");
+}
+
 /** "Learn from this material": upload → real analysis job → review → dataset → publish → evaluate → activate. */
 export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset }: {
   catalog: AdminTrainingCatalog; datasets: AdminTrainingDataset[]; notify: Notify; onChanged: () => void; onOpenDataset: (id: string) => void;
@@ -304,7 +316,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
       setCommitted(result);
       setSession((await adminApi.teachingSession(sessionId)).session);
       onChanged();
-      notify(`${result.created} knowledge record(s) added to ${result.datasetKey}${result.merged ? `, ${result.merged} merged` : ""}`);
+      notify(`${result.created} knowledge record(s) added to ${result.datasetKey}${result.merged ? `, ${result.merged} merged` : ""}${result.enriched ? `, ${result.enriched} enriched` : ""}`);
       setBusy(null);
     } catch (err) {
       setBusy(null);
@@ -483,6 +495,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
             <details key={s.sourceId} style={{ fontSize: 12, marginBottom: 6 }}>
               <summary><StatusBadge status={s.learningStatus ?? s.status} /> {s.title}{s.unavailable.length ? ` — ${s.unavailable.length} aspect(s) unavailable` : ""}</summary>
               <ul>
+                {summaryText(s.summary) ? <li>Measured: {summaryText(s.summary)}</li> : null}
                 {s.notes.map((n) => <li key={n}>{n}</li>)}
                 {s.unavailable.map((u) => <li key={u}><StatusBadge status="UNAVAILABLE" /> {u}</li>)}
               </ul>
@@ -541,7 +554,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
                   </details>
                 ),
                 type: <span style={{ fontSize: 12 }}>{k.knowledgeType.replace("_", " ")}<br />{k.method.toLowerCase().replace("_", " ")}</span>,
-                novelty: <span title={k.novelty.reason}><StatusBadge status={k.novelty.class} />{k.novelty.matched ? <><br /><span className="acc-muted" style={{ fontSize: 11 }}>vs {k.novelty.matched.title.slice(0, 60)}</span></> : null}</span>,
+                novelty: <span title={k.novelty.reason}><StatusBadge status={k.novelty.class} />{k.novelty.method === "STRUCTURAL_PATTERN" ? <span className="acc-muted" style={{ fontSize: 11 }}> structural</span> : null}{k.novelty.matched ? <><br /><span className="acc-muted" style={{ fontSize: 11 }}>vs {k.novelty.matched.title.slice(0, 60)}</span></> : null}</span>,
                 conf: k.confidence.toFixed(2),
                 prov: <span style={{ fontSize: 12 }}>{k.sourceLocations.slice(0, 3).map((l) => `${l.sourceTitle} — ${l.label}${l.sourceRetained ? "" : " (source not retained)"}`).join("; ")}</span>,
                 decision: k.committedRecordId
@@ -574,6 +587,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
         <SectionCard title="Dataset version, evaluation and activation" description="Publishing creates an immutable version; evaluation runs real checks; only a passed version can be activated, and rollback stays available.">
           <p>
             Dataset <strong>{committed.datasetKey}</strong>: {committed.created} record(s) added{committed.merged ? `, ${committed.merged} merged into existing records (provenance extended)` : ""}
+            {committed.enriched ? `, ${committed.enriched} existing record(s) enriched (previous wording kept in the revision history and earlier versions)` : ""}
             {committed.skipped.length ? `, ${committed.skipped.length} skipped` : ""}.
           </p>
           {committed.skipped.length ? <ul style={{ fontSize: 12 }}>{committed.skipped.slice(0, 10).map((s) => <li key={s.id}>{s.reason}</li>)}</ul> : null}

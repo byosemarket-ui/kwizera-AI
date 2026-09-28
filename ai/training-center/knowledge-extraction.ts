@@ -16,8 +16,8 @@ import { terms } from "./knowledge-novelty.js";
 import type { ImageDeepAnalysis, TeachingAi, VideoDeepAnalysis } from "./teaching-deep-media.js";
 import { measureSync } from "./teaching-deep-media.js";
 import type { TextUnit } from "./teaching-documents.js";
-import { extractCreativePatterns } from "./creative-patterns.js";
-import type { PatternFamily } from "../creative-planning/learned-creative-patterns.js";
+import { buildCreativeProfile, extractAudioPatterns, extractCreativePatterns, extractImagePatterns, type ModalPattern } from "./creative-patterns.js";
+import type { CreativePattern, PatternFamily } from "../creative-planning/learned-creative-patterns.js";
 import { detectLanguage } from "./language-detection.js";
 import type {
   AudioMeasurement, GuidanceValue, KnowledgeEvidence, KnowledgeRecord, KnowledgeType, MediaAnalysis, SourceLocation,
@@ -396,7 +396,25 @@ const PATTERN_FACETS: Record<PatternFamily, string[]> = {
   HOOK: ["structure", "motion"], REVEAL: ["structure", "transitions", "framing"], SHOWCASE: ["structure", "motion", "framing"], BENEFIT: ["structure"], OFFER: ["structure"],
   CTA: ["cta", "structure"], PACING: ["pacing", "structure"], CAMERA: ["motion"], TRANSITION: ["transitions"], TYPOGRAPHY_TIMING: ["typography", "pacing"],
   AUDIO_SYNC: ["audio", "transitions", "pacing"], STORYTELLING: ["structure"],
+  MUSIC_TEMPO: ["audio", "pacing"], MUSIC_STRUCTURE: ["audio", "structure"], LAYOUT: ["layout", "framing"], TYPOGRAPHY_LAYOUT: ["typography", "layout"],
+  COLOR_CONTRAST: ["color"], CREATIVE_PROFILE: ["structure", "audio", "typography", "motion"],
 };
+
+const MULTIMODAL_FAMILIES = new Set<PatternFamily>(["AUDIO_SYNC", "STORYTELLING", "CREATIVE_PROFILE"]);
+
+/** A measured creative pattern as a knowledge draft; the pattern itself is the structured data runtimes read. */
+function patternDraft(p: CreativePattern, locations: SourceLocation[], kind: "MEASURED" | "AI_ASSISTED" = "MEASURED"): Draft {
+  return {
+    knowledgeType: MULTIMODAL_FAMILIES.has(p.family) ? "multimodal_pattern" : "pattern",
+    title: `Creative pattern · ${p.family.replace(/_/g, " ").toLowerCase()}: ${p.name}`,
+    statement: p.description,
+    structuredData: { creativePattern: p },
+    locations,
+    evidence: p.evidence.slice(0, 8).map((text) => ({ kind: "MEASUREMENT" as const, text })),
+    confidence: p.confidence, method: kind,
+    facets: PATTERN_FACETS[p.family], tags: [`family-${p.family.toLowerCase()}`, "creative-pattern"],
+  };
+}
 
 export function extractFromVideo(source: TeachingSource, base: MediaAnalysis, deep: VideoDeepAnalysis | null, ctx: ExtractionContext): { records: KnowledgeRecord[]; unavailableFocus: string[] } {
   const drafts: Draft[] = [];
@@ -509,19 +527,13 @@ export function extractFromVideo(source: TeachingSource, base: MediaAnalysis, de
     const { patterns } = extractCreativePatterns(deep!.observations!, { durationSec: duration, aspectRatio: base.aspectRatio, bpm: base.audio?.bpm ?? null });
     for (const p of patterns) {
       const locs = p.scenes.map((i) => scenes.find((s) => s.index === i)).filter((s): s is NonNullable<typeof s> => Boolean(s)).slice(0, 12).map(sceneLoc);
-      drafts.push({
-        knowledgeType: p.family === "AUDIO_SYNC" || p.family === "STORYTELLING" ? "multimodal_pattern" : "pattern",
-        title: `Creative pattern · ${p.family.replace("_", " ").toLowerCase()}: ${p.name}`,
-        statement: p.description,
-        structuredData: { creativePattern: p },
-        locations: locs.length ? locs : [whole],
-        evidence: p.evidence.slice(0, 8).map((text) => ({ kind: "MEASUREMENT" as const, text })),
-        confidence: p.confidence, method: "MEASURED",
-        facets: PATTERN_FACETS[p.family], tags: [`family-${p.family.toLowerCase()}`, "creative-pattern"],
-      });
+      drafts.push(patternDraft(p, locs.length ? locs : [whole]));
     }
   }
-  if (base.audio) drafts.push(...audioDrafts(source, base.audio, "The soundtrack", ctx));
+  if (base.audio) {
+    drafts.push(...audioDrafts(source, base.audio, "The soundtrack", ctx));
+    drafts.push(...audioPatternDrafts(source, base.audio, "Soundtrack"));
+  }
   const unavailableFocus: string[] = [];
   const measuredFacets = new Set(drafts.flatMap((d) => d.facets ?? []));
   for (const f of ctx.scope.mediaFocus) if (!measuredFacets.has(f)) unavailableFocus.push(f);
@@ -581,8 +593,25 @@ function audioDrafts(source: TeachingSource, a: AudioMeasurement, subject: strin
   return drafts;
 }
 
+function audioPatternDrafts(source: TeachingSource, a: AudioMeasurement, subject: string): Draft[] {
+  const { patterns } = extractAudioPatterns(a, { subject });
+  return patterns.map((p) => {
+    const locs = p.family === "MUSIC_STRUCTURE"
+      ? a.sections.slice(0, 8).map((s) => makeLocation(source, { startSec: s.start, endSec: s.end, section: s.label.toLowerCase() }))
+      : [makeLocation(source, { startSec: 0, endSec: a.durationSec })];
+    return patternDraft(p, locs);
+  });
+}
+
 export function extractFromAudio(source: TeachingSource, analysis: MediaAnalysis, ctx: ExtractionContext): KnowledgeRecord[] {
-  return analysis.audio ? audioDrafts(source, analysis.audio, "The track", ctx).map((d) => finalizeDraft(d, ctx)) : [];
+  if (!analysis.audio) return [];
+  return [...audioDrafts(source, analysis.audio, "The track", ctx), ...audioPatternDrafts(source, analysis.audio, "Track")].map((d) => finalizeDraft(d, ctx));
+}
+
+/** What the audio pipeline could not assess on this server (reported, never faked). */
+export function audioUnavailable(a: AudioMeasurement | null | undefined): string[] {
+  if (!a) return ["Audio analysis — no decodable audio stream."];
+  return extractAudioPatterns(a, { subject: "Track" }).unavailable;
 }
 
 export function extractFromImage(source: TeachingSource, deep: ImageDeepAnalysis, ctx: ExtractionContext): KnowledgeRecord[] {
@@ -618,6 +647,10 @@ export function extractFromImage(source: TeachingSource, deep: ImageDeepAnalysis
       structuredData: { vision: v }, locations: [whole], evidence: [{ kind: "VISION", text: v.textItems.map((i) => `${i.role}@${i.position}`).join(", ") }], confidence: 0.6, method: "AI_ASSISTED",
     });
   }
+  for (const p of extractImagePatterns(deep).patterns) {
+    const label = p.family === "TYPOGRAPHY_LAYOUT" ? "text-like bands" : p.family === "LAYOUT" ? "composition" : "colour and contrast";
+    drafts.push(patternDraft(p, [makeLocation(source, { section: `${deep.width}×${deep.height} ${label}` })], p.family === "TYPOGRAPHY_LAYOUT" && deep.vision ? "AI_ASSISTED" : "MEASURED"));
+  }
   return drafts.map((d) => finalizeDraft(d, ctx));
 }
 
@@ -628,20 +661,50 @@ export function correlateSources(records: KnowledgeRecord[], sources: Array<{ so
   const extra: KnowledgeRecord[] = [];
   const videos = sources.filter((s) => s.source.kind === "VIDEO" && s.analysis?.sceneChanges);
   const audios = sources.filter((s) => s.source.kind === "AUDIO" && s.analysis?.audio?.bpm);
+  let crossSync: { onBeatRatio: number; downbeatRatio: number; bpm: number } | null = null;
   for (const v of videos) {
     for (const a of audios) {
       const cuts = (v.analysis!.sceneChanges ?? []).filter((t) => t > 0.2);
-      const sync = measureSync(cuts, a.analysis!.audio);
+      const audio = a.analysis!.audio!;
+      const sync = measureSync(cuts, audio);
       if (!sync) continue;
       const ratio = sync.onBeat / sync.cuts;
+      const downRatio = sync.onDownbeat / sync.cuts;
+      const follows = ratio >= 0.6 && ratio > 2 * sync.chanceRatio;
+      crossSync ??= { onBeatRatio: ratio, downbeatRatio: downRatio, bpm: sync.bpm };
+      const nearest = (list: number[] | undefined, t: number) => (list ?? []).reduce<number | null>((best, b) => (best === null || Math.abs(b - t) < Math.abs(best - t) ? b : best), null);
+      const evidence = cuts.slice(0, 8).map((t) => {
+        const beat = nearest(audio.beatTimes, t);
+        const down = nearest(audio.downbeatTimes, t);
+        const onDown = down !== null && Math.abs(down - t) <= sync.toleranceSec;
+        return `${v.source.title} cut ${t.toFixed(2)} s ↔ ${a.source.title} ${onDown ? `downbeat ${down!.toFixed(2)}` : beat !== null ? `beat ${beat.toFixed(2)}` : "no beat"} s${beat !== null ? ` (Δ ${Math.round(Math.abs((onDown ? down! : beat) - t) * 1000)} ms)` : ""}`;
+      });
+      const pattern: CreativePattern = {
+        family: "AUDIO_SYNC", name: follows ? `Cuts on the ${downRatio >= 0.5 ? "downbeat" : "beat"} (${sync.onBeat}/${sync.cuts}, paired sources)` : `Cuts independent of the beat (${sync.onBeat}/${sync.cuts}, paired sources)`,
+        description: `Against ${a.source.title} (${sync.bpm} BPM), ${sync.onBeat} of ${sync.cuts} cuts of ${v.source.title} fall within ±${Math.round(sync.toleranceSec * 1000)} ms of a beat and ${sync.onDownbeat} on a downbeat (chance level ${pct(sync.chanceRatio)})${follows ? ", so the edit follows this track" : ", so the edit does not follow this track's beat"}.`,
+        parameters: { onBeatRatio: Number(ratio.toFixed(2)), onDownbeat: sync.onDownbeat, downbeatRatio: Number(downRatio.toFixed(2)), bpm: sync.bpm, toleranceSec: sync.toleranceSec, alignTo: follows ? (downRatio >= 0.5 ? "DOWNBEAT" : "BEAT") : "FREE", pairedSources: true },
+        compatibleContexts: ["product-video", "music"], variationOptions: ["cut on every beat", "cut on downbeats only", "hold across the drop"],
+        scenes: [], confidence: 0.8, evidence,
+      };
       extra.push(finalizeDraft({
-        knowledgeType: "multimodal_pattern", title: `${v.source.title} × ${a.source.title}: ${sync.onBeat}/${sync.cuts} cuts on beat`, facets: ["audio", "transitions"],
-        statement: `Against ${a.source.title} (${sync.bpm} BPM), ${sync.onBeat} of ${sync.cuts} cuts of ${v.source.title} fall within ±${Math.round(sync.toleranceSec * 1000)} ms of a beat (chance level ${pct(sync.chanceRatio)})${ratio >= 0.6 && ratio > 2 * sync.chanceRatio ? ", so the edit follows this track" : ", so the edit does not follow this track's beat"}.`,
-        structuredData: { ...sync, videoSourceId: v.source.sourceId, audioSourceId: a.source.sourceId },
-        locations: [makeLocation(v.source, { startSec: 0, endSec: v.analysis!.durationSec ?? 0 }), makeLocation(a.source, { startSec: 0, endSec: a.analysis!.audio!.durationSec })],
-        evidence: cuts.slice(0, 8).map((t) => ({ kind: "MEASUREMENT" as const, text: `cut ${t.toFixed(2)} s` })), confidence: 0.8, method: "MEASURED",
+        ...patternDraft(pattern, [makeLocation(v.source, { startSec: 0, endSec: v.analysis!.durationSec ?? 0 }), makeLocation(a.source, { startSec: 0, endSec: audio.durationSec })]),
+        title: `${v.source.title} × ${a.source.title}: ${sync.onBeat}/${sync.cuts} cuts on beat`,
+        structuredData: { ...sync, videoSourceId: v.source.sourceId, audioSourceId: a.source.sourceId, creativePattern: pattern },
       }, ctx));
     }
+  }
+  const kindOf = new Map(sources.map((s) => [s.source.sourceId, s.source]));
+  const modal: ModalPattern[] = [];
+  for (const r of records) {
+    const p = r.structuredData.creativePattern as CreativePattern | undefined;
+    const src = kindOf.get(r.sourceIds[0] ?? "");
+    if (!p || !src || (src.kind !== "VIDEO" && src.kind !== "AUDIO" && src.kind !== "IMAGE")) continue;
+    modal.push({ modality: src.kind, pattern: p, sourceTitle: src.title });
+  }
+  const profile = buildCreativeProfile(modal, crossSync);
+  if (profile) {
+    const involved = sources.filter((s) => s.source.kind === "VIDEO" || s.source.kind === "AUDIO" || s.source.kind === "IMAGE");
+    extra.push(finalizeDraft(patternDraft(profile, involved.slice(0, 6).map((s) => makeLocation(s.source, s.source.kind === "IMAGE" ? { section: "composition" } : { startSec: 0, endSec: s.analysis?.durationSec ?? s.analysis?.audio?.durationSec ?? 0 }))), ctx));
   }
   const measured = [...records, ...extra].filter((r) => r.method !== "RULE_BASED" && r.sourceIds.length);
   for (const r of records.filter((x) => x.method === "RULE_BASED")) {

@@ -453,7 +453,7 @@ export class VideoProductionManager {
           platform: profile.id,
           images,
         }),
-        guidance: typographyGuidanceFrom(planKnowledge.typography),
+        guidance: { ...(typographyGuidanceFrom(planKnowledge.typography) ?? {}), learnedLayout: await this.learnedTypographyLayout(projectId) },
       });
       if (decision.projectId === projectId && decision.scenes.length) {
         timeline = applyTypographyDecisionToTimeline(timeline, decision);
@@ -830,7 +830,7 @@ export class VideoProductionManager {
               platform: profile.id,
               images,
             }),
-            guidance: typographyGuidanceFrom(renderKnowledge.typography),
+            guidance: { ...(typographyGuidanceFrom(renderKnowledge.typography) ?? {}), learnedLayout: await this.learnedTypographyLayout(job.projectId) },
           });
           if (decision.projectId === job.projectId && decision.scenes.length) {
             typedClips = applyTypographyDecisionToTimeline(renderClips, decision);
@@ -1598,6 +1598,32 @@ export class VideoProductionManager {
     }
   }
 
+  /** Phase 18D — learned beat alignment (AUDIO_SYNC patterns from ACTIVE teaching versions only; scope-aware). */
+  private async learnedBeatAlignment(projectId: string, planVersion: number): Promise<import("./beat-sync-timing.js").LearnedBeatAlignmentInput | null> {
+    try {
+      const lp = await import("../creative-planning/learned-creative-patterns.js");
+      const patterns = lp.activeCreativePatterns({ ...lp.RUNTIME_PATTERN_QUERIES.beatSync(), projectId, context: ["product-video", "music"] });
+      if (!patterns.length) return null;
+      const use = lp.learnedBeatAlignment(lp.selectCreativePatterns(patterns, { seed: `${projectId}:${planVersion}:beat`, context: ["product-video", "music"] }));
+      return use ? { alignTo: use.value, patternId: use.patternId, name: use.name, dataset: `${use.provenance.datasetKey} v${use.provenance.version}` } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Phase 18D — learned text placement (LAYOUT / TYPOGRAPHY_LAYOUT from ACTIVE teaching versions only). */
+  private async learnedTypographyLayout(projectId: string): Promise<{ textSides: Array<"left" | "right" | "top" | "bottom">; ctaPlacement: "bottom" | "top" | null; patternId: string; name: string; dataset: string } | null> {
+    try {
+      const lp = await import("../creative-planning/learned-creative-patterns.js");
+      const patterns = lp.activeCreativePatterns({ ...lp.RUNTIME_PATTERN_QUERIES.typography(), projectId, context: ["design", "product-video"] });
+      if (!patterns.length) return null;
+      const use = lp.learnedTypographyLayout(lp.selectCreativePatterns(patterns, { seed: `${projectId}:typography`, context: ["design", "product-video"] }));
+      return use ? { ...use.value, patternId: use.patternId, name: use.name, dataset: `${use.provenance.datasetKey} v${use.provenance.version}` } : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async retrieveAudioKnowledge(projectId: string, bpm: number | null): Promise<{ summary: KnowledgeContextSummary | null; guidance: AudioFitGuidance | null }> {
     const context = await retrieveTaskKnowledge({
       task: "AUDIO_PLAN",
@@ -1749,6 +1775,7 @@ export class VideoProductionManager {
         intelligence = null;
       }
     }
+    const learned = input.mode === "OFF" ? null : await this.learnedBeatAlignment(input.projectId, input.creativePlanVersion);
     const cacheKey = beatSyncCacheKey({
       projectId: input.projectId,
       audioAssetId: input.audioAssetId,
@@ -1758,6 +1785,7 @@ export class VideoProductionManager {
       targetDurationMs: baseDurationMs,
       aspectRatio: input.aspectRatio,
       mode: input.mode,
+      learnedKey: learned ? `${learned.patternId}:${learned.alignTo}` : null,
     });
     const cached = this.beatSyncPlanCache.get(cacheKey);
     if (
@@ -1782,6 +1810,7 @@ export class VideoProductionManager {
       mode: input.mode,
       intelligence,
       audioAssetId: input.audioAssetId,
+      learned,
     });
     this.beatSyncPlanCache.set(cacheKey, result.plan);
     // Bound memory on long-lived process

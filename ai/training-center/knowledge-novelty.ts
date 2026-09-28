@@ -104,12 +104,86 @@ export function quantities(text: string): Array<{ value: number; unit: string; c
   return out;
 }
 
+export interface PatternRef {
+  family: string;
+  parameters: Record<string, unknown>;
+}
+
 export interface ComparisonItem {
   id: string;
   title: string;
   text: string;
   kind: "SESSION" | "DATASET" | "KNOWLEDGE_BASE";
   guidance?: Array<{ key: string; value: number }>;
+  /** Phase 18D — structured creative pattern carried by the item (compared structurally, not lexically). */
+  pattern?: PatternRef | null;
+  /** The item's knowledge statement alone (without provenance text), used to recognise an extension of it. */
+  statement?: string;
+}
+
+/** The parameters that make two patterns of one family the same creative choice (numbers bucketed). */
+const SIGNATURE_KEYS: Record<string, string[]> = {
+  TRANSITION: ["transition", "position"], CAMERA: ["movement", "role"], HOOK: ["movement", "subjectVisible", "textPresent"],
+  REVEAL: ["transition", "movement"], SHOWCASE: ["movement"], CTA: ["textBand"], PACING: ["sceneCount", "meanShotSec"],
+  TYPOGRAPHY_TIMING: ["band"], AUDIO_SYNC: ["alignTo"], STORYTELLING: ["sequence"], MUSIC_TEMPO: ["bpm", "energyLevel"],
+  MUSIC_STRUCTURE: ["sequence"], LAYOUT: ["subjectPlacement", "textSafeSide"], TYPOGRAPHY_LAYOUT: ["headlinePosition", "ctaBand", "textSide"],
+  COLOR_CONTRAST: ["contrastClass"], CREATIVE_PROFILE: ["signature"],
+};
+
+function bucket(key: string, v: unknown): string {
+  if (typeof v !== "number") return String(v ?? "");
+  if (key === "bpm") return String(Math.round(v / 5) * 5);
+  if (key === "meanShotSec") return String(Math.round(v * 2) / 2);
+  return String(Math.round(v * 100) / 100);
+}
+
+export function patternSignature(p: PatternRef): string {
+  const params = p.parameters ?? {};
+  const derived: Record<string, unknown> = { ...params };
+  if (p.family === "AUDIO_SYNC" && derived.alignTo === undefined) {
+    const on = Number(params.onBeatRatio ?? 0);
+    derived.alignTo = Number(params.downbeatRatio ?? 0) >= 0.5 ? "DOWNBEAT" : on >= 0.6 ? "BEAT" : "FREE";
+  }
+  return `${p.family}:${(SIGNATURE_KEYS[p.family] ?? []).map((k) => `${k}=${bucket(k, derived[k])}`).join("|")}`;
+}
+
+function numericClose(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  for (const [k, v] of Object.entries(a)) {
+    const w = b[k];
+    if (typeof v !== "number" || typeof w !== "number") continue;
+    const scale = Math.max(Math.abs(v), Math.abs(w), 1e-6);
+    if (Math.abs(v - w) / scale > 0.15) return false;
+  }
+  return true;
+}
+
+/**
+ * Words that say WHEN advice applies. Advice for different contexts ("calm" vs "high-energy") is a contextual
+ * variation to keep side by side, not a contradiction.
+ */
+const CONTEXT_GROUPS: Array<{ id: string; re: RegExp }> = [
+  { id: "calm", re: /\b(calm|relaxed|relaxing|slow|gentle|soft|quiet|serene|elegant|luxury|luxurious|premium|minimal(?:ist)?)\b/i },
+  { id: "energetic", re: /\b(high[- ]energy|energetic|upbeat|fast[- ]paced|fast|dynamic|hype|intense|aggressive|punchy|sporty)\b/i },
+  { id: "vertical", re: /\b(vertical|9:16|portrait|tiktok|reels?|shorts)\b/i },
+  { id: "horizontal", re: /\b(horizontal|16:9|landscape|widescreen|youtube)\b/i },
+  { id: "square", re: /\b(square|1:1)\b/i },
+  { id: "short-form", re: /\b(short[- ]form|under \d+ ?s(?:econds)?|15[- ]second|short videos?)\b/i },
+  { id: "long-form", re: /\b(long[- ]form|long videos?)\b/i },
+  { id: "dark", re: /\b(dark|night|low[- ]key|moody)\b/i },
+  { id: "bright", re: /\b(bright|light background|high[- ]key|white background)\b/i },
+];
+const OPPOSED: Array<[string, string]> = [["calm", "energetic"], ["vertical", "horizontal"], ["vertical", "square"], ["horizontal", "square"], ["short-form", "long-form"], ["dark", "bright"]];
+
+export function contexts(text: string): string[] {
+  return CONTEXT_GROUPS.filter((g) => g.re.test(text)).map((g) => g.id);
+}
+
+/** Non-null when the two statements apply to different contexts (e.g. calm vs high-energy videos). */
+export function contextualVariation(a: string, b: string): { mine: string[]; theirs: string[] } | null {
+  const ca = contexts(a); const cb = contexts(b);
+  if (!ca.length || !cb.length) return null;
+  const differs = OPPOSED.some(([x, y]) => (ca.includes(x) && cb.includes(y) && !ca.includes(y)) || (ca.includes(y) && cb.includes(x) && !ca.includes(x)));
+  return differs ? { mine: ca, theirs: cb } : null;
 }
 
 function contradiction(candidate: KnowledgeRecord, item: ComparisonItem, sim: number): string | null {
@@ -118,6 +192,7 @@ function contradiction(candidate: KnowledgeRecord, item: ComparisonItem, sim: nu
     if (other && other.value !== g.value) return `Sets ${g.key} to ${g.value}; "${item.title}" sets ${other.value}.`;
   }
   if (sim < 0.4) return null;
+  if (contextualVariation(candidate.statement, item.text)) return null;
   const pa = polarity(candidate.statement); const pb = polarity(item.text);
   if (pa !== "NEUTRAL" && pb !== "NEUTRAL" && pa !== pb) return `Opposite advice on the same topic as "${item.title}".`;
   const qa = quantities(candidate.statement); const qb = quantities(item.text);
@@ -138,6 +213,12 @@ export const NOVELTY_THRESHOLDS = { duplicate: 0.86, known: 0.68, partial: 0.38,
  * the caller so private knowledge of other projects is never compared or revealed.
  */
 export function assessNovelty(candidate: KnowledgeRecord, pool: ComparisonItem[]): NoveltyAssessment {
+  const ownPattern = candidate.structuredData?.creativePattern as PatternRef | undefined;
+  if (ownPattern && typeof ownPattern === "object" && ownPattern.family) {
+    const structural = assessPattern(candidate, ownPattern, pool);
+    if (structural) return structural;
+    pool = pool.filter((p) => !p.pattern);
+  }
   let best: { item: ComparisonItem; sim: number } | null = null;
   let conflict: { item: ComparisonItem; reason: string; sim: number } | null = null;
   const text = `${candidate.title}. ${candidate.statement}`;
@@ -156,6 +237,14 @@ export function assessNovelty(candidate: KnowledgeRecord, pool: ComparisonItem[]
   // A near-identical twin in this session or dataset already carries any conflict review, so the candidate is its duplicate.
   const twin = best && best.sim >= NOVELTY_THRESHOLDS.duplicate && best.item.kind !== "KNOWLEDGE_BASE" && conflict?.item !== best.item;
   if (conflict && !twin) return make("CONTRADICTORY", conflict.sim, conflict, conflict.reason);
+  const variation = best && best.sim >= NOVELTY_THRESHOLDS.partial ? contextualVariation(candidate.statement, best.item.text) : null;
+  if (variation && candidate.confidence >= NOVELTY_THRESHOLDS.lowConfidence) {
+    return make("PARTIALLY_NEW", best!.sim, best, `Contextual variation: this applies to ${variation.mine.join("/")} content, "${best!.item.title.slice(0, 80)}" to ${variation.theirs.join("/")}; both are kept with their context.`);
+  }
+  if (best?.item.statement && best.item.kind !== "KNOWLEDGE_BASE" && best.sim >= NOVELTY_THRESHOLDS.partial
+    && enrichesStatement(best.item.statement, candidate.canonicalStatement || candidate.statement)) {
+    return make("PARTIALLY_NEW", best.sim, best, `Extends "${best.item.title.slice(0, 80)}" with new detail; committing enriches that record and keeps its previous wording.`);
+  }
   if (best && best.sim >= NOVELTY_THRESHOLDS.duplicate && best.item.kind !== "KNOWLEDGE_BASE") {
     return make("DUPLICATE", best.sim, best, best.item.kind === "SESSION" ? "Same knowledge was extracted from another part of this material." : "Already taught in this dataset.");
   }
@@ -163,4 +252,43 @@ export function assessNovelty(candidate: KnowledgeRecord, pool: ComparisonItem[]
   if (candidate.confidence < NOVELTY_THRESHOLDS.lowConfidence) return make("LOW_CONFIDENCE", best?.sim ?? 0, best, `Extraction confidence ${candidate.confidence.toFixed(2)} is below ${NOVELTY_THRESHOLDS.lowConfidence}.`);
   if (best && best.sim >= NOVELTY_THRESHOLDS.partial) return make("PARTIALLY_NEW", best.sim, best, "Related knowledge exists; this adds detail or a variation.");
   return make("NEW", best?.sim ?? 0, best, best ? "No equivalent knowledge was found." : "Nothing comparable exists yet.");
+}
+
+/**
+ * Creative patterns are compared by family and the parameters that define the creative choice, so "push-in on the
+ * hook" and "pull-out on the hook" are different patterns even though their descriptions read alike. Returns null
+ * when no pattern of the same family is known (the caller then compares the text).
+ */
+function assessPattern(candidate: KnowledgeRecord, own: PatternRef, pool: ComparisonItem[]): NoveltyAssessment | null {
+  const sameFamily = pool.filter((p) => p.pattern && p.pattern.family === own.family);
+  if (!sameFamily.length) return null;
+  const sig = patternSignature(own);
+  const make = (cls: NoveltyClass, item: ComparisonItem | null, sim: number, reason: string): NoveltyAssessment => ({
+    class: cls, similarity: sim, method: "STRUCTURAL_PATTERN", reason,
+    matched: item ? { id: item.id, title: item.title, kind: item.kind, excerpt: item.text.slice(0, 220) } : null,
+  });
+  if (candidate.flags.some((f) => f === "INSTRUCTION_LIKE_REMOVED" || f === "SECRET_REDACTED")) return make("REQUIRES_REVIEW", null, 0, `Needs review: ${candidate.flags.join(", ").toLowerCase().replace(/_/g, " ")}.`);
+  const order = (k: ComparisonItem["kind"]) => (k === "SESSION" ? 0 : k === "DATASET" ? 1 : 2);
+  const same = sameFamily.filter((p) => patternSignature(p.pattern!) === sig).sort((a, b) => order(a.kind) - order(b.kind));
+  const family = own.family.toLowerCase().replace(/_/g, " ");
+  if (same.length) {
+    const exact = same.find((p) => numericClose(own.parameters ?? {}, p.pattern!.parameters ?? {}));
+    if (exact) return make("DUPLICATE", exact, 1, exact.kind === "SESSION" ? `Same ${family} pattern was measured elsewhere in this material.` : `The same ${family} pattern is already learned ("${exact.title.slice(0, 80)}").`);
+    return make("KNOWN", same[0]!, 0.9, `The same ${family} choice is already learned ("${same[0]!.title.slice(0, 80)}"); only measured values differ, so it supports the existing pattern.`);
+  }
+  if (candidate.confidence < NOVELTY_THRESHOLDS.lowConfidence) return make("LOW_CONFIDENCE", sameFamily[0]!, 0.5, `Measurement confidence ${candidate.confidence.toFixed(2)} is below ${NOVELTY_THRESHOLDS.lowConfidence}.`);
+  return make("NEW", sameFamily[0]!, 0.5, `New ${family} variation; ${sameFamily.length} other ${family} pattern(s) are known and stay available, so planners can vary between them.`);
+}
+
+/**
+ * True when the new statement keeps everything the existing one says and adds to it (e.g. "Keep the product
+ * centred" → "Keep the product centred while leaving text-safe space on the right").
+ */
+export function enrichesStatement(existing: string, next: string): boolean {
+  const a = new Set(terms(existing));
+  const b = new Set(terms(next));
+  if (a.size < 2 || b.size <= a.size) return false;
+  let kept = 0;
+  for (const t of a) if (b.has(t)) kept += 1;
+  return kept / a.size >= 0.8 && polarity(existing) === polarity(next) && !contextualVariation(existing, next);
 }
