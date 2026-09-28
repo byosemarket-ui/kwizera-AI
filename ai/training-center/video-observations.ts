@@ -13,7 +13,7 @@ const round = (n: number, d = 3) => Number(n.toFixed(d));
 
 export type CameraMovement = "STATIC" | "PAN_LEFT" | "PAN_RIGHT" | "TILT_UP" | "TILT_DOWN" | "PUSH_IN" | "PULL_OUT" | "TRACKING" | "HANDHELD" | "UNCLASSIFIED";
 export type TransitionKind = "START" | "CUT" | "FADE_THROUGH_BLACK" | "FADE_THROUGH_WHITE" | "DISSOLVE" | "WIPE" | "GRADUAL_UNCLASSIFIED";
-export type StoryRole = "HOOK" | "REVEAL" | "SHOWCASE" | "CTA" | "BRIDGE";
+export type StoryRole = "HOOK" | "REVEAL" | "CLOSE_UP" | "SHOWCASE" | "CTA" | "BRIDGE";
 export type CapabilityUse = "MEASURED" | "AI_ASSISTED" | "UNAVAILABLE";
 
 export interface Region { x0: number; y0: number; x1: number; y1: number; label: string }
@@ -386,6 +386,10 @@ export function storyRoles(scenes: Array<Pick<SceneMeasurement, "index" | "durat
     if (!revealed && (grows || firstSubject || s.camera === "PUSH_IN" || s.transitionIn === "FADE_THROUGH_BLACK")) {
       revealed = true;
       out.push({ role: "REVEAL", basis: "MEASURED", confidence: 0.6, note: grows ? "Subject grows markedly versus the previous scene." : firstSubject ? "Subject first appears." : s.camera === "PUSH_IN" ? "Camera pushes in on the subject." : "Scene opens from black." });
+      continue;
+    }
+    if (out[i - 1]?.role === "REVEAL" && prev && s.subjectCoverage !== null && s.subjectCoverage >= 0.45 && prev.subjectCoverage !== null && s.subjectCoverage >= prev.subjectCoverage * 1.2) {
+      out.push({ role: "CLOSE_UP", basis: "MEASURED", confidence: 0.6, note: `Subject fills ${Math.round(s.subjectCoverage * 100)}% of the frame right after the reveal (${Math.round(prev.subjectCoverage * 100)}% before), ${s.durationSec.toFixed(1)} s.` });
       continue;
     }
     if (s.subjectCoverage !== null && s.camera !== "STATIC") out.push({ role: "SHOWCASE", basis: "MEASURED", confidence: 0.55, note: `Subject on screen with ${s.camera.toLowerCase().replace("_", " ")} camera.` });

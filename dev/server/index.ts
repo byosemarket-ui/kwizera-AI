@@ -4487,13 +4487,20 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
     return;
   }
 
+  /** Learned-direction internals (pattern ids, dataset keys, sources) stay server-side; customers see what changed. */
+  const customerVideoView = async <V extends { learnedCreativeDirection?: unknown } | null | undefined>(video: V) => {
+    if (!video || !video.learnedCreativeDirection) return video;
+    const { publicLearnedDirection } = await import("../../ai/creative-planning/learned-creative-patterns.js");
+    const summary = video.learnedCreativeDirection as Parameters<typeof publicLearnedDirection>[0] & { storySequence?: string[] };
+    return { ...video, learnedCreativeDirection: { ...publicLearnedDirection(summary), storySequence: summary?.storySequence ?? [] } };
+  };
   const videoProjectMatch = url.pathname.match(/^\/api\/video-production\/projects\/([^/]+)$/);
   if (videoProjectMatch && req.method === "GET") {
     const production = requireVideoProduction(res);
     if (!production) return;
     try {
       const video = await production.getVideoProject(videoProjectMatch[1]);
-      sendJson(res, 200, { video });
+      sendJson(res, 200, { video: await customerVideoView(video) });
     } catch (error) {
       sendVideoProductionError(res, error);
     }
@@ -4526,10 +4533,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
           reorder: body.reorder,
           clip: body.clip,
         });
-        sendJson(res, 200, { video });
+        sendJson(res, 200, { video: await customerVideoView(video) });
       } else {
         const video = await production.createOrRefresh(videoProjectMatch[1]);
-        sendJson(res, 201, { video });
+        sendJson(res, 201, { video: await customerVideoView(video) });
       }
     } catch (error) {
       sendVideoProductionError(res, error);

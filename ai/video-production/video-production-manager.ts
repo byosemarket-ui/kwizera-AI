@@ -112,6 +112,15 @@ const AUDIO_MESSAGE_NONE = "No audio selected. Video will render without an audi
 const AUDIO_MESSAGE_SELECTED = "Selected library audio is fitted to the video length (loops with crossfades when shorter, fades out with the video when longer).";
 const AUDIO_MESSAGE_PROVIDER = "AI audio generation is not configured. Use Audio Library selection (STEP 2B).";
 
+interface LearnedPlanContext {
+  ctx: import("../creative-planning/learned-creative-patterns.js").CrossModalCreativeContext;
+  seed: string;
+  samePlan: boolean;
+  planVersion: number;
+  musicEnergy: import("../creative-planning/learned-creative-patterns.js").MusicEnergy | null;
+  projectId: string;
+}
+
 export class VideoProductionManager {
   private root = "";
   private core: AiCoreManager | null = null;
@@ -303,6 +312,20 @@ export class VideoProductionManager {
     const profile = profileForPlatform(workspaceProject.platform);
     const audioSelection = this.workspace!.getProjectAudioSelection(workspaceProject);
     const beatSyncMode = normalizeBeatSyncMode(audioSelection.beatSyncMode ?? workspaceProject.beatSyncMode);
+    // Phase 19 — one cross-modal creative context per plan: story rules and energy pacing shape scene timing
+    // before beat sync snaps the boundaries; transitions and camera follow after motion direction.
+    const learnedContext = await this.learnedCreativeContext(projectId, {
+      cinematic: repairedPlan.productionMode === "CINEMATIC_3D",
+      aspectRatio: profile.aspectRatio,
+      platform: profile.id,
+      durationMs: timelineDurationMs(timeline),
+      planVersion: repairedPlan.version,
+      previous: existing?.learnedCreativeDirection ?? null,
+      audioAssetId: audioSelection.selectedAudioAssetId,
+      transitionsLocked: Object.keys((workspaceProject.avDirectorOverrides ?? {}) as Record<string, unknown>).some((k) => /transition/i.test(k)),
+    });
+    const learnedTiming = learnedContext ? await this.applyLearnedCreativeDirection(timeline, learnedContext, "timing") : null;
+    if (learnedTiming) timeline = learnedTiming.clips;
     const beatSyncResult = await this.applyBeatSyncToTimeline({
       projectId,
       clips: timeline,
@@ -311,6 +334,7 @@ export class VideoProductionManager {
       creativePlanVersion: repairedPlan.version,
       aspectRatio: profile.aspectRatio,
       existingPlan: existing?.beatSyncTimingPlan,
+      timingKey: learnedTiming?.decisions.filter((d) => d.applied).map((d) => `${d.patternId}:${d.change}`).join("|") || null,
     });
     timeline = beatSyncResult.clips;
     const renderProfile = resolveProductionRenderProfile(repairedPlan.productionMode);
@@ -355,14 +379,10 @@ export class VideoProductionManager {
       }
     }
 
-    // Phase 18C — learned creative patterns from active Training Center versions (guidance; user edits win).
-    const learnedDirection = await this.applyLearnedCreativeDirection(projectId, timeline, {
-      cinematic: repairedPlan.productionMode === "CINEMATIC_3D",
-      aspectRatio: profile.aspectRatio,
-      planVersion: repairedPlan.version,
-      previous: existing?.learnedCreativeDirection ?? null,
-      transitionsLocked: Object.keys((workspaceProject.avDirectorOverrides ?? {}) as Record<string, unknown>).some((k) => /transition/i.test(k)),
-    });
+    // Phase 18C/19 — learned creative patterns from active Training Center versions (guidance; user edits win).
+    const learnedDirection = learnedContext
+      ? await this.applyLearnedCreativeDirection(timeline, learnedContext, "direction", learnedTiming?.decisions ?? [])
+      : { clips: timeline, decisions: [], summary: null };
     timeline = learnedDirection.clips;
 
     const now = new Date().toISOString();
@@ -1565,36 +1585,76 @@ export class VideoProductionManager {
    * Phase 18C — selects varied learned patterns (active versions only, task- and scope-aware) and applies what the
    * renderer supports. The same plan version keeps its selection; usage history is recorded once per plan version.
    */
-  private async applyLearnedCreativeDirection(projectId: string, clips: VideoTimelineClip[], opts: {
+  private async learnedCreativeContext(projectId: string, opts: {
     cinematic: boolean;
     aspectRatio: string;
+    platform: string;
+    durationMs: number;
     planVersion: number;
     previous: VideoProject["learnedCreativeDirection"];
+    audioAssetId: string | null;
     transitionsLocked: boolean;
-  }): Promise<{ clips: VideoTimelineClip[]; summary: VideoProject["learnedCreativeDirection"] }> {
+  }): Promise<LearnedPlanContext | null> {
     try {
-      const { activeCreativePatterns, selectCreativePatterns, applyLearnedPatternsToTimeline, recordCreativePatternUsage } = await import("../creative-planning/learned-creative-patterns.js");
-      const context = ["product-video", opts.aspectRatio, ...(opts.aspectRatio === "9:16" || opts.aspectRatio === "4:5" ? ["vertical"] : opts.aspectRatio === "16:9" ? ["horizontal"] : []),
-        timelineDurationMs(clips) <= 30_000 ? "short-form" : "long-form"];
-      const patterns = activeCreativePatterns({ task: opts.cinematic ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW", projectId, context });
-      if (!patterns.length) return { clips, summary: null };
+      const lp = await import("../creative-planning/learned-creative-patterns.js");
+      let audio: { energyLevel: import("../creative-planning/learned-creative-patterns.js").MusicEnergy | null; bpm: number | null; tempoMeasured: boolean } | null = null;
+      if (opts.audioAssetId && this.audioIntelligence?.isInitialized()) {
+        const intel = await this.audioIntelligence.getAnalysis(opts.audioAssetId).catch(() => null);
+        if (intel) {
+          const tempoMeasured = intel.tempo?.status === "available";
+          const total = intel.beatDensity.reduce((a, w) => a + (w.end - w.start), 0);
+          const high = intel.beatDensity.filter((w) => w.density === "dense").reduce((a, w) => a + (w.end - w.start), 0);
+          audio = { bpm: intel.bpm, tempoMeasured, energyLevel: lp.musicEnergyFromTempo({ bpm: intel.bpm, tempoMeasured, highDensityShare: total > 0 ? high / total : null }) };
+        }
+      }
       const samePlan = opts.previous?.planVersion === opts.planVersion;
       const seed = `${projectId}:${opts.planVersion}`;
-      const selections = selectCreativePatterns(patterns, { seed, context, pinned: samePlan ? opts.previous!.selected.map((s) => s.patternId) : [] })
-        .filter((s) => !(opts.transitionsLocked && s.family === "TRANSITION"));
-      const result = applyLearnedPatternsToTimeline(clips, selections);
-      if (!samePlan) recordCreativePatternUsage(result.decisions.filter((d) => d.applied).map((d) => d.patternId), projectId);
+      const ctx = lp.buildCrossModalCreativeContext({
+        task: "PRODUCT_VIDEO_CREATION", projectId, cinematic: opts.cinematic, aspectRatio: opts.aspectRatio, platform: opts.platform,
+        durationSec: opts.durationMs / 1000, audio, seed, pinned: samePlan ? opts.previous!.selected.map((s) => s.patternId) : [],
+      });
+      if (opts.transitionsLocked) ctx.selections = ctx.selections.filter((s) => s.family !== "TRANSITION");
+      if (!ctx.selections.length) return null;
+      return { ctx, seed, samePlan, planVersion: opts.planVersion, musicEnergy: audio?.energyLevel ?? null, projectId };
+    } catch (error) {
+      console.warn("[video-production] learned_context_skipped", { projectId, error: error instanceof Error ? error.message : String(error) });
+      return null;
+    }
+  }
+
+  /**
+   * Phase 18C/19 — applies the selected learned patterns where the renderer supports them: "timing" (story roles,
+   * close-ups, energy pacing) before beat sync, "direction" (transitions, camera) after motion direction. The same
+   * plan version keeps its selection; usage is recorded once per plan version.
+   */
+  private async applyLearnedCreativeDirection(clips: VideoTimelineClip[], learned: LearnedPlanContext, phase: "timing" | "direction", earlier: import("../creative-planning/learned-creative-patterns.js").LearnedDirectionDecision[] = []): Promise<{ clips: VideoTimelineClip[]; decisions: import("../creative-planning/learned-creative-patterns.js").LearnedDirectionDecision[]; summary: VideoProject["learnedCreativeDirection"] }> {
+    try {
+      const lp = await import("../creative-planning/learned-creative-patterns.js");
+      const result = lp.applyLearnedPatternsToTimeline(clips, learned.ctx.selections, { phase, musicEnergy: learned.musicEnergy });
+      const decisions = [...earlier, ...result.decisions];
+      if (phase === "direction" && !learned.samePlan) lp.recordCreativePatternUsage([...new Set(decisions.filter((d) => d.applied).map((d) => d.patternId))], learned.projectId);
+      const ctx = learned.ctx;
       return {
         clips: result.clips,
+        decisions: result.decisions,
         summary: {
-          version: "learned-direction-v1", planVersion: opts.planVersion, seed, appliedAt: new Date().toISOString(),
-          selected: selections.map((s) => ({ patternId: s.selected.patternId, family: s.family, name: s.selected.name, reason: s.reason, alternatives: s.alternatives.map((a) => a.name) })),
-          decisions: result.decisions,
+          version: "learned-direction-v2", planVersion: learned.planVersion, seed: learned.seed, appliedAt: new Date().toISOString(),
+          selected: ctx.selections.map((s) => ({ patternId: s.selected.patternId, family: s.family, name: s.selected.name, reason: s.reason, alternatives: s.alternatives.map((a) => a.name) })),
+          decisions,
+          storySequence: result.clips.map((c) => lp.storyRole(c.storyRole ?? c.purpose)),
+          crossModal: {
+            confidence: ctx.confidence,
+            groups: Object.fromEntries((["videoPatterns", "audioPatterns", "imagePatterns", "typographyPatterns", "storytellingPatterns", "compositionPatterns", "synchronizationPatterns"] as const)
+              .map((k) => [k, ctx[k].map((e) => e.name)])),
+            excluded: ctx.excluded.map((e) => ({ name: e.name, reason: e.reason })),
+            unavailable: ctx.unavailable,
+            musicEnergy: learned.musicEnergy,
+          },
         },
       };
     } catch (error) {
-      console.warn("[video-production] learned_direction_skipped", { projectId, error: error instanceof Error ? error.message : String(error) });
-      return { clips, summary: null };
+      console.warn("[video-production] learned_direction_skipped", { projectId: learned.projectId, error: error instanceof Error ? error.message : String(error) });
+      return { clips, decisions: [], summary: null };
     }
   }
 
@@ -1765,6 +1825,7 @@ export class VideoProductionManager {
     creativePlanVersion: number;
     aspectRatio: string;
     existingPlan?: BeatSyncTimingPlan;
+    timingKey?: string | null;
   }): Promise<{ clips: VideoTimelineClip[]; plan: BeatSyncTimingPlan }> {
     const baseDurationMs = timelineDurationMs(input.clips);
     let intelligence = null as Awaited<ReturnType<AudioIntelligenceManager["getAnalysis"]>> | null;
@@ -1785,7 +1846,7 @@ export class VideoProductionManager {
       targetDurationMs: baseDurationMs,
       aspectRatio: input.aspectRatio,
       mode: input.mode,
-      learnedKey: learned ? `${learned.patternId}:${learned.alignTo}` : null,
+      learnedKey: learned || input.timingKey ? `${learned ? `${learned.patternId}:${learned.alignTo}` : ""}${input.timingKey ? `#${input.timingKey}` : ""}` : null,
     });
     const cached = this.beatSyncPlanCache.get(cacheKey);
     if (

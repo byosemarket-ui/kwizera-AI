@@ -427,7 +427,8 @@ describe("Phase 18D — multimodal teaching end-to-end", { timeout: 180_000 }, (
     const first = await learn(center, "PRODUCT_VIDEO_TYPOGRAPHY", [{ text: "Keep the product centred in every scene so it stays the focus.", title: "Notes A" }]);
     const committed = await center.commitSession(first.session.sessionId, { accept: first.session.knowledge!.map((r) => r.id) }, "tester");
     const second = await learn(center, "PRODUCT_VIDEO_TYPOGRAPHY", [{ text: "Keep the product centred in every scene so it stays the focus, and leave text-safe space on the right side for the headline and the price.", title: "Notes B" }]);
-    const ext = second.session.knowledge![0]!;
+    const ext = second.session.knowledge!.find((r) => !patternOf(r))!;
+    expect(second.session.knowledge!.find((r) => patternOf(r))?.structuredData.creativePattern).toMatchObject({ family: "LAYOUT", parameters: { textSafeSide: "right" } });
     expect(ext.novelty.class, ext.novelty.reason).toBe("PARTIALLY_NEW");
     const res = await center.commitSession(second.session.sessionId, { datasetId: committed.datasetId, accept: [ext.id] }, "tester");
     expect(res).toMatchObject({ created: 0, enriched: 1 });

@@ -203,6 +203,15 @@ export async function handleAdminTrainingApi(
         const task = url.searchParams.get("task") === "CINEMATIC_VIDEO" ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW";
         return reply({ items: tc.activeCreativePatterns({ task, projectId: str(url.searchParams.get("projectId"), 80) || null, context: [] }) });
       }
+      if (sub === "/knowledge-flow") return reply({ items: tc.knowledgeFlow() });
+      if (sub === "/cross-modal-context") {
+        const { buildCrossModalCreativeContext, crossModalPromptView, CROSS_MODAL_QUERIES } = await import("../../ai/creative-planning/learned-creative-patterns.js");
+        const requested = str(url.searchParams.get("task"), 40);
+        const task = (Object.keys(CROSS_MODAL_QUERIES) as Array<keyof typeof CROSS_MODAL_QUERIES>).find((t) => t === requested) ?? "PRODUCT_VIDEO_CREATION";
+        const center = tc;
+        const ctx = buildCrossModalCreativeContext({ task, projectId: str(url.searchParams.get("projectId"), 80) || null, aspectRatio: "9:16", source: (q) => center.activeCreativePatterns(q) });
+        return reply({ context: { ...crossModalPromptView(ctx), provenance: ctx.provenance, excluded: ctx.excluded, sourceRelationships: ctx.sourceRelationships } });
+      }
       if (sub === "/datasets") return reply({ items: tc.listDatasets({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
       if (sub === "/sources") return reply({ items: tc.listSources({ includeArchived: url.searchParams.get("includeArchived") === "1" }) });
       if (sub === "/sessions") return reply({ items: tc.listSessions() });

@@ -124,7 +124,7 @@ export interface ComparisonItem {
 /** The parameters that make two patterns of one family the same creative choice (numbers bucketed). */
 const SIGNATURE_KEYS: Record<string, string[]> = {
   TRANSITION: ["transition", "position"], CAMERA: ["movement", "role"], HOOK: ["movement", "subjectVisible", "textPresent"],
-  REVEAL: ["transition", "movement"], SHOWCASE: ["movement"], CTA: ["textBand"], PACING: ["sceneCount", "meanShotSec"],
+  REVEAL: ["transition", "movement"], SHOWCASE: ["movement"], CTA: ["textBand"], PACING: ["sceneCount", "meanShotSec", "rule", "direction"],
   TYPOGRAPHY_TIMING: ["band"], AUDIO_SYNC: ["alignTo"], STORYTELLING: ["sequence"], MUSIC_TEMPO: ["bpm", "energyLevel"],
   MUSIC_STRUCTURE: ["sequence"], LAYOUT: ["subjectPlacement", "textSafeSide"], TYPOGRAPHY_LAYOUT: ["headlinePosition", "ctaBand", "textSide"],
   COLOR_CONTRAST: ["contrastClass"], CREATIVE_PROFILE: ["signature"],
@@ -145,6 +145,29 @@ export function patternSignature(p: PatternRef): string {
     derived.alignTo = Number(params.downbeatRatio ?? 0) >= 0.5 ? "DOWNBEAT" : on >= 0.6 ? "BEAT" : "FREE";
   }
   return `${p.family}:${(SIGNATURE_KEYS[p.family] ?? []).map((k) => `${k}=${bucket(k, derived[k])}`).join("|")}`;
+}
+
+const storySteps = (p: PatternRef): string[] =>
+  String(p.parameters?.sequence ?? "").split(">").map((s) => s.trim().toUpperCase()).filter(Boolean).map((s) => (s === "REVEAL" ? "PRODUCT_REVEAL" : s));
+
+/** Stated rules that cannot both hold: the same scene followed by different ones, or opposite energy→pacing directions. */
+export function ruleConflict(a: PatternRef, b: PatternRef): boolean {
+  const pa = a.parameters ?? {}; const pb = b.parameters ?? {};
+  if (a.family !== b.family) return false;
+  if (a.family === "STORYTELLING" && pa.rule === "FOLLOWED_BY" && pb.after !== undefined) {
+    const norm = (v: unknown) => (String(v).toUpperCase() === "REVEAL" ? "PRODUCT_REVEAL" : String(v).toUpperCase());
+    return norm(pa.after) === norm(pb.after) && norm(pa.next) !== norm(pb.next);
+  }
+  if (a.family === "PACING" && pa.rule === "ENERGY_PACING" && pb.rule === "ENERGY_PACING") return pa.direction !== pb.direction;
+  return false;
+}
+
+/** True when a's story order contains b's order as consecutive steps and adds at least one more. */
+export function extendsSequence(a: PatternRef, b: PatternRef): boolean {
+  const sa = storySteps(a); const sb = storySteps(b);
+  if (sb.length < 2 || sa.length <= sb.length) return false;
+  for (let i = 0; i + sb.length <= sa.length; i += 1) if (sb.every((s, j) => sa[i + j] === s)) return true;
+  return false;
 }
 
 function numericClose(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
@@ -269,8 +292,17 @@ function assessPattern(candidate: KnowledgeRecord, own: PatternRef, pool: Compar
   });
   if (candidate.flags.some((f) => f === "INSTRUCTION_LIKE_REMOVED" || f === "SECRET_REDACTED")) return make("REQUIRES_REVIEW", null, 0, `Needs review: ${candidate.flags.join(", ").toLowerCase().replace(/_/g, " ")}.`);
   const order = (k: ComparisonItem["kind"]) => (k === "SESSION" ? 0 : k === "DATASET" ? 1 : 2);
-  const same = sameFamily.filter((p) => patternSignature(p.pattern!) === sig).sort((a, b) => order(a.kind) - order(b.kind));
   const family = own.family.toLowerCase().replace(/_/g, " ");
+  const conflict = sameFamily.find((p) => ruleConflict(own, p.pattern!));
+  if (conflict) {
+    const variation = contextualVariation(candidate.canonicalStatement || candidate.statement, conflict.statement ?? conflict.text);
+    return variation
+      ? make("PARTIALLY_NEW", conflict, 0.7, `Contextual variation of "${conflict.title.slice(0, 80)}" (${variation.mine.join(", ")} vs ${variation.theirs.join(", ")}); both stay available for their own context.`)
+      : make("REQUIRES_REVIEW", conflict, 0.8, `Contradicts the learned ${family} rule "${conflict.title.slice(0, 80)}"; it is not activated automatically.`);
+  }
+  const extended = own.family === "STORYTELLING" ? sameFamily.find((p) => extendsSequence(own, p.pattern!)) : undefined;
+  if (extended) return make("PARTIALLY_NEW", extended, 0.75, `Extends the learned story order "${extended.title.slice(0, 80)}" with more steps; the earlier order stays intact.`);
+  const same = sameFamily.filter((p) => patternSignature(p.pattern!) === sig).sort((a, b) => order(a.kind) - order(b.kind));
   if (same.length) {
     const exact = same.find((p) => numericClose(own.parameters ?? {}, p.pattern!.parameters ?? {}));
     if (exact) return make("DUPLICATE", exact, 1, exact.kind === "SESSION" ? `Same ${family} pattern was measured elsewhere in this material.` : `The same ${family} pattern is already learned ("${exact.title.slice(0, 80)}").`);

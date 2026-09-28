@@ -12,6 +12,7 @@ import type { ConfirmedCommercial } from "./commercial.js";
 import type { PlanScene } from "./creative-planning-manager.js";
 import type { CreativeIdentityLockContext } from "./creative-director-prompt.js";
 import { planProductScenes } from "./scene-planner.js";
+import { applyLearnedStoryToScenes, buildCrossModalCreativeContext } from "./learned-creative-patterns.js";
 import { validateAiPlannerOutput } from "./plan-validator.js";
 import { buildVerifiedFactsContext } from "./verified-facts-context.js";
 import { buildDecisionTrace, buildPlanReview } from "../ai-director/decision-trace.js";
@@ -86,7 +87,23 @@ export function getCreativeReasoningProvider(): CreativeReasoningProvider {
   return reasoningProvider;
 }
 
-function buildDeterministicPlan(input: AiCreativePlannerInput): PlanScene[] {
+function buildDeterministicPlan(input: AiCreativePlannerInput, notes?: string[]): PlanScene[] {
+  const scenes = planBaseScenes(input);
+  try {
+    const cinematic = input.videoSettings.productionMode === "CINEMATIC_3D";
+    const ctx = buildCrossModalCreativeContext({
+      task: "PRODUCT_VIDEO_CREATION", projectId: input.project.id, cinematic, platform: input.videoSettings.platform,
+      durationSec: input.videoSettings.durationSeconds, seed: `${input.project.id}:creative-director`,
+    });
+    const story = applyLearnedStoryToScenes(scenes, ctx.selections);
+    if (story.applied.length) notes?.push(`Learned story rule applied: ${story.applied.join("; ")}.`);
+    return story.scenes;
+  } catch {
+    return scenes;
+  }
+}
+
+function planBaseScenes(input: AiCreativePlannerInput): PlanScene[] {
   return planProductScenes(
     input.project,
     input.productIntelligence,
@@ -234,7 +251,7 @@ export async function generateCreativeScenes(
   if (!(await reasoningProvider.isAvailable())) {
     warnings.push("AI Creative Director unavailable — using deterministic planning.");
     return finalizePlannerResult(input, {
-      scenes: buildDeterministicPlan(input),
+      scenes: buildDeterministicPlan(input, warnings),
       source: "deterministic",
       warnings: intelligenceDecisionId
         ? [...warnings, `decisionId=${intelligenceDecisionId}`]
@@ -289,7 +306,7 @@ export async function generateCreativeScenes(
 
   warnings.push("Using deterministic planning after AI validation/fallback.");
   return finalizePlannerResult(input, {
-    scenes: buildDeterministicPlan(input),
+    scenes: buildDeterministicPlan(input, warnings),
     source: "deterministic",
     warnings,
     modelId: null,

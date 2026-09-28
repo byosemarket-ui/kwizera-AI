@@ -227,7 +227,7 @@ export interface ActivationRecord {
   scope: TrainingScope;
   projectId: string | null;
   evaluationId: string | null;
-  delivery: Array<{ channel: "KNOWLEDGE_BASE" | "CREATIVE_PATTERNS" | "LEARNED_CREATIVE_PATTERNS" | "SOURCE_RETENTION"; ref: string | null; detail: string }>;
+  delivery: Array<{ channel: "KNOWLEDGE_BASE" | "CREATIVE_PATTERNS" | "LEARNED_CREATIVE_PATTERNS" | "RUNTIME_VERIFICATION" | "SOURCE_RETENTION"; ref: string | null; detail: string }>;
   configuration: Record<string, unknown>;
   by: string;
   at: string;

@@ -156,10 +156,12 @@ export function extractCreativePatterns(obs: VideoLearningObservation[], meta: {
   }
 
   // Storytelling structure
+  const closeUpAt = obs.findIndex((o, i) => o.storytelling.role === "CLOSE_UP" && obs[i - 1]?.storytelling.role === "REVEAL");
+  const closeUpParams: Record<string, string> = closeUpAt > 0 ? { after: "PRODUCT_REVEAL", next: "CLOSE_UP", nextDuration: obs[closeUpAt]!.timestamps.durationSec < mean ? "SHORT" : "DEFAULT" } : {};
   patterns.push({
     family: "STORYTELLING", name: obs.map((o) => o.storytelling.role).join(" → "),
     description: `Scene roles in order: ${obs.map((o) => `${o.storytelling.role.toLowerCase()} (${o.storytelling.basis.toLowerCase()})`).join(", ")}.`,
-    parameters: { sequence: obs.map((o) => o.storytelling.role).join(">"), measuredRoles: obs.filter((o) => o.storytelling.basis !== "POSITION").length },
+    parameters: { sequence: obs.map((o) => o.storytelling.role).join(">"), measuredRoles: obs.filter((o) => o.storytelling.basis !== "POSITION").length, ...closeUpParams },
     compatibleContexts: ctx, variationOptions: ["hook → reveal → showcase → CTA", "reveal first", "problem → product → CTA"],
     scenes: obs.map((o) => o.sceneIndex), confidence: r2(obs.reduce((a, o) => a + o.storytelling.confidence, 0) / obs.length),
     evidence: obs.slice(0, 6).map((o) => ev(o, o.storytelling.note)),
@@ -277,6 +279,95 @@ export function extractImagePatterns(deep: ImageDeepAnalysis, meta: { context?: 
     });
   }
   return { patterns, unavailable };
+}
+
+// ---------- Phase 19: creative rules stated in text ----------
+
+const ROLE_WORDS: Array<[string, RegExp]> = [
+  ["CLOSE_UP", /(?:\b|_)(close[-_ ]?ups?|detail shots?|macro shots?)\b/i],
+  ["PRODUCT_REVEAL", /\b(product[_ ]reveal|reveal(?:ing)?(?: of the product)?)\b/i],
+  ["HOOK", /\b(hook|opening (?:shot|scene)|intro)\b/i],
+  ["OFFER", /\b(offer|price|discount|deal)\b/i],
+  ["CTA", /\b(cta|call[- ]to[- ]action)\b/i],
+  ["SHOWCASE", /\b(showcase|feature shots?|benefit shots?)\b/i],
+];
+
+function rolesIn(text: string): Array<{ role: string; at: number }> {
+  const out: Array<{ role: string; at: number }> = [];
+  for (const [role, re] of ROLE_WORDS) {
+    const m = re.exec(text);
+    if (m && !out.some((o) => Math.abs(o.at - m.index) < 3)) out.push({ role, at: m.index });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+
+/**
+ * Structured creative rules stated explicitly in teaching text: scene order ("the reveal should be followed by a
+ * short close-up", "HOOK > PRODUCT_REVEAL > CLOSE_UP > CTA"), energy-driven pacing and product/text layout. Only
+ * a fixed vocabulary is recognised and mapped to enums; the text itself is never used as an instruction.
+ */
+export function creativeRulesFromSentence(sentence: string, meta: { sourceTitle: string; location: string }): CreativePattern[] {
+  const s = sentence.replace(/\s+/g, " ").trim().slice(0, 400);
+  const out: CreativePattern[] = [];
+  const evidence = [`Stated in ${meta.sourceTitle} (${meta.location}): "${s.slice(0, 200)}"`];
+  const scope = /^\s*(?:for|in|on|with)\s+([^,]{3,60}),/i.exec(s)?.[1]?.trim().toLowerCase() ?? null;
+  const when = scope ? ` (for ${scope})` : "";
+  const base = { compatibleContexts: ["product-video", ...(scope ? scope.split(/\s+/).filter((w) => w.length > 3).slice(0, 3) : [])], scenes: [] as number[], confidence: 0.8, evidence };
+  const parts = s.split(/\s*(?:>|→|->|\bthen\b)\s*/i).filter(Boolean);
+  const seq = parts.length >= 3 ? parts.map((p) => rolesIn(p)).filter((r) => r.length === 1).map((r) => r[0]!.role) : [];
+  if (seq.length >= 3 && seq.length === parts.length) {
+    out.push({
+      ...base, family: "STORYTELLING", name: seq.join(" → "),
+      description: `Stated scene order: ${seq.map((r) => r.toLowerCase().replace(/_/g, " ")).join(", ")}${when}.`,
+      parameters: { rule: "SEQUENCE", sequence: seq.join(">") },
+      variationOptions: ["keep the order, vary shot lengths", "drop the offer when no price is verified"],
+    });
+  } else {
+    const follow = /^(.*?)\b(?:is |are |should be |must be |needs to be |to be )?(?:immediately |directly |always )?followed by\b(.*)$/i.exec(s)
+      ?? /^\s*after (?:the |a |an )?(.*?),?\s+(?:show|use|cut to|add|place|go to|have|comes?|put)\b(.*)$/i.exec(s);
+    if (follow) {
+      const before = rolesIn(follow[1]!);
+      const afterRoles = rolesIn(follow[2]!);
+      const after = before[before.length - 1]?.role;
+      const next = afterRoles[0]?.role;
+      if (after && next && after !== next) {
+        const short = /\b(short|brief|quick)\b/i.test(follow[2]!.slice(0, Math.max(0, afterRoles[0]!.at) + 1));
+        out.push({
+          ...base, family: "STORYTELLING", name: `${after} → ${next}${short ? " (short)" : ""}`,
+          description: `The ${after.toLowerCase().replace(/_/g, " ")} is followed by a ${short ? "short " : ""}${next.toLowerCase().replace(/_/g, " ")}${when}.`,
+          parameters: { rule: "FOLLOWED_BY", after, next, nextDuration: short ? "SHORT" : "DEFAULT", sequence: `${after}>${next}` },
+          variationOptions: ["longer close-up", "close-up with a slow push-in", "cut on the beat into the close-up"],
+        });
+      }
+    }
+  }
+  const energy = /\b(higher|more|high|louder|stronger|lower|less|low|calmer|softer)\s+(?:music(?:al)?\s+|audio\s+|track\s+)?(energy|intensity|tempo)\b(.*)$/i.exec(s);
+  if (energy) {
+    const rest = energy[3]!;
+    const fast = /\b(faster|quicker|shorter|tighter|more frequent)\s+(pacing|cuts?|scenes?|editing|shots?)\b/i.test(rest);
+    const slow = /\b(slower|longer|calmer|fewer)\s+(pacing|cuts?|scenes?|editing|shots?)\b/i.test(rest);
+    if (fast !== slow) {
+      const high = /higher|more|high|louder|stronger/i.test(energy[1]!);
+      const direction = high === fast ? "FASTER_WHEN_HIGH" : "SLOWER_WHEN_HIGH";
+      out.push({
+        ...base, family: "PACING", name: direction === "FASTER_WHEN_HIGH" ? "Higher music energy → faster pacing" : "Higher music energy → slower pacing",
+        description: `${direction === "FASTER_WHEN_HIGH" ? "Scenes get shorter when the music energy is high" : "Scenes get longer when the music energy is high"}${when}.`,
+        parameters: { rule: "ENERGY_PACING", direction, bodyScale: direction === "FASTER_WHEN_HIGH" ? 0.8 : 1.15 },
+        compatibleContexts: ["product-video", "music"], variationOptions: ["apply only to the middle scenes", "apply after the reveal"],
+      });
+    }
+  }
+  const centred = /\b(cent(?:er|re)d?|middle)\b[^.]{0,40}\bproduct\b|\bproduct\b[^.]{0,40}\b(cent(?:er|re)d?|middle)\b/i.test(s);
+  const textSide = /\b(?:text|copy|headline|typography)\b[^.]{0,60}?\b(right|left|top|bottom)\b/i.exec(s)?.[1]?.toLowerCase();
+  if (centred && textSide) {
+    out.push({
+      ...base, family: "LAYOUT", name: `Product centred, text-safe space on the ${textSide}`,
+      description: `The product stays centred and text goes on the ${textSide} side.`,
+      parameters: { rule: "STATED", subjectPlacement: "center", textSafeSide: textSide },
+      compatibleContexts: ["product-video", "design"], variationOptions: ["mirror the layout", "more negative space"],
+    });
+  }
+  return out;
 }
 
 // ---------- Phase 18D: cross-modal ----------

@@ -16,7 +16,7 @@ import { terms } from "./knowledge-novelty.js";
 import type { ImageDeepAnalysis, TeachingAi, VideoDeepAnalysis } from "./teaching-deep-media.js";
 import { measureSync } from "./teaching-deep-media.js";
 import type { TextUnit } from "./teaching-documents.js";
-import { buildCreativeProfile, extractAudioPatterns, extractCreativePatterns, extractImagePatterns, type ModalPattern } from "./creative-patterns.js";
+import { buildCreativeProfile, creativeRulesFromSentence, extractAudioPatterns, extractCreativePatterns, extractImagePatterns, type ModalPattern } from "./creative-patterns.js";
 import type { CreativePattern, PatternFamily } from "../creative-planning/learned-creative-patterns.js";
 import { detectLanguage } from "./language-detection.js";
 import type {
@@ -42,6 +42,8 @@ export interface InstructionScope {
 }
 
 const REMOVED = "[instruction-like text removed]";
+/** Tasks whose runtimes read structured creative patterns, so stated creative rules become patterns there. */
+const CREATIVE_RULE_TASKS = new Set(["PRODUCT_SLIDESHOW", "CINEMATIC_VIDEO", "AUDIO_PLAN", "TYPOGRAPHY_PLAN"]);
 
 // ---------- instructions ----------
 
@@ -299,6 +301,7 @@ export function extractFromUnits(source: TeachingSource, units: TextUnit[], ctx:
       });
     }
   }
+  const creativeTask = CREATIVE_RULE_TASKS.has(capabilityById(ctx.capability)?.task ?? "");
   for (const unit of units) {
     if (workflowUnits.has(unit)) continue;
     const chapterKey = unit.chapter ?? "";
@@ -306,6 +309,12 @@ export function extractFromUnits(source: TeachingSource, units: TextUnit[], ctx:
       if ((perChapter.get(chapterKey) ?? 0) >= maxPerChapter) break;
       const words = sentence.split(/\s+/).length;
       if (words < 4 || words > 70 || sentence.length > 480) continue;
+      if (creativeTask && !detectInstructionLikeText(sentence).length) {
+        const location = loc(unit);
+        for (const p of creativeRulesFromSentence(sentence, { sourceTitle: source.title, location: location.label })) {
+          drafts.push(patternDraft(p, [location], "RULE_BASED"));
+        }
+      }
       let cls = classify(sentence);
       if (!cls && ctx.teachingType === "KNOWLEDGE" && words >= 8 && relevance(sentence, ctx.scope) > 0 && /\b(is|are|means|helps?|makes?)\b/i.test(sentence)) cls = { type: "principle", confidence: 0.5 };
       if (!cls && unit.listItem && words >= 3) cls = { type: "rule", confidence: 0.62 };
@@ -403,14 +412,14 @@ const PATTERN_FACETS: Record<PatternFamily, string[]> = {
 const MULTIMODAL_FAMILIES = new Set<PatternFamily>(["AUDIO_SYNC", "STORYTELLING", "CREATIVE_PROFILE"]);
 
 /** A measured creative pattern as a knowledge draft; the pattern itself is the structured data runtimes read. */
-function patternDraft(p: CreativePattern, locations: SourceLocation[], kind: "MEASURED" | "AI_ASSISTED" = "MEASURED"): Draft {
+function patternDraft(p: CreativePattern, locations: SourceLocation[], kind: "MEASURED" | "AI_ASSISTED" | "RULE_BASED" = "MEASURED"): Draft {
   return {
     knowledgeType: MULTIMODAL_FAMILIES.has(p.family) ? "multimodal_pattern" : "pattern",
     title: `Creative pattern · ${p.family.replace(/_/g, " ").toLowerCase()}: ${p.name}`,
     statement: p.description,
     structuredData: { creativePattern: p },
     locations,
-    evidence: p.evidence.slice(0, 8).map((text) => ({ kind: "MEASUREMENT" as const, text })),
+    evidence: p.evidence.slice(0, 8).map((text) => ({ kind: kind === "RULE_BASED" ? "QUOTE" as const : "MEASUREMENT" as const, text, ...(kind === "RULE_BASED" ? { location: locations[0]?.label } : {}) })),
     confidence: p.confidence, method: kind,
     facets: PATTERN_FACETS[p.family], tags: [`family-${p.family.toLowerCase()}`, "creative-pattern"],
   };
@@ -521,6 +530,15 @@ export function extractFromVideo(source: TeachingSource, base: MediaAnalysis, de
         evidence: scenes.slice(0, 6).map((s) => ({ kind: "MEASUREMENT" as const, text: `${secs(s.durationSec)} at energy ${s.energy}`, location: sceneLoc(s).label })),
         confidence: Math.min(0.8, 0.45 + Math.abs(r) * 0.4), method: "MEASURED",
       });
+      const direction = r < 0 ? "FASTER_WHEN_HIGH" : "SLOWER_WHEN_HIGH";
+      drafts.push(patternDraft({
+        family: "PACING", name: r < 0 ? "Higher music energy → faster pacing (measured)" : "Higher music energy → slower pacing (measured)",
+        description: `Scene length ${r < 0 ? "falls" : "rises"} as music energy rises (correlation ${r.toFixed(2)}).`,
+        parameters: { rule: "ENERGY_PACING", direction, bodyScale: direction === "FASTER_WHEN_HIGH" ? 0.8 : 1.15, correlation: Number(r.toFixed(2)) },
+        compatibleContexts: ["product-video", "music"], variationOptions: ["apply only to the middle scenes", "apply after the reveal"],
+        scenes: scenes.map((s) => s.index), confidence: Number(Math.min(0.8, 0.45 + Math.abs(r) * 0.4).toFixed(2)),
+        evidence: scenes.slice(0, 6).map((s) => `Scene ${s.index}: ${secs(s.durationSec)} at energy ${s.energy}`),
+      }, scenes.slice(0, 12).map(sceneLoc)));
     }
   }
   if (observed) {

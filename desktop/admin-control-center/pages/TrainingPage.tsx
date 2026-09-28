@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   adminApi,
+  type AdminKnowledgeFlowItem,
   type AdminTrainingActivation,
   type AdminTrainingCatalog,
   type AdminTrainingDataset,
@@ -125,6 +126,7 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
   const [versions, setVersions] = useState<AdminTrainingVersionItem[]>([]);
   const [activations, setActivations] = useState<AdminTrainingActivation[]>([]);
   const [profiles, setProfiles] = useState<AdminTrainingProfile[]>([]);
+  const [knowledgeFlow, setKnowledgeFlow] = useState<AdminKnowledgeFlowItem[]>([]);
   const [tab, setTabState] = useState<TabId>(() => tabFromLocation());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,8 +163,10 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
       adminApi.trainingVersions(),
       adminApi.trainingActivations(),
       adminApi.trainingProfiles(),
+      adminApi.trainingKnowledgeFlow().catch(() => ({ items: [] as AdminKnowledgeFlowItem[] })),
     ])
-      .then(([o, c, d, j, e, v, a, p]) => {
+      .then(([o, c, d, j, e, v, a, p, f]) => {
+        setKnowledgeFlow(f.items);
         setOverview(o.overview);
         setCatalog(c.catalog);
         setDatasets(d.items);
@@ -437,6 +441,28 @@ export function TrainingPage({ onGoToApiAccess, onGoToKnowledge }: { onGoToApiAc
           )}
 
           {tab === "knowledge" && <KnowledgeLibrary catalog={catalog} refreshKey={refreshKey} />}
+
+          {tab === "knowledge" && (
+            <SectionCard
+              title="Knowledge flow: extracted → activated → consumed"
+              description="Creative patterns extracted into each dataset's latest version, the ones in its active version, and the ones a real plan has used (with the last use)."
+            >
+              <DataTable
+                emptyTitle="No creative patterns yet"
+                columns={[{ key: "dataset", label: "Dataset" }, { key: "extracted", label: "Extracted", className: "numeric" }, { key: "activated", label: "Activated", className: "numeric" }, { key: "consumed", label: "Consumed", className: "numeric" }, { key: "patterns", label: "Active patterns (uses)" }]}
+                rows={knowledgeFlow.filter((f) => f.extracted || f.activated).map((f) => ({
+                  id: f.datasetId,
+                  cells: {
+                    dataset: `${f.key}${f.activeVersion !== null ? ` v${f.activeVersion}` : ""}`,
+                    extracted: f.extracted,
+                    activated: f.activated,
+                    consumed: f.consumed,
+                    patterns: <span style={{ fontSize: 12 }}>{f.patterns.slice(0, 6).map((p) => `${p.family.toLowerCase()}: ${p.name} (${p.uses}${p.lastUsedAt ? `, last ${new Date(p.lastUsedAt).toLocaleDateString()}` : ""})`).join(" · ") || "—"}</span>,
+                  },
+                }))}
+              />
+            </SectionCard>
+          )}
 
           {tab === "knowledge" && (
             <SectionCard

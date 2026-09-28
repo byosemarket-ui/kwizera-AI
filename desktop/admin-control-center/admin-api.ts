@@ -19,6 +19,7 @@ export type AdminTrainingDataset = ReturnType<TrainingCenter["listDatasets"]>[nu
 export type AdminTrainingDatasetDetail = ReturnType<TrainingCenter["getDataset"]>;
 export type AdminTrainingVersionItem = NonNullable<ReturnType<TrainingCenter["listVersions"]>[number]>;
 export type AdminTrainingProfile = ReturnType<TrainingCenter["listProfiles"]>[number];
+export type AdminKnowledgeFlowItem = ReturnType<TrainingCenter["knowledgeFlow"]>[number];
 export type AdminTrainingValidation = ReturnType<TrainingCenter["validateDraft"]>;
 export type AdminTrainingRuntimeTest = Awaited<ReturnType<TrainingCenter["runtimeTest"]>>;
 export type AdminTrainingDocumentPreview = Awaited<ReturnType<TrainingCenter["previewDocument"]>>;
@@ -279,6 +280,7 @@ export const adminApi = {
   trainingJob: (id: string) => adminFetch<{ job: TrainingJob }>(`/api/admin/training/jobs/${encodeURIComponent(id)}`),
   cancelTrainingJob: (id: string) => adminFetch<{ job: TrainingJob }>(`/api/admin/training/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST", body: "{}" }),
   trainingProfiles: () => adminFetch<{ items: AdminTrainingProfile[] }>("/api/admin/training/profiles"),
+  trainingKnowledgeFlow: () => adminFetch<{ items: AdminKnowledgeFlowItem[] }>("/api/admin/training/knowledge-flow"),
   createTrainingProfile: (body: Record<string, unknown>) =>
     adminFetch<{ profile: AdminTrainingProfile }>("/api/admin/training/profiles", { method: "POST", body: JSON.stringify(body) }),
   activateTrainingProfile: (id: string) =>

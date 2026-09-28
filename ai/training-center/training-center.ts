@@ -1159,7 +1159,27 @@ export class TrainingCenter {
     dataset.activeVersion = version;
     dataset.updatedAt = this.iso();
     const learnedPatterns = file.records.filter((r) => this.patternFromRecord(r)).length;
-    if (learnedPatterns) delivery.push({ channel: "LEARNED_CREATIVE_PATTERNS", ref: `${dataset.datasetId}:v${version}`, detail: `${learnedPatterns} structured creative pattern(s) available to the video planner and Creative Director.` });
+    if (learnedPatterns) {
+      delivery.push({ channel: "LEARNED_CREATIVE_PATTERNS", ref: `${dataset.datasetId}:v${version}`, detail: `${learnedPatterns} structured creative pattern(s) available to the video planner and Creative Director.` });
+      // Sources are deleted only after the runtime pattern channel really serves this version.
+      this.mark(job, "RUNNING", "Verify runtime retrieval");
+      const task = (capabilityById(dataset.capability)?.task ?? "PRODUCT_SLIDESHOW") as CreativePatternQuery["task"];
+      const retrieved = this.activeCreativePatterns({ task, projectId: dataset.scope === "PROJECT" ? dataset.projectId : null, context: [], datasetId: dataset.datasetId })
+        .filter((p) => p.provenance.datasetId === dataset.datasetId && p.provenance.version === version).length;
+      if (retrieved < learnedPatterns) {
+        meta.activation = "INACTIVE";
+        dataset.activeVersion = previous;
+        if (previous !== null && previous !== version) {
+          const prevMeta = this.meta(dataset.datasetId, previous);
+          prevMeta.activation = "ACTIVE";
+          if (prevMeta.knowledgeSourceId && pipeline.getSource(prevMeta.knowledgeSourceId)) await pipeline.setSourceStatus(prevMeta.knowledgeSourceId, "ACTIVE").catch(() => undefined);
+        }
+        await pipeline.setSourceStatus(sourceId, "DISABLED").catch(() => undefined);
+        this.persist();
+        throw new TrainingInputError("RUNTIME_VERIFICATION_FAILED", `Only ${retrieved} of ${learnedPatterns} learned pattern(s) were served by the runtime channel; the version was not activated and no source was deleted.`);
+      }
+      delivery.push({ channel: "RUNTIME_VERIFICATION", ref: null, detail: `${retrieved} of ${learnedPatterns} learned pattern(s) served by the runtime pattern channel before any source deletion.` });
+    }
     const deleted = this.sessions.applyDeferredRetention(file.records, `${dataset.key} v${version}`);
     if (deleted.length) delivery.push({ channel: "SOURCE_RETENTION", ref: null, detail: `${deleted.length} source file(s) deleted after learning (fingerprints and provenance kept).` });
     const activation = this.recordActivation(dataset, version, action, previous, meta.latestEvaluation?.evaluationId ?? null, delivery, by);
@@ -1218,6 +1238,7 @@ export class TrainingCenter {
     const families = query.families?.length ? new Set<string>(query.families) : null;
     for (const d of this.state.datasets) {
       if (d.activeVersion === null || d.archived) continue;
+      if (query.datasetId && d.datasetId !== query.datasetId) continue;
       if (!tasks.has(capabilityById(d.capability)?.task ?? "")) continue;
       if (d.scope === "PROJECT" ? d.projectId !== query.projectId : d.scope !== "ADMIN" && d.scope !== "SYSTEM") continue;
       if (this.meta(d.datasetId, d.activeVersion).activation !== "ACTIVE") continue;
@@ -1235,7 +1256,30 @@ export class TrainingCenter {
         });
       }
     }
-    return out.slice(0, 200);
+    return out.slice(0, 600);
+  }
+
+  /**
+   * Phase 19 — per dataset: creative patterns EXTRACTED into the latest version, ACTIVATED (in the active version) and
+   * CONSUMED (used by a real plan, with the last use), so extraction is never mistaken for runtime use.
+   */
+  knowledgeFlow() {
+    return this.state.datasets.filter((d) => !d.archived).map((d) => {
+      const latest = d.versions.length ? Math.max(...d.versions) : null;
+      const patternsOf = (v: number | null) => (v === null ? [] : (this.readVersionFile(d.datasetId, v)?.records ?? []).filter((r) => this.patternFromRecord(r)));
+      const extracted = patternsOf(latest);
+      const active = d.activeVersion !== null && this.meta(d.datasetId, d.activeVersion).activation === "ACTIVE" ? patternsOf(d.activeVersion) : [];
+      const usage = this.state.patternUsage ?? {};
+      const consumed = active.filter((r) => (usage[r.recordId]?.count ?? 0) > 0);
+      return {
+        datasetId: d.datasetId, key: d.key, capability: d.capability, activeVersion: d.activeVersion, latestVersion: latest,
+        extracted: extracted.length, activated: active.length, consumed: consumed.length,
+        patterns: active.slice(0, 40).map((r) => {
+          const p = this.patternFromRecord(r)!;
+          return { recordId: r.recordId, family: p.family, name: p.name, confidence: p.confidence, uses: usage[r.recordId]?.count ?? 0, lastUsedAt: usage[r.recordId]?.lastUsedAt ?? null };
+        }),
+      };
+    });
   }
 
   recordPatternUsage(patternIds: string[], projectId: string | null): void {
@@ -1283,26 +1327,21 @@ export class TrainingCenter {
     const pipeline = this.requirePipeline();
     const out: Array<{ consumer: string; usesTeaching: boolean; detail: string; excerpts?: string[]; measured?: Record<string, unknown> }> = [];
     if (task === "PRODUCT_SLIDESHOW" || task === "CINEMATIC_VIDEO") {
-      const { selectCreativePatterns, applyLearnedPatternsToTimeline } = await import("../creative-planning/learned-creative-patterns.js");
-      const patterns = this.activeCreativePatterns({ task, projectId, context: ["product-video", "9:16", "vertical", "short-form"] });
-      const selections: PatternSelection[] = selectCreativePatterns(patterns, { seed: `runtime-test:${projectId ?? "global"}`, context: ["product-video", "9:16", "vertical", "short-form"] });
-      const base = [
-        { sceneId: "scene-1", order: 1, purpose: "HOOK", durationMs: 2500, motion: "slow-zoom", transitionIn: "cut" as const, transitionOut: "cut" as const },
-        { sceneId: "scene-2", order: 2, purpose: "REVEAL", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
-        { sceneId: "scene-3", order: 3, purpose: "FEATURE", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
-        { sceneId: "scene-4", order: 4, purpose: "CTA", durationMs: 3000, motion: "hold", transitionIn: "cut" as const, transitionOut: "cut" as const },
-      ];
-      const applied = applyLearnedPatternsToTimeline(base, selections);
+      const lp = await import("../creative-planning/learned-creative-patterns.js");
+      const plannerContext = lp.buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId, cinematic: task === "CINEMATIC_VIDEO", aspectRatio: "9:16", durationSec: 11.5, seed: `runtime-test:${projectId ?? "global"}`, source: (q) => this.activeCreativePatterns(q) });
+      const selections: PatternSelection[] = plannerContext.selections;
+      const base = runtimeTestTimeline();
+      const applied = lp.applyLearnedPatternsToTimeline(base, selections);
       const own = applied.decisions.filter((d) => d.provenance.datasetId === datasetId);
       const changed = own.filter((d) => d.applied);
       out.push({
         consumer: "Video Planner (learned creative direction)", usesTeaching: changed.length > 0,
-        detail: patterns.length
-          ? `${patterns.length} active pattern(s) (${own.length} from this dataset); ${changed.length} changed the plan: ${changed.map((d) => `${d.family.toLowerCase()} → ${d.change}`).join("; ") || "none"}.${own.filter((d) => !d.applied).map((d) => ` ${d.family.toLowerCase()}: ${d.reason}`).join("")}`
+        detail: selections.length
+          ? `${selections.length} selected pattern(s) from the cross-modal context (${own.length} decision(s) from this dataset); ${changed.length} changed the plan: ${changed.map((d) => `${d.family.toLowerCase()} → ${d.change}`).join("; ") || "none"}.${own.filter((d) => !d.applied).map((d) => ` ${d.family.toLowerCase()}: ${d.reason}`).join("")}`
           : "No active creative patterns for this task and scope.",
         measured: {
-          before: base.map((c) => `${c.sceneId}:${c.motion}/${c.transitionOut}`),
-          after: applied.clips.map((c) => `${c.sceneId}:${c.motion}/${c.transitionOut}`),
+          before: base.map(clipLabel),
+          after: applied.clips.map(clipLabel),
           decisions: applied.decisions.map((d) => ({ family: d.family, pattern: d.name, applied: d.applied, change: d.change, reason: d.reason, dataset: `${d.provenance.datasetKey} v${d.provenance.version}`, sources: d.provenance.sources.map((s) => s.title) })),
         },
       });
@@ -1376,8 +1415,9 @@ export class TrainingCenter {
     const out: Array<{ consumer: string; usesTeaching: boolean; detail: string; measured?: Record<string, unknown> }> = [];
     const ctx = ["product-video", "9:16", "vertical", "short-form"];
     const own = (q: Omit<CreativePatternQuery, "projectId" | "context">) =>
-      this.activeCreativePatterns({ ...q, projectId, context: ctx }).filter((p) => p.provenance.datasetId === datasetId);
+      this.activeCreativePatterns({ ...q, projectId, context: ctx, datasetId });
     const select = (patterns: ActiveCreativePattern[]) => lp.selectCreativePatterns(patterns, { seed: `runtime-test:${projectId ?? "global"}`, context: ctx });
+    out.push(...await this.crossModalPlanProof(projectId, datasetId));
 
     const audioOwn = own(lp.RUNTIME_PATTERN_QUERIES.beatSync());
     const alignment = lp.learnedBeatAlignment(select(audioOwn));
@@ -1425,6 +1465,65 @@ export class TrainingCenter {
       });
     }
     return out;
+  }
+
+  /**
+   * Phase 19 — the real planning path with the full cross-modal context (every active creative dataset), once with
+   * and once without this dataset: the deterministic Creative Director storyboard step, the Video Planner timing and
+   * direction phases (on a measured 120 BPM test track), typography placement and the Creative Director prompt view.
+   */
+  private async crossModalPlanProof(projectId: string | null, datasetId: string) {
+    const lp = await import("../creative-planning/learned-creative-patterns.js");
+    const { intelligence } = await syntheticBeatFixture();
+    const tempoMeasured = intelligence.tempo.status === "available";
+    const audio = { bpm: intelligence.bpm, tempoMeasured, energyLevel: lp.musicEnergyFromTempo({ bpm: intelligence.bpm, tempoMeasured }) };
+    const request = {
+      task: "PRODUCT_VIDEO_CREATION" as const, projectId, aspectRatio: "9:16", durationSec: 11.5, audio, seed: `runtime-test:${projectId ?? "global"}`,
+      source: (q: CreativePatternQuery) => this.activeCreativePatterns(q),
+    };
+    const plan = (exclude: boolean) => {
+      const ctx = lp.buildCrossModalCreativeContext({ ...request, excludeDatasetId: exclude ? datasetId : undefined });
+      const storyboard = lp.applyLearnedStoryToScenes(runtimeTestTimeline().map((c) => ({ id: c.sceneId, purpose: c.purpose, camera: c.camera })), ctx.selections);
+      const timed = lp.applyLearnedPatternsToTimeline(runtimeTestTimeline(), ctx.selections, { phase: "timing", musicEnergy: audio.energyLevel });
+      const directed = lp.applyLearnedPatternsToTimeline(timed.clips, ctx.selections, { phase: "direction", musicEnergy: audio.energyLevel });
+      const layout = lp.learnedTypographyLayout(ctx.selections);
+      return { ctx, storyboard, clips: directed.clips, decisions: [...timed.decisions, ...directed.decisions], layout };
+    };
+    const withIt = plan(false);
+    const without = plan(true);
+    const { choosePlacement } = await import("../typography/placement.js");
+    const placement = (layout: ReturnType<typeof lp.learnedTypographyLayout>) => (["headline", "cta"] as const).map((role, i) => `${role}:${choosePlacement({
+      role, hierarchy: i + 1, productCentered: true, productOccupiedRegion: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 },
+      preferredTextSides: layout?.value.textSides.length ? layout.value.textSides : undefined, ctaPlacement: layout?.value.ctaPlacement ?? null,
+    })}`);
+    const summary = (p: typeof withIt) => ({
+      storySequence: p.clips.map((c) => lp.storyRole(c.storyRole ?? c.purpose)),
+      timeline: p.clips.map(clipLabel),
+      storyboard: p.storyboard.scenes.map((s) => `${s.id}:${s.purpose}/${s.camera}`),
+      typography: placement(p.layout),
+    });
+    const a = summary(withIt);
+    const b = summary(without);
+    const own = withIt.decisions.filter((d) => d.provenance.datasetId === datasetId);
+    const inContext = withIt.ctx.provenance.filter((p) => p.datasetId === datasetId);
+    const changed = JSON.stringify(a) !== JSON.stringify(b);
+    const promptView = lp.crossModalPromptView(withIt.ctx);
+    return [{
+      consumer: "Cross-modal creative plan (Creative Director + Video Planner)",
+      usesTeaching: changed && inContext.length > 0,
+      detail: inContext.length
+        ? `${inContext.length} pattern(s) from this dataset are in the ${withIt.ctx.selections.length}-pattern cross-modal context; ${changed ? `the plan differs without them (story ${b.storySequence.join(" → ")} → ${a.storySequence.join(" → ")}; text ${b.typography.join(", ")} → ${a.typography.join(", ")})` : "the plan is identical without them"}.`
+        : "No pattern from this dataset is in the cross-modal context (inactive, excluded or not a creative pattern).",
+      measured: {
+        with: a, without: b, musicEnergy: audio.energyLevel, bpm: audio.bpm,
+        decisions: own.map((d) => ({ family: d.family, pattern: d.name, applied: d.applied, change: d.change, reason: d.reason, dataset: `${d.provenance.datasetKey} v${d.provenance.version}`, sources: d.provenance.sources.map((s) => s.title) })),
+        contextGroups: Object.fromEntries((["videoPatterns", "audioPatterns", "imagePatterns", "typographyPatterns", "storytellingPatterns", "compositionPatterns", "synchronizationPatterns", "productPatterns"] as const).map((k) => [k, withIt.ctx[k].map((e) => e.name)])),
+        excluded: withIt.ctx.excluded.map((e) => ({ name: e.name, reason: e.reason })),
+        unavailable: withIt.ctx.unavailable,
+        creativeDirectorPrompt: JSON.stringify(promptView).slice(0, 1_500),
+        storyboardNotes: withIt.storyboard.applied,
+      },
+    }];
   }
 
   // ---------- Phase 18B: teaching sessions ----------
@@ -1489,6 +1588,19 @@ export class TrainingCenter {
   static capabilityIds(): string[] {
     return CAPABILITIES.map((c) => c.id);
   }
+}
+
+/** Four-scene runtime-test timeline (hook, product reveal, feature, call to action). */
+function runtimeTestTimeline() {
+  const clip = (order: number, purpose: string, durationMs: number, motion: string) => ({
+    sceneId: `scene-${order}`, order, purpose, durationMs, motion, camera: "medium", storyRole: undefined as string | undefined,
+    transitionIn: "cut" as "cut" | "fade", transitionOut: "cut" as "cut" | "fade",
+  });
+  return [clip(1, "HOOK", 2500, "slow-zoom"), clip(2, "PRODUCT_REVEAL", 3000, "hold"), clip(3, "FEATURE", 3000, "hold"), clip(4, "CTA", 3000, "hold")];
+}
+
+function clipLabel(c: { sceneId: string; motion: string; transitionOut: string; durationMs: number; camera?: string; storyRole?: string; purpose: string }): string {
+  return `${c.sceneId}:${c.storyRole ?? c.purpose}/${c.camera ?? "-"}/${c.motion}/${(c.durationMs / 1000).toFixed(1)}s/${c.transitionOut}`;
 }
 
 /** Fixed 16 s, 120 BPM test track (downbeat every bar) and a four-scene storyboard for runtime verification. */

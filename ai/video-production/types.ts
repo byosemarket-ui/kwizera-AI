@@ -112,6 +112,8 @@ export interface VideoTimelineClip {
   text: VideoTextLayer[];
   audioDirection: string;
   userEdited?: boolean;
+  /** Phase 19 — story role set by a learned story rule (e.g. CLOSE_UP right after the product reveal). */
+  storyRole?: string;
   /** STEP 7 — intelligent motion diagnostics (not user-facing). */
   motionPlan?: {
     sceneId: string;
@@ -436,12 +438,22 @@ export interface VideoProject {
   };
   /** Phase 18C — learned creative patterns (active Training Center versions) applied to this timeline, with provenance. */
   learnedCreativeDirection?: {
-    version: "learned-direction-v1";
+    version: "learned-direction-v1" | "learned-direction-v2";
     planVersion: number;
     seed: string;
     appliedAt: string;
     selected: Array<{ patternId: string; family: string; name: string; reason: string; alternatives: string[] }>;
     decisions: import("../creative-planning/learned-creative-patterns.js").LearnedDirectionDecision[];
+    /** Phase 19 — story role of each scene after learned story rules (e.g. HOOK, PRODUCT_REVEAL, CLOSE_UP, CTA). */
+    storySequence?: string[];
+    /** Phase 19 — what the cross-modal context held (pattern names only). */
+    crossModal?: {
+      confidence: number;
+      groups: Record<string, string[]>;
+      excluded: Array<{ name: string; reason: string }>;
+      unavailable: string[];
+      musicEnergy: string | null;
+    };
   } | null;
 }
 
