@@ -531,6 +531,7 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
     ...(req.platform ? [req.platform.toLowerCase()] : []),
     ...(req.audio ? ["music"] : []),
     ...(req.task === "TYPOGRAPHY" || req.task === "IMAGE_CREATION" ? ["design"] : []),
+    ...`${req.product ?? ""} ${req.goal ?? ""}`.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 3).slice(0, 8),
   ])];
   const empty: CrossModalCreativeContext = {
     task: req.task, videoPatterns: [], audioPatterns: [], imagePatterns: [], typographyPatterns: [], storytellingPatterns: [], compositionPatterns: [],
@@ -553,18 +554,35 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
     excluded.push({ patternId: p.patternId, name: p.name, reason: `Confidence ${p.confidence.toFixed(2)} is below ${MIN_CONTEXT_CONFIDENCE}.` });
     return false;
   });
+  const requestTags = new Set(contextTags);
+  const scopeOf = (p: ActiveCreativePattern) => p.compatibleContexts.map((c) => c.toLowerCase()).filter((c) => c !== "product-video" && c !== "music").sort();
+  const inScope = (p: ActiveCreativePattern) => scopeOf(p).some((c) => requestTags.has(c));
   const conflicting = new Set<string>();
+  const outOfScope = new Set<string>();
+  const overridden = new Map<string, string>();
   for (const a of confident) for (const b of confident) {
     if (a.patternId === b.patternId || a.family !== b.family) continue;
     const pa = a.parameters; const pb = b.parameters;
-    const own = (p: ActiveCreativePattern) => p.compatibleContexts.filter((c) => c !== "product-video" && c !== "music").sort().join(",");
-    const contextual = own(a) !== "" && own(b) !== "" && own(a) !== own(b);
-    const clash = !contextual && (
-      (a.family === "STORYTELLING" && pa.rule === "FOLLOWED_BY" && pb.rule === "FOLLOWED_BY" && storyRole(pa.after) === storyRole(pb.after) && storyRole(pa.next) !== storyRole(pb.next))
-      || (a.family === "PACING" && pa.rule === "ENERGY_PACING" && pb.rule === "ENERGY_PACING" && pa.direction !== pb.direction));
-    if (clash) { conflicting.add(a.patternId); conflicting.add(b.patternId); }
+    const clash = (a.family === "STORYTELLING" && pa.rule === "FOLLOWED_BY" && pb.rule === "FOLLOWED_BY" && storyRole(pa.after) === storyRole(pb.after) && storyRole(pa.next) !== storyRole(pb.next))
+      || (a.family === "PACING" && pa.rule === "ENERGY_PACING" && pb.rule === "ENERGY_PACING" && pa.direction !== pb.direction);
+    if (!clash) continue;
+    const sa = scopeOf(a).join(","); const sb = scopeOf(b).join(",");
+    if (sa === sb) { conflicting.add(a.patternId); conflicting.add(b.patternId); continue; }
+    // A rule stated for a narrower context (e.g. "for luxury jewelry") is a contextual variation: it only applies when
+    // the request matches that context, and then takes precedence over the general rule.
+    if (sa && !inScope(a)) outOfScope.add(a.patternId);
+    else if (sa && inScope(a) && (!sb || !inScope(b))) overridden.set(b.patternId, sa);
+    else if (sa && sb && inScope(a) && inScope(b)) { conflicting.add(a.patternId); conflicting.add(b.patternId); }
   }
   const usable = confident.filter((p) => {
+    if (outOfScope.has(p.patternId)) {
+      excluded.push({ patternId: p.patternId, name: p.name, reason: `Applies to ${scopeOf(p).join("/")} content only; this request is a different context.` });
+      return false;
+    }
+    if (overridden.has(p.patternId)) {
+      excluded.push({ patternId: p.patternId, name: p.name, reason: `A rule learned for ${overridden.get(p.patternId)!.replace(/,/g, "/")} content applies to this request instead.` });
+      return false;
+    }
     if (!conflicting.has(p.patternId)) return true;
     excluded.push({ patternId: p.patternId, name: p.name, reason: "Contradicts another active rule; excluded until reviewed." });
     return false;

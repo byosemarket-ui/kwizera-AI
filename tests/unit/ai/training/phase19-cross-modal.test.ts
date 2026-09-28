@@ -169,6 +169,27 @@ describe("Phase 19 — repeat teaching, contradiction and contextual variation",
     const pacePool = [{ id: "k2", title: "pace", text: pace.description, statement: pace.description, kind: "DATASET" as const, pattern: { family: pace.family, parameters: pace.parameters } }];
     expect(assessNovelty(cand(rule("Higher energy means slower pacing.")[0]!), pacePool).class).toBe("REQUIRES_REVIEW");
   });
+
+  it("a rule stated for a narrower context is a contextual variation of the general rule, not a contradiction", () => {
+    const scoped = rule("For luxury jewelry, product reveal should be followed by the offer.")[0]!;
+    const res = assessNovelty(cand(scoped), pool);
+    expect(res.class).toBe("PARTIALLY_NEW");
+    expect(res.reason).toMatch(/Contextual variation.*luxury jewelry.*general/);
+    const scopedPool = [{ ...pool[0]!, text: scoped.description, statement: scoped.description, pattern: { family: scoped.family, parameters: scoped.parameters } }];
+    expect(assessNovelty(cand(rule("Product reveal should be followed by a short close-up.")[0]!), scopedPool).class).toBe("PARTIALLY_NEW");
+  });
+
+  it("at runtime the scoped rule applies only to matching requests and the general rule keeps working elsewhere", () => {
+    const general = active(rule("Product reveal should be followed by a short close-up.")[0]!, "p-general");
+    const scoped = active(rule("For luxury jewelry, product reveal should be followed by the offer.")[0]!, "p-jewelry", "ds-jewelry");
+    registerCreativePatternProvider({ active: (q) => [general, scoped].filter((p) => !q.families || q.families.includes(p.family)), recordUsage: () => undefined });
+    const other = buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: null, product: "Canvas sneakers" });
+    expect(other.storytellingPatterns.map((e) => e.patternId)).toEqual(["p-general"]);
+    expect(other.excluded).toEqual([expect.objectContaining({ patternId: "p-jewelry", reason: expect.stringMatching(/only/) })]);
+    const jewelry = buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: null, product: "Luxury gold jewelry ring" });
+    expect(jewelry.storytellingPatterns.map((e) => e.patternId)).toEqual(["p-jewelry"]);
+    expect(jewelry.excluded).toEqual([expect.objectContaining({ patternId: "p-general", reason: expect.stringMatching(/jewelry\/luxury/) })]);
+  });
 });
 
 // ---------- end-to-end through the Training Center ----------

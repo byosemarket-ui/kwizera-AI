@@ -209,6 +209,12 @@ export function contextualVariation(a: string, b: string): { mine: string[]; the
   return differs ? { mine: ca, theirs: cb } : null;
 }
 
+/** The context a rule was stated for: a leading "For luxury jewelry, …" or the "(for luxury jewelry)" suffix of a pattern description. */
+export function statedScope(text: string): string | null {
+  const m = /^\s*(?:for|in|on|with)\s+([^,]{3,60}),/i.exec(text) ?? /\(for ([^)]{3,60})\)\s*\.?\s*$/i.exec(text);
+  return m?.[1]?.trim().toLowerCase().replace(/\s+/g, " ") ?? null;
+}
+
 function contradiction(candidate: KnowledgeRecord, item: ComparisonItem, sim: number): string | null {
   for (const g of candidate.suggestedGuidance) {
     const other = item.guidance?.find((x) => x.key === g.key);
@@ -295,7 +301,11 @@ function assessPattern(candidate: KnowledgeRecord, own: PatternRef, pool: Compar
   const family = own.family.toLowerCase().replace(/_/g, " ");
   const conflict = sameFamily.find((p) => ruleConflict(own, p.pattern!));
   if (conflict) {
-    const variation = contextualVariation(candidate.canonicalStatement || candidate.statement, conflict.statement ?? conflict.text);
+    const mine = statedScope(candidate.statement) ?? statedScope(candidate.canonicalStatement ?? "");
+    const theirs = statedScope(conflict.statement ?? "") ?? statedScope(conflict.text);
+    const variation = mine !== theirs && (mine || theirs)
+      ? { mine: [mine ?? "general"], theirs: [theirs ?? "general"] }
+      : contextualVariation(candidate.canonicalStatement || candidate.statement, conflict.statement ?? conflict.text);
     return variation
       ? make("PARTIALLY_NEW", conflict, 0.7, `Contextual variation of "${conflict.title.slice(0, 80)}" (${variation.mine.join(", ")} vs ${variation.theirs.join(", ")}); both stay available for their own context.`)
       : make("REQUIRES_REVIEW", conflict, 0.8, `Contradicts the learned ${family} rule "${conflict.title.slice(0, 80)}"; it is not activated automatically.`);
