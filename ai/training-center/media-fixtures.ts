@@ -19,6 +19,8 @@ export interface FixturePreset {
   /** Written to a non-seekable pipe, so the container has no duration header (browser MediaRecorder-like). */
   pipe?: boolean;
   args: (out: string) => string[];
+  /** Used when `args` is rejected (older FFmpeg without the newer option). */
+  fallback?: (out: string) => string[];
 }
 
 const lavfi = (graph: string) => ["-f", "lavfi", "-i", graph];
@@ -59,7 +61,7 @@ function storyGraph(parts: string[], transitions: Array<{ type: string; dur: num
     if (t) {
       offset -= t.dur;
       chain += `${prev}[${i}:v]xfade=transition=${t.type}:duration=${t.dur}:offset=${offset.toFixed(2)}${label};`;
-    } else chain += `${prev}[${i}:v]concat=n=2:v=1:a=0${label};`;
+    } else chain += `${prev}[${i}:v]concat=n=2:v=1:a=0,fps=30,settb=1/30${label};`;
     offset += durations[i]!;
     prev = label;
   }
@@ -92,9 +94,11 @@ export const FIXTURE_PRESETS: FixturePreset[] = [
   video("v-m4v", "p20-apple.m4v", "video/x-m4v", "M4V H.264 + AAC", (o) => [...lavfi("testsrc2=s=960x540:r=30:d=4"), ...lavfi(tone(4)), ...H264, ...AAC, "-shortest", "-f", "ipod", o]),
   video("v-fps-23976", "p20-23976fps.mp4", "video/mp4", "Unusual frame rate 23.976 fps", (o) => [...lavfi("testsrc2=s=640x360:r=24000/1001:d=4"), ...H264, "-an", o]),
   video("v-ultrawide", "p20-ultrawide-21x9.mp4", "video/mp4", "Unusual aspect ratio 21:9 (1260×540)", (o) => [...lavfi("testsrc2=s=1260x540:r=30:d=4"), ...H264, "-an", o]),
-  video("v-vfr", "p20-variable-fps.mkv", "video/x-matroska", "Variable frame rate (30 fps then 10 fps)",
+  video("v-vfr", "p20-variable-fps.mp4", "video/mp4", "Variable frame rate (30 fps then 10 fps)",
     (o) => [...lavfi("testsrc2=s=640x360:r=30:d=6"), "-vf", "select='lt(t\\,3)+not(mod(n\\,3))'", "-vsync", "vfr", ...H264, "-an", o]),
-  video("v-rotated", "p20-rotated.mp4", "video/mp4", "Phone-style rotation metadata (90°)", (o) => [...lavfi("testsrc2=s=1280x720:r=30:d=3"), ...H264, "-an", "-metadata:s:v:0", "rotate=90", o]),
+  { ...video("v-rotated", "p20-rotated.mp4", "video/mp4", "Phone-style rotation metadata (90°)",
+    (o) => ["-display_rotation", "90", "-noautorotate", ...lavfi("testsrc2=s=1280x720:r=30:d=3"), ...H264, "-an", o]),
+  fallback: (o) => [...lavfi("testsrc2=s=1280x720:r=30:d=3"), ...H264, "-an", "-metadata:s:v:0", "rotate=90", o] },
 
   audio("a-mp3", "p20-music.mp3", "audio/mpeg", "MP3 stereo 44.1 kHz, 120 BPM, 12 s", (o) => [...lavfi(beat(12)), "-ac", "2", "-c:a", "libmp3lame", "-b:a", "192k", o]),
   audio("a-wav", "p20-music.wav", "audio/wav", "WAV PCM 16-bit, 120 BPM, 12 s", (o) => [...lavfi(beat(12)), "-ac", "2", "-c:a", "pcm_s16le", o]),
@@ -125,12 +129,16 @@ export async function generateFixture(id: string): Promise<{ fileName: string; m
   const out = path.join(os.tmpdir(), `kwz-teach-fixture-${randomUUID()}${path.extname(preset.fileName)}`);
   try {
     const target = preset.pipe ? "pipe:1" : out;
-    const args = ["-nostdin", "-hide_banner", "-v", "error", "-y", ...preset.args(target)];
-    const bytes = await new Promise<Buffer>((resolve, reject) => {
+    const run = (presetArgs: string[]) => new Promise<Buffer>((resolve, reject) => {
+      const args = ["-nostdin", "-hide_banner", "-v", "error", "-y", ...presetArgs];
       execFile(ffmpegBinary(), args, { timeout: 120_000, windowsHide: true, maxBuffer: MAX_FIXTURE_BYTES, encoding: "buffer" }, async (err, stdout, stderr) => {
         if (err) return reject(Object.assign(new Error(`FFmpeg could not generate ${preset.id}: ${String(stderr).split("\n").filter(Boolean).slice(-1)[0]?.slice(0, 200) ?? err.message}`), { code: "FIXTURE_FAILED" }));
         resolve(preset.pipe ? stdout : await fs.readFile(out));
       });
+    });
+    const bytes = await run(preset.args(target)).catch((err: unknown) => {
+      if (!preset.fallback) throw err;
+      return run(preset.fallback(target));
     });
     if (!bytes.length || bytes.length > MAX_FIXTURE_BYTES) throw Object.assign(new Error("Fixture output is empty or too large."), { code: "FIXTURE_FAILED" });
     return { fileName: preset.fileName, mimeType: preset.mimeType, kind: preset.kind, description: preset.description, dataBase64: bytes.toString("base64"), sizeBytes: bytes.length };

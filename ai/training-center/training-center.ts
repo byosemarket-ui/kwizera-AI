@@ -86,6 +86,8 @@ interface VersionMeta {
   activation: DatasetVersion["activation"];
   knowledgeSourceId: string | null;
   patternRef: string | null;
+  /** Latest runtime test of this version while it was active: which real consumers used its knowledge. */
+  runtimeVerification?: { at: string; verified: boolean; teachingItemsRetrieved: number; consumers: string[] };
 }
 
 interface CenterState {
@@ -176,6 +178,17 @@ export class TrainingCenter {
       latestEvaluationId: (datasetId, version) => this.meta(datasetId, version).latestEvaluation?.evaluationId ?? null,
       latestActivationId: (datasetId, version) => [...this.state.activations].reverse().find((a) => a.datasetId === datasetId && a.version === version && a.action !== "DEACTIVATE")?.activationId ?? null,
       capabilities: () => this.options.capabilities?.() ?? [],
+      versionState: (datasetId, version) => {
+        const dataset = this.state.datasets.find((d) => d.datasetId === datasetId);
+        if (!dataset) return null;
+        const lastActivation = [...this.state.activations].reverse().find((a) => a.datasetId === datasetId && (a.version === version || a.action === "DEACTIVATE"));
+        const rv = this.meta(datasetId, version).runtimeVerification ?? null;
+        return {
+          active: dataset.activeVersion === version,
+          everActivated: this.state.activations.some((a) => a.datasetId === datasetId && a.version === version && a.action !== "DEACTIVATE"),
+          runtimeVerification: rv && (!lastActivation || rv.at >= lastActivation.at) ? rv : null,
+        };
+      },
     });
   }
 
@@ -1308,6 +1321,12 @@ export class TrainingCenter {
       ? planCanvasFit({ sceneId: "runtime-test", assetId: "runtime-test", sourceWidth: 1080, sourceHeight: 1080, frameWidth: 1080, frameHeight: 1920, targetAspect: "9:16", framing: null, minSafeCoverage: minSafe.basis === "KNOWLEDGE" ? Number(minSafe.value) : null })
       : null;
     const consumption = await this.runtimeConsumption(task, projectId, context, activeItems, input.query, dataset.datasetId);
+    if (dataset.activeVersion !== null) {
+      const teachingItemsRetrieved = context.items.filter((i) => activeItems.has(i.id)).length;
+      const consumers = consumption.filter((c) => c.usesTeaching).map((c) => c.consumer);
+      this.meta(datasetId, dataset.activeVersion).runtimeVerification = { at: this.iso(), verified: consumers.length > 0, teachingItemsRetrieved, consumers };
+      this.persist();
+    }
     return {
       task, query, projectId, activeVersion: dataset.activeVersion, activeKnowledgeSourceId: activeSource,
       runtimeConsumers: capability.runtimeConsumers, runtimeWired: capability.runtimeWired, runtimeNote: capability.runtimeNote,
@@ -1535,6 +1554,7 @@ export class TrainingCenter {
   listSessions() { return this.sessions.listSessions(); }
   onlinePreflight(probe: boolean) { return this.sessions.onlinePreflight(probe); }
   researchRegistry() { return this.sessions.researchRegistry(); }
+  refreshStaleResearch(by: string, opts?: { force?: boolean; dryRun?: boolean }) { return this.sessions.refreshStaleResearch(by, opts); }
   getSession(sessionId: string) { return this.sessions.getSession(sessionId); }
   decideKnowledge(sessionId: string, decisions: Array<{ id: string; decision: string }>, by: string) { this.sessions.decide(sessionId, decisions, by); return this.sessions.getSession(sessionId); }
   commitSession(sessionId: string, input: Record<string, unknown>, by: string) { return this.sessions.commit(sessionId, input, by); }

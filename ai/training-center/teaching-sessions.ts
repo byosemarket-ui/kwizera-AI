@@ -51,6 +51,7 @@ export interface SessionHost {
   ai(): TeachingAi | null;
   urlPolicy?: (url: string) => { ok: true; url: string } | { ok: false; code: string; message: string };
   fetchUrl?: (url: string) => Promise<UrlFetchResult>;
+  versionState?: (datasetId: string, version: number) => { active: boolean; everActivated: boolean; runtimeVerification: { at: string; verified: boolean; teachingItemsRetrieved: number; consumers: string[] } | null } | null;
   projectExists?: (projectId: string) => Promise<boolean>;
   requireDataset(datasetId: string): TeachingDataset;
   createDataset(input: Record<string, unknown>, by: string): Promise<TeachingDataset>;
@@ -446,14 +447,66 @@ export class TeachingSessionService {
       requested, retrievalConfigured: Boolean(this.host.fetchUrl && this.host.urlPolicy), urlPolicy: this.host.urlPolicy,
       capabilities: caps, dailyUsed: this.researchUsedToday(), dailyLimit: RESEARCH_DAILY_LIMIT, now: this.host.iso(),
       probe: this.host.fetchUrl ? async () => {
-        const r = await this.host.fetchUrl!(RESEARCH_REGISTRY[1]!.url);
-        return { ok: r.ok, detail: r.ok ? "An approved source answered through the hardened fetcher." : `Probe failed (${r.errorCode ?? `HTTP ${r.status}`}).` };
+        const byHost = new Map<string, string>();
+        for (const e of RESEARCH_REGISTRY) {
+          const host = new URL(e.url).hostname;
+          if (!byHost.has(host)) byHost.set(host, e.url);
+        }
+        const results: string[] = [];
+        for (const [host, url] of byHost) {
+          const r = await this.host.fetchUrl!(url);
+          if (r.ok) return { ok: true, detail: `An approved source (${host}) answered through the hardened fetcher.${results.length ? ` Unreachable: ${results.join("; ")}.` : ""}` };
+          results.push(`${host} ${r.errorCode ?? `HTTP ${r.status}`}${r.message ? ` (${r.message.replace(/\s+/g, " ").slice(0, 80)})` : ""}`);
+        }
+        return { ok: false, detail: `No approved source answered: ${results.join("; ")}.` };
       } : undefined,
     });
   }
 
   researchRegistry() {
     return RESEARCH_REGISTRY.map((e) => ({ ...e, allowed: this.host.urlPolicy ? this.host.urlPolicy(e.url).ok : false }));
+  }
+
+  /**
+   * Scheduled research: approved research pages past their freshness window are re-taught in one session per
+   * (capability, scope, project). The session re-fetches, compares content hashes and proposes only new knowledge for
+   * review; nothing is activated automatically. Pages already in a running session and the daily limit are respected.
+   */
+  async refreshStaleResearch(by: string, opts: { force?: boolean; dryRun?: boolean } = {}): Promise<{ stale: number; sessions: Array<{ sessionId: string; capability: string; scope: string; sources: number }>; skipped: string[] }> {
+    const nowMs = Date.parse(this.host.iso());
+    const busy = new Set(this.host.sessions().filter((s) => s.status === "QUEUED" || s.status === "ANALYZING").flatMap((s) => s.sourceAssetIds));
+    const stale = this.host.sources().filter((s) => s.kind === "URL" && s.research && s.retained && s.status !== "ARCHIVED" && !busy.has(s.sourceId)
+      && (opts.force || !s.research.retrievedAt || nowMs - Date.parse(s.research.retrievedAt) > s.research.freshnessDays * 86_400_000));
+    const skipped: string[] = [];
+    const groups = new Map<string, TeachingSource[]>();
+    let room = Math.max(0, RESEARCH_DAILY_LIMIT - this.researchUsedToday());
+    for (const s of stale) {
+      if (room <= 0) {
+        skipped.push(`${s.title}: daily research limit reached`);
+        continue;
+      }
+      const key = `${s.capability}|${s.scope}|${s.projectId ?? ""}`;
+      const list = groups.get(key) ?? [];
+      if (list.length >= MAX_SOURCES_PER_SESSION) {
+        skipped.push(`${s.title}: session source limit reached`);
+        continue;
+      }
+      list.push(s);
+      groups.set(key, list);
+      room -= 1;
+    }
+    const sessions: Array<{ sessionId: string; capability: string; scope: string; sources: number }> = [];
+    if (opts.dryRun) return { stale: stale.length, sessions, skipped };
+    for (const list of groups.values()) {
+      const first = list[0]!;
+      const session = await this.createSession({
+        capability: first.capability, target: first.target, scope: first.scope, projectId: first.projectId, teachingType: "KNOWLEDGE",
+        sourceIds: list.map((s) => s.sourceId), instructions: "Scheduled research refresh: re-check approved sources for changed guidance.", research: "OFF",
+      }, by);
+      this.researchCount += list.length;
+      sessions.push({ sessionId: session.sessionId, capability: session.capability, scope: session.scope, sources: list.length });
+    }
+    return { stale: stale.length, sessions, skipped };
   }
 
   /** Adds the approved pages the planner picked for this task as URL sources of the session (reusing earlier ones). */
@@ -1136,12 +1189,28 @@ export class TeachingSessionService {
     };
   }
 
+  /** "LEARNED" only when the version is active and a runtime test after its activation saw a real consumer use it. */
+  private learningState(session: TeachingSession, datasetVersionId: string | null): { state: string; note: string } {
+    if (session.status === "FAILED" || session.status === "CANCELLED") return { state: session.status, note: "Nothing was learned from this session." };
+    if (session.status === "QUEUED" || session.status === "ANALYZING") return { state: "ANALYZING", note: "Sources are being analysed." };
+    if (session.status === "READY_FOR_REVIEW") return { state: "PROPOSED", note: "Knowledge is proposed and waits for review; it is not used by any AI yet." };
+    const version = Number(datasetVersionId?.match(/:v(\d+)$/)?.[1] ?? NaN);
+    const vs = session.datasetId && Number.isFinite(version) ? this.host.versionState?.(session.datasetId, version) ?? null : null;
+    if (!vs) return { state: "STORED", note: "Knowledge is stored in the dataset but not in a published version, so no AI uses it yet." };
+    if (!vs.active) return vs.everActivated
+      ? { state: "DEACTIVATED", note: "The version holding this knowledge is not active; AIs no longer use it." }
+      : { state: "PUBLISHED_NOT_ACTIVE", note: "Published but not activated; AIs do not use it yet." };
+    if (!vs.runtimeVerification) return { state: "ACTIVE_NOT_VERIFIED", note: "Active, but no runtime test has confirmed that an AI consumer uses it." };
+    if (!vs.runtimeVerification.verified) return { state: "ACTIVE_NOT_CONSUMED", note: `Active; the last runtime test (${vs.runtimeVerification.at}) found no consumer using it.` };
+    return { state: "LEARNED", note: `Runtime-verified ${vs.runtimeVerification.at}: used by ${vs.runtimeVerification.consumers.join(", ")}.` };
+  }
+
   view(session: TeachingSession, withCandidates = false) {
     const list = this.loadCandidates(session.sessionId);
     const links = this.links(session);
     const sources = new Map(this.host.sources().map((s) => [s.sourceId, s]));
     return {
-      ...session, ...links,
+      ...session, ...links, learning: this.learningState(session, links.datasetVersionId),
       sources: session.sourceAssetIds.map((id) => { const s = sources.get(id); return s ? { sourceId: id, title: s.title, kind: s.kind, status: s.status, retained: s.retained, retention: s.retention, retentionState: s.retentionState ?? (s.retained ? "RETAINED" : "DELETED_BY_ADMIN"), retentionNote: s.retentionNote ?? null, measured: s.measured } : null; }).filter(Boolean),
       ...(withCandidates ? { artifacts: session.analysis.perSource.filter((p) => p.artifact).map((p) => ({ sourceId: p.sourceId, title: p.title, ...(this.readArtifact(session.sessionId, p.sourceId) ?? { missing: true }) })) } : {}),
       summary: { candidates: list.length, recommended: list.filter((r) => r.recommended && !r.committedRecordId).length, accepted: list.filter((r) => r.decision === "ACCEPTED").length, rejected: list.filter((r) => r.decision === "REJECTED").length, committed: list.filter((r) => r.committedRecordId).length },

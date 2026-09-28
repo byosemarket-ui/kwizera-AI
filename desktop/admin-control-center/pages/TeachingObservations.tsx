@@ -35,6 +35,16 @@ export function ObservationsView({ artifact }: { artifact: Record<string, unknow
 }
 
 /** Online pre-flight and research outcome for a session (Admin only); absent for sessions created before Phase 20. */
+export function LearningStateView({ learning }: { learning: unknown }) {
+  if (!learning || typeof learning !== "object") return null;
+  const l = learning as { state?: unknown; note?: unknown };
+  return (
+    <p className="acc-muted" style={{ fontSize: 12 }}>
+      Learning state: <strong>{typeof l.state === "string" ? l.state : "unknown"}</strong>{typeof l.note === "string" ? ` — ${l.note}` : ""}
+    </p>
+  );
+}
+
 export function OnlineResearchView({ online }: { online: unknown }) {
   if (!online || typeof online !== "object") return null;
   const o = online as DeepPartial<SessionOnlineResearch>;

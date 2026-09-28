@@ -137,6 +137,14 @@ export async function bootTrainingCenter(): Promise<TrainingCenter> {
   });
   next.boot();
   center = next;
+  const researchHours = Number(process.env.KWIZERA_TEACH_RESEARCH_SCHEDULE_HOURS ?? 24);
+  if (researchHours > 0) {
+    setInterval(() => {
+      next.refreshStaleResearch("scheduled-research").then((r) => {
+        if (r.stale) console.log("[KWIZERA] Scheduled research:", { stale: r.stale, sessions: r.sessions.length, skipped: r.skipped.length });
+      }).catch((err: unknown) => console.warn("[KWIZERA] Scheduled research skipped:", err instanceof Error ? err.message : err));
+    }, Math.max(1, researchHours) * 3_600_000).unref();
+  }
   registerCreativePatternProvider({
     active: (query) => next.activeCreativePatterns(query),
     recordUsage: (ids, projectId) => next.recordPatternUsage(ids, projectId),
@@ -274,6 +282,7 @@ export async function handleAdminTrainingApi(
       return reply(result, result.reused ? 200 : 201);
     }
     if (sub === "/sessions") return reply({ session: await tc.createSession(body, by) }, 202);
+    if (sub === "/research/refresh") return reply({ result: await tc.refreshStaleResearch(by, { force: body.force === true, dryRun: body.dryRun === true }) }, 202);
     if (sub === "/fixtures") {
       const { generateFixture } = await import("../../ai/training-center/media-fixtures.js");
       try {
@@ -282,6 +291,7 @@ export async function handleAdminTrainingApi(
         const code = (err as { code?: string }).code;
         if (code === "UNKNOWN_FIXTURE") return fail(sendJson, res, 400, code, "Unknown fixture preset."), true;
         if (code === "FIXTURE_BUSY") return fail(sendJson, res, 409, code, "Another fixture is being generated; retry shortly."), true;
+        console.warn("[KWIZERA] Fixture generation failed:", err instanceof Error ? err.message : err);
         return fail(sendJson, res, 500, "FIXTURE_FAILED", "The fixture could not be generated."), true;
       }
     }

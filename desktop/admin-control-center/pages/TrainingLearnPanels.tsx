@@ -12,7 +12,7 @@ import {
   type AdminTrainingRuntimeTest,
 } from "../admin-api";
 import { DataTable, EmptyState, ErrorState, FormField, SectionCard, Select, StatusBadge } from "../components/ui";
-import { MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "./TeachingObservations";
+import { LearningStateView, MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "./TeachingObservations";
 
 type Notify = (message: string, tone?: "info" | "success" | "error") => void;
 
@@ -459,6 +459,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           <p className="acc-muted" style={{ fontSize: 12 }}>
             Vision analysis <StatusBadge status={session.analysis.ai.vision} /> · Reasoning <StatusBadge status={session.analysis.ai.reasoning} /> · Speech transcription <StatusBadge status={session.analysis.ai.transcription} />
           </p>
+          <LearningStateView learning={(session as { learning?: unknown }).learning} />
           <OnlineResearchView online={(session.analysis as { online?: unknown }).online} />
           {session.analysis.perSource.map((s) => (
             <details key={s.sourceId} style={{ fontSize: 12, marginBottom: 6 }}>

@@ -356,6 +356,19 @@ describe("Phase 20 — online pre-flight and task-aware research", () => {
     }
     expect(JSON.stringify(done.knowledge)).not.toMatch(/admin token|Ignore all previous/i);
     expect(done.progress.completed).toBe(done.progress.total);
+    expect(done.learning.state).toBe("PROPOSED");
+
+    expect((await center.refreshStaleResearch("t", { dryRun: true })).stale).toBe(0);
+    const before = fetched.length;
+    const refresh = await center.refreshStaleResearch("scheduled", { force: true });
+    expect(refresh.stale).toBe(online.planned.length);
+    expect(refresh.sessions).toHaveLength(1);
+    const again = await center.waitForJob(center.getSession(refresh.sessions[0]!.sessionId).jobId!);
+    expect(again.status).toBe("COMPLETED");
+    const refreshed = center.getSession(refresh.sessions[0]!.sessionId);
+    expect(refreshed.research).toBe("OFF");
+    expect(fetched.length - before).toBe(online.planned.length);
+    expect(refreshed.status).toBe("READY_FOR_REVIEW");
   });
 
   it("research OFF never touches the network", async () => {
