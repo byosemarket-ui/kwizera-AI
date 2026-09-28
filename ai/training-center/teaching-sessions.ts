@@ -11,6 +11,8 @@ import type { KnowledgePipeline } from "../knowledge-acquisition-engine/knowledg
 import { capabilityById, TRAINING_TARGETS, SCOPE_INFO, type TeachingMode, type TrainingScope, type TrainingTarget } from "./training-catalog.js";
 import { documentFormat, DocumentExtractionError, extractDocument, type TextUnit } from "./teaching-documents.js";
 import { MEDIA_LIMITS, MediaAnalysisError, type TeachingMediaAnalyzer } from "./teaching-media.js";
+import { audioCapabilityMatrix, describeNormalization, IngestionError, ingestionSummary, sniffMedia, videoCapabilityMatrix, type MediaIngestion } from "./media-ingestion.js";
+import { isInstructionLike, onlinePreflight, planResearch, RESEARCH_REGISTRY } from "./teaching-research.js";
 import type { DeepMediaAnalyzer, TeachingAi, VideoDeepAnalysis } from "./teaching-deep-media.js";
 import {
   aiAssistedExtraction, audioUnavailable, codeLanguage, correlateSources, extractFromAudio, extractFromCode, extractFromImage, extractFromUnits,
@@ -19,7 +21,7 @@ import {
 import { assessNovelty, enrichesStatement, type ComparisonItem, type PatternRef } from "./knowledge-novelty.js";
 import { detectServerPaths } from "./teaching-validation.js";
 import type {
-  CapabilityAvailability, KnowledgeRecord, MediaAnalysis, MediaCounters, RecordKnowledge, RetentionPolicy, SessionProgress, SessionStage, SourceKind, TeachingDataset,
+  CapabilityAvailability, KnowledgeRecord, MediaAnalysis, MediaCapabilityEntry, MediaCounters, OnlinePreflight, RecordKnowledge, RetentionPolicy, SessionProgress, SessionStage, SourceKind, TeachingDataset,
   TeachingRecord, TeachingSession, TeachingSource, TeachingType, TrainingJob, TrainingJobKind,
 } from "./training-types.js";
 
@@ -75,6 +77,8 @@ const TEXT_LIMIT = 10 * 1024 * 1024;
 const CODE_LIMIT = 2 * 1024 * 1024;
 const MAX_CANDIDATES = 300;
 const MAX_SOURCES_PER_SESSION = 12;
+const RESEARCH_PAGES_PER_SESSION = Math.max(0, Number(process.env.KWIZERA_TEACH_RESEARCH_PAGES) || 3);
+const RESEARCH_DAILY_LIMIT = Math.max(0, Number(process.env.KWIZERA_TEACH_RESEARCH_DAILY_MAX) || 30);
 
 export const STAGE_LABELS: Record<SessionStage, string> = {
   QUEUED: "Queued", UPLOADED: "Uploaded", VALIDATING_SOURCE: "Validating source", EXTRACTING_METADATA: "Reading metadata",
@@ -92,16 +96,28 @@ export const STAGE_LABELS: Record<SessionStage, string> = {
   WAVEFORM_ANALYSIS: "Waveform, loudness and silence", BPM_ANALYSIS: "Tempo (BPM)", BEAT_ANALYSIS: "Beats and downbeats", ENERGY_ANALYSIS: "Energy and sections",
   PATTERN_ANALYSIS: "Audio pattern analysis", IMAGE_METADATA: "Reading image metadata", COMPOSITION_ANALYSIS: "Composition and colour",
   TYPOGRAPHY_ANALYSIS: "Typography analysis", DESIGN_PATTERN_ANALYSIS: "Design pattern analysis",
+  ONLINE_PREFLIGHT: "Checking online research", NORMALIZATION: "Preparing media for analysis", ONLINE_RESEARCH: "Researching approved sources",
+  RUNTIME_VERIFICATION: "Verifying runtime use",
 };
 
 /** Video analysis stages; each advances progress once, on its first occurrence for a source. */
 const VIDEO_STAGES: SessionStage[] = [
-  "MEDIA_METADATA", "SCENE_DETECTION", "FRAME_ANALYSIS", "MOTION_ANALYSIS", "TRANSITION_ANALYSIS", "TEXT_ANALYSIS",
+  "MEDIA_METADATA", "NORMALIZATION", "SCENE_DETECTION", "FRAME_ANALYSIS", "MOTION_ANALYSIS", "TRANSITION_ANALYSIS", "TEXT_ANALYSIS",
   "VISION_ANALYSIS", "AUDIO_ANALYSIS", "SYNC_ANALYSIS", "TRANSCRIPT_ANALYSIS", "CREATIVE_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION",
 ];
-const AUDIO_STAGES: SessionStage[] = ["AUDIO_METADATA", "WAVEFORM_ANALYSIS", "SPEECH_ANALYSIS", "BPM_ANALYSIS", "BEAT_ANALYSIS", "ENERGY_ANALYSIS", "PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION"];
+const AUDIO_STAGES: SessionStage[] = ["AUDIO_METADATA", "NORMALIZATION", "WAVEFORM_ANALYSIS", "SPEECH_ANALYSIS", "BPM_ANALYSIS", "BEAT_ANALYSIS", "ENERGY_ANALYSIS", "PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION"];
 const IMAGE_STAGES: SessionStage[] = ["IMAGE_METADATA", "COMPOSITION_ANALYSIS", "TEXT_ANALYSIS", "TYPOGRAPHY_ANALYSIS", "DESIGN_PATTERN_ANALYSIS", "KNOWLEDGE_EXTRACTION"];
 const STEPS_PER_KIND: Record<SourceKind, number> = { TEXT: 3, DOCUMENT: 3, BOOK: 3, CODE: 3, URL: 3, IMAGE: IMAGE_STAGES.length, AUDIO: AUDIO_STAGES.length, VIDEO: VIDEO_STAGES.length };
+
+type SourceAnalysis = {
+  records: KnowledgeRecord[];
+  analysis: MediaAnalysis | null;
+  summary: Record<string, unknown>;
+  partial?: boolean;
+  artifact?: { kind: "VIDEO_OBSERVATIONS"; observations: number; patterns: number } | null;
+};
+
+const fixed = (v: unknown, digits: number): string => (typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : "n/a");
 
 function emptyMedia(): MediaCounters {
   return { scenesTotal: 0, scenesProcessed: 0, framesTotal: 0, framesProcessed: 0, boundariesTotal: 0, boundariesProcessed: 0, observations: 0, patterns: 0 };
@@ -130,6 +146,7 @@ function emptyProgress(): SessionProgress {
 
 function sourceKindFor(fileName: string, mimeType: string, requested: string): SourceKind | null {
   if (MEDIA_LIMITS.IMAGE.mimes.test(mimeType) || MEDIA_LIMITS.IMAGE.exts.test(fileName)) return "IMAGE";
+  if (MEDIA_LIMITS.AUDIO.mimes.test(mimeType)) return "AUDIO";
   if (MEDIA_LIMITS.VIDEO.mimes.test(mimeType) || MEDIA_LIMITS.VIDEO.exts.test(fileName)) return "VIDEO";
   if (MEDIA_LIMITS.AUDIO.mimes.test(mimeType) || MEDIA_LIMITS.AUDIO.exts.test(fileName)) return "AUDIO";
   const doc = documentFormat(fileName, mimeType);
@@ -250,8 +267,15 @@ export class TeachingSessionService {
       fileName = safeFileName(str(input.fileName, 200), "upload.bin");
     }
     if (!bytes.length) throw new SessionInputError("EMPTY_FILE", `${fileName} is empty.`);
-    const kind = sourceKindFor(fileName, mimeType, requested);
+    let kind = sourceKindFor(fileName, mimeType, requested);
     if (!kind) throw new SessionInputError("UNSUPPORTED_FORMAT", `${fileName}: unsupported file type ${mimeType || "(unknown)"}.`);
+    if (kind === "VIDEO" || kind === "AUDIO" || kind === "IMAGE") {
+      const sniff = sniffMedia(bytes);
+      if (sniff.family === "BLOCKED") throw new SessionInputError("INVALID_FILE", `${fileName} is not a media file.`);
+      if (kind !== "IMAGE" && sniff.family === "IMAGE") throw new SessionInputError("INVALID_FILE", `${fileName} is an image, not audio or video.`);
+      if (kind === "VIDEO" && sniff.family === "AUDIO") kind = "AUDIO";
+      else if (kind === "AUDIO" && sniff.family === "VIDEO") kind = "VIDEO";
+    }
     const format = kind === "IMAGE" || kind === "VIDEO" || kind === "AUDIO" ? path.extname(fileName).slice(1).toLowerCase() || mimeType.split("/")[1] || kind.toLowerCase()
       : kind === "CODE" ? "code" : documentFormat(fileName, mimeType) ?? "txt";
     const limit = kind === "IMAGE" || kind === "VIDEO" || kind === "AUDIO" ? MEDIA_LIMITS[kind].maxBytes : kind === "CODE" ? CODE_LIMIT : ["pdf", "docx", "epub"].includes(format) ? DOC_LIMIT : TEXT_LIMIT;
@@ -259,7 +283,7 @@ export class TeachingSessionService {
     if (!magicOk(kind, format, bytes)) throw new SessionInputError("INVALID_FILE", `${fileName} does not look like a valid ${format.toUpperCase()} file.`);
     const contentHash = createHash("sha256").update(bytes).digest("hex");
     const existing = this.host.sources().find((s) => s.contentHash === contentHash && s.retained && s.status !== "ARCHIVED"
-      && s.scope === scope.scope && s.projectId === scope.projectId && s.capability === scope.capability);
+      && s.scope === scope.scope && s.projectId === scope.projectId && s.capability === scope.capability && s.kind === kind);
     if (existing) return { source: existing, reused: true };
     const source: TeachingSource = {
       ...base, kind, title: str(input.title, 160) || fileName, fileName, mimeType: mimeType || "application/octet-stream", format, sizeBytes: bytes.length,
@@ -378,6 +402,7 @@ export class TeachingSessionService {
       status: "QUEUED", progress: emptyProgress(), analysis: { ai: { vision: "UNKNOWN", reasoning: "UNKNOWN", transcription: "UNAVAILABLE" }, notes: [], perSource: [] },
       jobId: null, datasetId: null, datasetVersionId: null, evaluationId: null, activationId: null, error: null,
       createdBy: by, createdAt: now, updatedAt: now, startedAt: null, completedAt: null,
+      research: input.research === true || str(input.research, 10).toUpperCase() === "AUTO" ? "AUTO" : "OFF",
     };
     session.progress.total = sources.reduce((a, s) => a + STEPS_PER_KIND[s.kind], 0) + 2;
     this.host.sessions().push(session);
@@ -393,6 +418,86 @@ export class TeachingSessionService {
     job.progress = session.progress;
     this.host.persist();
     return session;
+  }
+
+  private researchDay = "";
+  private researchCount = 0;
+
+  private researchUsedToday(): number {
+    const day = this.host.iso().slice(0, 10);
+    if (day !== this.researchDay) {
+      this.researchDay = day;
+      this.researchCount = 0;
+    }
+    return this.researchCount;
+  }
+
+  /** `requested` also runs a live reachability probe through the hardened fetcher. */
+  async onlinePreflight(requested: boolean, capabilities?: CapabilityAvailability[]): Promise<OnlinePreflight> {
+    let caps = capabilities;
+    if (!caps) {
+      try {
+        caps = this.host.capabilities?.() ?? [];
+      } catch {
+        caps = [];
+      }
+    }
+    return onlinePreflight({
+      requested, retrievalConfigured: Boolean(this.host.fetchUrl && this.host.urlPolicy), urlPolicy: this.host.urlPolicy,
+      capabilities: caps, dailyUsed: this.researchUsedToday(), dailyLimit: RESEARCH_DAILY_LIMIT, now: this.host.iso(),
+      probe: this.host.fetchUrl ? async () => {
+        const r = await this.host.fetchUrl!(RESEARCH_REGISTRY[1]!.url);
+        return { ok: r.ok, detail: r.ok ? "An approved source answered through the hardened fetcher." : `Probe failed (${r.errorCode ?? `HTTP ${r.status}`}).` };
+      } : undefined,
+    });
+  }
+
+  researchRegistry() {
+    return RESEARCH_REGISTRY.map((e) => ({ ...e, allowed: this.host.urlPolicy ? this.host.urlPolicy(e.url).ok : false }));
+  }
+
+  /** Adds the approved pages the planner picked for this task as URL sources of the session (reusing earlier ones). */
+  private planSessionResearch(session: TeachingSession, analysed: Array<{ source: TeachingSource; analysis: MediaAnalysis | null }>): TeachingSource[] {
+    const online = session.analysis.online!;
+    const gaps = session.analysis.perSource.flatMap((s) => (Array.isArray(s.summary.capabilities) ? s.summary.capabilities as MediaCapabilityEntry[] : []));
+    const textRegionsSeen = session.analysis.perSource.some((s) => Number(s.summary.scenesWithTextLikeRegions ?? 0) > 0 || Number(s.summary.textBands ?? 0) > 0);
+    const room = Math.min(RESEARCH_PAGES_PER_SESSION, RESEARCH_DAILY_LIMIT - this.researchUsedToday(), MAX_SOURCES_PER_SESSION + RESEARCH_PAGES_PER_SESSION - session.sourceAssetIds.length);
+    const plan = planResearch({
+      target: session.targetAI, capability: session.capability, mediaKinds: analysed.map((a) => a.source.kind),
+      focus: [...session.requestedKnowledgeScope.focus, ...session.requestedKnowledgeScope.mediaFocus], gaps, textRegionsSeen,
+    }, Math.max(0, room));
+    const out: TeachingSource[] = [];
+    for (const { entry, reason } of plan) {
+      const policy = this.host.urlPolicy!(entry.url);
+      if (!policy.ok) {
+        online.failed.push({ registryId: entry.id, code: policy.code, message: policy.message });
+        continue;
+      }
+      const existing = this.host.sources().find((s) => s.kind === "URL" && s.url === policy.url && s.capability === session.capability
+        && s.scope === session.scope && s.projectId === session.projectId && s.status !== "ARCHIVED");
+      const now = this.host.iso();
+      const source: TeachingSource = existing ?? {
+        sourceId: randomUUID(), kind: "URL", title: entry.title, description: `Approved online source (${entry.publisher}).`, fileName: `${safeFileName(new URL(policy.url).hostname, "page")}.html`,
+        mimeType: "text/html", format: "html", sizeBytes: 0, contentHash: createHash("sha256").update(policy.url).digest("hex"), storage: "url", url: policy.url,
+        target: session.targetAI, capability: session.capability, scope: session.scope, projectId: session.projectId, retention: "KEEP_SOURCE", retained: true,
+        retentionState: "RETAINED", retentionNote: null, status: "STORED", measured: {}, knowledgeExtracted: 0, sessionIds: [], error: null,
+        createdBy: "online-research", createdAt: now, updatedAt: now, deletedAt: null,
+      };
+      source.research = {
+        registryId: entry.id, publisher: entry.publisher, topics: entry.topics, reason, license: entry.license, freshnessDays: entry.freshnessDays,
+        retrievedAt: existing?.research?.retrievedAt ?? null, contentHash: existing?.research?.contentHash ?? null, previousContentHash: existing?.research?.contentHash ?? null,
+      };
+      if (!existing) this.host.sources().push(source);
+      if (!source.sessionIds.includes(session.sessionId)) source.sessionIds.push(session.sessionId);
+      session.sourceAssetIds.push(source.sourceId);
+      session.sourceReferences.push({ sourceId: source.sourceId, kind: "URL", title: source.title, fileName: source.fileName });
+      online.planned.push({ registryId: entry.id, url: policy.url, publisher: entry.publisher, topics: entry.topics, reason });
+      this.researchCount += 1;
+      out.push(source);
+    }
+    if (out.length) session.sourceType = "MULTIPLE";
+    this.host.persist();
+    return out;
   }
 
   private readonly seenVideoStages = new Map<string, Set<SessionStage>>();
@@ -455,9 +560,16 @@ export class TeachingSessionService {
     const all: KnowledgeRecord[] = [];
     const analysed: Array<{ source: TeachingSource; analysis: MediaAnalysis | null }> = [];
     const kindDurations = new Map<SourceKind, number[]>();
-    const sources = session.sourceAssetIds.map((id) => this.requireSource(id));
+    const researchRequested = session.research === "AUTO";
+    this.stage(job, session, "ONLINE_PREFLIGHT", researchRequested ? "Checking approved online sources" : "Online research not requested");
+    const preflight = await this.onlinePreflight(researchRequested, session.analysis.capabilities ?? []);
+    session.analysis.online = {
+      preflight, requested: researchRequested, planned: [], fetched: 0, failed: [], records: 0,
+      note: !researchRequested ? "Online research was not requested for this session." : preflight.state === "ONLINE_RESEARCH_AVAILABLE" ? "Research runs after the uploaded material is analysed." : "ONLINE_RESEARCH_UNAVAILABLE — learning continues from the uploaded material only.",
+    };
+    const processSources = async (sources: TeachingSource[]): Promise<boolean> => {
     for (const [index, source] of sources.entries()) {
-      if (job.status === "CANCELLED") return;
+      if (job.status === "CANCELLED") return false;
       const started = Date.now();
       const before = p.completed;
       p.currentSource = source.title;
@@ -499,6 +611,25 @@ export class TeachingSessionService {
       source.updatedAt = this.host.iso();
       this.stage(job, session, p.stage, null, 0);
       this.host.persist();
+    }
+    return true;
+    };
+    if (!(await processSources(session.sourceAssetIds.map((id) => this.requireSource(id))))) return;
+    if (analysed.length && researchRequested && preflight.state === "ONLINE_RESEARCH_AVAILABLE") {
+      const researched = this.planSessionResearch(session, analysed);
+      if (researched.length) {
+        p.total += researched.length * STEPS_PER_KIND.URL;
+        const before = all.length;
+        if (!(await processSources(researched))) return;
+        const online = session.analysis.online!;
+        for (const s of researched) {
+          const per = session.analysis.perSource.find((x) => x.sourceId === s.sourceId);
+          if (per?.status === "FAILED") online.failed.push({ registryId: s.research!.registryId, code: s.error?.code ?? "FAILED", message: s.error?.message ?? "Retrieval failed." });
+          else online.fetched += 1;
+        }
+        online.records = all.filter((r, i) => i >= before && r.sourceIds.some((id) => researched.some((s) => s.sourceId === id))).length;
+        online.note = `${online.fetched} approved page(s) retrieved, ${online.failed.length} failed; ${online.records} grounded statement(s) extracted with citations.`;
+      } else session.analysis.online!.note = "No approved source matched this task.";
     }
     p.etaSec = null;
     p.currentSource = null;
@@ -556,7 +687,7 @@ export class TeachingSessionService {
   }
 
   private async analyzeSource(job: TrainingJob, session: TeachingSession, source: TeachingSource, ctx: ExtractionContext,
-    opts: { visionAi: TeachingAi | null; reasonAi: TeachingAi | null; notes: string[]; unavailable: string[] }): Promise<{ records: KnowledgeRecord[]; analysis: MediaAnalysis | null; summary: Record<string, unknown>; partial?: boolean; artifact?: { kind: "VIDEO_OBSERVATIONS"; observations: number; patterns: number } | null }> {
+    opts: { visionAi: TeachingAi | null; reasonAi: TeachingAi | null; notes: string[]; unavailable: string[] }): Promise<SourceAnalysis> {
     const { notes, unavailable } = opts;
     this.stage(job, session, "VALIDATING_SOURCE", source.title);
     const textual = async (units: TextUnit[], label: string) => {
@@ -579,8 +710,24 @@ export class TeachingSessionService {
       source.sizeBytes = Buffer.byteLength(fetched.body);
       source.contentHash = createHash("sha256").update(fetched.body).digest("hex");
       source.measured = { sections: doc.sections };
-      notes.push(`Retrieved ${fetched.finalUrl.replace(/[?#].*$/, "")} with robots.txt and private-network checks.`, ...doc.notes);
-      return { records: await textual(doc.units, "Page"), analysis: null, summary: { format: doc.format, chars: doc.chars, sections: doc.sections } };
+      const retrievedAt = this.host.iso();
+      const cited = fetched.finalUrl.replace(/[?#].*$/, "");
+      notes.push(`Retrieved ${cited} with robots.txt and private-network checks.`, ...doc.notes);
+      const units = doc.units.filter((u) => !isInstructionLike(u.text));
+      if (units.length < doc.units.length) notes.push(`${doc.units.length - units.length} passage(s) that tried to give instructions were treated as untrusted data and not learned from.`);
+      if (source.research) {
+        const changed = source.research.contentHash && source.research.contentHash !== source.contentHash;
+        source.research.previousContentHash = source.research.contentHash;
+        source.research.contentHash = source.contentHash;
+        source.research.retrievedAt = retrievedAt;
+        notes.push(`Approved source (${source.research.publisher}) chosen for: ${source.research.reason}.${changed ? " The page changed since the last retrieval." : ""}`);
+      }
+      const records = await textual(units, "Page");
+      for (const r of records) for (const loc of r.sourceLocations) if (loc.sourceId === source.sourceId) Object.assign(loc, { url: cited, retrievedAt });
+      return {
+        records, analysis: null,
+        summary: { format: doc.format, chars: doc.chars, sections: doc.sections, ...(source.research ? { registryId: source.research.registryId, publisher: source.research.publisher, citation: cited, retrievedAt } : {}) },
+      };
     }
 
     const bytes = this.readSourceBytes(source);
@@ -627,17 +774,66 @@ export class TeachingSessionService {
       };
     }
 
+    const ingestion = await this.ingestSource(job, session, source, file, notes);
+    try {
+      return await this.analyzeAudioVideo(job, session, source, ctx, opts, ingestion?.analysisPath ?? file, ingestion);
+    } finally {
+      await ingestion?.cleanup();
+    }
+  }
+
+  /** Canonical ingestion: content type, probe, stream-based kind, normalisation. Null when the analyser has no ingestion step. */
+  private async ingestSource(job: TrainingJob, session: TeachingSession, source: TeachingSource, file: string, notes: string[]): Promise<MediaIngestion | null> {
+    if (!this.host.analyzer.ingest || (source.kind !== "VIDEO" && source.kind !== "AUDIO")) return null;
+    this.stage(job, session, source.kind === "VIDEO" ? "MEDIA_METADATA" : "AUDIO_METADATA", `${source.fileName}: container and streams`);
+    let ingestion: MediaIngestion;
+    try {
+      ingestion = await this.host.analyzer.ingest(source.kind, file);
+    } catch (err) {
+      if (err instanceof IngestionError) throw new MediaAnalysisError(err.code, err.message);
+      throw err;
+    }
+    if (ingestion.kind !== source.kind) {
+      notes.push(ingestion.kind === "AUDIO" ? "The file has no video track; it was analysed as audio." : "The file has no audio track; it was analysed as video.");
+      session.progress.total += STEPS_PER_KIND[ingestion.kind] - STEPS_PER_KIND[source.kind];
+      source.kind = ingestion.kind;
+      const ref = session.sourceReferences.find((r) => r.sourceId === source.sourceId);
+      if (ref) ref.kind = source.kind;
+      const kinds = [...new Set(session.sourceReferences.map((r) => r.kind))];
+      session.sourceType = kinds.length === 1 ? kinds[0]! : "MULTIPLE";
+      if (source.kind === "VIDEO") session.progress.media = emptyMedia();
+      else delete session.progress.media;
+    }
+    if (ingestion.normalization) {
+      notes.push(`Normalised for analysis (${describeNormalization(ingestion.normalization.reasons)}); the original upload is kept unchanged and the temporary derivative is removed after analysis.`);
+    }
+    return ingestion;
+  }
+
+  private async analyzeAudioVideo(job: TrainingJob, session: TeachingSession, source: TeachingSource, ctx: ExtractionContext,
+    opts: { visionAi: TeachingAi | null; reasonAi: TeachingAi | null; notes: string[]; unavailable: string[] }, file: string, ingestion: MediaIngestion | null): Promise<SourceAnalysis> {
+    const { notes, unavailable } = opts;
+    const ms = (stage: SessionStage, item: string | null) => this.videoStage(job, session, source.sourceId, stage, item);
+    const normalizationNote = !ingestion ? "Not checked — this analyser has no ingestion step"
+      : ingestion.normalization ? `${ingestion.normalization.target === "FLAC" ? "Decoded to lossless FLAC" : "Converted to H.264/AAC MP4"} (${describeNormalization(ingestion.normalization.reasons)}) in ${ingestion.normalization.seconds} s; original kept`
+        : `Not required — ${ingestion.probe.demuxer ?? "container"} is supported directly`;
+    const summaryOf = () => (ingestion ? ingestionSummary(ingestion) : undefined);
+
     if (source.kind === "AUDIO") {
-      ms("AUDIO_METADATA", source.fileName);
-      const base = await this.host.analyzer.analyze("AUDIO", file, source.mimeType);
+      ms("AUDIO_METADATA", ingestion?.probe.audio ? `${source.fileName}: ${ingestion.probe.audio.codec ?? "?"}, ${ingestion.probe.audio.sampleRate ?? "?"} Hz, ${ingestion.probe.audio.channels ?? "?"} ch` : source.fileName);
+      ms("NORMALIZATION", normalizationNote);
+      const base = await this.host.analyzer.analyze("AUDIO", file, source.mimeType, ingestion ?? undefined);
+      const a = base.audio ?? null;
+      base.ingestion = summaryOf();
+      base.capabilities = audioCapabilityMatrix(a, a ? { codec: a.codec, sampleRate: a.sampleRate, channels: a.channels, durationSec: a.durationSec } : null);
       source.measured = { durationSec: base.durationSec };
       notes.push(...base.notes);
-      const a = base.audio ?? null;
-      ms("WAVEFORM_ANALYSIS", a ? `${a.durationSec.toFixed(1)} s decoded; RMS ${a.rmsDbfs?.toFixed(1) ?? "n/a"} dBFS, peak ${a.peakDbfs?.toFixed(1) ?? "n/a"} dBFS, ${a.silences?.length ?? 0} silent gap(s)` : "No decodable audio stream");
+      ms("WAVEFORM_ANALYSIS", a ? `${fixed(a.durationSec, 1)} s decoded; RMS ${fixed(a.rmsDbfs, 1)} dBFS, peak ${fixed(a.peakDbfs, 1)} dBFS, ${a.silences?.length ?? 0} silent gap(s)` : "No decodable audio stream");
       ms("SPEECH_ANALYSIS", "Unavailable — no speech-to-text runtime is configured");
       unavailable.push("Speech transcription — no speech-to-text runtime is available on this server.");
-      ms("BPM_ANALYSIS", a?.bpm && a.tempoStatus === "available" ? `${Math.round(a.bpm)} BPM (confidence ${a.tempoConfidence.toFixed(2)})` : `Unavailable — ${a?.bpm ? "tempo confidence too low" : "no reliable tempo measured"}; BPM is not guessed`);
-      ms("BEAT_ANALYSIS", a && a.beatCount ? `${a.beatCount} beat(s), ${a.downbeatCount} downbeat(s)` : "No beats detected");
+      ms("BPM_ANALYSIS", a?.bpm && a.tempoStatus === "available" ? `${Math.round(a.bpm)} BPM (confidence ${fixed(a.tempoConfidence, 2)})`
+        : `Unavailable — ${a?.tempoStatus === "low_confidence" ? `tempo confidence ${fixed(a.tempoConfidence, 2)} too low` : "no reliable tempo measured"}; BPM is not guessed`);
+      ms("BEAT_ANALYSIS", a && a.beatCount ? `${a.beatCount} beat(s), ${a.downbeatCount} downbeat(s)${a.bpm ? "" : " (candidates only; no reliable tempo)"}` : "No beats detected");
       ms("ENERGY_ANALYSIS", a ? `${a.sections.length} section(s), ${(a.energyTransitions ?? []).length} energy transition(s)` : "Unavailable");
       const records = extractFromAudio(source, base, ctx);
       unavailable.push(...audioUnavailable(a).filter((u) => !/^Speech/.test(u)));
@@ -646,14 +842,20 @@ export class TeachingSessionService {
       ms("KNOWLEDGE_EXTRACTION", source.fileName);
       return {
         records, analysis: base,
-        summary: { durationSec: base.durationSec, bpm: a?.bpm ?? null, tempoStatus: a?.tempoStatus ?? null, sections: a?.sections.length ?? 0, beats: a?.beatCount ?? 0, downbeats: a?.downbeatCount ?? 0, musicPatterns: patterns },
+        summary: {
+          durationSec: base.durationSec, bpm: a?.bpm ?? null, tempoStatus: a?.tempoStatus ?? null, sections: a?.sections.length ?? 0, beats: a?.beatCount ?? 0, downbeats: a?.downbeatCount ?? 0, musicPatterns: patterns,
+          ingestion: base.ingestion ?? null, capabilities: base.capabilities,
+        },
       };
     }
 
     // VIDEO
     const vs = (stage: SessionStage, item: string | null, media?: Partial<MediaCounters>) => this.videoStage(job, session, source.sourceId, stage, item, media);
-    vs("MEDIA_METADATA", source.fileName);
-    const base = await this.host.analyzer.analyze("VIDEO", file, source.mimeType);
+    const pv = ingestion?.probe.video;
+    vs("MEDIA_METADATA", pv ? `${source.fileName}: ${pv.codec ?? "?"} ${pv.width}×${pv.height}${pv.variableFrameRate ? ", variable frame rate" : ""}` : source.fileName);
+    vs("NORMALIZATION", normalizationNote);
+    const base = await this.host.analyzer.analyze("VIDEO", file, source.mimeType, ingestion ?? undefined);
+    base.ingestion = summaryOf();
     source.measured = { durationSec: base.durationSec, width: base.width, height: base.height };
     notes.push(...base.notes.filter((n) => !/^No transcript/.test(n)));
     vs("SCENE_DETECTION", `${base.sceneCount ?? 0} scene(s) from the cut detector`, { scenesTotal: base.sceneCount ?? 0 });
@@ -684,9 +886,11 @@ export class TeachingSessionService {
       this.writeArtifact(session.sessionId, source.sourceId, { kind: "VIDEO_OBSERVATIONS", sourceId: source.sourceId, sourceFingerprint: source.contentHash.slice(0, 16), observations, transitionKinds: deep?.transitionKinds ?? {}, gradualBoundaries: deep?.gradualBoundaries ?? [] });
       artifact = { kind: "VIDEO_OBSERVATIONS", observations: observations.length, patterns };
     }
+    base.capabilities = videoCapabilityMatrix(base, deep, Boolean(opts.visionAi));
     return {
       records, analysis: base, partial: !deep, artifact,
       summary: {
+        ingestion: base.ingestion ?? null, capabilities: base.capabilities,
         durationSec: base.durationSec, width: base.width, height: base.height, scenes: deep?.scenes.length ?? base.sceneCount ?? 0, bpm: base.audio?.bpm ?? null,
         transitions: deep?.transitions ?? null, transitionKinds: deep?.transitionKinds ?? null, framesAnalysed: deep?.frames ?? 0, sync: deep?.sync ?? null,
         observations: observations.length, creativePatterns: patterns,

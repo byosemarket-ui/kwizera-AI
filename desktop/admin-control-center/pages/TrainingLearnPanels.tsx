@@ -12,6 +12,7 @@ import {
   type AdminTrainingRuntimeTest,
 } from "../admin-api";
 import { DataTable, EmptyState, ErrorState, FormField, SectionCard, Select, StatusBadge } from "../components/ui";
+import { MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "./TeachingObservations";
 
 type Notify = (message: string, tone?: "info" | "success" | "error") => void;
 
@@ -33,8 +34,8 @@ const TEACHING_TYPES = [
 
 const SOURCE_TYPES: Array<{ value: string; label: string; accept: string }> = [
   { value: "MULTIPLE", label: "Mixed material", accept: "" },
-  { value: "VIDEO", label: "Video (MP4, WebM, MOV)", accept: "video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v" },
-  { value: "AUDIO", label: "Audio (MP3, WAV, M4A, AAC, OGG)", accept: "audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/aac,audio/ogg,.mp3,.wav,.m4a,.aac,.ogg" },
+  { value: "VIDEO", label: "Video (MP4, MOV, WebM, MKV, M4V, AVI, MPEG)", accept: "video/mp4,video/webm,video/quicktime,video/x-matroska,video/x-m4v,video/x-msvideo,video/avi,video/mpeg,.mp4,.webm,.mov,.mkv,.m4v,.avi,.mpg,.mpeg" },
+  { value: "AUDIO", label: "Audio (MP3, WAV, M4A, AAC, FLAC, OGG/Opus, WebM audio)", accept: "audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,audio/flac,audio/x-flac,audio/ogg,audio/opus,audio/webm,.mp3,.wav,.m4a,.aac,.flac,.ogg,.oga,.opus,.weba" },
   { value: "IMAGE", label: "Image (JPG, PNG, WebP)", accept: "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" },
   { value: "DOCUMENT", label: "Document (PDF, DOCX, TXT, MD, CSV, EPUB)", accept: ".pdf,.docx,.txt,.md,.markdown,.csv,.epub,.html,.htm" },
   { value: "BOOK", label: "Book (split by chapter)", accept: ".pdf,.docx,.epub,.txt,.md" },
@@ -55,43 +56,6 @@ const RETENTION_STATE: Record<string, string> = {
   RETAINED: "retained", PENDING_ACTIVATION: "kept until activation", DELETED_AFTER_LEARNING: "deleted after learning", ARCHIVED: "archived", DELETED_BY_ADMIN: "deleted by Admin",
 };
 const PATTERN_FAMILIES = ["HOOK", "REVEAL", "SHOWCASE", "BENEFIT", "OFFER", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING"];
-
-type Observation = {
-  sceneIndex: number; startSec: number; endSec: number;
-  storytelling?: { role?: string };
-  camera?: { movement?: string; confidence?: number };
-  transition?: { type?: string; durationSec?: number; confidence?: number } | null;
-  product?: { prominence?: string; cropRisk?: string; locationBand?: string } | null;
-  text?: { presence?: string; regions?: unknown[] };
-  audio?: { music?: string };
-};
-
-function ObservationsView({ artifact }: { artifact: Record<string, unknown> & { title?: string } }) {
-  const observations = Array.isArray(artifact.observations) ? artifact.observations as Observation[] : [];
-  if (artifact.missing) return <p className="acc-muted" style={{ fontSize: 12 }}>{artifact.title}: observation artifact is no longer stored.</p>;
-  return (
-    <details style={{ fontSize: 12, marginBottom: 6 }}>
-      <summary>{artifact.title}: {observations.length} per-scene observation(s)</summary>
-      <table style={{ fontSize: 12, borderCollapse: "collapse" }}>
-        <thead><tr>{["Scene", "Time", "Role", "Camera", "Transition in", "Product", "Text", "Audio"].map((h) => <th key={h} style={{ textAlign: "left", paddingRight: 10 }}>{h}</th>)}</tr></thead>
-        <tbody>
-          {observations.map((o) => (
-            <tr key={o.sceneIndex}>
-              <td>{o.sceneIndex + 1}</td>
-              <td>{o.startSec.toFixed(2)}–{o.endSec.toFixed(2)}s</td>
-              <td>{o.storytelling?.role ?? "—"}</td>
-              <td>{o.camera?.movement ?? "—"}{o.camera?.confidence != null ? ` (${o.camera.confidence.toFixed(2)})` : ""}</td>
-              <td>{o.transition ? `${o.transition.type}${o.transition.durationSec ? ` ${o.transition.durationSec.toFixed(2)}s` : ""}` : "—"}</td>
-              <td>{o.product ? `${o.product.prominence ?? ""} · ${o.product.locationBand ?? ""} · crop ${o.product.cropRisk ?? "?"}` : "not isolated"}</td>
-              <td>{o.text?.presence ?? "—"}{o.text?.regions?.length ? ` (${o.text.regions.length})` : ""}</td>
-              <td>{o.audio?.music ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </details>
-  );
-}
 
 const NOVELTY = ["NEW", "PARTIALLY_NEW", "KNOWN", "DUPLICATE", "CONTRADICTORY", "LOW_CONFIDENCE", "REQUIRES_REVIEW"];
 const KNOWLEDGE_TYPES = ["rule", "principle", "example", "pattern", "workflow", "style", "constraint", "heuristic", "relationship", "multimodal_pattern"];
@@ -176,6 +140,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
   const [pasteText, setPasteText] = useState("");
   const [urlText, setUrlText] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [research, setResearch] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -284,7 +249,7 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
         sourceIds.push(source.sourceId);
       }
       setBusy("Starting analysis");
-      const { session: created } = await adminApi.createTeachingSession({ ...scopeFields, teachingType, sourceIds, instructions });
+      const { session: created } = await adminApi.createTeachingSession({ ...scopeFields, teachingType, sourceIds, instructions, research: research ? "AUTO" : "OFF" });
       setSessionId(created.sessionId);
       setPending([]);
       setBusy(null);
@@ -446,6 +411,9 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           >
             <textarea rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Learn the scene order, framing and transitions. Ignore the music." />
           </FormField>
+          <label style={{ fontSize: 12, display: "block" }}>
+            <input type="checkbox" checked={research} onChange={(e) => setResearch(e.target.checked)} /> Also research approved online sources for this task (online-first; citations kept, falls back to the uploaded material if online research is unavailable)
+          </label>
           {teachingCaps ? (
             <details style={{ fontSize: 12 }}>
               <summary>What this server can analyse ({teachingCaps.filter((c) => c.executable).length} of {teachingCaps.length} capabilities executable)</summary>
@@ -491,11 +459,13 @@ export function LearnPanel({ catalog, datasets, notify, onChanged, onOpenDataset
           <p className="acc-muted" style={{ fontSize: 12 }}>
             Vision analysis <StatusBadge status={session.analysis.ai.vision} /> · Reasoning <StatusBadge status={session.analysis.ai.reasoning} /> · Speech transcription <StatusBadge status={session.analysis.ai.transcription} />
           </p>
+          <OnlineResearchView online={(session.analysis as { online?: unknown }).online} />
           {session.analysis.perSource.map((s) => (
             <details key={s.sourceId} style={{ fontSize: 12, marginBottom: 6 }}>
               <summary><StatusBadge status={s.learningStatus ?? s.status} /> {s.title}{s.unavailable.length ? ` — ${s.unavailable.length} aspect(s) unavailable` : ""}</summary>
               <ul>
                 {summaryText(s.summary) ? <li>Measured: {summaryText(s.summary)}</li> : null}
+                <MediaCapabilitiesView summary={s.summary} />
                 {s.notes.map((n) => <li key={n}>{n}</li>)}
                 {s.unavailable.map((u) => <li key={u}><StatusBadge status="UNAVAILABLE" /> {u}</li>)}
               </ul>

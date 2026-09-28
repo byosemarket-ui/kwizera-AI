@@ -9,9 +9,13 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { AudioMeasurement, MediaAnalysis, MediaKind } from "./training-types.js";
+import { ingestMedia, type MediaIngestion } from "./media-ingestion.js";
 
 export interface TeachingMediaAnalyzer {
-  analyze(kind: MediaKind, filePath: string, mimeType: string): Promise<MediaAnalysis>;
+  /** `ingestion` supplies the original's metadata when `filePath` is a normalised derivative. */
+  analyze(kind: MediaKind, filePath: string, mimeType: string, ingestion?: MediaIngestion): Promise<MediaAnalysis>;
+  /** Canonical ingestion (content type, probe, normalisation); analysers without it analyse the stored file as-is. */
+  ingest?(kind: "VIDEO" | "AUDIO", filePath: string): Promise<MediaIngestion>;
 }
 
 export class MediaAnalysisError extends Error {
@@ -23,8 +27,8 @@ export class MediaAnalysisError extends Error {
 
 export const MEDIA_LIMITS: Record<MediaKind, { maxBytes: number; mimes: RegExp; exts: RegExp }> = {
   IMAGE: { maxBytes: 20 * 1024 * 1024, mimes: /^image\/(png|jpe?g|webp)$/, exts: /\.(png|jpe?g|webp)$/i },
-  VIDEO: { maxBytes: 45 * 1024 * 1024, mimes: /^video\/(mp4|quicktime|webm|x-matroska)$/, exts: /\.(mp4|mov|webm|mkv)$/i },
-  AUDIO: { maxBytes: 30 * 1024 * 1024, mimes: /^audio\/(mpeg|mp3|wav|x-wav|wave|ogg|mp4|x-m4a|aac|flac|x-flac)$/, exts: /\.(mp3|wav|ogg|m4a|aac|flac)$/i },
+  VIDEO: { maxBytes: 45 * 1024 * 1024, mimes: /^video\/(mp4|quicktime|webm|x-matroska|x-m4v|x-msvideo|avi|msvideo|mpeg|mp2t|ogg)$/, exts: /\.(mp4|mov|webm|mkv|m4v|avi|mpe?g)$/i },
+  AUDIO: { maxBytes: 30 * 1024 * 1024, mimes: /^audio\/(mpeg|mp3|wav|x-wav|wave|vnd\.wave|ogg|opus|webm|mp4|x-m4a|m4a|aac|x-aac|flac|x-flac)$/, exts: /\.(mp3|wav|ogg|oga|opus|weba|m4a|aac|flac)$/i },
   DOCUMENT: { maxBytes: 40 * 1024 * 1024, mimes: /^(application\/pdf|text\/plain|text\/markdown|text\/x-markdown)$/, exts: /\.(pdf|txt|md|markdown)$/i },
 };
 
@@ -116,38 +120,50 @@ export function measureFade(envelope: number[], atEnd: boolean, windowSec = 0.05
   return sec >= 0.3 && sec <= Math.min(15, (envelope.length * windowSec) / 2) ? round(sec, 2) : null;
 }
 
-async function analyzeAudioFile(filePath: string): Promise<AudioMeasurement> {
+type AudioMeta = { codec: string | null; sampleRate: number | null; channels: number | null; durationSec: number | null };
+
+/** Decode is required; the signal analysis (tempo, beats, energy, structure) is isolated so its failure keeps the levels. */
+async function analyzeAudioFile(filePath: string, original?: AudioMeta | null): Promise<AudioMeasurement> {
   const { decodeAudioToMonoPcm } = await import("../audio-intelligence/pcm-decode.js");
   const { analyzeDecodedPcm } = await import("../audio-intelligence/analyze-signal.js");
   const { probeAudio } = await import("../video-production/ffmpeg-renderer.js");
-  const probed = await probeAudio(filePath);
+  const probed = await probeAudio(filePath).catch(() => null);
   const pcm = await decodeAudioToMonoPcm(filePath);
-  const signal = analyzeDecodedPcm(pcm);
   const levels = measureLevels(pcm.samples);
   const envelope = rmsEnvelope(pcm.samples, pcm.sampleRate);
-  const timeline = signal.energyTimeline;
+  const meta = original ?? { codec: probed?.codec ?? null, sampleRate: probed?.sampleRate ?? null, channels: probed?.channels ?? null, durationSec: probed ? probed.durationMs / 1000 : null };
+  let signal: ReturnType<typeof analyzeDecodedPcm> | null = null;
+  try {
+    signal = analyzeDecodedPcm(pcm);
+  } catch (err) {
+    console.error("[KWIZERA] Teaching audio signal analysis failed:", err instanceof Error ? err.message : err);
+  }
+  const timeline = signal?.energyTimeline ?? [];
   const stride = Math.max(1, Math.ceil(timeline.length / 120));
+  const durationSec = pcm.durationSec || meta.durationSec || 0;
   return {
-    beatTimes: signal.beats.slice(0, 1_000).map((b) => round(b.time)),
-    downbeatTimes: signal.downbeats.slice(0, 300).map((b) => round(b.time)),
+    beatTimes: (signal?.beats ?? []).slice(0, 1_000).map((b) => round(b.time)),
+    downbeatTimes: (signal?.downbeats ?? []).slice(0, 300).map((b) => round(b.time)),
     energyTimeline: timeline.filter((_, i) => i % stride === 0).map((w) => ({ start: round(w.start, 2), end: round(w.end, 2), energy: round(w.energy) })),
-    energyTransitions: signal.energyTransitions.slice(0, 40).map((t) => ({ time: round(t.time, 2), type: t.type })),
+    energyTransitions: (signal?.energyTransitions ?? []).slice(0, 40).map((t) => ({ time: round(t.time, 2), type: t.type })),
     silences: measureSilences(envelope),
     fadeInSec: measureFade(envelope, false),
     fadeOutSec: measureFade(envelope, true),
-    durationSec: round(pcm.durationSec || probed.durationMs / 1000),
-    sampleRate: probed.sampleRate,
-    channels: probed.channels,
-    codec: probed.codec,
-    bpm: signal.tempo.bpm,
-    tempoConfidence: round(signal.tempo.confidence),
-    tempoStatus: signal.tempo.status,
-    beatCount: signal.beats.length,
-    downbeatCount: signal.downbeats.length,
-    firstBeats: signal.beats.slice(0, 16).map((b) => round(b.time)),
-    sections: signal.sections.slice(0, 24).map((s) => ({ label: s.label, start: round(s.start, 2), end: round(s.end, 2) })),
+    durationSec: round(durationSec),
+    sampleRate: meta.sampleRate,
+    channels: meta.channels,
+    codec: meta.codec,
+    bpm: signal?.tempo.status === "available" ? signal.tempo.bpm ?? null : null,
+    bpmCandidate: signal?.tempo.status === "available" ? null : signal?.tempo.bpm ?? null,
+    tempoConfidence: round(signal?.tempo.confidence ?? 0),
+    tempoStatus: signal?.tempo.status ?? "failed",
+    beatCount: signal?.beats.length ?? 0,
+    downbeatCount: signal?.downbeats.length ?? 0,
+    firstBeats: (signal?.beats ?? []).slice(0, 16).map((b) => round(b.time)),
+    sections: (signal?.sections ?? []).slice(0, 24).map((s) => ({ label: s.label, start: round(s.start, 2), end: round(s.end, 2) })),
     ...levels,
-    silent: signal.technical.silent,
+    silent: signal ? signal.technical.silent : levels.peakDbfs === null,
+    ...(signal ? {} : { failed: ["TEMPO", "BEATS", "DOWNBEATS", "ENERGY", "MUSIC_STRUCTURE"] }),
   };
 }
 
@@ -181,7 +197,11 @@ async function remuxForProbe(filePath: string, outPath: string): Promise<boolean
 
 export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
   return {
-    async analyze(kind, filePath, mimeType) {
+    ingest: (kind, filePath) => ingestMedia(filePath, kind),
+    async analyze(kind, filePath, mimeType, ingestion) {
+      const originalAudio: AudioMeta | null = ingestion?.probe.audio
+        ? { codec: ingestion.probe.audio.codec, sampleRate: ingestion.probe.audio.sampleRate, channels: ingestion.probe.audio.channels, durationSec: ingestion.probe.durationSec }
+        : null;
       const notes: string[] = [];
       if (kind === "IMAGE") {
         const { readDimensions } = await import("../image-preparation/validation.js");
@@ -193,7 +213,7 @@ export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
       if (kind === "AUDIO") {
         let audio: AudioMeasurement;
         try {
-          audio = await analyzeAudioFile(filePath);
+          audio = await analyzeAudioFile(filePath, originalAudio);
         } catch (err) {
           throw new MediaAnalysisError("AUDIO_UNREADABLE", err instanceof Error && !/[\\/]/.test(err.message) ? err.message : "The audio file could not be decoded.");
         }
@@ -235,7 +255,7 @@ export function createTeachingMediaAnalyzer(): TeachingMediaAnalyzer {
             const tmp = path.join(os.tmpdir(), `kwz-teach-${randomUUID()}.m4a`);
             try {
               await extractAudioFromVideo(source, tmp);
-              audio = await analyzeAudioFile(tmp);
+              audio = await analyzeAudioFile(tmp, originalAudio);
             } catch {
               notes.push("The video's audio track could not be analysed.");
             } finally {
@@ -274,7 +294,7 @@ export function describeAnalysis(analysis: MediaAnalysis | null, roleLabel: stri
   if (analysis.sceneCount) parts.push(`${analysis.sceneCount} shots${analysis.meanShotSec ? `, mean shot ${analysis.meanShotSec.toFixed(1)} s` : ""}`);
   const a = analysis.audio;
   if (a) {
-    parts.push(a.bpm ? `measured tempo ${Math.round(a.bpm)} BPM (confidence ${a.tempoConfidence.toFixed(2)})` : `tempo ${a.tempoStatus.replace(/_/g, " ")}`);
+    parts.push(a.bpm && a.tempoStatus === "available" ? `measured tempo ${Math.round(a.bpm)} BPM (confidence ${a.tempoConfidence.toFixed(2)})` : `tempo ${a.tempoStatus.replace(/_/g, " ")} (BPM not reported)`);
     parts.push(`${a.beatCount} beats, ${a.downbeatCount} downbeats`);
     if (a.sections.length) parts.push(`sections ${a.sections.slice(0, 6).map((s) => `${s.label} ${s.start.toFixed(0)}–${s.end.toFixed(0)} s`).join(", ")}`);
     if (a.rmsDbfs !== null) parts.push(`loudness ${a.rmsDbfs.toFixed(1)} dBFS RMS, peak ${a.peakDbfs?.toFixed(1)} dBFS`);

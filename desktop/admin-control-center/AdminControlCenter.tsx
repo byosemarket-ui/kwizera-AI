@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   LayoutDashboard, Boxes, Cable, Waypoints, Clapperboard, Image, AudioLines, Mic,
   Users, FolderKanban, Activity, Coins, Wallet, CreditCard, HeartPulse, ScrollText,
@@ -45,6 +45,31 @@ const ICONS: Record<AdminRouteId, LucideIcon> = {
   database: Database,
   settings: Settings,
 };
+
+/** A rendering error inside one Admin page shows an error for that page and keeps the navigation usable. */
+class PageBoundary extends Component<{ children: ReactNode }, { failed: string | null }> {
+  state = { failed: null as string | null };
+
+  static getDerivedStateFromError(err: unknown) {
+    return { failed: err instanceof Error ? err.message.slice(0, 200) : "Unknown rendering error" };
+  }
+
+  componentDidCatch(err: unknown) {
+    console.error("[KWIZERA] Admin page render failed:", err);
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="acc-card" role="alert" style={{ padding: 16 }}>
+        <h2>This page could not be displayed</h2>
+        <p className="acc-muted">{this.state.failed}</p>
+        <p className="acc-muted">Server-side jobs are not affected; reload the page to see their current state.</p>
+        <button type="button" className="acc-button" onClick={() => this.setState({ failed: null })}>Try again</button>
+      </div>
+    );
+  }
+}
 
 interface AdminControlCenterProps {
   onExitToStudio?: () => void;
@@ -164,7 +189,7 @@ export function AdminControlCenter({ onExitToStudio, onOpenStudioHealth }: Admin
         ) : null}
 
         <main className="acc-main" id="admin-main">
-          {content}
+          <PageBoundary key={route}>{content}</PageBoundary>
         </main>
       </div>
     </div>

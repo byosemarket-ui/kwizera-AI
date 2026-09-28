@@ -1533,6 +1533,8 @@ export class TrainingCenter {
   deleteSource(sourceId: string) { return this.sessions.deleteSource(sourceId, "EXPLICIT"); }
   createSession(input: Record<string, unknown>, by: string) { return this.sessions.createSession(input, by).then((s) => this.sessions.view(s)); }
   listSessions() { return this.sessions.listSessions(); }
+  onlinePreflight(probe: boolean) { return this.sessions.onlinePreflight(probe); }
+  researchRegistry() { return this.sessions.researchRegistry(); }
   getSession(sessionId: string) { return this.sessions.getSession(sessionId); }
   decideKnowledge(sessionId: string, decisions: Array<{ id: string; decision: string }>, by: string) { this.sessions.decide(sessionId, decisions, by); return this.sessions.getSession(sessionId); }
   commitSession(sessionId: string, input: Record<string, unknown>, by: string) { return this.sessions.commit(sessionId, input, by); }

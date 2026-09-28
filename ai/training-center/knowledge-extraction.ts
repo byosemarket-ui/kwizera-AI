@@ -562,7 +562,7 @@ function audioDrafts(source: TeachingSource, a: AudioMeasurement, subject: strin
   const drafts: Draft[] = [];
   const whole = makeLocation(source, { startSec: 0, endSec: a.durationSec });
   if (a.silent) return drafts;
-  if (a.bpm) {
+  if (a.bpm && a.tempoStatus === "available") {
     drafts.push({
       knowledgeType: "pattern", title: `Tempo ${Math.round(a.bpm)} BPM`, facets: ["audio", "pacing"],
       statement: `${subject} measures ${Math.round(a.bpm)} BPM (confidence ${a.tempoConfidence.toFixed(2)}) with ${a.beatCount} beats and ${a.downbeatCount} downbeats over ${secs(a.durationSec)}.`,

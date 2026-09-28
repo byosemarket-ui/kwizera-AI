@@ -31,7 +31,10 @@ export interface AudioMeasurement {
   sampleRate: number | null;
   channels: number | null;
   codec: string | null;
+  /** Only a reliable tempo (tempoStatus "available"); consumers may treat any non-null value as measured. */
   bpm: number | null;
+  /** Phase 20 — the unreliable estimate, for Admin inspection only; never used as a beat grid or stated as knowledge. */
+  bpmCandidate?: number | null;
   tempoConfidence: number;
   tempoStatus: string;
   beatCount: number;
@@ -42,6 +45,37 @@ export interface AudioMeasurement {
   peakDbfs: number | null;
   clippedRatio: number;
   silent: boolean;
+  /** Phase 20 — analysis steps that threw (the others were still measured). */
+  failed?: string[];
+}
+
+/** Phase 20 — per-capability outcome for one media source; UNAVAILABLE is never filled with invented values. */
+export type MediaCapabilityStatus = "EXECUTED" | "NO_RESULT" | "LOW_CONFIDENCE" | "UNAVAILABLE" | "FAILED";
+export interface MediaCapabilityEntry {
+  capability: string;
+  implemented: boolean;
+  executable: boolean;
+  status: MediaCapabilityStatus;
+  detail: string;
+}
+
+/** Phase 20 — what the canonical ingestion found and did (no paths, no identifiers). */
+export interface MediaIngestionSummary {
+  tier: "SUPPORTED_DIRECTLY" | "SUPPORTED_AFTER_NORMALIZATION";
+  sniffed: string;
+  container: string | null;
+  durationSec: number | null;
+  durationSource: "FORMAT" | "STREAM" | null;
+  video: { codec: string | null; width: number; height: number; fps: number | null; variableFrameRate: boolean; pixFmt: string | null; rotation: number } | null;
+  audio: { codec: string | null; sampleRate: number | null; channels: number | null } | null;
+  normalization: null | {
+    reasons: string[];
+    description: string;
+    target: "MP4_H264_AAC" | "FLAC";
+    derivative: { container: string | null; durationSec: number | null; codec: string | null; width: number | null; height: number | null; fps: number | null; sampleRate: number | null };
+    seconds: number;
+    derivativeRetained: false;
+  };
 }
 
 export interface MediaAnalysis {
@@ -58,6 +92,9 @@ export interface MediaAnalysis {
   audio?: AudioMeasurement | null;
   document?: { pages: number; pagesWithText: number; headings: string[]; chars: number; format: string };
   notes: string[];
+  /** Phase 20 — canonical ingestion outcome and capability matrix (absent for analyses stored earlier). */
+  ingestion?: MediaIngestionSummary;
+  capabilities?: MediaCapabilityEntry[];
 }
 
 export interface TeachingMediaRef {
@@ -285,6 +322,8 @@ export interface TeachingSource {
   retentionNote?: string | null;
   status: SourceStatus;
   measured: { pages?: number; chapters?: number; sections?: number; durationSec?: number; width?: number; height?: number; lines?: number; rows?: number };
+  /** Phase 20 — set when the source was chosen by task-aware online research. */
+  research?: ResearchSourceMeta;
   knowledgeExtracted: number;
   sessionIds: string[];
   error: { code: string; message: string } | null;
@@ -312,6 +351,40 @@ export interface SourceLocation {
   endSec?: number;
   /** Human-readable, e.g. "Page 3 · Composition" or "Scene 7, 00:18–00:21". */
   label: string;
+  /** Phase 20 — citation for online sources (query string removed) and when it was retrieved. */
+  url?: string;
+  retrievedAt?: string;
+}
+
+/** Phase 20 — online research readiness; checked without exposing credentials or provider identifiers. */
+export interface OnlinePreflight {
+  state: "ONLINE_RESEARCH_AVAILABLE" | "ONLINE_RESEARCH_UNAVAILABLE";
+  requested: boolean;
+  checkedAt: string;
+  checks: Array<{ check: string; ok: boolean | null; detail: string }>;
+}
+
+export interface ResearchSourceMeta {
+  registryId: string;
+  publisher: string;
+  topics: string[];
+  /** Why the planner picked this page for the task (target, media, gaps). */
+  reason: string;
+  license: string;
+  freshnessDays: number;
+  retrievedAt: string | null;
+  contentHash: string | null;
+  previousContentHash: string | null;
+}
+
+export interface SessionOnlineResearch {
+  preflight: OnlinePreflight;
+  requested: boolean;
+  planned: Array<{ registryId: string; url: string; publisher: string; topics: string[]; reason: string }>;
+  fetched: number;
+  failed: Array<{ registryId: string; code: string; message: string }>;
+  records: number;
+  note: string;
 }
 
 export interface KnowledgeEvidence {
@@ -421,7 +494,9 @@ export type SessionStage =
   | "KNOWLEDGE_EXTRACTION" | "LANGUAGE_NORMALIZATION" | "NOVELTY_CHECK" | "CONSOLIDATION" | "VALIDATION"
   // Phase 18D — per-modality stages (each reports what was actually measured, or why it is unavailable)
   | "SYNC_ANALYSIS" | "SPEECH_ANALYSIS" | "AUDIO_METADATA" | "WAVEFORM_ANALYSIS" | "BPM_ANALYSIS" | "BEAT_ANALYSIS" | "ENERGY_ANALYSIS"
-  | "PATTERN_ANALYSIS" | "IMAGE_METADATA" | "COMPOSITION_ANALYSIS" | "TYPOGRAPHY_ANALYSIS" | "DESIGN_PATTERN_ANALYSIS";
+  | "PATTERN_ANALYSIS" | "IMAGE_METADATA" | "COMPOSITION_ANALYSIS" | "TYPOGRAPHY_ANALYSIS" | "DESIGN_PATTERN_ANALYSIS"
+  // Phase 20
+  | "ONLINE_PREFLIGHT" | "NORMALIZATION" | "ONLINE_RESEARCH" | "RUNTIME_VERIFICATION";
 
 export interface MediaCounters {
   scenesTotal: number;
@@ -496,7 +571,11 @@ export interface TeachingSession {
     }>;
     /** Phase 18C — capability availability snapshot at session start (Admin-only diagnostics). */
     capabilities?: CapabilityAvailability[];
+    /** Phase 20 — online pre-flight and task-aware research (absent for sessions created earlier). */
+    online?: SessionOnlineResearch;
   };
+  /** Phase 20 — AUTO adds task-selected approved online sources after the uploaded material is analysed. */
+  research?: "AUTO" | "OFF";
   jobId: string | null;
   datasetId: string | null;
   datasetVersionId: string | null;

@@ -199,6 +199,11 @@ export async function handleAdminTrainingApi(
       if (sub === "/overview") return reply({ overview: tc.overview() });
       if (sub === "/catalog") return reply({ catalog: tc.catalog() });
       if (sub === "/capabilities") return reply({ items: tc.capabilityMatrix() });
+      if (sub === "/fixtures") {
+        const { FIXTURE_PRESETS } = await import("../../ai/training-center/media-fixtures.js");
+        return reply({ items: FIXTURE_PRESETS.map(({ id, kind, fileName, mimeType, description }) => ({ id, kind, fileName, mimeType, description })) });
+      }
+      if (sub === "/online") return reply({ preflight: await tc.onlinePreflight(url.searchParams.get("probe") === "1"), registry: tc.researchRegistry() });
       if (sub === "/creative-patterns") {
         const task = url.searchParams.get("task") === "CINEMATIC_VIDEO" ? "CINEMATIC_VIDEO" : "PRODUCT_SLIDESHOW";
         return reply({ items: tc.activeCreativePatterns({ task, projectId: str(url.searchParams.get("projectId"), 80) || null, context: [] }) });
@@ -269,6 +274,17 @@ export async function handleAdminTrainingApi(
       return reply(result, result.reused ? 200 : 201);
     }
     if (sub === "/sessions") return reply({ session: await tc.createSession(body, by) }, 202);
+    if (sub === "/fixtures") {
+      const { generateFixture } = await import("../../ai/training-center/media-fixtures.js");
+      try {
+        return reply({ fixture: await generateFixture(str(body.preset, 60)) }, 201);
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (code === "UNKNOWN_FIXTURE") return fail(sendJson, res, 400, code, "Unknown fixture preset."), true;
+        if (code === "FIXTURE_BUSY") return fail(sendJson, res, 409, code, "Another fixture is being generated; retry shortly."), true;
+        return fail(sendJson, res, 500, "FIXTURE_FAILED", "The fixture could not be generated."), true;
+      }
+    }
     const sessionAction = sub.match(/^\/sessions\/([0-9a-f-]{36})\/(decisions|commit|rerun)$/);
     if (sessionAction) {
       const id = sessionAction[1]!;
