@@ -154,7 +154,7 @@ const storySteps = (p: PatternRef): string[] =>
 export function ruleConflict(a: PatternRef, b: PatternRef): boolean {
   const pa = a.parameters ?? {}; const pb = b.parameters ?? {};
   if (a.family !== b.family) return false;
-  if (a.family === "STORYTELLING" && pa.rule === "FOLLOWED_BY" && pb.after !== undefined) {
+  if (a.family === "STORYTELLING" && pa.after !== undefined && pa.next !== undefined && pb.after !== undefined && pb.next !== undefined) {
     const norm = (v: unknown) => (String(v).toUpperCase() === "REVEAL" ? "PRODUCT_REVEAL" : String(v).toUpperCase());
     return norm(pa.after) === norm(pb.after) && norm(pa.next) !== norm(pb.next);
   }

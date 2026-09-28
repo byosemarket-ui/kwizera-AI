@@ -189,6 +189,18 @@ describe("Phase 19 — repeat teaching, contradiction and contextual variation",
     const jewelry = buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: null, product: "Luxury gold jewelry ring" });
     expect(jewelry.storytellingPatterns.map((e) => e.patternId)).toEqual(["p-jewelry"]);
     expect(jewelry.excluded).toEqual([expect.objectContaining({ patternId: "p-general", reason: expect.stringMatching(/jewelry\/luxury/) })]);
+
+    const measured = active({
+      family: "STORYTELLING", name: "HOOK → REVEAL → CLOSE_UP → CTA", description: "Measured story order.", scenes: [1, 2, 3, 4], confidence: 0.75, evidence: [],
+      parameters: { sequence: "HOOK>REVEAL>CLOSE_UP>CTA", after: "PRODUCT_REVEAL", next: "CLOSE_UP", nextDuration: "SHORT", measuredRoles: 3 },
+      compatibleContexts: ["product-video", "9:16", "vertical", "short-form"], variationOptions: [],
+    }, "p-video", "ds-video");
+    registerCreativePatternProvider({ active: (q) => [measured, scoped].filter((p) => !q.families || q.families.includes(p.family)), recordUsage: () => undefined });
+    const plain = buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: null, product: "Canvas sneakers" });
+    expect(plain.storytellingPatterns.map((e) => e.patternId)).toEqual(["p-video"]);
+    expect(plain.selections.filter((s) => s.family === "STORYTELLING")).toHaveLength(1);
+    const lux = buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: null, product: "Luxury jewelry pendant", aspectRatio: "9:16" });
+    expect(lux.storytellingPatterns.map((e) => e.patternId)).toEqual(["p-jewelry"]);
   });
 });
 

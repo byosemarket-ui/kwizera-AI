@@ -113,8 +113,12 @@ const unit = (seed: string) => parseInt(createHash("sha256").update(seed).digest
  * Stated rules are composable constraints rather than alternatives: each "A is followed by B" rule and the
  * energy→pacing rule get their own selection slot, so they are not dropped in favour of a measured sequence.
  */
+/** A "scene X is followed by scene Y" rule, whether stated in text or measured from a video's story order. */
+export const isFollowedBy = (p: Pick<CreativePattern, "family" | "parameters">): boolean =>
+  p.family === "STORYTELLING" && p.parameters.after !== undefined && p.parameters.next !== undefined;
+
 export function selectionKey(p: Pick<CreativePattern, "family" | "parameters">): string {
-  if (p.family === "STORYTELLING" && p.parameters.rule === "FOLLOWED_BY") return `STORYTELLING:${storyRole(p.parameters.after)}>`;
+  if (isFollowedBy(p)) return `STORYTELLING:${storyRole(p.parameters.after)}>`;
   if (p.family === "PACING" && p.parameters.rule === "ENERGY_PACING") return "PACING:ENERGY";
   return p.family;
 }
@@ -555,7 +559,8 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
     return false;
   });
   const requestTags = new Set(contextTags);
-  const scopeOf = (p: ActiveCreativePattern) => p.compatibleContexts.map((c) => c.toLowerCase()).filter((c) => c !== "product-video" && c !== "music").sort();
+  const formatTag = (c: string) => /^\d+:\d+$/.test(c) || ["product-video", "music", "design", "vertical", "horizontal", "square", "short-form", "long-form"].includes(c);
+  const scopeOf = (p: ActiveCreativePattern) => p.compatibleContexts.map((c) => c.toLowerCase()).filter((c) => !formatTag(c)).sort();
   const inScope = (p: ActiveCreativePattern) => scopeOf(p).some((c) => requestTags.has(c));
   const conflicting = new Set<string>();
   const outOfScope = new Set<string>();
@@ -563,7 +568,7 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
   for (const a of confident) for (const b of confident) {
     if (a.patternId === b.patternId || a.family !== b.family) continue;
     const pa = a.parameters; const pb = b.parameters;
-    const clash = (a.family === "STORYTELLING" && pa.rule === "FOLLOWED_BY" && pb.rule === "FOLLOWED_BY" && storyRole(pa.after) === storyRole(pb.after) && storyRole(pa.next) !== storyRole(pb.next))
+    const clash = (isFollowedBy(a) && isFollowedBy(b) && storyRole(pa.after) === storyRole(pb.after) && storyRole(pa.next) !== storyRole(pb.next))
       || (a.family === "PACING" && pa.rule === "ENERGY_PACING" && pb.rule === "ENERGY_PACING" && pa.direction !== pb.direction);
     if (!clash) continue;
     const sa = scopeOf(a).join(","); const sb = scopeOf(b).join(",");
