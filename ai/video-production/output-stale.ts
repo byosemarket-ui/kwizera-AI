@@ -15,6 +15,7 @@ export function timelineFingerprint(video: Pick<VideoProject, "timeline" | "rend
       camera: clip.camera,
       motion: clip.motion,
       text: clip.text.map((layer) => `${layer.kind}:${layer.content}`),
+      ...(clip.montageAssetIds?.length ? { montage: clip.montageAssetIds } : {}),
     })),
   };
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex").slice(0, 16);

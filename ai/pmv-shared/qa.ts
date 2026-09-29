@@ -7,6 +7,7 @@ import type { QualityReviewResult } from "../ai-director/ai-director-types.js";
 import type { ProductIdentityLock } from "./identity-lock-types.js";
 import { validateIdentityLock } from "./validate-lock.js";
 import type { PmvStoryboardSceneView } from "./scenes.js";
+import type { CustomerFactsCheck } from "./customer-facts.js";
 
 export type PmvQaGateStatus = "PASS" | "FAIL" | "UNCERTAIN" | "UNAVAILABLE" | "SKIPPED";
 
@@ -80,6 +81,13 @@ export interface PmvVideoQaResult {
   audioStatus: PmvQaGateStatus;
   marketingQualityStatus: PmvQaGateStatus;
   technicalStatus: PmvQaGateStatus;
+  /** Every valid customer photo appears in the final video. */
+  coverageStatus?: PmvQaGateStatus;
+  /** Customer price/offer/contact/CTA shown exactly; nothing invented. */
+  factsStatus?: PmvQaGateStatus;
+  /** Active learned motion/transition decisions survived into the rendered timeline. */
+  learnedStatus?: PmvQaGateStatus;
+  photoCoverage?: { requestedPhotoCount: number; usedPhotoCount: number; omittedPhotoCount: number } | null;
   visionQaAvailable: boolean;
   visionQaStatus: PmvQaGateStatus;
   scenes: PmvSceneQaResult[];
@@ -179,7 +187,16 @@ export function runDeterministicPmvQa(input: {
   /** Phase 16 — canvas decision each still scene was rendered with (geometry check, not vision). */
   sceneCanvas?: Array<{ sceneId: string; strategy: string; cropRisk: string; basis: string }>;
   /** Phase 16 — how the selected music was fitted to the rendered output. */
-  audioFit?: { strategy: string; sourceDurationSec: number; targetDurationSec: number; coveredDurationSec: number } | null;
+  audioFit?: { strategy: string; sourceDurationSec: number; targetDurationSec: number; coveredDurationSec: number; sourceDurationUnknown?: boolean } | null;
+  /** A track is chosen but switched off; the render correctly has no music. */
+  audioSelectedButDisabled?: boolean;
+  /** Photos the last final render actually drew. */
+  photoCoverage?: { requestedPhotoCount: number; usedPhotoCount: number; omittedPhotoCount: number } | null;
+  /** Duration the customer asked for. */
+  requestedDurationMs?: number | null;
+  customerFacts?: CustomerFactsCheck | null;
+  /** Clips carrying a learned lock and whether the rendered clip kept it. */
+  learnedLocks?: Array<{ sceneId: string; kept: boolean }> | null;
 }): PmvVideoQaResult {
   const failures: string[] = [];
   const warnings: string[] = [];
@@ -205,17 +222,24 @@ export function runDeterministicPmvQa(input: {
 
   let audioStatus: PmvQaGateStatus = "SKIPPED";
   if (input.audioSelected) {
-    if (checks.audioPresentWhenRequired === false) {
+    if (checks.audioPresentWhenRequired === false || checks.hasAudioStream === false) {
       audioStatus = "FAIL";
       failures.push("Audio was selected but the final MP4 did not include a required audio stream.");
-    } else if (checks.audioPresentWhenRequired === true || checks.hasAudioStream === true) {
+    } else if (checks.audioAudible === false) {
+      audioStatus = "FAIL";
+      failures.push("Audio was selected but it is silent in the final video.");
+    } else if (checks.hasAudioStream === true && checks.audioAudible === true) {
       audioStatus = "PASS";
-      evidence.push("Required audio stream present when music/voice was enabled.");
+      evidence.push("Audio stream present and audible in the final MP4.");
     } else {
       audioStatus = "UNCERTAIN";
-      warnings.push("Audio was enabled but stream presence was not explicitly confirmed in validation checks.");
+      warnings.push("Audio stream or its loudness was not confirmed for this video.");
     }
     const fit = input.audioFit ?? null;
+    if (fit?.sourceDurationUnknown && audioStatus === "PASS") {
+      audioStatus = "UNCERTAIN";
+      warnings.push("The music length could not be measured, so full coverage is not confirmed.");
+    }
     if (fit && audioStatus !== "FAIL") {
       const gap = fit.targetDurationSec - fit.coveredDurationSec;
       if (fit.strategy === "PAD_SILENCE") {
@@ -226,6 +250,48 @@ export function runDeterministicPmvQa(input: {
       } else {
         evidence.push(`Audio fitted to video length (${fit.strategy}).`);
       }
+    }
+  } else if (input.audioSelectedButDisabled) {
+    warnings.push("A music track is chosen but switched off, so the video has no music.");
+  }
+
+  const coverage = input.photoCoverage ?? null;
+  let coverageStatus: PmvQaGateStatus = "SKIPPED";
+  if (coverage) {
+    if (coverage.omittedPhotoCount > 0) {
+      coverageStatus = "FAIL";
+      failures.push(`${coverage.omittedPhotoCount} of ${coverage.requestedPhotoCount} product photos are missing from the video.`);
+      recommendedActions.push("Choose a longer duration so every photo fits.");
+    } else {
+      coverageStatus = "PASS";
+      evidence.push(`All ${coverage.requestedPhotoCount} product photos appear in the video.`);
+    }
+  }
+
+  const facts = input.customerFacts ?? null;
+  let factsStatus: PmvQaGateStatus = "SKIPPED";
+  if (facts && facts.status !== "SKIPPED") {
+    factsStatus = facts.status === "PASS" ? "PASS" : "FAIL";
+    if (facts.missing.length) failures.push(`Your ${facts.missing.join(", ")} ${facts.missing.length === 1 ? "is" : "are"} missing from the video.`);
+    if (facts.invented.length) failures.push("The video shows details you did not provide.");
+    if (factsStatus === "PASS") evidence.push(`Your ${facts.present.join(", ")} appear exactly as entered.`);
+  }
+
+  const locks = input.learnedLocks ?? null;
+  let learnedStatus: PmvQaGateStatus = "SKIPPED";
+  if (locks?.length) {
+    const lost = locks.filter((lock) => !lock.kept);
+    learnedStatus = lost.length ? "FAIL" : "PASS";
+    if (lost.length) failures.push("Some learned creative choices were not kept in the final video.");
+    else evidence.push(`${locks.length} learned creative choice(s) kept in the final video.`);
+  }
+
+  let durationOk = true;
+  if (input.requestedDurationMs && input.output?.durationMs) {
+    const tolerance = Math.max(2_000, Math.round(input.requestedDurationMs * 0.1));
+    durationOk = Math.abs(input.output.durationMs - input.requestedDurationMs) <= tolerance;
+    if (!durationOk) {
+      failures.push(`The video is ${Math.round(input.output.durationMs / 1000)}s long but ${Math.round(input.requestedDurationMs / 1000)}s was requested.`);
     }
   }
 
@@ -328,8 +394,8 @@ export function runDeterministicPmvQa(input: {
   );
   const motionStatus = gateFromBool(checks.pacingOk !== false, checks.pacingOk == null);
   const timingStatus = gateFromBool(
-    checks.durationValid !== false && checks.durationConsistent !== false,
-    checks.durationAligned === false,
+    checks.durationValid !== false && checks.durationConsistent !== false && durationOk,
+    durationOk && checks.durationAligned === false,
   );
   if (checks.durationAligned === false) {
     warnings.push("Rendered duration differs from the planned timeline.");
@@ -397,6 +463,10 @@ export function runDeterministicPmvQa(input: {
     || textStatus === "FAIL"
     || brandingStatus === "FAIL"
     || audioStatus === "FAIL"
+    || coverageStatus === "FAIL"
+    || factsStatus === "FAIL"
+    || learnedStatus === "FAIL"
+    || timingStatus === "FAIL"
     || sceneResults.some((s) => s.status === "FAIL");
   const needsReview = !hardFail && (
     productIdentityStatus === "UNCERTAIN"
@@ -411,7 +481,7 @@ export function runDeterministicPmvQa(input: {
   if (hardFail) overallStatus = "QA_FAILED";
   else if (needsReview) {
     // Exact Product + valid lock + technical OK may still deliver with vision unavailable.
-    if (exactProductMode && lockOk && technicalOk && productIdentityStatus === "PASS" && audioStatus !== "FAIL") {
+    if (exactProductMode && lockOk && technicalOk && productIdentityStatus === "PASS" && audioStatus !== "FAIL" && audioStatus !== "UNCERTAIN") {
       overallStatus = "QA_PASSED";
       warnings.push("Vision frame QA unavailable; Exact Product asset-lock QA was used instead.");
     } else {
@@ -443,6 +513,10 @@ export function runDeterministicPmvQa(input: {
     audioStatus,
     marketingQualityStatus,
     technicalStatus,
+    coverageStatus,
+    factsStatus,
+    learnedStatus,
+    photoCoverage: coverage,
     visionQaAvailable: input.visionQaAvailable,
     visionQaStatus,
     scenes: sceneResults,

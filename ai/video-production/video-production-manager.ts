@@ -15,6 +15,8 @@ import {
   ffprobeAvailable,
   muxMusicAndVoiceOntoVideo,
   probeVideo,
+  measureAudioLevel,
+  renderMontageClip,
   renderStillClip,
   resolveFontFile,
 } from "./ffmpeg-renderer.js";
@@ -37,6 +39,7 @@ import {
   sliceTimelineForRender,
   timelineDurationMs,
 } from "./plan-to-timeline.js";
+import { ensurePhotoCoverage, montageCapacity, renderedPhotoCoverage } from "./photo-coverage.js";
 import { computeOutputStatus, timelineFingerprint, timelineUsesStaleAssets, uniqueAssetIds } from "./output-stale.js";
 import { verifyOutputFileOnDisk } from "./output-verify.js";
 import { runFullQualityReview } from "./ai-quality-review.js";
@@ -338,13 +341,27 @@ export class VideoProductionManager {
     });
     timeline = beatSyncResult.clips;
     const renderProfile = resolveProductionRenderProfile(repairedPlan.productionMode);
-    const directed = await this.applyStep7MotionDirection({
+    // Creative memory: a new plan version gets a new variation, avoiding recently used camera sequences;
+    // refreshing the same plan keeps its look so a current output does not go stale.
+    const memory = existing?.creativeMemory ?? { planVersion: repairedPlan.version, variation: 0, recentMotionSignatures: [] };
+    const newPlan = memory.planVersion !== repairedPlan.version;
+    let variation = newPlan ? memory.variation + 1 : memory.variation;
+    const direct = (v: number) => this.applyStep7MotionDirection({
       projectId,
-      clips: timeline,
+      clips: timeline.map((clip) => ({ ...clip, creativeVariation: v || undefined })),
       profile: renderProfile,
       creativeTone: repairedPlan.creativeTone as CreativeToneId | undefined,
       aspectRatio: profile.aspectRatio,
     });
+    const motionSignature = (clips: VideoTimelineClip[]) => clips.map((clip) => clip.motion).join(">");
+    let directed = await direct(variation);
+    for (let attempt = 0; newPlan && attempt < 2 && memory.recentMotionSignatures.includes(motionSignature(directed.clips)); attempt += 1) {
+      variation += 1;
+      directed = await direct(variation);
+    }
+    const creativeMemory = newPlan
+      ? { planVersion: repairedPlan.version, variation, recentMotionSignatures: [...memory.recentMotionSignatures, motionSignature(directed.clips)].slice(-5) }
+      : { ...memory, recentMotionSignatures: memory.recentMotionSignatures.length ? memory.recentMotionSignatures : [motionSignature(directed.clips)] };
     timeline = directed.clips;
 
     // STEP 2F — Audio-Visual Creative Director (decision layer; does not render).
@@ -384,6 +401,8 @@ export class VideoProductionManager {
       ? await this.applyLearnedCreativeDirection(timeline, learnedContext, "direction", learnedTiming?.decisions ?? [])
       : { clips: timeline, decisions: [], summary: null };
     timeline = learnedDirection.clips;
+    const covered = ensurePhotoCoverage(timeline, originals.map((image) => image.id));
+    timeline = covered.clips;
 
     const now = new Date().toISOString();
     const audioPlan = await this.buildAudioPlan(projectId, beatSyncResult.plan);
@@ -426,6 +445,8 @@ export class VideoProductionManager {
       avCreativeMode,
       audioFitPlan: existing?.audioFitPlan,
       learnedCreativeDirection: learnedDirection.summary,
+      photoCoverage: covered.coverage,
+      creativeMemory,
     };
     const planKnowledge = await this.retrieveProductionKnowledge(projectId, {
       productionMode: repairedPlan.productionMode,
@@ -755,6 +776,7 @@ export class VideoProductionManager {
       const fontFile = await resolveFontFile();
       const overlays: VideoTextOverlayStatus[] = [];
       const clipPaths: string[] = [];
+      const renderedPhotoIds: string[] = [];
       let typedClips = renderClips;
       let endCardRendered = false;
       let endCardDurationMs = 0;
@@ -915,9 +937,12 @@ export class VideoProductionManager {
         let stillClip: VideoTimelineClip | null = null;
         const productionClip = {
           ...directed.clip,
+          // One boundary, one transition: a cut out of the previous scene must not fade into this one.
+          transitionIn: index > 0 ? typedClips[index - 1]!.transitionOut : directed.clip.transitionIn,
           cameraPlan,
           motionParams: {
             ...directed.clip.motionParams!,
+            intensity: modeClip.motionParams?.intensity ?? directed.clip.motionParams!.intensity,
             maxZoom: cameraPlan.renderParams.maxZoom,
             focusX: cameraPlan.renderParams.focusX,
             focusY: cameraPlan.renderParams.focusY,
@@ -1156,9 +1181,21 @@ export class VideoProductionManager {
             minSafeCoverage,
           });
           stillClip = applyCanvasFitToClip<VideoTimelineClip>(productionClip, canvasPlan, Boolean(framingInspection?.nearEdge));
-          const rendered = await renderStillClip({ clip: stillClip, imagePath }, renderPlan, clipPath, fontFile);
+          const montage: Array<{ id: string; path: string }> = [];
+          if (preset === "standard") {
+            const room = montageCapacity(stillClip.durationMs);
+            for (const id of (stillClip.montageAssetIds ?? []).slice(0, Math.max(0, room))) {
+              const found = await resolveProductionImagePath(this.workspace!, job.projectId, id);
+              if (found?.path) montage.push({ id, path: found.path });
+            }
+          }
+          const rendered = montage.length
+            ? await renderMontageClip({ clip: stillClip, imagePath }, montage.map((m) => m.path), renderPlan, clipPath, fontFile)
+            : await renderStillClip({ clip: stillClip, imagePath }, renderPlan, clipPath, fontFile);
           overlays.push(rendered.overlay);
+          renderedPhotoIds.push(...montage.map((m) => m.id));
         }
+        renderedPhotoIds.push(productionClip.assetId);
 
         clipPaths.push(clipPath);
         // Keep directed motion on the in-memory clip list for continuity of subsequent scenes.
@@ -1172,6 +1209,14 @@ export class VideoProductionManager {
           stageMessage: `Rendered scene ${index + 1} of ${typedClips.length}`,
         });
       }
+      const renderedLearnedLocks = typedClips.flatMap((clip, index) => {
+        const lock = clip.learnedLock;
+        if (!lock?.motion && !lock?.transitionOut) return [];
+        const isLast = index === typedClips.length - 1;
+        const kept = (!lock.motion || clip.motion === lock.motion)
+          && (!lock.transitionOut || isLast || clip.transitionOut === lock.transitionOut);
+        return [{ sceneId: clip.sceneId, kept }];
+      });
       // Persist STEP 7–10 motion/camera/composition diagnostics onto the stored timeline (standard renders).
       if (preset === "standard") {
         const occupiedMap = new Map<string, { x: number; y: number; width: number; height: number } | null>();
@@ -1374,6 +1419,7 @@ export class VideoProductionManager {
       await this.patchVideo(job.projectId, { qualityGate: "TECHNICAL_VALIDATION" });
       const probed = await probeVideo(outputPath);
       const audioRequired = hasMusic || hasVoice;
+      const audioLevel = audioRequired && probed.hasAudioStream ? await measureAudioLevel(outputPath) : null;
       const qc = validateRenderedOutput({
         probed,
         plannedDurationMs,
@@ -1388,6 +1434,7 @@ export class VideoProductionManager {
         jobProjectId: job.projectId,
         selectedEngine,
         audioRequired,
+        audioPeakDb: audioLevel?.maxDb ?? null,
       });
       if (!qc.valid) {
         throw new VideoProductionError("INVALID_OUTPUT", qc.issues.join(" "), 500);
@@ -1421,10 +1468,16 @@ export class VideoProductionManager {
       await this.patchVideo(job.projectId, { qualityGate: "AI_QUALITY_REVIEW" });
       const workspaceProject = await this.workspace!.getProject(job.projectId);
       const creativePlan = await this.planning!.getPlan(job.projectId);
-      const technicalChecks = {
+      const renderedCoverage = renderedPhotoCoverage(
+        (workspaceProject?.productImages ?? []).filter(isOriginalProductImage).map((image) => image.id),
+        renderedPhotoIds,
+        job.id,
+      );
+      const technicalChecks: Record<string, boolean> = {
         ...qc.checks,
         fileOnDisk: diskCheck.valid,
         mimeLooksLikeMp4: diskCheck.mimeLooksLikeMp4,
+        ...(preset === "standard" ? { allPhotosRendered: renderedCoverage.omittedPhotoCount === 0 } : {}),
       };
       const qualityReview = workspaceProject
         ? await runFullQualityReview({
@@ -1505,6 +1558,10 @@ export class VideoProductionManager {
         versions: [...(video.versions ?? []), version],
         endCardPlan: endCardPlanPublic ?? video.endCardPlan,
         audioFitPlan: audioFitPlan ?? video.audioFitPlan,
+        ...(preset === "standard" && video.photoCoverage
+          ? { photoCoverage: { ...video.photoCoverage, rendered: renderedCoverage } }
+          : {}),
+        ...(preset === "standard" ? { renderedLearnedLocks: { renderJobId: job.id, locks: renderedLearnedLocks } } : {}),
         knowledgeContexts: {
           ...renderKnowledge,
           audio: audioKnowledgeSummary,

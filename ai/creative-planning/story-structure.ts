@@ -38,6 +38,28 @@ export function planStoryBeats(input: {
   uniqueViewCount: number;
   hasPrice: boolean;
   hasPromotion: boolean;
+  /** Valid customer photos; extra photos earn their own scene while scenes stay readable. */
+  photoCount?: number;
+}): StoryBeatId[] {
+  return extendForPhotoCoverage(withCustomerPrice(templateBeats(input), input), input.durationMs, input.platform, input.photoCount ?? 0);
+}
+
+/** Minimum scene budget that still fits a price scene next to hook, reveal and CTA. */
+export const PRICE_SCENE_MIN_BUDGET_MS = 6_000;
+
+/** A customer price or offer is a fact the video must state, not an optional beat for longer videos. */
+function withCustomerPrice(beats: StoryBeatId[], input: { durationMs: number; hasPrice: boolean; hasPromotion: boolean }): StoryBeatId[] {
+  if (!(input.hasPrice || input.hasPromotion) || beats.includes("PRICE") || input.durationMs < PRICE_SCENE_MIN_BUDGET_MS) return beats;
+  const cta = beats.lastIndexOf("CTA");
+  return cta < 0 ? [...beats, "PRICE"] : [...beats.slice(0, cta), "PRICE", ...beats.slice(cta)];
+}
+
+function templateBeats(input: {
+  durationMs: number;
+  platform: string;
+  uniqueViewCount: number;
+  hasPrice: boolean;
+  hasPromotion: boolean;
 }): StoryBeatId[] {
   const ms = input.durationMs;
   const tiktok = /tiktok/.test(platformKey(input.platform));
@@ -76,6 +98,26 @@ function extendForLongForm(beats: StoryBeatId[], ms: number): StoryBeatId[] {
   const closingStart = beats.findIndex((beat) => beat === "PRICE" || beat === "CTA");
   const head = beats.slice(0, closingStart);
   const closing = beats.slice(closingStart);
+  let fill = 0;
+  while (head.length + closing.length < target) {
+    head.push(LONG_FORM_FILLER[fill % LONG_FORM_FILLER.length]!);
+    fill += 1;
+  }
+  return [...head, ...closing];
+}
+
+/** Shortest single-photo scene; photos beyond this capacity are shown as montage frames. */
+export function minPhotoSceneMs(platform: string): number {
+  return /tiktok|instagram/.test(platformKey(platform)) ? 1_800 : 2_200;
+}
+
+function extendForPhotoCoverage(beats: StoryBeatId[], ms: number, platform: string, photoCount: number): StoryBeatId[] {
+  const target = Math.min(photoCount, Math.floor(ms / minPhotoSceneMs(platform)));
+  if (target <= beats.length) return beats;
+  const closingStart = beats.findIndex((beat) => beat === "PRICE" || beat === "CTA");
+  const split = closingStart < 0 ? beats.length : closingStart;
+  const head = beats.slice(0, split);
+  const closing = beats.slice(split);
   let fill = 0;
   while (head.length + closing.length < target) {
     head.push(LONG_FORM_FILLER[fill % LONG_FORM_FILLER.length]!);

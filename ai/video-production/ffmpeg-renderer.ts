@@ -127,11 +127,21 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-function fadeFilter(transition: VideoTransitionId, durationMs: number): string {
+function fadeFilter(transition: VideoTransitionId, durationMs: number, edges?: { in: boolean; out: boolean }): string {
   if (transition !== "fade") return "";
   const seconds = Math.max(1, durationMs) / 1000;
   const fade = Math.min(0.25, seconds / 4);
-  return `fade=t=in:st=0:d=${fade},fade=t=out:st=${Math.max(0, seconds - fade)}:d=${fade}`;
+  const parts = [
+    edges?.in !== false ? `fade=t=in:st=0:d=${fade}` : "",
+    edges?.out !== false ? `fade=t=out:st=${Math.max(0, seconds - fade)}:d=${fade}` : "",
+  ].filter(Boolean);
+  return parts.join(",");
+}
+
+/** Fade only the scene edges whose transition is a fade, so a cut on one side stays a cut. */
+export function clipFadeFilter(clip: Pick<VideoTimelineClip, "transitionIn" | "transitionOut" | "durationMs">): string {
+  const edges = { in: clip.transitionIn === "fade", out: clip.transitionOut === "fade" };
+  return fadeFilter(edges.in || edges.out ? "fade" : "cut", clip.durationMs, edges);
 }
 
 function drawtextFilterLegacy(clip: VideoTimelineClip, plan: VideoRenderPlan, fontFile?: string): string {
@@ -240,10 +250,7 @@ export async function stillFilter(
     parts.push(zoompan(input.clip.motion, frames, plan.width, plan.height, input.clip.motionParams));
   }
   if (options.fade) {
-    const fade = fadeFilter(
-      input.clip.transitionOut === "fade" || input.clip.transitionIn === "fade" ? "fade" : "cut",
-      input.clip.durationMs,
-    );
+    const fade = clipFadeFilter(input.clip);
     if (fade) parts.push(fade);
   }
   if (options.text) {
@@ -380,6 +387,95 @@ export async function renderStillClip(
       }
       return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false }) };
     }
+  }
+}
+
+/**
+ * A scene that also carries extra customer photos: primary photo (with its motion) followed by a rapid
+ * sequence of the extra photos, then one pass for the scene fade and text across the whole scene.
+ * Total duration equals the scene duration.
+ */
+export async function renderMontageClip(
+  input: RenderClipInput,
+  montageImagePaths: string[],
+  plan: VideoRenderPlan,
+  outputPath: string,
+  fontFile?: string,
+): Promise<RenderClipResult> {
+  if (!montageImagePaths.length) return renderStillClip(input, plan, outputPath, fontFile);
+  if (!path.isAbsolute(outputPath) || montageImagePaths.some((p) => !path.isAbsolute(p))) {
+    throw new Error("FFmpeg paths must be absolute");
+  }
+  const { montageFrameDurations } = await import("./photo-coverage.js");
+  const durations = montageFrameDurations(input.clip.durationMs, montageImagePaths.length);
+  const x264Preset = plan.x264Preset ?? (plan.preset === "standard" ? "medium" : "ultrafast");
+  const crf = plan.crf ?? (plan.preset === "standard" ? 23 : 28);
+  const frameRate = plan.frameRate ?? 24;
+  const base = outputPath.replace(/\.mp4$/i, "");
+  const segments: string[] = [];
+  try {
+    const primaryPath = `${base}-m0.mp4`;
+    await renderStillClip({
+      clip: { ...input.clip, durationMs: durations[0]!, text: [], transitionIn: "cut", transitionOut: "cut" },
+      imagePath: input.imagePath,
+    }, plan, primaryPath, fontFile);
+    segments.push(primaryPath);
+    for (let i = 0; i < montageImagePaths.length; i += 1) {
+      const framePath = `${base}-m${i + 1}.mp4`;
+      const seconds = durations[i + 1]! / 1000;
+      const frames = Math.max(1, Math.round(frameRate * seconds));
+      await fs.access(montageImagePaths[i]!);
+      await runFfmpeg([
+        "-y", "-loop", "1", "-i", montageImagePaths[i]!,
+        "-vf", `${canvasFitFilter(plan.width, plan.height)},${zoompan("slow-zoom", frames, plan.width, plan.height, { maxZoom: 1.04, intensity: 0.6 })}`,
+        "-frames:v", String(frames),
+        "-r", String(frameRate),
+        "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-preset", x264Preset, "-crf", String(crf),
+        framePath,
+      ], 3 * 60_000);
+      segments.push(framePath);
+    }
+    const joinedPath = `${base}-joined.mp4`;
+    segments.push(joinedPath);
+    await concatClips(segments.slice(0, -1), joinedPath, { x264Preset, crf });
+
+    const hasText = input.clip.text.some((layer) => layer.content?.trim() || layer.typography?.lines?.length);
+    const fade = plan.preset === "standard" ? clipFadeFilter(input.clip) : "";
+    const finish = async (text: boolean) => {
+      const parts = [fade, text ? await drawtextFilter(input.clip, plan, fontFile) : ""].filter(Boolean);
+      if (!parts.length) {
+        await fs.copyFile(joinedPath, outputPath);
+        return;
+      }
+      await runFfmpeg([
+        "-y", "-i", joinedPath,
+        "-vf", parts.join(","),
+        "-an", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-preset", x264Preset, "-crf", String(crf),
+        "-movflags", "+faststart",
+        outputPath,
+      ], 5 * 60_000);
+      const stat = await fs.stat(outputPath).catch(() => null);
+      if (!stat?.size) throw new Error("FFmpeg did not produce a montage scene clip");
+    };
+    if (!hasText) {
+      await finish(false);
+      return { overlay: classifyTextOverlay({ hasText: false, fontAvailable: Boolean(fontFile) }) };
+    }
+    if (!fontFile) {
+      await finish(false);
+      return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: false }) };
+    }
+    try {
+      await finish(true);
+      return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: true }) };
+    } catch {
+      await finish(false);
+      return { overlay: classifyTextOverlay({ hasText: true, fontAvailable: true, drawtextSucceeded: false }) };
+    }
+  } finally {
+    await Promise.all(segments.map((segment) => fs.rm(segment, { force: true })));
   }
 }
 
@@ -743,6 +839,33 @@ export async function muxMusicAndVoiceOntoVideo(input: {
     throw new FfmpegAudioError("MUX_FAILED", "Failed to mix music and voice onto video.");
   }
   return { ...probed, audioFit };
+}
+
+export interface MeasuredAudioLevel {
+  meanDb: number;
+  maxDb: number;
+}
+
+/** Parses ffmpeg volumedetect output; -91 dB (digital silence) and below counts as silence. */
+export function parseVolumeDetect(stderr: string): MeasuredAudioLevel | null {
+  const mean = /mean_volume:\s*(-?[\d.]+|-inf)\s*dB/.exec(stderr);
+  const max = /max_volume:\s*(-?[\d.]+|-inf)\s*dB/.exec(stderr);
+  if (!mean || !max) return null;
+  const toDb = (value: string) => (value === "-inf" ? -120 : Number(value));
+  const level = { meanDb: toDb(mean[1]!), maxDb: toDb(max[1]!) };
+  return Number.isFinite(level.meanDb) && Number.isFinite(level.maxDb) ? level : null;
+}
+
+/** Measures the audio level of a rendered file; null when it could not be measured. */
+export async function measureAudioLevel(filePath: string): Promise<MeasuredAudioLevel | null> {
+  try {
+    const { stderr } = await execFileAsync(ffmpegBinary(), [
+      "-nostdin", "-hide_banner", "-i", filePath, "-map", "0:a:0", "-af", "volumedetect", "-f", "null", "-",
+    ], { timeout: 3 * 60_000, windowsHide: true, maxBuffer: 8 * 1024 * 1024 });
+    return parseVolumeDetect(String(stderr));
+  } catch {
+    return null;
+  }
 }
 
 async function runFfmpeg(args: string[], timeout: number): Promise<void> {

@@ -42,6 +42,8 @@ export interface AudioFitPlan {
   reason: string;
   /** Knowledge-base guidance that set crossfade/fade lengths (measured beats still choose the boundaries). */
   knowledgeGuidance?: { loopCrossfadeSec?: number; fadeOutSec?: number; sourceItemIds: string[] };
+  /** The source length could not be measured, so coverage is assumed rather than known. */
+  sourceDurationUnknown?: true;
 }
 
 /** Bounded suggestions from retrieved audio knowledge. Out-of-range values are clamped. */
@@ -141,6 +143,7 @@ export function planAudioFit(input: {
       boundaryBasis: "duration",
       beatAnalysisUsed: false,
       reason: source ? "Audio length already matches the video." : "Audio length unknown; fitted to the video length.",
+      ...(source ? {} : { sourceDurationUnknown: true as const }),
     };
   }
 

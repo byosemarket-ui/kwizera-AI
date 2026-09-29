@@ -72,9 +72,14 @@ async function buildItem(input: {
   const productOccupiedRegion = input.scene.image?.productOccupiedRegion;
   const learned = input.project.guidance?.learnedLayout ?? null;
   const measuredSides = input.scene.image?.preferredTextSides;
-  const useLearned = Boolean(learned && !measuredSides?.length && learned.textSides.length);
-  const preferredTextSides = useLearned ? learned!.textSides : measuredSides;
-  const ctaPlacement = measuredSides?.length ? null : learned?.ctaPlacement ?? null;
+  // Measured sides are the product-safe sides; a learned side applies when it is one of them (or nothing was measured).
+  const safeForProduct = (side: string) => !measuredSides?.length || (measuredSides as string[]).includes(side);
+  const learnedSides = (learned?.textSides ?? []).filter(safeForProduct);
+  const useLearned = learnedSides.length > 0;
+  const preferredTextSides = useLearned
+    ? [...learnedSides, ...(measuredSides ?? []).filter((side) => !learnedSides.includes(side))]
+    : measuredSides;
+  const ctaPlacement = learned?.ctaPlacement && safeForProduct(learned.ctaPlacement) ? learned.ctaPlacement : null;
   let region = input.aiHint?.region && !regionOverlapsProduct(input.aiHint.region, productCentered, productOccupiedRegion)
     ? input.aiHint.region
     : choosePlacement({

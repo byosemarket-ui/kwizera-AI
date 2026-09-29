@@ -293,7 +293,7 @@ describe("Phase 16 — QA and targeted repair", () => {
       timelineAssetIds: ["a1"],
       output: {
         url: "/out.mp4", sizeBytes: 100, validationStatus: "TECHNICALLY_VALIDATED",
-        validationChecks: { audioPresentWhenRequired: true }, renderJobId: "j1",
+        validationChecks: { audioPresentWhenRequired: true, hasAudioStream: true, audioAudible: true }, renderJobId: "j1",
       },
       visionQaAvailable: false,
       ...extra,

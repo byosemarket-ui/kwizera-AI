@@ -7,6 +7,10 @@ import type { CapabilityRuntime } from "../admin-control-plane/capability-runtim
 import type { CreativePlan, CreativePlanningManager } from "../creative-planning/creative-planning-manager.js";
 import type { CreativeProject, CreativeWorkspaceManager } from "../creative-workspace/creative-workspace-manager.js";
 import { listOriginalProductImages } from "../creative-workspace/project-asset.js";
+import { normalizeProjectAudio } from "../creative-workspace/audio-asset.js";
+import { extractBrandIdentity } from "../creative-workspace/brand-identity.js";
+import { checkCustomerFacts, type CustomerFacts } from "../pmv-shared/customer-facts.js";
+import { buildCommercialFromProject } from "../video-production/render-validation.js";
 import { describeImagePrepAvailability } from "../image-preparation/pipeline.js";
 import { PMV_SETTINGS_KEY, readCreativeRequest } from "../image-preparation/scene-preparation.js";
 import { checkProjectHeroVisionIdentity, probeVisionQaAvailable } from "../pmv-qa/vision-identity-check.js";
@@ -95,6 +99,25 @@ function str(value: unknown): string {
 function readPmv(project: CreativeProject): Pmv {
   const raw = project.workspaceSettings?.[PMV_SETTINGS_KEY];
   return raw && typeof raw === "object" ? { ...(raw as Pmv) } : {};
+}
+
+/** The commercial facts the customer entered; the only ones a video may state. */
+export function customerFactsFromProject(project: CreativeProject, cta: string): CustomerFacts {
+  const commercial = buildCommercialFromProject(project);
+  const brand = extractBrandIdentity(project);
+  return {
+    productName: commercial.productName,
+    currentPrice: commercial.pricing.currentPrice,
+    originalPrice: commercial.pricing.originalPrice,
+    currency: commercial.pricing.currency,
+    discountPercentage: commercial.pricing.discountPercentage,
+    discountAmount: commercial.pricing.discountAmount,
+    offer: commercial.promotion.enabled ? commercial.promotion.message : "",
+    phone: commercial.destination.phone,
+    whatsapp: brand.whatsapp,
+    website: commercial.destination.website,
+    cta,
+  };
 }
 
 async function loadProjectState(m: ExecutorManagers, projectId: string): Promise<ProjectState> {
@@ -552,6 +575,12 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     }
     await patchPmv(m, projectId, { produceStatus: "QA_IN_PROGRESS" });
     const video = await m.production.getVideoProject(projectId);
+    const audioSelection = normalizeProjectAudio({
+      selectedAudioAssetId: s.project.selectedAudioAssetId,
+      enabled: s.project.audioEnabled,
+      selectedVoiceAssetId: s.project.selectedVoiceAssetId,
+      voiceEnabled: s.project.voiceEnabled,
+    });
     const timelineAssetIds = (video?.timeline ?? []).map((clip) => clip.assetId).filter((id): id is string => Boolean(id));
     const productAssetIds = [...new Set([...s.productAssetIds, ...timelineAssetIds, ...(output.sourceAssetIds ?? [])])];
     const clips = video?.i2vSceneClips ?? {};
@@ -590,7 +619,15 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
       phone: s.phone,
       cta: s.cta,
       logoAssetId: s.logoAssetId,
-      audioSelected: Boolean(s.selectedAudioAssetId),
+      audioSelected: Boolean(audioSelection.enabled || audioSelection.voiceEnabled),
+      audioSelectedButDisabled: Boolean(audioSelection.selectedAudioAssetId) && !audioSelection.enabled,
+      photoCoverage: video?.photoCoverage?.rendered?.renderJobId === output.renderJobId ? video.photoCoverage.rendered : null,
+      requestedDurationMs: s.durationSeconds * 1000,
+      customerFacts: checkCustomerFacts(customerFactsFromProject(s.project, s.cta), [
+        ...(video?.timeline ?? []).flatMap((clip) => clip.text.map((layer) => layer.content)),
+        ...(video?.endCardPlan?.rendered ? video.endCardPlan.lines.map((line) => line.content) : []),
+      ], { requireContacts: Boolean(video?.endCardPlan?.rendered) }),
+      learnedLocks: video?.renderedLearnedLocks?.renderJobId === output.renderJobId ? video.renderedLearnedLocks.locks : null,
       productionMode,
       scenes,
       timelineAssetIds: timelineAssetIds.length ? timelineAssetIds : (output.sourceAssetIds ?? []),

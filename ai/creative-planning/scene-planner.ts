@@ -226,6 +226,7 @@ export function planProductScenes(
     uniqueViewCount: Math.max(uniqueViews.size, originals.length),
     hasPrice: Boolean(commercial?.pricing.currentPrice),
     hasPromotion: Boolean(commercial?.promotion.enabled),
+    photoCount: originals.length,
   });
   const durations = allocateDurations(durationMs, beats, platform);
   const script = buildProductionScript(project, beats, {

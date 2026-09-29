@@ -239,6 +239,38 @@ export function chooseDirectedMotion(input: {
   return { directed: "PRODUCT_FOCUS", reason: "Default product-focus push-in.", fallbackUsed };
 }
 
+/** Crop-safe alternatives per base choice; holds, pans and closing scenes are never varied. */
+const VARIATION_POOL: Partial<Record<DirectedMotionType, DirectedMotionType[]>> = {
+  HERO_REVEAL: ["HERO_REVEAL", "SUBTLE_PUSH_IN", "SUBTLE_PULL_BACK"],
+  DETAIL_PUSH: ["DETAIL_PUSH", "SUBTLE_PUSH_IN", "SUBTLE_PULL_BACK"],
+  PRODUCT_FOCUS: ["PRODUCT_FOCUS", "SUBTLE_PULL_BACK", "SUBTLE_PUSH_IN"],
+  SUBTLE_PUSH_IN: ["SUBTLE_PUSH_IN", "SUBTLE_PULL_BACK"],
+  SUBTLE_PULL_BACK: ["SUBTLE_PULL_BACK", "SUBTLE_PUSH_IN"],
+};
+
+/**
+ * Creative variation: a project's variation index rotates the motion among crop-safe alternatives so
+ * successive plans do not repeat the same camera sequence. Variation 0 is the base choice.
+ */
+export function varyDirectedMotion(
+  base: { directed: DirectedMotionType; reason: string; fallbackUsed: boolean },
+  input: { variation: number; order: number; previousMotion?: VideoMotionId | null; framing?: FormatFramingPlan | null },
+): { directed: DirectedMotionType; reason: string; fallbackUsed: boolean } {
+  if (!input.variation) return base;
+  const pool = VARIATION_POOL[base.directed];
+  if (!pool) return base;
+  const tightFrame = Boolean(input.framing?.preferSafeComposition) && (input.framing?.maxSafeEnlargement ?? 1.12) <= 1.08;
+  const safePool = tightFrame ? pool.filter((d) => d === "SUBTLE_PUSH_IN" || d === "SUBTLE_PULL_BACK") : pool;
+  if (!safePool.length) return base;
+  const start = (input.variation + input.order) % safePool.length;
+  for (let k = 0; k < safePool.length; k += 1) {
+    const pick = safePool[(start + k) % safePool.length]!;
+    if (mapDirectedToVideoMotion(pick) === input.previousMotion && safePool.length > 1) continue;
+    return pick === base.directed ? base : { ...base, directed: pick, reason: `${base.reason} Creative variation ${input.variation}: ${pick.toLowerCase().replace(/_/g, " ")}.` };
+  }
+  return base;
+}
+
 function choosePanWithContinuity(
   previous?: VideoMotionId | null,
   framing?: FormatFramingPlan | null,
@@ -395,7 +427,7 @@ export function directClipMotion(input: {
   const lockedDirected = lockedMotion ? LEARNED_MOTION_TO_DIRECTED[lockedMotion] : undefined;
   const chosen = lockedDirected
     ? { directed: lockedDirected, fallbackUsed: false, reason: `Learned ${lockedMotion} kept from an active teaching pattern.` }
-    : chooseDirectedMotion({
+    : varyDirectedMotion(chooseDirectedMotion({
       purpose: input.clip.purpose,
       role: input.role?.role ?? input.clip.imageRole,
       framing,
@@ -404,6 +436,11 @@ export function directClipMotion(input: {
       previousMotion: input.previousMotion,
       order: input.clip.order,
       isLast: input.isLast,
+    }), {
+      variation: input.clip.creativeVariation ?? 0,
+      order: input.clip.order,
+      previousMotion: input.previousMotion,
+      framing,
     });
 
   const params = computeSafeMotionParams({

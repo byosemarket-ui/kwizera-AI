@@ -8,6 +8,9 @@ import type { VideoProject, VideoRenderValidation, VideoTimelineClip } from "./t
 import { timelineDurationMs } from "./plan-to-timeline.js";
 import { uniqueAssetIds } from "./output-stale.js";
 
+/** Output audio quieter than this peak is treated as silent (volume 0 or a silent track). */
+export const AUDIBLE_PEAK_DB = -50;
+
 export function buildCommercialFromProject(project: CreativeProject) {
   const info = project.productInformation ?? {};
   const brand = extractBrandIdentity(project);
@@ -104,6 +107,8 @@ export function validateRenderedOutput(input: {
   jobProjectId?: string;
   /** When true, output must contain a muxed audio stream. */
   audioRequired?: boolean;
+  /** Measured peak level of the output audio; undefined when not measured. */
+  audioPeakDb?: number | null;
 }): { valid: boolean; issues: string[]; checks: Record<string, boolean> } {
   const issues: string[] = [];
   const toleranceMs = Math.max(2500, Math.round(input.plannedDurationMs * 0.15));
@@ -122,6 +127,10 @@ export function validateRenderedOutput(input: {
       || !input.jobProjectId
       || input.projectId === input.jobProjectId,
     audioPresentWhenRequired: input.audioRequired !== true || Boolean(input.probed.hasAudioStream),
+    hasAudioStream: Boolean(input.probed.hasAudioStream),
+    ...(input.audioRequired && typeof input.audioPeakDb === "number"
+      ? { audioAudible: input.audioPeakDb > AUDIBLE_PEAK_DB }
+      : {}),
   };
   if (!checks.fileNonEmpty) issues.push("Output file is empty or too small.");
   if (!checks.hasVideoStream) issues.push("Output does not contain a readable video stream.");
@@ -144,6 +153,9 @@ export function validateRenderedOutput(input: {
   }
   if (!checks.audioPresentWhenRequired) {
     issues.push("Selected project audio was not present in the rendered MP4.");
+  }
+  if ("audioAudible" in checks && checks.audioAudible === false) {
+    issues.push("Selected project audio is silent in the rendered MP4.");
   }
   return { valid: issues.length === 0, issues, checks };
 }

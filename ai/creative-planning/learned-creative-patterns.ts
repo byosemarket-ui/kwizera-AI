@@ -267,6 +267,7 @@ export function applyLearnedPatternsToTimeline<T extends TimelineClipLike>(clips
         if (target.storyRole !== "CLOSE_UP") { target.storyRole = "CLOSE_UP"; changes.push("role CLOSE_UP"); }
         if (target.camera !== undefined && target.camera !== "close-up") { target.camera = "close-up"; changes.push("camera close-up"); }
         if (ZOOM_FAMILY.has(target.motion) && target.motion !== "slow-zoom") { target.motion = "slow-zoom"; changes.push("slow push-in"); }
+        if (target.motion === "slow-zoom") target.learnedLock = { ...target.learnedLock, motion: "slow-zoom" };
         if (step.short) {
           const shorter = Math.max(MIN_SCENE_MS, Math.round(target.durationMs * 0.7));
           const freed = target.durationMs - shorter;

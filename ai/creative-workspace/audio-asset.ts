@@ -111,6 +111,9 @@ export const ALLOWED_AUDIO_MIME_TYPES = new Set([
   "audio/m4a",
   "audio/ogg",
   "audio/opus",
+  "audio/flac",
+  "audio/x-flac",
+  "audio/webm",
 ]);
 
 export const AUDIO_EXT_BY_MIME: Record<string, string> = {
@@ -125,6 +128,9 @@ export const AUDIO_EXT_BY_MIME: Record<string, string> = {
   "audio/m4a": "m4a",
   "audio/ogg": "ogg",
   "audio/opus": "ogg",
+  "audio/flac": "flac",
+  "audio/x-flac": "flac",
+  "audio/webm": "webm",
 };
 
 export const MAX_AUDIO_BYTES_DEFAULT = 50 * 1024 * 1024;
@@ -144,6 +150,7 @@ export function normalizeAudioMime(mime: string, fileName?: string): string | nu
     if (m === "audio/mp3") return "audio/mpeg";
     if (m === "audio/wave" || m === "audio/x-wav") return "audio/wav";
     if (m === "audio/m4a" || m === "audio/x-m4a") return "audio/mp4";
+    if (m === "audio/x-flac") return "audio/flac";
     return m;
   }
   const ext = (fileName ?? "").toLowerCase().replace(/^.*\./, "");
@@ -154,6 +161,8 @@ export function normalizeAudioMime(mime: string, fileName?: string): string | nu
     aac: "audio/aac",
     ogg: "audio/ogg",
     opus: "audio/ogg",
+    flac: "audio/flac",
+    webm: "audio/webm",
   };
   return byExt[ext] ?? null;
 }

@@ -196,20 +196,20 @@ export function aiMusicStageLabel(status: string): string {
 
 /* —— Files —— */
 
-export const AUDIO_FILE_ACCEPT = "audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,.mp3,.wav,.m4a,.aac,.ogg,.opus";
+export const AUDIO_FILE_ACCEPT = "audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,audio/flac,audio/webm,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.weba";
 export const VIDEO_FILE_ACCEPT = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm";
 
 /** Upload requests are capped at 70 MB and files travel base64-encoded (4/3 larger). */
 export const MAX_AUDIO_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_VIDEO_FILE_BYTES = 50 * 1024 * 1024;
 
-const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|opus)$/i;
+const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|opus|flac|weba)$/i;
 const VIDEO_EXT = /\.(mp4|mov|m4v|webm)$/i;
 
 export function validateAudioFile(file: { name: string; type: string; size: number }): string | null {
   if (!file.size) return "This file is empty.";
-  if (!(AUDIO_EXT.test(file.name) || /^audio\/(mpeg|mp3|wav|wave|x-wav|mp4|aac|x-m4a|m4a|ogg|opus)$/i.test(file.type))) {
-    return "Please choose an MP3, WAV, M4A, AAC or OGG file.";
+  if (!(AUDIO_EXT.test(file.name) || /^audio\/(mpeg|mp3|wav|wave|x-wav|mp4|aac|x-m4a|m4a|ogg|opus|flac|x-flac|webm)$/i.test(file.type))) {
+    return "Please choose an MP3, WAV, M4A, AAC, OGG or FLAC file.";
   }
   if (file.size > MAX_AUDIO_FILE_BYTES) return "Music files can be up to 50 MB.";
   return null;

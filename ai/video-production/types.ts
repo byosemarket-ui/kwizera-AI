@@ -116,6 +116,10 @@ export interface VideoTimelineClip {
   storyRole?: string;
   /** Phase 20 — motion/transition chosen by an active learned pattern; the render-time motion director keeps it. */
   learnedLock?: { motion?: VideoMotionId; transitionOut?: VideoTransitionId };
+  /** Extra customer photos shown as a rapid sequence after the primary photo inside this scene's duration. */
+  montageAssetIds?: string[];
+  /** Creative variation index of the plan this clip came from; rotates crop-safe motion choices. */
+  creativeVariation?: number;
   /** STEP 7 — intelligent motion diagnostics (not user-facing). */
   motionPlan?: {
     sceneId: string;
@@ -459,6 +463,12 @@ export interface VideoProject {
       musicEnergy: string | null;
     };
   } | null;
+  /** Every valid customer photo must appear in the timeline (primary scene photo or montage frame). */
+  photoCoverage?: import("./photo-coverage.js").PhotoCoverage;
+  /** Whether each clip's learned motion/transition lock survived render-time direction in the last final render. */
+  renderedLearnedLocks?: { renderJobId: string; locks: Array<{ sceneId: string; kept: boolean }> };
+  /** Creative variation per plan version and the recently used camera sequences it avoids. */
+  creativeMemory?: { planVersion: number; variation: number; recentMotionSignatures: string[] };
 }
 
 export class VideoProductionError extends Error {
