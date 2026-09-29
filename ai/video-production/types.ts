@@ -444,6 +444,8 @@ export interface VideoProject {
     planVersion: number;
     seed: string;
     appliedAt: string;
+    /** Phase 20 — active candidate set the selection was made from; activation changes re-select. */
+    candidateKey?: string;
     selected: Array<{ patternId: string; family: string; name: string; reason: string; alternatives: string[] }>;
     decisions: import("../creative-planning/learned-creative-patterns.js").LearnedDirectionDecision[];
     /** Phase 19 — story role of each scene after learned story rules (e.g. HOOK, PRODUCT_REVEAL, CLOSE_UP, CTA). */

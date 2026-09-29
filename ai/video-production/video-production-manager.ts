@@ -1607,12 +1607,15 @@ export class VideoProductionManager {
           audio = { bpm: intel.bpm, tempoMeasured, energyLevel: lp.musicEnergyFromTempo({ bpm: intel.bpm, tempoMeasured, highDensityShare: total > 0 ? high / total : null }) };
         }
       }
-      const samePlan = opts.previous?.planVersion === opts.planVersion;
       const seed = `${projectId}:${opts.planVersion}`;
-      const ctx = lp.buildCrossModalCreativeContext({
+      const build = (pinned: string[]) => lp.buildCrossModalCreativeContext({
         task: "PRODUCT_VIDEO_CREATION", projectId, cinematic: opts.cinematic, aspectRatio: opts.aspectRatio, platform: opts.platform,
-        durationSec: opts.durationMs / 1000, audio, seed, pinned: samePlan ? opts.previous!.selected.map((s) => s.patternId) : [],
+        durationSec: opts.durationMs / 1000, audio, seed, pinned,
       });
+      const samePlanVersion = opts.previous?.planVersion === opts.planVersion;
+      let ctx = build(samePlanVersion ? opts.previous!.selected.map((s) => s.patternId) : []);
+      const samePlan = samePlanVersion && (opts.previous?.candidateKey ?? ctx.candidateKey) === ctx.candidateKey;
+      if (samePlanVersion && !samePlan) ctx = build([]);
       if (opts.transitionsLocked) ctx.selections = ctx.selections.filter((s) => s.family !== "TRANSITION");
       if (!ctx.selections.length) return null;
       return { ctx, seed, samePlan, planVersion: opts.planVersion, musicEnergy: audio?.energyLevel ?? null, projectId };
@@ -1638,7 +1641,7 @@ export class VideoProductionManager {
         clips: result.clips,
         decisions: result.decisions,
         summary: {
-          version: "learned-direction-v2", planVersion: learned.planVersion, seed: learned.seed, appliedAt: new Date().toISOString(),
+          version: "learned-direction-v2", planVersion: learned.planVersion, seed: learned.seed, appliedAt: new Date().toISOString(), candidateKey: ctx.candidateKey,
           selected: ctx.selections.map((s) => ({ patternId: s.selected.patternId, family: s.family, name: s.selected.name, reason: s.reason, alternatives: s.alternatives.map((a) => a.name) })),
           decisions,
           storySequence: result.clips.map((c) => lp.storyRole(c.storyRole ?? c.purpose)),

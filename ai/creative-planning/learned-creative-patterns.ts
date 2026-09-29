@@ -488,6 +488,8 @@ export interface CrossModalCreativeContext {
   selections: PatternSelection[];
   contextTags: string[];
   unavailable: string[];
+  /** Fingerprint of the usable active pattern set; a pinned selection is only reused while this is unchanged. */
+  candidateKey: string;
 }
 
 const VIDEO_FAMILIES: PatternFamily[] = ["HOOK", "REVEAL", "SHOWCASE", "CTA", "PACING", "CAMERA", "TRANSITION", "TYPOGRAPHY_TIMING", "AUDIO_SYNC", "STORYTELLING", "LAYOUT", "TYPOGRAPHY_LAYOUT", "COLOR_CONTRAST", "CREATIVE_PROFILE", "MUSIC_TEMPO", "MUSIC_STRUCTURE"];
@@ -544,7 +546,7 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
   const empty: CrossModalCreativeContext = {
     task: req.task, videoPatterns: [], audioPatterns: [], imagePatterns: [], typographyPatterns: [], storytellingPatterns: [], compositionPatterns: [],
     synchronizationPatterns: [], platformPatterns: [], productPatterns: [], constraints: [], confidence: 0, provenance: [], sourceRelationships: [], excluded: [],
-    selections: [], contextTags, unavailable: [],
+    selections: [], contextTags, unavailable: [], candidateKey: "",
   };
   empty.constraints.push(
     "Product identity lock: never change protected product attributes (shape, colour, logo, material, design).",
@@ -597,7 +599,8 @@ export function buildCrossModalCreativeContext(req: CrossModalRequest): CrossMod
     return false;
   });
   const selections = selectCreativePatterns(usable, { seed: req.seed ?? `${req.projectId ?? "global"}:${req.task}`, context: contextTags, pinned: req.pinned });
-  const ctx: CrossModalCreativeContext = { ...empty, excluded, selections };
+  const candidateKey = createHash("sha256").update(usable.map((p) => p.patternId).sort().join("|")).digest("hex").slice(0, 16);
+  const ctx: CrossModalCreativeContext = { ...empty, excluded, selections, candidateKey };
   const tagSet = new Set(contextTags);
   for (const s of selections) {
     const p = s.selected;

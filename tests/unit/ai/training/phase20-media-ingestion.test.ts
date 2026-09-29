@@ -14,7 +14,7 @@ import type { DeepMediaAnalyzer } from "../../../../ai/training-center/teaching-
 import type { AudioMeasurement, MediaAnalysis } from "../../../../ai/training-center/training-types.js";
 import { LearningStateView, MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "../../../../desktop/admin-control-center/pages/TeachingObservations.js";
 import { pinnedLookup } from "../../../../dev/server/knowledge-fetcher.js";
-import { applyLearnedPatternsToTimeline, selectCreativePatterns, type ActiveCreativePattern } from "../../../../ai/creative-planning/learned-creative-patterns.js";
+import { applyLearnedPatternsToTimeline, buildCrossModalCreativeContext, selectCreativePatterns, type ActiveCreativePattern } from "../../../../ai/creative-planning/learned-creative-patterns.js";
 import { directClipMotion } from "../../../../ai/video-production/motion-direction.js";
 import { resolveProductionRenderProfile } from "../../../../ai/video-production/production-render-profile.js";
 import type { VideoTimelineClip } from "../../../../ai/video-production/types.js";
@@ -482,5 +482,18 @@ describe("Phase 20 — learned motion survives render-time direction", () => {
     expect(kept.diagnostics.directedType).toBe("STABLE_HOLD");
     expect(kept.diagnostics.reason).toMatch(/Learned hold/);
     expect(kept.clip.motionParams).toBeTruthy();
+  });
+
+  it("changes the candidate fingerprint when a dataset is activated or deactivated, so pinned selections are re-made", () => {
+    const base = [learnedPattern("cut", "TRANSITION", { transition: "CUT", position: "BETWEEN_SCENES" })];
+    const withDataset = [...base, learnedPattern("dissolve", "TRANSITION", { transition: "DISSOLVE", position: "INTO_REVEAL" })];
+    const ctxOf = (patterns: ActiveCreativePattern[], pinned: string[] = []) =>
+      buildCrossModalCreativeContext({ task: "PRODUCT_VIDEO_CREATION", projectId: "p", aspectRatio: "9:16", seed: "p:1", pinned, source: () => patterns });
+    const deactivated = ctxOf(base);
+    const reactivated = ctxOf(withDataset, ["cut"]);
+    expect(deactivated.candidateKey).toMatch(/^[0-9a-f]{16}$/);
+    expect(ctxOf(base).candidateKey).toBe(deactivated.candidateKey);
+    expect(reactivated.candidateKey).not.toBe(deactivated.candidateKey);
+    expect(reactivated.selections[0]!.selected.patternId).toBe("cut");
   });
 });
