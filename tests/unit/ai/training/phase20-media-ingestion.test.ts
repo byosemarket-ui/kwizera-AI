@@ -14,6 +14,10 @@ import type { DeepMediaAnalyzer } from "../../../../ai/training-center/teaching-
 import type { AudioMeasurement, MediaAnalysis } from "../../../../ai/training-center/training-types.js";
 import { LearningStateView, MediaCapabilitiesView, ObservationsView, OnlineResearchView } from "../../../../desktop/admin-control-center/pages/TeachingObservations.js";
 import { pinnedLookup } from "../../../../dev/server/knowledge-fetcher.js";
+import { applyLearnedPatternsToTimeline, selectCreativePatterns, type ActiveCreativePattern } from "../../../../ai/creative-planning/learned-creative-patterns.js";
+import { directClipMotion } from "../../../../ai/video-production/motion-direction.js";
+import { resolveProductionRenderProfile } from "../../../../ai/video-production/production-render-profile.js";
+import type { VideoTimelineClip } from "../../../../ai/video-production/types.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -446,5 +450,37 @@ describe("Phase 20 — Admin observations table never crashes on stored artifact
     expect(renderToStaticMarkup(createElement(MediaCapabilitiesView, { summary: {} }))).toBe("");
     expect(renderToStaticMarkup(createElement(OnlineResearchView, { online: undefined }))).toBe("");
     expect(renderToStaticMarkup(createElement(OnlineResearchView, { online: { preflight: { state: "ONLINE_RESEARCH_UNAVAILABLE" }, requested: true, note: "fallback", planned: null } }))).toContain("ONLINE_RESEARCH_UNAVAILABLE");
+  });
+});
+
+describe("Phase 20 — learned motion survives render-time direction", () => {
+  const learnedPattern = (id: string, family: ActiveCreativePattern["family"], parameters: ActiveCreativePattern["parameters"]): ActiveCreativePattern => ({
+    family, name: `${family} ${id}`, description: "", parameters, compatibleContexts: [], variationOptions: [], scenes: [1], confidence: 0.8, evidence: ["measured"],
+    patternId: id, usageCount: 0, provenance: { datasetId: "ds", datasetKey: "LEARNED_X", version: 1, recordId: id, sources: [{ sourceId: "s", title: "Reference", locations: ["Scene 1"] }] },
+  });
+  const clip = (sceneId: string, order: number, purpose: string, motion: VideoTimelineClip["motion"]): VideoTimelineClip => ({
+    id: sceneId, sceneId, order, purpose, assetId: `asset-${sceneId}`, startMs: 0, durationMs: 2500, layer: "video", camera: "front", motion,
+    lighting: "studio", background: "product still", transitionIn: "cut", transitionOut: "cut", text: [], audioDirection: "none",
+  });
+
+  it("keeps a learned static hook and learned fade when the motion director re-runs at render", () => {
+    const clips = [clip("s1", 1, "HOOK", "slow-zoom"), clip("s2", 2, "REVEAL", "slow-zoom"), clip("s3", 3, "CTA", "hold")];
+    const sel = selectCreativePatterns([
+      learnedPattern("h", "HOOK", { movement: "STATIC", role: "HOOK" }),
+      learnedPattern("t", "TRANSITION", { transition: "DISSOLVE", position: "INTO_REVEAL" }),
+    ], { seed: "s", context: [] });
+    const learned = applyLearnedPatternsToTimeline(clips, sel, { phase: "direction" }).clips;
+    expect(learned[0]!.learnedLock).toEqual({ motion: "hold", transitionOut: "fade" });
+    expect(learned[2]!.learnedLock).toBeUndefined();
+
+    const profile = resolveProductionRenderProfile("AI_PRODUCT_MOTION");
+    const unlocked = directClipMotion({ clip: { ...learned[0]!, learnedLock: undefined }, profile, creativeTone: "Energetic", aspectRatio: "9:16", isLast: false });
+    expect(unlocked.clip.motion).not.toBe("hold");
+    const kept = directClipMotion({ clip: learned[0]!, profile, creativeTone: "Energetic", aspectRatio: "9:16", isLast: false });
+    expect(kept.clip.motion).toBe("hold");
+    expect(kept.clip.transitionOut).toBe("fade");
+    expect(kept.diagnostics.directedType).toBe("STABLE_HOLD");
+    expect(kept.diagnostics.reason).toMatch(/Learned hold/);
+    expect(kept.clip.motionParams).toBeTruthy();
   });
 });

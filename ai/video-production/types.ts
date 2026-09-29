@@ -114,6 +114,8 @@ export interface VideoTimelineClip {
   userEdited?: boolean;
   /** Phase 19 — story role set by a learned story rule (e.g. CLOSE_UP right after the product reveal). */
   storyRole?: string;
+  /** Phase 20 — motion/transition chosen by an active learned pattern; the render-time motion director keeps it. */
+  learnedLock?: { motion?: VideoMotionId; transitionOut?: VideoTransitionId };
   /** STEP 7 — intelligent motion diagnostics (not user-facing). */
   motionPlan?: {
     sceneId: string;

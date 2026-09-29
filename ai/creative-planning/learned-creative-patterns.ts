@@ -163,6 +163,8 @@ export interface TimelineClipLike {
   camera?: string;
   /** Phase 19 — story role assigned by a learned story rule (e.g. CLOSE_UP after the reveal). */
   storyRole?: string;
+  /** Phase 20 — what an active learned pattern chose, so later motion direction keeps it. */
+  learnedLock?: { motion?: string; transitionOut?: string };
 }
 
 export interface LearnedDirectionDecision {
@@ -313,6 +315,7 @@ export function applyLearnedPatternsToTimeline<T extends TimelineClipLike>(clips
       if (!idx.length) { decide(s, false, "transitions", null, "No unedited boundary matches the learned position."); continue; }
       const changed: string[] = [];
       for (const i of idx) {
+        next[i]!.learnedLock = { ...next[i]!.learnedLock, transitionOut: mapped };
         if (next[i]!.transitionOut === mapped && next[i + 1]!.transitionIn === mapped) continue;
         next[i]!.transitionOut = mapped;
         next[i + 1]!.transitionIn = mapped;
@@ -332,6 +335,7 @@ export function applyLearnedPatternsToTimeline<T extends TimelineClipLike>(clips
       if (!targets.length) { decide(s, false, `${role.toLowerCase()} scenes`, null, "No unedited scene with that role uses a zoom-family motion."); continue; }
       const changed = targets.filter((c) => c.motion !== motion);
       for (const c of changed) c.motion = motion;
+      for (const c of targets) c.learnedLock = { ...c.learnedLock, motion };
       decide(s, changed.length > 0, targets.map((c) => c.sceneId).join(", "), changed.length ? `motion ${motion} on ${changed.map((c) => c.sceneId).join(", ")}` : null,
         changed.length ? `Learned ${movement.toLowerCase().replace(/_/g, " ")} for ${role.toLowerCase()} scenes.` : `Already ${motion}.`);
       continue;

@@ -100,6 +100,13 @@ export function toneMotionPolicy(tone?: CreativeToneId | null): MotionTonePolicy
   }
 }
 
+/** Learned patterns only choose zoom-family motions (crop-safe without framing verification). */
+const LEARNED_MOTION_TO_DIRECTED: Partial<Record<VideoMotionId, DirectedMotionType>> = {
+  hold: "STABLE_HOLD",
+  "zoom-out": "SUBTLE_PULL_BACK",
+  "slow-zoom": "SUBTLE_PUSH_IN",
+};
+
 export function mapDirectedToVideoMotion(directed: DirectedMotionType): VideoMotionId {
   switch (directed) {
     case "STATIC":
@@ -384,16 +391,20 @@ export function directClipMotion(input: {
   const framing = input.framingInspection?.formats[aspectKey]
     ?? input.framingInspection?.formats["9:16"]
     ?? null;
-  const chosen = chooseDirectedMotion({
-    purpose: input.clip.purpose,
-    role: input.role?.role ?? input.clip.imageRole,
-    framing,
-    tone,
-    profile: input.profile,
-    previousMotion: input.previousMotion,
-    order: input.clip.order,
-    isLast: input.isLast,
-  });
+  const lockedMotion = input.clip.learnedLock?.motion;
+  const lockedDirected = lockedMotion ? LEARNED_MOTION_TO_DIRECTED[lockedMotion] : undefined;
+  const chosen = lockedDirected
+    ? { directed: lockedDirected, fallbackUsed: false, reason: `Learned ${lockedMotion} kept from an active teaching pattern.` }
+    : chooseDirectedMotion({
+      purpose: input.clip.purpose,
+      role: input.role?.role ?? input.clip.imageRole,
+      framing,
+      tone,
+      profile: input.profile,
+      previousMotion: input.previousMotion,
+      order: input.clip.order,
+      isLast: input.isLast,
+    });
 
   const params = computeSafeMotionParams({
     directed: chosen.directed,
@@ -411,13 +422,15 @@ export function directClipMotion(input: {
     params.safetyAdjusted = true;
   }
 
-  const transitionOut = chooseTransitionOut({
-    clip: input.clip,
-    tone,
-    profile: input.profile,
-    preferStableFromPrep: input.framingInspection?.nearEdge || input.role?.role === "LOW_CONFIDENCE",
-    isLast: input.isLast,
-  });
+  const transitionOut = input.clip.learnedLock?.transitionOut && !input.isLast
+    ? input.clip.learnedLock.transitionOut
+    : chooseTransitionOut({
+      clip: input.clip,
+      tone,
+      profile: input.profile,
+      preferStableFromPrep: input.framingInspection?.nearEdge || input.role?.role === "LOW_CONFIDENCE",
+      isLast: input.isLast,
+    });
 
   const diagnostics: ClipMotionDiagnostics = {
     sceneId: input.clip.sceneId,
