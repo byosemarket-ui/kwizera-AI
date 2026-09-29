@@ -109,6 +109,13 @@ describe("Phase 8 executors over existing managers", () => {
     expect(await createStepExecutors(stale.m).PRODUCT_LOCK!(ctxFor("PRODUCT_LOCK"))).toMatchObject({ kind: "WAITING_FOR_USER", code: "LOCK_STALE" });
   });
 
+  it("renders at the destination the customer chose, not a stale project platform", async () => {
+    const { m, project, updates } = fakeManagers({ pmv: { platform: "tiktok", aspectRatio: "9:16", durationSeconds: 15 } });
+    project.platform = "instagram";
+    await createStepExecutors(m).CREATIVE_PLANNING!(ctxFor("CREATIVE_PLANNING")).catch(() => undefined);
+    expect(updates).toContainEqual({ platform: "tiktok" });
+  });
+
   it("skips audio when no track is selected", async () => {
     const { m } = fakeManagers();
     expect(await createStepExecutors(m).AUDIO!(ctxFor("AUDIO"))).toEqual({ kind: "SKIPPED", reason: "NO_AUDIO_SELECTED" });

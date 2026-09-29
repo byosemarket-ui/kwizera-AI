@@ -175,7 +175,10 @@ export function sceneTextLayers(
     : typeof scene.text === "string"
       ? scene.text.trim()
       : "";
-  if (headline && headline !== "[object Object]") {
+  const bottom = bottomLineForScene(scene);
+  const headlineStem = headline.replace(/(\.{3}|…)\s*$/u, "").trim().toLowerCase();
+  const repeatsBottom = Boolean(headlineStem && bottom.toLowerCase().startsWith(headlineStem));
+  if (headline && headline !== "[object Object]" && !repeatsBottom) {
     layers.push({
       content: headline.slice(0, 80),
       kind: "headline",
@@ -184,7 +187,6 @@ export function sceneTextLayers(
       position: "top",
     });
   }
-  const bottom = bottomLineForScene(scene);
   if (bottom && bottom !== "[object Object]") {
     const kind = /price|promo/i.test(scene.purpose) ? "price" : /cta|call/i.test(scene.purpose) ? "cta" : "supporting";
     layers.push({

@@ -418,11 +418,14 @@ export function createStepExecutors(m: ExecutorManagers): Partial<Record<Workflo
     const matchesRecord = ctx.priorFingerprint
       ? ctx.priorFingerprint === ctx.fingerprint
       : s.pmv.creativePlanId === plan?.id && !PLAN_NOT_REUSABLE.has(str(s.pmv.creativeStatus));
+    const destination = resolvePmvDestination(isPmvPlatform(s.platform) ? s.platform : null, s.aspectRatio, s.project.platform);
+    // The render follows the project's platform profile; it must be the destination the customer chose.
+    const project = s.project.platform === destination.profile.id
+      ? s.project
+      : await m.workspace.updateProject(projectId, { platform: destination.profile.id });
     if (plan && planUsable && planModeMatches && matchesRecord && !ctx.forced) {
       return { kind: "REUSED", refs: { planId: plan.id, planVersion: plan.version } };
     }
-    const project = s.project;
-    const destination = resolvePmvDestination(isPmvPlatform(s.platform) ? s.platform : null, s.aspectRatio, project.platform);
     const durationProblem = validateDuration(s.durationSeconds, destination, s.videoMode);
     if (durationProblem) {
       throw new WorkflowStepError("USER_INPUT_ERROR", "DURATION_NOT_SUPPORTED", durationProblem);

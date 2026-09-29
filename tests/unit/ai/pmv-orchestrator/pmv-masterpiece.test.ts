@@ -23,6 +23,7 @@ import { varyDirectedMotion } from "../../../../ai/video-production/motion-direc
 import { composeTypographyDecision } from "../../../../ai/typography/typography-engine.ts";
 import { TEXT_ROLES, type VerifiedFont } from "../../../../ai/typography/types.ts";
 import type { VideoTimelineClip } from "../../../../ai/video-production/types.ts";
+import { sceneTextLayers } from "../../../../ai/video-production/plan-to-timeline.ts";
 
 const END_CARD_MS = 5_000;
 
@@ -355,5 +356,22 @@ describe("PMV final QA — completed only when every check passes", () => {
   it("customer-facing failures carry no internal identifiers", () => {
     const qa = runDeterministicPmvQa(qaInput({ photoCoverage: { requestedPhotoCount: 10, usedPhotoCount: 3, omittedPhotoCount: 7 }, customerFacts: { status: "FAIL", present: [], missing: ["price"], invented: ["price 9 RWF"] } }));
     expect(qa.failures.join(" ")).not.toMatch(/job-1|patternId|provider|dataset/i);
+  });
+});
+
+describe("scene copy is not duplicated on screen", () => {
+  const scene = (headline: string, supportingText: string) => ({
+    purpose: "VISUAL_EXPLORATION",
+    copy: { headline, supportingText },
+  }) as unknown as Parameters<typeof sceneTextLayers>[0];
+
+  it("drops a headline that is a truncated copy of the supporting line", () => {
+    const layers = sceneTextLayers(scene("Lightweight street sneakers built…", "Lightweight street sneakers built for all-day comfort"), 0, 2000);
+    expect(layers.map((layer) => layer.kind)).toEqual(["supporting"]);
+  });
+
+  it("keeps distinct headline and supporting copy", () => {
+    const layers = sceneTextLayers(scene("Built to move", "Breathable mesh upper"), 0, 2000);
+    expect(layers.map((layer) => layer.kind)).toEqual(["headline", "supporting"]);
   });
 });
