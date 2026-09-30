@@ -24,6 +24,7 @@ import { composeTypographyDecision } from "../../../../ai/typography/typography-
 import { TEXT_ROLES, type VerifiedFont } from "../../../../ai/typography/types.ts";
 import type { VideoTimelineClip } from "../../../../ai/video-production/types.ts";
 import { sceneTextLayers } from "../../../../ai/video-production/plan-to-timeline.ts";
+import { runDeterministicQualityReview } from "../../../../ai/video-production/ai-quality-review.ts";
 
 const END_CARD_MS = 5_000;
 
@@ -356,6 +357,21 @@ describe("PMV final QA — completed only when every check passes", () => {
   it("customer-facing failures carry no internal identifiers", () => {
     const qa = runDeterministicPmvQa(qaInput({ photoCoverage: { requestedPhotoCount: 10, usedPhotoCount: 3, omittedPhotoCount: 7 }, customerFacts: { status: "FAIL", present: [], missing: ["price"], invented: ["price 9 RWF"] } }));
     expect(qa.failures.join(" ")).not.toMatch(/job-1|patternId|provider|dataset/i);
+  });
+});
+
+describe("quality review timing includes the end card", () => {
+  it("a 10 s scene timeline plus a 5 s end card matches a 15 s render", () => {
+    const review = (endCardDurationMs?: number) => runDeterministicQualityReview({
+      video: { timeline: [{ purpose: "HOOK", assetId: "a", order: 0, durationMs: 10_000 }] } as never,
+      plan: null,
+      project: {} as never,
+      probed: { durationMs: 15_042 } as never,
+      technicalChecks: {},
+      endCardDurationMs,
+    });
+    expect(review(5_000).checks.durationAligned).toBe(true);
+    expect(review().checks.durationAligned).toBe(false);
   });
 });
 

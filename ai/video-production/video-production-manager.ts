@@ -1486,6 +1486,7 @@ export class VideoProductionManager {
           project: workspaceProject,
           probed,
           technicalChecks,
+          endCardDurationMs,
         }).catch(() => null)
         : null;
       overlay = mergeOverlay(overlays);

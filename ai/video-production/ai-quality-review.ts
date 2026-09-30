@@ -24,6 +24,8 @@ export function runDeterministicQualityReview(input: {
   project: CreativeProject;
   probed: ProbedVideo;
   technicalChecks: Record<string, boolean>;
+  /** The branded end card is appended after the planned scenes. */
+  endCardDurationMs?: number;
 }): QualityReviewResult {
   const suggestions: string[] = [];
   const checks: Record<string, boolean> = { ...input.technicalChecks };
@@ -48,8 +50,9 @@ export function runDeterministicQualityReview(input: {
     suggestions.push("Price is available but no price/offer scene was planned.");
   }
 
-  const plannedMs = input.plan?.timelineDurationMs
-    ?? input.video.timeline.reduce((sum, clip) => sum + clip.durationMs, 0);
+  const plannedMs = (input.plan?.timelineDurationMs
+    ?? input.video.timeline.reduce((sum, clip) => sum + clip.durationMs, 0))
+    + Math.max(0, input.endCardDurationMs ?? 0);
   checks.durationAligned = plannedMs > 0
     ? Math.abs(input.probed.durationMs - plannedMs) <= Math.max(2500, plannedMs * 0.2)
     : input.probed.durationMs > 500;
@@ -138,6 +141,7 @@ export async function runFullQualityReview(input: {
   project: CreativeProject;
   probed: ProbedVideo;
   technicalChecks: Record<string, boolean>;
+  endCardDurationMs?: number;
 }): Promise<QualityReviewResult> {
   const deterministic = runDeterministicQualityReview(input);
   const planningQuality = buildCreativeQualityReport({
