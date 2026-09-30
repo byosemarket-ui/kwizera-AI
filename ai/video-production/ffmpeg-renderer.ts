@@ -157,7 +157,7 @@ function drawtextFilterLegacy(clip: VideoTimelineClip, plan: VideoRenderPlan, fo
     const fontSize = 22 * scale;
     const y = layer.position === "center" ? "(h-text_h)/2" : `h*${plan.aspectRatio === "9:16" ? "0.12" : "0.08"}`;
     filters.push(
-      `drawtext=fontfile='${font}':text='${escaped}':fontsize=${fontSize}:fontcolor=white:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
+      `drawtext=fontfile='${font}':expansion=none:text='${escaped}':fontsize=${fontSize}:fontcolor=white:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
     );
   }
   bottomLayers.slice(0, 3).forEach((layer, index) => {
@@ -171,7 +171,7 @@ function drawtextFilterLegacy(clip: VideoTimelineClip, plan: VideoRenderPlan, fo
     const y = `h*${Math.max(0.55, baseY - offset)}`;
     const color = isSave ? "0xFFD966" : "white";
     filters.push(
-      `drawtext=fontfile='${font}':text='${escaped}':fontsize=${fontSize}:fontcolor=${color}:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
+      `drawtext=fontfile='${font}':expansion=none:text='${escaped}':fontsize=${fontSize}:fontcolor=${color}:borderw=${Math.max(1, scale)}:bordercolor=black@0.6:x=(w-text_w)/2:y=${y}`,
     );
   });
   return filters.join(",");

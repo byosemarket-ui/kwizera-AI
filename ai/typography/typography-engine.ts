@@ -255,7 +255,11 @@ export async function composeTypographyDecision(
       occupied.push(item.layout.region);
       draft.push(item);
     }
-    const densified = controlSceneDensity(draft, /cta|call|closing|end|final|contact/i.test(scene.purpose ?? "") ? maxItemsCta : maxItems);
+    // Customer price lines (was / now / save) are facts, never trimmed for density.
+    const sceneLimit = /cta|call|closing|end|final|contact/i.test(scene.purpose ?? "")
+      ? maxItemsCta
+      : /price|promo|offer/i.test(scene.purpose ?? "") ? Math.max(maxItems, 3) : maxItems;
+    const densified = controlSceneDensity(draft, sceneLimit);
     warnings.push(...densified.warnings);
     const collided = resolveTextCollisions(densified.items);
     warnings.push(...collided.warnings);

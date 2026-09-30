@@ -25,6 +25,8 @@ import { TEXT_ROLES, type VerifiedFont } from "../../../../ai/typography/types.t
 import type { VideoTimelineClip } from "../../../../ai/video-production/types.ts";
 import { sceneTextLayers } from "../../../../ai/video-production/plan-to-timeline.ts";
 import { runDeterministicQualityReview } from "../../../../ai/video-production/ai-quality-review.ts";
+import { sanitizeRenderText } from "../../../../ai/video-production/ffmpeg-sanitize.ts";
+import { stackedTop } from "../../../../ai/typography/drawtext-integration.ts";
 
 const END_CARD_MS = 5_000;
 
@@ -357,6 +359,51 @@ describe("PMV final QA — completed only when every check passes", () => {
   it("customer-facing failures carry no internal identifiers", () => {
     const qa = runDeterministicPmvQa(qaInput({ photoCoverage: { requestedPhotoCount: 10, usedPhotoCount: 3, omittedPhotoCount: 7 }, customerFacts: { status: "FAIL", present: [], missing: ["price"], invented: ["price 9 RWF"] } }));
     expect(qa.failures.join(" ")).not.toMatch(/job-1|patternId|provider|dataset/i);
+  });
+});
+
+describe("rendered text keeps customer facts intact", () => {
+  it("drops the URL scheme instead of mangling it", () => {
+    expect(sanitizeRenderText("https://urbanrunner.rw")).toBe("urbanrunner.rw");
+    expect(sanitizeRenderText("Visit http://shop.rw/new")).toBe("Visit shop.rw/new");
+  });
+
+  it("requires the discount when the customer's prices imply one", () => {
+    const facts: CustomerFacts = {
+      productName: "Urban Runner", currentPrice: 25_000, originalPrice: 31_250, currency: "RWF",
+      discountPercentage: 20, discountAmount: 6_250, offer: "", phone: "", whatsapp: "", website: "", cta: "",
+    };
+    expect(checkCustomerFacts(facts, ["NOW 25,000 RWF", "WAS 31,250 RWF"]).missing).toContain("discount");
+    expect(checkCustomerFacts(facts, ["NOW 25,000 RWF", "WAS 31,250 RWF", "SAVE 20%"]).status).toBe("PASS");
+  });
+
+  it("stacks text rows that would overlap instead of drawing them on one line", () => {
+    const bands: Array<{ top: number; bottom: number }> = [];
+    const first = stackedTop(bands, 0.8, 60, 1920);
+    const second = stackedTop(bands, 0.8, 60, 1920);
+    expect(first).toBeCloseTo(0.8, 3);
+    expect(second * 1920 + 60).toBeLessThanOrEqual(first * 1920);
+    const top = stackedTop([], 0.1, 60, 1920);
+    const below = stackedTop([{ top: top * 1920, bottom: top * 1920 + 60 }], 0.1, 60, 1920);
+    expect(below * 1920).toBeGreaterThanOrEqual(top * 1920 + 60);
+  });
+
+  it("keeps every customer price line in a price scene even when learned guidance allows two items", async () => {
+    const font = {
+      id: "arial:Arial.ttf", family: "Arial", filePath: "Arial.ttf", style: "regular", weight: 400, italic: false, bold: false,
+      category: "sans", personalities: ["clean-sans", "modern-sans", "neutral", "bold-display", "promotional"],
+      roles: [...TEXT_ROLES], latinExtended: true, verified: true,
+    } as VerifiedFont;
+    const decision = await composeTypographyDecision({
+      projectId: "p", width: 1080, height: 1920, aspectRatio: "9:16", platform: "tiktok", useOllama: false,
+      guidance: { maxItemsPerScene: 2 },
+      scenes: [{ sceneId: "s", purpose: "PRICE_OR_OFFER", texts: [
+        { role: "previousPrice", text: "WAS 31,250 RWF" },
+        { role: "price", text: "NOW 25,000 RWF" },
+        { role: "discount", text: "SAVE 20%" },
+      ], image: {} }],
+    } as never, [font]);
+    expect(decision.scenes[0]!.items.map((item) => item.role).sort()).toEqual(["discount", "previousPrice", "price"]);
   });
 });
 

@@ -110,6 +110,32 @@ function legacyY(layer: VideoTextLayer, plan: VideoRenderPlan, bottomIndex: numb
 }
 
 /**
+ * Rendered text width is only known inside FFmpeg, so layers whose rows overlap are stacked vertically
+ * (above the existing rows in the lower half, below them in the upper half). Returns the normalized top.
+ */
+export function stackedTop(
+  bands: Array<{ top: number; bottom: number }>,
+  normalizedY: number,
+  heightPx: number,
+  frameHeight: number,
+): number {
+  const gap = Math.max(4, Math.round(heightPx * 0.25));
+  const margin = frameHeight * 0.03;
+  let top = normalizedY * frameHeight;
+  const overlapping = () => bands.filter((band) => top < band.bottom + gap && top + heightPx + gap > band.top);
+  for (let guard = 0; guard < bands.length + 1; guard += 1) {
+    const hits = overlapping();
+    if (!hits.length) break;
+    top = normalizedY >= 0.5
+      ? Math.min(...hits.map((band) => band.top)) - heightPx - gap
+      : Math.max(...hits.map((band) => band.bottom)) + gap;
+  }
+  top = Math.min(frameHeight - heightPx - margin, Math.max(margin, top));
+  bands.push({ top, bottom: top + heightPx });
+  return top / frameHeight;
+}
+
+/**
  * Prefer validated typography coordinates/fonts; fall back to legacy top/bottom/center.
  */
 export async function buildDrawtextFilter(
@@ -127,6 +153,7 @@ export async function buildDrawtextFilter(
     .slice(0, 4);
 
   let bottomIndex = 0;
+  const bands: Array<{ top: number; bottom: number }> = [];
   for (const layer of layers) {
     const resolved = await resolveFontPathForId(layer.typography?.fontId, fallbackFontFile);
     if (!resolved) continue;
@@ -154,13 +181,14 @@ export async function buildDrawtextFilter(
     );
     const xExpr = hasTypography ? drawtextX(alignment, nx) : "(w-text_w)/2";
     const lineGap = Math.max(2, Math.round(fontSize * 1.22));
+    const topNy = hasTypography ? stackedTop(bands, ny, lines.length * lineGap, plan.height) : ny;
 
     lines.forEach((line, lineIndex) => {
       const yExpr = hasTypography
-        ? `h*${ny.toFixed(4)}+${lineIndex * lineGap}`
+        ? `h*${topNy.toFixed(4)}+${lineIndex * lineGap}`
         : legacyY(layer, plan, bottomIndex);
       filters.push(
-        `drawtext=fontfile='${font}':text='${line}':fontsize=${fontSize}:fontcolor=${color}:${contrast}:x=${xExpr}:y=${yExpr}`,
+        `drawtext=fontfile='${font}':expansion=none:text='${line}':fontsize=${fontSize}:fontcolor=${color}:${contrast}:x=${xExpr}:y=${yExpr}`,
       );
     });
     layersDrawn += 1;

@@ -77,6 +77,9 @@ export function checkCustomerFacts(facts: CustomerFacts, renderedTexts: string[]
   if (facts.currentPrice != null) {
     note("price", textDigits.some((d) => d.includes(amountDigits(facts.currentPrice!))));
   }
+  if (typeof facts.discountPercentage === "number" && facts.discountPercentage > 0) {
+    note("discount", new RegExp(`\\b${Math.round(facts.discountPercentage)}\\s*%`).test(text));
+  }
   if (facts.offer.trim()) {
     const offerPercent = [...facts.offer.matchAll(PERCENT_RE)][0]?.[1];
     note("offer", offerPercent
