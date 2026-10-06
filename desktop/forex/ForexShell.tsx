@@ -91,7 +91,7 @@ export function ForexShell({
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth > 820) setSidebarOpen(true);
+      setSidebarOpen(window.innerWidth > 820);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
