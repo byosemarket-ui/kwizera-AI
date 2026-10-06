@@ -40,7 +40,9 @@ describe("Forex Phase 1 shell integration", () => {
     expect(src).toContain("AdminControlCenter");
     expect(src).toContain("AppShell");
     expect(src).toContain("lazy(() => import(\"./forex/ForexApp\"))");
-    expect(src).toContain("Back to Studio");
+    expect(src).toContain("STUDIO_ROOT_PATH");
+    const header = fs.readFileSync(path.resolve("desktop/forex/ForexHeader.tsx"), "utf8");
+    expect(header).toContain("Back to Studio");
   });
 
   it("exposes a dedicated Forex shell with sidebar, header, and dashboard cards", () => {
