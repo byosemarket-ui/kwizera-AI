@@ -51,6 +51,9 @@ describe("canonical GitHub-to-VPS deploy", () => {
   it("locks concurrent deploys and checks out the requested SHA, not git pull tip", () => {
     const sh = read("deploy/update-from-github.sh");
     expect(sh).toContain("flock -n");
+    expect(sh).toContain("acquire_deploy_lock");
+    expect(sh).toContain("clearing stale deploy lock");
+    expect(sh).toContain("emergency_revive_service");
     expect(sh).toContain("KWIZERA_DEPLOY_SHA");
     expect(sh).toContain("checkout --detach --force");
     expect(sh).not.toMatch(/git pull --ff-only/);
@@ -86,6 +89,11 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("DEPLOY_SHA");
     expect(yml).toContain("/opt/kwizera-ai/deploy/update-from-github.sh");
     expect(yml).not.toContain("sudo env KWIZERA_DEPLOY_SHA");
+    expect(yml).toContain("sudo -n KWIZERA_DEPLOY_SHA=");
+    expect(yml).toContain("ServerAliveInterval=15");
+    expect(yml).toContain("SSH preflight");
+    expect(yml).toContain("PORT_CANDIDATES");
+    expect(yml).toContain("2222");
     expect(yml).toContain("secrets.VPS_HOST");
     expect(yml).toContain("secrets.VPS_USER");
     expect(yml).toContain("secrets.VPS_SSH_KEY");

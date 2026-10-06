@@ -28,11 +28,66 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
 fi
 
 mkdir -p "$(dirname "$LOCK_FILE")"
-exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
+
+acquire_deploy_lock() {
+  exec 9>"$LOCK_FILE"
+  if flock -n 9; then
+    return 0
+  fi
+  # Stale lock recovery: if no live deploy/build holder remains, reclaim the lock.
+  local holders
+  holders="$(ps -eo pid=,args= | grep -E '[u]pdate-from-github\.sh|[n]pm ci|[n]pm run build:production' || true)"
+  if [[ -z "$holders" ]]; then
+    echo "[KWIZERA] clearing stale deploy lock (no active deploy/build process)"
+    rm -f "$LOCK_FILE"
+    exec 9>"$LOCK_FILE"
+    if flock -n 9; then
+      return 0
+    fi
+  else
+    echo "[KWIZERA] deploy lock holders:" >&2
+    echo "$holders" >&2
+  fi
   echo "[KWIZERA] another deployment holds $LOCK_FILE" >&2
+  return 1
+}
+
+if ! acquire_deploy_lock; then
   exit 1
 fi
+
+emergency_revive_service() {
+  if systemctl is-active --quiet "$SERVICE"; then
+    return 0
+  fi
+  if [[ -f "$APP_DIR/dist/dev/server/production-gateway.js" && -f "$APP_DIR/dist/dev/server/index.js" ]]; then
+    echo "[KWIZERA] service inactive after deploy failure — attempting emergency restart"
+    systemctl start "$SERVICE" || systemctl restart "$SERVICE" || true
+    sleep 2
+    systemctl is-active --quiet "$SERVICE" && echo "[KWIZERA] emergency restart: service active" || echo "[KWIZERA] emergency restart: service still inactive" >&2
+  else
+    echo "[KWIZERA] cannot emergency-restart: production artifacts missing" >&2
+  fi
+}
+
+on_script_exit() {
+  local rc=$?
+  # Do not call `exit` here — bash runs EXIT traps on `exec`, and exiting
+  # would abort the intentional re-exec of this script after checkout.
+  if [[ "$rc" -ne 0 ]]; then
+    echo "[KWIZERA] deploy exiting with code $rc"
+    df -h / /opt /tmp 2>/dev/null | sed 's/^/[KWIZERA] df /' || true
+    free -h 2>/dev/null | sed 's/^/[KWIZERA] mem /' || true
+    systemctl is-active "$SERVICE" 2>/dev/null | sed 's/^/[KWIZERA] service /' || true
+    emergency_revive_service
+  fi
+}
+trap on_script_exit EXIT
+
+echo "[KWIZERA] host diagnostics before deploy"
+df -h / /opt /tmp 2>/dev/null | sed 's/^/[KWIZERA] df /' || true
+free -h 2>/dev/null | sed 's/^/[KWIZERA] mem /' || true
+systemctl is-active "$SERVICE" 2>/dev/null | sed 's/^/[KWIZERA] service /' || true
 
 git config --global --add safe.directory "$APP_DIR" >/dev/null 2>&1 || true
 
