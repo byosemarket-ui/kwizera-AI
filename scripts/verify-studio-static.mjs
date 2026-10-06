@@ -104,6 +104,9 @@ try {
   if (!bundle.includes("Welcome to KWIZERA Forex") && !bundle.includes("Forex Intelligence")) {
     throw new Error("built desktop bundle missing Forex dashboard copy");
   }
+  if (!bundle.includes("data-forex-chart-panel") || !bundle.includes("data-forex-market-card") || !bundle.includes("Economic calendar data not connected.")) {
+    throw new Error("built desktop bundle missing Forex Phase 3 dashboard markers");
+  }
   if (!bundle.includes("data-customer-home") || !bundle.includes("Welcome to")) {
     throw new Error("built desktop bundle missing commercial Customer Home markers");
   }

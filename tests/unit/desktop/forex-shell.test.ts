@@ -12,6 +12,13 @@ import {
   parseForexRouteFromLocation,
   resolveForexLocation,
 } from "../../../desktop/forex/forex-routes.ts";
+import {
+  FOREX_INSTRUMENTS,
+  FOREX_WATCHLIST,
+  formatQuoteValue,
+  resolveMarketSessions,
+  unavailableQuote,
+} from "../../../desktop/forex/dashboard-data.ts";
 
 const REQUIRED_PATHS = [
   "/forex/dashboard",
@@ -111,11 +118,16 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexModulePage");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
     expect(dashboard).toContain("Market data connection: Not connected");
-    expect(dashboard).not.toMatch(/EUR\/USD|1\.1723|BTC\/USD|\+4\.8%/);
+    expect(dashboard).toContain("data-forex-chart-panel");
+    expect(dashboard).toContain("data-forex-section=\"markets\"");
+    expect(dashboard).toContain("Open Watchlist");
+    expect(dashboard).not.toMatch(/1\.1723|BTC\/USD|\+4\.8%|Strong Buy|90% confidence|\$12,480/);
     expect(css).toContain(".fx-sidebar");
     expect(css).toContain("@media (max-width: 820px)");
     expect(css).toContain("prefers-reduced-motion");
     expect(css).toContain(".fx-nav-group.is-current");
+    expect(css).toContain(".fx-chart-panel");
+    expect(css).toContain(".fx-market-grid");
   });
 
   it("keeps Studio Home navigation into Forex", () => {
@@ -125,5 +137,26 @@ describe("Forex Phase 1 shell integration", () => {
     expect(home).toContain("window.location.assign(\"/forex\")");
     expect(nav).toContain("data-forex-nav");
     expect(nav).toContain("window.location.assign(\"/forex\")");
+  });
+});
+
+describe("Forex Phase 3 dashboard data", () => {
+  it("keeps instrument labels without fabricated quotes", () => {
+    expect(FOREX_INSTRUMENTS.map((item) => item.symbol)).toContain("EUR/USD");
+    expect(FOREX_WATCHLIST).toEqual([]);
+    const quote = unavailableQuote(FOREX_INSTRUMENTS[0]);
+    expect(quote.price).toBeNull();
+    expect(quote.change).toBeNull();
+    expect(quote.dataSource).toBeNull();
+    expect(formatQuoteValue(null, "Not connected")).toBe("Not connected");
+    expect(formatQuoteValue(1.1723, "Not connected")).toBe("1.1723");
+  });
+
+  it("derives session clocks from UTC hours without a market feed", () => {
+    const londonOpen = resolveMarketSessions(new Date("2026-10-06T10:00:00Z"));
+    expect(londonOpen.find((item) => item.id === "london")?.status).toBe("open");
+    expect(londonOpen.find((item) => item.id === "sydney")?.status).toBe("closed");
+    const openingSoon = resolveMarketSessions(new Date("2026-10-06T06:30:00Z"));
+    expect(openingSoon.find((item) => item.id === "london")?.status).toBe("opening-soon");
   });
 });
