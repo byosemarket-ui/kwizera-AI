@@ -135,6 +135,16 @@ export const PHASE9_CAPABILITIES = {
   trading: false,
 } as const;
 
+/** Phase 10: full live-market integration (same public capabilities; trading still off). */
+export const PHASE10_CAPABILITIES = {
+  ping: true,
+  exchangeInfo: true,
+  klines: true,
+  ticker: true,
+  websocket: true,
+  trading: false,
+} as const;
+
 export type LiveStreamType = "miniTicker" | "trade" | "kline";
 
 export interface NormalizedLiveTicker {

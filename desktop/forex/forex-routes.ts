@@ -104,7 +104,7 @@ export const FOREX_NAV: ForexNavItem[] = [
     group: "market",
     groupLabel: "Market",
     icon: "star",
-    description: "Watchlist persistence is not implemented yet. Selected Binance Spot symbols remain compatible with this route.",
+    description: "Session watchlist of Binance Spot symbols selected this browser session. Persistence is not implemented.",
     phaseNote: "Coming Soon",
   },
   {

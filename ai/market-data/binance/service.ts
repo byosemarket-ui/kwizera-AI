@@ -3,7 +3,7 @@ import { BINANCE_MARKET_CACHE_MS, resolveBinancePublicConfig, type BinancePublic
 import { disconnectedSnapshot, snapshotForState } from "./connection.js";
 import { BinanceMarketDataError, userFacingBinanceError } from "./errors.js";
 import { fetchBinanceExchangeInfo, fetchBinanceKlines, pingBinancePublicRest, type FetchLike } from "./rest-client.js";
-import { PHASE9_CAPABILITIES, type MarketConnectionSnapshot, type NormalizedCandle, type NormalizedMarket, type NormalizedTicker } from "./types.js";
+import { PHASE10_CAPABILITIES, type MarketConnectionSnapshot, type NormalizedCandle, type NormalizedMarket, type NormalizedTicker } from "./types.js";
 
 export interface BinanceMarketCatalog {
   markets: NormalizedMarket[];
@@ -78,7 +78,7 @@ export function createBinanceMarketDataService(options: {
           serverTimeUtc: ping.serverTimeUtc,
           message: "Binance public API reachable. Live market data is not streaming.",
           errorCode: null,
-          capabilities: { ...PHASE9_CAPABILITIES },
+          capabilities: { ...PHASE10_CAPABILITIES },
         });
         return snapshot;
       } catch (error) {
@@ -114,7 +114,7 @@ export function createBinanceMarketDataService(options: {
         restBaseHost: catalogCache.restBaseHost,
         message: "Binance public API reachable. Live market data is not streaming.",
         errorCode: null,
-        capabilities: { ...PHASE9_CAPABILITIES },
+        capabilities: { ...PHASE10_CAPABILITIES },
       });
       return catalogCache;
     },
@@ -139,7 +139,7 @@ export function createBinanceMarketDataService(options: {
         restReachable: true,
         restBaseHost: hostOf(fetched.restBaseUrl),
         errorCode: null,
-        capabilities: { ...PHASE9_CAPABILITIES },
+        capabilities: { ...PHASE10_CAPABILITIES },
       });
       return {
         symbol,

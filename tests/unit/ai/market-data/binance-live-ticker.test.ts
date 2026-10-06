@@ -141,4 +141,22 @@ describe("Binance Phase 8 live ticker client", () => {
     expect(config.websocketBaseUrl).toBe(BINANCE_DEFAULT_WS_BASE);
     expect(config.websocketFallbackUrls.every((url) => url.startsWith("wss://"))).toBe(true);
   });
+
+  it("clears LIVE when ticks become stale", () => {
+    vi.useFakeTimers();
+    let now = 1_700_000_000_000;
+    const client = createBinanceLiveTickerClient({
+      env: { KWIZERA_BINANCE_ENABLED: "1" },
+      webSocketCtor: FakeSocket as unknown as new (url: string) => WebSocketLike,
+      now: () => now,
+    });
+    client.subscribe("BTCUSDT");
+    FakeSocket.open[0]?.open();
+    FakeSocket.open[0]?.push("BTCUSDT", "70000");
+    expect(client.getSnapshot().liveMarketData).toBe(true);
+    now += 31_000;
+    vi.advanceTimersByTime(5_000);
+    expect(client.getSnapshot().liveMarketData).toBe(false);
+    client.disconnect();
+  });
 });

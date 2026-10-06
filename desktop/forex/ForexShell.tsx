@@ -24,7 +24,8 @@ import {
   writeMarketQuery,
   type SelectedMarket,
 } from "./market-data/selected-market";
-import { DEFAULT_CHART_TIMEFRAME } from "./chart/types";
+import { rememberSessionWatchlist } from "./market-data/session-watchlist";
+import { DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId } from "./chart/types";
 import "./forex.css";
 
 const ForexChartWorkspace = lazy(async () => {
@@ -86,14 +87,22 @@ export function ForexShell({
   ));
   const { snapshot: binanceConnection, retry: retryBinance } = useBinanceConnectionStatus();
   const [selectedMarket, setSelectedMarket] = useState<SelectedMarket | null>(() => readMarketQuery().selected);
-  const [chartTimeframe] = useState(() => readMarketQuery().timeframe || DEFAULT_CHART_TIMEFRAME);
+  const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframeId>(
+    () => readMarketQuery().timeframe || DEFAULT_CHART_TIMEFRAME,
+  );
   const liveTicker = useBinanceLiveTicker(
     selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : null,
   );
 
   const selectMarket = (market: SelectedMarket) => {
     setSelectedMarket(market);
+    rememberSessionWatchlist(market);
     writeMarketQuery(market, chartTimeframe);
+  };
+
+  const selectTimeframe = (timeframe: ChartTimeframeId) => {
+    setChartTimeframe(timeframe);
+    writeMarketQuery(selectedMarket, timeframe);
   };
 
   useEffect(() => {
@@ -107,7 +116,9 @@ export function ForexShell({
   useEffect(() => {
     const onPop = () => {
       setRoute(parseForexRouteFromLocation());
-      setSelectedMarket(readMarketQuery().selected);
+      const query = readMarketQuery();
+      setSelectedMarket(query.selected);
+      setChartTimeframe(query.timeframe || DEFAULT_CHART_TIMEFRAME);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -138,6 +149,7 @@ export function ForexShell({
         onRetryBinance={retryBinance}
         selectedMarket={selectedMarket}
         liveTicker={liveTicker}
+        onSelectMarket={selectMarket}
       />
     );
   } else if (route === "markets") {
@@ -152,17 +164,25 @@ export function ForexShell({
     content = (
       <Suspense fallback={<p className="fx-page-desc">Loading chart workspace…</p>}>
         <ForexChartWorkspace
-          key={route}
           mode={route === "charts" ? "charts" : "analysis"}
           onOpenModule={navigate}
           selectedMarket={selectedMarket}
           onSelectMarket={selectMarket}
+          timeframe={chartTimeframe}
+          onTimeframeChange={selectTimeframe}
           liveTicker={liveTicker}
         />
       </Suspense>
     );
   } else {
-    content = <ForexModulePage item={getForexNavItem(route)} selectedMarket={selectedMarket} />;
+    content = (
+      <ForexModulePage
+        item={getForexNavItem(route)}
+        selectedMarket={selectedMarket}
+        liveTicker={liveTicker}
+        onSelectMarket={selectMarket}
+      />
+    );
   }
 
   return (

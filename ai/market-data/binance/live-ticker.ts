@@ -14,6 +14,9 @@ export type WebSocketCtor = new (url: string) => WebSocketLike;
 const CONNECT_TIMEOUT_MS = 10000;
 const BACKOFF_START_MS = 1000;
 const BACKOFF_MAX_MS = 15000;
+const STALE_CHECK_MS = 5000;
+/** MiniTicker should refresh frequently; after this gap LIVE is cleared. */
+const TICKER_STALE_MS = 30_000;
 
 export function idleLiveTickerSnapshot(message = "Disconnected"): LiveTickerSnapshot {
   return {
@@ -34,15 +37,15 @@ export function liveTickerStatusLabel(snapshot: LiveTickerSnapshot): string {
   if (snapshot.liveMarketData) return "LIVE";
   switch (snapshot.connectionState) {
     case "CONNECTING":
-      return "Connecting...";
+      return "Connecting to Binance...";
     case "RECONNECTING":
-      return "Reconnecting...";
+      return "Reconnecting to Binance...";
     case "ERROR":
-      return "Error";
+      return "Unable to load Binance market data.";
     case "CONNECTED":
       return "Waiting for live Binance data...";
     default:
-      return "Disconnected";
+      return snapshot.subscribedSymbol ? "Binance live data unavailable." : "Disconnected";
   }
 }
 
@@ -56,10 +59,10 @@ export function liveTickerStatusTone(snapshot: LiveTickerSnapshot): "live" | "fu
 
 export function liveTickerPriceLabel(snapshot: LiveTickerSnapshot): string {
   if (snapshot.liveMarketData && snapshot.ticker) return formatLivePrice(snapshot.ticker.price);
-  if (snapshot.connectionState === "CONNECTING") return "Connecting...";
-  if (snapshot.connectionState === "RECONNECTING") return "Reconnecting...";
+  if (snapshot.connectionState === "CONNECTING") return "Connecting to Binance...";
+  if (snapshot.connectionState === "RECONNECTING") return "Reconnecting to Binance...";
   if (snapshot.connectionState === "CONNECTED") return "Waiting for live Binance data...";
-  if (snapshot.connectionState === "ERROR") return "Binance live data unavailable.";
+  if (snapshot.connectionState === "ERROR") return "Unable to load Binance market data.";
   if (!snapshot.subscribedSymbol) return "Select a Binance Spot symbol from Markets.";
   return "Binance live data unavailable.";
 }
@@ -118,6 +121,8 @@ export function createBinanceLiveTickerClient(options: {
   let backoffMs = BACKOFF_START_MS;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let connectTimer: ReturnType<typeof setTimeout> | null = null;
+  let staleTimer: ReturnType<typeof setInterval> | null = null;
+  let lastValidAt = 0;
   let intentionalClose = false;
   let activeSockets = 0;
 
@@ -161,6 +166,23 @@ export function createBinanceLiveTickerClient(options: {
       clearTimeout(connectTimer);
       connectTimer = null;
     }
+    if (staleTimer) {
+      clearInterval(staleTimer);
+      staleTimer = null;
+    }
+  }
+
+  function watchStale(gen: number): void {
+    if (staleTimer) clearInterval(staleTimer);
+    staleTimer = setInterval(() => {
+      if (gen !== generation || !snapshot.liveMarketData) return;
+      if (now() - lastValidAt > TICKER_STALE_MS) {
+        setSnapshot({
+          liveMarketData: false,
+          message: "Binance live data unavailable.",
+        });
+      }
+    }, STALE_CHECK_MS);
   }
 
   function closeSocket(): void {
@@ -221,7 +243,7 @@ export function createBinanceLiveTickerClient(options: {
       websocketActive: false,
       subscribedSymbol: symbol,
       ticker: null,
-      message: isReconnect ? "Reconnecting..." : "Connecting...",
+      message: isReconnect ? "Reconnecting to Binance..." : "Connecting to Binance...",
       errorCode: null,
       websocketHost: hostOf(url),
     });
@@ -243,7 +265,7 @@ export function createBinanceLiveTickerClient(options: {
       } catch {
         /* ignore */
       }
-      scheduleReconnect("RECONNECTING", "Reconnecting...", "BINANCE_TIMEOUT");
+      scheduleReconnect("RECONNECTING", "Reconnecting to Binance...", "BINANCE_TIMEOUT");
     }, CONNECT_TIMEOUT_MS);
 
     next.addEventListener("open", () => {
@@ -254,6 +276,7 @@ export function createBinanceLiveTickerClient(options: {
         clearTimeout(connectTimer);
         connectTimer = null;
       }
+      watchStale(gen);
       setSnapshot({
         connectionState: "CONNECTED",
         liveMarketData: false,
@@ -270,6 +293,7 @@ export function createBinanceLiveTickerClient(options: {
       if (gen !== generation || socket !== next) return;
       const ticker = normalizeBinanceMiniTicker(parseSocketData(event.data), symbol, now());
       if (!ticker) return;
+      lastValidAt = now();
       setSnapshot({
         connectionState: "CONNECTED",
         liveMarketData: true,
@@ -294,7 +318,7 @@ export function createBinanceLiveTickerClient(options: {
       const code = event.code ?? 0;
       if (code === 1000 && !desiredSymbol) return;
       hostIndex += 1;
-      scheduleReconnect("RECONNECTING", "Reconnecting...", "BINANCE_NETWORK");
+      scheduleReconnect("RECONNECTING", "Reconnecting to Binance...", "BINANCE_NETWORK");
     });
   }
 
@@ -346,6 +370,7 @@ export function createBinanceLiveTickerClient(options: {
       desiredSymbol = compact;
       hostIndex = 0;
       backoffMs = BACKOFF_START_MS;
+      lastValidAt = 0;
       openSocket(false);
     },
     getSnapshot() {

@@ -7,6 +7,7 @@ import {
 } from "../../../ai/market-data/binance/live-ticker";
 
 let sharedClient: LiveTickerClient | null = null;
+let consumerCount = 0;
 
 function getSharedLiveTickerClient(): LiveTickerClient {
   sharedClient ??= createBinanceLiveTickerClient();
@@ -15,6 +16,15 @@ function getSharedLiveTickerClient(): LiveTickerClient {
 
 export function useBinanceLiveTicker(symbol: string | null): LiveTickerSnapshot {
   const [snapshot, setSnapshot] = useState<LiveTickerSnapshot>(() => idleLiveTickerSnapshot());
+
+  useEffect(() => {
+    const client = getSharedLiveTickerClient();
+    consumerCount += 1;
+    return () => {
+      consumerCount = Math.max(0, consumerCount - 1);
+      if (consumerCount === 0) client.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const client = getSharedLiveTickerClient();
@@ -39,10 +49,6 @@ export function useBinanceLiveTicker(symbol: string | null): LiveTickerSnapshot 
       if (frame && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
     };
   }, [symbol]);
-
-  useEffect(() => () => {
-    getSharedLiveTickerClient().disconnect();
-  }, []);
 
   return snapshot;
 }

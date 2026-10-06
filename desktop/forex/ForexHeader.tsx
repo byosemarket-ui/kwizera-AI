@@ -9,8 +9,12 @@ import {
 } from "./forex-routes";
 import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionLabel } from "../../ai/market-data/binance/connection";
-import { liveTickerStatusLabel, liveTickerStatusTone } from "../../ai/market-data/binance/live-ticker";
 import type { SelectedMarket } from "./market-data/selected-market";
+import {
+  liveMarketStatusLabel,
+  liveMarketStatusTone,
+  resolveTickerUiStatus,
+} from "./market-data/live-market-status";
 
 export function ForexHeader({
   route,
@@ -44,10 +48,13 @@ export function ForexHeader({
   const item = getForexNavItem(route);
   const crumbs = getForexBreadcrumbs(route);
   const themeLabel = preferences.theme === "light" ? "Light theme" : preferences.theme === "system" ? "System theme" : "Dark theme";
-  const live = liveTicker.liveMarketData;
-  const wsTone = liveTicker.subscribedSymbol ? liveTickerStatusTone(liveTicker) : connectionBadgeTone(binanceConnection);
-  const wsLabel = liveTicker.subscribedSymbol
-    ? (live ? "LIVE" : liveTickerStatusLabel(liveTicker))
+  const tickerStatus = selectedMarket?.venue === "binance-spot"
+    ? resolveTickerUiStatus(liveTicker, selectedMarket.symbol)
+    : null;
+  const live = tickerStatus === "LIVE";
+  const wsTone = tickerStatus ? liveMarketStatusTone(tickerStatus) : connectionBadgeTone(binanceConnection);
+  const wsLabel = tickerStatus
+    ? liveMarketStatusLabel(tickerStatus)
     : publicConnectionLabel(binanceConnection);
 
   return (

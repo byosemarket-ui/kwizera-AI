@@ -24,7 +24,7 @@ export function SelectedMarketBar({
         <strong>{label}</strong>
       </p>
       {selected?.venue === "binance-spot" ? (
-        <LiveTickerPanel snapshot={liveTicker} />
+        <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selected.symbol} />
       ) : (
         <p className="fx-panel-meta">
           {selected

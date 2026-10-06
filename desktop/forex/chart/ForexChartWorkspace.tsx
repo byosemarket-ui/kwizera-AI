@@ -12,11 +12,14 @@ import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import {
   liveTickerPriceLabel,
-  liveTickerStatusLabel,
-  liveTickerStatusTone,
   type LiveTickerSnapshot,
 } from "../../../ai/market-data/binance/live-ticker";
-import { liveKlineStatusLabel } from "../../../ai/market-data/binance/live-kline";
+import {
+  liveMarketStatusLabel,
+  liveMarketStatusTone,
+  resolveKlineUiStatus,
+  resolveTickerUiStatus,
+} from "../market-data/live-market-status";
 import {
   CHART_TIMEFRAMES,
   type Candle,
@@ -65,19 +68,24 @@ export function ForexChartWorkspace({
   onOpenModule,
   selectedMarket,
   onSelectMarket,
+  timeframe: controlledTimeframe,
+  onTimeframeChange,
   liveTicker,
 }: {
   mode: "charts" | "analysis";
   onOpenModule?: (id: "charts" | "technical-analysis" | "markets") => void;
   selectedMarket?: SelectedMarket | null;
   onSelectMarket?: (market: SelectedMarket) => void;
+  timeframe?: ChartTimeframeId;
+  onTimeframeChange?: (timeframe: ChartTimeframeId) => void;
   liveTicker?: LiveTickerSnapshot | null;
 }) {
   const initial = readMarketQuery();
   const [selected, setSelected] = useState<SelectedMarket>(
     selectedMarket ?? initial.selected ?? defaultSelectedMarket(),
   );
-  const [timeframe, setTimeframe] = useState<ChartTimeframeId>(initial.timeframe);
+  const [localTimeframe, setLocalTimeframe] = useState<ChartTimeframeId>(controlledTimeframe ?? initial.timeframe);
+  const timeframe = controlledTimeframe ?? localTimeframe;
   const [chartType, setChartType] = useState<ChartTypeId>("candlestick");
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(() => defaultIndicators(mode));
   const [addKind, setAddKind] = useState<IndicatorKind>("sma");
@@ -95,9 +103,24 @@ export function ForexChartWorkspace({
     }
   }, [selectedMarket, selected.symbol]);
 
+  useEffect(() => {
+    if (controlledTimeframe && controlledTimeframe !== localTimeframe) {
+      setLocalTimeframe(controlledTimeframe);
+    }
+  }, [controlledTimeframe, localTimeframe]);
+
+  useEffect(() => {
+    setIndicators(defaultIndicators(mode));
+  }, [mode]);
+
   const applySelected = (next: SelectedMarket) => {
     setSelected(next);
     onSelectMarket?.(next);
+  };
+
+  const applyTimeframe = (next: ChartTimeframeId) => {
+    setLocalTimeframe(next);
+    onTimeframeChange?.(next);
   };
 
   useEffect(() => {
@@ -107,6 +130,7 @@ export function ForexChartWorkspace({
   useEffect(() => {
     setLevels([]);
     setNotes("");
+    setFocused(null);
   }, [selected.symbol, timeframe]);
 
   const binanceSelected = selected.venue === "binance-spot";
@@ -212,32 +236,36 @@ export function ForexChartWorkspace({
     && history.timeframe === timeframe
     && candles.length > 0,
   );
-  const chartLive = Boolean(
-    historyReady
-    && liveKline.liveMarketData
-    && liveKline.kline?.symbol === selected.symbol
-    && liveKline.kline?.timeframe === timeframe,
-  );
-  const livePrice = Boolean(chartLive || (liveTicker?.liveMarketData && liveTicker.ticker?.symbol === selected.symbol));
-  const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
   const historyPending = binanceSelected && (
     history.state === "loading"
     || history.symbol !== selected.symbol
     || history.timeframe !== timeframe
   );
+  const klineStatus = resolveKlineUiStatus(
+    liveKline,
+    binanceSelected ? selected.symbol : null,
+    timeframe,
+    historyReady,
+  );
+  const chartLive = klineStatus === "LIVE";
+  const tickerStatus = liveTicker
+    ? resolveTickerUiStatus(liveTicker, binanceSelected ? selected.symbol : null)
+    : null;
+  const livePrice = Boolean(chartLive || tickerStatus === "LIVE");
+  const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
   const chartState = !binanceSelected
     ? (development?.state ?? "empty")
     : historyPending
-      ? (liveKline.connectionState === "RECONNECTING" ? "reconnecting" : "loading")
+      ? (klineStatus === "RECONNECTING" ? "reconnecting" : "loading")
       : history.state === "error"
         ? "error"
         : history.state === "disconnected"
           ? "disconnected"
           : history.state === "empty"
             ? "empty"
-            : liveKline.connectionState === "RECONNECTING"
+            : klineStatus === "RECONNECTING"
               ? "reconnecting"
-              : liveKline.connectionState === "CONNECTING"
+              : klineStatus === "CONNECTING" || klineStatus === "CONNECTED"
                 ? "connecting"
                 : chartLive
                   ? "live"
@@ -245,7 +273,7 @@ export function ForexChartWorkspace({
   const chartMessage = !binanceSelected
     ? (development?.message ?? "No chart data")
     : historyPending
-      ? (liveKline.connectionState === "RECONNECTING" ? "Reconnecting to Binance..." : "Loading Binance market data...")
+      ? (klineStatus === "RECONNECTING" ? "Reconnecting to Binance..." : "Loading Binance market data...")
       : history.state === "error"
         ? "Unable to load Binance market data."
         : history.state === "disconnected"
@@ -254,9 +282,7 @@ export function ForexChartWorkspace({
             ? "No Binance candle data available."
             : chartLive
               ? "Live Binance data"
-              : liveKline.liveMarketData
-                ? "Connecting to Binance..."
-                : liveKlineStatusLabel(liveKline);
+              : liveMarketStatusLabel(klineStatus);
   const showChart = binanceSelected ? historyReady : development?.state === "ready" && candles.length > 0;
 
   return (
@@ -299,7 +325,7 @@ export function ForexChartWorkspace({
         </label>
         <label>
           Timeframe
-          <select aria-label="Timeframe" value={timeframe} onChange={(event) => setTimeframe(event.target.value as ChartTimeframeId)}>
+          <select aria-label="Timeframe" value={timeframe} onChange={(event) => applyTimeframe(event.target.value as ChartTimeframeId)}>
             {CHART_TIMEFRAMES.map((item) => (
               <option key={item.id} value={item.id}>{item.label}</option>
             ))}
@@ -353,13 +379,11 @@ export function ForexChartWorkspace({
         <div className="fx-status-stack">
           {binanceSelected ? (
             <>
-              <ForexStatusBadge tone={chartLive ? "live" : liveKline.connectionState === "ERROR" ? "offline" : "future"}>
-                {chartLive ? "LIVE" : historyPending ? "Loading Binance market data..." : liveKline.liveMarketData ? "Connecting to Binance..." : liveKlineStatusLabel(liveKline)}
+              <ForexStatusBadge tone={liveMarketStatusTone(historyPending ? "CONNECTING" : klineStatus)}>
+                {historyPending ? "Loading Binance market data..." : liveMarketStatusLabel(klineStatus)}
               </ForexStatusBadge>
-              {liveTicker?.liveMarketData ? (
-                <ForexStatusBadge tone={liveTickerStatusTone(liveTicker)}>
-                  {liveTickerStatusLabel(liveTicker)}
-                </ForexStatusBadge>
+              {tickerStatus === "LIVE" ? (
+                <ForexStatusBadge tone="live">Price LIVE</ForexStatusBadge>
               ) : null}
             </>
           ) : (

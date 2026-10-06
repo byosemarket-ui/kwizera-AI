@@ -21,6 +21,12 @@ import type { SelectedMarket } from "./market-data/selected-market";
 import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionDetail, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 import { LiveTickerPanel } from "./LiveTickerPanel";
+import {
+  formatLastUpdateUtc,
+  liveMarketStatusLabel,
+  resolveTickerUiStatus,
+} from "./market-data/live-market-status";
+import { listSessionWatchlist } from "./market-data/session-watchlist";
 
 export function ForexDashboard({
   onOpenModule,
@@ -28,17 +34,26 @@ export function ForexDashboard({
   onRetryBinance,
   selectedMarket,
   liveTicker,
+  onSelectMarket,
 }: {
   onOpenModule: (id: ForexRouteId) => void;
   binanceConnection: MarketConnectionSnapshot;
   onRetryBinance: () => void;
   selectedMarket: SelectedMarket | null;
   liveTicker: LiveTickerSnapshot;
+  onSelectMarket?: (market: SelectedMarket) => void;
 }) {
   const quotes = marketOverviewQuotes();
   const sessions = resolveMarketSessions();
   const chartInstrument = FOREX_INSTRUMENTS[0];
   const clock = formatUtcClock(new Date());
+  const tickerStatus = selectedMarket?.venue === "binance-spot"
+    ? resolveTickerUiStatus(liveTicker, selectedMarket.symbol)
+    : null;
+  const sessionWatchlist = listSessionWatchlist();
+  const taStatus = selectedMarket?.venue === "binance-spot"
+    ? "Uses the selected Binance Spot candles in Charts / Technical Analysis"
+    : "Select a Binance Spot symbol for live candles";
 
   return (
     <section className="fx-dashboard" data-forex-dashboard="true" data-forex-page="dashboard" aria-labelledby="fx-dashboard-title">
@@ -58,7 +73,7 @@ export function ForexDashboard({
             <h2>Active Binance market</h2>
             <p className="fx-panel-meta">
               {selectedMarket?.venue === "binance-spot"
-                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot miniTicker`
+                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot miniTicker · status ${tickerStatus ?? "NO_DATA"} · last update ${formatLastUpdateUtc(liveTicker.ticker?.eventTimeUtc)}`
                 : "Select a Binance Spot symbol from Markets. Live price is shown only after valid Binance data arrives."}
             </p>
           </div>
@@ -66,7 +81,9 @@ export function ForexDashboard({
             Open Markets
           </button>
         </div>
-        {selectedMarket?.venue === "binance-spot" ? <LiveTickerPanel snapshot={liveTicker} /> : null}
+        {selectedMarket?.venue === "binance-spot" ? (
+          <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket.symbol} />
+        ) : null}
       </section>
 
       <section className="fx-session-panel" data-forex-section="sessions" aria-labelledby="fx-session-title">
@@ -95,7 +112,9 @@ export function ForexDashboard({
         <div className="fx-panel-header">
           <div>
             <h2 id="fx-markets-title">Market overview</h2>
-            <p className="fx-panel-meta">Instrument labels are ready. Live pricing is not connected.</p>
+            <p className="fx-panel-meta">
+              Development Forex labels only. Live Binance Spot pricing is on the active market panel above — open Markets to select a symbol.
+            </p>
           </div>
           <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
             Open Markets
@@ -109,29 +128,46 @@ export function ForexDashboard({
       </section>
 
       <div className="fx-dash-split">
-        <MarketChartPanel instrument={chartInstrument} onOpenCharts={() => onOpenModule("charts")} />
+        <MarketChartPanel
+          instrument={chartInstrument}
+          selectedMarket={selectedMarket}
+          liveTicker={liveTicker}
+          onOpenCharts={() => onOpenModule("charts")}
+        />
         <section className="fx-watchlist-preview" data-forex-section="watchlist" aria-labelledby="fx-watchlist-title">
           <div className="fx-panel-header">
             <div>
               <h2 id="fx-watchlist-title">Watchlist preview</h2>
-              <p className="fx-panel-meta">Favorites will appear here after the Watchlist module is connected.</p>
+              <p className="fx-panel-meta">Session Binance symbols from Markets. Persistence is not connected.</p>
             </div>
+            <button type="button" className="fx-text-button" onClick={() => onOpenModule("watchlist")}>
+              Open Watchlist
+            </button>
           </div>
-          {FOREX_WATCHLIST.length === 0 ? (
+          {sessionWatchlist.length === 0 && FOREX_WATCHLIST.length === 0 ? (
             <ForexEmptyState
               title="Your watchlist is currently empty."
-              description="Watchlist persistence is not connected yet. Open Watchlist to view the module, or Markets to browse instruments."
-              actionLabel="Open Watchlist"
-              onAction={() => onOpenModule("watchlist")}
+              description="Select Binance Spot symbols from Markets. They appear here for this browser session only — no fake prices."
+              actionLabel="Open Markets"
+              onAction={() => onOpenModule("markets")}
             />
           ) : (
-            <ul className="fx-watchlist-rows">
-              {FOREX_WATCHLIST.map((entry) => (
-                <li key={entry.instrument.symbol}>
-                  <span>{entry.instrument.symbol}</span>
-                  <span>Not connected</span>
-                </li>
-              ))}
+            <ul className="fx-watchlist-rows" data-session-watchlist-preview="true">
+              {sessionWatchlist.map((entry) => {
+                const active = selectedMarket?.symbol === entry.symbol;
+                const status = active ? resolveTickerUiStatus(liveTicker, entry.symbol) : null;
+                return (
+                  <li key={entry.symbol}>
+                    <span>{entry.symbol}</span>
+                    <span>{status === "LIVE" ? "LIVE" : active ? liveMarketStatusLabel(status ?? "CONNECTED") : "Session"}</span>
+                    {onSelectMarket ? (
+                      <button type="button" className="fx-text-button" onClick={() => onSelectMarket(entry)}>
+                        {active ? "Active" : "Select"}
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
@@ -142,7 +178,7 @@ export function ForexDashboard({
           testId="technical-analysis"
           title="Technical Analysis"
           description="SMA, EMA, RSI, MACD and Bollinger tools share the chart engine. Not a trading signal."
-          status="Development chart data"
+          status={taStatus}
           actionLabel="Open Technical Analysis"
           icon={Activity}
           onOpen={() => onOpenModule("technical-analysis")}
@@ -284,12 +320,15 @@ export function ForexDashboard({
           <p
             className="fx-panel-meta"
             role="status"
-            data-binance-connection={liveTicker.subscribedSymbol ? liveTicker.connectionState : binanceConnection.state}
-            data-live-market={liveTicker.liveMarketData ? "true" : "false"}
+            data-binance-connection={tickerStatus ? liveTicker.connectionState : binanceConnection.state}
+            data-live-market={tickerStatus === "LIVE" ? "true" : "false"}
+            data-live-status={tickerStatus ?? "NO_DATA"}
           >
-            Market data connection: {liveTicker.liveMarketData
-              ? "Live Binance miniTicker is connected."
-              : publicConnectionDetail(binanceConnection)}
+            Market data connection: {tickerStatus === "LIVE"
+              ? `Live Binance miniTicker for ${selectedMarket?.symbol}.`
+              : tickerStatus
+                ? liveMarketStatusLabel(tickerStatus)
+                : publicConnectionDetail(binanceConnection)}
           </p>
           {binanceConnection.state === "ERROR" ? (
             <button type="button" className="fx-text-button" onClick={onRetryBinance}>

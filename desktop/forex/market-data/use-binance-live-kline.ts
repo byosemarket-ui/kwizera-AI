@@ -8,6 +8,7 @@ import type { LiveKlineSnapshot } from "../../../ai/market-data/binance/types";
 import type { ChartTimeframeId } from "../chart/types";
 
 let sharedClient: LiveKlineClient | null = null;
+let consumerCount = 0;
 
 function getSharedLiveKlineClient(): LiveKlineClient {
   sharedClient ??= createBinanceLiveKlineClient();
@@ -16,6 +17,15 @@ function getSharedLiveKlineClient(): LiveKlineClient {
 
 export function useBinanceLiveKline(symbol: string | null, timeframe: ChartTimeframeId): LiveKlineSnapshot {
   const [snapshot, setSnapshot] = useState<LiveKlineSnapshot>(() => idleLiveKlineSnapshot());
+
+  useEffect(() => {
+    const client = getSharedLiveKlineClient();
+    consumerCount += 1;
+    return () => {
+      consumerCount = Math.max(0, consumerCount - 1);
+      if (consumerCount === 0) client.subscribe(null, null);
+    };
+  }, []);
 
   useEffect(() => {
     const client = getSharedLiveKlineClient();
@@ -40,10 +50,6 @@ export function useBinanceLiveKline(symbol: string | null, timeframe: ChartTimef
       if (frame && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
     };
   }, [symbol, timeframe]);
-
-  useEffect(() => () => {
-    getSharedLiveKlineClient().disconnect();
-  }, []);
 
   return snapshot;
 }
