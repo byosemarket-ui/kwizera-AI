@@ -54,7 +54,9 @@ describe("Forex Phase 1 routing", () => {
     expect(parseForexRouteFromLocation("/forex/charts")).toBe("charts");
     expect(forexPathFor("dashboard")).toBe("/forex/dashboard");
     expect(FOREX_NAV.find((item) => item.id === "dashboard")?.implemented).toBe(true);
-    expect(FOREX_NAV.filter((item) => item.id !== "dashboard").every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "charts")?.implemented).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "technical-analysis")?.implemented).toBe(true);
+    expect(FOREX_NAV.filter((item) => !["dashboard", "charts", "technical-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
@@ -116,7 +118,7 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexSidebar");
     expect(shell).toContain("ForexHeader");
     expect(shell).toContain("ForexNotFound");
-    expect(shell).toContain("ForexModulePage");
+    expect(shell).toContain("ForexChartWorkspace");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
     expect(dashboard).toContain("Market data connection: Not connected");
     expect(chartPanel).toContain("data-forex-chart-panel");

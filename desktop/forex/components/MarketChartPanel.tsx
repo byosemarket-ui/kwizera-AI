@@ -21,14 +21,14 @@ export function MarketChartPanel({
           Open Charts
         </button>
       </header>
-      <div className="fx-chart-toolbar" aria-label="Chart controls unavailable">
+      <div className="fx-chart-toolbar" aria-label="Chart workspace shortcuts">
         <span className="fx-chart-chip">Instrument: {instrument.symbol}</span>
-        <span className="fx-chart-chip">Timeframe: not connected</span>
+        <span className="fx-chart-chip">Open Charts for timeframes and candles</span>
       </div>
-      <div className="fx-chart-stage" role="img" aria-label="Chart data not connected">
+      <div className="fx-chart-stage" role="img" aria-label="Open the Charts workspace">
         <LineChart size={28} aria-hidden="true" />
-        <p>Interactive market charts will be connected in a future phase.</p>
-        <ForexStatusBadge tone="offline">Chart data not connected</ForexStatusBadge>
+        <p>Interactive candlesticks are available in the Charts workspace. Live market data is not connected.</p>
+        <ForexStatusBadge tone="offline">Development chart data · not live</ForexStatusBadge>
       </div>
     </section>
   );

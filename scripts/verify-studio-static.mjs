@@ -107,6 +107,9 @@ try {
   if (!bundle.includes("data-forex-chart-panel") || !bundle.includes("data-forex-market-card") || !bundle.includes("Economic calendar data not connected.")) {
     throw new Error("built desktop bundle missing Forex Phase 3 dashboard markers");
   }
+  if (!bundle.includes("data-forex-chart-workspace") || !bundle.includes("data-forex-price-chart") || !bundle.includes("Development data")) {
+    throw new Error("built desktop bundle missing Forex Phase 4 chart workspace markers");
+  }
   if (!bundle.includes("data-customer-home") || !bundle.includes("Welcome to")) {
     throw new Error("built desktop bundle missing commercial Customer Home markers");
   }

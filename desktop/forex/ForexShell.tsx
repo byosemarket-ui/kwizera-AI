@@ -1,4 +1,4 @@
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { ForexDashboard } from "./ForexDashboard";
 import { ForexHeader } from "./ForexHeader";
 import { ForexModulePage } from "./ForexModulePage";
@@ -16,6 +16,11 @@ import {
 } from "./forex-routes";
 import type { DesktopPreferences } from "../desktop-polish/types";
 import "./forex.css";
+
+const ForexChartWorkspace = lazy(async () => {
+  const module = await import("./chart/ForexChartWorkspace");
+  return { default: module.ForexChartWorkspace };
+});
 
 class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexViewId }, { failed: string | null }> {
   state = { failed: null as string | null };
@@ -103,6 +108,12 @@ export function ForexShell({
     content = <ForexNotFound onBackToDashboard={() => navigate("dashboard")} />;
   } else if (route === "dashboard") {
     content = <ForexDashboard onOpenModule={navigate} />;
+  } else if (route === "charts" || route === "technical-analysis") {
+    content = (
+      <Suspense fallback={<p className="fx-page-desc">Loading chart workspace…</p>}>
+        <ForexChartWorkspace key={route} mode={route === "charts" ? "charts" : "analysis"} />
+      </Suspense>
+    );
   } else {
     content = <ForexModulePage item={getForexNavItem(route)} />;
   }
