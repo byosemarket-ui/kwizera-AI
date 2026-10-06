@@ -110,6 +110,7 @@ describe("Forex Phase 1 shell integration", () => {
   it("exposes a dedicated Forex shell with sidebar, header, and dashboard cards", () => {
     const shell = fs.readFileSync(path.resolve("desktop/forex/ForexShell.tsx"), "utf8");
     const dashboard = fs.readFileSync(path.resolve("desktop/forex/ForexDashboard.tsx"), "utf8");
+    const chartPanel = fs.readFileSync(path.resolve("desktop/forex/components/MarketChartPanel.tsx"), "utf8");
     const css = fs.readFileSync(path.resolve("desktop/forex/forex.css"), "utf8");
     expect(shell).toContain('data-app-surface="forex"');
     expect(shell).toContain("ForexSidebar");
@@ -118,7 +119,7 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexModulePage");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
     expect(dashboard).toContain("Market data connection: Not connected");
-    expect(dashboard).toContain("data-forex-chart-panel");
+    expect(chartPanel).toContain("data-forex-chart-panel");
     expect(dashboard).toContain("data-forex-section=\"markets\"");
     expect(dashboard).toContain("Open Watchlist");
     expect(dashboard).not.toMatch(/1\.1723|BTC\/USD|\+4\.8%|Strong Buy|90% confidence|\$12,480/);
