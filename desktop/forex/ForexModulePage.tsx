@@ -24,8 +24,8 @@ export function ForexModulePage({ item }: { item: ForexNavItem }) {
         </div>
         <ForexStatusBadge tone="future">{item.phaseNote}</ForexStatusBadge>
         <p>
-          This module is reserved in the Forex navigation. No live prices, signals, broker
-          connections, or trading actions are available in this phase.
+          This module is reserved in the Forex navigation. Live market data is not connected.
+          No broker connections, signals, or trading actions are available here.
         </p>
       </div>
     </section>

@@ -91,10 +91,14 @@ export const FOREX_QUICK_ACTIONS: DashboardQuickAction[] = [
   { id: "markets", label: "Open Markets" },
   { id: "watchlist", label: "Open Watchlist" },
   { id: "charts", label: "Open Charts" },
-  { id: "ai-analysis", label: "AI Analysis" },
-  { id: "signals", label: "Signals" },
-  { id: "trade-journal", label: "Trade Journal" },
-  { id: "risk-management", label: "Risk Management" },
+  { id: "technical-analysis", label: "Open Technical Analysis" },
+  { id: "ai-analysis", label: "Open AI Analysis" },
+  { id: "signals", label: "Open Signals" },
+  { id: "strategies", label: "Open Strategies" },
+  { id: "trade-journal", label: "Open Trade Journal" },
+  { id: "risk-management", label: "Open Risk Management" },
+  { id: "performance", label: "Open Performance" },
+  { id: "market-intelligence", label: "Open Market Intelligence" },
 ];
 
 export const FOREX_WATCHLIST: WatchlistEntry[] = [];

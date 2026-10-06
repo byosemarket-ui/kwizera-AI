@@ -379,22 +379,30 @@ export function getForexDocumentTitle(view: ForexViewId): string {
   return `KWIZERA AI STUDIO — ${item.label}`;
 }
 
+export function isForexChartRoute(route: ForexViewId): boolean {
+  return route === "charts" || route === "technical-analysis";
+}
+
 export function syncForexUrl(view: ForexViewId): void {
   if (typeof window === "undefined" || view === "not-found") return;
-  const resolved = resolveForexLocation(window.location.pathname);
-  const next = forexPathFor(view);
-  if (resolved.shouldCanonicalize || normalizeForexPath(window.location.pathname) !== next) {
-    if (normalizeForexPath(window.location.pathname) !== next) {
-      window.history.replaceState({ forexRoute: view }, "", next);
-    }
+  const path = forexPathFor(view);
+  const keepSearch = isForexChartRoute(view);
+  const href = keepSearch ? `${path}${window.location.search}` : path;
+  const currentPath = normalizeForexPath(window.location.pathname);
+  const currentHref = keepSearch ? `${currentPath}${window.location.search}` : currentPath;
+  if (currentHref !== href) {
+    window.history.replaceState({ forexRoute: view }, "", href);
   }
 }
 
 export function pushForexUrl(route: ForexRouteId): void {
   if (typeof window === "undefined") return;
-  const next = forexPathFor(route);
-  const current = normalizeForexPath(window.location.pathname);
-  if (current !== next) {
-    window.history.pushState({ forexRoute: route }, "", next);
+  const path = forexPathFor(route);
+  const from = parseForexRouteFromLocation();
+  const keepSearch = isForexChartRoute(from) && isForexChartRoute(route);
+  const href = keepSearch ? `${path}${window.location.search}` : path;
+  const current = `${normalizeForexPath(window.location.pathname)}${keepSearch ? window.location.search : ""}`;
+  if (current !== href) {
+    window.history.pushState({ forexRoute: route }, "", href);
   }
 }

@@ -111,7 +111,11 @@ export function ForexShell({
   } else if (route === "charts" || route === "technical-analysis") {
     content = (
       <Suspense fallback={<p className="fx-page-desc">Loading chart workspace…</p>}>
-        <ForexChartWorkspace key={route} mode={route === "charts" ? "charts" : "analysis"} />
+        <ForexChartWorkspace
+          key={route}
+          mode={route === "charts" ? "charts" : "analysis"}
+          onOpenModule={navigate}
+        />
       </Suspense>
     );
   } else {

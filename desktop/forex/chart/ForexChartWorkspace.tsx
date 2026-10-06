@@ -49,7 +49,13 @@ function defaultIndicators(mode: "charts" | "analysis"): IndicatorConfig[] {
   ];
 }
 
-export function ForexChartWorkspace({ mode }: { mode: "charts" | "analysis" }) {
+export function ForexChartWorkspace({
+  mode,
+  onOpenModule,
+}: {
+  mode: "charts" | "analysis";
+  onOpenModule?: (id: "charts" | "technical-analysis") => void;
+}) {
   const initial = readChartQuery();
   const [symbol, setSymbol] = useState(initial.symbol);
   const [timeframe, setTimeframe] = useState<ChartTimeframeId>(initial.timeframe);
@@ -188,6 +194,15 @@ export function ForexChartWorkspace({ mode }: { mode: "charts" | "analysis" }) {
           </select>
         </label>
         <div className="fx-chart-control-buttons">
+          {onOpenModule ? (
+            <button
+              type="button"
+              className="fx-text-button"
+              onClick={() => onOpenModule(analysis ? "charts" : "technical-analysis")}
+            >
+              {analysis ? "Open Charts" : "Open Technical Analysis"}
+            </button>
+          ) : null}
           <button type="button" className="fx-icon-button" aria-label="Zoom in" onClick={() => chartRef.current?.zoom(1)}><ZoomIn size={16} /></button>
           <button type="button" className="fx-icon-button" aria-label="Zoom out" onClick={() => chartRef.current?.zoom(-1)}><ZoomOut size={16} /></button>
           <button type="button" className="fx-icon-button" aria-label="Fit content" onClick={() => chartRef.current?.fitContent()}><RotateCcw size={16} /></button>
@@ -200,8 +215,8 @@ export function ForexChartWorkspace({ mode }: { mode: "charts" | "analysis" }) {
       <div className="fx-chart-summary">
         <div>
           <p className="fx-eyebrow">{instrument?.symbol}</p>
-          <p className="fx-chart-price">{formatPrice(symbol, last?.close ?? null)}</p>
-          <p className="fx-panel-meta">{instrument?.name} · {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · timezone UTC</p>
+          <p className="fx-chart-price" data-price-kind="development">{formatPrice(symbol, last?.close ?? null)}</p>
+          <p className="fx-panel-meta">{instrument?.name} · {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote</p>
         </div>
         <div className="fx-status-stack">
           <ForexStatusBadge tone="offline">Development data</ForexStatusBadge>
@@ -227,7 +242,7 @@ export function ForexChartWorkspace({ mode }: { mode: "charts" | "analysis" }) {
         </div>
       )}
 
-      <dl className="fx-ohlc" data-forex-ohlc="true">
+      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label="Development OHLC">
         <div><dt>Open</dt><dd>{formatPrice(symbol, display?.open ?? null)}</dd></div>
         <div><dt>High</dt><dd>{formatPrice(symbol, display?.high ?? null)}</dd></div>
         <div><dt>Low</dt><dd>{formatPrice(symbol, display?.low ?? null)}</dd></div>

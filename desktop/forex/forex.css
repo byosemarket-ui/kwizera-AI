@@ -269,6 +269,9 @@
 .fx-nav-item span {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fx-nav-item em {
@@ -292,6 +295,7 @@
 .fx-main {
   min-width: 0;
   overflow: auto;
+  overflow-x: hidden;
   padding: 22px 22px 40px;
 }
 
@@ -352,6 +356,11 @@
   background: var(--fx-surface);
 }
 
+.fx-watchlist-preview,
+.fx-chart-panel {
+  min-height: 280px;
+}
+
 .fx-session-panel,
 .fx-market-overview,
 .fx-chart-panel,
@@ -400,6 +409,8 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  min-height: 148px;
+  height: 100%;
   padding: 14px;
 }
 

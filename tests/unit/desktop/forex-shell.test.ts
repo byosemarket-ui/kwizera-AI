@@ -124,6 +124,7 @@ describe("Forex Phase 1 shell integration", () => {
     expect(chartPanel).toContain("data-forex-chart-panel");
     expect(dashboard).toContain("data-forex-section=\"markets\"");
     expect(dashboard).toContain("Open Watchlist");
+    expect(dashboard).toContain("Open Technical Analysis");
     expect(dashboard).not.toMatch(/1\.1723|BTC\/USD|\+4\.8%|Strong Buy|90% confidence|\$12,480/);
     expect(css).toContain(".fx-sidebar");
     expect(css).toContain("@media (max-width: 820px)");

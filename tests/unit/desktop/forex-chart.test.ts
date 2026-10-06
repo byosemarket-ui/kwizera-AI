@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA } from "../../../desktop/forex/chart/indicators.ts";
 import { generateDevelopmentCandles } from "../../../desktop/forex/chart/development-provider.ts";
 import { fetchMarketSeries, parseChartSymbol, parseChartTimeframe } from "../../../desktop/forex/chart/market-data.ts";
+import { isForexChartRoute } from "../../../desktop/forex/forex-routes.ts";
 import { sanitizeCandles } from "../../../desktop/forex/chart/validate-candles.ts";
 
 const sample = [
@@ -70,5 +71,8 @@ describe("Forex Phase 4 candle data", () => {
     expect(parseChartSymbol("GBPUSD")).toBe("GBP/USD");
     expect(parseChartTimeframe("4h")).toBe("4h");
     expect(parseChartTimeframe("99m")).toBe("1h");
+    expect(isForexChartRoute("charts")).toBe(true);
+    expect(isForexChartRoute("technical-analysis")).toBe(true);
+    expect(isForexChartRoute("dashboard")).toBe(false);
   });
 });

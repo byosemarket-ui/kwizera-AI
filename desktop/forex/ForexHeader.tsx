@@ -67,12 +67,12 @@ export function ForexHeader({
         </div>
       </div>
 
-      <label className="fx-search">
+      <label className="fx-search" title="Search is not available yet">
         <Search size={15} aria-hidden="true" />
         <input
           type="search"
           placeholder="Search Forex modules…"
-          aria-label="Search Forex modules"
+          aria-label="Search Forex modules (coming later)"
           disabled
         />
       </label>

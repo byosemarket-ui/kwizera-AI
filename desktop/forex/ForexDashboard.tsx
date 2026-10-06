@@ -1,4 +1,4 @@
-import { Brain, Newspaper, NotebookPen, Shield, Waypoints, Zap, BarChart3 } from "lucide-react";
+import { Activity, Brain, Newspaper, NotebookPen, Shield, Waypoints, Zap, BarChart3 } from "lucide-react";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { ForexEmptyState } from "./components/ForexEmptyState";
@@ -54,7 +54,7 @@ export function ForexDashboard({
             <article key={session.id} className="fx-session-card" data-session-status={session.status}>
               <h3>{session.label}</h3>
               <p>{session.hoursLabel}</p>
-              <ForexStatusBadge tone={session.status === "open" || session.status === "closing-soon" ? "live" : "future"}>
+              <ForexStatusBadge tone="future">
                 {sessionStatusLabel(session.status)}
               </ForexStatusBadge>
             </article>
@@ -90,8 +90,8 @@ export function ForexDashboard({
           </div>
           {FOREX_WATCHLIST.length === 0 ? (
             <ForexEmptyState
-              title="Your watchlist is empty."
-              description="Add instruments from the Watchlist module."
+              title="Your watchlist is currently empty."
+              description="Watchlist persistence is not connected yet. Open Watchlist to view the module, or Markets to browse instruments."
               actionLabel="Open Watchlist"
               onAction={() => onOpenModule("watchlist")}
             />
@@ -109,6 +109,15 @@ export function ForexDashboard({
       </div>
 
       <div className="fx-overview-grid" data-forex-section="modules">
+        <ForexOverviewCard
+          testId="technical-analysis"
+          title="Technical Analysis"
+          description="SMA, EMA, RSI, MACD and Bollinger tools share the chart engine. Not a trading signal."
+          status="Development chart data"
+          actionLabel="Open Technical Analysis"
+          icon={Activity}
+          onOpen={() => onOpenModule("technical-analysis")}
+        />
         <ForexOverviewCard
           testId="ai-analysis"
           title="AI Analysis"
