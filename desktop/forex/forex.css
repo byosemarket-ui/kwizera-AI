@@ -428,6 +428,26 @@
   color: var(--fx-muted);
 }
 
+.fx-market-card.is-active {
+  outline: 1px solid color-mix(in srgb, var(--fx-accent, #7ddea5) 55%, transparent);
+}
+
+.fx-market-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.fx-markets-selected-ticker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .fx-market-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;

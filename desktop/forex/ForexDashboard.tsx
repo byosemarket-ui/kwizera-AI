@@ -7,17 +7,16 @@ import { MarketCard } from "./components/MarketCard";
 import { MarketChartPanel } from "./components/MarketChartPanel";
 import {
   FOREX_ACTIVITY,
-  FOREX_INSTRUMENTS,
   FOREX_QUICK_ACTIONS,
   FOREX_SERVICE_CONNECTIONS,
-  FOREX_WATCHLIST,
   formatUtcClock,
-  marketOverviewQuotes,
   resolveMarketSessions,
   sessionStatusLabel,
 } from "./dashboard-data";
 import type { ForexRouteId } from "./forex-routes";
 import type { SelectedMarket } from "./market-data/selected-market";
+import type { ChartTimeframeId } from "./chart/types";
+import { timeframeLabel } from "./chart/types";
 import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionDetail, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 import { LiveTickerPanel } from "./LiveTickerPanel";
@@ -27,12 +26,14 @@ import {
   resolveTickerUiStatus,
 } from "./market-data/live-market-status";
 import { listSessionWatchlist } from "./market-data/session-watchlist";
+import { buildBinanceOverviewEntries } from "./market-data/binance-overview";
 
 export function ForexDashboard({
   onOpenModule,
   binanceConnection,
   onRetryBinance,
   selectedMarket,
+  timeframe,
   liveTicker,
   onSelectMarket,
 }: {
@@ -40,23 +41,30 @@ export function ForexDashboard({
   binanceConnection: MarketConnectionSnapshot;
   onRetryBinance: () => void;
   selectedMarket: SelectedMarket | null;
+  timeframe: ChartTimeframeId;
   liveTicker: LiveTickerSnapshot;
   onSelectMarket?: (market: SelectedMarket) => void;
 }) {
-  const quotes = marketOverviewQuotes();
+  const overviewEntries = buildBinanceOverviewEntries(selectedMarket, liveTicker);
   const sessions = resolveMarketSessions();
-  const chartInstrument = FOREX_INSTRUMENTS[0];
   const clock = formatUtcClock(new Date());
   const tickerStatus = selectedMarket?.venue === "binance-spot"
     ? resolveTickerUiStatus(liveTicker, selectedMarket.symbol)
     : null;
   const sessionWatchlist = listSessionWatchlist();
   const taStatus = selectedMarket?.venue === "binance-spot"
-    ? "Uses the selected Binance Spot candles in Charts / Technical Analysis"
+    ? `${selectedMarket.displaySymbol} · ${timeframeLabel(timeframe)} · shared Binance candles with Charts`
     : "Select a Binance Spot symbol for live candles";
 
   return (
-    <section className="fx-dashboard" data-forex-dashboard="true" data-forex-page="dashboard" aria-labelledby="fx-dashboard-title">
+    <section
+      className="fx-dashboard"
+      data-forex-dashboard="true"
+      data-forex-page="dashboard"
+      data-market-symbol={selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : ""}
+      data-market-timeframe={timeframe}
+      aria-labelledby="fx-dashboard-title"
+    >
       <div className="fx-dash-header" data-forex-section="header">
         <ForexSectionHeader
           eyebrow="Welcome to KWIZERA Forex"
@@ -113,24 +121,37 @@ export function ForexDashboard({
           <div>
             <h2 id="fx-markets-title">Market overview</h2>
             <p className="fx-panel-meta">
-              Traditional FX labels shown here are not Binance Spot markets. Prices stay Not connected until Phase 12 wires live quotes. Use Markets for real Binance symbols.
+              Binance Spot symbols from this session. Live price comes from the shared workspace ticker for the active symbol only — traditional FX pairs are not shown as Binance markets.
             </p>
           </div>
           <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
             Open Markets
           </button>
         </div>
-        <div className="fx-market-grid">
-          {quotes.map((quote) => (
-            <MarketCard key={quote.instrument.symbol} quote={quote} />
-          ))}
-        </div>
+        {overviewEntries.length === 0 ? (
+          <ForexEmptyState
+            title="No Binance markets in overview yet."
+            description="Open Markets and select a Spot symbol. It becomes the workspace market for Dashboard, Charts, and Technical Analysis."
+            actionLabel="Open Markets"
+            onAction={() => onOpenModule("markets")}
+          />
+        ) : (
+          <div className="fx-market-grid" data-binance-overview="true">
+            {overviewEntries.map((entry) => (
+              <MarketCard
+                key={entry.market.symbol}
+                entry={entry}
+                onSelect={onSelectMarket}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="fx-dash-split">
         <MarketChartPanel
-          instrument={chartInstrument}
           selectedMarket={selectedMarket}
+          timeframe={timeframe}
           liveTicker={liveTicker}
           onOpenCharts={() => onOpenModule("charts")}
         />
@@ -138,13 +159,13 @@ export function ForexDashboard({
           <div className="fx-panel-header">
             <div>
               <h2 id="fx-watchlist-title">Watchlist preview</h2>
-              <p className="fx-panel-meta">Session Binance symbols from Markets. Persistence is not connected.</p>
+              <p className="fx-panel-meta">Same session Binance symbols as overview. Persistence is not connected.</p>
             </div>
             <button type="button" className="fx-text-button" onClick={() => onOpenModule("watchlist")}>
               Open Watchlist
             </button>
           </div>
-          {sessionWatchlist.length === 0 && FOREX_WATCHLIST.length === 0 ? (
+          {sessionWatchlist.length === 0 ? (
             <ForexEmptyState
               title="Your watchlist is currently empty."
               description="Select Binance Spot symbols from Markets. They appear here for this browser session only — no fake prices."

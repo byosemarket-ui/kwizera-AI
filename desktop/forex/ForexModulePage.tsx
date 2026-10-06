@@ -28,6 +28,7 @@ export function ForexModulePage({
       className="fx-placeholder fx-module-page"
       data-forex-page={item.id}
       data-forex-placeholder={item.id}
+      data-market-symbol={selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : ""}
       aria-labelledby={`fx-page-${item.id}`}
     >
       <ForexSectionHeader

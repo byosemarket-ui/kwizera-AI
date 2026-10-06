@@ -116,6 +116,9 @@ try {
   if (bundle.includes("development series, not a live quote") || bundle.includes("development Forex")) {
     throw new Error("built desktop bundle still presents development Forex as a live market source");
   }
+  if (!bundle.includes("data-binance-overview") && !bundle.includes("buildBinanceOverviewEntries") && !bundle.includes("ForexMarketProvider")) {
+    throw new Error("built desktop bundle missing Phase 12 centralized Binance market markers");
+  }
   if (!bundle.includes("data-customer-home") || !bundle.includes("Welcome to")) {
     throw new Error("built desktop bundle missing commercial Customer Home markers");
   }

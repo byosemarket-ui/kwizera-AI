@@ -57,7 +57,8 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "charts")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "technical-analysis")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "markets")?.implemented).toBe(true);
-    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "charts", "technical-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "watchlist")?.implemented).toBe(true);
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
@@ -123,6 +124,8 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("useBinanceLiveTicker");
     expect(shell).toContain("liveTicker={liveTicker}");
     expect(shell).toContain("onTimeframeChange={selectTimeframe}");
+    expect(shell).toContain("ForexMarketProvider");
+    expect(shell).toContain("data-market-source");
     expect(shell).toContain("rememberSessionWatchlist");
     expect(shell).not.toContain("key={route}");
     const charts = fs.readFileSync(path.resolve("desktop/forex/chart/ForexChartWorkspace.tsx"), "utf8");
@@ -135,8 +138,13 @@ describe("Forex Phase 1 shell integration", () => {
     expect(charts).not.toContain("development series");
     expect(charts).not.toContain("Live candlesticks will be connected in the next phase");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
+    expect(dashboard).toContain("buildBinanceOverviewEntries");
+    expect(dashboard).toContain("data-binance-overview");
+    expect(dashboard).not.toContain("marketOverviewQuotes");
+    expect(dashboard).not.toContain("FOREX_INSTRUMENTS");
     expect(dashboard).not.toContain("development series");
     expect(chartPanel).not.toContain("development series");
+    expect(chartPanel).not.toContain("instrument.symbol");
     const selectedBar = fs.readFileSync(path.resolve("desktop/forex/SelectedMarketBar.tsx"), "utf8");
     expect(selectedBar).not.toContain("development Forex");
     expect(selectedBar).toContain("not connected");

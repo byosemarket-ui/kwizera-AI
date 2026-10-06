@@ -25,6 +25,7 @@ import {
   type SelectedMarket,
 } from "./market-data/selected-market";
 import { rememberSessionWatchlist } from "./market-data/session-watchlist";
+import { ForexMarketProvider, type ForexMarketWorkspaceState } from "./market-data/forex-market-context";
 import { DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId } from "./chart/types";
 import "./forex.css";
 
@@ -105,6 +106,17 @@ export function ForexShell({
     writeMarketQuery(selectedMarket, timeframe);
   };
 
+  const marketWorkspace: ForexMarketWorkspaceState = {
+    selectedMarket,
+    timeframe: chartTimeframe,
+    liveTicker,
+    binanceConnection,
+    selectMarket,
+    selectTimeframe,
+    retryBinance,
+    dataSource: "binance-spot-public",
+  };
+
   useEffect(() => {
     syncForexUrl(route);
     document.title = getForexDocumentTitle(route);
@@ -148,6 +160,7 @@ export function ForexShell({
         binanceConnection={binanceConnection}
         onRetryBinance={retryBinance}
         selectedMarket={selectedMarket}
+        timeframe={chartTimeframe}
         liveTicker={liveTicker}
         onSelectMarket={selectMarket}
       />
@@ -157,6 +170,7 @@ export function ForexShell({
       <ForexMarketsPage
         selected={selectedMarket}
         onSelect={selectMarket}
+        liveTicker={liveTicker}
         onOpenCharts={() => navigate("charts")}
       />
     );
@@ -186,42 +200,51 @@ export function ForexShell({
   }
 
   return (
-    <div className="fx-root" data-app-surface="forex" data-forex-route={route}>
-      <div className={`fx-shell ${sidebarOpen ? "sidebar-open" : ""}`}>
-        <ForexHeader
-          route={route}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((open) => !open)}
-          onBackToStudio={onBackToStudio}
-          onNavigate={navigate}
-          onNotificationsToggle={onNotificationsToggle}
-          notificationsOpen={notificationsOpen}
-          unreadCount={unreadCount}
-          preferences={preferences}
-          onThemeCycle={onThemeCycle}
-          binanceConnection={binanceConnection}
-          selectedMarket={selectedMarket}
-          liveTicker={liveTicker}
-        />
-        <div className="fx-body">
-          <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />
-          {sidebarOpen ? (
-            <button
-              type="button"
-              className="fx-sidebar-scrim"
-              aria-label="Close Forex navigation"
-              onClick={() => setSidebarOpen(false)}
-            />
-          ) : null}
-          <main className="fx-main" id="forex-main">
-            <SelectedMarketBar selected={selectedMarket} onOpenMarkets={navigate} liveTicker={liveTicker} />
-            <ForexPageBoundary route={route}>
-              {content}
-            </ForexPageBoundary>
-          </main>
+    <ForexMarketProvider value={marketWorkspace}>
+      <div
+        className="fx-root"
+        data-app-surface="forex"
+        data-forex-route={route}
+        data-market-symbol={selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : ""}
+        data-market-timeframe={chartTimeframe}
+        data-market-source="binance-spot-public"
+      >
+        <div className={`fx-shell ${sidebarOpen ? "sidebar-open" : ""}`}>
+          <ForexHeader
+            route={route}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((open) => !open)}
+            onBackToStudio={onBackToStudio}
+            onNavigate={navigate}
+            onNotificationsToggle={onNotificationsToggle}
+            notificationsOpen={notificationsOpen}
+            unreadCount={unreadCount}
+            preferences={preferences}
+            onThemeCycle={onThemeCycle}
+            binanceConnection={binanceConnection}
+            selectedMarket={selectedMarket}
+            liveTicker={liveTicker}
+          />
+          <div className="fx-body">
+            <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />
+            {sidebarOpen ? (
+              <button
+                type="button"
+                className="fx-sidebar-scrim"
+                aria-label="Close Forex navigation"
+                onClick={() => setSidebarOpen(false)}
+              />
+            ) : null}
+            <main className="fx-main" id="forex-main">
+              <SelectedMarketBar selected={selectedMarket} onOpenMarkets={navigate} liveTicker={liveTicker} />
+              <ForexPageBoundary route={route}>
+                {content}
+              </ForexPageBoundary>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </ForexMarketProvider>
   );
 }
 

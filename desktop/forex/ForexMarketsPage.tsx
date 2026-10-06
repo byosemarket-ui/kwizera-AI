@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { filterBinanceMarkets } from "../../ai/market-data/binance/adapter";
-import type { NormalizedMarket } from "../../ai/market-data/binance/types";
+import type { LiveTickerSnapshot, NormalizedMarket } from "../../ai/market-data/binance/types";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { ForexEmptyState } from "./components/ForexEmptyState";
 import { useBinanceMarkets } from "./market-data/use-binance-markets";
 import type { SelectedMarket } from "./market-data/selected-market";
+import { LiveTickerPanel } from "./LiveTickerPanel";
 
 const PAGE_SIZE = 50;
 const QUOTE_FILTERS = ["ALL", "USDT", "USDC", "BTC", "ETH", "BNB"] as const;
@@ -17,10 +18,12 @@ function statusTone(market: NormalizedMarket): "future" | "offline" {
 export function ForexMarketsPage({
   selected,
   onSelect,
+  liveTicker,
   onOpenCharts,
 }: {
   selected: SelectedMarket | null;
   onSelect: (market: SelectedMarket) => void;
+  liveTicker?: LiveTickerSnapshot | null;
   onOpenCharts: () => void;
 }) {
   const { result, refresh } = useBinanceMarkets();
@@ -42,17 +45,30 @@ export function ForexMarketsPage({
   const selectedSymbol = selected?.venue === "binance-spot" ? selected.symbol : null;
 
   return (
-    <section className="fx-markets-page" data-forex-page="markets" data-forex-markets="true">
+    <section
+      className="fx-markets-page"
+      data-forex-page="markets"
+      data-forex-markets="true"
+      data-market-symbol={selectedSymbol ?? ""}
+    >
       <ForexSectionHeader
         eyebrow="Market"
         title="Binance Markets"
-        description="Spot market discovery from Binance exchange information. This list is market identity only — it is not a live price board."
+        description="Spot market discovery from Binance exchange information. Selection updates the shared workspace market used by Dashboard, Charts, and Technical Analysis."
       />
 
       <p className="fx-panel-meta" role="note">
-        Market type in this phase: Spot. Open a tradable symbol to stream live prices and candles in Charts.
+        Market type: Spot. The catalog is identity-only. Live price for the selected symbol uses the shared Binance miniTicker stream.
       </p>
 
+      {selectedSymbol && liveTicker ? (
+        <div className="fx-markets-selected-ticker" data-markets-selected-ticker={selectedSymbol}>
+          <p className="fx-panel-meta">
+            Active workspace market · {selected?.displaySymbol} ({selectedSymbol})
+          </p>
+          <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedSymbol} compact />
+        </div>
+      ) : null}
       <div className="fx-markets-toolbar">
         <label className="fx-markets-search">
           Search
@@ -178,7 +194,7 @@ export function ForexMarketsPage({
           ) : null}
           {selectedSymbol ? (
             <p className="fx-panel-meta">
-              Selected {selectedSymbol}.{" "}
+              Selected {selected?.displaySymbol ?? selectedSymbol}. Charts and Technical Analysis use this same workspace market.{" "}
               <button type="button" className="fx-text-button" onClick={onOpenCharts}>Open Charts</button>
             </p>
           ) : null}
