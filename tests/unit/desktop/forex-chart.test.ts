@@ -69,6 +69,10 @@ describe("Forex Phase 4 candle data", () => {
     expect(ready.state).toBe("ready");
     expect(ready.series?.kind).toBe("development");
     expect(parseChartSymbol("GBPUSD")).toBe("GBP/USD");
+    expect(parseChartSymbol("BTCUSDT")).toBe("BTCUSDT");
+    expect(parseChartSymbol("EURUSDC")).toBe("EURUSDC");
+    expect(parseChartSymbol("EURUSDC")).not.toBe("EUR/USD");
+    expect(parseChartSymbol("")).toBe("");
     expect(parseChartTimeframe("4h")).toBe("4h");
     expect(parseChartTimeframe("99m")).toBe("1h");
     expect(isForexChartRoute("charts")).toBe(true);

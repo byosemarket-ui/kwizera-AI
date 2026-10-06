@@ -135,6 +135,7 @@ describe("Forex Phase 1 shell integration", () => {
     expect(charts).toContain("resolveKlineUiStatus");
     expect(charts).not.toContain("fetchMarketSeries");
     expect(charts).not.toContain("generateDevelopmentCandles");
+    expect(charts).not.toContain("writeChartQuery");
     expect(charts).not.toContain("development series");
     expect(charts).not.toContain("Live candlesticks will be connected in the next phase");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");

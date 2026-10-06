@@ -4,8 +4,7 @@ import { ForexStatusBadge } from "../components/ForexStatusBadge";
 import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
-import { writeChartQuery } from "./market-data";
-import { isBinanceSpotSelection, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
+import { isBinanceSpotSelection, type SelectedMarket } from "../market-data/selected-market";
 import { useBinanceKlines } from "../market-data/use-binance-klines";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
@@ -80,12 +79,10 @@ export function ForexChartWorkspace({
   onTimeframeChange?: (timeframe: ChartTimeframeId) => void;
   liveTicker?: LiveTickerSnapshot | null;
 }) {
-  const initial = readMarketQuery();
-  const [selected, setSelected] = useState<SelectedMarket | null>(
-    selectedMarket ?? initial.selected ?? null,
-  );
+  // Controlled by ForexShell — do not mirror selection locally or rewrite URL independently.
+  const selected = selectedMarket ?? null;
   const [localTimeframe, setLocalTimeframe] = useState<ChartTimeframeId>(
-    controlledTimeframe ?? initial.timeframe ?? DEFAULT_CHART_TIMEFRAME,
+    controlledTimeframe ?? DEFAULT_CHART_TIMEFRAME,
   );
   const timeframe = controlledTimeframe ?? localTimeframe;
   const [chartType, setChartType] = useState<ChartTypeId>("candlestick");
@@ -98,12 +95,6 @@ export function ForexChartWorkspace({
   const [fullscreen, setFullscreen] = useState(false);
   const chartRef = useRef<ForexPriceChartHandle>(null);
   const workspaceRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (selectedMarket?.symbol !== selected?.symbol || selectedMarket?.venue !== selected?.venue) {
-      setSelected(selectedMarket ?? null);
-    }
-  }, [selectedMarket, selected?.symbol, selected?.venue]);
 
   useEffect(() => {
     if (controlledTimeframe && controlledTimeframe !== localTimeframe) {
@@ -119,10 +110,6 @@ export function ForexChartWorkspace({
     setLocalTimeframe(next);
     onTimeframeChange?.(next);
   };
-
-  useEffect(() => {
-    if (selected?.venue === "binance-spot") writeChartQuery(selected.symbol, timeframe);
-  }, [selected, timeframe]);
 
   useEffect(() => {
     setLevels([]);
@@ -250,8 +237,16 @@ export function ForexChartWorkspace({
   const tickerStatus = liveTicker && binanceSelected
     ? resolveTickerUiStatus(liveTicker, selected.symbol)
     : null;
-  const livePrice = Boolean(chartLive || tickerStatus === "LIVE");
-  const priceKind = livePrice ? "live" : "unavailable";
+  const tickerLive = tickerStatus === "LIVE";
+  // Only mark the headline price LIVE when the displayed figure is the matching miniTicker.
+  const priceKind = tickerLive ? "live" : "unavailable";
+  const headlinePrice = !binanceSelected
+    ? LIVE_PRICE_UNAVAILABLE
+    : tickerLive && liveTicker
+      ? liveTickerPriceLabel(liveTicker)
+      : last
+        ? formatPrice(selected.symbol, last.close)
+        : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...");
   const chartState = !binanceSelected
     ? "unavailable"
     : historyPending
@@ -358,9 +353,7 @@ export function ForexChartWorkspace({
         <div>
           <p className="fx-eyebrow">{selected?.displaySymbol ?? "No market selected"}</p>
           <p className="fx-chart-price" data-price-kind={priceKind}>
-            {binanceSelected
-              ? (last ? formatPrice(selected.symbol, last.close) : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data..."))
-              : LIVE_PRICE_UNAVAILABLE}
+            {headlinePrice}
           </p>
           <p className="fx-panel-meta">
             {binanceSelected
@@ -374,7 +367,7 @@ export function ForexChartWorkspace({
               <ForexStatusBadge tone={liveMarketStatusTone(historyPending ? "CONNECTING" : klineStatus)}>
                 {historyPending ? "Loading Binance market data..." : liveMarketStatusLabel(klineStatus)}
               </ForexStatusBadge>
-              {tickerStatus === "LIVE" ? (
+              {tickerLive ? (
                 <ForexStatusBadge tone="live">Price LIVE</ForexStatusBadge>
               ) : null}
             </>

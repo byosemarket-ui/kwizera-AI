@@ -1,19 +1,28 @@
-import { CHART_TIMEFRAMES, DEFAULT_CHART_SYMBOL, DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId, type MarketDataResult } from "./types";
+import { CHART_TIMEFRAMES, DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId, type MarketDataResult } from "./types";
 import { getDevelopmentSeries, isSupportedChartSymbol } from "./development-provider";
 import {
   allowDevelopmentMarketData,
   LIVE_MARKET_UNAVAILABLE,
 } from "../market-data/allow-development-market-data";
 
+/**
+ * Legacy FX/dev helper. Production shell URL parsing uses parseSelectedMarket.
+ * Never invent EUR/USD for unrecognized Binance compact symbols.
+ */
 export function parseChartSymbol(raw: string | null | undefined): string {
-  if (!raw) return DEFAULT_CHART_SYMBOL;
-  const compact = raw.replace("_", "/").trim().toUpperCase();
-  if (compact.includes("/")) return isSupportedChartSymbol(compact) ? compact : DEFAULT_CHART_SYMBOL;
+  if (!raw) return "";
+  const trimmed = raw.replace("_", "/").trim().toUpperCase();
+  if (trimmed.includes("/")) {
+    return isSupportedChartSymbol(trimmed) ? trimmed : "";
+  }
+  const compact = trimmed.replace(/[/-]/g, "");
   if (compact.length === 6) {
     const slashed = `${compact.slice(0, 3)}/${compact.slice(3)}`;
-    return isSupportedChartSymbol(slashed) ? slashed : DEFAULT_CHART_SYMBOL;
+    if (isSupportedChartSymbol(slashed)) return slashed;
   }
-  return DEFAULT_CHART_SYMBOL;
+  // Preserve compact Binance-style symbols (BTCUSDT, EURUSDC, …).
+  if (/^[A-Z0-9]{4,30}$/.test(compact)) return compact;
+  return "";
 }
 
 export function parseChartTimeframe(raw: string | null | undefined): ChartTimeframeId {
@@ -36,6 +45,7 @@ export function readChartQuery(search = typeof window !== "undefined" ? window.l
   };
 }
 
+/** @deprecated Prefer shell writeMarketQuery — kept for tests/compat only. */
 export function writeChartQuery(symbol: string, timeframe: ChartTimeframeId): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);

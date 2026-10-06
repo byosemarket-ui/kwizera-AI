@@ -177,10 +177,7 @@ export function createBinanceLiveTickerClient(options: {
     staleTimer = setInterval(() => {
       if (gen !== generation || !snapshot.liveMarketData) return;
       if (now() - lastValidAt > TICKER_STALE_MS) {
-        setSnapshot({
-          liveMarketData: false,
-          message: "Binance live data unavailable.",
-        });
+        scheduleReconnect("RECONNECTING", "Reconnecting to Binance...", "BINANCE_STALE");
       }
     }, STALE_CHECK_MS);
   }
