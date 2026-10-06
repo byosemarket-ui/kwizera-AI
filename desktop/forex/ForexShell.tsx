@@ -18,6 +18,7 @@ import {
 } from "./forex-routes";
 import type { DesktopPreferences } from "../desktop-polish/types";
 import { useBinanceConnectionStatus } from "./market-data/use-binance-status";
+import { useBinanceLiveTicker } from "./market-data/use-binance-live-ticker";
 import {
   readMarketQuery,
   writeMarketQuery,
@@ -86,6 +87,9 @@ export function ForexShell({
   const { snapshot: binanceConnection, retry: retryBinance } = useBinanceConnectionStatus();
   const [selectedMarket, setSelectedMarket] = useState<SelectedMarket | null>(() => readMarketQuery().selected);
   const [chartTimeframe] = useState(() => readMarketQuery().timeframe || DEFAULT_CHART_TIMEFRAME);
+  const liveTicker = useBinanceLiveTicker(
+    selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : null,
+  );
 
   const selectMarket = (market: SelectedMarket) => {
     setSelectedMarket(market);
@@ -133,6 +137,7 @@ export function ForexShell({
         binanceConnection={binanceConnection}
         onRetryBinance={retryBinance}
         selectedMarket={selectedMarket}
+        liveTicker={liveTicker}
       />
     );
   } else if (route === "markets") {
@@ -152,6 +157,7 @@ export function ForexShell({
           onOpenModule={navigate}
           selectedMarket={selectedMarket}
           onSelectMarket={selectMarket}
+          liveTicker={liveTicker}
         />
       </Suspense>
     );
@@ -175,6 +181,7 @@ export function ForexShell({
           onThemeCycle={onThemeCycle}
           binanceConnection={binanceConnection}
           selectedMarket={selectedMarket}
+          liveTicker={liveTicker}
         />
         <div className="fx-body">
           <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />
@@ -187,7 +194,7 @@ export function ForexShell({
             />
           ) : null}
           <main className="fx-main" id="forex-main">
-            <SelectedMarketBar selected={selectedMarket} onOpenMarkets={navigate} />
+            <SelectedMarketBar selected={selectedMarket} onOpenMarkets={navigate} liveTicker={liveTicker} />
             <ForexPageBoundary route={route}>
               {content}
             </ForexPageBoundary>

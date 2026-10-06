@@ -1054,6 +1054,31 @@ html.reduce-motion .fx-sidebar {
   margin-top: 2px;
 }
 
+.fx-live-ticker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.fx-live-price {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.fx-live-ticker .fx-panel-meta {
+  flex-basis: 100%;
+}
+
+.fx-live-ticker.is-compact .fx-live-price {
+  font-size: 16px;
+}
+
 .fx-markets-toolbar {
   display: flex;
   flex-wrap: wrap;

@@ -27,6 +27,13 @@ export const BINANCE_PUBLIC_WS_STREAMS = {
   kline: "{symbol}@kline_{interval}",
 } as const;
 
+/** Official public WebSocket origins only. */
+export const BINANCE_PUBLIC_WS_FALLBACKS = [
+  "wss://stream.binance.com:9443",
+  "wss://stream.binance.com:443",
+  "wss://data-stream.binance.vision",
+] as const;
+
 export interface BinancePublicConfig {
   enabled: boolean;
   restBaseUrl: string;
@@ -36,6 +43,7 @@ export interface BinancePublicConfig {
   restBaseHost: string;
   usedOfficialFallback: boolean;
   restFallbackUrls: string[];
+  websocketFallbackUrls: string[];
 }
 
 function isProductionEnv(env: Record<string, string | undefined>): boolean {
@@ -112,7 +120,19 @@ export function resolveBinancePublicConfig(
     restBaseHost: hostOf(restBaseUrl),
     usedOfficialFallback,
     restFallbackUrls: uniqueOfficialRestBases(restBaseUrl),
+    websocketFallbackUrls: uniqueOfficialWsBases(websocketBaseUrl),
   };
+}
+
+function uniqueOfficialWsBases(primary: string): string[] {
+  const allow = new Set<string>(BINANCE_PUBLIC_WS_FALLBACKS);
+  const ordered: string[] = [];
+  for (const url of [primary, ...BINANCE_PUBLIC_WS_FALLBACKS]) {
+    if (!allow.has(url) && url !== primary) continue;
+    if (!url.startsWith("wss://")) continue;
+    if (!ordered.includes(url)) ordered.push(url);
+  }
+  return ordered.length > 0 ? ordered : [...BINANCE_PUBLIC_WS_FALLBACKS];
 }
 
 function uniqueOfficialRestBases(primary: string): string[] {

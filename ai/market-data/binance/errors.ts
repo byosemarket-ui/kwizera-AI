@@ -6,7 +6,9 @@ export type BinanceErrorCode =
   | "BINANCE_INVALID_RESPONSE"
   | "BINANCE_INVALID_SYMBOL"
   | "BINANCE_INVALID_MARKET_DATA"
-  | "BINANCE_NOT_IMPLEMENTED";
+  | "BINANCE_NOT_IMPLEMENTED"
+  | "BINANCE_WS_UNAVAILABLE"
+  | "BINANCE_WS_INVALID_MESSAGE";
 
 export class BinanceMarketDataError extends Error {
   readonly code: BinanceErrorCode;

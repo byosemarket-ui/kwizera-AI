@@ -1,5 +1,5 @@
 import { BinanceMarketDataError } from "./errors.js";
-import type { NormalizedCandle, NormalizedInstrument, NormalizedMarket, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
+import type { NormalizedCandle, NormalizedInstrument, NormalizedLiveTicker, NormalizedMarket, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
 
 const TIMEFRAME_TO_INTERVAL: Record<NormalizedTimeframeId, string> = {
   "1m": "1m",
@@ -119,6 +119,73 @@ export function normalizeBinanceTicker24h(raw: unknown): NormalizedTicker {
     low: row.lowPrice == null ? null : finiteNumber(row.lowPrice, "low"),
     volume: row.volume == null ? null : finiteNumber(row.volume, "volume"),
     eventTimeUtc,
+  };
+}
+
+export function miniTickerStreamName(symbol: string): string {
+  return `${toBinanceSymbol(symbol).toLowerCase()}@miniTicker`;
+}
+
+export function buildMiniTickerUrl(websocketBaseUrl: string, symbol: string): string {
+  const base = websocketBaseUrl.replace(/\/+$/, "");
+  return `${base}/ws/${miniTickerStreamName(symbol)}`;
+}
+
+function optionalFinite(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function unwrapStreamPayload(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  if (row.data && typeof row.data === "object") return row.data as Record<string, unknown>;
+  return row;
+}
+
+/**
+ * Normalize a public Spot miniTicker payload. Returns null for malformed data
+ * so a bad tick cannot enter application state.
+ */
+export function normalizeBinanceMiniTicker(
+  raw: unknown,
+  expectedSymbol?: string,
+  receivedAtUtc = Date.now(),
+): NormalizedLiveTicker | null {
+  const row = unwrapStreamPayload(raw);
+  if (!row) return null;
+  const eventType = typeof row.e === "string" ? row.e : "";
+  if (eventType && eventType !== "24hrMiniTicker") return null;
+  let symbol: string;
+  try {
+    symbol = toBinanceSymbol(String(row.s ?? row.symbol ?? ""));
+  } catch {
+    return null;
+  }
+  if (expectedSymbol) {
+    try {
+      if (symbol !== toBinanceSymbol(expectedSymbol)) return null;
+    } catch {
+      return null;
+    }
+  }
+  const price = optionalFinite(row.c ?? row.lastPrice ?? row.p);
+  if (price == null || price <= 0) return null;
+  const eventTimeUtc = optionalFinite(row.E ?? row.eventTime);
+  if (eventTimeUtc == null || eventTimeUtc <= 0) return null;
+  return {
+    venue: "binance-spot",
+    symbol,
+    displaySymbol: toDisplaySymbol(symbol),
+    price,
+    eventTimeUtc,
+    receivedAtUtc,
+    source: "binance-spot-public",
+    streamType: "miniTicker",
+    open: optionalFinite(row.o),
+    high: optionalFinite(row.h),
+    low: optionalFinite(row.l),
   };
 }
 

@@ -8,6 +8,12 @@ import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, cal
 import { fetchMarketSeries, writeChartQuery } from "./market-data";
 import { defaultSelectedMarket, parseSelectedMarket, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
 import {
+  liveTickerPriceLabel,
+  liveTickerStatusLabel,
+  liveTickerStatusTone,
+  type LiveTickerSnapshot,
+} from "../../../ai/market-data/binance/live-ticker";
+import {
   CHART_TIMEFRAMES,
   type Candle,
   type ChartTimeframeId,
@@ -55,11 +61,13 @@ export function ForexChartWorkspace({
   onOpenModule,
   selectedMarket,
   onSelectMarket,
+  liveTicker,
 }: {
   mode: "charts" | "analysis";
   onOpenModule?: (id: "charts" | "technical-analysis" | "markets") => void;
   selectedMarket?: SelectedMarket | null;
   onSelectMarket?: (market: SelectedMarket) => void;
+  liveTicker?: LiveTickerSnapshot | null;
 }) {
   const initial = readMarketQuery();
   const [selected, setSelected] = useState<SelectedMarket>(
@@ -100,7 +108,7 @@ export function ForexChartWorkspace({
   const binanceSelected = selected.venue === "binance-spot";
   const result = useMemo(
     () => (binanceSelected
-      ? { state: "empty" as const, series: null, message: "Live market data will be connected in the next phase." }
+      ? { state: "empty" as const, series: null, message: "Live candlesticks will be connected in the next phase." }
       : fetchMarketSeries(selected.symbol, timeframe)),
     [binanceSelected, selected.symbol, timeframe],
   );
@@ -177,7 +185,8 @@ export function ForexChartWorkspace({
 
   const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === selected.symbol);
   const analysis = mode === "analysis";
-  const priceKind = binanceSelected ? "unavailable" : "development";
+  const livePrice = Boolean(binanceSelected && liveTicker?.liveMarketData && liveTicker.ticker?.symbol === selected.symbol);
+  const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
 
   return (
     <section
@@ -255,18 +264,24 @@ export function ForexChartWorkspace({
       <div className="fx-chart-summary">
         <div>
           <p className="fx-eyebrow">{selected.displaySymbol}</p>
-          <p className="fx-chart-price" data-price-kind={priceKind}>{binanceSelected ? "Price unavailable" : formatPrice(selected.symbol, last?.close ?? null)}</p>
+          <p className="fx-chart-price" data-price-kind={priceKind}>
+            {binanceSelected
+              ? (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...")
+              : formatPrice(selected.symbol, last?.close ?? null)}
+          </p>
           <p className="fx-panel-meta">
             {binanceSelected
-              ? `${selected.displaySymbol} · Binance Spot · live market data will be connected in the next phase`
+              ? `${selected.displaySymbol} · Binance Spot miniTicker · live candlesticks will be connected in the next phase`
               : `${instrument?.name ?? selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote`}
           </p>
         </div>
         <div className="fx-status-stack">
           {binanceSelected ? (
             <>
-              <ForexStatusBadge tone="ready">Binance Spot</ForexStatusBadge>
-              <ForexStatusBadge tone="future">Live market data will be connected in the next phase</ForexStatusBadge>
+              <ForexStatusBadge tone={liveTicker ? liveTickerStatusTone(liveTicker) : "future"}>
+                {livePrice ? "LIVE" : liveTicker ? liveTickerStatusLabel(liveTicker) : "Connecting..."}
+              </ForexStatusBadge>
+              <ForexStatusBadge tone="future">Live candlesticks will be connected in the next phase</ForexStatusBadge>
             </>
           ) : (
             <>
@@ -292,7 +307,7 @@ export function ForexChartWorkspace({
         <div className="fx-chart-state" role="status">
           <h2>
             {binanceSelected
-              ? "Live market data will be connected in the next phase."
+              ? "Live candlesticks will be connected in the next phase."
               : result.state === "unavailable"
                 ? "Unable to load market data."
                 : "No chart data"}

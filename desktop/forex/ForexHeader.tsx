@@ -7,8 +7,9 @@ import {
   type ForexRouteId,
   type ForexViewId,
 } from "./forex-routes";
-import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
+import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionLabel } from "../../ai/market-data/binance/connection";
+import { liveTickerStatusLabel, liveTickerStatusTone } from "../../ai/market-data/binance/live-ticker";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 export function ForexHeader({
@@ -24,6 +25,7 @@ export function ForexHeader({
   onThemeCycle,
   binanceConnection,
   selectedMarket,
+  liveTicker,
 }: {
   route: ForexViewId;
   sidebarOpen: boolean;
@@ -37,10 +39,16 @@ export function ForexHeader({
   onThemeCycle: () => void;
   binanceConnection: MarketConnectionSnapshot;
   selectedMarket: SelectedMarket | null;
+  liveTicker: LiveTickerSnapshot;
 }) {
   const item = getForexNavItem(route);
   const crumbs = getForexBreadcrumbs(route);
   const themeLabel = preferences.theme === "light" ? "Light theme" : preferences.theme === "system" ? "System theme" : "Dark theme";
+  const live = liveTicker.liveMarketData;
+  const wsTone = liveTicker.subscribedSymbol ? liveTickerStatusTone(liveTicker) : connectionBadgeTone(binanceConnection);
+  const wsLabel = liveTicker.subscribedSymbol
+    ? (live ? "LIVE" : liveTickerStatusLabel(liveTicker))
+    : publicConnectionLabel(binanceConnection);
 
   return (
     <header className="fx-header" role="banner" data-forex-header="true">
@@ -89,11 +97,12 @@ export function ForexHeader({
           className="fx-session-status"
           role="status"
           aria-live="polite"
-          data-binance-connection={binanceConnection.state}
-          data-live-market={binanceConnection.liveMarketData ? "true" : "false"}
+          data-binance-connection={liveTicker.subscribedSymbol ? liveTicker.connectionState : binanceConnection.state}
+          data-live-market={live ? "true" : "false"}
+          data-ws-state={liveTicker.connectionState}
         >
-          <ForexStatusBadge tone={connectionBadgeTone(binanceConnection)}>
-            {publicConnectionLabel(binanceConnection)}
+          <ForexStatusBadge tone={wsTone}>
+            {wsLabel}
           </ForexStatusBadge>
           <span className="fx-panel-meta" data-header-selected-symbol={selectedMarket?.symbol ?? ""}>
             {selectedMarket ? selectedMarket.displaySymbol : "No market selected"}

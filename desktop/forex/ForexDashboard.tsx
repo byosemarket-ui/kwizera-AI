@@ -18,19 +18,22 @@ import {
 } from "./dashboard-data";
 import type { ForexRouteId } from "./forex-routes";
 import type { SelectedMarket } from "./market-data/selected-market";
-import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
+import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionDetail, publicConnectionLabel } from "../../ai/market-data/binance/connection";
+import { LiveTickerPanel } from "./LiveTickerPanel";
 
 export function ForexDashboard({
   onOpenModule,
   binanceConnection,
   onRetryBinance,
   selectedMarket,
+  liveTicker,
 }: {
   onOpenModule: (id: ForexRouteId) => void;
   binanceConnection: MarketConnectionSnapshot;
   onRetryBinance: () => void;
   selectedMarket: SelectedMarket | null;
+  liveTicker: LiveTickerSnapshot;
 }) {
   const quotes = marketOverviewQuotes();
   const sessions = resolveMarketSessions();
@@ -55,14 +58,15 @@ export function ForexDashboard({
             <h2>Active Binance market</h2>
             <p className="fx-panel-meta">
               {selectedMarket?.venue === "binance-spot"
-                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot identity only`
-                : "Select a Binance Spot symbol from Markets. No live price is shown."}
+                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot miniTicker`
+                : "Select a Binance Spot symbol from Markets. Live price is shown only after valid Binance data arrives."}
             </p>
           </div>
           <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
             Open Markets
           </button>
         </div>
+        {selectedMarket?.venue === "binance-spot" ? <LiveTickerPanel snapshot={liveTicker} /> : null}
       </section>
 
       <section className="fx-session-panel" data-forex-section="sessions" aria-labelledby="fx-session-title">
@@ -280,10 +284,12 @@ export function ForexDashboard({
           <p
             className="fx-panel-meta"
             role="status"
-            data-binance-connection={binanceConnection.state}
-            data-live-market={binanceConnection.liveMarketData ? "true" : "false"}
+            data-binance-connection={liveTicker.subscribedSymbol ? liveTicker.connectionState : binanceConnection.state}
+            data-live-market={liveTicker.liveMarketData ? "true" : "false"}
           >
-            Market data connection: {publicConnectionDetail(binanceConnection)}
+            Market data connection: {liveTicker.liveMarketData
+              ? "Live Binance miniTicker is connected."
+              : publicConnectionDetail(binanceConnection)}
           </p>
           {binanceConnection.state === "ERROR" ? (
             <button type="button" className="fx-text-button" onClick={onRetryBinance}>

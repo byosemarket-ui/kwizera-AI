@@ -120,8 +120,8 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexHeader");
     expect(shell).toContain("ForexNotFound");
     expect(shell).toContain("ForexChartWorkspace");
-    expect(shell).toContain("ForexMarketsPage");
-    expect(shell).toContain("SelectedMarketBar");
+    expect(shell).toContain("useBinanceLiveTicker");
+    expect(shell).toContain("liveTicker={liveTicker}");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
     expect(dashboard).toContain("Active Binance market");
     expect(dashboard).toContain("Market data connection:");

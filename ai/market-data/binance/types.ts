@@ -116,3 +116,41 @@ export const PHASE7_CAPABILITIES = {
   websocket: false,
   trading: false,
 } as const;
+
+export const PHASE8_CAPABILITIES = {
+  ping: true,
+  exchangeInfo: true,
+  klines: false,
+  ticker: true,
+  websocket: true,
+  trading: false,
+} as const;
+
+export type LiveStreamType = "miniTicker" | "trade" | "kline";
+
+export interface NormalizedLiveTicker {
+  venue: "binance-spot";
+  symbol: string;
+  displaySymbol: string;
+  price: number;
+  eventTimeUtc: number;
+  receivedAtUtc: number;
+  source: "binance-spot-public";
+  streamType: "miniTicker";
+  open: number | null;
+  high: number | null;
+  low: number | null;
+}
+
+export interface LiveTickerSnapshot {
+  connectionState: MarketConnectionState;
+  liveMarketData: boolean;
+  websocketActive: boolean;
+  subscribedSymbol: string | null;
+  ticker: NormalizedLiveTicker | null;
+  message: string;
+  errorCode: string | null;
+  websocketHost: string | null;
+  streamType: "miniTicker";
+  source: "binance-spot-public";
+}
