@@ -168,18 +168,29 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
       && Number.isFinite(item.high)
       && Number.isFinite(item.low)
       && Number.isFinite(item.close)
+      && item.high >= Math.max(item.open, item.close)
+      && item.low <= Math.min(item.open, item.close)
     ));
     const last = validCandles[validCandles.length - 1];
     const prev = lastMeta.current;
-    const canUpdate = Boolean(
+    const sameSeries = Boolean(prev && prev.key === seriesKey);
+    const sameCandleUpdate = Boolean(
       last
+      && sameSeries
       && prev
-      && prev.key === seriesKey
-      && (prev.length === validCandles.length || prev.length + 1 === validCandles.length)
-      && last.time >= prev.time,
+      && prev.length === validCandles.length
+      && last.time === prev.time,
+    );
+    const appendCandle = Boolean(
+      last
+      && sameSeries
+      && prev
+      && prev.length + 1 === validCandles.length
+      && last.time > prev.time,
     );
     try {
-      if (canUpdate && last) {
+      if ((sameCandleUpdate || appendCandle) && last) {
+        // Incremental Binance update — never invent bars; only push the latest real candle.
         if (chartType === "candlestick") {
           candleSeries.update({ time: asTime(last.time), open: last.open, high: last.high, low: last.low, close: last.close });
         } else {
@@ -192,7 +203,10 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
         closeSeries.setData(chartType === "line"
           ? validCandles.map((item) => ({ time: asTime(item.time), value: item.close }))
           : []);
-        mainApi.current?.timeScale().fitContent();
+        // Fit once per series identity; avoid resetting zoom on every soft history resync.
+        if (!sameSeries) {
+          mainApi.current?.timeScale().fitContent();
+        }
       }
     } catch {
       return;

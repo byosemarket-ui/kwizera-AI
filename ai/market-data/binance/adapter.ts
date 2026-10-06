@@ -180,15 +180,46 @@ export function normalizeBinanceKlineEvent(
   }
 }
 
+function isValidNormalizedCandle(candle: NormalizedCandle): boolean {
+  if (!Number.isFinite(candle.time) || candle.time <= 0) return false;
+  const fields = [candle.open, candle.high, candle.low, candle.close, candle.volume];
+  if (fields.some((value) => !Number.isFinite(value))) return false;
+  if (candle.high < Math.max(candle.open, candle.close)) return false;
+  if (candle.low > Math.min(candle.open, candle.close)) return false;
+  if (candle.volume < 0) return false;
+  return true;
+}
+
+/**
+ * Merge one Binance live kline into historical candles by candle identity (open time).
+ * Same timestamp → update that forming/closed candle in place (never duplicate).
+ * Later timestamp → append a new candle.
+ * Older timestamp → ignored (stale/out-of-order stream event).
+ * Binance stream OHLC is authoritative for the forming candle; open is preserved from the first observation.
+ */
 export function applyLiveKline(history: NormalizedCandle[], live: NormalizedCandle): NormalizedCandle[] {
+  if (!isValidNormalizedCandle(live)) return history;
   if (history.length === 0) return [live];
+
   const last = history[history.length - 1];
   if (live.time === last.time) {
     const next = history.slice();
-    next[next.length - 1] = live;
+    const open = Number.isFinite(last.open) ? last.open : live.open;
+    next[next.length - 1] = {
+      ...live,
+      open,
+      high: Math.max(last.high, live.high, open, live.close),
+      low: Math.min(last.low, live.low, open, live.close),
+      close: live.close,
+      volume: live.volume,
+      closed: live.closed,
+    };
     return next;
   }
-  if (live.time > last.time) return [...history, live];
+  if (live.time > last.time) {
+    return [...history, live];
+  }
+  // Stale event for an earlier interval — do not regress the chart series.
   return history;
 }
 

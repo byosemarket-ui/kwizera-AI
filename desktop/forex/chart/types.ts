@@ -14,6 +14,8 @@ export interface Candle {
   low: number;
   close: number;
   volume?: number;
+  /** Present for Binance Spot candles — false while the interval is still forming. */
+  closed?: boolean;
 }
 
 export interface ChartTimeframe {

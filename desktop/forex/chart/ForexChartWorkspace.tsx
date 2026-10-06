@@ -13,12 +13,14 @@ import {
   type LiveTickerSnapshot,
 } from "../../../ai/market-data/binance/live-ticker";
 import {
+  formatLastUpdateUtc,
   liveMarketStatusLabel,
   liveMarketStatusTone,
   resolveKlineUiStatus,
   resolveTickerUiStatus,
 } from "../market-data/live-market-status";
 import { LIVE_MARKET_UNAVAILABLE, LIVE_PRICE_UNAVAILABLE } from "../market-data/allow-development-market-data";
+import { sanitizeCandles } from "./validate-candles";
 import {
   CHART_TIMEFRAMES,
   DEFAULT_CHART_TIMEFRAME,
@@ -120,10 +122,13 @@ export function ForexChartWorkspace({
   const binanceSelected = isBinanceSpotSelection(selected);
   const history = useBinanceKlines(binanceSelected ? selected.symbol : null, timeframe);
   const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
+  const wasLiveRef = useRef(false);
+  const lastClosedRef = useRef<number | null>(null);
+
   const candles = useMemo(() => {
     if (!binanceSelected || history.state !== "ready") return [];
     if (history.symbol !== selected.symbol || history.timeframe !== timeframe) return [];
-    const base = history.candles.map((candle) => ({
+    const base = sanitizeCandles(history.candles.map((candle) => ({
       time: candle.time,
       open: candle.open,
       high: candle.high,
@@ -131,11 +136,50 @@ export function ForexChartWorkspace({
       close: candle.close,
       volume: candle.volume,
       closed: candle.closed,
-    }));
+    })));
     const live = liveKline.kline;
-    if (!live || live.symbol !== selected.symbol || live.timeframe !== timeframe) return base;
-    return applyLiveKline(base, live.candle);
-  }, [binanceSelected, history, liveKline.kline, selected, timeframe]);
+    if (
+      !live
+      || live.symbol !== selected.symbol
+      || live.timeframe !== timeframe
+      || liveKline.subscribedSymbol !== selected.symbol
+      || liveKline.timeframe !== timeframe
+    ) {
+      return base;
+    }
+    return sanitizeCandles(applyLiveKline(base, live.candle));
+  }, [binanceSelected, history, liveKline.kline, liveKline.subscribedSymbol, liveKline.timeframe, selected, timeframe]);
+
+  // After reconnect becomes LIVE, softly resync REST history so gaps are filled without inventing candles.
+  // When a forming candle closes, refresh once so the closed series matches Binance REST.
+  useEffect(() => {
+    if (!binanceSelected) {
+      wasLiveRef.current = false;
+      lastClosedRef.current = null;
+      return;
+    }
+    const live = Boolean(
+      liveKline.liveMarketData
+      && liveKline.kline?.symbol === selected.symbol
+      && liveKline.kline.timeframe === timeframe,
+    );
+    if (live && !wasLiveRef.current) {
+      history.refresh();
+    }
+    wasLiveRef.current = live;
+    const closedTime = liveKline.kline?.candle.closed ? liveKline.kline.candle.time : null;
+    if (closedTime != null && closedTime !== lastClosedRef.current) {
+      lastClosedRef.current = closedTime;
+      history.refresh();
+    }
+  }, [
+    binanceSelected,
+    history.refresh,
+    liveKline.liveMarketData,
+    liveKline.kline,
+    selected,
+    timeframe,
+  ]);
 
   const overlayData = useMemo((): OverlaySeries[] => {
     if (!binanceSelected || candles.length === 0) return [];
@@ -491,7 +535,16 @@ export function ForexChartWorkspace({
       </div>
 
       <p className="fx-panel-meta" data-forex-chart-status="true">
-        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · {chartMessage} · Last candle {last && binanceSelected ? formatUtc(last.time) : "unavailable"} · Connection: {chartLive ? "LIVE" : "not live"}
+        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label}
+        {" · "}
+        {chartMessage}
+        {" · Last candle "}
+        {last && binanceSelected ? formatUtc(last.time) : "unavailable"}
+        {chartLive && liveKline.kline ? ` · Last update ${formatLastUpdateUtc(liveKline.kline.eventTimeUtc)}` : ""}
+        {" · Connection: "}
+        {chartLive ? "LIVE" : "not live"}
+        {last && binanceSelected && last.closed === false ? " · Forming candle" : ""}
+        {last && binanceSelected && last.closed === true ? " · Candle closed" : ""}
       </p>
     </section>
   );

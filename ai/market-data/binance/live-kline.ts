@@ -171,11 +171,12 @@ export function createBinanceLiveKlineClient(options: {
   function scheduleReconnect(state: MarketConnectionState, message: string, errorCode: string | null): void {
     if (!desiredSymbol || !desiredTimeframe || !config.enabled) return;
     clearTimers();
+    // Keep the last valid kline frozen during reconnect so the chart does not drop the forming candle.
+    // LIVE is cleared — no artificial movement while disconnected.
     setSnapshot({
       connectionState: state,
       liveMarketData: false,
       websocketActive: false,
-      kline: null,
       message,
       errorCode,
     });
@@ -215,7 +216,8 @@ export function createBinanceLiveKlineClient(options: {
       websocketActive: false,
       subscribedSymbol: symbol,
       timeframe,
-      kline: null,
+      // Fresh subscribe clears candle state; reconnect keeps the last forming candle until a new event.
+      kline: isReconnect ? snapshot.kline : null,
       message: isReconnect ? "Reconnecting to Binance..." : "Connecting to Binance...",
       errorCode: null,
       websocketHost: hostOf(url),
@@ -252,8 +254,8 @@ export function createBinanceLiveKlineClient(options: {
         websocketActive: true,
         subscribedSymbol: symbol,
         timeframe,
-        kline: null,
-        message: "Connecting to Binance...",
+        // Preserve last forming candle until the first post-reconnect kline arrives.
+        message: "Waiting for live Binance data...",
         errorCode: null,
         websocketHost: hostOf(url),
       });

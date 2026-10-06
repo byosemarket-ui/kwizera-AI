@@ -97,10 +97,28 @@ describe("Binance Phase 9 kline adapter", () => {
     const replaced = applyLiveKline([first], forming);
     expect(replaced).toHaveLength(1);
     expect(replaced[0]?.close).toBe(106);
+    expect(replaced[0]?.open).toBe(100);
+    expect(replaced[0]?.high).toBe(111);
     const appended = applyLiveKline(replaced, next);
     expect(appended).toHaveLength(2);
     expect(appended[1]?.time).toBe(next.time);
     expect(applyLiveKline(appended, first)).toHaveLength(2);
+    expect(applyLiveKline(appended, first)[0]?.close).toBe(106);
+    expect(applyLiveKline([], { ...first, high: 50 })).toHaveLength(0);
+  });
+
+  it("preserves open and expands high/low while applying successive live updates", () => {
+    const open = normalizeBinanceKline([1_700_000_000_000, "100", "100", "100", "100", "1", 1_700_000_059_999]);
+    const up = applyLiveKline([open], { ...open, high: 112, low: 98, close: 110, volume: 2, closed: false });
+    expect(up[0]?.open).toBe(100);
+    expect(up[0]?.high).toBe(112);
+    expect(up[0]?.low).toBe(98);
+    expect(up[0]?.close).toBe(110);
+    const down = applyLiveKline(up, { ...open, high: 111, low: 95, close: 96, volume: 3, closed: false });
+    expect(down[0]?.open).toBe(100);
+    expect(down[0]?.high).toBe(112);
+    expect(down[0]?.low).toBe(95);
+    expect(down[0]?.close).toBe(96);
   });
 
   it("drops duplicate timestamps and invalid OHLC rows from historical lists", () => {
@@ -168,7 +186,7 @@ describe("Binance Phase 9 live kline client", () => {
     expect(client.getSnapshot().kline?.timeframe).toBe("5m");
   });
 
-  it("leaves LIVE on unexpected close and reconnects", () => {
+  it("leaves LIVE on unexpected close and reconnects without dropping the last kline", () => {
     vi.useFakeTimers();
     const client = createBinanceLiveKlineClient({
       env: { KWIZERA_BINANCE_ENABLED: "1" },
@@ -194,9 +212,11 @@ describe("Binance Phase 9 live kline client", () => {
       },
     });
     expect(client.getSnapshot().liveMarketData).toBe(true);
+    const priorClose = client.getSnapshot().kline?.candle.close;
     FakeSocket.open[0]?.close(1006);
     expect(client.getSnapshot().liveMarketData).toBe(false);
     expect(client.getSnapshot().connectionState).toBe("RECONNECTING");
+    expect(client.getSnapshot().kline?.candle.close).toBe(priorClose);
     vi.advanceTimersByTime(1000);
     expect(FakeSocket.open[0]?.url).toContain("solusdt@kline_15m");
     client.disconnect();

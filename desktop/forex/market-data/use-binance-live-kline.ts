@@ -43,6 +43,8 @@ export function useBinanceLiveKline(symbol: string | null, timeframe: ChartTimef
         if (pending) setSnapshot(pending);
       });
     };
+    // Clear immediately so a previous symbol/timeframe cannot paint one stale LIVE frame.
+    setSnapshot(idleLiveKlineSnapshot(symbol ? "Connecting to Binance..." : "Disconnected"));
     const stop = client.onChange(apply);
     client.subscribe(symbol, symbol ? timeframe : null);
     return () => {
