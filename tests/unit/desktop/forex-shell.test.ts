@@ -122,6 +122,11 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexChartWorkspace");
     expect(shell).toContain("useBinanceLiveTicker");
     expect(shell).toContain("liveTicker={liveTicker}");
+    const charts = fs.readFileSync(path.resolve("desktop/forex/chart/ForexChartWorkspace.tsx"), "utf8");
+    expect(charts).toContain("useBinanceKlines");
+    expect(charts).toContain("useBinanceLiveKline");
+    expect(charts).toContain("applyLiveKline");
+    expect(charts).not.toContain("Live candlesticks will be connected in the next phase");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
     expect(dashboard).toContain("Active Binance market");
     expect(dashboard).toContain("Market data connection:");

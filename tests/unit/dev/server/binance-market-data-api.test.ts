@@ -79,4 +79,29 @@ describe("Binance market-data HTTP foundation", () => {
     expect(markets[0]?.lastPrice).toBeUndefined();
     expect(JSON.stringify(body)).not.toMatch(/apiKey|apiSecret|BINANCE_API_KEY|BINANCE_API_SECRET/i);
   });
+
+  it("returns historical klines without claiming a live stream", async () => {
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      expect(url).toContain("/api/v3/klines?symbol=ETHUSDT&interval=15m");
+      return new Response(JSON.stringify([
+        [1_700_000_000_000, "3000", "3010", "2990", "3005", "12", 1_700_000_899_999],
+      ]), { status: 200 });
+    }) as typeof fetch;
+    const { status, body } = await invoke("GET", "/api/forex/binance/klines?symbol=ETHUSDT&interval=15m&limit=300", fetchImpl);
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.liveMarketData).toBe(false);
+    expect(body.symbol).toBe("ETHUSDT");
+    expect(body.timeframe).toBe("15m");
+    const candles = body.candles as Array<{ close: number }>;
+    expect(candles[0]?.close).toBe(3005);
+  });
+
+  it("rejects unsupported kline intervals instead of inventing data", async () => {
+    const fetchImpl = (async () => new Response("[]", { status: 200 })) as typeof fetch;
+    const { status, body } = await invoke("GET", "/api/forex/binance/klines?symbol=BTCUSDT&interval=3m", fetchImpl);
+    expect(status).toBe(400);
+    expect(body.ok).toBe(false);
+  });
 });

@@ -27,8 +27,8 @@ export function MarketChartPanel({
       </div>
       <div className="fx-chart-stage" role="img" aria-label="Open the Charts workspace">
         <LineChart size={28} aria-hidden="true" />
-        <p>Interactive candlesticks are available in the Charts workspace. Live market data is not connected.</p>
-        <ForexStatusBadge tone="offline">Development chart data · not live</ForexStatusBadge>
+        <p>Open Charts for candlesticks. Binance Spot symbols use live OHLCV; other pairs use development series.</p>
+        <ForexStatusBadge tone="offline">Dashboard preview is not the live chart</ForexStatusBadge>
       </div>
     </section>
   );

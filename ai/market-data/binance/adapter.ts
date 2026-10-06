@@ -1,5 +1,5 @@
 import { BinanceMarketDataError } from "./errors.js";
-import type { NormalizedCandle, NormalizedInstrument, NormalizedLiveTicker, NormalizedMarket, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
+import type { NormalizedCandle, NormalizedInstrument, NormalizedLiveKline, NormalizedLiveTicker, NormalizedMarket, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
 
 const TIMEFRAME_TO_INTERVAL: Record<NormalizedTimeframeId, string> = {
   "1m": "1m",
@@ -99,7 +99,96 @@ export function normalizeBinanceKlines(rows: unknown): NormalizedCandle[] {
   if (!Array.isArray(rows)) {
     throw new BinanceMarketDataError("BINANCE_INVALID_RESPONSE", "Candlestick response is not a list.");
   }
-  return rows.map(normalizeBinanceKline);
+  const seen = new Set<number>();
+  const candles: NormalizedCandle[] = [];
+  for (const row of rows) {
+    try {
+      const candle = normalizeBinanceKline(row);
+      if (seen.has(candle.time)) continue;
+      seen.add(candle.time);
+      candles.push(candle);
+    } catch {
+      continue;
+    }
+  }
+  candles.sort((left, right) => left.time - right.time);
+  return candles;
+}
+
+export function klineStreamName(symbol: string, timeframe: NormalizedTimeframeId): string {
+  return `${toBinanceSymbol(symbol).toLowerCase()}@kline_${toBinanceInterval(timeframe)}`;
+}
+
+export function buildKlineUrl(websocketBaseUrl: string, symbol: string, timeframe: NormalizedTimeframeId): string {
+  const base = websocketBaseUrl.replace(/\/+$/, "");
+  return `${base}/ws/${klineStreamName(symbol, timeframe)}`;
+}
+
+export function normalizeBinanceKlineEvent(
+  raw: unknown,
+  expectedSymbol?: string,
+  expectedTimeframe?: NormalizedTimeframeId,
+  receivedAtUtc = Date.now(),
+): NormalizedLiveKline | null {
+  const row = unwrapStreamPayload(raw);
+  if (!row) return null;
+  const eventType = typeof row.e === "string" ? row.e : "";
+  if (eventType && eventType !== "kline") return null;
+  const body = row.k && typeof row.k === "object" ? row.k as Record<string, unknown> : row;
+  let symbol: string;
+  try {
+    symbol = toBinanceSymbol(String(row.s ?? body.s ?? ""));
+  } catch {
+    return null;
+  }
+  if (expectedSymbol) {
+    try {
+      if (symbol !== toBinanceSymbol(expectedSymbol)) return null;
+    } catch {
+      return null;
+    }
+  }
+  const intervalRaw = String(body.i ?? "");
+  const timeframe = parseInterval(intervalRaw);
+  if (!timeframe) return null;
+  if (expectedTimeframe && timeframe !== expectedTimeframe) return null;
+  try {
+    const candle = normalizeBinanceKline([
+      body.t,
+      body.o,
+      body.h,
+      body.l,
+      body.c,
+      body.v,
+      body.T,
+    ]);
+    candle.closed = body.x === true;
+    const eventTimeUtc = optionalFinite(row.E) ?? candle.time * 1000;
+    return {
+      venue: "binance-spot",
+      symbol,
+      timeframe,
+      candle,
+      eventTimeUtc,
+      receivedAtUtc,
+      source: "binance-spot-public",
+      streamType: "kline",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function applyLiveKline(history: NormalizedCandle[], live: NormalizedCandle): NormalizedCandle[] {
+  if (history.length === 0) return [live];
+  const last = history[history.length - 1];
+  if (live.time === last.time) {
+    const next = history.slice();
+    next[next.length - 1] = live;
+    return next;
+  }
+  if (live.time > last.time) return [...history, live];
+  return history;
 }
 
 export function normalizeBinanceTicker24h(raw: unknown): NormalizedTicker {

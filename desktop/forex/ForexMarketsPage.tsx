@@ -50,7 +50,7 @@ export function ForexMarketsPage({
       />
 
       <p className="fx-panel-meta" role="note">
-        Market type in this phase: Spot. Futures discovery is not included. Live market data will be connected in the next phase.
+        Market type in this phase: Spot. Open a tradable symbol to stream live prices and candles in Charts.
       </p>
 
       <div className="fx-markets-toolbar">

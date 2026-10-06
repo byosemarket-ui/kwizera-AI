@@ -106,3 +106,19 @@ export async function fetchBinanceExchangeInfo(
   );
   return { body: result.body, restBaseUrl: result.restBaseUrl };
 }
+
+export async function fetchBinanceKlines(
+  config: BinancePublicConfig,
+  options: { symbol: string; interval: string; limit?: number },
+  fetchImpl: FetchLike = fetch,
+): Promise<{ body: unknown; restBaseUrl: string }> {
+  const limit = Math.min(1000, Math.max(50, options.limit ?? 300));
+  const path = `${BINANCE_PUBLIC_REST_PATHS.klines}?symbol=${encodeURIComponent(options.symbol)}&interval=${encodeURIComponent(options.interval)}&limit=${limit}`;
+  const result = await binancePublicGet(
+    config,
+    path,
+    fetchImpl,
+    Math.max(config.timeoutMs, 15000),
+  );
+  return { body: result.body, restBaseUrl: result.restBaseUrl };
+}

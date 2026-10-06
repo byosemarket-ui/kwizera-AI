@@ -2,6 +2,7 @@
  * Public Binance market-data API.
  * GET /api/forex/binance/status — reachability
  * GET /api/forex/binance/markets — Spot discovery (no prices, no trading)
+ * GET /api/forex/binance/klines — historical Spot OHLCV
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { userFacingBinanceError } from "../../ai/market-data/binance/errors.js";
@@ -89,6 +90,37 @@ async function handleWithService(
       return true;
     }
 
+    if (url.pathname === "/api/forex/binance/klines") {
+      const symbol = url.searchParams.get("symbol") ?? "";
+      const interval = url.searchParams.get("interval") ?? "";
+      const allowed = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const;
+      const timeframe = allowed.find((item) => item === interval);
+      if (!timeframe) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "BINANCE_INVALID_MARKET_DATA", message: "Unable to load Binance market data." },
+          liveMarketData: false,
+        });
+        return true;
+      }
+      const catalog = await binance.listKlines({
+        symbol,
+        timeframe,
+        limit: Number(url.searchParams.get("limit") ?? 300),
+      });
+      sendJson(res, 200, {
+        ok: true,
+        symbol: catalog.symbol,
+        timeframe: catalog.timeframe,
+        candles: catalog.candles,
+        count: catalog.candles.length,
+        restBaseHost: catalog.restBaseHost,
+        liveMarketData: false,
+        note: "Historical Spot klines. Live forming candles arrive over WebSocket.",
+      });
+      return true;
+    }
+
     sendJson(res, 404, {
       ok: false,
       error: { code: "NOT_FOUND", message: "Unknown Binance foundation route." },
@@ -100,7 +132,7 @@ async function handleWithService(
       ok: false,
       error: { code: mapped.code, message: mapped.code === "BINANCE_DISABLED"
         ? "Binance market service unavailable."
-        : "Unable to load Binance markets." },
+        : "Unable to load Binance market data." },
       liveMarketData: false,
     });
     return true;

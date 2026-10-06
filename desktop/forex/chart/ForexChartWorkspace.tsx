@@ -7,12 +7,16 @@ import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from 
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
 import { fetchMarketSeries, writeChartQuery } from "./market-data";
 import { defaultSelectedMarket, parseSelectedMarket, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
+import { useBinanceKlines } from "../market-data/use-binance-klines";
+import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
+import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import {
   liveTickerPriceLabel,
   liveTickerStatusLabel,
   liveTickerStatusTone,
   type LiveTickerSnapshot,
 } from "../../../ai/market-data/binance/live-ticker";
+import { liveKlineStatusLabel } from "../../../ai/market-data/binance/live-kline";
 import {
   CHART_TIMEFRAMES,
   type Candle,
@@ -106,13 +110,29 @@ export function ForexChartWorkspace({
   }, [selected.symbol, timeframe]);
 
   const binanceSelected = selected.venue === "binance-spot";
-  const result = useMemo(
-    () => (binanceSelected
-      ? { state: "empty" as const, series: null, message: "Live candlesticks will be connected in the next phase." }
-      : fetchMarketSeries(selected.symbol, timeframe)),
+  const history = useBinanceKlines(binanceSelected ? selected.symbol : null, timeframe);
+  const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
+  const development = useMemo(
+    () => (binanceSelected ? null : fetchMarketSeries(selected.symbol, timeframe)),
     [binanceSelected, selected.symbol, timeframe],
   );
-  const candles = result.series?.candles ?? [];
+  const binanceCandles = useMemo(() => {
+    if (!binanceSelected || history.state !== "ready") return [];
+    if (history.symbol !== selected.symbol || history.timeframe !== timeframe) return [];
+    const base = history.candles.map((candle) => ({
+      time: candle.time,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      volume: candle.volume,
+      closed: candle.closed,
+    }));
+    const live = liveKline.kline;
+    if (!live || live.symbol !== selected.symbol || live.timeframe !== timeframe) return base;
+    return applyLiveKline(base, live.candle);
+  }, [binanceSelected, history, liveKline.kline, selected.symbol, timeframe]);
+  const candles = binanceSelected ? binanceCandles : development?.series?.candles ?? [];
 
   const overlayData = useMemo((): OverlaySeries[] => {
     const series: OverlaySeries[] = [];
@@ -185,8 +205,46 @@ export function ForexChartWorkspace({
 
   const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === selected.symbol);
   const analysis = mode === "analysis";
-  const livePrice = Boolean(binanceSelected && liveTicker?.liveMarketData && liveTicker.ticker?.symbol === selected.symbol);
+  const chartLive = Boolean(
+    binanceSelected
+    && history.state === "ready"
+    && liveKline.liveMarketData
+    && liveKline.kline?.symbol === selected.symbol
+    && liveKline.kline?.timeframe === timeframe,
+  );
+  const livePrice = Boolean(chartLive || (liveTicker?.liveMarketData && liveTicker.ticker?.symbol === selected.symbol));
   const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
+  const chartState = !binanceSelected
+    ? (development?.state ?? "empty")
+    : history.state === "loading"
+      ? "loading"
+      : history.state === "error"
+        ? "error"
+        : history.state === "disconnected"
+          ? "disconnected"
+          : history.state === "empty"
+            ? "empty"
+            : liveKline.connectionState === "RECONNECTING"
+              ? "reconnecting"
+              : liveKline.connectionState === "CONNECTING"
+                ? "connecting"
+                : chartLive
+                  ? "live"
+                  : "ready";
+  const chartMessage = !binanceSelected
+    ? (development?.message ?? "No chart data")
+    : history.state === "loading"
+      ? "Loading Binance market data..."
+      : history.state === "error"
+        ? "Unable to load Binance market data."
+        : history.state === "disconnected"
+          ? "Binance live data unavailable."
+          : history.state === "empty"
+            ? "No Binance candle data available."
+            : chartLive
+              ? "Live Binance data"
+              : liveKlineStatusLabel(liveKline);
+  const showChart = binanceSelected ? history.state === "ready" && candles.length > 0 : development?.state === "ready" && candles.length > 0;
 
   return (
     <section
@@ -194,13 +252,17 @@ export function ForexChartWorkspace({
       className={`fx-chart-workspace ${analysis ? "is-analysis" : ""}`}
       data-forex-chart-workspace={mode}
       data-forex-page={mode === "charts" ? "charts" : "technical-analysis"}
+      data-chart-state={chartState}
+      data-chart-live={chartLive ? "true" : "false"}
+      data-chart-symbol={selected.symbol}
+      data-chart-timeframe={timeframe}
     >
       <ForexSectionHeader
         eyebrow={analysis ? "Analysis" : "Market"}
         title={analysis ? "Technical Analysis" : "Charts"}
         description={analysis
           ? "Candlesticks, indicators, and analysis tools share one chart engine. This is not a trading signal."
-          : "Interactive candlestick workspace. Development data is shown until a live market provider is connected."}
+          : "Interactive candlestick workspace. Binance Spot uses live OHLCV; other pairs remain development series."}
       />
 
       <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
@@ -266,22 +328,26 @@ export function ForexChartWorkspace({
           <p className="fx-eyebrow">{selected.displaySymbol}</p>
           <p className="fx-chart-price" data-price-kind={priceKind}>
             {binanceSelected
-              ? (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...")
+              ? (last ? formatPrice(selected.symbol, last.close) : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data..."))
               : formatPrice(selected.symbol, last?.close ?? null)}
           </p>
           <p className="fx-panel-meta">
             {binanceSelected
-              ? `${selected.displaySymbol} · Binance Spot miniTicker · live candlesticks will be connected in the next phase`
+              ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
               : `${instrument?.name ?? selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote`}
           </p>
         </div>
         <div className="fx-status-stack">
           {binanceSelected ? (
             <>
-              <ForexStatusBadge tone={liveTicker ? liveTickerStatusTone(liveTicker) : "future"}>
-                {livePrice ? "LIVE" : liveTicker ? liveTickerStatusLabel(liveTicker) : "Connecting..."}
+              <ForexStatusBadge tone={chartLive ? "live" : liveKline.connectionState === "ERROR" ? "offline" : "future"}>
+                {chartLive ? "LIVE" : liveKlineStatusLabel(liveKline)}
               </ForexStatusBadge>
-              <ForexStatusBadge tone="future">Live candlesticks will be connected in the next phase</ForexStatusBadge>
+              {liveTicker?.liveMarketData ? (
+                <ForexStatusBadge tone={liveTickerStatusTone(liveTicker)}>
+                  {liveTickerStatusLabel(liveTicker)}
+                </ForexStatusBadge>
+              ) : null}
             </>
           ) : (
             <>
@@ -292,9 +358,10 @@ export function ForexChartWorkspace({
         </div>
       </div>
 
-      {result.state === "ready" && result.series ? (
+      {showChart ? (
         <ForexPriceChart
           ref={chartRef}
+          seriesKey={`${selected.symbol}:${timeframe}`}
           candles={candles}
           chartType={chartType}
           overlays={overlayData}
@@ -305,24 +372,18 @@ export function ForexChartWorkspace({
         />
       ) : (
         <div className="fx-chart-state" role="status">
-          <h2>
-            {binanceSelected
-              ? "Live candlesticks will be connected in the next phase."
-              : result.state === "unavailable"
-                ? "Unable to load market data."
-                : "No chart data"}
-          </h2>
-          <p>{result.message}</p>
+          <h2>{chartMessage}</h2>
+          <p>{binanceSelected ? chartMessage : (development?.message ?? "No chart data")}</p>
         </div>
       )}
 
-      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "OHLC unavailable" : "Development OHLC"}>
-        <div><dt>Open</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.open ?? null)}</dd></div>
-        <div><dt>High</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.high ?? null)}</dd></div>
-        <div><dt>Low</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.low ?? null)}</dd></div>
-        <div><dt>Close</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.close ?? null)}</dd></div>
+      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "Binance OHLC" : "Development OHLC"}>
+        <div><dt>Open</dt><dd>{formatPrice(selected.symbol, display?.open ?? null)}</dd></div>
+        <div><dt>High</dt><dd>{formatPrice(selected.symbol, display?.high ?? null)}</dd></div>
+        <div><dt>Low</dt><dd>{formatPrice(selected.symbol, display?.low ?? null)}</dd></div>
+        <div><dt>Close</dt><dd>{formatPrice(selected.symbol, display?.close ?? null)}</dd></div>
         <div><dt>Time</dt><dd>{display ? formatUtc(display.time) : "—"}</dd></div>
-        <div><dt>Volume</dt><dd>—</dd></div>
+        <div><dt>Volume</dt><dd>{display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
       </dl>
 
       <div className={`fx-chart-side ${analysis ? "is-wide" : ""}`}>
@@ -401,7 +462,7 @@ export function ForexChartWorkspace({
       </div>
 
       <p className="fx-panel-meta" data-forex-chart-status="true">
-        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · {result.message} · Last candle {last ? formatUtc(last.time) : "unavailable"} · Connection: not live
+        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · {chartMessage} · Last candle {last ? formatUtc(last.time) : "unavailable"} · Connection: {chartLive ? "LIVE" : "not live"}
       </p>
     </section>
   );

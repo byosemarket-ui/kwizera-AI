@@ -1,0 +1,49 @@
+import { useEffect, useState } from "react";
+import {
+  createBinanceLiveKlineClient,
+  idleLiveKlineSnapshot,
+  type LiveKlineClient,
+} from "../../../ai/market-data/binance/live-kline";
+import type { LiveKlineSnapshot } from "../../../ai/market-data/binance/types";
+import type { ChartTimeframeId } from "../chart/types";
+
+let sharedClient: LiveKlineClient | null = null;
+
+function getSharedLiveKlineClient(): LiveKlineClient {
+  sharedClient ??= createBinanceLiveKlineClient();
+  return sharedClient;
+}
+
+export function useBinanceLiveKline(symbol: string | null, timeframe: ChartTimeframeId): LiveKlineSnapshot {
+  const [snapshot, setSnapshot] = useState<LiveKlineSnapshot>(() => idleLiveKlineSnapshot());
+
+  useEffect(() => {
+    const client = getSharedLiveKlineClient();
+    let frame = 0;
+    let pending: LiveKlineSnapshot | null = null;
+    const apply = (next: LiveKlineSnapshot) => {
+      pending = next;
+      if (typeof requestAnimationFrame !== "function") {
+        setSnapshot(next);
+        return;
+      }
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (pending) setSnapshot(pending);
+      });
+    };
+    const stop = client.onChange(apply);
+    client.subscribe(symbol, symbol ? timeframe : null);
+    return () => {
+      stop();
+      if (frame && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+    };
+  }, [symbol, timeframe]);
+
+  useEffect(() => () => {
+    getSharedLiveKlineClient().disconnect();
+  }, []);
+
+  return snapshot;
+}

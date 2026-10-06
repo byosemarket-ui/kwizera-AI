@@ -2,8 +2,8 @@ import { normalizeBinanceExchangeInfo, normalizeBinanceKlines, normalizeBinanceT
 import { BINANCE_MARKET_CACHE_MS, resolveBinancePublicConfig, type BinancePublicConfig } from "./config.js";
 import { disconnectedSnapshot, snapshotForState } from "./connection.js";
 import { BinanceMarketDataError, userFacingBinanceError } from "./errors.js";
-import { fetchBinanceExchangeInfo, pingBinancePublicRest, type FetchLike } from "./rest-client.js";
-import { PHASE7_CAPABILITIES, type MarketConnectionSnapshot, type NormalizedCandle, type NormalizedMarket, type NormalizedTicker } from "./types.js";
+import { fetchBinanceExchangeInfo, fetchBinanceKlines, pingBinancePublicRest, type FetchLike } from "./rest-client.js";
+import { PHASE9_CAPABILITIES, type MarketConnectionSnapshot, type NormalizedCandle, type NormalizedMarket, type NormalizedTicker } from "./types.js";
 
 export interface BinanceMarketCatalog {
   markets: NormalizedMarket[];
@@ -19,6 +19,12 @@ export interface BinanceMarketDataService {
   probePublicRest(): Promise<MarketConnectionSnapshot>;
   listSpotMarkets(options?: { refresh?: boolean }): Promise<BinanceMarketCatalog>;
   findSpotMarket(symbol: string): Promise<NormalizedMarket | null>;
+  listKlines(options: { symbol: string; timeframe: "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w"; limit?: number }): Promise<{
+    symbol: string;
+    timeframe: "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w";
+    candles: NormalizedCandle[];
+    restBaseHost: string;
+  }>;
   normalizeKlines(rows: unknown): NormalizedCandle[];
   normalizeTicker(raw: unknown): NormalizedTicker;
   assertPublicSymbol(symbol: string): string;
@@ -72,7 +78,7 @@ export function createBinanceMarketDataService(options: {
           serverTimeUtc: ping.serverTimeUtc,
           message: "Binance public API reachable. Live market data is not streaming.",
           errorCode: null,
-          capabilities: { ...PHASE7_CAPABILITIES },
+          capabilities: { ...PHASE9_CAPABILITIES },
         });
         return snapshot;
       } catch (error) {
@@ -108,7 +114,7 @@ export function createBinanceMarketDataService(options: {
         restBaseHost: catalogCache.restBaseHost,
         message: "Binance public API reachable. Live market data is not streaming.",
         errorCode: null,
-        capabilities: { ...PHASE7_CAPABILITIES },
+        capabilities: { ...PHASE9_CAPABILITIES },
       });
       return catalogCache;
     },
@@ -116,6 +122,31 @@ export function createBinanceMarketDataService(options: {
       const compact = toBinanceSymbol(symbol);
       const catalog = await this.listSpotMarkets();
       return catalog.markets.find((item) => item.symbol === compact) ?? null;
+    },
+    async listKlines(listOptions) {
+      if (!config.enabled) {
+        throw new BinanceMarketDataError("BINANCE_DISABLED", "Binance public market data is disabled.");
+      }
+      const symbol = toBinanceSymbol(listOptions.symbol);
+      const interval = toBinanceInterval(listOptions.timeframe);
+      const fetched = await fetchBinanceKlines(config, {
+        symbol,
+        interval,
+        limit: listOptions.limit,
+      }, options.fetchImpl);
+      const candles = normalizeBinanceKlines(fetched.body);
+      snapshot = snapshotForState(config, "CONNECTED", {
+        restReachable: true,
+        restBaseHost: hostOf(fetched.restBaseUrl),
+        errorCode: null,
+        capabilities: { ...PHASE9_CAPABILITIES },
+      });
+      return {
+        symbol,
+        timeframe: listOptions.timeframe,
+        candles,
+        restBaseHost: hostOf(fetched.restBaseUrl),
+      };
     },
     normalizeKlines(rows) {
       return normalizeBinanceKlines(rows);
