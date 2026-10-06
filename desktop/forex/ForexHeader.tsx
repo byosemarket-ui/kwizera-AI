@@ -1,23 +1,30 @@
 import { ArrowLeft, Bell, Menu, Moon, Search, Sun, User, X } from "lucide-react";
 import type { DesktopPreferences } from "../desktop-polish/types";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
-import { STUDIO_HOME_PATH, getForexNavItem, type ForexRouteId } from "./forex-routes";
+import {
+  getForexBreadcrumbs,
+  getForexNavItem,
+  type ForexRouteId,
+  type ForexViewId,
+} from "./forex-routes";
 
 export function ForexHeader({
   route,
   sidebarOpen,
   onToggleSidebar,
   onBackToStudio,
+  onNavigate,
   onNotificationsToggle,
   notificationsOpen,
   unreadCount,
   preferences,
   onThemeCycle,
 }: {
-  route: ForexRouteId;
+  route: ForexViewId;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   onBackToStudio: () => void;
+  onNavigate: (id: ForexRouteId) => void;
   onNotificationsToggle: () => void;
   notificationsOpen: boolean;
   unreadCount: number;
@@ -25,6 +32,7 @@ export function ForexHeader({
   onThemeCycle: () => void;
 }) {
   const item = getForexNavItem(route);
+  const crumbs = getForexBreadcrumbs(route);
   const themeLabel = preferences.theme === "light" ? "Light theme" : preferences.theme === "system" ? "System theme" : "Dark theme";
 
   return (
@@ -41,12 +49,19 @@ export function ForexHeader({
           {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
         <div className="fx-title-block">
-          <nav className="fx-breadcrumb" aria-label="Breadcrumb">
-            <span>KWIZERA AI STUDIO</span>
-            <span aria-hidden="true">/</span>
-            <span>Forex</span>
-            <span aria-hidden="true">/</span>
-            <span>{item.label}</span>
+          <nav className="fx-breadcrumb" aria-label="Breadcrumb" data-forex-breadcrumb="true">
+            {crumbs.map((crumb, index) => (
+              <span key={`${crumb.label}-${index}`} className="fx-breadcrumb-item">
+                {index > 0 ? <span aria-hidden="true">/</span> : null}
+                {crumb.route ? (
+                  <button type="button" className="fx-breadcrumb-link" onClick={() => onNavigate(crumb.route!)}>
+                    {crumb.label}
+                  </button>
+                ) : (
+                  <span aria-current={index === crumbs.length - 1 ? "page" : undefined}>{crumb.label}</span>
+                )}
+              </span>
+            ))}
           </nav>
           <h1>{item.label}</h1>
         </div>

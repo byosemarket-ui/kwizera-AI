@@ -10,7 +10,7 @@ export function ForexDashboard({
   onOpenModule: (id: ForexRouteId) => void;
 }) {
   return (
-    <section className="fx-dashboard" data-forex-dashboard="true" aria-labelledby="fx-dashboard-title">
+    <section className="fx-dashboard" data-forex-dashboard="true" data-forex-page="dashboard" aria-labelledby="fx-dashboard-title">
       <ForexSectionHeader
         eyebrow="KWIZERA FOREX"
         title="Forex Intelligence"
@@ -22,13 +22,13 @@ export function ForexDashboard({
         <div>
           <p className="fx-eyebrow">Welcome to KWIZERA Forex</p>
           <p className="fx-page-desc">
-            This is the Forex workspace inside KWIZERA AI STUDIO. Phase 1 establishes the entry point,
-            navigation, and layout. Live market data, signals, and execution are not connected yet.
+            This is the Forex workspace inside KWIZERA AI STUDIO. Navigation for every module is
+            available now. Live market data, signals, and execution are not connected yet.
           </p>
         </div>
         <div className="fx-status-stack" role="status">
           <ForexStatusBadge tone="offline">Market data connection: Not connected</ForexStatusBadge>
-          <ForexStatusBadge tone="future">Live market integration — Coming in Phase 2</ForexStatusBadge>
+          <ForexStatusBadge tone="future">Live market integration — Coming in a future phase</ForexStatusBadge>
         </div>
       </div>
 

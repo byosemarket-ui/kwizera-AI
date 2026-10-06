@@ -48,6 +48,9 @@ await assertStudio("/");
 await assertStudio("/desktop/");
 await assertStudio("/forex");
 await assertStudio("/forex/dashboard");
+await assertStudio("/forex/markets");
+await assertStudio("/forex/signals");
+await assertStudio("/forex/settings");
 
 const legacy = await get("/dev");
 if (legacy.status !== 200 || !/Dev Dashboard/i.test(legacy.text)) {

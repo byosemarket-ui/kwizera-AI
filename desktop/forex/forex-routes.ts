@@ -5,15 +5,17 @@ export type ForexRouteId =
   | "charts"
   | "technical-analysis"
   | "fundamental-analysis"
-  | "intelligence"
+  | "market-intelligence"
   | "ai-analysis"
   | "signals"
   | "strategies"
-  | "journal"
-  | "risk"
+  | "trade-journal"
+  | "risk-management"
   | "performance"
   | "backtesting"
   | "settings";
+
+export type ForexViewId = ForexRouteId | "not-found";
 
 export type ForexNavGroupId =
   | "overview"
@@ -45,11 +47,23 @@ export interface ForexNavItem {
   label: string;
   path: string;
   implemented: boolean;
+  inSidebar: boolean;
   group: ForexNavGroupId;
   groupLabel: string;
   icon: ForexNavIconId;
   description: string;
   phaseNote: string;
+}
+
+export interface ForexLocation {
+  view: ForexViewId;
+  canonicalPath: string | null;
+  shouldCanonicalize: boolean;
+}
+
+export interface ForexBreadcrumb {
+  label: string;
+  route?: ForexRouteId;
 }
 
 export const FOREX_ROOT_PATH = "/forex";
@@ -62,6 +76,7 @@ export const FOREX_NAV: ForexNavItem[] = [
     label: "Dashboard",
     path: "/forex/dashboard",
     implemented: true,
+    inSidebar: true,
     group: "overview",
     groupLabel: "Overview",
     icon: "layout-dashboard",
@@ -73,156 +88,180 @@ export const FOREX_NAV: ForexNavItem[] = [
     label: "Markets",
     path: "/forex/markets",
     implemented: false,
+    inSidebar: true,
     group: "market",
     groupLabel: "Market",
     icon: "globe",
-    description: "Currency pairs and market conditions.",
-    phaseNote: "Coming in a future phase",
+    description: "Market instruments and live market monitoring will be connected in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "watchlist",
     label: "Watchlist",
     path: "/forex/watchlist",
     implemented: false,
+    inSidebar: true,
     group: "market",
     groupLabel: "Market",
     icon: "star",
-    description: "Saved instruments for later sessions.",
-    phaseNote: "Coming in a future phase",
+    description: "Your Forex watchlist will be available here.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "charts",
     label: "Charts",
     path: "/forex/charts",
     implemented: false,
+    inSidebar: true,
     group: "market",
     groupLabel: "Market",
     icon: "candlestick",
-    description: "Price action and technical structure.",
-    phaseNote: "Coming in a future phase",
+    description: "Interactive market charts will be connected in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "technical-analysis",
     label: "Technical Analysis",
-    path: "/forex/analysis/technical",
+    path: "/forex/technical-analysis",
     implemented: false,
+    inSidebar: true,
     group: "analysis",
     groupLabel: "Analysis",
     icon: "activity",
-    description: "Structure, levels, and technical context.",
-    phaseNote: "Coming in a future phase",
+    description: "Technical indicators and structured market analysis will be added in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "fundamental-analysis",
     label: "Fundamental Analysis",
-    path: "/forex/analysis/fundamental",
+    path: "/forex/fundamental-analysis",
     implemented: false,
+    inSidebar: true,
     group: "analysis",
     groupLabel: "Analysis",
     icon: "book-open",
-    description: "Macro, session, and event context.",
-    phaseNote: "Coming in a future phase",
+    description: "Fundamental market research tools will be added in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
-    id: "intelligence",
+    id: "market-intelligence",
     label: "Market Intelligence",
-    path: "/forex/analysis/intelligence",
+    path: "/forex/market-intelligence",
     implemented: false,
+    inSidebar: true,
     group: "analysis",
     groupLabel: "Analysis",
     icon: "radar",
-    description: "Research workspace for market narratives.",
-    phaseNote: "Coming in a future phase",
+    description: "Market news, economic events and intelligence tools will be connected in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "ai-analysis",
     label: "AI Analysis",
-    path: "/forex/ai",
+    path: "/forex/ai-analysis",
     implemented: false,
+    inSidebar: true,
     group: "ai",
     groupLabel: "AI Trading",
     icon: "brain",
-    description: "AI-assisted market analysis workflows.",
-    phaseNote: "Coming in a future phase",
+    description: "AI-assisted Forex analysis will be connected in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "signals",
     label: "Signals",
     path: "/forex/signals",
     implemented: false,
+    inSidebar: true,
     group: "ai",
     groupLabel: "AI Trading",
     icon: "zap",
-    description: "Trading signal workspace.",
-    phaseNote: "Coming in a future phase",
+    description: "Forex signal generation will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "strategies",
     label: "Strategies",
     path: "/forex/strategies",
     implemented: false,
+    inSidebar: true,
     group: "ai",
     groupLabel: "AI Trading",
     icon: "waypoints",
-    description: "Build and manage trading strategies.",
-    phaseNote: "Coming in a future phase",
+    description: "Trading strategy tools will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
-    id: "journal",
+    id: "trade-journal",
     label: "Trade Journal",
-    path: "/forex/journal",
+    path: "/forex/trade-journal",
     implemented: false,
+    inSidebar: true,
     group: "trading",
     groupLabel: "Trading",
     icon: "notebook",
-    description: "Track and review trading activity.",
-    phaseNote: "Coming in a future phase",
+    description: "Trade journaling and trade history will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
-    id: "risk",
+    id: "risk-management",
     label: "Risk Management",
-    path: "/forex/risk",
+    path: "/forex/risk-management",
     implemented: false,
+    inSidebar: true,
     group: "trading",
     groupLabel: "Trading",
     icon: "shield",
-    description: "Exposure, sizing, and risk controls.",
-    phaseNote: "Coming in a future phase",
+    description: "Risk management tools will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "performance",
     label: "Performance",
     path: "/forex/performance",
     implemented: false,
+    inSidebar: true,
     group: "trading",
     groupLabel: "Trading",
     icon: "bar-chart",
-    description: "Performance review workspace.",
-    phaseNote: "Coming in a future phase",
+    description: "Trading performance analytics will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "backtesting",
     label: "Backtesting",
     path: "/forex/backtesting",
     implemented: false,
+    inSidebar: false,
     group: "trading",
     groupLabel: "Trading",
     icon: "history",
-    description: "Historical strategy evaluation.",
-    phaseNote: "Coming in a future phase",
+    description: "Historical strategy evaluation will be implemented in a future phase.",
+    phaseNote: "Coming Soon",
   },
   {
     id: "settings",
     label: "Settings",
     path: "/forex/settings",
     implemented: false,
+    inSidebar: true,
     group: "system",
     groupLabel: "System",
     icon: "settings",
-    description: "Forex workspace preferences.",
-    phaseNote: "Coming in a future phase",
+    description: "Forex-specific settings will be implemented progressively.",
+    phaseNote: "Coming Soon",
   },
 ];
+
+/** Phase 1 paths still resolve to the canonical Phase 2 routes. */
+export const FOREX_PATH_ALIASES: Record<string, ForexRouteId> = {
+  "/forex/analysis/technical": "technical-analysis",
+  "/forex/analysis/fundamental": "fundamental-analysis",
+  "/forex/analysis/intelligence": "market-intelligence",
+  "/forex/ai": "ai-analysis",
+  "/forex/journal": "trade-journal",
+  "/forex/risk": "risk-management",
+};
 
 export const FOREX_GROUP_ORDER: ForexNavGroupId[] = [
   "overview",
@@ -243,10 +282,23 @@ export const FOREX_DASHBOARD_MODULES: Array<{
   { id: "ai-analysis", title: "AI Analysis", description: "Use AI-powered market analysis in future phases." },
   { id: "signals", title: "Signals", description: "Intelligent trading signals will be available in a future phase." },
   { id: "strategies", title: "Strategies", description: "Build and manage trading strategies." },
-  { id: "risk", title: "Risk Management", description: "Manage exposure, position sizing and risk." },
-  { id: "journal", title: "Trade Journal", description: "Track and analyze trading activity." },
+  { id: "risk-management", title: "Risk Management", description: "Manage exposure, position sizing and risk." },
+  { id: "trade-journal", title: "Trade Journal", description: "Track and analyze trading activity." },
   { id: "backtesting", title: "Backtesting", description: "Test strategies against historical data." },
 ];
+
+export const FOREX_NOT_FOUND: ForexNavItem = {
+  id: "dashboard",
+  label: "Page not found",
+  path: "/forex",
+  implemented: false,
+  inSidebar: false,
+  group: "overview",
+  groupLabel: "Forex",
+  icon: "layout-dashboard",
+  description: "This Forex page does not exist. Return to the dashboard to continue.",
+  phaseNote: "Unknown route",
+};
 
 export function isForexUrl(
   pathname = typeof window !== "undefined" ? window.location.pathname : "",
@@ -262,33 +314,86 @@ export function forexPathFor(route: ForexRouteId): string {
   return FOREX_NAV.find((item) => item.id === route)?.path ?? FOREX_DASHBOARD_PATH;
 }
 
-export function getForexNavItem(id: ForexRouteId): ForexNavItem {
+export function getForexNavItem(id: ForexViewId): ForexNavItem {
+  if (id === "not-found") return FOREX_NOT_FOUND;
   return FOREX_NAV.find((item) => item.id === id) ?? FOREX_NAV[0];
+}
+
+export function normalizeForexPath(pathname: string): string {
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
+export function resolveForexLocation(
+  pathname = typeof window !== "undefined" ? window.location.pathname : "",
+): ForexLocation {
+  const path = normalizeForexPath(pathname);
+  if (path === "/forex") {
+    return { view: "dashboard", canonicalPath: FOREX_DASHBOARD_PATH, shouldCanonicalize: true };
+  }
+  const exact = FOREX_NAV.find((item) => item.path === path);
+  if (exact) {
+    return { view: exact.id, canonicalPath: exact.path, shouldCanonicalize: false };
+  }
+  const aliased = FOREX_PATH_ALIASES[path];
+  if (aliased) {
+    return { view: aliased, canonicalPath: forexPathFor(aliased), shouldCanonicalize: true };
+  }
+  if (path.startsWith("/forex/")) {
+    return { view: "not-found", canonicalPath: null, shouldCanonicalize: false };
+  }
+  return { view: "dashboard", canonicalPath: FOREX_DASHBOARD_PATH, shouldCanonicalize: true };
 }
 
 export function parseForexRouteFromLocation(
   pathname = typeof window !== "undefined" ? window.location.pathname : "",
-): ForexRouteId {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/forex") return "dashboard";
-  if (!path.startsWith("/forex/")) return "dashboard";
-  const match = FOREX_NAV.find((item) => item.path === path || path.startsWith(`${item.path}/`));
-  return match?.id ?? "dashboard";
+): ForexViewId {
+  return resolveForexLocation(pathname).view;
 }
 
-export function syncForexUrl(route: ForexRouteId): void {
-  if (typeof window === "undefined") return;
-  const next = forexPathFor(route);
-  const current = window.location.pathname.replace(/\/+$/, "") || "/";
-  if (current !== next) {
-    window.history.replaceState({ forexRoute: route }, "", next);
+export function getForexBreadcrumbs(view: ForexViewId): ForexBreadcrumb[] {
+  if (view === "not-found") {
+    return [
+      { label: "Forex", route: "dashboard" },
+      { label: "Page not found" },
+    ];
+  }
+  const item = getForexNavItem(view);
+  const crumbs: ForexBreadcrumb[] = [{ label: "Forex", route: "dashboard" }];
+  if (item.id === "dashboard") {
+    crumbs.push({ label: "Dashboard" });
+    return crumbs;
+  }
+  if (item.id === "settings") {
+    crumbs.push({ label: "Settings" });
+    return crumbs;
+  }
+  crumbs.push({ label: item.groupLabel });
+  crumbs.push({ label: item.label });
+  return crumbs;
+}
+
+export function getForexDocumentTitle(view: ForexViewId): string {
+  if (view === "not-found") return "KWIZERA AI STUDIO — Forex Page not found";
+  const item = getForexNavItem(view);
+  if (item.id === "dashboard") return "KWIZERA AI STUDIO — Forex Dashboard";
+  return `KWIZERA AI STUDIO — ${item.label}`;
+}
+
+export function syncForexUrl(view: ForexViewId): void {
+  if (typeof window === "undefined" || view === "not-found") return;
+  const resolved = resolveForexLocation(window.location.pathname);
+  const next = forexPathFor(view);
+  if (resolved.shouldCanonicalize || normalizeForexPath(window.location.pathname) !== next) {
+    if (normalizeForexPath(window.location.pathname) !== next) {
+      window.history.replaceState({ forexRoute: view }, "", next);
+    }
   }
 }
 
 export function pushForexUrl(route: ForexRouteId): void {
   if (typeof window === "undefined") return;
   const next = forexPathFor(route);
-  const current = window.location.pathname.replace(/\/+$/, "") || "/";
+  const current = normalizeForexPath(window.location.pathname);
   if (current !== next) {
     window.history.pushState({ forexRoute: route }, "", next);
   }

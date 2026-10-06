@@ -71,11 +71,33 @@
 .fx-breadcrumb {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   font-size: 11px;
   color: var(--fx-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.fx-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-breadcrumb-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--fx-muted);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.fx-breadcrumb-link:hover {
+  color: var(--fx-accent);
 }
 
 .fx-search {
@@ -215,6 +237,10 @@
 
 .fx-nav-group + .fx-nav-group {
   margin-top: 14px;
+}
+
+.fx-nav-group.is-current .fx-nav-group-label {
+  color: var(--fx-accent);
 }
 
 .fx-nav-group-label {
@@ -407,6 +433,16 @@
   margin-top: auto;
 }
 
+.fx-module-page-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--fx-accent-dim);
+  color: var(--fx-accent);
+}
+
 .fx-placeholder-panel {
   display: flex;
   flex-direction: column;
@@ -443,6 +479,7 @@
 .fx-studio-link:focus-visible,
 .fx-text-button:focus-visible,
 .fx-nav-item:focus-visible,
+.fx-breadcrumb-link:focus-visible,
 .fx-search input:focus-visible {
   outline: 2px solid var(--fx-accent);
   outline-offset: 2px;

@@ -80,6 +80,8 @@ try {
   await check("/admin/models", "KWIZERA AI STUDIO");
   await check("/forex", "KWIZERA AI STUDIO");
   await check("/forex/dashboard", "KWIZERA AI STUDIO");
+  await check("/forex/markets", "KWIZERA AI STUDIO");
+  await check("/forex/technical-analysis", "KWIZERA AI STUDIO");
   await check("/dev", "Dev Dashboard");
 
   const assetsDir = path.join(uiDir, "desktop", "assets");
@@ -92,6 +94,9 @@ try {
   }
   if (!bundle.includes("data-forex-sidebar") || !bundle.includes("data-forex-dashboard") || !bundle.includes("data-forex-header")) {
     throw new Error("built desktop bundle missing Forex shell markers");
+  }
+  if (!bundle.includes("data-forex-breadcrumb") || !bundle.includes("data-forex-page") || !bundle.includes("Back to Forex Dashboard")) {
+    throw new Error("built desktop bundle missing Forex Phase 2 navigation markers");
   }
   if (!bundle.includes("Back to Studio")) {
     throw new Error("built desktop bundle missing Back to Studio control");

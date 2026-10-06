@@ -1,21 +1,23 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { ForexDashboard } from "./ForexDashboard";
 import { ForexHeader } from "./ForexHeader";
-import { ForexPlaceholder } from "./ForexPlaceholder";
+import { ForexModulePage } from "./ForexModulePage";
+import { ForexNotFound } from "./ForexNotFound";
 import { ForexSidebar } from "./ForexSidebar";
 import {
-  FOREX_NAV,
+  getForexDocumentTitle,
   getForexNavItem,
   parseForexRouteFromLocation,
   pushForexUrl,
   STUDIO_HOME_PATH,
   syncForexUrl,
   type ForexRouteId,
+  type ForexViewId,
 } from "./forex-routes";
 import type { DesktopPreferences } from "../desktop-polish/types";
 import "./forex.css";
 
-class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexRouteId }, { failed: string | null }> {
+class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexViewId }, { failed: string | null }> {
   state = { failed: null as string | null };
 
   static getDerivedStateFromError(err: unknown) {
@@ -26,7 +28,7 @@ class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexRou
     console.error("[KWIZERA] Forex page render failed:", err, info.componentStack);
   }
 
-  componentDidUpdate(prevProps: { route: ForexRouteId }) {
+  componentDidUpdate(prevProps: { route: ForexViewId }) {
     if (prevProps.route !== this.props.route && this.state.failed) {
       this.setState({ failed: null });
     }
@@ -63,14 +65,14 @@ export function ForexShell({
   notificationsOpen,
   unreadCount,
 }: ForexShellProps) {
-  const [route, setRoute] = useState<ForexRouteId>(() => parseForexRouteFromLocation());
+  const [route, setRoute] = useState<ForexViewId>(() => parseForexRouteFromLocation());
   const [sidebarOpen, setSidebarOpen] = useState(() => (
     typeof window !== "undefined" ? window.innerWidth > 820 : true
   ));
 
   useEffect(() => {
     syncForexUrl(route);
-    document.title = `KWIZERA AI STUDIO — Forex ${getForexNavItem(route).label}`;
+    document.title = getForexDocumentTitle(route);
     return () => {
       document.title = "KWIZERA AI STUDIO";
     };
@@ -96,10 +98,14 @@ export function ForexShell({
     if (window.innerWidth <= 820) setSidebarOpen(false);
   };
 
-  const current = FOREX_NAV.find((item) => item.id === route) ?? FOREX_NAV[0];
-  const content = current.implemented
-    ? <ForexDashboard onOpenModule={navigate} />
-    : <ForexPlaceholder item={current} />;
+  let content: ReactNode;
+  if (route === "not-found") {
+    content = <ForexNotFound onBackToDashboard={() => navigate("dashboard")} />;
+  } else if (route === "dashboard") {
+    content = <ForexDashboard onOpenModule={navigate} />;
+  } else {
+    content = <ForexModulePage item={getForexNavItem(route)} />;
+  }
 
   return (
     <div className="fx-root" data-app-surface="forex" data-forex-route={route}>
@@ -109,6 +115,7 @@ export function ForexShell({
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
           onBackToStudio={onBackToStudio}
+          onNavigate={navigate}
           onNotificationsToggle={onNotificationsToggle}
           notificationsOpen={notificationsOpen}
           unreadCount={unreadCount}
