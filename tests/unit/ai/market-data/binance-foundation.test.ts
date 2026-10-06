@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { normalizeBinanceKline, normalizeBinanceKlines, normalizeBinanceTicker24h, toBinanceSymbol } from "../../../ai/market-data/binance/adapter.ts";
-import { BINANCE_DEFAULT_REST_BASE, resolveBinancePublicConfig } from "../../../ai/market-data/binance/config.ts";
-import { publicConnectionLabel, snapshotForState } from "../../../ai/market-data/binance/connection.ts";
-import { BinanceMarketDataError } from "../../../ai/market-data/binance/errors.ts";
-import { createBinanceMarketDataService } from "../../../ai/market-data/binance/service.ts";
-import { fetchBinanceConnectionStatus } from "../../../desktop/forex/market-data/studio-binance-client.ts";
+import { normalizeBinanceKline, normalizeBinanceKlines, normalizeBinanceTicker24h, toBinanceSymbol } from "../../../../ai/market-data/binance/adapter.ts";
+import { BINANCE_DEFAULT_REST_BASE, resolveBinancePublicConfig } from "../../../../ai/market-data/binance/config.ts";
+import { publicConnectionLabel, snapshotForState } from "../../../../ai/market-data/binance/connection.ts";
+import { BinanceMarketDataError } from "../../../../ai/market-data/binance/errors.ts";
+import { createBinanceMarketDataService } from "../../../../ai/market-data/binance/service.ts";
+import { fetchBinanceConnectionStatus } from "../../../../desktop/forex/market-data/studio-binance-client.ts";
 
 describe("Binance Phase 6 configuration", () => {
   it("uses official HTTPS Binance hosts and rejects localhost in production", () => {
