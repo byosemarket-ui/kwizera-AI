@@ -134,7 +134,9 @@ describe("Forex Phase 1 shell integration", () => {
     expect(dashboard).toContain("Open Technical Analysis");
     expect(dashboard).not.toMatch(/1\.1723|BTC\/USD|\+4\.8%|Strong Buy|90% confidence|\$12,480/);
     const binanceClient = fs.readFileSync(path.resolve("desktop/forex/market-data/studio-binance-client.ts"), "utf8");
-    expect(binanceClient).toContain("/api/forex/binance/status");
+    const marketsPage = fs.readFileSync(path.resolve("desktop/forex/ForexMarketsPage.tsx"), "utf8");
+    expect(marketsPage).toContain("../../ai/market-data/binance/adapter");
+    expect(marketsPage).not.toContain("../../../ai/market-data/binance/adapter");
     expect(binanceClient).toContain("/api/forex/binance/markets");
     expect(binanceClient).not.toContain("localhost");
     expect(binanceClient).not.toContain("127.0.0.1");

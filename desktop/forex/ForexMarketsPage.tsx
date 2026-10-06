@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { filterBinanceMarkets } from "../../../ai/market-data/binance/adapter";
-import type { NormalizedMarket } from "../../../ai/market-data/binance/types";
+import { filterBinanceMarkets } from "../../ai/market-data/binance/adapter";
+import type { NormalizedMarket } from "../../ai/market-data/binance/types";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { ForexEmptyState } from "./components/ForexEmptyState";
