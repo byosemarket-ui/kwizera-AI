@@ -1,3 +1,4 @@
+import { FOREX_INSTRUMENTS } from "../dashboard-data";
 import { DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId } from "../chart/types";
 import { parseChartTimeframe } from "../chart/market-data";
 import { toDisplaySymbol } from "../../../ai/market-data/binance/adapter";
@@ -10,30 +11,41 @@ export interface SelectedMarket {
   displaySymbol: string;
 }
 
+const TRADITIONAL_FX_COMPACT = new Set(
+  FOREX_INSTRUMENTS.map((item) => item.symbol.replace(/[/_-]/g, "").toUpperCase()),
+);
+
 export function compactMarketSymbol(symbol: string): string {
   return symbol.replace(/[/_-]/g, "").trim().toUpperCase();
 }
 
+function traditionalFxDisplay(compact: string): string {
+  const match = FOREX_INSTRUMENTS.find(
+    (item) => item.symbol.replace(/[/_-]/g, "").toUpperCase() === compact,
+  );
+  return match?.symbol ?? compact;
+}
+
 /**
  * Parse a market from URL/query.
- * Traditional FX labels (EUR/USD) are not Binance Spot instruments — they are unsupported
+ * Traditional FX labels (EUR/USD, EURUSD) are not Binance Spot instruments — they are unsupported
  * for live market data (Phase 11). Only compact Binance-style symbols become binance-spot.
  */
 export function parseSelectedMarket(raw: string | null | undefined): SelectedMarket | null {
   if (!raw) return null;
   const compact = compactMarketSymbol(raw);
   if (!compact) return null;
-  // Slash form like EUR/USD is never treated as a live Binance Spot chart symbol.
-  if (raw.includes("/") || raw.includes("-")) {
-    const looksLikeFx = /^[A-Z]{3}\/[A-Z]{3}$/i.test(raw.trim()) || /^XAU\/[A-Z]{3}$/i.test(raw.trim());
-    if (looksLikeFx) {
-      return {
-        venue: "unsupported",
-        symbol: raw.trim().toUpperCase(),
-        displaySymbol: raw.trim().toUpperCase(),
-      };
-    }
+
+  const looksLikeFxSlash = /^[A-Z]{3}\/[A-Z]{3}$/i.test(raw.trim()) || /^XAU\/[A-Z]{3}$/i.test(raw.trim());
+  if (looksLikeFxSlash || TRADITIONAL_FX_COMPACT.has(compact)) {
+    const display = looksLikeFxSlash ? raw.trim().toUpperCase() : traditionalFxDisplay(compact);
+    return {
+      venue: "unsupported",
+      symbol: display,
+      displaySymbol: display,
+    };
   }
+
   if (!/^[A-Z0-9]{4,30}$/.test(compact)) return null;
   return {
     venue: "binance-spot",

@@ -19,6 +19,7 @@ describe("Forex Phase 11 data integrity", () => {
     expect(toDisplaySymbol("EURUSDC")).toBe("EUR/USDC");
     expect(parseSelectedMarket("EURUSDC")?.displaySymbol).toBe("EUR/USDC");
     expect(parseSelectedMarket("EUR/USD")?.venue).toBe("unsupported");
+    expect(parseSelectedMarket("EURUSD")?.venue).toBe("unsupported");
     expect(parseSelectedMarket("BTCUSDT")?.venue).toBe("binance-spot");
     expect(parseSelectedMarket("BTCUSDT")?.displaySymbol).toBe("BTC/USDT");
   });
