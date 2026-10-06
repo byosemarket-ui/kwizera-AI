@@ -73,6 +73,7 @@ describe("canonical GitHub-to-VPS deploy", () => {
     const verify = read("deploy/verify-live-http.mjs");
     expect(verify).toContain("/api/health");
     expect(verify).toContain("/desktop/");
+    expect(verify).toContain("/forex");
     expect(verify).toContain("/dev");
     expect(verify).toMatch(/Dev Dashboard/);
   });

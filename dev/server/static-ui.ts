@@ -11,6 +11,10 @@ export function isAdminEntryPath(pathname: string): boolean {
   return pathname === "/admin" || pathname === "/admin/" || pathname.startsWith("/admin/");
 }
 
+export function isForexEntryPath(pathname: string): boolean {
+  return pathname === "/forex" || pathname === "/forex/" || pathname.startsWith("/forex/");
+}
+
 export type PublicUiResolution =
   | { kind: "studio" | "legacy" | "asset"; filePath: string }
   | { kind: "missing-studio" }
@@ -56,7 +60,7 @@ export function resolvePublicUiFile(pathname: string, uiDir: string): PublicUiRe
     return { kind: "legacy", filePath: legacyIndex };
   }
 
-  if (isStudioEntryPath(pathname) || isAdminEntryPath(pathname)) {
+  if (isStudioEntryPath(pathname) || isAdminEntryPath(pathname) || isForexEntryPath(pathname)) {
     if (!fs.existsSync(desktopIndex) || !fs.statSync(desktopIndex).isFile()) return { kind: "missing-studio" };
     return { kind: "studio", filePath: desktopIndex };
   }

@@ -78,6 +78,8 @@ try {
   await check("/admin", "KWIZERA AI STUDIO");
   await check("/admin/dashboard", "KWIZERA AI STUDIO");
   await check("/admin/models", "KWIZERA AI STUDIO");
+  await check("/forex", "KWIZERA AI STUDIO");
+  await check("/forex/dashboard", "KWIZERA AI STUDIO");
   await check("/dev", "Dev Dashboard");
 
   const assetsDir = path.join(uiDir, "desktop", "assets");
@@ -88,8 +90,14 @@ try {
   if (!bundle.includes("data-app-surface") || !bundle.includes("acc-shell")) {
     throw new Error("built desktop bundle missing Admin surface markers (data-app-surface / acc-shell)");
   }
+  if (!bundle.includes("data-forex-sidebar") || !bundle.includes("data-forex-dashboard") || !bundle.includes("data-forex-header")) {
+    throw new Error("built desktop bundle missing Forex shell markers");
+  }
   if (!bundle.includes("Back to Studio")) {
     throw new Error("built desktop bundle missing Back to Studio control");
+  }
+  if (!bundle.includes("Welcome to KWIZERA Forex") && !bundle.includes("Forex Intelligence")) {
+    throw new Error("built desktop bundle missing Forex dashboard copy");
   }
   if (!bundle.includes("data-customer-home") || !bundle.includes("Welcome to")) {
     throw new Error("built desktop bundle missing commercial Customer Home markers");

@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   isAdminEntryPath,
+  isForexEntryPath,
   isLegacyDashboardPath,
   isStudioEntryPath,
   resolvePublicUiFile,
@@ -37,6 +38,14 @@ describe("public studio static routing", () => {
     expect(isStudioEntryPath("/desktop/")).toBe(true);
     expect(isLegacyDashboardPath("/dev")).toBe(true);
     expect(isLegacyDashboardPath("/")).toBe(false);
+  });
+
+  it("serves the professional studio at /forex", () => {
+    expect(isForexEntryPath("/forex")).toBe(true);
+    expect(isForexEntryPath("/forex/dashboard")).toBe(true);
+    const uiDir = makeUi({ studio: true });
+    const resolved = resolvePublicUiFile("/forex/dashboard", uiDir);
+    expect(resolved.kind).toBe("studio");
   });
 
   it("serves the professional studio at /admin", () => {

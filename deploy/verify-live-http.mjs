@@ -46,6 +46,8 @@ async function assertStudio(pathname) {
 
 await assertStudio("/");
 await assertStudio("/desktop/");
+await assertStudio("/forex");
+await assertStudio("/forex/dashboard");
 
 const legacy = await get("/dev");
 if (legacy.status !== 200 || !/Dev Dashboard/i.test(legacy.text)) {

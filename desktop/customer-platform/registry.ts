@@ -222,7 +222,15 @@ export class CustomerServiceRegistry {
       title: meta.title,
       order: meta.order,
       items: meta.key === "HOME"
-        ? [home]
+        ? [home, {
+            key: "forex",
+            title: "Forex",
+            description: "Market analysis workspace inside KWIZERA AI STUDIO",
+            icon: "chart",
+            route: "/forex",
+            status: "AVAILABLE" as const,
+            group: "HOME" as const,
+          }]
         : meta.key === "CREATE"
           ? createItems
           : workAndAccount.filter((item) => item.group === meta.key),

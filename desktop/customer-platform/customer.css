@@ -364,6 +364,7 @@
 }
 
 .cp-service-catalog,
+.cp-forex-entry,
 .cp-my-projects-entry {
   display: flex;
   flex-direction: column;

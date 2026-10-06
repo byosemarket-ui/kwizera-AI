@@ -39,6 +39,7 @@ export function CustomerHome({
 }) {
   const catalog = customerServiceRegistry.homeServiceCatalog();
   const FolderIcon = resolveCustomerIcon("folder");
+  const ChartIcon = resolveCustomerIcon("chart");
 
   const onStart = (service: CustomerService) => {
     if (service.status !== "AVAILABLE" || !service.workspace) return;
@@ -54,6 +55,21 @@ export function CustomerHome({
               Welcome to <span>KWIZERA AI STUDIO</span>
             </p>
           </header>
+
+          <section className="cp-forex-entry" data-forex-studio-entry="true" aria-label="Forex workspace">
+            <div className="cp-my-projects-card">
+              <div className="cp-my-projects-copy">
+                <span className="cp-service-icon" aria-hidden="true"><ChartIcon size={18} /></span>
+                <div>
+                  <h2 className="cp-section-title">Forex Intelligence</h2>
+                  <p className="cp-body">Open the Forex workspace for market analysis research and future trading tools.</p>
+                </div>
+              </div>
+              <PrimaryButton onClick={() => window.location.assign("/forex")}>
+                Open Forex
+              </PrimaryButton>
+            </div>
+          </section>
 
           <section className="cp-service-catalog" aria-labelledby="cp-catalog-heading">
             <SectionHeader

@@ -14,7 +14,12 @@ export function CustomerNavSection({
   const groups = customerServiceRegistry.buildNavigation();
 
   const activate = (item: CustomerNavItem) => {
-    if (item.status !== "AVAILABLE" || !item.workspace) return;
+    if (item.status !== "AVAILABLE") return;
+    if (item.route === "/forex" || item.route.startsWith("/forex/")) {
+      window.location.assign("/forex");
+      return;
+    }
+    if (!item.workspace) return;
     onNavigate(item.workspace);
   };
 
@@ -25,12 +30,14 @@ export function CustomerNavSection({
           {!collapsed ? <span className="nav-group">{group.title}</span> : null}
           {group.items.map((item) => {
             const Icon = resolveCustomerIcon(item.icon);
-            const available = item.status === "AVAILABLE" && Boolean(item.workspace);
+            const hrefNav = item.route === "/forex" || item.route.startsWith("/forex/");
+            const available = item.status === "AVAILABLE" && (Boolean(item.workspace) || hrefNav);
             const soon = item.status === "COMING_SOON";
             return (
               <button
                 key={item.key}
                 type="button"
+                data-forex-nav={hrefNav ? "true" : undefined}
                 className={`nav-item ${currentWorkspace === item.workspace ? "active" : ""} ${available ? "" : "disabled"}`}
                 onClick={() => activate(item)}
                 disabled={!available}

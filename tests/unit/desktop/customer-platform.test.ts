@@ -63,6 +63,7 @@ describe("Customer service registry", () => {
     const nav = customerServiceRegistry.buildNavigation();
     expect(nav.map((group) => group.key)).toEqual(["HOME", "CREATE", "MY_WORK", "ACCOUNT"]);
     expect(nav.find((group) => group.key === "HOME")?.items[0]?.workspace).toBe("home");
+    expect(nav.find((group) => group.key === "HOME")?.items.map((item) => item.key)).toEqual(["home", "forex"]);
     expect(nav.find((group) => group.key === "CREATE")?.items.map((item) => item.title)).toEqual(
       expect.arrayContaining(["Video", "Image", "Design", "Photo Studio", "Audio", "Voice"]),
     );
@@ -180,6 +181,8 @@ describe("Customer design system and components", () => {
     expect(dash).not.toMatch(/Live production|Live Production|dash-widget-grid|AI Status|Render Queue/i);
     const home = fs.readFileSync(path.resolve("desktop/customer-platform/CustomerHome.tsx"), "utf8");
     expect(home).toContain("Welcome to");
+    expect(home).toContain("data-forex-studio-entry");
+    expect(home).toContain("Open Forex");
     expect(home).toContain("homeServiceCatalog");
     expect(home).toContain("What do you want to create?");
     expect(home).toContain("My Projects");

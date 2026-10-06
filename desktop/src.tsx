@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, Component, type ErrorInfo, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, Component, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ChevronRight, Command, Contrast, Download, MonitorCog, Palette, PanelsTopLeft,
@@ -20,6 +20,7 @@ import { mapLegacyWorkspace } from "./shell/workspace-registry";
 import { installBootstrapRecovery } from "./shell/bootstrap-recovery";
 import { resetPersistedNavigationInStorage } from "./shell/startup-navigation";
 import { AdminControlCenter, isAdminUrl, STUDIO_ROOT_PATH } from "./admin-control-center";
+import { isForexUrl } from "./forex/forex-routes";
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
 import "./shell/shell.css";
@@ -27,6 +28,13 @@ import "./customer-platform/customer.css";
 
 const preferenceManager = new DesktopPreferenceManager();
 const notificationManager = new DesktopNotificationManager();
+const ForexApp = lazy(() => import("./forex/ForexApp"));
+
+function resolveAppSurface(): "admin" | "forex" | "studio" {
+  if (isAdminUrl()) return "admin";
+  if (isForexUrl()) return "forex";
+  return "studio";
+}
 
 class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
@@ -74,7 +82,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
-  const [surface, setSurface] = useState<"admin" | "studio">(() => (isAdminUrl() ? "admin" : "studio"));
+  const [surface, setSurface] = useState<"admin" | "forex" | "studio">(() => resolveAppSurface());
   const [preferences, setPreferences] = useState<DesktopPreferences>(() => preferenceManager.load());
   const [core, setCore] = useState<CoreStatus | null>(null);
   const [layoutSnapshot, setLayoutSnapshot] = useState<ShellLayoutState | null>(null);
@@ -86,7 +94,7 @@ function App() {
   const [notifications, setNotifications] = useState<DesktopNotification[]>(() => notificationManager.load());
 
   useEffect(() => {
-    const syncSurface = () => setSurface(isAdminUrl() ? "admin" : "studio");
+    const syncSurface = () => setSurface(resolveAppSurface());
     // Initial sync covers refresh / direct URL entry; popstate covers back/forward.
     syncSurface();
     window.addEventListener("popstate", syncSurface);
@@ -261,6 +269,30 @@ function App() {
             }}
           />
         </div>
+      ) : surface === "forex" ? (
+        <Suspense
+          fallback={(
+            <section className="startup-loading-panel" role="status" aria-live="polite">
+              <strong>KWIZERA FOREX</strong>
+              <span>Loading Forex workspace…</span>
+            </section>
+          )}
+        >
+          <ForexApp
+            preferences={preferences}
+            onThemeCycle={() => {
+              setPreferences((current) => {
+                const order: Array<DesktopPreferences["theme"]> = ["dark", "light", "system"];
+                const next = order[(order.indexOf(current.theme) + 1) % order.length];
+                return { ...current, theme: next };
+              });
+            }}
+            onNotificationsToggle={() => setNotificationsOpen((open) => !open)}
+            notificationsOpen={notificationsOpen}
+            unreadCount={notifications.filter((item) => !item.read).length}
+            onBackToStudio={() => window.location.assign(STUDIO_ROOT_PATH)}
+          />
+        </Suspense>
       ) : (
       <div
         data-app-surface="studio"
@@ -291,7 +323,7 @@ function App() {
       </div>
       )}
 
-      {surface === "studio" && preferencesOpen && (
+      {surface !== "admin" && preferencesOpen && (
         <DesktopPreferencesPanel
           preferences={preferences}
           onChange={setPreferences}
@@ -306,7 +338,7 @@ function App() {
           onClose={() => setPreferencesOpen(false)}
         />
       )}
-      {surface === "studio" && notificationsOpen && (
+      {surface !== "admin" && notificationsOpen && (
         <NotificationCenter
           notifications={notifications}
           onClear={() => setNotifications([])}
