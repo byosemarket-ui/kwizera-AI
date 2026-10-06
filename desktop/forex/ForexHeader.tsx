@@ -7,6 +7,8 @@ import {
   type ForexRouteId,
   type ForexViewId,
 } from "./forex-routes";
+import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
+import { connectionBadgeTone, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 
 export function ForexHeader({
   route,
@@ -19,6 +21,7 @@ export function ForexHeader({
   unreadCount,
   preferences,
   onThemeCycle,
+  binanceConnection,
 }: {
   route: ForexViewId;
   sidebarOpen: boolean;
@@ -30,6 +33,7 @@ export function ForexHeader({
   unreadCount: number;
   preferences: DesktopPreferences;
   onThemeCycle: () => void;
+  binanceConnection: MarketConnectionSnapshot;
 }) {
   const item = getForexNavItem(route);
   const crumbs = getForexBreadcrumbs(route);
@@ -78,8 +82,16 @@ export function ForexHeader({
       </label>
 
       <div className="fx-header-right">
-        <div className="fx-session-status" role="status" aria-live="polite">
-          <ForexStatusBadge tone="offline">Not connected</ForexStatusBadge>
+        <div
+          className="fx-session-status"
+          role="status"
+          aria-live="polite"
+          data-binance-connection={binanceConnection.state}
+          data-live-market={binanceConnection.liveMarketData ? "true" : "false"}
+        >
+          <ForexStatusBadge tone={connectionBadgeTone(binanceConnection)}>
+            {publicConnectionLabel(binanceConnection)}
+          </ForexStatusBadge>
         </div>
         <button
           type="button"

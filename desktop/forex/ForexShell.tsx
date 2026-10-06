@@ -15,6 +15,7 @@ import {
   type ForexViewId,
 } from "./forex-routes";
 import type { DesktopPreferences } from "../desktop-polish/types";
+import { useBinanceConnectionStatus } from "./market-data/use-binance-status";
 import "./forex.css";
 
 const ForexChartWorkspace = lazy(async () => {
@@ -74,6 +75,7 @@ export function ForexShell({
   const [sidebarOpen, setSidebarOpen] = useState(() => (
     typeof window !== "undefined" ? window.innerWidth > 820 : true
   ));
+  const { snapshot: binanceConnection, retry: retryBinance } = useBinanceConnectionStatus();
 
   useEffect(() => {
     syncForexUrl(route);
@@ -107,7 +109,13 @@ export function ForexShell({
   if (route === "not-found") {
     content = <ForexNotFound onBackToDashboard={() => navigate("dashboard")} />;
   } else if (route === "dashboard") {
-    content = <ForexDashboard onOpenModule={navigate} />;
+    content = (
+      <ForexDashboard
+        onOpenModule={navigate}
+        binanceConnection={binanceConnection}
+        onRetryBinance={retryBinance}
+      />
+    );
   } else if (route === "charts" || route === "technical-analysis") {
     content = (
       <Suspense fallback={<p className="fx-page-desc">Loading chart workspace…</p>}>
@@ -136,6 +144,7 @@ export function ForexShell({
           unreadCount={unreadCount}
           preferences={preferences}
           onThemeCycle={onThemeCycle}
+          binanceConnection={binanceConnection}
         />
         <div className="fx-body">
           <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />

@@ -17,11 +17,17 @@ import {
   sessionStatusLabel,
 } from "./dashboard-data";
 import type { ForexRouteId } from "./forex-routes";
+import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
+import { connectionBadgeTone, publicConnectionDetail, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 
 export function ForexDashboard({
   onOpenModule,
+  binanceConnection,
+  onRetryBinance,
 }: {
   onOpenModule: (id: ForexRouteId) => void;
+  binanceConnection: MarketConnectionSnapshot;
+  onRetryBinance: () => void;
 }) {
   const quotes = marketOverviewQuotes();
   const sessions = resolveMarketSessions();
@@ -230,17 +236,41 @@ export function ForexDashboard({
         <section className="fx-connection-panel" data-forex-section="connections" aria-labelledby="fx-connections-title">
           <h2 id="fx-connections-title">Data connection status</h2>
           <p className="fx-panel-meta">
-            The dashboard UI is ready; underlying services will be connected in later phases.
+            Binance public REST reachability is checked here. A reachable ping is not live market data.
           </p>
           <ul className="fx-connection-list">
-            {FOREX_SERVICE_CONNECTIONS.map((service) => (
-              <li key={service.id}>
-                <span>{service.label}</span>
-                <ForexStatusBadge tone="offline">{service.detail}</ForexStatusBadge>
-              </li>
-            ))}
+            {FOREX_SERVICE_CONNECTIONS.map((service) => {
+              if (service.id === "market-data") {
+                return (
+                  <li key={service.id}>
+                    <span>{service.label}</span>
+                    <ForexStatusBadge tone={connectionBadgeTone(binanceConnection)}>
+                      {publicConnectionLabel(binanceConnection)}
+                    </ForexStatusBadge>
+                  </li>
+                );
+              }
+              return (
+                <li key={service.id}>
+                  <span>{service.label}</span>
+                  <ForexStatusBadge tone="offline">{service.detail}</ForexStatusBadge>
+                </li>
+              );
+            })}
           </ul>
-          <p className="fx-panel-meta" role="status">Market data connection: Not connected</p>
+          <p
+            className="fx-panel-meta"
+            role="status"
+            data-binance-connection={binanceConnection.state}
+            data-live-market={binanceConnection.liveMarketData ? "true" : "false"}
+          >
+            Market data connection: {publicConnectionDetail(binanceConnection)}
+          </p>
+          {binanceConnection.state === "ERROR" ? (
+            <button type="button" className="fx-text-button" onClick={onRetryBinance}>
+              Retry
+            </button>
+          ) : null}
         </section>
       </div>
     </section>
