@@ -55,6 +55,27 @@ function formatPrice(symbol: string, value: number | null): string {
   return value.toFixed(digits);
 }
 
+function indicatorLatestValue(
+  kind: IndicatorKind,
+  candles: Candle[],
+  config: IndicatorConfig,
+): number | null {
+  if (candles.length === 0) return null;
+  if (kind === "sma") return lastValue(calculateSMA(candles, config.period ?? 20));
+  if (kind === "ema") return lastValue(calculateEMA(candles, config.period ?? 20));
+  if (kind === "rsi") return lastValue(calculateRSI(candles, config.period ?? 14));
+  if (kind === "macd") return lastValue(calculateMACD(candles, config.fastPeriod ?? 12, config.slowPeriod ?? 26, config.signalPeriod ?? 9).macd);
+  if (kind === "bollinger") return lastValue(calculateBollingerBands(candles, config.period ?? 20, config.deviation ?? 2).middle);
+  return null;
+}
+
+function formatIndicatorReadout(kind: IndicatorKind, value: number | null, symbol: string): string {
+  if (value === null || !Number.isFinite(value)) return "Insufficient data";
+  if (kind === "rsi") return value.toFixed(1);
+  if (kind === "macd") return value.toFixed(4);
+  return formatPrice(symbol, value);
+}
+
 function defaultIndicators(mode: "charts" | "analysis"): IndicatorConfig[] {
   if (mode === "charts") return [];
   return [
@@ -218,15 +239,21 @@ export function ForexChartWorkspace({
   const last = candles[candles.length - 1] ?? null;
   const display = focused ?? last;
   const canAnalyze = binanceSelected && candles.length > 0;
-  const sma20 = canAnalyze ? lastValue(calculateSMA(candles, 20)) : null;
-  const sma50 = canAnalyze ? lastValue(calculateSMA(candles, 50)) : null;
-  const rsiLast = canAnalyze ? lastValue(rsiPoints) : null;
-  const bb = canAnalyze
-    ? calculateBollingerBands(candles, 20, 2)
-    : { middle: [] as Array<{ value: number }>, upper: [] as Array<{ value: number }>, lower: [] as Array<{ value: number }> };
+  const sma20 = useMemo(() => (canAnalyze ? lastValue(calculateSMA(candles, 20)) : null), [canAnalyze, candles]);
+  const sma50 = useMemo(() => (canAnalyze ? lastValue(calculateSMA(candles, 50)) : null), [canAnalyze, candles]);
+  const ema50 = useMemo(() => (canAnalyze ? lastValue(calculateEMA(candles, 50)) : null), [canAnalyze, candles]);
+  const rsiLast = useMemo(() => (canAnalyze ? lastValue(rsiPoints) : null), [canAnalyze, rsiPoints]);
+  const macdLast = useMemo(() => (canAnalyze && macdData ? lastValue(macdData.macd) : null), [canAnalyze, macdData]);
+  const macdSignalLast = useMemo(() => (canAnalyze && macdData ? lastValue(macdData.signal) : null), [canAnalyze, macdData]);
+  const bb = useMemo(() => (
+    canAnalyze
+      ? calculateBollingerBands(candles, 20, 2)
+      : { middle: [] as Array<{ time: number; value: number }>, upper: [] as Array<{ time: number; value: number }>, lower: [] as Array<{ time: number; value: number }> }
+  ), [canAnalyze, candles]);
   const bbWidth = bb.middle.length
     ? ((bb.upper[bb.upper.length - 1].value - bb.lower[bb.lower.length - 1].value) / bb.middle[bb.middle.length - 1].value) * 100
     : null;
+  const bbMid = bb.middle.length ? bb.middle[bb.middle.length - 1].value : null;
 
   const toggleFullscreen = async () => {
     const node = workspaceRef.current;
@@ -321,6 +348,17 @@ export function ForexChartWorkspace({
             : chartLive
               ? "Live Binance data"
               : liveMarketStatusLabel(klineStatus);
+  const analysisUnavailableReason = !binanceSelected
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
+    : historyPending
+      ? "Loading Binance candle data for technical analysis..."
+      : history.state === "error"
+        ? "Unable to load Binance market data."
+        : history.state === "disconnected"
+          ? "Binance live data unavailable."
+          : history.state === "empty"
+            ? "No Binance candle data available."
+            : "Waiting for Binance candle data...";
   const showChart = historyReady;
 
   return (
@@ -334,6 +372,15 @@ export function ForexChartWorkspace({
       data-chart-symbol={selected?.symbol ?? ""}
       data-chart-timeframe={timeframe}
       data-market-venue={selected?.venue ?? "none"}
+      data-ta-source={binanceSelected ? "binance-spot" : "none"}
+      data-ta-candle-count={canAnalyze ? String(candles.length) : "0"}
+      data-ta-last-close={canAnalyze && last ? String(last.close) : ""}
+      data-ta-last-time={canAnalyze && last ? String(last.time) : ""}
+      data-ta-sma20={sma20 == null ? "" : String(sma20)}
+      data-ta-sma50={sma50 == null ? "" : String(sma50)}
+      data-ta-ema50={ema50 == null ? "" : String(ema50)}
+      data-ta-rsi14={rsiLast == null ? "" : String(rsiLast)}
+      data-ta-macd={macdLast == null ? "" : String(macdLast)}
     >
       <ForexSectionHeader
         eyebrow={analysis ? "Analysis" : "Market"}
@@ -456,7 +503,10 @@ export function ForexChartWorkspace({
       <div className={`fx-chart-side ${analysis ? "is-wide" : ""}`}>
         <section className="fx-indicator-manager" aria-labelledby="fx-ind-title">
           <h2 id="fx-ind-title">Indicators</h2>
-          {!canAnalyze ? <p className="fx-panel-meta">{LIVE_MARKET_UNAVAILABLE}</p> : null}
+          <p className="fx-panel-meta" data-ta-indicator-source="binance-spot">
+            Calculated from Binance Spot OHLCV — the same candle series as Charts.
+          </p>
+          {!canAnalyze ? <p className="fx-panel-meta" data-analysis-unavailable="true">{analysisUnavailableReason}</p> : null}
           <div className="fx-indicator-add">
             <select aria-label="Add indicator type" value={addKind} onChange={(event) => setAddKind(event.target.value as IndicatorKind)} disabled={!canAnalyze}>
               <option value="sma">SMA</option>
@@ -468,39 +518,97 @@ export function ForexChartWorkspace({
             <button type="button" className="fx-text-button" onClick={addIndicator} disabled={!canAnalyze}>Add indicator</button>
           </div>
           <ul className="fx-indicator-list">
-            {indicators.map((item) => (
-              <li key={item.id}>
-                <span>{item.kind.toUpperCase()}{item.period ? ` ${item.period}` : ""}</span>
-                {item.period ? (
-                  <input
-                    aria-label={`${item.kind} period`}
-                    type="number"
-                    min={2}
-                    max={200}
-                    value={item.period}
-                    disabled={!canAnalyze}
-                    onChange={(event) => setIndicators((current) => current.map((row) => row.id === item.id ? { ...row, period: Number(event.target.value) || row.period } : row))}
-                  />
-                ) : null}
-                <button type="button" className="fx-text-button" onClick={() => setIndicators((current) => current.filter((row) => row.id !== item.id))}>Remove</button>
-              </li>
-            ))}
+            {indicators.map((item) => {
+              const latest = canAnalyze && selected
+                ? indicatorLatestValue(item.kind, candles, item)
+                : null;
+              const readout = selected
+                ? formatIndicatorReadout(item.kind, latest, selected.symbol)
+                : "Insufficient data";
+              return (
+                <li key={item.id} data-ta-indicator={item.kind} data-ta-indicator-value={latest == null ? "" : String(latest)}>
+                  <span>
+                    {item.kind.toUpperCase()}{item.period ? ` ${item.period}` : item.kind === "macd" ? " 12/26/9" : ""}
+                    {" · "}
+                    <strong data-ta-indicator-readout="true">{readout}</strong>
+                  </span>
+                  {item.period ? (
+                    <input
+                      aria-label={`${item.kind} period`}
+                      type="number"
+                      min={2}
+                      max={200}
+                      value={item.period}
+                      disabled={!canAnalyze}
+                      onChange={(event) => setIndicators((current) => current.map((row) => row.id === item.id ? { ...row, period: Number(event.target.value) || row.period } : row))}
+                    />
+                  ) : null}
+                  <button type="button" className="fx-text-button" onClick={() => setIndicators((current) => current.filter((row) => row.id !== item.id))}>Remove</button>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
         {analysis ? (
           <>
-            <section aria-labelledby="fx-summary-title">
+            <section aria-labelledby="fx-summary-title" data-ta-analysis-summary="true">
               <h2 id="fx-summary-title">Analysis summary</h2>
-              <p className="fx-panel-meta">Descriptive measurements only. No buy or sell recommendation.</p>
+              <p className="fx-panel-meta">Descriptive measurements from Binance Spot candles only. No buy or sell recommendation.</p>
               {!canAnalyze ? (
-                <p className="fx-panel-meta" data-analysis-unavailable="true">{LIVE_MARKET_UNAVAILABLE}</p>
+                <p className="fx-panel-meta" data-analysis-unavailable="true">{analysisUnavailableReason}</p>
               ) : (
                 <dl className="fx-analysis-dl">
-                  <div><dt>Trend</dt><dd>{sma20 !== null && sma50 !== null ? (sma20 > sma50 ? "SMA 20 is above SMA 50" : "SMA 20 is below SMA 50") : "SMA structure unavailable"}</dd></div>
-                  <div><dt>Momentum</dt><dd>{rsiLast !== null ? `RSI 14 is ${rsiLast.toFixed(1)}` : "RSI not active"}</dd></div>
-                  <div><dt>Volatility</dt><dd>{bbWidth !== null ? `Bollinger width ${bbWidth.toFixed(2)}%` : "Bollinger width unavailable"}</dd></div>
+                  <div>
+                    <dt>Trend</dt>
+                    <dd data-ta-trend="true">
+                      {sma20 !== null && sma50 !== null
+                        ? `SMA 20 (${formatPrice(selected!.symbol, sma20)}) is ${sma20 > sma50 ? "above" : "below"} SMA 50 (${formatPrice(selected!.symbol, sma50)})`
+                        : "Insufficient data for SMA 20 / SMA 50"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>EMA</dt>
+                    <dd data-ta-ema="true">
+                      {ema50 !== null ? `EMA 50 is ${formatPrice(selected!.symbol, ema50)}` : "Insufficient data for EMA 50"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Momentum</dt>
+                    <dd data-ta-momentum="true">
+                      {rsiLast !== null
+                        ? `RSI 14 is ${rsiLast.toFixed(1)}${rsiLast >= 70 ? " (above 70 reference)" : rsiLast <= 30 ? " (below 30 reference)" : ""}`
+                        : indicators.some((item) => item.kind === "rsi")
+                          ? "Insufficient data for RSI 14"
+                          : "RSI not active"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>MACD</dt>
+                    <dd data-ta-macd-summary="true">
+                      {macdLast !== null && macdSignalLast !== null
+                        ? `MACD ${macdLast.toFixed(4)} · signal ${macdSignalLast.toFixed(4)}`
+                        : indicators.some((item) => item.kind === "macd")
+                          ? "Insufficient data for MACD"
+                          : "MACD not active"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Volatility</dt>
+                    <dd data-ta-volatility="true">
+                      {bbWidth !== null && bbMid !== null
+                        ? `Bollinger mid ${formatPrice(selected!.symbol, bbMid)} · width ${bbWidth.toFixed(2)}%`
+                        : "Insufficient data for Bollinger Bands"}
+                    </dd>
+                  </div>
                   <div><dt>Structure</dt><dd>Automatic market-structure detection is not implemented.</dd></div>
+                  <div>
+                    <dt>Series</dt>
+                    <dd data-ta-series="true">
+                      {selected!.symbol} · {timeframe} · {candles.length} Binance candles
+                      {last ? ` · last close ${formatPrice(selected!.symbol, last.close)}` : ""}
+                    </dd>
+                  </div>
                 </dl>
               )}
             </section>
