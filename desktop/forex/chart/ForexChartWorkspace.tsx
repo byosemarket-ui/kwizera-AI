@@ -372,6 +372,18 @@ export function ForexChartWorkspace({
       data-chart-symbol={selected?.symbol ?? ""}
       data-chart-timeframe={timeframe}
       data-market-venue={selected?.venue ?? "none"}
+      data-fx-source={binanceSelected ? "binance-spot" : "none"}
+      data-fx-symbol={binanceSelected ? selected.symbol : ""}
+      data-fx-timeframe={timeframe}
+      data-fx-candle-count={canAnalyze ? String(candles.length) : "0"}
+      data-fx-last-time={canAnalyze && last ? String(last.time) : ""}
+      data-fx-open={canAnalyze && last ? String(last.open) : ""}
+      data-fx-high={canAnalyze && last ? String(last.high) : ""}
+      data-fx-low={canAnalyze && last ? String(last.low) : ""}
+      data-fx-close={canAnalyze && last ? String(last.close) : ""}
+      data-fx-volume={canAnalyze && last && last.volume != null ? String(last.volume) : ""}
+      data-fx-connection={chartLive ? "LIVE" : klineStatus}
+      data-fx-forming={canAnalyze && last && last.closed === false ? "true" : "false"}
       data-ta-source={binanceSelected ? "binance-spot" : "none"}
       data-ta-candle-count={canAnalyze ? String(candles.length) : "0"}
       data-ta-last-close={canAnalyze && last ? String(last.close) : ""}
