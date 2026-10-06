@@ -205,19 +205,30 @@ export function ForexChartWorkspace({
 
   const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === selected.symbol);
   const analysis = mode === "analysis";
-  const chartLive = Boolean(
+  const historyReady = Boolean(
     binanceSelected
     && history.state === "ready"
+    && history.symbol === selected.symbol
+    && history.timeframe === timeframe
+    && candles.length > 0,
+  );
+  const chartLive = Boolean(
+    historyReady
     && liveKline.liveMarketData
     && liveKline.kline?.symbol === selected.symbol
     && liveKline.kline?.timeframe === timeframe,
   );
   const livePrice = Boolean(chartLive || (liveTicker?.liveMarketData && liveTicker.ticker?.symbol === selected.symbol));
   const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
+  const historyPending = binanceSelected && (
+    history.state === "loading"
+    || history.symbol !== selected.symbol
+    || history.timeframe !== timeframe
+  );
   const chartState = !binanceSelected
     ? (development?.state ?? "empty")
-    : history.state === "loading"
-      ? "loading"
+    : historyPending
+      ? (liveKline.connectionState === "RECONNECTING" ? "reconnecting" : "loading")
       : history.state === "error"
         ? "error"
         : history.state === "disconnected"
@@ -233,8 +244,8 @@ export function ForexChartWorkspace({
                   : "ready";
   const chartMessage = !binanceSelected
     ? (development?.message ?? "No chart data")
-    : history.state === "loading"
-      ? "Loading Binance market data..."
+    : historyPending
+      ? (liveKline.connectionState === "RECONNECTING" ? "Reconnecting to Binance..." : "Loading Binance market data...")
       : history.state === "error"
         ? "Unable to load Binance market data."
         : history.state === "disconnected"
@@ -243,8 +254,10 @@ export function ForexChartWorkspace({
             ? "No Binance candle data available."
             : chartLive
               ? "Live Binance data"
-              : liveKlineStatusLabel(liveKline);
-  const showChart = binanceSelected ? history.state === "ready" && candles.length > 0 : development?.state === "ready" && candles.length > 0;
+              : liveKline.liveMarketData
+                ? "Connecting to Binance..."
+                : liveKlineStatusLabel(liveKline);
+  const showChart = binanceSelected ? historyReady : development?.state === "ready" && candles.length > 0;
 
   return (
     <section
@@ -341,7 +354,7 @@ export function ForexChartWorkspace({
           {binanceSelected ? (
             <>
               <ForexStatusBadge tone={chartLive ? "live" : liveKline.connectionState === "ERROR" ? "offline" : "future"}>
-                {chartLive ? "LIVE" : liveKlineStatusLabel(liveKline)}
+                {chartLive ? "LIVE" : historyPending ? "Loading Binance market data..." : liveKline.liveMarketData ? "Connecting to Binance..." : liveKlineStatusLabel(liveKline)}
               </ForexStatusBadge>
               {liveTicker?.liveMarketData ? (
                 <ForexStatusBadge tone={liveTickerStatusTone(liveTicker)}>
