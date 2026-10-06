@@ -8,6 +8,7 @@ import { isBinanceSpotSelection, type SelectedMarket } from "../market-data/sele
 import { useBinanceKlines } from "../market-data/use-binance-klines";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
+import { buildForexMarketState } from "../../../ai/forex-market-state";
 import {
   liveTickerPriceLabel,
   type LiveTickerSnapshot,
@@ -361,6 +362,17 @@ export function ForexChartWorkspace({
             : "Waiting for Binance candle data...";
   const showChart = historyReady;
 
+  const marketState = useMemo(() => {
+    if (!binanceSelected || !selected || candles.length === 0) return null;
+    return buildForexMarketState({
+      symbol: selected.symbol,
+      timeframe,
+      candles,
+      connection: klineStatus,
+      lastMarketUpdateMs: liveKline.kline?.eventTimeUtc ?? (last ? last.time * 1000 : null),
+    });
+  }, [binanceSelected, selected, candles, timeframe, klineStatus, liveKline.kline?.eventTimeUtc, last]);
+
   return (
     <section
       ref={workspaceRef}
@@ -384,6 +396,16 @@ export function ForexChartWorkspace({
       data-fx-volume={canAnalyze && last && last.volume != null ? String(last.volume) : ""}
       data-fx-connection={chartLive ? "LIVE" : klineStatus}
       data-fx-forming={canAnalyze && last && last.closed === false ? "true" : "false"}
+      data-ms-version={marketState?.version ?? ""}
+      data-ms-symbol={marketState?.symbol ?? ""}
+      data-ms-timeframe={marketState?.timeframe ?? ""}
+      data-ms-close={marketState?.price?.close != null ? String(marketState.price.close) : ""}
+      data-ms-open-time={marketState?.candleOpenTime != null ? String(marketState.candleOpenTime) : ""}
+      data-ms-trend={marketState?.trend?.direction ?? ""}
+      data-ms-rsi={marketState?.momentum?.rsi != null ? String(marketState.momentum.rsi) : ""}
+      data-ms-connection={marketState?.dataQuality.connection ?? ""}
+      data-ms-valid={marketState?.dataQuality.valid ? "true" : "false"}
+      data-ms-candle-count={marketState ? String(marketState.dataQuality.candleCount) : "0"}
       data-ta-source={binanceSelected ? "binance-spot" : "none"}
       data-ta-candle-count={canAnalyze ? String(candles.length) : "0"}
       data-ta-last-close={canAnalyze && last ? String(last.close) : ""}

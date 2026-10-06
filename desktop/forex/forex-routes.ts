@@ -389,7 +389,8 @@ export function isForexMarketStateRoute(route: ForexViewId): boolean {
     route === "markets" ||
     route === "watchlist" ||
     route === "charts" ||
-    route === "technical-analysis"
+    route === "technical-analysis" ||
+    route === "ai-analysis"
   );
 }
 

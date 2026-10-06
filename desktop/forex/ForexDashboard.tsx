@@ -27,6 +27,7 @@ import {
 } from "./market-data/live-market-status";
 import { listSessionWatchlist } from "./market-data/session-watchlist";
 import { buildBinanceOverviewEntries } from "./market-data/binance-overview";
+import { useForexMarketState } from "./market-data/use-forex-market-state";
 
 export function ForexDashboard({
   onOpenModule,
@@ -46,6 +47,7 @@ export function ForexDashboard({
   onSelectMarket?: (market: SelectedMarket) => void;
 }) {
   const overviewEntries = buildBinanceOverviewEntries(selectedMarket, liveTicker);
+  const { marketState, loading: marketStateLoading } = useForexMarketState(selectedMarket, timeframe);
   const sessions = resolveMarketSessions();
   const clock = formatUtcClock(new Date());
   const tickerStatus = selectedMarket?.venue === "binance-spot"
@@ -91,6 +93,34 @@ export function ForexDashboard({
         </div>
         {selectedMarket?.venue === "binance-spot" ? (
           <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket.symbol} />
+        ) : null}
+        {selectedMarket?.venue === "binance-spot" ? (
+          <div
+            className="fx-placeholder-panel"
+            data-forex-section="market-state"
+            data-ms-dashboard="true"
+            data-ms-symbol={marketState?.symbol ?? ""}
+            data-ms-timeframe={marketState?.timeframe ?? ""}
+            data-ms-close={marketState?.price?.close != null ? String(marketState.price.close) : ""}
+            data-ms-connection={marketState?.dataQuality.connection ?? ""}
+          >
+            <h3>Market State</h3>
+            <p className="fx-panel-meta">
+              Structured Binance facts for {selectedMarket.displaySymbol} · {timeframeLabel(timeframe)}.
+              Same candle series as Charts / Technical Analysis. Not AI reasoning.
+            </p>
+            {marketStateLoading ? <p className="fx-panel-meta">Loading market state…</p> : null}
+            {marketState?.dataQuality.valid ? (
+              <dl className="fx-ohlc" aria-label="Market state summary">
+                <div><dt>Close</dt><dd>{marketState.price?.close ?? "—"}</dd></div>
+                <div><dt>Trend</dt><dd>{marketState.trend?.direction ?? "—"}</dd></div>
+                <div><dt>RSI 14</dt><dd>{marketState.momentum?.rsi == null ? "—" : marketState.momentum.rsi.toFixed(1)}</dd></div>
+                <div><dt>Connection</dt><dd>{marketState.dataQuality.connection}</dd></div>
+              </dl>
+            ) : (
+              <p className="fx-panel-meta">{marketState?.dataQuality.reason ?? "Waiting for Binance candles…"}</p>
+            )}
+          </div>
         ) : null}
       </section>
 

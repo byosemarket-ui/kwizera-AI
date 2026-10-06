@@ -124,3 +124,35 @@ export function lastValue(points: LinePoint[]): number | null {
   const value = points[points.length - 1]?.value;
   return value === undefined || !Number.isFinite(value) ? null : value;
 }
+
+/** Wilder ATR — authoritative volatility helper for Market State (same candle series as Charts/TA). */
+export function calculateATR(
+  candles: Array<{ time: number; high: number; low: number; close: number }>,
+  period = 14,
+): LinePoint[] {
+  if (period < 1 || candles.length <= period) return [];
+  const trueRanges: number[] = [];
+  for (let index = 0; index < candles.length; index += 1) {
+    const candle = candles[index]!;
+    if (index === 0) {
+      trueRanges.push(candle.high - candle.low);
+      continue;
+    }
+    const prevClose = candles[index - 1]!.close;
+    trueRanges.push(Math.max(
+      candle.high - candle.low,
+      Math.abs(candle.high - prevClose),
+      Math.abs(candle.low - prevClose),
+    ));
+  }
+  let atr = 0;
+  for (let index = 1; index <= period; index += 1) atr += trueRanges[index]!;
+  atr /= period;
+  const out: LinePoint[] = [{ time: candles[period]!.time, value: atr }];
+  for (let index = period + 1; index < candles.length; index += 1) {
+    atr = ((atr * (period - 1)) + trueRanges[index]!) / period;
+    const next = point(candles[index]!.time, atr);
+    if (next) out.push(next);
+  }
+  return out;
+}

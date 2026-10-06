@@ -18,6 +18,7 @@ import { resolvePublicUiFile } from "./static-ui.js";
 import { handleAdminApi } from "./admin-control-center-api.js";
 import { handleBinanceMarketDataApi } from "./binance-market-data-api.js";
 import { handleForexAiApi } from "./forex-ai-api.js";
+import { handleForexMarketStateApi } from "./forex-market-state-api.js";
 import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
@@ -1182,6 +1183,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleForexAiApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleForexMarketStateApi(req, res, url, sendJson)) {
     return;
   }
 
