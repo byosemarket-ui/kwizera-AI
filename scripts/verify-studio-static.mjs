@@ -107,8 +107,14 @@ try {
   if (!bundle.includes("data-forex-chart-panel") || !bundle.includes("data-forex-market-card") || !bundle.includes("Economic calendar data not connected.")) {
     throw new Error("built desktop bundle missing Forex Phase 3 dashboard markers");
   }
-  if (!bundle.includes("data-forex-chart-workspace") || !bundle.includes("data-forex-price-chart") || !bundle.includes("Development data")) {
+  if (!bundle.includes("data-forex-chart-workspace") || !bundle.includes("data-forex-price-chart")) {
     throw new Error("built desktop bundle missing Forex Phase 4 chart workspace markers");
+  }
+  if (!bundle.includes("Live Binance market data is not connected") && !bundle.includes("Live market data unavailable")) {
+    throw new Error("built desktop bundle missing Phase 11 honest unavailable market-data copy");
+  }
+  if (bundle.includes("development series, not a live quote") || bundle.includes("development Forex")) {
+    throw new Error("built desktop bundle still presents development Forex as a live market source");
   }
   if (!bundle.includes("data-customer-home") || !bundle.includes("Welcome to")) {
     throw new Error("built desktop bundle missing commercial Customer Home markers");
