@@ -65,7 +65,7 @@ export function ForexModulePage({
                   const active = selectedMarket?.symbol === entry.symbol;
                   return (
                     <li key={entry.symbol}>
-                      <span>{entry.symbol}</span>
+                      <span>{entry.displaySymbol}</span>
                       <span>{active && liveTicker?.liveMarketData && liveTicker.ticker?.symbol === entry.symbol
                         ? "LIVE"
                         : active

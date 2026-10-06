@@ -113,7 +113,7 @@ export function ForexDashboard({
           <div>
             <h2 id="fx-markets-title">Market overview</h2>
             <p className="fx-panel-meta">
-              Development Forex labels only. Live Binance Spot pricing is on the active market panel above — open Markets to select a symbol.
+              Traditional FX labels shown here are not Binance Spot markets. Prices stay Not connected until Phase 12 wires live quotes. Use Markets for real Binance symbols.
             </p>
           </div>
           <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
@@ -158,7 +158,7 @@ export function ForexDashboard({
                 const status = active ? resolveTickerUiStatus(liveTicker, entry.symbol) : null;
                 return (
                   <li key={entry.symbol}>
-                    <span>{entry.symbol}</span>
+                    <span>{entry.displaySymbol}</span>
                     <span>{status === "LIVE" ? "LIVE" : active ? liveMarketStatusLabel(status ?? "CONNECTED") : "Session"}</span>
                     {onSelectMarket ? (
                       <button type="button" className="fx-text-button" onClick={() => onSelectMarket(entry)}>

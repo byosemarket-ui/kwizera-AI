@@ -2,6 +2,7 @@
  * Session-local Binance watchlist (no persistence backend).
  * Stores selected Spot symbols for the current browser session only.
  */
+import { toDisplaySymbol } from "../../../ai/market-data/binance/adapter";
 import type { SelectedMarket } from "./selected-market";
 
 const STORAGE_KEY = "kwizera-forex-binance-watchlist";
@@ -29,12 +30,16 @@ function writeRaw(symbols: string[]): void {
   }
 }
 
-export function listSessionWatchlist(): SelectedMarket[] {
-  return readRaw().map((symbol) => ({
-    venue: "binance-spot" as const,
+function toWatchlistEntry(symbol: string): SelectedMarket {
+  return {
+    venue: "binance-spot",
     symbol,
-    displaySymbol: symbol,
-  }));
+    displaySymbol: toDisplaySymbol(symbol),
+  };
+}
+
+export function listSessionWatchlist(): SelectedMarket[] {
+  return readRaw().map(toWatchlistEntry);
 }
 
 /** Promote a Binance Spot symbol to the front of the session watchlist. */
@@ -42,11 +47,7 @@ export function rememberSessionWatchlist(market: SelectedMarket | null): Selecte
   if (!market || market.venue !== "binance-spot") return listSessionWatchlist();
   const next = [market.symbol, ...readRaw().filter((item) => item !== market.symbol)].slice(0, MAX_ENTRIES);
   writeRaw(next);
-  return next.map((symbol) => ({
-    venue: "binance-spot" as const,
-    symbol,
-    displaySymbol: symbol,
-  }));
+  return next.map(toWatchlistEntry);
 }
 
 export function removeSessionWatchlistSymbol(symbol: string): SelectedMarket[] {

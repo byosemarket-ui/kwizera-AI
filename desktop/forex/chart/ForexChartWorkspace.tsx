@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
-import { FOREX_INSTRUMENTS } from "../dashboard-data";
 import { ForexStatusBadge } from "../components/ForexStatusBadge";
 import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
-import { fetchMarketSeries, writeChartQuery } from "./market-data";
-import { defaultSelectedMarket, parseSelectedMarket, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
+import { writeChartQuery } from "./market-data";
+import { isBinanceSpotSelection, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
 import { useBinanceKlines } from "../market-data/use-binance-klines";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
@@ -20,8 +19,10 @@ import {
   resolveKlineUiStatus,
   resolveTickerUiStatus,
 } from "../market-data/live-market-status";
+import { LIVE_MARKET_UNAVAILABLE, LIVE_PRICE_UNAVAILABLE } from "../market-data/allow-development-market-data";
 import {
   CHART_TIMEFRAMES,
+  DEFAULT_CHART_TIMEFRAME,
   type Candle,
   type ChartTimeframeId,
   type ChartTypeId,
@@ -48,8 +49,8 @@ function formatUtc(time: number): string {
 }
 
 function formatPrice(symbol: string, value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "Price unavailable";
-  const digits = symbol.includes("JPY") ? 3 : symbol.startsWith("XAU") ? 2 : 5;
+  if (value === null || !Number.isFinite(value)) return LIVE_PRICE_UNAVAILABLE;
+  const digits = symbol.includes("JPY") ? 3 : symbol.startsWith("XAU") ? 2 : 2;
   return value.toFixed(digits);
 }
 
@@ -67,7 +68,6 @@ export function ForexChartWorkspace({
   mode,
   onOpenModule,
   selectedMarket,
-  onSelectMarket,
   timeframe: controlledTimeframe,
   onTimeframeChange,
   liveTicker,
@@ -81,10 +81,12 @@ export function ForexChartWorkspace({
   liveTicker?: LiveTickerSnapshot | null;
 }) {
   const initial = readMarketQuery();
-  const [selected, setSelected] = useState<SelectedMarket>(
-    selectedMarket ?? initial.selected ?? defaultSelectedMarket(),
+  const [selected, setSelected] = useState<SelectedMarket | null>(
+    selectedMarket ?? initial.selected ?? null,
   );
-  const [localTimeframe, setLocalTimeframe] = useState<ChartTimeframeId>(controlledTimeframe ?? initial.timeframe);
+  const [localTimeframe, setLocalTimeframe] = useState<ChartTimeframeId>(
+    controlledTimeframe ?? initial.timeframe ?? DEFAULT_CHART_TIMEFRAME,
+  );
   const timeframe = controlledTimeframe ?? localTimeframe;
   const [chartType, setChartType] = useState<ChartTypeId>("candlestick");
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(() => defaultIndicators(mode));
@@ -98,10 +100,10 @@ export function ForexChartWorkspace({
   const workspaceRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (selectedMarket && selectedMarket.symbol !== selected.symbol) {
-      setSelected(selectedMarket);
+    if (selectedMarket?.symbol !== selected?.symbol || selectedMarket?.venue !== selected?.venue) {
+      setSelected(selectedMarket ?? null);
     }
-  }, [selectedMarket, selected.symbol]);
+  }, [selectedMarket, selected?.symbol, selected?.venue]);
 
   useEffect(() => {
     if (controlledTimeframe && controlledTimeframe !== localTimeframe) {
@@ -113,34 +115,25 @@ export function ForexChartWorkspace({
     setIndicators(defaultIndicators(mode));
   }, [mode]);
 
-  const applySelected = (next: SelectedMarket) => {
-    setSelected(next);
-    onSelectMarket?.(next);
-  };
-
   const applyTimeframe = (next: ChartTimeframeId) => {
     setLocalTimeframe(next);
     onTimeframeChange?.(next);
   };
 
   useEffect(() => {
-    writeChartQuery(selected.symbol, timeframe);
+    if (selected?.venue === "binance-spot") writeChartQuery(selected.symbol, timeframe);
   }, [selected, timeframe]);
 
   useEffect(() => {
     setLevels([]);
     setNotes("");
     setFocused(null);
-  }, [selected.symbol, timeframe]);
+  }, [selected?.symbol, timeframe]);
 
-  const binanceSelected = selected.venue === "binance-spot";
+  const binanceSelected = isBinanceSpotSelection(selected);
   const history = useBinanceKlines(binanceSelected ? selected.symbol : null, timeframe);
   const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
-  const development = useMemo(
-    () => (binanceSelected ? null : fetchMarketSeries(selected.symbol, timeframe)),
-    [binanceSelected, selected.symbol, timeframe],
-  );
-  const binanceCandles = useMemo(() => {
+  const candles = useMemo(() => {
     if (!binanceSelected || history.state !== "ready") return [];
     if (history.symbol !== selected.symbol || history.timeframe !== timeframe) return [];
     const base = history.candles.map((candle) => ({
@@ -155,10 +148,10 @@ export function ForexChartWorkspace({
     const live = liveKline.kline;
     if (!live || live.symbol !== selected.symbol || live.timeframe !== timeframe) return base;
     return applyLiveKline(base, live.candle);
-  }, [binanceSelected, history, liveKline.kline, selected.symbol, timeframe]);
-  const candles = binanceSelected ? binanceCandles : development?.series?.candles ?? [];
+  }, [binanceSelected, history, liveKline.kline, selected, timeframe]);
 
   const overlayData = useMemo((): OverlaySeries[] => {
+    if (!binanceSelected || candles.length === 0) return [];
     const series: OverlaySeries[] = [];
     for (const item of indicators) {
       if (item.kind === "sma") {
@@ -173,17 +166,19 @@ export function ForexChartWorkspace({
       }
     }
     return series;
-  }, [candles, indicators]);
+  }, [binanceSelected, candles, indicators]);
 
   const rsiPoints = useMemo(() => {
+    if (!binanceSelected || candles.length === 0) return [];
     const rsi = indicators.find((item) => item.kind === "rsi");
     return rsi ? calculateRSI(candles, rsi.period ?? 14) : [];
-  }, [candles, indicators]);
+  }, [binanceSelected, candles, indicators]);
 
   const macdData = useMemo(() => {
+    if (!binanceSelected || candles.length === 0) return null;
     const macd = indicators.find((item) => item.kind === "macd");
     return macd ? calculateMACD(candles, macd.fastPeriod ?? 12, macd.slowPeriod ?? 26, macd.signalPeriod ?? 9) : null;
-  }, [candles, indicators]);
+  }, [binanceSelected, candles, indicators]);
 
   const onCandleFocus = useCallback((candle: Candle | null) => {
     setFocused(candle);
@@ -191,10 +186,13 @@ export function ForexChartWorkspace({
 
   const last = candles[candles.length - 1] ?? null;
   const display = focused ?? last;
-  const sma20 = lastValue(calculateSMA(candles, 20));
-  const sma50 = lastValue(calculateSMA(candles, 50));
-  const rsiLast = lastValue(rsiPoints);
-  const bb = calculateBollingerBands(candles, 20, 2);
+  const canAnalyze = binanceSelected && candles.length > 0;
+  const sma20 = canAnalyze ? lastValue(calculateSMA(candles, 20)) : null;
+  const sma50 = canAnalyze ? lastValue(calculateSMA(candles, 50)) : null;
+  const rsiLast = canAnalyze ? lastValue(rsiPoints) : null;
+  const bb = canAnalyze
+    ? calculateBollingerBands(candles, 20, 2)
+    : { middle: [] as Array<{ value: number }>, upper: [] as Array<{ value: number }>, lower: [] as Array<{ value: number }> };
   const bbWidth = bb.middle.length
     ? ((bb.upper[bb.upper.length - 1].value - bb.lower[bb.lower.length - 1].value) / bb.middle[bb.middle.length - 1].value) * 100
     : null;
@@ -212,6 +210,7 @@ export function ForexChartWorkspace({
   };
 
   const addIndicator = () => {
+    if (!canAnalyze) return;
     if (indicators.some((item) => item.kind === addKind) && (addKind === "rsi" || addKind === "macd")) return;
     if (addKind === "sma") setIndicators((current) => [...current, { id: nextId("sma"), kind: "sma", period: 20 }]);
     else if (addKind === "ema") setIndicators((current) => [...current, { id: nextId("ema"), kind: "ema", period: 50 }]);
@@ -221,13 +220,13 @@ export function ForexChartWorkspace({
   };
 
   const addLevel = (kind: PriceLevel["kind"]) => {
+    if (!canAnalyze) return;
     const price = Number(levelPrice);
     if (!Number.isFinite(price) || price <= 0) return;
     setLevels((current) => [...current, { id: nextId(kind), kind, price }]);
     setLevelPrice("");
   };
 
-  const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === selected.symbol);
   const analysis = mode === "analysis";
   const historyReady = Boolean(
     binanceSelected
@@ -236,11 +235,11 @@ export function ForexChartWorkspace({
     && history.timeframe === timeframe
     && candles.length > 0,
   );
-  const historyPending = binanceSelected && (
+  const historyPending = Boolean(binanceSelected && (
     history.state === "loading"
     || history.symbol !== selected.symbol
     || history.timeframe !== timeframe
-  );
+  ));
   const klineStatus = resolveKlineUiStatus(
     liveKline,
     binanceSelected ? selected.symbol : null,
@@ -248,13 +247,13 @@ export function ForexChartWorkspace({
     historyReady,
   );
   const chartLive = klineStatus === "LIVE";
-  const tickerStatus = liveTicker
-    ? resolveTickerUiStatus(liveTicker, binanceSelected ? selected.symbol : null)
+  const tickerStatus = liveTicker && binanceSelected
+    ? resolveTickerUiStatus(liveTicker, selected.symbol)
     : null;
   const livePrice = Boolean(chartLive || tickerStatus === "LIVE");
-  const priceKind = livePrice ? "live" : binanceSelected ? "unavailable" : "development";
+  const priceKind = livePrice ? "live" : "unavailable";
   const chartState = !binanceSelected
-    ? (development?.state ?? "empty")
+    ? "unavailable"
     : historyPending
       ? (klineStatus === "RECONNECTING" ? "reconnecting" : "loading")
       : history.state === "error"
@@ -271,7 +270,7 @@ export function ForexChartWorkspace({
                   ? "live"
                   : "ready";
   const chartMessage = !binanceSelected
-    ? (development?.message ?? "No chart data")
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
     : historyPending
       ? (klineStatus === "RECONNECTING" ? "Reconnecting to Binance..." : "Loading Binance market data...")
       : history.state === "error"
@@ -283,7 +282,7 @@ export function ForexChartWorkspace({
             : chartLive
               ? "Live Binance data"
               : liveMarketStatusLabel(klineStatus);
-  const showChart = binanceSelected ? historyReady : development?.state === "ready" && candles.length > 0;
+  const showChart = historyReady;
 
   return (
     <section
@@ -293,34 +292,27 @@ export function ForexChartWorkspace({
       data-forex-page={mode === "charts" ? "charts" : "technical-analysis"}
       data-chart-state={chartState}
       data-chart-live={chartLive ? "true" : "false"}
-      data-chart-symbol={selected.symbol}
+      data-chart-symbol={selected?.symbol ?? ""}
       data-chart-timeframe={timeframe}
+      data-market-venue={selected?.venue ?? "none"}
     >
       <ForexSectionHeader
         eyebrow={analysis ? "Analysis" : "Market"}
         title={analysis ? "Technical Analysis" : "Charts"}
         description={analysis
-          ? "Candlesticks, indicators, and analysis tools share one chart engine. This is not a trading signal."
-          : "Interactive candlestick workspace. Binance Spot uses live OHLCV; other pairs remain development series."}
+          ? "Indicators use the same Binance Spot candle series as Charts. This is not a trading signal."
+          : "Interactive candlestick workspace for Binance Spot OHLCV. Non-Binance symbols are not charted."}
       />
 
       <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
         <label>
           Instrument
-          <select
-            aria-label="Instrument"
-            value={selected.symbol}
-            onChange={(event) => {
-              const next = parseSelectedMarket(event.target.value) ?? defaultSelectedMarket();
-              applySelected(next);
-            }}
-          >
+          <select aria-label="Instrument" value={binanceSelected ? selected.symbol : ""} disabled>
             {binanceSelected ? (
               <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
-            ) : null}
-            {FOREX_INSTRUMENTS.map((item) => (
-              <option key={item.symbol} value={item.symbol}>{item.symbol}</option>
-            ))}
+            ) : (
+              <option value="">Select a Binance Spot symbol…</option>
+            )}
           </select>
         </label>
         <label>
@@ -364,16 +356,16 @@ export function ForexChartWorkspace({
 
       <div className="fx-chart-summary">
         <div>
-          <p className="fx-eyebrow">{selected.displaySymbol}</p>
+          <p className="fx-eyebrow">{selected?.displaySymbol ?? "No market selected"}</p>
           <p className="fx-chart-price" data-price-kind={priceKind}>
             {binanceSelected
               ? (last ? formatPrice(selected.symbol, last.close) : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data..."))
-              : formatPrice(selected.symbol, last?.close ?? null)}
+              : LIVE_PRICE_UNAVAILABLE}
           </p>
           <p className="fx-panel-meta">
             {binanceSelected
               ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
-              : `${instrument?.name ?? selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote`}
+              : LIVE_MARKET_UNAVAILABLE}
           </p>
         </div>
         <div className="fx-status-stack">
@@ -387,10 +379,7 @@ export function ForexChartWorkspace({
               ) : null}
             </>
           ) : (
-            <>
-              <ForexStatusBadge tone="offline">Development data</ForexStatusBadge>
-              <ForexStatusBadge tone="future">Live market data not connected</ForexStatusBadge>
-            </>
+            <ForexStatusBadge tone="offline">Live market data unavailable</ForexStatusBadge>
           )}
         </div>
       </div>
@@ -398,7 +387,7 @@ export function ForexChartWorkspace({
       {showChart ? (
         <ForexPriceChart
           ref={chartRef}
-          seriesKey={`${selected.symbol}:${timeframe}`}
+          seriesKey={`${selected!.symbol}:${timeframe}`}
           candles={candles}
           chartType={chartType}
           overlays={overlayData}
@@ -408,33 +397,38 @@ export function ForexChartWorkspace({
           onCandleFocus={onCandleFocus}
         />
       ) : (
-        <div className="fx-chart-state" role="status">
+        <div className="fx-chart-state" role="status" data-chart-unavailable="true">
           <h2>{chartMessage}</h2>
-          <p>{binanceSelected ? chartMessage : (development?.message ?? "No chart data")}</p>
+          <p>
+            {binanceSelected
+              ? chartMessage
+              : "Open Markets, select a Binance Spot symbol, then return here for genuine OHLCV. Development candles are not shown in production."}
+          </p>
         </div>
       )}
 
-      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "Binance OHLC" : "Development OHLC"}>
-        <div><dt>Open</dt><dd>{formatPrice(selected.symbol, display?.open ?? null)}</dd></div>
-        <div><dt>High</dt><dd>{formatPrice(selected.symbol, display?.high ?? null)}</dd></div>
-        <div><dt>Low</dt><dd>{formatPrice(selected.symbol, display?.low ?? null)}</dd></div>
-        <div><dt>Close</dt><dd>{formatPrice(selected.symbol, display?.close ?? null)}</dd></div>
-        <div><dt>Time</dt><dd>{display ? formatUtc(display.time) : "—"}</dd></div>
-        <div><dt>Volume</dt><dd>{display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
+      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "Binance OHLC" : "OHLC unavailable"}>
+        <div><dt>Open</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.open ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>High</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.high ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Low</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.low ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Close</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.close ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Time</dt><dd>{display && binanceSelected ? formatUtc(display.time) : "—"}</dd></div>
+        <div><dt>Volume</dt><dd>{binanceSelected && display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
       </dl>
 
       <div className={`fx-chart-side ${analysis ? "is-wide" : ""}`}>
         <section className="fx-indicator-manager" aria-labelledby="fx-ind-title">
           <h2 id="fx-ind-title">Indicators</h2>
+          {!canAnalyze ? <p className="fx-panel-meta">{LIVE_MARKET_UNAVAILABLE}</p> : null}
           <div className="fx-indicator-add">
-            <select aria-label="Add indicator type" value={addKind} onChange={(event) => setAddKind(event.target.value as IndicatorKind)}>
+            <select aria-label="Add indicator type" value={addKind} onChange={(event) => setAddKind(event.target.value as IndicatorKind)} disabled={!canAnalyze}>
               <option value="sma">SMA</option>
               <option value="ema">EMA</option>
               <option value="rsi">RSI</option>
               <option value="macd">MACD</option>
               <option value="bollinger">Bollinger Bands</option>
             </select>
-            <button type="button" className="fx-text-button" onClick={addIndicator}>Add indicator</button>
+            <button type="button" className="fx-text-button" onClick={addIndicator} disabled={!canAnalyze}>Add indicator</button>
           </div>
           <ul className="fx-indicator-list">
             {indicators.map((item) => (
@@ -447,6 +441,7 @@ export function ForexChartWorkspace({
                     min={2}
                     max={200}
                     value={item.period}
+                    disabled={!canAnalyze}
                     onChange={(event) => setIndicators((current) => current.map((row) => row.id === item.id ? { ...row, period: Number(event.target.value) || row.period } : row))}
                   />
                 ) : null}
@@ -461,24 +456,28 @@ export function ForexChartWorkspace({
             <section aria-labelledby="fx-summary-title">
               <h2 id="fx-summary-title">Analysis summary</h2>
               <p className="fx-panel-meta">Descriptive measurements only. No buy or sell recommendation.</p>
-              <dl className="fx-analysis-dl">
-                <div><dt>Trend</dt><dd>{sma20 !== null && sma50 !== null ? (sma20 > sma50 ? "SMA 20 is above SMA 50" : "SMA 20 is below SMA 50") : "SMA structure unavailable"}</dd></div>
-                <div><dt>Momentum</dt><dd>{rsiLast !== null ? `RSI 14 is ${rsiLast.toFixed(1)}` : "RSI not active"}</dd></div>
-                <div><dt>Volatility</dt><dd>{bbWidth !== null ? `Bollinger width ${bbWidth.toFixed(2)}%` : "Bollinger width unavailable"}</dd></div>
-                <div><dt>Structure</dt><dd>Automatic market-structure detection is not implemented.</dd></div>
-              </dl>
+              {!canAnalyze ? (
+                <p className="fx-panel-meta" data-analysis-unavailable="true">{LIVE_MARKET_UNAVAILABLE}</p>
+              ) : (
+                <dl className="fx-analysis-dl">
+                  <div><dt>Trend</dt><dd>{sma20 !== null && sma50 !== null ? (sma20 > sma50 ? "SMA 20 is above SMA 50" : "SMA 20 is below SMA 50") : "SMA structure unavailable"}</dd></div>
+                  <div><dt>Momentum</dt><dd>{rsiLast !== null ? `RSI 14 is ${rsiLast.toFixed(1)}` : "RSI not active"}</dd></div>
+                  <div><dt>Volatility</dt><dd>{bbWidth !== null ? `Bollinger width ${bbWidth.toFixed(2)}%` : "Bollinger width unavailable"}</dd></div>
+                  <div><dt>Structure</dt><dd>Automatic market-structure detection is not implemented.</dd></div>
+                </dl>
+              )}
             </section>
             <section aria-labelledby="fx-levels-title">
               <h2 id="fx-levels-title">Support / Resistance</h2>
               <div className="fx-indicator-add">
-                <input aria-label="Price level" inputMode="decimal" value={levelPrice} onChange={(event) => setLevelPrice(event.target.value)} placeholder="Price" />
-                <button type="button" className="fx-text-button" onClick={() => addLevel("support")}>Add support</button>
-                <button type="button" className="fx-text-button" onClick={() => addLevel("resistance")}>Add resistance</button>
+                <input aria-label="Price level" inputMode="decimal" value={levelPrice} onChange={(event) => setLevelPrice(event.target.value)} placeholder="Price" disabled={!canAnalyze} />
+                <button type="button" className="fx-text-button" onClick={() => addLevel("support")} disabled={!canAnalyze}>Add support</button>
+                <button type="button" className="fx-text-button" onClick={() => addLevel("resistance")} disabled={!canAnalyze}>Add resistance</button>
               </div>
               <ul className="fx-indicator-list">
                 {levels.map((level) => (
                   <li key={level.id}>
-                    <span>{level.kind} {formatPrice(selected.symbol, level.price)}</span>
+                    <span>{level.kind} {selected ? formatPrice(selected.symbol, level.price) : LIVE_PRICE_UNAVAILABLE}</span>
                     <button type="button" className="fx-text-button" onClick={() => setLevels((current) => current.filter((row) => row.id !== level.id))}>Remove</button>
                   </li>
                 ))}
@@ -499,7 +498,7 @@ export function ForexChartWorkspace({
       </div>
 
       <p className="fx-panel-meta" data-forex-chart-status="true">
-        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · {chartMessage} · Last candle {last ? formatUtc(last.time) : "unavailable"} · Connection: {chartLive ? "LIVE" : "not live"}
+        {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · {chartMessage} · Last candle {last && binanceSelected ? formatUtc(last.time) : "unavailable"} · Connection: {chartLive ? "LIVE" : "not live"}
       </p>
     </section>
   );

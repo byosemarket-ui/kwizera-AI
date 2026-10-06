@@ -1,3 +1,10 @@
+/**
+ * DEVELOPMENT / TEST ONLY — fabricated OHLCV for local unit tests.
+ *
+ * Production Forex UI must never import this into a live chart path.
+ * Use allowDevelopmentMarketData() + fetchMarketSeries guards.
+ * Prefer Binance Spot klines for any production chart.
+ */
 import { FOREX_INSTRUMENTS } from "../dashboard-data";
 import {
   CANDLE_COUNT,
@@ -8,6 +15,7 @@ import {
   CHART_TIMEFRAMES,
 } from "./types";
 import { roundPrice, sanitizeCandles } from "./validate-candles";
+import { allowDevelopmentMarketData } from "../market-data/allow-development-market-data";
 
 const BASE_PRICE: Record<string, number> = {
   "EUR/USD": 1.085,
@@ -36,7 +44,9 @@ export function isSupportedChartSymbol(symbol: string): boolean {
   return FOREX_INSTRUMENTS.some((item) => item.symbol === symbol);
 }
 
+/** Deterministic demo candles for unit tests. Not for production UI. */
 export function generateDevelopmentCandles(symbol: string, timeframe: ChartTimeframeId): Candle[] {
+  if (!allowDevelopmentMarketData()) return [];
   const base = BASE_PRICE[symbol];
   const spec = CHART_TIMEFRAMES.find((item) => item.id === timeframe);
   if (!base || !spec) return [];
@@ -61,6 +71,7 @@ export function generateDevelopmentCandles(symbol: string, timeframe: ChartTimef
 }
 
 export function getDevelopmentSeries(symbol: string, timeframe: ChartTimeframeId): MarketSeries | null {
+  if (!allowDevelopmentMarketData()) return null;
   if (!isSupportedChartSymbol(symbol)) return null;
   const candles = generateDevelopmentCandles(symbol, timeframe);
   if (candles.length === 0) return null;
@@ -69,7 +80,7 @@ export function getDevelopmentSeries(symbol: string, timeframe: ChartTimeframeId
     timeframe,
     candles,
     kind: "development",
-    statusLabel: "Development data",
+    statusLabel: "Development data (test-only)",
     timezone: "UTC",
   };
 }

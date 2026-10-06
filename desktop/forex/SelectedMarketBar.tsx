@@ -15,7 +15,7 @@ export function SelectedMarketBar({
   const label = selected
     ? selected.venue === "binance-spot"
       ? `${selected.displaySymbol} · Binance Spot`
-      : `${selected.displaySymbol} · development Forex`
+      : `${selected.displaySymbol} · not connected`
     : "No Binance market selected";
   return (
     <div className="fx-selected-market" data-selected-market={selected?.symbol ?? ""} data-selected-venue={selected?.venue ?? "none"}>
@@ -28,7 +28,7 @@ export function SelectedMarketBar({
       ) : (
         <p className="fx-panel-meta">
           {selected
-            ? "Development Forex pairs do not use the Binance live stream."
+            ? "Live market data unavailable. This symbol is not a connected Binance Spot market."
             : "Select a Binance Spot symbol from Markets to start live data."}
         </p>
       )}

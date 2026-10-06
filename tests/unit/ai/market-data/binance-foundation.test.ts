@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { normalizeBinanceKline, normalizeBinanceKlines, normalizeBinanceTicker24h, toBinanceSymbol } from "../../../../ai/market-data/binance/adapter.ts";
+import { normalizeBinanceKline, normalizeBinanceKlines, normalizeBinanceTicker24h, toBinanceSymbol, toDisplaySymbol } from "../../../../ai/market-data/binance/adapter.ts";
 import { BINANCE_DEFAULT_REST_BASE, resolveBinancePublicConfig } from "../../../../ai/market-data/binance/config.ts";
 import { publicConnectionLabel, snapshotForState } from "../../../../ai/market-data/binance/connection.ts";
 import { BinanceMarketDataError } from "../../../../ai/market-data/binance/errors.ts";
@@ -49,6 +49,10 @@ describe("Binance Phase 6 adapter", () => {
     expect(candle.volume).toBe(12.5);
     expect(typeof candle.closed).toBe("boolean");
     expect(toBinanceSymbol("btc/usdt")).toBe("BTCUSDT");
+    expect(toDisplaySymbol("EURUSDC")).toBe("EUR/USDC");
+    expect(toDisplaySymbol("EURUSDC")).not.toBe("EUR/USD");
+    expect(toDisplaySymbol("BTCUSDT")).toBe("BTC/USDT");
+    expect(toDisplaySymbol("BTCUSDT")).not.toBe("BTC/USD");
     const ticker = normalizeBinanceTicker24h({
       symbol: "ETHUSDT",
       lastPrice: "2500.5",

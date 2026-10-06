@@ -23,13 +23,10 @@ export function LiveTickerPanel({
 }) {
   const status = resolveTickerUiStatus(snapshot, expectedSymbol ?? snapshot.subscribedSymbol);
   const live = status === "LIVE" && tickerMatchesSelection(snapshot, expectedSymbol ?? snapshot.subscribedSymbol);
+  // Never show a numeric price unless genuine LIVE data matches the selection.
   const priceLabel = live
     ? liveTickerPriceLabel(snapshot)
-    : status === "CONNECTING" || status === "CONNECTED" || status === "RECONNECTING"
-      ? liveMarketStatusLabel(status)
-      : expectedSymbol
-        ? liveMarketStatusLabel(status)
-        : liveTickerPriceLabel(snapshot);
+    : liveMarketStatusLabel(status);
 
   return (
     <div

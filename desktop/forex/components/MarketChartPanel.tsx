@@ -46,8 +46,14 @@ export function MarketChartPanel({
           </>
         ) : (
           <>
-            <p>Open Charts for candlesticks. Binance Spot symbols use live OHLCV; other pairs use development series.</p>
-            <ForexStatusBadge tone="offline">Dashboard preview is not the live chart</ForexStatusBadge>
+            <p>
+              {binance
+                ? "Open Charts for Binance Spot candlesticks and indicators."
+                : "Live market data unavailable. Select a Binance Spot symbol from Markets, then open Charts."}
+            </p>
+            <ForexStatusBadge tone="offline">
+              {binance ? "Dashboard preview is not the live chart" : "Not connected"}
+            </ForexStatusBadge>
           </>
         )}
       </div>

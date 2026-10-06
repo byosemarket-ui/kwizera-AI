@@ -95,9 +95,11 @@ export const CHART_TIMEFRAMES: ChartTimeframe[] = [
   { id: "1w", label: "1W", minutes: 10080 },
 ];
 
+/** Test-only default for development candle helpers. Not a production chart default. */
 export const DEFAULT_CHART_SYMBOL = "EUR/USD";
 export const DEFAULT_CHART_TIMEFRAME: ChartTimeframeId = "1h";
 export const CANDLE_COUNT = 300;
+/** Fixed end timestamp so test candles stay deterministic. */
 export const DEVELOPMENT_SERIES_END_UTC = Date.UTC(2026, 9, 1, 12, 0, 0);
 
 export function timeframeLabel(id: ChartTimeframeId): string {

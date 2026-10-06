@@ -1,5 +1,9 @@
 import { CHART_TIMEFRAMES, DEFAULT_CHART_SYMBOL, DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId, type MarketDataResult } from "./types";
 import { getDevelopmentSeries, isSupportedChartSymbol } from "./development-provider";
+import {
+  allowDevelopmentMarketData,
+  LIVE_MARKET_UNAVAILABLE,
+} from "../market-data/allow-development-market-data";
 
 export function parseChartSymbol(raw: string | null | undefined): string {
   if (!raw) return DEFAULT_CHART_SYMBOL;
@@ -40,12 +44,20 @@ export function writeChartQuery(symbol: string, timeframe: ChartTimeframeId): vo
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
 }
 
+/**
+ * Chart series loader.
+ * Production: never returns fabricated candles — only an unavailable state.
+ * Development series remain available only when allowDevelopmentMarketData() is true (tests).
+ */
 export function fetchMarketSeries(symbol: string, timeframe: ChartTimeframeId): MarketDataResult {
+  if (!allowDevelopmentMarketData()) {
+    return { state: "unavailable", series: null, message: LIVE_MARKET_UNAVAILABLE };
+  }
   if (!CHART_TIMEFRAMES.some((item) => item.id === timeframe)) {
     return { state: "unavailable", series: null, message: "Data unavailable for this timeframe." };
   }
   if (!isSupportedChartSymbol(symbol)) {
-    return { state: "unavailable", series: null, message: "Unable to load market data." };
+    return { state: "unavailable", series: null, message: LIVE_MARKET_UNAVAILABLE };
   }
   const series = getDevelopmentSeries(symbol, timeframe);
   if (!series || series.candles.length === 0) {

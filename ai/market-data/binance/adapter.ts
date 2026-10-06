@@ -23,7 +23,8 @@ export function toBinanceSymbol(displaySymbol: string): string {
 export function toDisplaySymbol(binanceSymbol: string, baseAsset?: string, quoteAsset?: string): string {
   if (baseAsset && quoteAsset) return `${baseAsset}/${quoteAsset}`;
   const symbol = binanceSymbol.toUpperCase();
-  const quotes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH", "BNB", "EUR", "USD"];
+  // Longer quote assets first so EURUSDC → EUR/USDC (never EUR/USD).
+  const quotes = ["FDUSD", "USDT", "USDC", "BUSD", "BTC", "ETH", "BNB", "EUR", "USD"];
   const quote = quotes.find((item) => symbol.endsWith(item) && symbol.length > item.length);
   if (!quote) return symbol;
   return `${symbol.slice(0, -quote.length)}/${quote}`;

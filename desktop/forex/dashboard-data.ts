@@ -189,6 +189,6 @@ export function formatQuoteValue(value: number | null, fallback: string): string
 export function quoteStatusLabel(status: MarketQuoteStatus): string {
   if (status === "ready") return "Live";
   if (status === "error") return "Error";
-  if (status === "unavailable") return "Unavailable";
-  return "Market data unavailable";
+  if (status === "unavailable") return "Live market data unavailable";
+  return "Not connected";
 }
