@@ -87,13 +87,13 @@ export const FOREX_NAV: ForexNavItem[] = [
     id: "markets",
     label: "Markets",
     path: "/forex/markets",
-    implemented: false,
+    implemented: true,
     inSidebar: true,
     group: "market",
     groupLabel: "Market",
     icon: "globe",
-    description: "Market instruments and live market monitoring will be connected in a future phase.",
-    phaseNote: "Coming Soon",
+    description: "Discover Binance Spot markets, search symbols, and select an active market.",
+    phaseNote: "Available",
   },
   {
     id: "watchlist",
@@ -104,7 +104,7 @@ export const FOREX_NAV: ForexNavItem[] = [
     group: "market",
     groupLabel: "Market",
     icon: "star",
-    description: "Your Forex watchlist will be available here.",
+    description: "Watchlist persistence is not implemented yet. Selected Binance Spot symbols remain compatible with this route.",
     phaseNote: "Coming Soon",
   },
   {
@@ -383,10 +383,20 @@ export function isForexChartRoute(route: ForexViewId): boolean {
   return route === "charts" || route === "technical-analysis";
 }
 
+export function isForexMarketStateRoute(route: ForexViewId): boolean {
+  return (
+    route === "dashboard" ||
+    route === "markets" ||
+    route === "watchlist" ||
+    route === "charts" ||
+    route === "technical-analysis"
+  );
+}
+
 export function syncForexUrl(view: ForexViewId): void {
   if (typeof window === "undefined" || view === "not-found") return;
   const path = forexPathFor(view);
-  const keepSearch = isForexChartRoute(view);
+  const keepSearch = isForexMarketStateRoute(view);
   const href = keepSearch ? `${path}${window.location.search}` : path;
   const currentPath = normalizeForexPath(window.location.pathname);
   const currentHref = keepSearch ? `${currentPath}${window.location.search}` : currentPath;
@@ -399,7 +409,7 @@ export function pushForexUrl(route: ForexRouteId): void {
   if (typeof window === "undefined") return;
   const path = forexPathFor(route);
   const from = parseForexRouteFromLocation();
-  const keepSearch = isForexChartRoute(from) && isForexChartRoute(route);
+  const keepSearch = isForexMarketStateRoute(from) && isForexMarketStateRoute(route);
   const href = keepSearch ? `${path}${window.location.search}` : path;
   const current = `${normalizeForexPath(window.location.pathname)}${keepSearch ? window.location.search : ""}`;
   if (current !== href) {

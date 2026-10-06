@@ -56,7 +56,8 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "dashboard")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "charts")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "technical-analysis")?.implemented).toBe(true);
-    expect(FOREX_NAV.filter((item) => !["dashboard", "charts", "technical-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "markets")?.implemented).toBe(true);
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "charts", "technical-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
@@ -119,7 +120,10 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("ForexHeader");
     expect(shell).toContain("ForexNotFound");
     expect(shell).toContain("ForexChartWorkspace");
+    expect(shell).toContain("ForexMarketsPage");
+    expect(shell).toContain("SelectedMarketBar");
     expect(dashboard).toContain("Welcome to KWIZERA Forex");
+    expect(dashboard).toContain("Active Binance market");
     expect(dashboard).toContain("Market data connection:");
     expect(dashboard).toContain("data-binance-connection");
     expect(dashboard).toContain("data-live-market");
@@ -131,6 +135,7 @@ describe("Forex Phase 1 shell integration", () => {
     expect(dashboard).not.toMatch(/1\.1723|BTC\/USD|\+4\.8%|Strong Buy|90% confidence|\$12,480/);
     const binanceClient = fs.readFileSync(path.resolve("desktop/forex/market-data/studio-binance-client.ts"), "utf8");
     expect(binanceClient).toContain("/api/forex/binance/status");
+    expect(binanceClient).toContain("/api/forex/binance/markets");
     expect(binanceClient).not.toContain("localhost");
     expect(binanceClient).not.toContain("127.0.0.1");
     expect(css).toContain(".fx-sidebar");
@@ -139,6 +144,8 @@ describe("Forex Phase 1 shell integration", () => {
     expect(css).toContain(".fx-nav-group.is-current");
     expect(css).toContain(".fx-chart-panel");
     expect(css).toContain(".fx-market-grid");
+    expect(css).toContain(".fx-markets-table");
+    expect(css).toContain(".fx-selected-market");
   });
 
   it("keeps Studio Home navigation into Forex", () => {

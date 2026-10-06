@@ -34,7 +34,9 @@ export function snapshotForState(
     liveMarketData: false,
     websocketActive: false,
     source: "binance-spot-public",
-    capabilities: { ...PHASE6_CAPABILITIES },
+    capabilities: extra.capabilities
+      ? { ...PHASE6_CAPABILITIES, ...extra.capabilities }
+      : { ...PHASE6_CAPABILITIES },
   };
 }
 

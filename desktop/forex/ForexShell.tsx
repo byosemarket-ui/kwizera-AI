@@ -1,5 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { ForexDashboard } from "./ForexDashboard";
+import { ForexMarketsPage } from "./ForexMarketsPage";
+import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
 import { ForexModulePage } from "./ForexModulePage";
 import { ForexNotFound } from "./ForexNotFound";
@@ -16,6 +18,12 @@ import {
 } from "./forex-routes";
 import type { DesktopPreferences } from "../desktop-polish/types";
 import { useBinanceConnectionStatus } from "./market-data/use-binance-status";
+import {
+  readMarketQuery,
+  writeMarketQuery,
+  type SelectedMarket,
+} from "./market-data/selected-market";
+import { DEFAULT_CHART_TIMEFRAME } from "./chart/types";
 import "./forex.css";
 
 const ForexChartWorkspace = lazy(async () => {
@@ -76,6 +84,13 @@ export function ForexShell({
     typeof window !== "undefined" ? window.innerWidth > 820 : true
   ));
   const { snapshot: binanceConnection, retry: retryBinance } = useBinanceConnectionStatus();
+  const [selectedMarket, setSelectedMarket] = useState<SelectedMarket | null>(() => readMarketQuery().selected);
+  const [chartTimeframe] = useState(() => readMarketQuery().timeframe || DEFAULT_CHART_TIMEFRAME);
+
+  const selectMarket = (market: SelectedMarket) => {
+    setSelectedMarket(market);
+    writeMarketQuery(market, chartTimeframe);
+  };
 
   useEffect(() => {
     syncForexUrl(route);
@@ -86,7 +101,10 @@ export function ForexShell({
   }, [route]);
 
   useEffect(() => {
-    const onPop = () => setRoute(parseForexRouteFromLocation());
+    const onPop = () => {
+      setRoute(parseForexRouteFromLocation());
+      setSelectedMarket(readMarketQuery().selected);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -114,6 +132,15 @@ export function ForexShell({
         onOpenModule={navigate}
         binanceConnection={binanceConnection}
         onRetryBinance={retryBinance}
+        selectedMarket={selectedMarket}
+      />
+    );
+  } else if (route === "markets") {
+    content = (
+      <ForexMarketsPage
+        selected={selectedMarket}
+        onSelect={selectMarket}
+        onOpenCharts={() => navigate("charts")}
       />
     );
   } else if (route === "charts" || route === "technical-analysis") {
@@ -123,11 +150,13 @@ export function ForexShell({
           key={route}
           mode={route === "charts" ? "charts" : "analysis"}
           onOpenModule={navigate}
+          selectedMarket={selectedMarket}
+          onSelectMarket={selectMarket}
         />
       </Suspense>
     );
   } else {
-    content = <ForexModulePage item={getForexNavItem(route)} />;
+    content = <ForexModulePage item={getForexNavItem(route)} selectedMarket={selectedMarket} />;
   }
 
   return (
@@ -145,6 +174,7 @@ export function ForexShell({
           preferences={preferences}
           onThemeCycle={onThemeCycle}
           binanceConnection={binanceConnection}
+          selectedMarket={selectedMarket}
         />
         <div className="fx-body">
           <ForexSidebar route={route} open={sidebarOpen} onNavigate={navigate} />
@@ -157,6 +187,7 @@ export function ForexShell({
             />
           ) : null}
           <main className="fx-main" id="forex-main">
+            <SelectedMarketBar selected={selectedMarket} onOpenMarkets={navigate} />
             <ForexPageBoundary route={route}>
               {content}
             </ForexPageBoundary>

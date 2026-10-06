@@ -7,11 +7,14 @@ export {
   resolveBinancePublicConfig,
 } from "./config.js";
 export {
+  normalizeBinanceExchangeInfo,
   normalizeBinanceKline,
   normalizeBinanceKlines,
+  normalizeBinanceSpotMarket,
   normalizeBinanceTicker24h,
   normalizeInstrument,
   parseInterval,
+  filterBinanceMarkets,
   toBinanceInterval,
   toBinanceSymbol,
   toDisplaySymbol,
@@ -25,15 +28,17 @@ export {
   snapshotForState,
 } from "./connection.js";
 export { createBinanceMarketDataService, notImplementedStreaming } from "./service.js";
-export type { BinanceMarketDataService } from "./service.js";
-export { pingBinancePublicRest } from "./rest-client.js";
+export type { BinanceMarketCatalog, BinanceMarketDataService } from "./service.js";
+export { pingBinancePublicRest, fetchBinanceExchangeInfo } from "./rest-client.js";
 export type {
+  BinanceMarketStatus,
   MarketConnectionSnapshot,
   MarketConnectionState,
   NormalizedCandle,
   NormalizedInstrument,
+  NormalizedMarket,
   NormalizedSeries,
   NormalizedTicker,
   NormalizedTimeframeId,
 } from "./types.js";
-export { MARKET_CONNECTION_STATES, PHASE6_CAPABILITIES } from "./types.js";
+export { MARKET_CONNECTION_STATES, PHASE6_CAPABILITIES, PHASE7_CAPABILITIES } from "./types.js";

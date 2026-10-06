@@ -300,7 +300,8 @@
 }
 
 .fx-dashboard,
-.fx-placeholder {
+.fx-placeholder,
+.fx-markets-page {
   max-width: 1280px;
   display: flex;
   flex-direction: column;
@@ -350,7 +351,9 @@
 .fx-quick-actions,
 .fx-connection-panel,
 .fx-market-card,
-.fx-session-card {
+.fx-session-card,
+.fx-selected-binance,
+.fx-selected-market {
   border: 1px solid var(--fx-border);
   border-radius: var(--fx-radius);
   background: var(--fx-surface);
@@ -368,7 +371,9 @@
 .fx-calendar-preview,
 .fx-activity-preview,
 .fx-quick-actions,
-.fx-connection-panel {
+.fx-connection-panel,
+.fx-selected-binance,
+.fx-selected-market {
   padding: 16px;
 }
 
@@ -1028,5 +1033,93 @@ html.reduce-motion .fx-sidebar {
   .fx-ohlc,
   .fx-chart-side.is-wide {
     grid-template-columns: 1fr;
+  }
+}
+
+.fx-selected-market {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fx-selected-market p {
+  margin: 0;
+}
+
+.fx-selected-market strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.fx-markets-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.fx-markets-toolbar label,
+.fx-markets-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--fx-muted);
+}
+
+.fx-markets-search {
+  flex: 1 1 220px;
+}
+
+.fx-markets-toolbar input,
+.fx-markets-toolbar select {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  background: var(--fx-elevated);
+  color: var(--fx-text);
+  border: 1px solid var(--fx-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.fx-markets-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+}
+
+.fx-markets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.fx-markets-table th,
+.fx-markets-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fx-border);
+  white-space: nowrap;
+}
+
+.fx-markets-table tr[data-selected="true"] {
+  background: var(--fx-accent-dim);
+}
+
+@media (max-width: 820px) {
+  .fx-selected-market,
+  .fx-markets-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fx-header-right .fx-panel-meta[data-header-selected-symbol] {
+    display: none;
   }
 }

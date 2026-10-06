@@ -58,4 +58,25 @@ describe("Binance market-data HTTP foundation", () => {
     const posted = await invoke("POST", "/api/forex/binance/status", fetchImpl);
     expect(posted.status).toBe(405);
   });
+
+  it("returns normalized Spot markets without prices or secrets", async () => {
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      expect(url).toContain("/api/v3/exchangeInfo");
+      return new Response(JSON.stringify({
+        symbols: [
+          { symbol: "BTCUSDT", baseAsset: "BTC", quoteAsset: "USDT", status: "TRADING", permissions: ["SPOT"], isSpotTradingAllowed: true },
+        ],
+      }), { status: 200 });
+    }) as typeof fetch;
+    const { status, body } = await invoke("GET", "/api/forex/binance/markets", fetchImpl);
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.liveMarketData).toBe(false);
+    expect(body.marketType).toBe("spot");
+    const markets = body.markets as Array<{ symbol: string; lastPrice?: unknown }>;
+    expect(markets[0]?.symbol).toBe("BTCUSDT");
+    expect(markets[0]?.lastPrice).toBeUndefined();
+    expect(JSON.stringify(body)).not.toMatch(/apiKey|apiSecret|BINANCE_API_KEY|BINANCE_API_SECRET/i);
+  });
 });

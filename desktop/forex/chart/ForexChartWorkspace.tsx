@@ -5,7 +5,8 @@ import { ForexStatusBadge } from "../components/ForexStatusBadge";
 import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
-import { fetchMarketSeries, readChartQuery, writeChartQuery } from "./market-data";
+import { fetchMarketSeries, writeChartQuery } from "./market-data";
+import { defaultSelectedMarket, parseSelectedMarket, readMarketQuery, type SelectedMarket } from "../market-data/selected-market";
 import {
   CHART_TIMEFRAMES,
   type Candle,
@@ -52,12 +53,18 @@ function defaultIndicators(mode: "charts" | "analysis"): IndicatorConfig[] {
 export function ForexChartWorkspace({
   mode,
   onOpenModule,
+  selectedMarket,
+  onSelectMarket,
 }: {
   mode: "charts" | "analysis";
-  onOpenModule?: (id: "charts" | "technical-analysis") => void;
+  onOpenModule?: (id: "charts" | "technical-analysis" | "markets") => void;
+  selectedMarket?: SelectedMarket | null;
+  onSelectMarket?: (market: SelectedMarket) => void;
 }) {
-  const initial = readChartQuery();
-  const [symbol, setSymbol] = useState(initial.symbol);
+  const initial = readMarketQuery();
+  const [selected, setSelected] = useState<SelectedMarket>(
+    selectedMarket ?? initial.selected ?? defaultSelectedMarket(),
+  );
   const [timeframe, setTimeframe] = useState<ChartTimeframeId>(initial.timeframe);
   const [chartType, setChartType] = useState<ChartTypeId>("candlestick");
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(() => defaultIndicators(mode));
@@ -71,15 +78,32 @@ export function ForexChartWorkspace({
   const workspaceRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    writeChartQuery(symbol, timeframe);
-  }, [symbol, timeframe]);
+    if (selectedMarket && selectedMarket.symbol !== selected.symbol) {
+      setSelected(selectedMarket);
+    }
+  }, [selectedMarket, selected.symbol]);
+
+  const applySelected = (next: SelectedMarket) => {
+    setSelected(next);
+    onSelectMarket?.(next);
+  };
+
+  useEffect(() => {
+    writeChartQuery(selected.symbol, timeframe);
+  }, [selected, timeframe]);
 
   useEffect(() => {
     setLevels([]);
     setNotes("");
-  }, [symbol, timeframe]);
+  }, [selected.symbol, timeframe]);
 
-  const result = useMemo(() => fetchMarketSeries(symbol, timeframe), [symbol, timeframe]);
+  const binanceSelected = selected.venue === "binance-spot";
+  const result = useMemo(
+    () => (binanceSelected
+      ? { state: "empty" as const, series: null, message: "Live market data will be connected in the next phase." }
+      : fetchMarketSeries(selected.symbol, timeframe)),
+    [binanceSelected, selected.symbol, timeframe],
+  );
   const candles = result.series?.candles ?? [];
 
   const overlayData = useMemo((): OverlaySeries[] => {
@@ -151,8 +175,9 @@ export function ForexChartWorkspace({
     setLevelPrice("");
   };
 
-  const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === symbol);
+  const instrument = FOREX_INSTRUMENTS.find((item) => item.symbol === selected.symbol);
   const analysis = mode === "analysis";
+  const priceKind = binanceSelected ? "unavailable" : "development";
 
   return (
     <section
@@ -172,7 +197,17 @@ export function ForexChartWorkspace({
       <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
         <label>
           Instrument
-          <select aria-label="Instrument" value={symbol} onChange={(event) => setSymbol(event.target.value)}>
+          <select
+            aria-label="Instrument"
+            value={selected.symbol}
+            onChange={(event) => {
+              const next = parseSelectedMarket(event.target.value) ?? defaultSelectedMarket();
+              applySelected(next);
+            }}
+          >
+            {binanceSelected ? (
+              <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
+            ) : null}
             {FOREX_INSTRUMENTS.map((item) => (
               <option key={item.symbol} value={item.symbol}>{item.symbol}</option>
             ))}
@@ -195,13 +230,18 @@ export function ForexChartWorkspace({
         </label>
         <div className="fx-chart-control-buttons">
           {onOpenModule ? (
-            <button
-              type="button"
-              className="fx-text-button"
-              onClick={() => onOpenModule(analysis ? "charts" : "technical-analysis")}
-            >
-              {analysis ? "Open Charts" : "Open Technical Analysis"}
-            </button>
+            <>
+              <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
+                Open Markets
+              </button>
+              <button
+                type="button"
+                className="fx-text-button"
+                onClick={() => onOpenModule(analysis ? "charts" : "technical-analysis")}
+              >
+                {analysis ? "Open Charts" : "Open Technical Analysis"}
+              </button>
+            </>
           ) : null}
           <button type="button" className="fx-icon-button" aria-label="Zoom in" onClick={() => chartRef.current?.zoom(1)}><ZoomIn size={16} /></button>
           <button type="button" className="fx-icon-button" aria-label="Zoom out" onClick={() => chartRef.current?.zoom(-1)}><ZoomOut size={16} /></button>
@@ -214,13 +254,26 @@ export function ForexChartWorkspace({
 
       <div className="fx-chart-summary">
         <div>
-          <p className="fx-eyebrow">{instrument?.symbol}</p>
-          <p className="fx-chart-price" data-price-kind="development">{formatPrice(symbol, last?.close ?? null)}</p>
-          <p className="fx-panel-meta">{instrument?.name} · {CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote</p>
+          <p className="fx-eyebrow">{selected.displaySymbol}</p>
+          <p className="fx-chart-price" data-price-kind={priceKind}>{binanceSelected ? "Price unavailable" : formatPrice(selected.symbol, last?.close ?? null)}</p>
+          <p className="fx-panel-meta">
+            {binanceSelected
+              ? `${selected.displaySymbol} · Binance Spot · live market data will be connected in the next phase`
+              : `${instrument?.name ?? selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · UTC · development series, not a live quote`}
+          </p>
         </div>
         <div className="fx-status-stack">
-          <ForexStatusBadge tone="offline">Development data</ForexStatusBadge>
-          <ForexStatusBadge tone="future">Live market data not connected</ForexStatusBadge>
+          {binanceSelected ? (
+            <>
+              <ForexStatusBadge tone="ready">Binance Spot</ForexStatusBadge>
+              <ForexStatusBadge tone="future">Live market data will be connected in the next phase</ForexStatusBadge>
+            </>
+          ) : (
+            <>
+              <ForexStatusBadge tone="offline">Development data</ForexStatusBadge>
+              <ForexStatusBadge tone="future">Live market data not connected</ForexStatusBadge>
+            </>
+          )}
         </div>
       </div>
 
@@ -237,16 +290,22 @@ export function ForexChartWorkspace({
         />
       ) : (
         <div className="fx-chart-state" role="status">
-          <h2>{result.state === "unavailable" ? "Unable to load market data." : "No chart data"}</h2>
+          <h2>
+            {binanceSelected
+              ? "Live market data will be connected in the next phase."
+              : result.state === "unavailable"
+                ? "Unable to load market data."
+                : "No chart data"}
+          </h2>
           <p>{result.message}</p>
         </div>
       )}
 
-      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label="Development OHLC">
-        <div><dt>Open</dt><dd>{formatPrice(symbol, display?.open ?? null)}</dd></div>
-        <div><dt>High</dt><dd>{formatPrice(symbol, display?.high ?? null)}</dd></div>
-        <div><dt>Low</dt><dd>{formatPrice(symbol, display?.low ?? null)}</dd></div>
-        <div><dt>Close</dt><dd>{formatPrice(symbol, display?.close ?? null)}</dd></div>
+      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "OHLC unavailable" : "Development OHLC"}>
+        <div><dt>Open</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.open ?? null)}</dd></div>
+        <div><dt>High</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.high ?? null)}</dd></div>
+        <div><dt>Low</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.low ?? null)}</dd></div>
+        <div><dt>Close</dt><dd>{binanceSelected ? "—" : formatPrice(selected.symbol, display?.close ?? null)}</dd></div>
         <div><dt>Time</dt><dd>{display ? formatUtc(display.time) : "—"}</dd></div>
         <div><dt>Volume</dt><dd>—</dd></div>
       </dl>
@@ -306,7 +365,7 @@ export function ForexChartWorkspace({
               <ul className="fx-indicator-list">
                 {levels.map((level) => (
                   <li key={level.id}>
-                    <span>{level.kind} {formatPrice(symbol, level.price)}</span>
+                    <span>{level.kind} {formatPrice(selected.symbol, level.price)}</span>
                     <button type="button" className="fx-text-button" onClick={() => setLevels((current) => current.filter((row) => row.id !== level.id))}>Remove</button>
                   </li>
                 ))}

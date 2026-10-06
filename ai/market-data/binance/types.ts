@@ -15,6 +15,16 @@ export type MarketConnectionState = (typeof MARKET_CONNECTION_STATES)[number];
 
 export type NormalizedTimeframeId = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w";
 
+export type BinanceMarketStatus =
+  | "TRADING"
+  | "BREAK"
+  | "HALT"
+  | "AUCTION_MATCH"
+  | "PRE_TRADING"
+  | "POST_TRADING"
+  | "END_OF_DAY"
+  | "UNKNOWN";
+
 export interface NormalizedInstrument {
   venue: "binance-spot";
   symbol: string;
@@ -22,6 +32,20 @@ export interface NormalizedInstrument {
   baseAsset: string;
   quoteAsset: string;
   status: "trading" | "break" | "unknown";
+}
+
+export interface NormalizedMarket {
+  venue: "binance-spot";
+  marketType: "spot";
+  symbol: string;
+  displaySymbol: string;
+  displayName: string;
+  baseAsset: string;
+  quoteAsset: string;
+  status: BinanceMarketStatus;
+  tradable: boolean;
+  permissions: string[];
+  source: "binance-spot-public";
 }
 
 export interface NormalizedCandle {
@@ -78,6 +102,15 @@ export interface MarketConnectionSnapshot {
 export const PHASE6_CAPABILITIES = {
   ping: true,
   exchangeInfo: false,
+  klines: false,
+  ticker: false,
+  websocket: false,
+  trading: false,
+} as const;
+
+export const PHASE7_CAPABILITIES = {
+  ping: true,
+  exchangeInfo: true,
   klines: false,
   ticker: false,
   websocket: false,

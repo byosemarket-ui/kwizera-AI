@@ -9,6 +9,7 @@ import {
 } from "./forex-routes";
 import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionLabel } from "../../ai/market-data/binance/connection";
+import type { SelectedMarket } from "./market-data/selected-market";
 
 export function ForexHeader({
   route,
@@ -22,6 +23,7 @@ export function ForexHeader({
   preferences,
   onThemeCycle,
   binanceConnection,
+  selectedMarket,
 }: {
   route: ForexViewId;
   sidebarOpen: boolean;
@@ -34,6 +36,7 @@ export function ForexHeader({
   preferences: DesktopPreferences;
   onThemeCycle: () => void;
   binanceConnection: MarketConnectionSnapshot;
+  selectedMarket: SelectedMarket | null;
 }) {
   const item = getForexNavItem(route);
   const crumbs = getForexBreadcrumbs(route);
@@ -92,6 +95,9 @@ export function ForexHeader({
           <ForexStatusBadge tone={connectionBadgeTone(binanceConnection)}>
             {publicConnectionLabel(binanceConnection)}
           </ForexStatusBadge>
+          <span className="fx-panel-meta" data-header-selected-symbol={selectedMarket?.symbol ?? ""}>
+            {selectedMarket ? selectedMarket.displaySymbol : "No market selected"}
+          </span>
         </div>
         <button
           type="button"

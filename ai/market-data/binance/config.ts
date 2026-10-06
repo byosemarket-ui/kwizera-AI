@@ -1,6 +1,17 @@
 export const BINANCE_DEFAULT_REST_BASE = "https://api.binance.com";
 export const BINANCE_DEFAULT_WS_BASE = "wss://stream.binance.com:9443";
 export const BINANCE_DEFAULT_TIMEOUT_MS = 8000;
+export const BINANCE_EXCHANGE_INFO_TIMEOUT_MS = 25000;
+export const BINANCE_MARKET_CACHE_MS = 10 * 60 * 1000;
+
+/** Official public REST origins only. Used when the configured host is unreachable. */
+export const BINANCE_PUBLIC_REST_FALLBACKS = [
+  "https://api.binance.com",
+  "https://api1.binance.com",
+  "https://api2.binance.com",
+  "https://api3.binance.com",
+  "https://data-api.binance.vision",
+] as const;
 
 export const BINANCE_PUBLIC_REST_PATHS = {
   ping: "/api/v3/ping",
@@ -24,6 +35,7 @@ export interface BinancePublicConfig {
   environment: "development" | "production";
   restBaseHost: string;
   usedOfficialFallback: boolean;
+  restFallbackUrls: string[];
 }
 
 function isProductionEnv(env: Record<string, string | undefined>): boolean {
@@ -99,5 +111,16 @@ export function resolveBinancePublicConfig(
     environment,
     restBaseHost: hostOf(restBaseUrl),
     usedOfficialFallback,
+    restFallbackUrls: uniqueOfficialRestBases(restBaseUrl),
   };
+}
+
+function uniqueOfficialRestBases(primary: string): string[] {
+  const allow = new Set<string>(BINANCE_PUBLIC_REST_FALLBACKS);
+  const ordered: string[] = [];
+  for (const url of [primary, ...BINANCE_PUBLIC_REST_FALLBACKS]) {
+    if (!allow.has(url) && url !== primary) continue;
+    if (!ordered.includes(url)) ordered.push(url);
+  }
+  return ordered;
 }

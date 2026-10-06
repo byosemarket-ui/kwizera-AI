@@ -1,44 +1,64 @@
-# Binance market-data integration foundation (Phase 6)
+# Binance market-data integration (Phases 6–7)
 
 This module is the **Binance integration foundation** for KWIZERA AI STUDIO Forex.
-It does **not** stream live prices, place orders, or replace the existing chart workspace.
+Phase 6 prepared public REST connectivity. Phase 7 adds **Spot market discovery and symbol management**.
+It does **not** stream live prices, place orders, or execute trades.
 
 ## Architecture
 
 ```
-Binance public REST (api.binance.com)
+Binance public REST (exchangeInfo)
         ↓
-Studio server  GET /api/forex/binance/status
+Binance adapter (NormalizedMarket)
         ↓
-Binance adapter (ai/market-data/binance)
+Studio server  GET /api/forex/binance/markets
         ↓
-Normalized MarketConnectionSnapshot
+Market store / selected-market URL state
         ↓
-Existing Forex shell (header + dashboard status)
+Existing Forex UI (Markets, Dashboard, Charts, Watchlist identity)
 ```
 
-UI components must consume **normalized** snapshots only. Do not pass raw Binance JSON into React.
+UI components must consume **normalized** markets only. Do not pass raw Binance JSON into React.
 
-Charts in Phase 4–5 still use **development candles**. That stays until a later phase loads real klines through this adapter.
+Charts still use **development candles** for Forex pairs. A selected Binance symbol shows an empty chart state until a later phase connects live data.
 
-## Official interfaces prepared
+## Official interfaces
 
 Public Spot REST (no API key):
 
-| Purpose | Endpoint | Phase 6 |
+| Purpose | Endpoint | Phase |
 | --- | --- | --- |
-| Connectivity | `GET /api/v3/ping` | Used |
-| Server time | `GET /api/v3/time` | Used (best-effort after ping) |
-| Exchange info | `GET /api/v3/exchangeInfo` | Documented, not called |
+| Connectivity | `GET /api/v3/ping` | 6 used |
+| Server time | `GET /api/v3/time` | 6 used |
+| Exchange info | `GET /api/v3/exchangeInfo` | 7 used (Spot discovery) |
 | Candles | `GET /api/v3/klines` | Adapter only |
 | Ticker | `GET /api/v3/ticker/24hr` | Adapter only |
 
-Public WebSocket (not connected in Phase 6):
+**Market type in Phase 7: Spot only.** Futures discovery and futures trading are out of scope.
+
+Public WebSocket (not connected):
 
 - Base: `wss://stream.binance.com:9443`
 - Streams prepared: `{symbol}@trade`, `{symbol}@miniTicker`, `{symbol}@kline_{interval}`
 
 Private trading APIs are out of scope.
+
+## Studio HTTP
+
+| Route | Meaning |
+| --- | --- |
+| `GET /api/forex/binance/status` | Public REST reachability (not live prices) |
+| `GET /api/forex/binance/markets` | Normalized Spot catalog (`?refresh=1` bypasses cache) |
+
+Catalog cache: 10 minutes in the server service. The browser filters locally after load.
+
+## Selected market URL
+
+Compatible Forex routes keep `?symbol=` and `?timeframe=`.
+
+Example: `/forex/charts?symbol=BTCUSDT`
+
+Unknown compact symbols are treated as Binance Spot identities. Known 6-letter Forex pairs remain development-forex.
 
 ## Configuration
 
@@ -52,22 +72,25 @@ Set in `.env` on the VPS (never commit secrets). Template: `.env.example`.
 | `KWIZERA_BINANCE_TIMEOUT_MS` | Probe timeout | `8000` |
 
 Localhost / private REST bases are rejected and replaced with the official HTTPS origin.
-`BINANCE_API_KEY` and `BINANCE_API_SECRET` are **not** read by this foundation.
+`BINANCE_API_KEY` and `BINANCE_API_SECRET` are **not** read.
 
-The browser talks only to same-origin `/api/forex/binance/status`. It must not call Binance or `localhost` directly.
+The browser talks only to same-origin `/api/forex/binance/*`. It must not call Binance or `localhost` directly.
+
+If ping/discovery fails on one official host, the client tries `api1`/`api2`/`api3.binance.com` and `data-api.binance.vision`.
 
 ## How later phases should consume this
 
-1. Server: `createBinanceMarketDataService()` then `probePublicRest()`, `normalizeKlines()`, `normalizeTicker()`.
-2. UI: `fetchBinanceConnectionStatus()` / `useBinanceConnectionStatus()`.
-3. Set `liveMarketData: true` **only** after a real Binance session returns valid market data (not after ping alone).
-4. Never mark dashboard quotes LIVE from this ping probe.
+1. Server: `createBinanceMarketDataService()` then `listSpotMarkets()`, `findSpotMarket()`.
+2. UI selected market: `parseSelectedMarket` / `writeMarketQuery`.
+3. Set `liveMarketData: true` **only** after a real Binance session returns valid market data.
+4. Never mark dashboard quotes LIVE from ping or exchangeInfo.
 
-## Intentionally deferred (Phases 7–10)
+## Intentionally deferred (Phase 8+)
 
-- Full REST market discovery / symbol browser
-- Historical and live klines in the chart
-- WebSocket ticker / trade / kline streaming
-- Reconnection loops
-- Private account API, orders, portfolio
-- AI signals, automated trading, backtesting
+- Real-time WebSocket streaming
+- Live prices and live candle updates in the UI
+- Historical klines for Binance symbols
+- Trading execution, BUY/SELL orders
+- AI signals and automated trading
+- Futures markets
+- Watchlist persistence

@@ -1,5 +1,5 @@
 import { BinanceMarketDataError } from "./errors.js";
-import type { NormalizedCandle, NormalizedInstrument, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
+import type { NormalizedCandle, NormalizedInstrument, NormalizedMarket, NormalizedTicker, NormalizedTimeframeId } from "./types.js";
 
 const TIMEFRAME_TO_INTERVAL: Record<NormalizedTimeframeId, string> = {
   "1m": "1m",
@@ -120,4 +120,102 @@ export function normalizeBinanceTicker24h(raw: unknown): NormalizedTicker {
     volume: row.volume == null ? null : finiteNumber(row.volume, "volume"),
     eventTimeUtc,
   };
+}
+
+const BINANCE_STATUS_VALUES = new Set([
+  "TRADING",
+  "BREAK",
+  "HALT",
+  "AUCTION_MATCH",
+  "PRE_TRADING",
+  "POST_TRADING",
+  "END_OF_DAY",
+]);
+
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function collectPermissions(row: Record<string, unknown>): string[] {
+  const direct = asStringList(row.permissions);
+  const nested = Array.isArray(row.permissionSets)
+    ? row.permissionSets.flatMap((set) => asStringList(set))
+    : [];
+  return [...new Set([...direct, ...nested].map((item) => item.toUpperCase()))];
+}
+
+function isSpotSymbol(row: Record<string, unknown>, permissions: string[]): boolean {
+  if (row.isSpotTradingAllowed === false) return false;
+  if (permissions.length === 0) return true;
+  return permissions.includes("SPOT");
+}
+
+export function normalizeBinanceSpotMarket(raw: unknown): NormalizedMarket | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const symbolRaw = typeof row.symbol === "string" ? row.symbol.trim().toUpperCase() : "";
+  const baseAsset = typeof row.baseAsset === "string" ? row.baseAsset.trim().toUpperCase() : "";
+  const quoteAsset = typeof row.quoteAsset === "string" ? row.quoteAsset.trim().toUpperCase() : "";
+  if (!/^[A-Z0-9]{4,30}$/.test(symbolRaw) || !baseAsset || !quoteAsset) return null;
+  const permissions = collectPermissions(row);
+  if (!isSpotSymbol(row, permissions)) return null;
+  const statusRaw = typeof row.status === "string" ? row.status.trim().toUpperCase() : "UNKNOWN";
+  const status = (BINANCE_STATUS_VALUES.has(statusRaw) ? statusRaw : "UNKNOWN") as NormalizedMarket["status"];
+  return {
+    venue: "binance-spot",
+    marketType: "spot",
+    symbol: symbolRaw,
+    displaySymbol: `${baseAsset}/${quoteAsset}`,
+    displayName: `${baseAsset} / ${quoteAsset} Spot`,
+    baseAsset,
+    quoteAsset,
+    status,
+    tradable: status === "TRADING",
+    permissions: permissions.length > 0 ? permissions : ["SPOT"],
+    source: "binance-spot-public",
+  };
+}
+
+export function normalizeBinanceExchangeInfo(raw: unknown): NormalizedMarket[] {
+  if (!raw || typeof raw !== "object") {
+    throw new BinanceMarketDataError("BINANCE_INVALID_RESPONSE", "Exchange information response is invalid.");
+  }
+  const payload = raw as { symbols?: unknown };
+  if (!Array.isArray(payload.symbols)) {
+    throw new BinanceMarketDataError("BINANCE_INVALID_RESPONSE", "Exchange information did not include symbols.");
+  }
+  const seen = new Set<string>();
+  const markets: NormalizedMarket[] = [];
+  for (const item of payload.symbols) {
+    const market = normalizeBinanceSpotMarket(item);
+    if (!market || seen.has(market.symbol)) continue;
+    seen.add(market.symbol);
+    markets.push(market);
+  }
+  markets.sort((left, right) => {
+    if (left.tradable !== right.tradable) return left.tradable ? -1 : 1;
+    return left.symbol.localeCompare(right.symbol);
+  });
+  return markets;
+}
+
+export function filterBinanceMarkets(
+  markets: NormalizedMarket[],
+  options: { query?: string; quoteAsset?: string; tradable?: "all" | "trading" | "not-trading" } = {},
+): NormalizedMarket[] {
+  const query = (options.query ?? "").trim().toUpperCase().replace("/", "");
+  const quote = (options.quoteAsset ?? "").trim().toUpperCase();
+  return markets.filter((market) => {
+    if (quote && market.quoteAsset !== quote) return false;
+    if (options.tradable === "trading" && !market.tradable) return false;
+    if (options.tradable === "not-trading" && market.tradable) return false;
+    if (!query) return true;
+    return (
+      market.symbol.includes(query) ||
+      market.baseAsset.includes(query) ||
+      market.quoteAsset.includes(query) ||
+      market.displaySymbol.replace("/", "").includes(query)
+    );
+  });
 }

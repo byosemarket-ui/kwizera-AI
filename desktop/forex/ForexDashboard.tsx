@@ -17,6 +17,7 @@ import {
   sessionStatusLabel,
 } from "./dashboard-data";
 import type { ForexRouteId } from "./forex-routes";
+import type { SelectedMarket } from "./market-data/selected-market";
 import type { MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionDetail, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 
@@ -24,10 +25,12 @@ export function ForexDashboard({
   onOpenModule,
   binanceConnection,
   onRetryBinance,
+  selectedMarket,
 }: {
   onOpenModule: (id: ForexRouteId) => void;
   binanceConnection: MarketConnectionSnapshot;
   onRetryBinance: () => void;
+  selectedMarket: SelectedMarket | null;
 }) {
   const quotes = marketOverviewQuotes();
   const sessions = resolveMarketSessions();
@@ -45,6 +48,22 @@ export function ForexDashboard({
         <h2 id="fx-dashboard-title" className="fx-sr-only">Forex Dashboard</h2>
         <p className="fx-panel-meta">Forex workspace · {clock}</p>
       </div>
+
+      <section className="fx-selected-binance" data-forex-section="selected-market">
+        <div className="fx-panel-header">
+          <div>
+            <h2>Active Binance market</h2>
+            <p className="fx-panel-meta">
+              {selectedMarket?.venue === "binance-spot"
+                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot identity only`
+                : "Select a Binance Spot symbol from Markets. No live price is shown."}
+            </p>
+          </div>
+          <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
+            Open Markets
+          </button>
+        </div>
+      </section>
 
       <section className="fx-session-panel" data-forex-section="sessions" aria-labelledby="fx-session-title">
         <div className="fx-panel-header">
