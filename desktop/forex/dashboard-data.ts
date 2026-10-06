@@ -82,7 +82,7 @@ export const FOREX_SESSION_WINDOWS: MarketSessionWindow[] = [
 
 export const FOREX_SERVICE_CONNECTIONS: ServiceConnection[] = [
   { id: "market-data", label: "Market Data", state: "not-connected", detail: "Not connected" },
-  { id: "ai-analysis", label: "AI Analysis", state: "not-connected", detail: "Not connected" },
+  { id: "ai-analysis", label: "AI Analysis", state: "not-connected", detail: "Foundation — check /forex/ai-analysis health" },
   { id: "signal-engine", label: "Signal Engine", state: "not-connected", detail: "Not connected" },
   { id: "trading-account", label: "Trading Account", state: "not-connected", detail: "Not connected" },
 ];

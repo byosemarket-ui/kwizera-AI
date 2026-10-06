@@ -207,8 +207,8 @@ export function ForexDashboard({
         <ForexOverviewCard
           testId="ai-analysis"
           title="AI Analysis"
-          description="AI-assisted Forex analysis will be available here."
-          status="AI analysis not connected"
+          description="Ollama-backed Forex AI foundation. Health status and structured reasoning over market state — not a trading signal."
+          status="Forex AI foundation"
           actionLabel="Open AI Analysis"
           icon={Brain}
           onOpen={() => onOpenModule("ai-analysis")}

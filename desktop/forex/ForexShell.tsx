@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { ForexDashboard } from "./ForexDashboard";
 import { ForexMarketsPage } from "./ForexMarketsPage";
+import { ForexAiAnalysisPage } from "./ForexAiAnalysisPage";
 import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
 import { ForexModulePage } from "./ForexModulePage";
@@ -191,6 +192,13 @@ export function ForexShell({
           liveTicker={liveTicker}
         />
       </Suspense>
+    );
+  } else if (route === "ai-analysis") {
+    content = (
+      <ForexAiAnalysisPage
+        selectedMarket={selectedMarket}
+        liveTicker={liveTicker}
+      />
     );
   } else {
     content = (
