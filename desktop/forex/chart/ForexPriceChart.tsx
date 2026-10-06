@@ -56,7 +56,27 @@ function chartOptions(height: number) {
 }
 
 function setLine(series: ISeriesApi<"Line">, points: LinePoint[]): void {
-  series.setData(points.map((item) => ({ time: asTime(item.time), value: item.value })));
+  const data = points
+    .filter((item) => Number.isFinite(item.time) && Number.isFinite(item.value))
+    .map((item) => ({ time: asTime(item.time), value: item.value }));
+  series.setData(data);
+}
+
+function safeChartRemove(chart: IChartApi | null | undefined): void {
+  if (!chart) return;
+  try {
+    chart.remove();
+  } catch {
+    // Lightweight-charts may throw when already disposed during route unmount.
+  }
+}
+
+function safeRemoveSeries(chart: IChartApi, series: ISeriesApi<"Line">): void {
+  try {
+    chart.removeSeries(series);
+  } catch {
+    // Chart may already be disposed when leaving Charts / Technical Analysis.
+  }
 }
 
 export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChartProps>(function ForexPriceChart(
@@ -92,6 +112,7 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
   useEffect(() => {
     const host = mainRef.current;
     if (!host) return;
+    let disposed = false;
     const width = host.clientWidth || 640;
     const main = createChart(host, { width, ...chartOptions(showRsi || showMacd ? 380 : 440) });
     mainApi.current = main;
@@ -110,6 +131,7 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     lastMeta.current = null;
 
     main.subscribeCrosshairMove((param) => {
+      if (disposed) return;
       const latest = candlesRef.current;
       const time = typeof param.time === "number" ? param.time : null;
       const match = time ? latest.find((item) => item.time === time) : latest[latest.length - 1];
@@ -117,17 +139,22 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     });
 
     const observer = new ResizeObserver(() => {
-      const nextWidth = host.clientWidth;
-      main.applyOptions({ width: nextWidth });
+      if (disposed) return;
+      try {
+        main.applyOptions({ width: host.clientWidth });
+      } catch {
+        // Ignore resize after dispose.
+      }
     });
     observer.observe(host);
 
     return () => {
+      disposed = true;
       observer.disconnect();
-      mainApi.current = null;
+      if (mainApi.current === main) mainApi.current = null;
       candleSeriesRef.current = null;
       closeSeriesRef.current = null;
-      main.remove();
+      safeChartRemove(main);
     };
   }, [chartType, showRsi, showMacd, seriesKey]);
 
@@ -135,31 +162,42 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     const candleSeries = candleSeriesRef.current;
     const closeSeries = closeSeriesRef.current;
     if (!candleSeries || !closeSeries) return;
-    const last = candles[candles.length - 1];
+    const validCandles = candles.filter((item) => (
+      Number.isFinite(item.time)
+      && Number.isFinite(item.open)
+      && Number.isFinite(item.high)
+      && Number.isFinite(item.low)
+      && Number.isFinite(item.close)
+    ));
+    const last = validCandles[validCandles.length - 1];
     const prev = lastMeta.current;
     const canUpdate = Boolean(
       last
       && prev
       && prev.key === seriesKey
-      && (prev.length === candles.length || prev.length + 1 === candles.length)
+      && (prev.length === validCandles.length || prev.length + 1 === validCandles.length)
       && last.time >= prev.time,
     );
-    if (canUpdate && last) {
-      if (chartType === "candlestick") {
-        candleSeries.update({ time: asTime(last.time), open: last.open, high: last.high, low: last.low, close: last.close });
+    try {
+      if (canUpdate && last) {
+        if (chartType === "candlestick") {
+          candleSeries.update({ time: asTime(last.time), open: last.open, high: last.high, low: last.low, close: last.close });
+        } else {
+          closeSeries.update({ time: asTime(last.time), value: last.close });
+        }
       } else {
-        closeSeries.update({ time: asTime(last.time), value: last.close });
+        candleSeries.setData(chartType === "candlestick"
+          ? validCandles.map((item) => ({ time: asTime(item.time), open: item.open, high: item.high, low: item.low, close: item.close }))
+          : []);
+        closeSeries.setData(chartType === "line"
+          ? validCandles.map((item) => ({ time: asTime(item.time), value: item.close }))
+          : []);
+        mainApi.current?.timeScale().fitContent();
       }
-    } else {
-      candleSeries.setData(chartType === "candlestick"
-        ? candles.map((item) => ({ time: asTime(item.time), open: item.open, high: item.high, low: item.low, close: item.close }))
-        : []);
-      closeSeries.setData(chartType === "line"
-        ? candles.map((item) => ({ time: asTime(item.time), value: item.close }))
-        : []);
-      mainApi.current?.timeScale().fitContent();
+    } catch {
+      return;
     }
-    lastMeta.current = { key: seriesKey, time: last?.time ?? 0, length: candles.length };
+    lastMeta.current = { key: seriesKey, time: last?.time ?? 0, length: validCandles.length };
     onFocusRef.current(last ?? null);
   }, [candles, chartType, seriesKey]);
 
@@ -167,24 +205,41 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     const main = mainApi.current;
     if (!main) return;
     const overlaySeries: ISeriesApi<"Line">[] = [];
-    for (const overlay of overlays) {
-      const series = main.addLineSeries({ color: overlay.color, lineWidth: 2, title: overlay.id });
-      setLine(series, overlay.points);
-      overlaySeries.push(series);
+    try {
+      for (const overlay of overlays) {
+        const series = main.addLineSeries({ color: overlay.color, lineWidth: 2, title: overlay.id });
+        setLine(series, overlay.points);
+        overlaySeries.push(series);
+      }
+    } catch {
+      return;
     }
     const priceHost = chartType === "candlestick" ? candleSeriesRef.current : closeSeriesRef.current;
-    const created = levels.map((level) => priceHost?.createPriceLine({
-      price: level.price,
-      color: level.kind === "support" ? BULL : BEAR,
-      lineStyle: LineStyle.Dashed,
-      lineWidth: 1,
-      title: level.kind === "support" ? "Support" : "Resistance",
-      axisLabelVisible: true,
-    }));
+    const created = levels
+      .filter((level) => Number.isFinite(level.price))
+      .map((level) => {
+        try {
+          return priceHost?.createPriceLine({
+            price: level.price,
+            color: level.kind === "support" ? BULL : BEAR,
+            lineStyle: LineStyle.Dashed,
+            lineWidth: 1,
+            title: level.kind === "support" ? "Support" : "Resistance",
+            axisLabelVisible: true,
+          }) ?? null;
+        } catch {
+          return null;
+        }
+      });
     return () => {
-      for (const series of overlaySeries) main.removeSeries(series);
+      for (const series of overlaySeries) safeRemoveSeries(main, series);
       for (const line of created) {
-        if (line && priceHost) priceHost.removePriceLine(line);
+        if (!line || !priceHost) continue;
+        try {
+          priceHost.removePriceLine(line);
+        } catch {
+          // Price host may already be gone with the parent chart.
+        }
       }
     };
   }, [overlays, levels, chartType, seriesKey]);
@@ -199,7 +254,7 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     rsiSeries.createPriceLine({ price: 70, color: BEAR, lineStyle: LineStyle.Dotted, title: "Overbought" });
     rsiSeries.createPriceLine({ price: 30, color: BULL, lineStyle: LineStyle.Dotted, title: "Oversold" });
     return () => {
-      chart.remove();
+      safeChartRemove(chart);
     };
   }, [rsi, seriesKey]);
 
@@ -208,7 +263,8 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     if (!host || !macd) return;
     const width = host.clientWidth || mainRef.current?.clientWidth || 640;
     const chart = createChart(host, { width, ...chartOptions(130) });
-    chart.addHistogramSeries({ color: MUTED }).setData(macd.histogram.map((item) => ({
+    const histogram = macd.histogram.filter((item) => Number.isFinite(item.time) && Number.isFinite(item.value));
+    chart.addHistogramSeries({ color: MUTED }).setData(histogram.map((item) => ({
       time: asTime(item.time),
       value: item.value,
       color: item.value >= 0 ? BULL : BEAR,
@@ -216,7 +272,7 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     setLine(chart.addLineSeries({ color: BULL, lineWidth: 2 }), macd.macd);
     setLine(chart.addLineSeries({ color: "#9db7e8", lineWidth: 2 }), macd.signal);
     return () => {
-      chart.remove();
+      safeChartRemove(chart);
     };
   }, [macd, seriesKey]);
 

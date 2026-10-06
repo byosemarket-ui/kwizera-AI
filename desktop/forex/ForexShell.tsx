@@ -34,21 +34,25 @@ const ForexChartWorkspace = lazy(async () => {
   return { default: module.ForexChartWorkspace };
 });
 
-class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexViewId }, { failed: string | null }> {
-  state = { failed: null as string | null };
+class ForexPageBoundary extends Component<{ children: ReactNode; route: ForexViewId }, { failed: string | null; route: ForexViewId }> {
+  state = { failed: null as string | null, route: this.props.route };
 
   static getDerivedStateFromError(err: unknown) {
     return { failed: err instanceof Error ? err.message.slice(0, 200) : "Unknown rendering error" };
   }
 
-  componentDidCatch(err: unknown, info: ErrorInfo) {
-    console.error("[KWIZERA] Forex page render failed:", err, info.componentStack);
+  static getDerivedStateFromProps(
+    props: { route: ForexViewId },
+    state: { failed: string | null; route: ForexViewId },
+  ) {
+    if (props.route !== state.route) {
+      return { failed: null, route: props.route };
+    }
+    return null;
   }
 
-  componentDidUpdate(prevProps: { route: ForexViewId }) {
-    if (prevProps.route !== this.props.route && this.state.failed) {
-      this.setState({ failed: null });
-    }
+  componentDidCatch(err: unknown, info: ErrorInfo) {
+    console.error("[KWIZERA] Forex page render failed:", err, info.componentStack);
   }
 
   render() {
