@@ -16,7 +16,7 @@ export interface BinanceMarketDataService {
 }
 
 export function createBinanceMarketDataService(options: {
-  env?: NodeJS.Dict<string>;
+  env?: Record<string, string | undefined>;
   fetchImpl?: FetchLike;
 } = {}): BinanceMarketDataService {
   const config = resolveBinancePublicConfig(options.env);

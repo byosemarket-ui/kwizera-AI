@@ -26,7 +26,7 @@ export interface BinancePublicConfig {
   usedOfficialFallback: boolean;
 }
 
-function isProductionEnv(env: NodeJS.Dict<string>): boolean {
+function isProductionEnv(env: Record<string, string | undefined>): boolean {
   return env.NODE_ENV === "production" || env.KWIZERA_ENV === "production";
 }
 
@@ -69,7 +69,9 @@ function isPrivateOrLocalHost(url: string): boolean {
 /**
  * Public Binance configuration only. API keys / secrets are never read here.
  */
-export function resolveBinancePublicConfig(env: NodeJS.Dict<string> = process.env): BinancePublicConfig {
+export function resolveBinancePublicConfig(
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): BinancePublicConfig {
   const environment = isProductionEnv(env) ? "production" : "development";
   const enabledRaw = (env.KWIZERA_BINANCE_ENABLED ?? "1").trim().toLowerCase();
   const enabled = enabledRaw !== "0" && enabledRaw !== "false" && enabledRaw !== "off";
@@ -79,7 +81,7 @@ export function resolveBinancePublicConfig(env: NodeJS.Dict<string> = process.en
   let restBaseUrl = requestedRest || BINANCE_DEFAULT_REST_BASE;
   let usedOfficialFallback = false;
   const restIsHttps = restBaseUrl.startsWith("https://");
-  if (!restIsHttps || isPrivateOrLocalHost(restBaseUrl) || (environment === "production" && isPrivateOrLocalHost(restBaseUrl))) {
+  if (!restIsHttps || isPrivateOrLocalHost(restBaseUrl)) {
     restBaseUrl = BINANCE_DEFAULT_REST_BASE;
     usedOfficialFallback = requestedRest !== BINANCE_DEFAULT_REST_BASE;
   }

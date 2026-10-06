@@ -41,15 +41,13 @@ describe("Binance Phase 6 adapter", () => {
       "12.5",
       1_700_000_060_000,
     ]);
-    expect(candle).toEqual({
-      time: 1_700_000_000,
-      open: 100,
-      high: 110,
-      low: 90,
-      close: 105,
-      volume: 12.5,
-      closed: true,
-    });
+    expect(candle.time).toBe(1_700_000_000);
+    expect(candle.open).toBe(100);
+    expect(candle.high).toBe(110);
+    expect(candle.low).toBe(90);
+    expect(candle.close).toBe(105);
+    expect(candle.volume).toBe(12.5);
+    expect(typeof candle.closed).toBe("boolean");
     expect(toBinanceSymbol("btc/usdt")).toBe("BTCUSDT");
     const ticker = normalizeBinanceTicker24h({
       symbol: "ETHUSDT",

@@ -3,14 +3,19 @@
  * GET /api/forex/binance/status — reachability probe only. No trading. No secrets.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createBinanceMarketDataService } from "../../ai/market-data/binance/service.js";
+import { createBinanceMarketDataService, type BinanceMarketDataService } from "../../ai/market-data/binance/service.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
-const service = createBinanceMarketDataService();
+let defaultService: BinanceMarketDataService | null = null;
+
+function getDefaultService(): BinanceMarketDataService {
+  defaultService ??= createBinanceMarketDataService();
+  return defaultService;
+}
 
 export function createBinanceMarketDataHandler(options?: {
-  env?: NodeJS.Dict<string>;
+  env?: Record<string, string | undefined>;
   fetchImpl?: typeof fetch;
 }): { handle: typeof handleBinanceMarketDataApi } {
   const isolated = createBinanceMarketDataService({
@@ -28,11 +33,11 @@ export async function handleBinanceMarketDataApi(
   url: URL,
   sendJson: SendJson,
 ): Promise<boolean> {
-  return handleWithService(service, req, res, url, sendJson);
+  return handleWithService(getDefaultService(), req, res, url, sendJson);
 }
 
 async function handleWithService(
-  binance: ReturnType<typeof createBinanceMarketDataService>,
+  binance: BinanceMarketDataService,
   req: IncomingMessage,
   res: ServerResponse,
   url: URL,
@@ -40,32 +45,40 @@ async function handleWithService(
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex/binance")) return false;
 
-  if (url.pathname !== "/api/forex/binance/status") {
-    sendJson(res, 404, {
+  try {
+    if (url.pathname !== "/api/forex/binance/status") {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Unknown Binance foundation route." },
+      });
+      return true;
+    }
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      sendJson(res, 405, {
+        ok: false,
+        error: { code: "METHOD_NOT_ALLOWED", message: "Use GET /api/forex/binance/status." },
+      });
+      return true;
+    }
+
+    const snapshot = await binance.probePublicRest();
+    const config = binance.getConfig();
+    sendJson(res, snapshot.state === "ERROR" ? 503 : 200, {
+      ok: snapshot.state !== "ERROR",
+      snapshot,
+      public: {
+        restBaseHost: config.restBaseHost,
+        websocketPrepared: true,
+        tradingEnabled: false,
+      },
+    });
+    return true;
+  } catch {
+    sendJson(res, 503, {
       ok: false,
-      error: { code: "NOT_FOUND", message: "Unknown Binance foundation route." },
+      error: { code: "BINANCE_NETWORK", message: "Market data is temporarily unavailable." },
     });
     return true;
   }
-
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    sendJson(res, 405, {
-      ok: false,
-      error: { code: "METHOD_NOT_ALLOWED", message: "Use GET /api/forex/binance/status." },
-    });
-    return true;
-  }
-
-  const snapshot = await binance.probePublicRest();
-  const config = binance.getConfig();
-  sendJson(res, snapshot.state === "ERROR" ? 503 : 200, {
-    ok: snapshot.state !== "ERROR",
-    snapshot,
-    public: {
-      restBaseHost: config.restBaseHost,
-      websocketPrepared: true,
-      tradingEnabled: false,
-    },
-  });
-  return true;
 }
