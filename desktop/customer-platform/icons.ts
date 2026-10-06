@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   AudioLines, Calendar, Camera, Clapperboard, Crop, Eraser, FileAudio, FileText,
   FolderKanban, Gift, Heart, HelpCircle, Home, Image, Layers, LayoutTemplate,
-  LineChart, ListOrdered, Mail, Megaphone, Mic, Music, Package, Scissors, Settings,
+  Library, LineChart, ListOrdered, Mail, Megaphone, Mic, Music, Package, Scissors, Settings,
   Share2, Sparkles, Sun, Tag, User, Video,
 } from "lucide-react";
 
