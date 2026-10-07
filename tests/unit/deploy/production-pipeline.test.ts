@@ -96,6 +96,9 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(yml).toContain("2222");
     expect(yml).toContain("GITHUB_STEP_SUMMARY");
     expect(yml).toContain('REMOTE_USER:-}" = "root"');
+    expect(yml).toContain('USER_CANDIDATES=("root")');
+    expect(yml).toContain("Publish deploy failure excerpt");
+    expect(yml).toContain("/commits/");
     expect(yml).toContain("secrets.VPS_HOST");
     expect(yml).toContain("secrets.VPS_USER");
     expect(yml).toContain("secrets.VPS_SSH_KEY");

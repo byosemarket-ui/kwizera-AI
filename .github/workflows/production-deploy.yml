@@ -115,45 +115,49 @@ jobs:
           PY
           chmod 600 "$HOME/.ssh/deploy_key"
           : >"$HOME/kwizera-deploy-ssh.log"
-          # Port 2222 = Dropbear (OpenSSH hostbound workaround; see deploy/vps-step2.sh).
-          # Port 22 = OpenSSH_10.x advertises publickey-hostbound and breaks CI key auth.
-          # Always prefer 2222 even when secret VPS_PORT=22 (common misconfig after hostbound breakage).
-          if [ -n "${VPS_PORT:-}" ] && [ "$VPS_PORT" != "22" ] && [ "$VPS_PORT" != "2222" ]; then
-            PORT_CANDIDATES=("$VPS_PORT" 2222 22)
-          else
-            PORT_CANDIDATES=(2222 22)
+          # Dropbear :2222 is root key auth (OpenSSH hostbound workaround; deploy/vps-step2.sh).
+          # OpenSSH :22 advertises publickey-hostbound and often rejects the same key.
+          # Prefer root@2222 first even when VPS_USER/VPS_PORT secrets still point at kwizera@:22.
+          PORT_CANDIDATES=(2222 22)
+          USER_CANDIDATES=("root")
+          if [ -n "${VPS_USER:-}" ] && [ "$VPS_USER" != "root" ]; then
+            USER_CANDIDATES+=("$VPS_USER")
           fi
           SSH_BASE=(
             -i "$HOME/.ssh/deploy_key"
             -o IdentitiesOnly=yes
             -o BatchMode=yes
             -o NumberOfPasswordPrompts=0
-            -o ConnectTimeout=15
+            -o ConnectTimeout=12
             -o ConnectionAttempts=1
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=120
             -o StrictHostKeyChecking=accept-new
           )
           SSH_PORT=""
+          SSH_LOGIN=""
           REMOTE_USER=""
           for candidate in "${PORT_CANDIDATES[@]}"; do
-            echo "[KWIZERA] SSH preflight ${VPS_USER}@${VPS_HOST}:${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log"
             ssh-keyscan -p "$candidate" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
             chmod 644 "$HOME/.ssh/known_hosts"
-            if preflight_out="$(ssh "${SSH_BASE[@]}" -p "$candidate" "$VPS_USER@$VPS_HOST" \
-              "echo SSH_OK; id -un; command -v sudo || true" 2>&1)"; then
-              echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log"
-              SSH_PORT="$candidate"
-              REMOTE_USER="$(printf '%s\n' "$preflight_out" | awk 'NR==2 {print; exit}')"
-              break
-            fi
-            echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2 || true
-            echo "[KWIZERA] SSH preflight failed on port ${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
+            for login in "${USER_CANDIDATES[@]}"; do
+              echo "[KWIZERA] SSH preflight ${login}@${VPS_HOST}:${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log"
+              if preflight_out="$(ssh "${SSH_BASE[@]}" -p "$candidate" "$login@$VPS_HOST" \
+                "echo SSH_OK; id -un; command -v sudo || true" 2>&1)"; then
+                echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log"
+                SSH_PORT="$candidate"
+                SSH_LOGIN="$login"
+                REMOTE_USER="$(printf '%s\n' "$preflight_out" | awk 'NR==2 {print; exit}')"
+                break 2
+              fi
+              echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2 || true
+              echo "[KWIZERA] SSH preflight failed for ${login}@:${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
+            done
           done
           if [ -z "$SSH_PORT" ]; then
             {
-              echo "[KWIZERA] SSH authentication failed on ports: ${PORT_CANDIDATES[*]}"
-              echo "[KWIZERA] Check secrets VPS_HOST/VPS_USER/VPS_SSH_KEY and Dropbear :2222."
+              echo "[KWIZERA] SSH authentication failed for users=${USER_CANDIDATES[*]} ports=${PORT_CANDIDATES[*]}"
+              echo "[KWIZERA] Check secrets VPS_HOST/VPS_USER/VPS_SSH_KEY. Dropbear :2222 expects root key auth."
             } | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
             {
               echo "## Deploy SSH failure"
@@ -163,10 +167,10 @@ jobs:
             } >>"$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          echo "[KWIZERA] starting deploy script for ${DEPLOY_SHA} via port ${SSH_PORT} user=${REMOTE_USER:-unknown}" | tee -a "$HOME/kwizera-deploy-ssh.log"
+          echo "[KWIZERA] starting deploy script for ${DEPLOY_SHA} via ${SSH_LOGIN}@:${SSH_PORT} user=${REMOTE_USER:-unknown}" | tee -a "$HOME/kwizera-deploy-ssh.log"
           remote_deploy() {
             local remote_cmd="$1"
-            ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$VPS_USER@$VPS_HOST" "$remote_cmd" 2>&1 | tee -a "$HOME/kwizera-deploy-ssh.log"
+            ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$SSH_LOGIN@$VPS_HOST" "$remote_cmd" 2>&1 | tee -a "$HOME/kwizera-deploy-ssh.log"
             return "${PIPESTATUS[0]}"
           }
           set +e
@@ -196,5 +200,55 @@ jobs:
           echo "requestedCommit=${DEPLOY_SHA}"
           {
             echo "## Deploy SSH success"
-            echo "Port: ${SSH_PORT} / user: ${REMOTE_USER:-unknown} / sha: ${DEPLOY_SHA}"
+            echo "Login: ${SSH_LOGIN}@:${SSH_PORT} / user: ${REMOTE_USER:-unknown} / sha: ${DEPLOY_SHA}"
           } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Publish deploy failure excerpt
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          LOG="$HOME/kwizera-deploy-ssh.log"
+          if [ ! -f "$LOG" ]; then
+            echo "no SSH deploy log captured" >"$LOG"
+          fi
+          # Never publish private-key material if it accidentally entered the log.
+          if grep -qE 'BEGIN (OPENSSH|RSA|EC) PRIVATE KEY' "$LOG"; then
+            echo "refusing to publish log containing private key material" >&2
+            exit 0
+          fi
+          BODY_FILE="${RUNNER_TEMP}/deploy-failure-body.md"
+          {
+            echo "### Deploy SSH failure excerpt"
+            echo
+            echo "Automated excerpt from the failed Production deploy SSH step (no secrets)."
+            echo
+            echo '```text'
+            tail -n 120 "$LOG"
+            echo '```'
+          } >"$BODY_FILE"
+          export BODY_FILE
+          python3 - <<'PY'
+          import json, os, urllib.request
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["GITHUB_SHA"]
+          body = open(os.environ["BODY_FILE"], encoding="utf-8").read()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/commits/{sha}/comments",
+              data=json.dumps({"body": body}).encode("utf-8"),
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+                  "User-Agent": "kwizera-deploy-recovery",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as resp:
+              print("commit_comment_status", resp.status)
+          PY
