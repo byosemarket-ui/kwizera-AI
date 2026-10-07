@@ -1,17 +1,21 @@
 /**
- * Forex AI API — Phase 17 foundation + Phase 20 Market Analysis Engine.
+ * Forex AI API — Phase 17/20 + Phase 21 Multi-Timeframe.
  * Reuses shared Ollama adapter. Does not expose port 11434.
  *
  * GET  /api/forex/ai/health
- * POST /api/forex/ai/analyze   — { symbol, timeframe } (authoritative) or legacy { market }
+ * POST /api/forex/ai/analyze
+ * POST /api/forex/ai/multi-timeframe
  * GET  /api/forex/ai/meta
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   analyzeForexMarketState,
+  FOREX_MTF_DEFAULT_STACK,
+  FOREX_MTF_SCHEMA_VERSION,
   forexAiEngineMeta,
   getForexAiHealth,
   runForexMarketAnalysis,
+  runForexMultiTimeframeAnalysis,
   type ForexAiAnalysisType,
 } from "../../ai/forex-ai/index.js";
 
@@ -42,7 +46,9 @@ export async function handleForexAiApi(
         meta: forexAiEngineMeta(),
         publicOllamaExposed: false,
         schemaVersion: "forex-ai-analysis-v1",
-        note: "Forex AI Market Analysis Engine: Market State + Forex Knowledge → shared Ollama adapter.",
+        mtfSchemaVersion: FOREX_MTF_SCHEMA_VERSION,
+        mtfDefaultStack: FOREX_MTF_DEFAULT_STACK,
+        note: "Forex AI: single-TF + multi-TF Market State + Forex Knowledge → shared Ollama adapter.",
       });
       return true;
     }
@@ -106,6 +112,43 @@ export async function handleForexAiApi(
           latencyMs: result.latencyMs,
           promptChars: result.diagnostics?.promptChars ?? null,
           knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
+          durationMs: Date.now() - started,
+        }),
+      );
+      sendJson(res, result.ok ? 200 : 422, result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/ai/multi-timeframe" && req.method === "POST") {
+      const body = await readJsonBody(req) as {
+        symbol?: string;
+        timeframes?: string[];
+        analysisType?: string;
+        knowledgeQuery?: string;
+        timeoutMs?: number;
+      };
+      const started = Date.now();
+      const result = await runForexMultiTimeframeAnalysis({
+        symbol: String(body.symbol ?? ""),
+        timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
+        analysisType: body.analysisType,
+        knowledgeQuery: body.knowledgeQuery,
+        timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+      });
+      console.info(
+        "[forex-ai] mtf-analyze",
+        JSON.stringify({
+          ok: result.ok,
+          code: result.code,
+          symbol: result.analysis?.market.symbol ?? body.symbol ?? null,
+          timeframes: result.diagnostics?.timeframes ?? body.timeframes ?? null,
+          alignment: result.analysis?.overallAlignment.overall ?? null,
+          narrative: result.analysis?.narrativeStatus ?? null,
+          model: result.analysis?.model ?? result.diagnostics?.model ?? null,
+          latencyMs: result.latencyMs,
+          promptChars: result.diagnostics?.promptChars ?? null,
+          knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
+          marketStateMs: result.diagnostics?.marketStateMs ?? null,
           durationMs: Date.now() - started,
         }),
       );
