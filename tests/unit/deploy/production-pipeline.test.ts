@@ -23,6 +23,8 @@ describe("VPS production pipeline must build the studio UI", () => {
     expect(src).toContain("dev/ui/desktop/index.html");
     expect(src).toContain("Dev Dashboard");
     expect(src).toMatch(/serverOnly|server-only/);
+    expect(src).toContain('desktop", "forex", "chart"');
+    expect(src).toContain("dist/desktop/forex/chart/indicators.js");
   });
 
   it("update-from-github.sh runs the full production build and fails without the studio index", () => {

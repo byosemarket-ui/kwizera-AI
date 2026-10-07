@@ -75,6 +75,11 @@ const sources = ["ai", "storage", "config", "dev"].flatMap((dir) =>
   collectTsFiles(path.join(root, dir)),
 );
 
+// Server-side Forex Market State imports shared candle/indicator helpers from desktop/.
+// Those modules must be emitted under dist/desktop/... or the worker crash-loops on boot:
+// ERR_MODULE_NOT_FOUND dist/desktop/forex/chart/indicators.js
+sources.push(...collectTsFiles(path.join(root, "desktop", "forex", "chart")));
+
 if (sources.length === 0) {
   console.error("[KWIZERA] No TypeScript sources found to compile.");
   process.exit(1);
@@ -101,13 +106,23 @@ await build({
 
 const gateway = path.join(dist, "dev", "server", "production-gateway.js");
 const entry = path.join(dist, "dev", "server", "index.js");
+const forexIndicators = path.join(dist, "desktop", "forex", "chart", "indicators.js");
+const forexValidateCandles = path.join(dist, "desktop", "forex", "chart", "validate-candles.js");
 if (!fs.existsSync(entry) || !fs.existsSync(gateway)) {
   console.error("[KWIZERA] Production entry was not emitted:", !fs.existsSync(gateway) ? gateway : entry);
+  process.exit(1);
+}
+if (!fs.existsSync(forexIndicators) || !fs.existsSync(forexValidateCandles)) {
+  console.error(
+    "[KWIZERA] Forex chart helpers missing from dist (required by Market State worker):",
+    !fs.existsSync(forexIndicators) ? forexIndicators : forexValidateCandles,
+  );
   process.exit(1);
 }
 
 console.log("[KWIZERA] Production JS emit complete:", path.relative(root, gateway));
 console.log("[KWIZERA] App worker:", path.relative(root, entry));
+console.log("[KWIZERA] Forex chart helpers:", path.relative(root, forexIndicators));
 
 if (serverOnly) {
   console.warn("[KWIZERA] --server-only: studio UI was not built. VPS deploys must not use this flag.");
