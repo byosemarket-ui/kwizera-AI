@@ -27,6 +27,16 @@ export function ForexAdminShell() {
   }, []);
 
   useEffect(() => {
+    const syncSidebarToViewport = () => {
+      const desktop = window.innerWidth > 820;
+      setSidebarOpen((open) => (desktop ? true : open));
+    };
+    syncSidebarToViewport();
+    window.addEventListener("resize", syncSidebarToViewport);
+    return () => window.removeEventListener("resize", syncSidebarToViewport);
+  }, []);
+
+  useEffect(() => {
     syncForexAdminUrl(location.canonicalPath);
     document.title = getForexAdminDocumentTitle(location.view);
   }, [location]);

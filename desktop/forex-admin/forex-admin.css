@@ -24,6 +24,18 @@
   grid-template-columns: 1fr;
 }
 
+@media (min-width: 821px) {
+  /* Desktop always reserves the sidebar column; closed state is mobile-only. */
+  .fxa-root,
+  .fxa-root[data-sidebar="closed"] {
+    grid-template-columns: 260px 1fr;
+  }
+
+  .fxa-root[data-sidebar="closed"] .fxa-sidebar {
+    display: flex;
+  }
+}
+
 .fxa-sidebar {
   border-right: 1px solid var(--fxa-border);
   background: rgba(10, 16, 28, 0.92);
