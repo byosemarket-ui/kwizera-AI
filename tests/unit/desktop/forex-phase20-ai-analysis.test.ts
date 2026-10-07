@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   assessMarketStateForAnalysis,
+  assembleGroundedMarketReadout,
   buildForexAnalysisPrompt,
   buildForexKnowledgeQuery,
   detectGroundingViolations,
@@ -315,6 +316,41 @@ describe("Forex Phase 20 — AI Market Analysis Engine", () => {
     }, { market, model: "x" });
     expect(parsed.ok).toBe(false);
     if (!parsed.ok) expect(parsed.code).toBe("AI_ANALYSIS_INVALID");
+  });
+
+  it("assembles grounded Market State readout without inventing RSI", () => {
+    const market = emptyForexMarketState({
+      symbol: "BTCUSDT",
+      timeframe: "15m",
+      exchange: "BINANCE",
+      marketType: "SPOT",
+      dataSource: "binance-spot",
+      price: 83670,
+      trend: "BEARISH",
+      momentum: "NEGATIVE",
+      indicators: {
+        sma: {},
+        ema: {},
+        rsi: null,
+        macd: { macd: null, signal: null, histogram: null },
+        bollinger: { mid: null, upper: null, lower: null, widthPct: null },
+      },
+    });
+    const analysis = assembleGroundedMarketReadout({
+      market,
+      model: "llama3.2:1b",
+      knowledgeSources: [],
+      analysisType: "MARKET_OVERVIEW",
+      dataQualityStatus: "CONNECTED",
+      dataQualityStale: false,
+      reason: "non-JSON",
+    });
+    expect(analysis.schemaVersion).toBe(FOREX_AI_ANALYSIS_SCHEMA_VERSION);
+    expect(analysis.confidence).toBeNull();
+    expect(analysis.decisionPosture).toBe("WAIT");
+    expect(analysis.observedFacts.some((f) => /RSI14 unavailable/i.test(f))).toBe(true);
+    expect(analysis.observedFacts.some((f) => /83670/.test(f))).toBe(true);
+    expect(analysis.summary).toMatch(/valid JSON/i);
   });
 
   it("formats knowledge budget and display symbol helpers", () => {

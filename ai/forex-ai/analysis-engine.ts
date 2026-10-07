@@ -10,13 +10,14 @@ import {
 } from "../ai-provider/ollama-adapter.js";
 import { preferredReasoningModelId } from "../ai-provider/ollama-client.js";
 import type { ForexKnowledgeRetrievalHit } from "../forex-knowledge/types.js";
+import { isSmallReasoningModel } from "../ai-provider/ollama-client.js";
+import { assembleGroundedMarketReadout } from "./grounded-fallback.js";
 import { formatKnowledgeForPrompt, toKnowledgeSources } from "./knowledge-query.js";
 import {
   buildForexAnalysisPrompt,
   buildForexAnalysisRepairPrompt,
   FOREX_AI_ENGINE_VERSION,
 } from "./prompts.js";
-import { isSmallReasoningModel } from "../ai-provider/ollama-client.js";
 import type {
   ForexAiAnalysisType,
   ForexAiAnalyzeResult,
@@ -178,9 +179,34 @@ export async function analyzeForexMarketState(
   }
 
   if (!generated.ok || !generated.data) {
+    const code = mapGenerateError(generated.code);
+    // Truthful degradation: Market State facts only — never invent narrative/numbers.
+    if (code === "AI_FORMAT_ERROR" && marketStateHasAnalyzableFacts(market)) {
+      const analysis = assembleGroundedMarketReadout({
+        market,
+        model: generated.model,
+        knowledgeSources: toKnowledgeSources(knowledgeHits),
+        analysisType,
+        dataQualityStatus: opts?.dataQualityStatus ?? (market.live ? "LIVE" : "CONNECTED"),
+        dataQualityStale: opts?.dataQualityStale ?? false,
+        reason: generated.error ?? "Ollama returned non-JSON after repair attempt.",
+      });
+      return {
+        ok: true,
+        code: "OK",
+        analysis,
+        latencyMs: Date.now() - started,
+        diagnostics: {
+          promptChars: prompt.length,
+          knowledgeHits: knowledgeHits.length,
+          model: generated.model,
+          analysisType,
+        },
+      };
+    }
     return {
       ok: false,
-      code: mapGenerateError(generated.code),
+      code,
       analysis: null,
       latencyMs: Date.now() - started,
       error: generated.error ?? "Ollama generation failed",
