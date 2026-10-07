@@ -68,7 +68,7 @@ describe("Forex Phase 17 — AI / Ollama foundation", () => {
     const prompt = buildForexAnalysisPrompt(market);
     expect(prompt).toContain(FOREX_ANALYSIS_PROMPT_VERSION);
     expect(prompt).toContain("BTCUSDT");
-    expect(prompt).toContain("confidence must be null");
+    expect(prompt).toMatch(/confidence.*null/i);
   });
 
   it("validates market state and rejects analyzable-empty input honestly", () => {

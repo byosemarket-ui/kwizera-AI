@@ -197,6 +197,7 @@ export function ForexShell({
     content = (
       <ForexAiAnalysisPage
         selectedMarket={selectedMarket}
+        timeframe={chartTimeframe}
         liveTicker={liveTicker}
       />
     );
