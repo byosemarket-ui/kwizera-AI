@@ -56,15 +56,35 @@ if ! acquire_deploy_lock; then
   exit 1
 fi
 
+dump_service_diagnostics() {
+  echo "[KWIZERA] --- systemctl status ${SERVICE} ---" >&2
+  systemctl status "$SERVICE" --no-pager -l || true
+  echo "[KWIZERA] --- journalctl -u ${SERVICE} (last 120) ---" >&2
+  journalctl -u "$SERVICE" --no-pager -n 120 || true
+  echo "[KWIZERA] --- listeners :5173 ---" >&2
+  ss -lntp 2>/dev/null | grep -E ':5173\b' || true
+  echo "[KWIZERA] --- node processes ---" >&2
+  ps -eo pid,user,args 2>/dev/null | grep -E '[n]ode .*(production-gateway|dist/dev/server)' || true
+}
+
 emergency_revive_service() {
   if systemctl is-active --quiet "$SERVICE"; then
     return 0
   fi
   if [[ -f "$APP_DIR/dist/dev/server/production-gateway.js" && -f "$APP_DIR/dist/dev/server/index.js" ]]; then
     echo "[KWIZERA] service inactive after deploy failure — attempting emergency restart"
+    systemctl reset-failed "$SERVICE" 2>/dev/null || true
     systemctl start "$SERVICE" || systemctl restart "$SERVICE" || true
-    sleep 2
-    systemctl is-active --quiet "$SERVICE" && echo "[KWIZERA] emergency restart: service active" || echo "[KWIZERA] emergency restart: service still inactive" >&2
+    local i
+    for i in $(seq 1 20); do
+      if systemctl is-active --quiet "$SERVICE"; then
+        echo "[KWIZERA] emergency restart: service active after ${i}s"
+        return 0
+      fi
+      sleep 1
+    done
+    echo "[KWIZERA] emergency restart: service still inactive" >&2
+    dump_service_diagnostics
   else
     echo "[KWIZERA] cannot emergency-restart: production artifacts missing" >&2
   fi
@@ -192,9 +212,33 @@ restart_service() {
     return 1
   fi
   systemctl daemon-reload
-  systemctl restart "$SERVICE"
-  sleep 2
-  systemctl is-active --quiet "$SERVICE"
+  systemctl reset-failed "$SERVICE" 2>/dev/null || true
+  if ! systemctl restart "$SERVICE"; then
+    echo "[KWIZERA] systemctl restart returned non-zero" >&2
+    dump_service_diagnostics
+    return 1
+  fi
+  local i state
+  for i in $(seq 1 45); do
+    state="$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
+    if [[ "$state" == "active" ]]; then
+      echo "[KWIZERA] service active after ${i}s"
+      return 0
+    fi
+    if [[ "$state" == "failed" ]]; then
+      echo "[KWIZERA] service entered failed state after ${i}s" >&2
+      break
+    fi
+    # inactive after a few seconds usually means the process exited immediately
+    if [[ "$state" == "inactive" && "$i" -ge 5 ]]; then
+      echo "[KWIZERA] service inactive after ${i}s" >&2
+      break
+    fi
+    sleep 1
+  done
+  echo "[KWIZERA] service did not become active (last state=${state:-unknown})" >&2
+  dump_service_diagnostics
+  return 1
 }
 
 rollback() {

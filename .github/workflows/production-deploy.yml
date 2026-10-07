@@ -193,7 +193,7 @@ jobs:
               echo "## Deploy SSH failure (exit ${deploy_rc})"
               echo "Port: ${SSH_PORT} / user: ${REMOTE_USER:-unknown}"
               echo '```'
-              tail -n 160 "$HOME/kwizera-deploy-ssh.log"
+              tail -n 260 "$HOME/kwizera-deploy-ssh.log"
               echo '```'
             } >>"$GITHUB_STEP_SUMMARY"
             exit "$deploy_rc"
@@ -228,7 +228,7 @@ jobs:
             echo "Automated excerpt from the failed Production deploy SSH step (no secrets)."
             echo
             echo '```text'
-            tail -n 120 "$LOG"
+            tail -n 240 "$LOG"
             echo '```'
           } >"$BODY_FILE"
           export BODY_FILE
