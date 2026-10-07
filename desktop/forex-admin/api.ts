@@ -87,7 +87,7 @@ export const forexAdminApi = {
       body: JSON.stringify(body),
     }),
   topics: (categoryId?: string) =>
-    request<{ ok: true; topics: ForexAdminTopic[]>(
+    request<{ ok: true; topics: ForexAdminTopic[] }>(
       `/api/forex-admin/topics${categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : ""}`,
     ),
   createTopic: (body: { categoryId: string; name: string; description?: string }) =>
