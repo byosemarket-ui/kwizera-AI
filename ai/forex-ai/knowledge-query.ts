@@ -30,16 +30,14 @@ export function formatKnowledgeForPrompt(hits: ForexKnowledgeRetrievalHit[]): st
   const blocks: string[] = [];
   let used = 0;
   for (const hit of hits.slice(0, FOREX_AI_KNOWLEDGE_TOP_K)) {
-    const snippet = hit.content.replace(/\s+/g, " ").trim().slice(0, 280);
-    const block = [
-      `[doc:${hit.documentId} v${hit.version} score=${hit.relevanceScore.toFixed(2)}] ${hit.title}`,
-      snippet,
-    ].join("\n");
+    // Keep snippets very short for local 1b models; full docs remain in admin KB.
+    const snippet = hit.content.replace(/\s+/g, " ").trim().slice(0, 160);
+    const block = `${hit.title} (v${hit.version}): ${snippet}`;
     if (used + block.length > FOREX_AI_KNOWLEDGE_CHAR_BUDGET) break;
     blocks.push(block);
     used += block.length;
   }
-  return blocks.join("\n---\n");
+  return blocks.join(" | ");
 }
 
 export function toKnowledgeSources(hits: ForexKnowledgeRetrievalHit[]): Array<{

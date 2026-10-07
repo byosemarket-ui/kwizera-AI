@@ -11,7 +11,12 @@ import {
 import { preferredReasoningModelId } from "../ai-provider/ollama-client.js";
 import type { ForexKnowledgeRetrievalHit } from "../forex-knowledge/types.js";
 import { formatKnowledgeForPrompt, toKnowledgeSources } from "./knowledge-query.js";
-import { buildForexAnalysisPrompt, FOREX_AI_ENGINE_VERSION } from "./prompts.js";
+import {
+  buildForexAnalysisPrompt,
+  buildForexAnalysisRepairPrompt,
+  FOREX_AI_ENGINE_VERSION,
+} from "./prompts.js";
+import { isSmallReasoningModel } from "../ai-provider/ollama-client.js";
 import type {
   ForexAiAnalysisType,
   ForexAiAnalyzeResult,
@@ -144,23 +149,40 @@ export async function analyzeForexMarketState(
   });
 
   const adapter = getOllamaAdapter();
+  const timeoutMs = opts?.timeoutMs ?? 120_000;
+  const genOptions = {
+    temperature: 0.1,
+    num_ctx: 2048,
+    num_predict: 220,
+  } as const;
+
   // Keep Forex prompts short: small context + short JSON for constrained local models.
-  const generated = await adapter.generateStructured({
+  let generated = await adapter.generateStructured({
     prompt,
-    timeoutMs: opts?.timeoutMs ?? 120_000,
-    options: {
-      temperature: 0.1,
-      num_ctx: 2048,
-      num_predict: 280,
-    },
+    timeoutMs,
+    options: { ...genOptions },
   });
+
+  // One controlled repair attempt when a small model returns non-JSON (no fake analysis).
+  if (
+    (!generated.ok || !generated.data)
+    && generated.code === "OLLAMA_INVALID_RESPONSE"
+    && generated.model
+    && isSmallReasoningModel(generated.model)
+  ) {
+    generated = await adapter.generateStructured({
+      prompt: buildForexAnalysisRepairPrompt(market),
+      timeoutMs: Math.min(90_000, timeoutMs),
+      options: { temperature: 0, num_ctx: 1536, num_predict: 180 },
+    });
+  }
 
   if (!generated.ok || !generated.data) {
     return {
       ok: false,
       code: mapGenerateError(generated.code),
       analysis: null,
-      latencyMs: generated.latencyMs,
+      latencyMs: Date.now() - started,
       error: generated.error ?? "Ollama generation failed",
       diagnostics: {
         promptChars: prompt.length,
@@ -184,7 +206,7 @@ export async function analyzeForexMarketState(
       ok: false,
       code: parsed.code,
       analysis: null,
-      latencyMs: generated.latencyMs,
+      latencyMs: Date.now() - started,
       error: parsed.error,
       diagnostics: {
         promptChars: prompt.length,
@@ -199,7 +221,7 @@ export async function analyzeForexMarketState(
     ok: true,
     code: "OK",
     analysis: parsed.analysis,
-    latencyMs: generated.latencyMs,
+    latencyMs: Date.now() - started,
     diagnostics: {
       promptChars: prompt.length,
       knowledgeHits: knowledgeHits.length,

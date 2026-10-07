@@ -85,3 +85,15 @@ export function buildForexAnalysisPrompt(
     ANALYSIS_SCHEMA_HINT,
   ].join("\n");
 }
+
+/** Ultra-short repair prompt for small models that returned non-JSON. */
+export function buildForexAnalysisRepairPrompt(market: ForexMarketState): string {
+  const facts = compactMarketFacts(market);
+  return [
+    "Return ONE JSON object only. No markdown. No prose outside JSON.",
+    "Use only these MARKET FACTS; never invent numbers:",
+    JSON.stringify(facts),
+    'Required keys: summary, observed_facts, trend, momentum, volatility, market_structure, scenarios, confirmation_needed, invalidation, risks, limitations, decision_posture, confidence, reasoning',
+    'scenarios: max 1 item with type WAIT|BULLISH|BEARISH|NEUTRAL. confidence must be null. decision_posture OBSERVE|WAIT|ANALYZE|INSUFFICIENT_DATA. No BUY/SELL.',
+  ].join("\n");
+}
