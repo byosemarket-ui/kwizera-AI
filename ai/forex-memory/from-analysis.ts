@@ -181,6 +181,18 @@ export function buildAnalysisMemoryFromPayload(input: PersistAnalysisInput): {
     }))
     : [];
 
+  const memorySources = Array.isArray(a.memorySources)
+    ? (a.memorySources as Array<Record<string, unknown>>).slice(0, 10).map((m) => ({
+      memoryId: String(m.memoryId ?? ""),
+      symbol: String(m.symbol ?? ""),
+      timeframe: m.timeframe == null ? null : String(m.timeframe),
+      scenario: m.scenario == null ? null : String(m.scenario),
+      outcome: String(m.outcome ?? "NONE"),
+      relevance: String(m.relevance ?? "CONTEXTUAL"),
+      timestamp: String(m.timestamp ?? generatedAt),
+    })).filter((m) => m.memoryId)
+    : [];
+
   const narrativeStatus = a.narrativeStatus == null ? null : String(a.narrativeStatus);
   const analysisStatus: ForexAnalysisMemoryRecord["analysisStatus"] =
     dataQuality === "INSUFFICIENT_DATA" || String(a.decisionPosture ?? "") === "INSUFFICIENT_DATA"
@@ -307,6 +319,9 @@ export function buildAnalysisMemoryFromPayload(input: PersistAnalysisInput): {
       : [],
     riskRewardRatio: rr,
     knowledgeSources,
+    memorySources,
+    memoryUnavailable: a.memoryUnavailable === true,
+    knowledgeUnavailable: a.knowledgeUnavailable === true,
     timeframeStates,
     dataQuality,
     modelId: a.model == null ? null : String(a.model),

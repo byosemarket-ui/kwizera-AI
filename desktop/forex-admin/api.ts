@@ -181,3 +181,49 @@ export const forexAdminMemoryApi = {
       { method: "POST", body: JSON.stringify({ analysisId }) },
     ),
 };
+
+/** Phase 24 — Intelligence control center (config / diagnostics / health). */
+export const forexIntelligenceApi = {
+  health: (probe = true) =>
+    request<{ ok: true; health: Record<string, unknown> }>(
+      `/api/forex-admin/intelligence/health${probe ? "" : "?probe=0"}`,
+    ),
+  configuration: () =>
+    request<{
+      ok: true;
+      readOnly: Record<string, unknown>;
+      configurable: {
+        knowledgeRagEnabled: boolean;
+        memoryRetrievalEnabled: boolean;
+        memoryMaxExamples: number;
+        compactPromptMode: boolean;
+        promptCharBudget: number;
+      };
+      audit: Array<Record<string, unknown>>;
+      note: string;
+    }>("/api/forex-admin/intelligence/configuration"),
+  updateConfiguration: (body: Record<string, unknown>) =>
+    request<{ ok: true; settings: Record<string, unknown>; changed: Array<Record<string, unknown>> }>(
+      "/api/forex-admin/intelligence/configuration",
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+  buildContext: (body: { symbol?: string; timeframes?: string[]; knowledgeQuery?: string }) =>
+    request<{ ok: boolean; diagnostic: Record<string, unknown> }>(
+      "/api/forex-admin/intelligence/build-context",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  testOllama: () =>
+    request<{ ok: true; result: Record<string, unknown> }>(
+      "/api/forex-admin/intelligence/test-ollama",
+      { method: "POST", body: "{}" },
+    ),
+  rebuildLearning: () =>
+    request<{ ok: true; learning: Record<string, unknown>; note: string }>(
+      "/api/forex-admin/intelligence/rebuild-learning",
+      { method: "POST", body: "{}" },
+    ),
+  memoryDiagnostics: () =>
+    request<{ ok: true; diagnostics: Record<string, unknown> }>(
+      "/api/forex-admin/intelligence/memory-diagnostics",
+    ),
+};

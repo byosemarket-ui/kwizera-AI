@@ -9,7 +9,7 @@ import {
 } from "../mtf/config.js";
 
 export const FOREX_DECISION_SCHEMA_VERSION = "forex-decision-analysis-v1" as const;
-export const FOREX_DECISION_PROMPT_VERSION = "forex-decision-prompt-v1";
+export const FOREX_DECISION_PROMPT_VERSION = "forex-ai-prompt-v24";
 export const FOREX_DECISION_ENGINE_VERSION = "forex-decision-engine-v1";
 
 /** Same default MTF hierarchy as Phase 21. */

@@ -73,7 +73,7 @@ export function ForexAdminShell() {
       <aside className="fxa-sidebar" data-forex-admin-sidebar>
         <div className="fxa-brand">
           <strong>FOREX ADMIN</strong>
-          <span>AI Knowledge · Memory · Learning</span>
+          <span>Knowledge · Memory · Intelligence</span>
         </div>
         {[...grouped.entries()].map(([group, items]) => (
           <div className="fxa-nav-group" key={group}>

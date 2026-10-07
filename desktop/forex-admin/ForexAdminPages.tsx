@@ -15,6 +15,11 @@ import {
   ForexAdminMistakesPage,
   ForexAdminOutcomesPage,
 } from "./ForexAdminMemoryPages";
+import {
+  ForexAdminAiConfigurationPage,
+  ForexAdminRetrievalDiagnosticsPage,
+  ForexAdminSystemHealthPage,
+} from "./ForexAdminIntelligencePages";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -619,6 +624,8 @@ export function titleForView(view: ForexAdminViewId): string {
     "knowledge-status": "Knowledge Status",
     indexing: "Indexing",
     "ai-configuration": "AI Configuration",
+    "retrieval-diagnostics": "Retrieval Diagnostics",
+    "system-health": "System Health",
     settings: "Settings",
     "knowledge-new": "New Knowledge",
     "knowledge-edit": "Edit Knowledge",
@@ -670,6 +677,11 @@ export function ForexAdminPageRouter({
       case "indexing":
         return <ForexAdminStatusPage />;
       case "ai-configuration":
+        return <ForexAdminAiConfigurationPage />;
+      case "retrieval-diagnostics":
+        return <ForexAdminRetrievalDiagnosticsPage />;
+      case "system-health":
+        return <ForexAdminSystemHealthPage />;
       case "settings":
         return <ForexAdminSettingsPage />;
       case "memory":

@@ -231,6 +231,63 @@ export class ForexMemoryService {
     return aggregateLearning(store);
   }
 
+  /**
+   * Deterministic recalculation from stored records.
+   * Does not modify historical analysis bodies.
+   */
+  async rebuildLearningAggregates(): Promise<ReturnType<typeof aggregateLearning>> {
+    await this.ensureReady();
+    // Aggregates are derived on read — rebuild is idempotent and does not rewrite analyses.
+    return aggregateLearning(this.readStore());
+  }
+
+  /** Read-only integrity / quality diagnostics for Admin. */
+  async memoryDiagnostics(): Promise<{
+    totalAnalyses: number;
+    duplicateAnalysisIds: number;
+    missingMarketSnapshot: number;
+    missingScenario: number;
+    missingOutcome: number;
+    invalidTimestamps: number;
+    orphanOutcomes: number;
+    orphanMistakes: number;
+    withMemorySources: number;
+    withKnowledgeSources: number;
+  }> {
+    await this.ensureReady();
+    const store = this.readStore();
+    const ids = new Set<string>();
+    let duplicateAnalysisIds = 0;
+    let missingMarketSnapshot = 0;
+    let missingScenario = 0;
+    let invalidTimestamps = 0;
+    let withMemorySources = 0;
+    let withKnowledgeSources = 0;
+    for (const a of store.analyses) {
+      if (ids.has(a.id)) duplicateAnalysisIds += 1;
+      ids.add(a.id);
+      if (!a.marketSnapshotId && a.mtfSnapshotIds.length === 0) missingMarketSnapshot += 1;
+      if (!a.scenario) missingScenario += 1;
+      if (!Number.isFinite(Date.parse(a.generatedAt))) invalidTimestamps += 1;
+      if (Array.isArray(a.memorySources) && a.memorySources.length > 0) withMemorySources += 1;
+      if (Array.isArray(a.knowledgeSources) && a.knowledgeSources.length > 0) withKnowledgeSources += 1;
+    }
+    const analysisIds = new Set(store.analyses.map((a) => a.id));
+    const outcomeByAnalysis = new Set(store.outcomes.map((o) => o.analysisId));
+    return {
+      totalAnalyses: store.analyses.length,
+      duplicateAnalysisIds,
+      missingMarketSnapshot,
+      missingScenario,
+      missingOutcome: store.analyses.filter((a) => !outcomeByAnalysis.has(a.id)).length,
+      invalidTimestamps,
+      orphanOutcomes: store.outcomes.filter((o) => !analysisIds.has(o.analysisId)).length,
+      orphanMistakes: store.mistakes.filter((m) => !analysisIds.has(m.analysisId)).length,
+      withMemorySources,
+      withKnowledgeSources,
+    };
+  }
+
   async retrieve(query: ForexMemoryRetrieveQuery) {
     await this.ensureReady();
     const store = this.readStore();

@@ -129,6 +129,18 @@ export interface ForexAnalysisMemoryRecord {
   takeProfitCandidates: number[];
   riskRewardRatio: number | null;
   knowledgeSources: Array<{ documentId: string; title: string }>;
+  /** Phase 24 — historical memory IDs injected into this analysis (auditable). */
+  memorySources: Array<{
+    memoryId: string;
+    symbol: string;
+    timeframe: string | null;
+    scenario: string | null;
+    outcome: string;
+    relevance: string;
+    timestamp: string;
+  }>;
+  memoryUnavailable: boolean;
+  knowledgeUnavailable: boolean;
   timeframeStates: ForexTimeframeMemoryRef[];
   dataQuality: string;
   modelId: string | null;

@@ -64,13 +64,18 @@ export function retrieveRelevantMemory(input: {
 }
 
 export function formatMemoryContextForPrompt(pack: ForexMemoryContextPack): string {
-  if (pack.examples.length === 0) return "HISTORICAL MEMORY: none";
+  if (pack.examples.length === 0) return "HISTORICAL MEMORY — NOT CURRENT MARKET DATA: none";
   const lines = [
-    "HISTORICAL MEMORY CONTEXT (context only; current Market State wins):",
-    `sample=${pack.sampleSize}`,
-    ...pack.examples.map((e, i) =>
-      `${i + 1}. ${e.symbol} scenario=${e.scenario ?? "n/a"} regime=${e.regime} outcome=${e.outcome} at=${e.generatedAt}`),
-    ...pack.limitations.slice(0, 3),
+    "HISTORICAL MEMORY — NOT CURRENT MARKET DATA",
+    `${pack.examples.length} relevant cases (sample=${pack.sampleSize}):`,
+    ...pack.examples.map((e) =>
+      [
+        e.symbol,
+        `Scenario: ${e.scenario ?? "n/a"}`,
+        `Outcome: ${e.outcome}`,
+        `Regime: ${e.regime}`,
+      ].join("\n")),
+    "Current Market State remains authoritative.",
   ];
   return lines.join("\n");
 }

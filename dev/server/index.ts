@@ -19,6 +19,7 @@ import { handleAdminApi } from "./admin-control-center-api.js";
 import { handleBinanceMarketDataApi } from "./binance-market-data-api.js";
 import { handleForexAiApi } from "./forex-ai-api.js";
 import { handleForexAdminApi } from "./forex-admin-api.js";
+import { handleForexIntelligenceApi } from "./forex-intelligence-api.js";
 import { handleForexMemoryApi } from "./forex-memory-api.js";
 import { handleForexMarketStateApi } from "./forex-market-state-api.js";
 import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
@@ -1193,6 +1194,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleForexMarketStateApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleForexIntelligenceApi(req, res, url, sendJson)) {
     return;
   }
 

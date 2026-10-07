@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { forexAdminMemoryApi } from "./api";
+import { forexAdminMemoryApi, forexIntelligenceApi } from "./api";
 
 function Badge({ value }: { value: string }) {
   const v = value.toUpperCase();
@@ -296,15 +296,34 @@ export function ForexAdminLearningPage() {
   const [learning, setLearning] = useState<Record<string, unknown> | null>(null);
   const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     void Promise.all([forexAdminMemoryApi.learning(), forexAdminMemoryApi.overview()])
       .then(([l, o]) => {
         setLearning(l.learning as Record<string, unknown>);
         setOverview(o.overview as Record<string, unknown>);
       })
       .catch((err: Error) => setError(err.message));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const rebuild = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await forexIntelligenceApi.rebuildLearning();
+      setLearning(res.learning);
+      setNote(res.note);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (error) return <div className="fxa-error" role="alert">{error}</div>;
   if (!learning || !overview) return <p className="fxa-muted">Loading learning statistics…</p>;
@@ -318,11 +337,20 @@ export function ForexAdminLearningPage() {
   return (
     <div data-forex-admin-learning>
       <section className="fxa-card">
-        <h2>Learning</h2>
-        <p className="fxa-muted">
-          External learning analytics only. Model weights are never modified.
-          {" "}modelTraining={String(overview.modelTraining)} · min sample threshold applies.
-        </p>
+        <div className="fxa-row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h2>Learning</h2>
+            <p className="fxa-muted">
+              External learning analytics only. Model weights are never modified.
+              {" "}MODEL TRAINING: Not active · MEMORY LEARNING: Active.
+              {" "}modelTraining={String(overview.modelTraining)} · min sample threshold applies.
+            </p>
+          </div>
+          <button type="button" className="fxa-btn" disabled={busy} onClick={() => void rebuild()}>
+            Rebuild Learning Aggregates
+          </button>
+        </div>
+        {note ? <p className="fxa-muted">{note}</p> : null}
       </section>
 
       <section className="fxa-grid">

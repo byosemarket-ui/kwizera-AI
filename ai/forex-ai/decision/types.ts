@@ -159,6 +159,17 @@ export interface ForexDecisionAnalysis {
   deterministicSummary: string;
   aiInterpretation: string | null;
   knowledgeSources: ForexAiKnowledgeSource[];
+  memorySources: Array<{
+    memoryId: string;
+    symbol: string;
+    timeframe: string | null;
+    scenario: string | null;
+    outcome: string;
+    relevance: string;
+    timestamp: string;
+  }>;
+  memoryUnavailable: boolean;
+  knowledgeUnavailable: boolean;
   limitations: string[];
   confidence: null;
   model: string | null;
@@ -183,10 +194,13 @@ export interface ForexDecisionAnalyzeResult {
   diagnostics?: {
     promptChars?: number;
     knowledgeHits?: number;
+    memoryHits?: number;
     model?: string | null;
     timeframes?: string[];
     marketStateMs?: number;
     deterministicMs?: number;
+    memoryMs?: number;
+    promptVersion?: string;
   };
 }
 

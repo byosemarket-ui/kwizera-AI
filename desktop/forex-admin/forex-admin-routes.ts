@@ -8,6 +8,8 @@ export type ForexAdminRouteId =
   | "knowledge-status"
   | "indexing"
   | "ai-configuration"
+  | "retrieval-diagnostics"
+  | "system-health"
   | "settings"
   | "knowledge-new"
   | "knowledge-detail"
@@ -21,10 +23,13 @@ export type ForexAdminRouteId =
 
 export type ForexAdminViewId = ForexAdminRouteId | "not-found";
 
-export type ForexAdminNavGroupId = "overview" | "knowledge" | "ai-system" | "system";
+export type ForexAdminNavGroupId = "overview" | "knowledge" | "memory" | "ai-system" | "system";
 
 export interface ForexAdminNavItem {
-  id: Exclude<ForexAdminRouteId, "knowledge-new" | "knowledge-detail" | "knowledge-edit" | "journal-detail">;
+  id: Exclude<
+    ForexAdminRouteId,
+    "knowledge-new" | "knowledge-detail" | "knowledge-edit" | "journal-detail"
+  >;
   label: string;
   path: string;
   implemented: boolean;
@@ -41,18 +46,26 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "knowledge-topics", label: "Topics", path: "/admin/forex/knowledge/topics", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-categories", label: "Categories", path: "/admin/forex/knowledge/categories", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-concepts", label: "Concepts", path: "/admin/forex/knowledge/concepts", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
+  { id: "memory", label: "Memory", path: "/admin/forex/memory", implemented: true, group: "memory", groupLabel: "AI Memory" },
+  { id: "journal", label: "Journal", path: "/admin/forex/journal", implemented: true, group: "memory", groupLabel: "AI Memory" },
+  { id: "outcomes", label: "Outcomes", path: "/admin/forex/outcomes", implemented: true, group: "memory", groupLabel: "AI Memory" },
+  { id: "mistakes", label: "Mistakes", path: "/admin/forex/mistakes", implemented: true, group: "memory", groupLabel: "AI Memory" },
+  { id: "learning", label: "Learning", path: "/admin/forex/learning", implemented: true, group: "memory", groupLabel: "AI Memory" },
   { id: "knowledge-status", label: "Knowledge Status", path: "/admin/forex/knowledge/settings", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "indexing", label: "Indexing", path: "/admin/forex/indexing", implemented: true, group: "ai-system", groupLabel: "AI System" },
-  { id: "memory", label: "Memory", path: "/admin/forex/memory", implemented: true, group: "ai-system", groupLabel: "AI System" },
-  { id: "journal", label: "Journal", path: "/admin/forex/journal", implemented: true, group: "ai-system", groupLabel: "AI System" },
-  { id: "outcomes", label: "Outcomes", path: "/admin/forex/outcomes", implemented: true, group: "ai-system", groupLabel: "AI System" },
-  { id: "mistakes", label: "Mistakes", path: "/admin/forex/mistakes", implemented: true, group: "ai-system", groupLabel: "AI System" },
-  { id: "learning", label: "Learning", path: "/admin/forex/learning", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "ai-configuration", label: "AI Configuration", path: "/admin/forex/ai-configuration", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "retrieval-diagnostics", label: "Retrieval Diagnostics", path: "/admin/forex/retrieval-diagnostics", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "system-health", label: "System Health", path: "/admin/forex/system-health", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "settings", label: "Settings", path: "/admin/forex/settings", implemented: true, group: "system", groupLabel: "System" },
 ];
 
-export const FOREX_ADMIN_GROUP_ORDER: ForexAdminNavGroupId[] = ["overview", "knowledge", "ai-system", "system"];
+export const FOREX_ADMIN_GROUP_ORDER: ForexAdminNavGroupId[] = [
+  "overview",
+  "knowledge",
+  "memory",
+  "ai-system",
+  "system",
+];
 
 export function isForexAdminUrl(
   pathname = typeof window !== "undefined" ? window.location.pathname : "",
@@ -130,6 +143,12 @@ export function parseForexAdminRouteFromLocation(
   if (rest === "ai-configuration") {
     return { view: "ai-configuration", documentId: null, canonicalPath: "/admin/forex/ai-configuration" };
   }
+  if (rest === "retrieval-diagnostics") {
+    return { view: "retrieval-diagnostics", documentId: null, canonicalPath: "/admin/forex/retrieval-diagnostics" };
+  }
+  if (rest === "system-health") {
+    return { view: "system-health", documentId: null, canonicalPath: "/admin/forex/system-health" };
+  }
   if (rest === "settings") return { view: "settings", documentId: null, canonicalPath: "/admin/forex/settings" };
 
   return { view: "not-found", documentId: null, canonicalPath: path };
@@ -172,6 +191,10 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — Forex Knowledge Indexing";
     case "ai-configuration":
       return "KWIZERA AI STUDIO — Forex AI Configuration";
+    case "retrieval-diagnostics":
+      return "KWIZERA AI STUDIO — Forex Retrieval Diagnostics";
+    case "system-health":
+      return "KWIZERA AI STUDIO — Forex AI System Health";
     case "memory":
       return "KWIZERA AI STUDIO — Forex AI Memory";
     case "journal":

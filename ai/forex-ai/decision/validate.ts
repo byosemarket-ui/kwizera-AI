@@ -1,8 +1,10 @@
 /**
- * Parse / ground AI narrative against deterministic pack. Server owns facts.
+ * Parse / ground AI narrative against deterministic pack + memory sources.
  */
 import { randomUUID } from "node:crypto";
 import type { ForexAiKnowledgeSource } from "../types.js";
+import type { ForexMemorySourceRef } from "../intelligence/context-builder.js";
+import { detectMemoryGroundingViolations } from "../intelligence/memory-grounding.js";
 import {
   FOREX_DECISION_ENGINE_VERSION,
   FOREX_DECISION_PROMPT_VERSION,
@@ -31,14 +33,10 @@ export function detectDecisionGroundingViolations(
   const violations: string[] = [];
   const lower = text.toLowerCase();
 
-  if (/\b(buy|sell|long|short)\b/i.test(text) && !/bullish|bearish|scenario/i.test(text)) {
-    // Soft check — flag raw order words
-    if (/\b(buy now|sell now|go long|go short|place (a )?buy|place (a )?sell)\b/i.test(text)) {
-      violations.push("Execution language (BUY/SELL order instruction) is not allowed.");
-    }
+  if (/\b(buy now|sell now|go long|go short|place (a )?buy|place (a )?sell)\b/i.test(text)) {
+    violations.push("Execution language (BUY/SELL order instruction) is not allowed.");
   }
 
-  // Claimed RSI that doesn't match any TF
   const rsiClaims = [...text.matchAll(/\b(?:RSI|rsi)\s*(?:=|is|:)?\s*(\d+(?:\.\d+)?)/g)];
   for (const m of rsiClaims) {
     const claimed = Number(m[1]);
@@ -49,7 +47,6 @@ export function detectDecisionGroundingViolations(
     if (!match) violations.push(`Unsupported RSI claim: ${claimed}`);
   }
 
-  // Entry zone numeric claim when unavailable
   if (pack.entryZone.status === "UNAVAILABLE") {
     if (/\bentry\s*(zone|price)?\s*(=|at|:)?\s*\d{3,}/i.test(text)) {
       violations.push("Entry zone numeric claim while entry zone is UNAVAILABLE.");
@@ -62,7 +59,6 @@ export function detectDecisionGroundingViolations(
         Number.isFinite(n)
         && (n < pack.entryZone.lowerBound * 0.98 || n > pack.entryZone.upperBound * 1.02)
       ) {
-        // Allow if it matches reference
         if (pack.entryZone.referencePrice != null && Math.abs(n - pack.entryZone.referencePrice) < 1) continue;
         violations.push(`Entry claim ${n} outside derived zone.`);
       }
@@ -82,6 +78,10 @@ export function parseDecisionAiNarrative(
     pack: ForexDecisionDeterministicPack;
     model: string | null;
     knowledgeSources: ForexAiKnowledgeSource[];
+    memorySources?: ForexMemorySourceRef[];
+    memoryUnavailable?: boolean;
+    knowledgeUnavailable?: boolean;
+    extraLimitations?: string[];
   },
 ): { ok: true; analysis: ForexDecisionAnalysis } | { ok: false; error: string } {
   if (!raw || typeof raw !== "object") {
@@ -99,7 +99,11 @@ export function parseDecisionAiNarrative(
   }
 
   const blob = JSON.stringify(data);
-  const violations = detectDecisionGroundingViolations(blob, context.pack);
+  const memorySources = context.memorySources ?? [];
+  const violations = [
+    ...detectDecisionGroundingViolations(blob, context.pack),
+    ...detectMemoryGroundingViolations(blob, { pack: context.pack, memorySources }),
+  ];
   if (violations.length) {
     return { ok: false, error: `Grounding violations: ${violations.join("; ")}` };
   }
@@ -118,9 +122,12 @@ export function parseDecisionAiNarrative(
       invalNotes ? `Invalidation: ${invalNotes}` : "",
     ].filter(Boolean).join("\n"),
     knowledgeSources: context.knowledgeSources,
+    memorySources,
+    memoryUnavailable: Boolean(context.memoryUnavailable),
+    knowledgeUnavailable: Boolean(context.knowledgeUnavailable),
     model: context.model,
     extraRisks: risks,
-    extraLimitations: limitations,
+    extraLimitations: [...limitations, ...(context.extraLimitations ?? [])],
   });
 
   return { ok: true, analysis };
@@ -131,6 +138,9 @@ export function assembleDecisionAnalysis(input: {
   narrativeStatus: ForexDecisionAnalysis["narrativeStatus"];
   aiInterpretation: string | null;
   knowledgeSources: ForexAiKnowledgeSource[];
+  memorySources?: ForexMemorySourceRef[];
+  memoryUnavailable?: boolean;
+  knowledgeUnavailable?: boolean;
   model: string | null;
   extraRisks?: string[];
   extraLimitations?: string[];
@@ -141,6 +151,7 @@ export function assembleDecisionAnalysis(input: {
     "Analytical decision layer only — not trade execution.",
     "No broker orders are placed.",
     "confidence is null (no formal confidence methodology).",
+    "MODEL TRAINING: Not active. MEMORY LEARNING / KNOWLEDGE RETRIEVAL: external context only.",
   ];
   if (input.narrativeStatus === "DETERMINISTIC_ONLY") {
     limitations.push("AI narrative unavailable; deterministic engines only.");
@@ -182,7 +193,10 @@ export function assembleDecisionAnalysis(input: {
     deterministicSummary: pack.deterministicSummary,
     aiInterpretation: input.aiInterpretation,
     knowledgeSources: input.knowledgeSources,
-    limitations,
+    memorySources: input.memorySources ?? [],
+    memoryUnavailable: Boolean(input.memoryUnavailable),
+    knowledgeUnavailable: Boolean(input.knowledgeUnavailable),
+    limitations: limitations.filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 20),
     confidence: null,
     model: input.model,
     promptVersion: FOREX_DECISION_PROMPT_VERSION,
@@ -190,7 +204,6 @@ export function assembleDecisionAnalysis(input: {
   };
 }
 
-/** Expose risks list for UI convenience by reading riskContext + extras on analysis consumers. */
 export function decisionRiskLines(analysis: ForexDecisionAnalysis, extra: string[] = []): string[] {
   return [...analysis.riskContext.factors, ...extra].slice(0, 12);
 }

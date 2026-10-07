@@ -1,6 +1,6 @@
 /**
- * Phase 22 — Decision orchestrator.
- * Reuses Phase 18 Market State (via MTF builder), Phase 19 knowledge, Phase 20 Ollama, Phase 21 MTF.
+ * Phase 22/24 — Decision orchestrator with Knowledge RAG + controlled Memory context.
+ * Reuses Phase 18 Market State, Phase 19 knowledge, Phase 20 Ollama, Phase 21 MTF, Phase 23 memory.
  */
 import { getForexKnowledgeService } from "../../forex-knowledge/index.js";
 import type { ForexKnowledgeRetrievalHit } from "../../forex-knowledge/types.js";
@@ -8,13 +8,14 @@ import { createBinanceMarketDataService, type BinanceMarketDataService } from ".
 import { userFacingBinanceError } from "../../market-data/binance/errors.js";
 import { getOllamaAdapter } from "../../ai-provider/ollama-adapter.js";
 import { isSmallReasoningModel } from "../../ai-provider/ollama-client.js";
-import {
-  FOREX_AI_KNOWLEDGE_TOP_K,
-  formatKnowledgeForPrompt,
-  toKnowledgeSources,
-} from "../knowledge-query.js";
+import { getForexMemoryService } from "../../forex-memory/index.js";
+import type { ForexMemoryContextPack } from "../../forex-memory/types.js";
+import { FOREX_AI_KNOWLEDGE_TOP_K } from "../knowledge-query.js";
 import { computeMtfAlignment } from "../mtf/alignment.js";
 import { buildMultiTimeframeMarketState, resolveMtfTimeframes } from "../mtf/build-state.js";
+import { buildIntelligenceContext } from "../intelligence/context-builder.js";
+import { getForexIntelligenceSettingsService } from "../intelligence/settings.js";
+import { formatDecisionFactsBlock } from "./compact.js";
 import { FOREX_DECISION_REQUIRED } from "./config.js";
 import { runDeterministicDecisionEngines } from "./decision-engine.js";
 import { assembleDecisionDeterministicOnly } from "./fallback.js";
@@ -98,32 +99,83 @@ export async function runForexDecisionAnalysis(
   const pack = runDeterministicDecisionEngines(mtf, alignment);
   const deterministicMs = Date.now() - detStarted;
 
+  const settings = await getForexIntelligenceSettingsService().getSettings();
+
   const knowledgeQuery = String(request.knowledgeQuery ?? "").trim()
     || `scenario entry confirmation invalidation risk market structure pullback ${pack.scenario.type}`;
 
   let knowledgeHits: ForexKnowledgeRetrievalHit[] = [];
-  try {
-    knowledgeHits = await getForexKnowledgeService().retrieveRelevantForexKnowledge({
-      query: knowledgeQuery,
-      limit: Math.min(2, FOREX_AI_KNOWLEDGE_TOP_K),
-    });
-  } catch {
-    knowledgeHits = [];
+  let knowledgeError = false;
+  if (settings.knowledgeRagEnabled) {
+    try {
+      knowledgeHits = await getForexKnowledgeService().retrieveRelevantForexKnowledge({
+        query: knowledgeQuery,
+        limit: Math.min(2, FOREX_AI_KNOWLEDGE_TOP_K),
+      });
+    } catch {
+      knowledgeHits = [];
+      knowledgeError = true;
+    }
   }
-  const knowledgeSources = toKnowledgeSources(knowledgeHits);
-  const knowledgeText = formatKnowledgeForPrompt(knowledgeHits);
 
-  // Insufficient / stale: still return deterministic pack without forcing AI
+  let memoryPack: ForexMemoryContextPack | null = null;
+  let memoryError = false;
+  const memoryStarted = Date.now();
+  if (settings.memoryRetrievalEnabled && settings.memoryMaxExamples > 0) {
+    try {
+      memoryPack = await getForexMemoryService().retrieve({
+        symbol,
+        scenario: pack.scenario.type,
+        marketRegime: undefined,
+        limit: settings.memoryMaxExamples,
+      });
+    } catch {
+      memoryPack = null;
+      memoryError = true;
+    }
+  }
+  const memoryMs = Date.now() - memoryStarted;
+
+  const intel = buildIntelligenceContext({
+    currentFactsLine: formatDecisionFactsBlock(pack),
+    knowledgeHits,
+    memoryPack,
+    knowledgeError,
+    memoryError,
+  });
+
+  const attachContext = <T extends { memorySources?: unknown; knowledgeSources?: unknown }>(analysis: T): T => {
+    const next = analysis as T & {
+      memorySources: typeof intel.memorySources;
+      knowledgeSources: typeof intel.knowledgeSources;
+      memoryUnavailable: boolean;
+      knowledgeUnavailable: boolean;
+      limitations: string[];
+    };
+    next.memorySources = intel.memorySources;
+    next.knowledgeSources = intel.knowledgeSources;
+    next.memoryUnavailable = intel.memoryUnavailable;
+    next.knowledgeUnavailable = intel.knowledgeUnavailable;
+    next.limitations = [...(Array.isArray(next.limitations) ? next.limitations : []), ...intel.limitations]
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+      .slice(0, 16);
+    return next;
+  };
+
   if (
     pack.decisionPosture === "INSUFFICIENT_DATA"
     || mtf.dataQuality === "INSUFFICIENT_DATA"
   ) {
-    const analysis = assembleDecisionDeterministicOnly({
+    const analysis = attachContext(assembleDecisionDeterministicOnly({
       pack,
-      knowledgeSources,
+      knowledgeSources: intel.knowledgeSources,
+      memorySources: intel.memorySources,
       model: null,
       reason: "Required timeframe Market State(s) unavailable.",
-    });
+      memoryUnavailable: intel.memoryUnavailable,
+      knowledgeUnavailable: intel.knowledgeUnavailable,
+      extraLimitations: intel.limitations,
+    }));
     return {
       ok: true,
       code: "OK",
@@ -132,14 +184,21 @@ export async function runForexDecisionAnalysis(
       diagnostics: {
         promptChars: 0,
         knowledgeHits: knowledgeHits.length,
+        memoryHits: intel.memorySources.length,
         timeframes: mtf.timeframes,
         marketStateMs,
         deterministicMs,
+        memoryMs,
+        promptVersion: intel.promptVersion,
       },
     };
   }
 
-  const prompt = buildDecisionAnalysisPrompt({ pack, knowledgeText });
+  const prompt = buildDecisionAnalysisPrompt({
+    pack,
+    knowledgeText: intel.knowledgeText,
+    memoryText: intel.memoryText,
+  });
   const adapter = getOllamaAdapter();
   const timeoutMs = request.timeoutMs ?? 120_000;
 
@@ -163,12 +222,16 @@ export async function runForexDecisionAnalysis(
   }
 
   if (!generated.ok || !generated.data) {
-    const analysis = assembleDecisionDeterministicOnly({
+    const analysis = attachContext(assembleDecisionDeterministicOnly({
       pack,
-      knowledgeSources,
+      knowledgeSources: intel.knowledgeSources,
+      memorySources: intel.memorySources,
       model: generated.model,
       reason: generated.error ?? `Ollama unavailable (${generated.code})`,
-    });
+      memoryUnavailable: intel.memoryUnavailable,
+      knowledgeUnavailable: intel.knowledgeUnavailable,
+      extraLimitations: intel.limitations,
+    }));
     return {
       ok: true,
       code: "OK",
@@ -177,10 +240,13 @@ export async function runForexDecisionAnalysis(
       diagnostics: {
         promptChars: prompt.length,
         knowledgeHits: knowledgeHits.length,
+        memoryHits: intel.memorySources.length,
         model: generated.model,
         timeframes: mtf.timeframes,
         marketStateMs,
         deterministicMs,
+        memoryMs,
+        promptVersion: intel.promptVersion,
       },
     };
   }
@@ -188,16 +254,24 @@ export async function runForexDecisionAnalysis(
   const parsed = parseDecisionAiNarrative(generated.data, {
     pack,
     model: generated.model,
-    knowledgeSources,
+    knowledgeSources: intel.knowledgeSources,
+    memorySources: intel.memorySources,
+    memoryUnavailable: intel.memoryUnavailable,
+    knowledgeUnavailable: intel.knowledgeUnavailable,
+    extraLimitations: intel.limitations,
   });
 
   if (!parsed.ok) {
-    const analysis = assembleDecisionDeterministicOnly({
+    const analysis = attachContext(assembleDecisionDeterministicOnly({
       pack,
-      knowledgeSources,
+      knowledgeSources: intel.knowledgeSources,
+      memorySources: intel.memorySources,
       model: generated.model,
       reason: parsed.error,
-    });
+      memoryUnavailable: intel.memoryUnavailable,
+      knowledgeUnavailable: intel.knowledgeUnavailable,
+      extraLimitations: intel.limitations,
+    }));
     return {
       ok: true,
       code: "OK",
@@ -206,10 +280,13 @@ export async function runForexDecisionAnalysis(
       diagnostics: {
         promptChars: prompt.length,
         knowledgeHits: knowledgeHits.length,
+        memoryHits: intel.memorySources.length,
         model: generated.model,
         timeframes: mtf.timeframes,
         marketStateMs,
         deterministicMs,
+        memoryMs,
+        promptVersion: intel.promptVersion,
       },
     };
   }
@@ -217,15 +294,18 @@ export async function runForexDecisionAnalysis(
   return {
     ok: true,
     code: "OK",
-    analysis: parsed.analysis,
+    analysis: attachContext(parsed.analysis),
     latencyMs: Date.now() - started,
     diagnostics: {
       promptChars: prompt.length,
       knowledgeHits: knowledgeHits.length,
+      memoryHits: intel.memorySources.length,
       model: generated.model,
       timeframes: mtf.timeframes,
       marketStateMs,
       deterministicMs,
+      memoryMs,
+      promptVersion: intel.promptVersion,
     },
   };
 }
