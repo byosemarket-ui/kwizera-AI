@@ -114,55 +114,87 @@ jobs:
               (home / "known_hosts").write_text(hosts, encoding="utf-8")
           PY
           chmod 600 "$HOME/.ssh/deploy_key"
-          if [ ! -s "$HOME/.ssh/known_hosts" ]; then
-            ssh-keyscan -p "${VPS_PORT:-22}" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts"
-          fi
-          chmod 644 "$HOME/.ssh/known_hosts"
+          : >"$HOME/kwizera-deploy-ssh.log"
           # Port 2222 = Dropbear (OpenSSH hostbound workaround; see deploy/vps-step2.sh).
-          # Port 22 = OpenSSH_10.x which advertises publickey-hostbound and can break CI key auth.
-          # Default to 2222 so missing VPS_PORT still reaches the working daemon.
-          PRIMARY_PORT="${VPS_PORT:-2222}"
-          if [ "$PRIMARY_PORT" = "22" ]; then
-            PORT_CANDIDATES=(22 2222)
-          elif [ "$PRIMARY_PORT" = "2222" ]; then
-            PORT_CANDIDATES=(2222 22)
+          # Port 22 = OpenSSH_10.x advertises publickey-hostbound and breaks CI key auth.
+          # Always prefer 2222 even when secret VPS_PORT=22 (common misconfig after hostbound breakage).
+          if [ -n "${VPS_PORT:-}" ] && [ "$VPS_PORT" != "22" ] && [ "$VPS_PORT" != "2222" ]; then
+            PORT_CANDIDATES=("$VPS_PORT" 2222 22)
           else
-            PORT_CANDIDATES=("$PRIMARY_PORT" 2222 22)
+            PORT_CANDIDATES=(2222 22)
           fi
           SSH_BASE=(
             -i "$HOME/.ssh/deploy_key"
             -o IdentitiesOnly=yes
             -o BatchMode=yes
             -o NumberOfPasswordPrompts=0
-            -o ConnectTimeout=20
+            -o ConnectTimeout=15
+            -o ConnectionAttempts=1
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=120
-            -o StrictHostKeyChecking=yes
+            -o StrictHostKeyChecking=accept-new
           )
           SSH_PORT=""
+          REMOTE_USER=""
           for candidate in "${PORT_CANDIDATES[@]}"; do
-            echo "[KWIZERA] SSH preflight ${VPS_USER}@${VPS_HOST}:${candidate}"
+            echo "[KWIZERA] SSH preflight ${VPS_USER}@${VPS_HOST}:${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log"
             ssh-keyscan -p "$candidate" -H "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-            if ssh "${SSH_BASE[@]}" -p "$candidate" "$VPS_USER@$VPS_HOST" \
-              "echo SSH_OK; id -un; command -v sudo; (sudo -n true && echo SUDO_NOPASSWD_OK) || echo SUDO_ALLOWLIST_ONLY"; then
+            chmod 644 "$HOME/.ssh/known_hosts"
+            if preflight_out="$(ssh "${SSH_BASE[@]}" -p "$candidate" "$VPS_USER@$VPS_HOST" \
+              "echo SSH_OK; id -un; command -v sudo || true" 2>&1)"; then
+              echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log"
               SSH_PORT="$candidate"
+              REMOTE_USER="$(printf '%s\n' "$preflight_out" | awk 'NR==2 {print; exit}')"
               break
             fi
-            echo "[KWIZERA] SSH preflight failed on port ${candidate}" >&2
+            echo "$preflight_out" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2 || true
+            echo "[KWIZERA] SSH preflight failed on port ${candidate}" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
           done
           if [ -z "$SSH_PORT" ]; then
-            echo "[KWIZERA] SSH authentication failed on ports: ${PORT_CANDIDATES[*]}" >&2
-            echo "[KWIZERA] Check secrets VPS_HOST/VPS_USER/VPS_SSH_KEY/VPS_PORT and Dropbear :2222." >&2
+            {
+              echo "[KWIZERA] SSH authentication failed on ports: ${PORT_CANDIDATES[*]}"
+              echo "[KWIZERA] Check secrets VPS_HOST/VPS_USER/VPS_SSH_KEY and Dropbear :2222."
+            } | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
+            {
+              echo "## Deploy SSH failure"
+              echo '```'
+              tail -n 120 "$HOME/kwizera-deploy-ssh.log"
+              echo '```'
+            } >>"$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          echo "[KWIZERA] starting deploy script for ${DEPLOY_SHA} via port ${SSH_PORT}"
+          echo "[KWIZERA] starting deploy script for ${DEPLOY_SHA} via port ${SSH_PORT} user=${REMOTE_USER:-unknown}" | tee -a "$HOME/kwizera-deploy-ssh.log"
           remote_deploy() {
-            local sudo_cmd="$1"
-            ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$VPS_USER@$VPS_HOST" "$sudo_cmd"
+            local remote_cmd="$1"
+            ssh "${SSH_BASE[@]}" -p "$SSH_PORT" "$VPS_USER@$VPS_HOST" "$remote_cmd" 2>&1 | tee -a "$HOME/kwizera-deploy-ssh.log"
+            return "${PIPESTATUS[0]}"
           }
-          # SETENV sudoers form (preferred). Keep `sudo -- env` as fallback for older hosts.
-          if ! remote_deploy "sudo -n KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"; then
-            echo "[KWIZERA] SETENV sudo form failed; retrying with sudo -- env" >&2
-            remote_deploy "sudo -n -- env KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"
+          set +e
+          if [ "${REMOTE_USER:-}" = "root" ]; then
+            remote_deploy "env KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"
+            deploy_rc=$?
+          else
+            remote_deploy "sudo -n KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"
+            deploy_rc=$?
+            if [ "$deploy_rc" -ne 0 ] && grep -qiE 'sudo:|not allowed|a password is required|sorry' "$HOME/kwizera-deploy-ssh.log"; then
+              echo "[KWIZERA] SETENV sudo form failed; retrying with sudo -- env" | tee -a "$HOME/kwizera-deploy-ssh.log" >&2
+              remote_deploy "sudo -n -- env KWIZERA_DEPLOY_SHA=${DEPLOY_SHA} /opt/kwizera-ai/deploy/update-from-github.sh ${DEPLOY_SHA}"
+              deploy_rc=$?
+            fi
+          fi
+          set -e
+          if [ "$deploy_rc" -ne 0 ]; then
+            {
+              echo "## Deploy SSH failure (exit ${deploy_rc})"
+              echo "Port: ${SSH_PORT} / user: ${REMOTE_USER:-unknown}"
+              echo '```'
+              tail -n 160 "$HOME/kwizera-deploy-ssh.log"
+              echo '```'
+            } >>"$GITHUB_STEP_SUMMARY"
+            exit "$deploy_rc"
           fi
           echo "requestedCommit=${DEPLOY_SHA}"
+          {
+            echo "## Deploy SSH success"
+            echo "Port: ${SSH_PORT} / user: ${REMOTE_USER:-unknown} / sha: ${DEPLOY_SHA}"
+          } >>"$GITHUB_STEP_SUMMARY"
