@@ -178,7 +178,7 @@ describe("Forex Phase 20 — AI Market Analysis Engine", () => {
       analysisType: "TECHNICAL_ANALYSIS",
     });
     expect(prompt).toContain("MARKET FACTS");
-    expect(prompt).toContain("FOREX KNOWLEDGE");
+    expect(prompt).toContain("KNOWLEDGE (reference only");
     expect(prompt).toContain("110000");
     expect(prompt).toContain("62.4");
     expect(prompt).toContain("BTCUSDT");
