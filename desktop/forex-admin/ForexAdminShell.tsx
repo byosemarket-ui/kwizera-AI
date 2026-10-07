@@ -27,9 +27,16 @@ export function ForexAdminShell() {
   }, []);
 
   useEffect(() => {
+    let wasDesktop = window.innerWidth > 820;
     const syncSidebarToViewport = () => {
       const desktop = window.innerWidth > 820;
-      setSidebarOpen((open) => (desktop ? true : open));
+      if (desktop) {
+        setSidebarOpen(true);
+      } else if (wasDesktop) {
+        // Crossing down from desktop → close drawer; do not fight Menu toggles on mobile.
+        setSidebarOpen(false);
+      }
+      wasDesktop = desktop;
     };
     syncSidebarToViewport();
     window.addEventListener("resize", syncSidebarToViewport);

@@ -313,6 +313,10 @@
 }
 
 @media (max-width: 820px) {
+  .fxa-root {
+    overflow-x: hidden;
+  }
+
   .fxa-root,
   .fxa-root[data-sidebar="closed"] {
     grid-template-columns: 1fr;
@@ -331,11 +335,25 @@
     transform: translateX(0);
   }
 
+  /* Off-canvas nav must not expand document scroll width. */
+  .fxa-root[data-sidebar="closed"] .fxa-sidebar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .fxa-menu-btn {
     display: inline-flex;
   }
 
   .fxa-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fxa-header-actions {
+    justify-content: flex-end;
+  }
+
+  .fxa-table-wrap {
+    max-width: 100%;
   }
 }
