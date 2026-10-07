@@ -78,6 +78,8 @@ try {
   await check("/admin", "KWIZERA AI STUDIO");
   await check("/admin/dashboard", "KWIZERA AI STUDIO");
   await check("/admin/models", "KWIZERA AI STUDIO");
+  await check("/admin/forex", "KWIZERA AI STUDIO");
+  await check("/admin/forex/knowledge", "KWIZERA AI STUDIO");
   await check("/forex", "KWIZERA AI STUDIO");
   await check("/forex/dashboard", "KWIZERA AI STUDIO");
   await check("/forex/markets", "KWIZERA AI STUDIO");
@@ -94,6 +96,9 @@ try {
   }
   if (!bundle.includes("data-forex-sidebar") || !bundle.includes("data-forex-dashboard") || !bundle.includes("data-forex-header")) {
     throw new Error("built desktop bundle missing Forex shell markers");
+  }
+  if (!bundle.includes("data-forex-admin-shell") || !bundle.includes("data-forex-admin-sidebar") || !bundle.includes("/admin/forex")) {
+    throw new Error("built desktop bundle missing dedicated Forex Admin markers");
   }
   if (!bundle.includes("data-forex-breadcrumb") || !bundle.includes("data-forex-page") || !bundle.includes("Back to Forex Dashboard")) {
     throw new Error("built desktop bundle missing Forex Phase 2 navigation markers");

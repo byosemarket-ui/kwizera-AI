@@ -21,6 +21,7 @@ import { installBootstrapRecovery } from "./shell/bootstrap-recovery";
 import { resetPersistedNavigationInStorage } from "./shell/startup-navigation";
 import { AdminControlCenter, isAdminUrl, STUDIO_ROOT_PATH } from "./admin-control-center";
 import { isForexUrl } from "./forex/forex-routes";
+import { isForexAdminUrl } from "./forex-admin/forex-admin-routes";
 import "./desktop-polish/desktop-polish.css";
 import "./workspace.css";
 import "./shell/shell.css";
@@ -29,8 +30,11 @@ import "./customer-platform/customer.css";
 const preferenceManager = new DesktopPreferenceManager();
 const notificationManager = new DesktopNotificationManager();
 const ForexApp = lazy(() => import("./forex/ForexApp"));
+const ForexAdminApp = lazy(() => import("./forex-admin/ForexAdminApp"));
 
-function resolveAppSurface(): "admin" | "forex" | "studio" {
+function resolveAppSurface(): "forex-admin" | "admin" | "forex" | "studio" {
+  // Forex Admin must win over General Admin so /admin/forex is not swallowed by /admin/*
+  if (isForexAdminUrl()) return "forex-admin";
   if (isAdminUrl()) return "admin";
   if (isForexUrl()) return "forex";
   return "studio";
@@ -82,7 +86,7 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 }
 
 function App() {
-  const [surface, setSurface] = useState<"admin" | "forex" | "studio">(() => resolveAppSurface());
+  const [surface, setSurface] = useState<"forex-admin" | "admin" | "forex" | "studio">(() => resolveAppSurface());
   const [preferences, setPreferences] = useState<DesktopPreferences>(() => preferenceManager.load());
   const [core, setCore] = useState<CoreStatus | null>(null);
   const [layoutSnapshot, setLayoutSnapshot] = useState<ShellLayoutState | null>(null);
@@ -258,7 +262,18 @@ function App() {
 
   return (
     <>
-      {surface === "admin" ? (
+      {surface === "forex-admin" ? (
+        <Suspense
+          fallback={(
+            <section className="startup-loading-panel" role="status" aria-live="polite">
+              <strong>FOREX ADMIN</strong>
+              <span>Loading Forex administration…</span>
+            </section>
+          )}
+        >
+          <ForexAdminApp />
+        </Suspense>
+      ) : surface === "admin" ? (
         <div className="acc-root-surface" data-app-surface="admin">
           <AdminControlCenter
             onExitToStudio={() => {
