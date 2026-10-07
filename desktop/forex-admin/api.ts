@@ -142,3 +142,42 @@ export const forexAdminApi = {
       { method: "POST", body: JSON.stringify(body) },
     ),
 };
+
+function memoryQs(params: Record<string, string | number | undefined>): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") qs.set(key, String(value));
+  }
+  const s = qs.toString();
+  return s ? `?${s}` : "";
+}
+
+/** Phase 23 — Forex AI Memory / Journal / Learning (server-authoritative). */
+export const forexAdminMemoryApi = {
+  overview: () => request<{ ok: true; overview: Record<string, unknown> }>("/api/forex/memory/overview"),
+  listAnalyses: (params: Record<string, string | number | undefined> = {}) =>
+    request<{ ok: true; items: Array<Record<string, unknown>>; total: number }>(
+      `/api/forex/memory/analysis${memoryQs(params)}`,
+    ),
+  getAnalysis: (id: string) =>
+    request<{
+      ok: true;
+      analysis: Record<string, unknown>;
+      outcomes: Array<Record<string, unknown>>;
+      mistakes: Array<Record<string, unknown>>;
+    }>(`/api/forex/memory/analysis/${encodeURIComponent(id)}`),
+  listOutcomes: (params: Record<string, string | number | undefined> = {}) =>
+    request<{ ok: true; items: Array<Record<string, unknown>>; total: number }>(
+      `/api/forex/memory/outcomes${memoryQs(params)}`,
+    ),
+  listMistakes: (params: Record<string, string | number | undefined> = {}) =>
+    request<{ ok: true; items: Array<Record<string, unknown>>; total: number }>(
+      `/api/forex/memory/mistakes${memoryQs(params)}`,
+    ),
+  learning: () => request<{ ok: true; learning: Record<string, unknown> }>("/api/forex/memory/learning"),
+  evaluate: (analysisId: string) =>
+    request<{ ok: true; outcome: Record<string, unknown>; mistakes: Array<Record<string, unknown>> }>(
+      "/api/forex/memory/evaluate",
+      { method: "POST", body: JSON.stringify({ analysisId }) },
+    ),
+};

@@ -11,14 +11,20 @@ export type ForexAdminRouteId =
   | "settings"
   | "knowledge-new"
   | "knowledge-detail"
-  | "knowledge-edit";
+  | "knowledge-edit"
+  | "memory"
+  | "journal"
+  | "journal-detail"
+  | "outcomes"
+  | "mistakes"
+  | "learning";
 
 export type ForexAdminViewId = ForexAdminRouteId | "not-found";
 
 export type ForexAdminNavGroupId = "overview" | "knowledge" | "ai-system" | "system";
 
 export interface ForexAdminNavItem {
-  id: Exclude<ForexAdminRouteId, "knowledge-new" | "knowledge-detail" | "knowledge-edit">;
+  id: Exclude<ForexAdminRouteId, "knowledge-new" | "knowledge-detail" | "knowledge-edit" | "journal-detail">;
   label: string;
   path: string;
   implemented: boolean;
@@ -37,6 +43,11 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "knowledge-concepts", label: "Concepts", path: "/admin/forex/knowledge/concepts", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-status", label: "Knowledge Status", path: "/admin/forex/knowledge/settings", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "indexing", label: "Indexing", path: "/admin/forex/indexing", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "memory", label: "Memory", path: "/admin/forex/memory", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "journal", label: "Journal", path: "/admin/forex/journal", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "outcomes", label: "Outcomes", path: "/admin/forex/outcomes", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "mistakes", label: "Mistakes", path: "/admin/forex/mistakes", implemented: true, group: "ai-system", groupLabel: "AI System" },
+  { id: "learning", label: "Learning", path: "/admin/forex/learning", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "ai-configuration", label: "AI Configuration", path: "/admin/forex/ai-configuration", implemented: true, group: "ai-system", groupLabel: "AI System" },
   { id: "settings", label: "Settings", path: "/admin/forex/settings", implemented: true, group: "system", groupLabel: "System" },
 ];
@@ -103,6 +114,19 @@ export function parseForexAdminRouteFromLocation(
     };
   }
   if (rest === "indexing") return { view: "indexing", documentId: null, canonicalPath: "/admin/forex/indexing" };
+  if (rest === "memory") return { view: "memory", documentId: null, canonicalPath: "/admin/forex/memory" };
+  if (rest === "journal") return { view: "journal", documentId: null, canonicalPath: "/admin/forex/journal" };
+  const journalDetail = rest.match(/^journal\/([^/]+)$/);
+  if (journalDetail) {
+    return {
+      view: "journal-detail",
+      documentId: decodeURIComponent(journalDetail[1]!),
+      canonicalPath: `/admin/forex/journal/${journalDetail[1]}`,
+    };
+  }
+  if (rest === "outcomes") return { view: "outcomes", documentId: null, canonicalPath: "/admin/forex/outcomes" };
+  if (rest === "mistakes") return { view: "mistakes", documentId: null, canonicalPath: "/admin/forex/mistakes" };
+  if (rest === "learning") return { view: "learning", documentId: null, canonicalPath: "/admin/forex/learning" };
   if (rest === "ai-configuration") {
     return { view: "ai-configuration", documentId: null, canonicalPath: "/admin/forex/ai-configuration" };
   }
@@ -148,6 +172,17 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — Forex Knowledge Indexing";
     case "ai-configuration":
       return "KWIZERA AI STUDIO — Forex AI Configuration";
+    case "memory":
+      return "KWIZERA AI STUDIO — Forex AI Memory";
+    case "journal":
+    case "journal-detail":
+      return "KWIZERA AI STUDIO — Forex AI Journal";
+    case "outcomes":
+      return "KWIZERA AI STUDIO — Forex AI Outcomes";
+    case "mistakes":
+      return "KWIZERA AI STUDIO — Forex AI Mistakes";
+    case "learning":
+      return "KWIZERA AI STUDIO — Forex AI Learning";
     case "settings":
       return "KWIZERA AI STUDIO — Forex Admin Settings";
     default:

@@ -1,5 +1,5 @@
 /**
- * Forex AI API — Phase 17/20 + Phase 21 MTF + Phase 22 Decision.
+ * Forex AI API — Phase 17/20 + Phase 21 MTF + Phase 22 Decision + Phase 23 memory persist.
  * Reuses shared Ollama adapter. Does not expose port 11434.
  *
  * GET  /api/forex/ai/health
@@ -22,8 +22,33 @@ import {
   runForexMultiTimeframeAnalysis,
   type ForexAiAnalysisType,
 } from "../../ai/forex-ai/index.js";
+import { getForexMemoryService, type ForexMemoryAnalysisType } from "../../ai/forex-memory/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
+
+async function persistAnalysisMemory(input: {
+  analysisType: ForexMemoryAnalysisType;
+  analysis: unknown;
+  latencyMs?: number;
+  promptChars?: number;
+}): Promise<string | null> {
+  try {
+    if (!input.analysis || typeof input.analysis !== "object") return null;
+    const saved = await getForexMemoryService().persistAnalysis({
+      analysisType: input.analysisType,
+      analysis: input.analysis as Record<string, unknown>,
+      latencyMs: input.latencyMs ?? null,
+      promptChars: input.promptChars ?? null,
+    });
+    return saved.analysis.id;
+  } catch (error) {
+    console.warn(
+      "[forex-ai] memory-persist-failed",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -54,7 +79,8 @@ export async function handleForexAiApi(
         mtfDefaultStack: FOREX_MTF_DEFAULT_STACK,
         decisionSchemaVersion: FOREX_DECISION_SCHEMA_VERSION,
         decisionDefaultStack: FOREX_DECISION_DEFAULT_STACK,
-        note: "Forex AI: single-TF + multi-TF + decision engines + Forex Knowledge → shared Ollama adapter.",
+        memorySchemaVersion: "forex-memory-v1",
+        note: "Forex AI: single-TF + multi-TF + decision + memory journal → shared Ollama adapter. No model-weight training.",
       });
       return true;
     }
@@ -106,6 +132,15 @@ export async function handleForexAiApi(
           analysisType: body.analysisType,
         });
 
+      let memoryId: string | null = null;
+      if (result.ok && result.analysis) {
+        memoryId = await persistAnalysisMemory({
+          analysisType: "SINGLE_TIMEFRAME",
+          analysis: result.analysis,
+          latencyMs: result.latencyMs,
+          promptChars: result.diagnostics?.promptChars,
+        });
+      }
       console.info(
         "[forex-ai] analyze",
         JSON.stringify({
@@ -118,10 +153,11 @@ export async function handleForexAiApi(
           latencyMs: result.latencyMs,
           promptChars: result.diagnostics?.promptChars ?? null,
           knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
+          memoryId,
           durationMs: Date.now() - started,
         }),
       );
-      sendJson(res, result.ok ? 200 : 422, result);
+      sendJson(res, result.ok ? 200 : 422, { ...result, memoryId });
       return true;
     }
 
@@ -141,6 +177,15 @@ export async function handleForexAiApi(
         knowledgeQuery: body.knowledgeQuery,
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
       });
+      let memoryId: string | null = null;
+      if (result.ok && result.analysis) {
+        memoryId = await persistAnalysisMemory({
+          analysisType: "MULTI_TIMEFRAME",
+          analysis: result.analysis,
+          latencyMs: result.latencyMs,
+          promptChars: result.diagnostics?.promptChars,
+        });
+      }
       console.info(
         "[forex-ai] mtf-analyze",
         JSON.stringify({
@@ -155,10 +200,11 @@ export async function handleForexAiApi(
           promptChars: result.diagnostics?.promptChars ?? null,
           knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
           marketStateMs: result.diagnostics?.marketStateMs ?? null,
+          memoryId,
           durationMs: Date.now() - started,
         }),
       );
-      sendJson(res, result.ok ? 200 : 422, result);
+      sendJson(res, result.ok ? 200 : 422, { ...result, memoryId });
       return true;
     }
 
@@ -178,6 +224,15 @@ export async function handleForexAiApi(
         knowledgeQuery: body.knowledgeQuery,
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
       });
+      let memoryId: string | null = null;
+      if (result.ok && result.analysis) {
+        memoryId = await persistAnalysisMemory({
+          analysisType: "DECISION",
+          analysis: result.analysis,
+          latencyMs: result.latencyMs,
+          promptChars: result.diagnostics?.promptChars,
+        });
+      }
       console.info(
         "[forex-ai] decision",
         JSON.stringify({
@@ -195,10 +250,11 @@ export async function handleForexAiApi(
           knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
           marketStateMs: result.diagnostics?.marketStateMs ?? null,
           deterministicMs: result.diagnostics?.deterministicMs ?? null,
+          memoryId,
           durationMs: Date.now() - started,
         }),
       );
-      sendJson(res, result.ok ? 200 : 422, result);
+      sendJson(res, result.ok ? 200 : 422, { ...result, memoryId });
       return true;
     }
 

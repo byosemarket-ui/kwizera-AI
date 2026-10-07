@@ -357,3 +357,30 @@
     max-width: 100%;
   }
 }
+
+.fxa-dl {
+  display: grid;
+  gap: 0.35rem 1rem;
+  grid-template-columns: minmax(7rem, 10rem) 1fr;
+  margin: 0.75rem 0;
+}
+
+.fxa-dl > div {
+  display: contents;
+}
+
+.fxa-dl dt {
+  opacity: 0.7;
+}
+
+.fxa-dl dd {
+  margin: 0;
+}
+
+.fxa-pre {
+  overflow: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+}

@@ -73,7 +73,7 @@ export function ForexAdminShell() {
       <aside className="fxa-sidebar" data-forex-admin-sidebar>
         <div className="fxa-brand">
           <strong>FOREX ADMIN</strong>
-          <span>AI Knowledge · Education foundation</span>
+          <span>AI Knowledge · Memory · Learning</span>
         </div>
         {[...grouped.entries()].map(([group, items]) => (
           <div className="fxa-nav-group" key={group}>
@@ -81,7 +81,8 @@ export function ForexAdminShell() {
             {items.map((item) => {
               const active = location.canonicalPath === item.path
                 || (item.id === "knowledge" && (location.view === "knowledge-detail" || location.view === "knowledge-edit" || location.view === "knowledge-new"))
-                || (item.id === "knowledge-documents" && location.view === "knowledge-documents");
+                || (item.id === "knowledge-documents" && location.view === "knowledge-documents")
+                || (item.id === "journal" && location.view === "journal-detail");
               return (
                 <button
                   key={item.id}

@@ -7,6 +7,14 @@ import {
   type ForexAdminTopic,
 } from "./api";
 import type { ForexAdminViewId } from "./forex-admin-routes";
+import {
+  ForexAdminJournalDetailPage,
+  ForexAdminJournalPage,
+  ForexAdminLearningPage,
+  ForexAdminMemoryPage,
+  ForexAdminMistakesPage,
+  ForexAdminOutcomesPage,
+} from "./ForexAdminMemoryPages";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -615,6 +623,12 @@ export function titleForView(view: ForexAdminViewId): string {
     "knowledge-new": "New Knowledge",
     "knowledge-edit": "Edit Knowledge",
     "knowledge-detail": "Knowledge Detail",
+    memory: "AI Memory",
+    journal: "AI Journal",
+    "journal-detail": "Journal Detail",
+    outcomes: "Outcomes",
+    mistakes: "Mistakes",
+    learning: "Learning",
     "not-found": "Not Found",
   };
   return map[view] ?? "Forex Admin";
@@ -658,6 +672,20 @@ export function ForexAdminPageRouter({
       case "ai-configuration":
       case "settings":
         return <ForexAdminSettingsPage />;
+      case "memory":
+        return <ForexAdminMemoryPage onOpen={onOpen} />;
+      case "journal":
+        return <ForexAdminJournalPage onOpen={onOpen} />;
+      case "journal-detail":
+        return documentId
+          ? <ForexAdminJournalDetailPage analysisId={documentId} onOpen={onOpen} />
+          : <ForexAdminNotFound onOpen={onOpen} />;
+      case "outcomes":
+        return <ForexAdminOutcomesPage />;
+      case "mistakes":
+        return <ForexAdminMistakesPage />;
+      case "learning":
+        return <ForexAdminLearningPage />;
       default:
         return <ForexAdminNotFound onOpen={onOpen} />;
     }
