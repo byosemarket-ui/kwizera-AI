@@ -147,11 +147,11 @@ export async function analyzeForexMarketState(
   // Keep Forex prompts short: small context + short JSON for constrained local models.
   const generated = await adapter.generateStructured({
     prompt,
-    timeoutMs: opts?.timeoutMs,
+    timeoutMs: opts?.timeoutMs ?? 120_000,
     options: {
       temperature: 0.1,
-      num_ctx: 3072,
-      num_predict: 384,
+      num_ctx: 2048,
+      num_predict: 280,
     },
   });
 

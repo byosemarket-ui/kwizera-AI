@@ -3,6 +3,7 @@ export * from "./prompts.js";
 export * from "./validate.js";
 export * from "./data-quality.js";
 export * from "./knowledge-query.js";
+export * from "./compact-facts.js";
 export {
   analyzeForexMarketState,
   forexAiEngineMeta,

@@ -5,8 +5,8 @@
 import type { ForexKnowledgeRetrievalHit } from "../forex-knowledge/types.js";
 import type { ForexMarketState } from "./types.js";
 
-export const FOREX_AI_KNOWLEDGE_TOP_K = 4;
-export const FOREX_AI_KNOWLEDGE_CHAR_BUDGET = 1800;
+export const FOREX_AI_KNOWLEDGE_TOP_K = 2;
+export const FOREX_AI_KNOWLEDGE_CHAR_BUDGET = 900;
 
 export function buildForexKnowledgeQuery(market: ForexMarketState, analysisType?: string): string {
   const parts = [
@@ -30,7 +30,7 @@ export function formatKnowledgeForPrompt(hits: ForexKnowledgeRetrievalHit[]): st
   const blocks: string[] = [];
   let used = 0;
   for (const hit of hits.slice(0, FOREX_AI_KNOWLEDGE_TOP_K)) {
-    const snippet = hit.content.replace(/\s+/g, " ").trim().slice(0, 420);
+    const snippet = hit.content.replace(/\s+/g, " ").trim().slice(0, 280);
     const block = [
       `[doc:${hit.documentId} v${hit.version} score=${hit.relevanceScore.toFixed(2)}] ${hit.title}`,
       snippet,

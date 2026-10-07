@@ -123,7 +123,7 @@ export async function runForexMarketAnalysis(
   }
 
   return analyzeForexMarketState(aiMarketState, {
-    timeoutMs: request.timeoutMs,
+    timeoutMs: request.timeoutMs ?? 120_000,
     knowledgeHits,
     analysisType,
     dataQualityStatus: quality.status,
