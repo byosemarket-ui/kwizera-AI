@@ -71,7 +71,12 @@ export function assessMarketStateForAnalysis(
   }
 
   const minutes = timeframeMinutes(state.timeframe);
-  const ageLimit = staleLimitMs(minutes) * 3;
+  // REST kline snapshots often stamp lastMarketUpdate as the forming candle open.
+  // That open can be almost one full interval old while the candle is still valid.
+  // Age limit must cover the interval itself plus a small grace — not a flat cap that
+  // falsely marks 1h/4h/1d states STALE mid-candle (breaks MTF required HTF slots).
+  const intervalMs = minutes * 60 * 1000;
+  const ageLimit = intervalMs + staleLimitMs(minutes);
   const lastUpdate = state.lastMarketUpdate;
   const ageMs = lastUpdate == null ? Number.POSITIVE_INFINITY : nowMs - lastUpdate;
   const ageStale = !Number.isFinite(ageMs) || ageMs > ageLimit;

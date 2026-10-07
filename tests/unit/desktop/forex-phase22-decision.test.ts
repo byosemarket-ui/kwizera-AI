@@ -17,6 +17,7 @@ import {
   selectDecisionScenario,
   buildDecisionAnalysisPrompt,
 } from "../../../ai/forex-ai/decision/index.ts";
+import { assessMarketStateForAnalysis } from "../../../ai/forex-ai/data-quality.ts";
 import { computeMtfAlignment, roleForTimeframe } from "../../../ai/forex-ai/mtf/index.ts";
 import type { ForexMtfCompactFacts, ForexMultiTimeframeMarketState } from "../../../ai/forex-ai/mtf/types.ts";
 import type { ForexBinanceMarketState } from "../../../ai/forex-market-state/types.ts";
@@ -377,6 +378,27 @@ describe("Forex Phase 22 — Scenario / Entry / Decision Engine", () => {
       expect(src).not.toContain("Math.random");
       expect(src).not.toMatch(/fakePrice|mockPrice|demoPrice|fakeEntry|fakeStopLoss/);
     }
+  });
+
+  it("4h forming-candle open age is not falsely STALE for analysis", () => {
+    const now = Date.now();
+    // Mid 4h candle: open ~90 minutes ago — must remain usable for MTF/decision HTF.
+    const state = mockState({ timeframe: "4h", trend: "BEARISH" });
+    state.lastMarketUpdate = now - 90 * 60 * 1000;
+    state.stateGeneratedAt = now;
+    state.candle = {
+      open: 100_000,
+      high: 101_000,
+      low: 99_000,
+      close: 100_000,
+      volume: 1,
+      openTime: Math.floor((now - 90 * 60 * 1000) / 1000),
+      closeTime: Math.floor((now + 150 * 60 * 1000) / 1000),
+      isClosed: false,
+    };
+    const q = assessMarketStateForAnalysis(state, now);
+    expect(q.ok).toBe(true);
+    expect(q.code).toBe("OK");
   });
 
   it("risk context built without inventing account balance", () => {
