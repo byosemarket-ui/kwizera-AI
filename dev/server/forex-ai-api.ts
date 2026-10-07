@@ -1,19 +1,23 @@
 /**
- * Forex AI API — Phase 17/20 + Phase 21 Multi-Timeframe.
+ * Forex AI API — Phase 17/20 + Phase 21 MTF + Phase 22 Decision.
  * Reuses shared Ollama adapter. Does not expose port 11434.
  *
  * GET  /api/forex/ai/health
  * POST /api/forex/ai/analyze
  * POST /api/forex/ai/multi-timeframe
+ * POST /api/forex/ai/decision
  * GET  /api/forex/ai/meta
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   analyzeForexMarketState,
+  FOREX_DECISION_DEFAULT_STACK,
+  FOREX_DECISION_SCHEMA_VERSION,
   FOREX_MTF_DEFAULT_STACK,
   FOREX_MTF_SCHEMA_VERSION,
   forexAiEngineMeta,
   getForexAiHealth,
+  runForexDecisionAnalysis,
   runForexMarketAnalysis,
   runForexMultiTimeframeAnalysis,
   type ForexAiAnalysisType,
@@ -48,7 +52,9 @@ export async function handleForexAiApi(
         schemaVersion: "forex-ai-analysis-v1",
         mtfSchemaVersion: FOREX_MTF_SCHEMA_VERSION,
         mtfDefaultStack: FOREX_MTF_DEFAULT_STACK,
-        note: "Forex AI: single-TF + multi-TF Market State + Forex Knowledge → shared Ollama adapter.",
+        decisionSchemaVersion: FOREX_DECISION_SCHEMA_VERSION,
+        decisionDefaultStack: FOREX_DECISION_DEFAULT_STACK,
+        note: "Forex AI: single-TF + multi-TF + decision engines + Forex Knowledge → shared Ollama adapter.",
       });
       return true;
     }
@@ -149,6 +155,46 @@ export async function handleForexAiApi(
           promptChars: result.diagnostics?.promptChars ?? null,
           knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
           marketStateMs: result.diagnostics?.marketStateMs ?? null,
+          durationMs: Date.now() - started,
+        }),
+      );
+      sendJson(res, result.ok ? 200 : 422, result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/ai/decision" && req.method === "POST") {
+      const body = await readJsonBody(req) as {
+        symbol?: string;
+        timeframes?: string[];
+        scenarioMode?: string;
+        knowledgeQuery?: string;
+        timeoutMs?: number;
+      };
+      const started = Date.now();
+      const result = await runForexDecisionAnalysis({
+        symbol: String(body.symbol ?? ""),
+        timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
+        scenarioMode: body.scenarioMode,
+        knowledgeQuery: body.knowledgeQuery,
+        timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+      });
+      console.info(
+        "[forex-ai] decision",
+        JSON.stringify({
+          ok: result.ok,
+          code: result.code,
+          symbol: result.analysis?.market.symbol ?? body.symbol ?? null,
+          timeframes: result.diagnostics?.timeframes ?? body.timeframes ?? null,
+          scenario: result.analysis?.scenario.type ?? null,
+          posture: result.analysis?.decisionPosture ?? null,
+          entry: result.analysis?.entryZone.status ?? null,
+          narrative: result.analysis?.narrativeStatus ?? null,
+          model: result.analysis?.model ?? result.diagnostics?.model ?? null,
+          latencyMs: result.latencyMs,
+          promptChars: result.diagnostics?.promptChars ?? null,
+          knowledgeHits: result.diagnostics?.knowledgeHits ?? null,
+          marketStateMs: result.diagnostics?.marketStateMs ?? null,
+          deterministicMs: result.diagnostics?.deterministicMs ?? null,
           durationMs: Date.now() - started,
         }),
       );

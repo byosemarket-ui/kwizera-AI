@@ -264,6 +264,7 @@ export function forexAiEngineMeta(): {
   modelConfig: string;
   marketStateSource: string;
   knowledgeSource: string;
+  decisionEngine: string;
 } {
   return {
     engineVersion: FOREX_AI_ENGINE_VERSION,
@@ -272,5 +273,6 @@ export function forexAiEngineMeta(): {
     modelConfig: "KWIZERA_OLLAMA_REASONING_MODEL / preferredReasoningModelId()",
     marketStateSource: "ai/forex-market-state (Phase 18)",
     knowledgeSource: "ai/forex-knowledge (Phase 19)",
+    decisionEngine: "ai/forex-ai/decision (Phase 22)",
   };
 }
