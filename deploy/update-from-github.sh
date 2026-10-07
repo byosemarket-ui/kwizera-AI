@@ -193,6 +193,7 @@ wait_healthy() {
   systemctl is-active "$SERVICE" || true
   curl -sS -m 5 "$HEALTH_URL" || true
   echo
+  dump_service_diagnostics
   return 1
 }
 
@@ -318,12 +319,28 @@ if ! restart_service; then
   exit 1
 fi
 if ! wait_healthy; then
-  rollback "health check failed"
-  exit 1
-fi
-if ! verify_live_routes; then
-  rollback "studio HTML verification failed"
-  exit 1
+  echo "[KWIZERA] runtimeReady not reached within ${HEALTH_WAIT_SECONDS}s — checking gateway/studio usability"
+  dump_service_diagnostics
+  # On small VPS hosts AI Core cold-start can exceed the hard health window while the
+  # production gateway and Studio/Forex UI are already serving. Prefer a live studio
+  # over a failed deploy + rollback that takes the site down.
+  if verify_live_routes; then
+    body="$(curl -fsS -m 5 "$HEALTH_URL" 2>/dev/null || true)"
+    if printf '%s' "$body" | grep -q '"ok":true' && printf '%s' "$body" | grep -q '"gateway":true'; then
+      echo "[KWIZERA] accepting deploy: gateway/studio verified; AI Core still warming (runtimeReady pending)"
+    else
+      rollback "health check failed (studio ok but gateway health missing)"
+      exit 1
+    fi
+  else
+    rollback "health check failed"
+    exit 1
+  fi
+else
+  if ! verify_live_routes; then
+    rollback "studio HTML verification failed"
+    exit 1
+  fi
 fi
 
 if [[ -f "$APP_DIR/deploy/phase1-online-verify.sh" ]]; then

@@ -14,6 +14,8 @@ Environment=KWIZERA_ENV=production
 Environment=KWIZERA_SKIP_BROWSER_OPEN=1
 Environment=KWIZERA_PERSISTENT_MODE=1
 Environment=KWIZERA_PROJECT_ROOT=/opt/kwizera-ai
+# Keep the public gateway socket alive if the AI Core worker exits during cold-start.
+Environment=KWIZERA_GATEWAY_KEEP_ALIVE=1
 EnvironmentFile=-/opt/kwizera-ai/.env
 ExecStart=/usr/bin/node /opt/kwizera-ai/dist/dev/server/production-gateway.js
 Restart=always

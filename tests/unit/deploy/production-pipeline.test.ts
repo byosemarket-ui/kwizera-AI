@@ -56,6 +56,8 @@ describe("canonical GitHub-to-VPS deploy", () => {
     expect(sh).toContain("emergency_revive_service");
     expect(sh).toContain("dump_service_diagnostics");
     expect(sh).toContain("journalctl -u");
+    expect(sh).toContain("AI Core still warming");
+    expect(read("deploy/kwizera-ai.service")).toContain("KWIZERA_GATEWAY_KEEP_ALIVE=1");
     expect(sh).toContain("KWIZERA_DEPLOY_SHA");
     expect(sh).toContain("checkout --detach --force");
     expect(sh).not.toMatch(/git pull --ff-only/);
