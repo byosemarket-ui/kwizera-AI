@@ -215,14 +215,45 @@ export const forexProvidersApi = {
       method: "POST",
       body: "{}",
     }),
-  fxcmInstruments: (refresh = false) =>
-    request<{
-      ok: true;
+  fxcmInstruments: (params?: {
+    refresh?: boolean;
+    marketType?: string;
+    search?: string;
+    status?: string;
+    baseAsset?: string;
+    quoteAsset?: string;
+    mappingStatus?: string;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.refresh) q.set("refresh", "1");
+    if (params?.marketType) q.set("marketType", params.marketType);
+    if (params?.search) q.set("search", params.search);
+    if (params?.status) q.set("status", params.status);
+    if (params?.baseAsset) q.set("baseAsset", params.baseAsset);
+    if (params?.quoteAsset) q.set("quoteAsset", params.quoteAsset);
+    if (params?.mappingStatus) q.set("mappingStatus", params.mappingStatus);
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      provider: "FXCM";
+      environment: string;
+      environmentLabel: string;
+      discoveryStatus: string;
+      freshness: string;
+      source: string;
+      fetchedAt: string | null;
       count: number;
       instruments: Array<Record<string, unknown>>;
-      environmentLabel: string;
+      conflicts: Array<Record<string, unknown>>;
+      authenticationState: string;
+      marketData: string;
+      liveStream: string;
+      trading: string;
+      errorCode: string | null;
+      errorMessage: string | null;
       note?: string;
-    }>(`/api/forex/providers/fxcm/instruments${refresh ? "?refresh=1" : ""}`),
+    }>(`/api/forex/providers/fxcm/instruments${qs ? `?${qs}` : ""}`);
+  },
 };
 
 /** Phase 24 — Intelligence control center (config / diagnostics / health). */

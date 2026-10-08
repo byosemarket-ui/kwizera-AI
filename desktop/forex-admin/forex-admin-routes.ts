@@ -1,5 +1,6 @@
 export type ForexAdminRouteId =
   | "dashboard"
+  | "instruments"
   | "knowledge"
   | "knowledge-documents"
   | "knowledge-topics"
@@ -23,7 +24,7 @@ export type ForexAdminRouteId =
 
 export type ForexAdminViewId = ForexAdminRouteId | "not-found";
 
-export type ForexAdminNavGroupId = "overview" | "knowledge" | "memory" | "ai-system" | "system";
+export type ForexAdminNavGroupId = "overview" | "market-data" | "knowledge" | "memory" | "ai-system" | "system";
 
 export interface ForexAdminNavItem {
   id: Exclude<
@@ -41,6 +42,7 @@ export const FOREX_ADMIN_ROOT = "/admin/forex";
 
 export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "dashboard", label: "Dashboard", path: "/admin/forex", implemented: true, group: "overview", groupLabel: "Overview" },
+  { id: "instruments", label: "FXCM Instruments", path: "/admin/forex/instruments", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "knowledge", label: "Knowledge Base", path: "/admin/forex/knowledge", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-documents", label: "Documents", path: "/admin/forex/knowledge/documents", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-topics", label: "Topics", path: "/admin/forex/knowledge/topics", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
@@ -61,6 +63,7 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
 
 export const FOREX_ADMIN_GROUP_ORDER: ForexAdminNavGroupId[] = [
   "overview",
+  "market-data",
   "knowledge",
   "memory",
   "ai-system",
@@ -90,6 +93,9 @@ export function parseForexAdminRouteFromLocation(
   const rest = path.slice(FOREX_ADMIN_ROOT.length).replace(/^\//, "");
   if (!rest) return { view: "dashboard", documentId: null, canonicalPath: FOREX_ADMIN_ROOT };
 
+  if (rest === "instruments") {
+    return { view: "instruments", documentId: null, canonicalPath: "/admin/forex/instruments" };
+  }
   if (rest === "knowledge") return { view: "knowledge", documentId: null, canonicalPath: "/admin/forex/knowledge" };
   if (rest === "knowledge/documents") {
     return { view: "knowledge-documents", documentId: null, canonicalPath: "/admin/forex/knowledge/documents" };
@@ -170,6 +176,8 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
   switch (view) {
     case "dashboard":
       return "KWIZERA AI STUDIO — Forex Admin";
+    case "instruments":
+      return "KWIZERA AI STUDIO — FXCM Instruments";
     case "knowledge":
     case "knowledge-documents":
       return "KWIZERA AI STUDIO — Forex Knowledge Base";

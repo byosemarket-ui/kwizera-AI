@@ -1,27 +1,30 @@
 /**
- * FXCM Market Data Provider — Phase 25 foundation + Phase 26 authentication.
- * Instruments + authenticated health only. No live quotes, streaming, candles, or trading.
+ * FXCM Market Data Provider — Phases 25–27.
+ * Authentication (26) + instrument discovery (27).
+ * No live quotes, streaming, candles, or trading.
  */
 import {
-  FXCM_INSTRUMENT_CACHE_MS,
   FXCM_PHASE25_CAPABILITIES,
   resolveFxcmConfig,
   type FxcmConfig,
 } from "./config.js";
-import { fxcmGetInstruments, type FetchLike } from "./client.js";
 import {
   createFxcmAuthenticationService,
   type FxcmAuthenticationService,
 } from "./auth-service.js";
+import {
+  createFxcmInstrumentDiscoveryService,
+  type FxcmInstrumentDiscoveryService,
+} from "./instrument-discovery.js";
+import type { SafeFxcmDiscoveryResult } from "./instrument-discovery-types.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "./errors.js";
-import { mapFxcmInstrumentList, toCanonicalFxcmSymbol } from "./instrument-mapper.js";
+import type { FetchLike } from "./client.js";
 import type {
   MarketDataProvider,
   MarketInstrument,
   MarketProviderHealth,
   MarketProviderInfo,
 } from "../providers/types.js";
-import type { FxcmInstrumentCache } from "./types.js";
 import type { SafeFxcmAuthenticationStatus } from "./auth-types.js";
 
 export interface FxcmProviderOptions {
@@ -29,6 +32,7 @@ export interface FxcmProviderOptions {
   fetchImpl?: FetchLike;
   nowMs?: () => number;
   auth?: FxcmAuthenticationService;
+  discovery?: FxcmInstrumentDiscoveryService;
 }
 
 export class FxcmMarketDataProvider implements MarketDataProvider {
@@ -37,7 +41,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   private readonly fetchImpl?: FetchLike;
   private readonly nowMs: () => number;
   private readonly auth: FxcmAuthenticationService;
-  private cache: FxcmInstrumentCache | null = null;
+  private readonly discovery: FxcmInstrumentDiscoveryService;
   private lastHealth: MarketProviderHealth | null = null;
 
   constructor(options: FxcmProviderOptions = {}) {
@@ -50,6 +54,12 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       fetchImpl: this.fetchImpl,
       nowMs: this.nowMs,
     });
+    this.discovery = options.discovery ?? createFxcmInstrumentDiscoveryService({
+      env: this.env,
+      fetchImpl: this.fetchImpl,
+      nowMs: this.nowMs,
+      auth: this.auth,
+    });
   }
 
   getConfig(): FxcmConfig {
@@ -58,6 +68,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
 
   getAuthService(): FxcmAuthenticationService {
     return this.auth;
+  }
+
+  getDiscoveryService(): FxcmInstrumentDiscoveryService {
+    return this.discovery;
   }
 
   getProviderInfo(): MarketProviderInfo {
@@ -88,10 +102,22 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.auth.getSafeStatus();
   }
 
+  async discoverInstruments(options?: {
+    refresh?: boolean;
+    marketType?: string | null;
+    search?: string | null;
+    status?: string | null;
+    baseAsset?: string | null;
+    quoteAsset?: string | null;
+    mappingStatus?: string | null;
+  }): Promise<SafeFxcmDiscoveryResult> {
+    return this.discovery.discover(options);
+  }
+
   async healthCheck(): Promise<MarketProviderHealth> {
     const checkedAt = new Date(this.nowMs()).toISOString();
     const baseNotes = [
-      "Phase 26 authentication layer.",
+      "Phase 27 instrument discovery.",
       "Live stream: NOT ENABLED YET.",
       "Historical candles: NOT ENABLED YET.",
       "Trading: DISABLED.",
@@ -175,21 +201,15 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       return this.lastHealth;
     }
 
-    // Authenticated — optionally refresh instrument metadata cache (metadata only).
+    // Authenticated — verify discovery path (metadata only).
     try {
-      const session = this.auth.getSessionHandle();
-      if (!session) {
-        throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "Authenticated session missing.");
+      const discovery = await this.discovery.discover({ refresh: false });
+      if (discovery.discoveryStatus !== "READY" && discovery.source === "NONE") {
+        throw new FxcmMarketDataError(
+          discovery.errorCode ?? "FXCM_UNAVAILABLE",
+          discovery.errorMessage ?? "Instrument discovery failed.",
+        );
       }
-      const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
-      const instruments = mapFxcmInstrumentList(raw);
-      this.cache = {
-        instruments,
-        fetchedAtUtc: this.nowMs(),
-        environment: this.config.environment,
-        restBaseHost: this.config.restBaseHost,
-        cached: false,
-      };
       this.auth.touchValidated();
       this.lastHealth = {
         provider: "FXCM",
@@ -211,7 +231,8 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
           ...baseNotes,
           "Authentication: AUTHENTICATED.",
           "API session active — market streaming not enabled in this phase.",
-          `Instruments discovered: ${instruments.length}`,
+          `Instruments discovered: ${discovery.count}`,
+          `Discovery source: ${discovery.source}`,
         ],
       };
       console.info("[fxcm] health", JSON.stringify({
@@ -219,7 +240,8 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         authState: "AUTHENTICATED",
         environment: this.config.environment,
         host: this.config.restBaseHost,
-        instruments: instruments.length,
+        instruments: discovery.count,
+        discoverySource: discovery.source,
         liveStreamEnabled: false,
         tradingEnabled: false,
         marketData: "NOT_STARTED",
@@ -253,84 +275,11 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   }
 
   async listInstruments(options?: { refresh?: boolean }): Promise<MarketInstrument[]> {
-    if (!this.config.enabled) {
-      throw new FxcmMarketDataError("FXCM_DISABLED", "FXCM market data is disabled.");
-    }
-    if (!this.config.accessTokenConfigured) {
-      throw new FxcmMarketDataError("FXCM_NOT_CONFIGURED", "FXCM access token is not configured.");
-    }
-    const now = this.nowMs();
-    if (
-      !options?.refresh
-      && this.cache
-      && now - this.cache.fetchedAtUtc < FXCM_INSTRUMENT_CACHE_MS
-    ) {
-      return this.cache.instruments.map((i) => ({ ...i, metadata: { ...i.metadata } }));
-    }
-
-    const authCtx = await this.auth.authenticate();
-    if (authCtx.state !== "AUTHENTICATED") {
-      throw new FxcmMarketDataError(
-        "FXCM_AUTHENTICATION_FAILED",
-        authCtx.lastErrorMessage ?? "FXCM authentication failed.",
-      );
-    }
-    let session = this.auth.getSessionHandle();
-    if (!session) {
-      throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "Authenticated session missing.");
-    }
-
-    try {
-      const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
-      const instruments = mapFxcmInstrumentList(raw);
-      this.cache = {
-        instruments,
-        fetchedAtUtc: now,
-        environment: this.config.environment,
-        restBaseHost: this.config.restBaseHost,
-        cached: false,
-      };
-      this.auth.touchValidated();
-      console.info("[fxcm] instruments", JSON.stringify({
-        count: instruments.length,
-        environment: this.config.environment,
-        host: this.config.restBaseHost,
-        cached: false,
-      }));
-      return instruments;
-    } catch (error) {
-      const mapped = userFacingFxcmError(error);
-      if (mapped.code === "FXCM_AUTHENTICATION_FAILED") {
-        await this.auth.markExpiredAndReauthenticate();
-        session = this.auth.getSessionHandle();
-        if (!session) throw error;
-        const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
-        const instruments = mapFxcmInstrumentList(raw);
-        this.cache = {
-          instruments,
-          fetchedAtUtc: now,
-          environment: this.config.environment,
-          restBaseHost: this.config.restBaseHost,
-          cached: false,
-        };
-        return instruments;
-      }
-      throw error;
-    }
+    return this.discovery.listInstruments(options);
   }
 
   async getInstrument(symbol: string): Promise<MarketInstrument | null> {
-    const needleCanonical = toCanonicalFxcmSymbol(symbol);
-    const needleProvider = String(symbol ?? "").trim();
-    if (!needleCanonical && !needleProvider) {
-      throw new FxcmMarketDataError("FXCM_INVALID_SYMBOL", "Symbol is required.");
-    }
-    const list = await this.listInstruments();
-    return list.find((i) =>
-      i.providerSymbol === needleProvider
-      || i.canonicalSymbol === needleCanonical
-      || i.displaySymbol === needleProvider
-    ) ?? null;
+    return this.discovery.getInstrument(symbol);
   }
 }
 

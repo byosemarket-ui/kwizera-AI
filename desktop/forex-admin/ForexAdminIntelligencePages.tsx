@@ -87,7 +87,7 @@ export function ForexAdminAiConfigurationPage() {
       <section className="fxa-card" data-forex-admin-market-providers>
         <h3>Market Data Providers</h3>
         <p className="fxa-muted">
-          Status only — no FXCM trading controls. Live FXCM stream is not enabled in Phase 25.
+          Status only — no FXCM trading controls. Phase 27 discovery available; live FXCM stream is not enabled.
         </p>
         {providers.length === 0 ? (
           <p className="fxa-muted">Loading provider status…</p>

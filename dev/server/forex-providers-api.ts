@@ -1,15 +1,16 @@
 /**
- * Phase 25/26 — Market-data provider registry API.
+ * Phase 25–27 — Market-data provider registry API.
  * GET  /api/forex/providers
  * GET  /api/forex/providers/fxcm/status
  * POST /api/forex/providers/fxcm/authenticate  (safe status only)
- * GET  /api/forex/providers/fxcm/instruments
+ * GET  /api/forex/providers/fxcm/instruments   (discovery + mapping)
  *
  * Never returns FXCM tokens, passwords, or Authorization headers.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertSafeAuthStatus } from "../../ai/market-data/fxcm/auth-service.js";
 import { readFxcmAccessToken } from "../../ai/market-data/fxcm/config.js";
+import { assertSafeDiscoveryPayload } from "../../ai/market-data/fxcm/instrument-mapper.js";
 import { userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
 import { getMarketDataProviderRegistry } from "../../ai/market-data/providers/index.js";
 
@@ -40,7 +41,7 @@ export async function handleForexProvidersApi(
       sendJson(res, 200, {
         ok: true,
         ...snapshot,
-        note: "FXCM Phase 26 — authentication available; live stream and trading are not enabled.",
+        note: "FXCM Phase 27 — instrument discovery; live stream and trading are not enabled.",
       });
       return true;
     }
@@ -88,34 +89,87 @@ export async function handleForexProvidersApi(
 
     if (url.pathname === "/api/forex/providers/fxcm/instruments") {
       const fxcm = registry.getFxcm();
-      const config = fxcm.getConfig();
-      if (!config.enabled) {
-        sendJson(res, 503, {
-          ok: false,
-          error: { code: "FXCM_DISABLED", message: "FXCM market data is disabled." },
-        });
-        return true;
-      }
-      if (!config.accessTokenConfigured) {
-        sendJson(res, 503, {
-          ok: false,
-          error: {
-            code: "FXCM_NOT_CONFIGURED",
-            message: "FXCM access token is not configured on the server.",
-          },
-          environmentLabel: config.environmentLabel,
-        });
-        return true;
-      }
       const refresh = url.searchParams.get("refresh") === "1";
-      const instruments = await fxcm.listInstruments({ refresh });
+      const discovery = await fxcm.discoverInstruments({
+        refresh,
+        marketType: url.searchParams.get("marketType"),
+        search: url.searchParams.get("search") ?? url.searchParams.get("q"),
+        status: url.searchParams.get("status"),
+        baseAsset: url.searchParams.get("baseAsset"),
+        quoteAsset: url.searchParams.get("quoteAsset"),
+        mappingStatus: url.searchParams.get("mappingStatus"),
+      });
+      assertSafeDiscoveryPayload(discovery, readFxcmAccessToken());
+
+      const httpOk = discovery.discoveryStatus === "READY"
+        || discovery.discoveryStatus === "DISABLED"
+        || discovery.discoveryStatus === "NOT_CONFIGURED"
+        || (discovery.source === "CACHED" && discovery.count > 0);
+
+      sendJson(res, httpOk ? 200 : 503, {
+        ok: discovery.discoveryStatus === "READY" || discovery.source === "CACHED",
+        provider: discovery.provider,
+        environment: discovery.environment,
+        environmentLabel: discovery.environmentLabel,
+        discoveryStatus: discovery.discoveryStatus,
+        freshness: discovery.freshness,
+        source: discovery.source,
+        fetchedAt: discovery.fetchedAt,
+        count: discovery.count,
+        instruments: discovery.instruments,
+        conflicts: discovery.conflicts,
+        authenticationState: discovery.authenticationState,
+        marketData: discovery.marketData,
+        liveStream: discovery.liveStream,
+        trading: discovery.trading,
+        errorCode: discovery.errorCode,
+        errorMessage: discovery.errorMessage,
+        note: discovery.note,
+      });
+      return true;
+    }
+
+    // Optional single-instrument lookup: /api/forex/providers/fxcm/instruments/:symbol
+    const instrumentMatch = url.pathname.match(/^\/api\/forex\/providers\/fxcm\/instruments\/(.+)$/);
+    if (instrumentMatch) {
+      const fxcm = registry.getFxcm();
+      const symbol = decodeURIComponent(instrumentMatch[1] ?? "").trim();
+      if (!symbol) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "FXCM_INVALID_SYMBOL", message: "Symbol is required." },
+        });
+        return true;
+      }
+      const discovery = await fxcm.discoverInstruments({ search: symbol });
+      assertSafeDiscoveryPayload(discovery, readFxcmAccessToken());
+      const exact = discovery.instruments.find((i) =>
+        i.providerSymbol === symbol
+        || i.canonicalSymbol === symbol.toUpperCase().replace(/[^A-Z0-9]/g, "")
+        || i.displaySymbol === symbol
+      ) ?? null;
+      if (!exact) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "FXCM_INSTRUMENT_NOT_FOUND", message: "Instrument not found in FXCM catalog." },
+          provider: "FXCM",
+          environmentLabel: discovery.environmentLabel,
+          discoveryStatus: discovery.discoveryStatus,
+        });
+        return true;
+      }
       sendJson(res, 200, {
         ok: true,
         provider: "FXCM",
-        environmentLabel: config.environmentLabel,
-        count: instruments.length,
-        instruments,
-        note: "Instrument metadata only — no live prices in Phase 26.",
+        environment: discovery.environment,
+        environmentLabel: discovery.environmentLabel,
+        source: discovery.source,
+        fetchedAt: discovery.fetchedAt,
+        instrument: exact,
+        marketData: "NOT_STARTED",
+        liveStream: "NOT_ENABLED_YET",
+        trading: "DISABLED",
+        note: "Instrument metadata only — no live prices in Phase 27.",
       });
       return true;
     }

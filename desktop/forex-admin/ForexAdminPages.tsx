@@ -21,6 +21,7 @@ import {
   ForexAdminRetrievalDiagnosticsPage,
   ForexAdminSystemHealthPage,
 } from "./ForexAdminIntelligencePages";
+import { ForexAdminInstrumentsPage } from "./ForexAdminInstrumentsPage";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -96,8 +97,8 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
       <section className="fxa-card" data-forex-admin-fxcm-status>
         <h3>FXCM MARKET DATA</h3>
         <p className="fxa-muted">
-          Phase 26 authentication — no live stream, no historical candles, trading disabled.
-          FXCM authenticated ≠ LIVE market data.
+          Phase 27 instrument discovery — authentication + catalog mapping.
+          No live stream, no historical candles, trading disabled. FXCM authenticated ≠ LIVE market data.
         </p>
         <ul>
           <li>Provider: FXCM</li>
@@ -119,6 +120,9 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
         <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
           <button type="button" className="fxa-btn" disabled={authBusy} onClick={() => void testAuth()}>
             {authBusy ? "Authenticating…" : "Test FXCM Authentication"}
+          </button>
+          <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/instruments")}>
+            FXCM Instruments
           </button>
           <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/ai-configuration")}>
             Open AI Configuration
@@ -681,6 +685,7 @@ export function ForexAdminNotFound({ onOpen }: { onOpen: (path: string) => void 
 export function titleForView(view: ForexAdminViewId): string {
   const map: Record<string, string> = {
     dashboard: "Forex AI Admin Dashboard",
+    instruments: "FXCM Instruments",
     knowledge: "Forex Knowledge Base",
     "knowledge-documents": "Documents",
     "knowledge-topics": "Topics",
@@ -719,6 +724,8 @@ export function ForexAdminPageRouter({
     switch (view) {
       case "dashboard":
         return <ForexAdminDashboardPage onOpen={onOpen} />;
+      case "instruments":
+        return <ForexAdminInstrumentsPage onOpen={onOpen} />;
       case "knowledge":
       case "knowledge-documents":
         return <ForexAdminKnowledgeListPage onOpen={onOpen} />;
