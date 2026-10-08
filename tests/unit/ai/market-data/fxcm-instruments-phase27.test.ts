@@ -251,6 +251,10 @@ describe("Forex Phase 27 — FXCM instrument discovery", () => {
     });
     const d2 = await missing.discover();
     expect(d2.discoveryStatus).toBe("NOT_CONFIGURED");
+
+    // API treats these as ok=true configuration states (see forex-providers-api).
+    const api = read("dev/server/forex-providers-api.ts");
+    expect(api).toContain("configState || readyOrCached");
   });
 
   it("23/24/25/26 no fake market data / trading / hardcoded catalog in production", () => {

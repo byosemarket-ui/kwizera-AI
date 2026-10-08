@@ -101,13 +101,15 @@ export async function handleForexProvidersApi(
       });
       assertSafeDiscoveryPayload(discovery, readFxcmAccessToken());
 
-      const httpOk = discovery.discoveryStatus === "READY"
-        || discovery.discoveryStatus === "DISABLED"
-        || discovery.discoveryStatus === "NOT_CONFIGURED"
+      // DISABLED / NOT_CONFIGURED are truthful configuration states (HTTP 200), not transport failures.
+      const configState = discovery.discoveryStatus === "DISABLED"
+        || discovery.discoveryStatus === "NOT_CONFIGURED";
+      const readyOrCached = discovery.discoveryStatus === "READY"
         || (discovery.source === "CACHED" && discovery.count > 0);
+      const httpOk = configState || readyOrCached;
 
       sendJson(res, httpOk ? 200 : 503, {
-        ok: discovery.discoveryStatus === "READY" || discovery.source === "CACHED",
+        ok: configState || readyOrCached,
         provider: discovery.provider,
         environment: discovery.environment,
         environmentLabel: discovery.environmentLabel,
