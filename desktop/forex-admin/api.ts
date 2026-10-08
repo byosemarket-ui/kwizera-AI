@@ -182,6 +182,34 @@ export const forexAdminMemoryApi = {
     ),
 };
 
+/** Phase 25 — Market-data providers (Binance + FXCM foundation). */
+export const forexProvidersApi = {
+  list: () =>
+    request<{
+      ok: true;
+      generatedAt: string;
+      providers: Array<{ info: Record<string, unknown>; health: Record<string, unknown> }>;
+      note?: string;
+    }>("/api/forex/providers"),
+  fxcmStatus: () =>
+    request<{
+      ok: boolean;
+      provider: Record<string, unknown>;
+      health: Record<string, unknown>;
+      capabilities: Record<string, boolean>;
+      liveStream: string;
+      trading: string;
+    }>("/api/forex/providers/fxcm/status"),
+  fxcmInstruments: (refresh = false) =>
+    request<{
+      ok: true;
+      count: number;
+      instruments: Array<Record<string, unknown>>;
+      environmentLabel: string;
+      note?: string;
+    }>(`/api/forex/providers/fxcm/instruments${refresh ? "?refresh=1" : ""}`),
+};
+
 /** Phase 24 — Intelligence control center (config / diagnostics / health). */
 export const forexIntelligenceApi = {
   health: (probe = true) =>

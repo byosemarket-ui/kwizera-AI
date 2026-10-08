@@ -22,6 +22,7 @@ import { handleForexAdminApi } from "./forex-admin-api.js";
 import { handleForexIntelligenceApi } from "./forex-intelligence-api.js";
 import { handleForexMemoryApi } from "./forex-memory-api.js";
 import { handleForexMarketStateApi } from "./forex-market-state-api.js";
+import { handleForexProvidersApi } from "./forex-providers-api.js";
 import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
 import { CreativeWorkspaceError } from "../../ai/creative-workspace/creative-workspace-manager.js";
 import { AudioIntelligenceError } from "../../ai/audio-intelligence/audio-intelligence-manager.js";
@@ -1182,6 +1183,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleBinanceMarketDataApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleForexProvidersApi(req, res, url, sendJson)) {
     return;
   }
 

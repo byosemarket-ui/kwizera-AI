@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   forexAdminApi,
+  forexProvidersApi,
   type ForexAdminCategory,
   type ForexAdminDocument,
   type ForexAdminOverview,
@@ -40,12 +41,16 @@ function Badge({ value }: { value: string }) {
 
 export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => void }) {
   const [overview, setOverview] = useState<ForexAdminOverview | null>(null);
+  const [fxcmHealth, setFxcmHealth] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void forexAdminApi.overview()
       .then((res) => setOverview(res.overview))
       .catch((err: Error) => setError(err.message));
+    void forexProvidersApi.fxcmStatus()
+      .then((res) => setFxcmHealth(res.health))
+      .catch(() => setFxcmHealth({ status: "UNAVAILABLE", environmentLabel: "FXCM", liveStreamEnabled: false }));
   }, []);
 
   if (error) return <div className="fxa-error" role="alert">{error}</div>;
@@ -59,6 +64,23 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
           Dedicated administration for the Forex AI Knowledge Base. Authentication is deferred by design for Phase 19.
           Knowledge is prepared for future retrieval (chunk → index → RAG), not fake model training.
         </p>
+      </section>
+      <section className="fxa-card" data-forex-admin-fxcm-status>
+        <h3>FXCM MARKET DATA</h3>
+        <p className="fxa-muted">Phase 25 foundation — no live stream, no historical candles, trading disabled.</p>
+        <ul>
+          <li>Provider: FXCM</li>
+          <li>Environment: {String(fxcmHealth?.environmentLabel ?? "—")}</li>
+          <li>Configuration: {fxcmHealth?.configured ? "READY" : "NOT CONFIGURED"}</li>
+          <li>Authentication: {fxcmHealth?.authenticated ? "READY" : "NOT AUTHENTICATED"}</li>
+          <li>API: {fxcmHealth?.status === "CONNECTED" ? "CONNECTED" : String(fxcmHealth?.status ?? "DISCONNECTED")}</li>
+          <li>Instrument Discovery: {String(fxcmHealth?.instrumentDiscovery ?? "—")}</li>
+          <li>Live Stream: NOT ENABLED YET</li>
+          <li>Trading: DISABLED</li>
+        </ul>
+        <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/ai-configuration")}>
+          Open AI Configuration
+        </button>
       </section>
       <section className="fxa-grid">
         {[

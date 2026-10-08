@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { forexIntelligenceApi } from "./api";
+import { forexIntelligenceApi, forexProvidersApi } from "./api";
 
 function Badge({ value, tone }: { value: string; tone?: "ok" | "warn" | "danger" }) {
   return <span className="fxa-badge" data-tone={tone}>{value}</span>;
@@ -19,6 +19,7 @@ export function ForexAdminAiConfigurationPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [providers, setProviders] = useState<Array<{ info: Record<string, unknown>; health: Record<string, unknown> }>>([]);
 
   const load = () => {
     void forexIntelligenceApi.configuration()
@@ -29,6 +30,9 @@ export function ForexAdminAiConfigurationPage() {
         setNote(res.note);
       })
       .catch((err: Error) => setError(err.message));
+    void forexProvidersApi.list()
+      .then((res) => setProviders(res.providers))
+      .catch(() => setProviders([]));
   };
 
   useEffect(() => { load(); }, []);
@@ -78,6 +82,41 @@ export function ForexAdminAiConfigurationPage() {
           <li>Prompt version: {String(readOnly.promptVersion)}</li>
           <li>Decision engines: scenario / confirmation / invalidation / risk — ACTIVE</li>
         </ul>
+      </section>
+
+      <section className="fxa-card" data-forex-admin-market-providers>
+        <h3>Market Data Providers</h3>
+        <p className="fxa-muted">
+          Status only — no FXCM trading controls. Live FXCM stream is not enabled in Phase 25.
+        </p>
+        {providers.length === 0 ? (
+          <p className="fxa-muted">Loading provider status…</p>
+        ) : providers.map((p) => {
+          const info = p.info;
+          const health = p.health;
+          const caps = (info.capabilities as Record<string, boolean>) ?? {};
+          const isFxcm = String(info.provider) === "FXCM";
+          return (
+            <article key={String(info.provider)} style={{ marginBottom: 12 }}>
+              <strong>{String(info.displayName ?? info.provider)}</strong>
+              {" · "}
+              <Badge
+                value={String(health.status)}
+                tone={health.status === "CONNECTED" ? "ok" : health.status === "NOT_CONFIGURED" || health.status === "DISABLED" ? "warn" : "danger"}
+              />
+              {" · "}{String(health.environmentLabel ?? "")}
+              <ul>
+                <li>instruments: {String(caps.instruments)}</li>
+                <li>liveQuotes: {String(caps.liveQuotes)}</li>
+                <li>streamingQuotes: {String(caps.streamingQuotes)}</li>
+                <li>historicalPrices: {String(caps.historicalPrices)}</li>
+                <li>candles: {String(caps.candles)}</li>
+                <li>trading: {String(caps.trading)}</li>
+                {isFxcm ? <li>Live Stream: NOT ENABLED YET</li> : null}
+              </ul>
+            </article>
+          );
+        })}
       </section>
 
       <section className="fxa-card">
