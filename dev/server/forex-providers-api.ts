@@ -11,7 +11,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { assertSafeAuthStatus } from "../../ai/market-data/fxcm/auth-service.js";
 import { readFxcmAccessToken } from "../../ai/market-data/fxcm/config.js";
 import { assertSafeDiscoveryPayload } from "../../ai/market-data/fxcm/instrument-mapper.js";
-import { userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
+import { assertSafeHistoricalPayload } from "../../ai/market-data/fxcm/historical-normalize.js";
+import { FxcmMarketDataError, userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
 import { getMarketDataProviderRegistry } from "../../ai/market-data/providers/index.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -41,7 +42,7 @@ export async function handleForexProvidersApi(
       sendJson(res, 200, {
         ok: true,
         ...snapshot,
-        note: "FXCM Phase 27 — instrument discovery; live stream and trading are not enabled.",
+        note: "FXCM Phase 28 — historical candles available; live stream and trading are not enabled.",
       });
       return true;
     }
@@ -131,6 +132,81 @@ export async function handleForexProvidersApi(
       return true;
     }
 
+    if (url.pathname === "/api/forex/providers/fxcm/historical") {
+      const fxcm = registry.getFxcm();
+      const symbol = (url.searchParams.get("symbol") ?? "").trim();
+      const timeframe = (url.searchParams.get("timeframe") ?? url.searchParams.get("interval") ?? "").trim();
+      const startRaw = url.searchParams.get("start") ?? url.searchParams.get("startTime");
+      const endRaw = url.searchParams.get("end") ?? url.searchParams.get("endTime");
+      const limitRaw = url.searchParams.get("limit");
+      const refresh = url.searchParams.get("refresh") === "1";
+
+      const parseTime = (raw: string | null): number | null => {
+        if (raw == null || raw === "") return null;
+        if (/^\d+$/.test(raw)) {
+          const n = Number(raw);
+          // Accept seconds or milliseconds
+          return n < 1e12 ? n * 1000 : n;
+        }
+        const ms = Date.parse(raw);
+        return Number.isFinite(ms) ? ms : Number.NaN;
+      };
+
+      try {
+        const startTimeMs = parseTime(startRaw);
+        const endTimeMs = parseTime(endRaw);
+        if (startRaw && !Number.isFinite(startTimeMs as number)) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "FXCM_INVALID_RANGE", message: "Invalid start time." },
+          });
+          return true;
+        }
+        if (endRaw && !Number.isFinite(endTimeMs as number)) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "FXCM_INVALID_RANGE", message: "Invalid end time." },
+          });
+          return true;
+        }
+        const result = await fxcm.getHistoricalCandles({
+          symbol,
+          timeframe,
+          startTimeMs,
+          endTimeMs,
+          limit: limitRaw != null && limitRaw !== "" ? Number(limitRaw) : null,
+          refresh,
+        });
+        assertSafeHistoricalPayload(result, readFxcmAccessToken());
+        sendJson(res, 200, {
+          ok: true,
+          ...result,
+        });
+        return true;
+      } catch (error) {
+        const mapped = userFacingFxcmError(error);
+        const code = error instanceof FxcmMarketDataError ? error.code : mapped.code;
+        const status =
+          code === "FXCM_INVALID_SYMBOL" || code === "FXCM_INVALID_RANGE" ? 400
+            : code === "FXCM_UNSUPPORTED_TIMEFRAME" ? 422
+              : code === "FXCM_INSTRUMENT_NOT_FOUND" || code === "FXCM_OFFER_NOT_FOUND" ? 404
+                : code === "FXCM_MAPPING_CONFLICT" ? 409
+                  : code === "FXCM_MAPPING_UNRESOLVED" ? 422
+                    : code === "FXCM_AUTHENTICATION_FAILED" ? 503
+                      : code === "FXCM_DISABLED" || code === "FXCM_NOT_CONFIGURED" ? 503
+                        : 503;
+        sendJson(res, status, {
+          ok: false,
+          error: { code, message: mapped.message },
+          provider: "FXCM",
+          mode: "HISTORICAL",
+          liveStream: "NOT_ENABLED_YET",
+          trading: "DISABLED",
+        });
+        return true;
+      }
+    }
+
     // Optional single-instrument lookup: /api/forex/providers/fxcm/instruments/:symbol
     const instrumentMatch = url.pathname.match(/^\/api\/forex\/providers\/fxcm\/instruments\/(.+)$/);
     if (instrumentMatch) {
@@ -186,6 +262,8 @@ export async function handleForexProvidersApi(
     sendJson(res, 503, {
       ok: false,
       error: { code: mapped.code, message: mapped.message },
+      liveStream: "NOT_ENABLED_YET",
+      trading: "DISABLED",
     });
     return true;
   }

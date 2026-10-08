@@ -2,7 +2,7 @@
  * Market data provider registry — BINANCE + FXCM.
  */
 import { createBinanceMarketDataService } from "../binance/service.js";
-import { FXCM_PHASE25_CAPABILITIES } from "../fxcm/config.js";
+import { FXCM_PHASE28_CAPABILITIES } from "../fxcm/config.js";
 import { createFxcmMarketDataProvider, type FxcmMarketDataProvider } from "../fxcm/provider.js";
 import type {
   MarketDataCapabilities,
@@ -244,4 +244,4 @@ export function resetMarketDataProviderRegistryForTests(): void {
   singleton = null;
 }
 
-export { FXCM_PHASE25_CAPABILITIES };
+export { FXCM_PHASE28_CAPABILITIES };

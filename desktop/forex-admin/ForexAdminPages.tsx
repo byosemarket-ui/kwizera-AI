@@ -22,6 +22,7 @@ import {
   ForexAdminSystemHealthPage,
 } from "./ForexAdminIntelligencePages";
 import { ForexAdminInstrumentsPage } from "./ForexAdminInstrumentsPage";
+import { ForexAdminHistoricalPage } from "./ForexAdminHistoricalPage";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -123,6 +124,9 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
           </button>
           <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/instruments")}>
             FXCM Instruments
+          </button>
+          <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/historical-data")}>
+            FXCM Historical
           </button>
           <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/ai-configuration")}>
             Open AI Configuration
@@ -686,6 +690,7 @@ export function titleForView(view: ForexAdminViewId): string {
   const map: Record<string, string> = {
     dashboard: "Forex AI Admin Dashboard",
     instruments: "FXCM Instruments",
+    "historical-data": "FXCM Historical Data",
     knowledge: "Forex Knowledge Base",
     "knowledge-documents": "Documents",
     "knowledge-topics": "Topics",
@@ -726,6 +731,8 @@ export function ForexAdminPageRouter({
         return <ForexAdminDashboardPage onOpen={onOpen} />;
       case "instruments":
         return <ForexAdminInstrumentsPage onOpen={onOpen} />;
+      case "historical-data":
+        return <ForexAdminHistoricalPage onOpen={onOpen} />;
       case "knowledge":
       case "knowledge-documents":
         return <ForexAdminKnowledgeListPage onOpen={onOpen} />;

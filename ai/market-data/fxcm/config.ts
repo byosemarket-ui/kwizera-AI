@@ -16,15 +16,35 @@ export const FXCM_INSTRUMENT_CACHE_MS = 15 * 60 * 1000;
 export const FXCM_REST_PATHS = {
   socketIo: "/socket.io/",
   getInstruments: "/trading/get_instruments",
+  getModel: "/trading/get_model",
+  /** Official: GET /candles/{offer_id}/{period_id} */
+  candles: "/candles",
 } as const;
 
-/** Phase 25 capabilities — foundation only. */
+/** Max candles per official FXCM historical request (num parameter). */
+export const FXCM_CANDLES_MAX_NUM = 10_000;
+/** Soft max range span for a single Phase 28 request (prevents accidental multi-year pulls). */
+export const FXCM_HISTORICAL_MAX_RANGE_MS = 120 * 24 * 60 * 60 * 1000;
+export const FXCM_OFFER_CACHE_MS = 15 * 60 * 1000;
+export const FXCM_HISTORICAL_CACHE_MS = 5 * 60 * 1000;
+
+/** Phase 25 foundation capabilities (pre-historical). */
 export const FXCM_PHASE25_CAPABILITIES = {
   instruments: true,
   liveQuotes: false,
   streamingQuotes: false,
   historicalPrices: false,
   candles: false,
+  trading: false,
+} as const;
+
+/** Phase 28 — historical candles enabled; live stream / trading still off. */
+export const FXCM_PHASE28_CAPABILITIES = {
+  instruments: true,
+  liveQuotes: false,
+  streamingQuotes: false,
+  historicalPrices: true,
+  candles: true,
   trading: false,
 } as const;
 

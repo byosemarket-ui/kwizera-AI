@@ -4,7 +4,7 @@
  * No live quotes, streaming, candles, or trading.
  */
 import {
-  FXCM_PHASE25_CAPABILITIES,
+  FXCM_PHASE28_CAPABILITIES,
   resolveFxcmConfig,
   type FxcmConfig,
 } from "./config.js";
@@ -16,7 +16,12 @@ import {
   createFxcmInstrumentDiscoveryService,
   type FxcmInstrumentDiscoveryService,
 } from "./instrument-discovery.js";
+import {
+  createFxcmHistoricalMarketDataService,
+  type FxcmHistoricalMarketDataService,
+} from "./historical-service.js";
 import type { SafeFxcmDiscoveryResult } from "./instrument-discovery-types.js";
+import type { FxcmHistoricalRequest, SafeFxcmHistoricalResult } from "./historical-types.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "./errors.js";
 import type { FetchLike } from "./client.js";
 import type {
@@ -33,6 +38,7 @@ export interface FxcmProviderOptions {
   nowMs?: () => number;
   auth?: FxcmAuthenticationService;
   discovery?: FxcmInstrumentDiscoveryService;
+  historical?: FxcmHistoricalMarketDataService;
 }
 
 export class FxcmMarketDataProvider implements MarketDataProvider {
@@ -42,6 +48,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   private readonly nowMs: () => number;
   private readonly auth: FxcmAuthenticationService;
   private readonly discovery: FxcmInstrumentDiscoveryService;
+  private readonly historical: FxcmHistoricalMarketDataService;
   private lastHealth: MarketProviderHealth | null = null;
 
   constructor(options: FxcmProviderOptions = {}) {
@@ -60,6 +67,13 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       nowMs: this.nowMs,
       auth: this.auth,
     });
+    this.historical = options.historical ?? createFxcmHistoricalMarketDataService({
+      env: this.env,
+      fetchImpl: this.fetchImpl,
+      nowMs: this.nowMs,
+      auth: this.auth,
+      discovery: this.discovery,
+    });
   }
 
   getConfig(): FxcmConfig {
@@ -74,6 +88,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.discovery;
   }
 
+  getHistoricalService(): FxcmHistoricalMarketDataService {
+    return this.historical;
+  }
+
   getProviderInfo(): MarketProviderInfo {
     return {
       provider: "FXCM",
@@ -81,12 +99,12 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       apiPath: "FXCM Socket REST API (official)",
       marketTypes: ["FOREX", "CFD", "COMMODITY", "INDEX", "TREASURY", "SHARE", "OTHER"],
       environmentLabel: this.config.environmentLabel,
-      capabilities: { ...FXCM_PHASE25_CAPABILITIES },
+      capabilities: { ...FXCM_PHASE28_CAPABILITIES },
     };
   }
 
   getCapabilities() {
-    return { ...FXCM_PHASE25_CAPABILITIES };
+    return { ...FXCM_PHASE28_CAPABILITIES };
   }
 
   getLastHealth(): MarketProviderHealth | null {
@@ -117,11 +135,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   async healthCheck(): Promise<MarketProviderHealth> {
     const checkedAt = new Date(this.nowMs()).toISOString();
     const baseNotes = [
-      "Phase 27 instrument discovery.",
+      "Phase 28 historical candles available.",
       "Live stream: NOT ENABLED YET.",
-      "Historical candles: NOT ENABLED YET.",
       "Trading: DISABLED.",
-      "Market data: NOT_STARTED.",
+      "Market mode: HISTORICAL (not LIVE).",
       `Environment: ${this.config.environmentLabel}`,
       "FXCM authenticated ≠ LIVE market stream.",
     ];
@@ -280,6 +297,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
 
   async getInstrument(symbol: string): Promise<MarketInstrument | null> {
     return this.discovery.getInstrument(symbol);
+  }
+
+  async getHistoricalCandles(request: FxcmHistoricalRequest): Promise<SafeFxcmHistoricalResult> {
+    return this.historical.getHistoricalCandles(request);
   }
 }
 

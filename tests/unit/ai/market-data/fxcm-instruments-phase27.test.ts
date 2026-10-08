@@ -317,5 +317,9 @@ describe("Forex Phase 27 — FXCM instrument discovery", () => {
     expect(caps.providerOfficialSurface.instruments).toBe(true);
     expect(caps.providerOfficialSurface.trading).toBe("DISABLED");
     expect(caps.providerOfficialSurface.streaming).toBe("NOT_ENABLED");
+    // Phase 28 enables historical candles on the phase/capability surface.
+    expect(caps.phaseEnabled.historicalPrices).toBe(true);
+    expect(caps.phaseEnabled.candles).toBe(true);
+    expect(caps.providerOfficialSurface.historical).toBe("HISTORICAL_ENABLED");
   });
 });

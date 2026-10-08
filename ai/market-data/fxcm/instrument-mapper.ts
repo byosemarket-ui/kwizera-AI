@@ -2,7 +2,7 @@
  * Map FXCM provider symbols → canonical / display forms.
  * Driven by provider metadata — never invents instruments or prices.
  */
-import { FXCM_PHASE25_CAPABILITIES } from "./config.js";
+import { FXCM_PHASE28_CAPABILITIES } from "./config.js";
 import { FXCM_INSTRUMENT_TYPE_MAP, type FxcmRawInstrument } from "./types.js";
 import type { MarketAssetType, MarketInstrument, NormalizedMarketQuote } from "../providers/types.js";
 import type {
@@ -56,7 +56,7 @@ export function mapFxcmInstrumentType(rawType: unknown, providerSymbol: string):
 }
 
 function phaseCapabilities(): MarketInstrument["capabilities"] {
-  return { ...FXCM_PHASE25_CAPABILITIES };
+  return { ...FXCM_PHASE28_CAPABILITIES };
 }
 
 export function mapFxcmRawInstrument(raw: FxcmRawInstrument): MarketInstrument | null {
@@ -155,8 +155,8 @@ export function toSafeDiscoveredInstrument(
         instruments: true,
         quotes: "NOT_ENABLED",
         streaming: "NOT_ENABLED",
-        historical: "NOT_ENABLED",
-        candles: "NOT_ENABLED",
+        historical: "HISTORICAL_ENABLED",
+        candles: "HISTORICAL_ENABLED",
         trading: "DISABLED",
       },
     },

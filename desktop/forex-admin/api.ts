@@ -215,6 +215,43 @@ export const forexProvidersApi = {
       method: "POST",
       body: "{}",
     }),
+  fxcmHistorical: (params: {
+    symbol: string;
+    timeframe: string;
+    start?: string;
+    end?: string;
+    limit?: number;
+    refresh?: boolean;
+  }) => {
+    const q = new URLSearchParams();
+    q.set("symbol", params.symbol);
+    q.set("timeframe", params.timeframe);
+    if (params.start) q.set("start", params.start);
+    if (params.end) q.set("end", params.end);
+    if (params.limit != null) q.set("limit", String(params.limit));
+    if (params.refresh) q.set("refresh", "1");
+    return request<{
+      ok: boolean;
+      provider: "FXCM";
+      environmentLabel: string;
+      marketType: string;
+      symbol: string;
+      canonicalSymbol: string;
+      providerSymbol: string;
+      displaySymbol: string;
+      timeframe: string;
+      providerPeriod: string;
+      source: string;
+      mode: string;
+      fetchedAt: string;
+      count: number;
+      candles: Array<Record<string, unknown>>;
+      quality: Record<string, unknown>;
+      note?: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    }>(`/api/forex/providers/fxcm/historical?${q.toString()}`);
+  },
   fxcmInstruments: (params?: {
     refresh?: boolean;
     marketType?: string;

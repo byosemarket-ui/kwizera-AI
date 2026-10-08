@@ -183,6 +183,7 @@ describe("Forex Phase 25 — FXCM market data foundation", () => {
     expect(FXCM_PHASE25_CAPABILITIES.trading).toBe(false);
     expect(FXCM_PHASE25_CAPABILITIES.liveQuotes).toBe(false);
     expect(FXCM_PHASE25_CAPABILITIES.streamingQuotes).toBe(false);
+    // Phase 25 constant remains historical-off; Phase 28 enables candles on the live provider.
     expect(FXCM_PHASE25_CAPABILITIES.candles).toBe(false);
   });
 

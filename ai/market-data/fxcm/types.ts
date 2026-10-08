@@ -20,7 +20,12 @@ export type FxcmErrorCode =
   | "FXCM_UNSUPPORTED_OPERATION"
   | "FXCM_INVALID_RESPONSE"
   | "FXCM_NETWORK"
-  | "FXCM_TIMEOUT";
+  | "FXCM_TIMEOUT"
+  | "FXCM_UNSUPPORTED_TIMEFRAME"
+  | "FXCM_INVALID_RANGE"
+  | "FXCM_MAPPING_UNRESOLVED"
+  | "FXCM_MAPPING_CONFLICT"
+  | "FXCM_OFFER_NOT_FOUND";
 
 export interface FxcmRawInstrument {
   symbol: string;

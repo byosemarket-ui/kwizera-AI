@@ -76,8 +76,8 @@ export interface SafeFxcmDiscoveredInstrument {
       instruments: true;
       quotes: "NOT_ENABLED";
       streaming: "NOT_ENABLED";
-      historical: "NOT_ENABLED";
-      candles: "NOT_ENABLED";
+      historical: "HISTORICAL_ENABLED" | "NOT_ENABLED";
+      candles: "HISTORICAL_ENABLED" | "NOT_ENABLED";
       trading: "DISABLED";
     };
   };

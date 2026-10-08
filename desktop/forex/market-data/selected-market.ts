@@ -3,12 +3,14 @@ import { DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId } from "../chart/types";
 import { parseChartTimeframe } from "../chart/market-data";
 import { toDisplaySymbol } from "../../../ai/market-data/binance/adapter";
 
-export type MarketVenue = "binance-spot" | "unsupported";
+export type MarketVenue = "binance-spot" | "fxcm" | "unsupported";
 
 export interface SelectedMarket {
   venue: MarketVenue;
   symbol: string;
   displaySymbol: string;
+  /** Explicit provider when set (e.g. provider=FXCM). */
+  provider?: "BINANCE" | "FXCM";
 }
 
 const TRADITIONAL_FX_COMPACT = new Set(
@@ -31,14 +33,29 @@ function traditionalFxDisplay(compact: string): string {
  * Traditional FX labels (EUR/USD, EURUSD) are not Binance Spot instruments — they are unsupported
  * for live market data (Phase 11). Only compact Binance-style symbols become binance-spot.
  */
-export function parseSelectedMarket(raw: string | null | undefined): SelectedMarket | null {
+export function parseSelectedMarket(
+  raw: string | null | undefined,
+  explicitProvider?: string | null,
+): SelectedMarket | null {
   if (!raw) return null;
   const compact = compactMarketSymbol(raw);
   if (!compact) return null;
+  const provider = String(explicitProvider ?? "").trim().toUpperCase();
 
   const looksLikeFxSlash = /^[A-Z]{3}\/[A-Z]{3}$/i.test(raw.trim()) || /^XAU\/[A-Z]{3}$/i.test(raw.trim());
-  if (looksLikeFxSlash || TRADITIONAL_FX_COMPACT.has(compact)) {
-    const display = looksLikeFxSlash ? raw.trim().toUpperCase() : traditionalFxDisplay(compact);
+  if (provider === "FXCM" || looksLikeFxSlash || TRADITIONAL_FX_COMPACT.has(compact)) {
+    const display = looksLikeFxSlash
+      ? raw.trim().toUpperCase()
+      : (raw.includes("/") ? raw.trim().toUpperCase() : traditionalFxDisplay(compact));
+    // Only treat as FXCM historical when explicitly requested — avoids accidental FXCM calls.
+    if (provider === "FXCM") {
+      return {
+        venue: "fxcm",
+        symbol: display,
+        displaySymbol: display,
+        provider: "FXCM",
+      };
+    }
     return {
       venue: "unsupported",
       symbol: display,
@@ -51,6 +68,7 @@ export function parseSelectedMarket(raw: string | null | undefined): SelectedMar
     venue: "binance-spot",
     symbol: compact,
     displaySymbol: toDisplaySymbol(compact),
+    provider: "BINANCE",
   };
 }
 
@@ -63,13 +81,17 @@ export function isBinanceSpotSelection(market: SelectedMarket | null | undefined
   return market?.venue === "binance-spot";
 }
 
+export function isFxcmSelection(market: SelectedMarket | null | undefined): market is SelectedMarket {
+  return market?.venue === "fxcm";
+}
+
 export function readMarketQuery(search = typeof window !== "undefined" ? window.location.search : ""): {
   selected: SelectedMarket | null;
   timeframe: ChartTimeframeId;
 } {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   return {
-    selected: parseSelectedMarket(params.get("symbol")),
+    selected: parseSelectedMarket(params.get("symbol"), params.get("provider")),
     timeframe: parseChartTimeframe(params.get("timeframe")),
   };
 }
@@ -77,6 +99,14 @@ export function readMarketQuery(search = typeof window !== "undefined" ? window.
 export function writeMarketQuery(selected: SelectedMarket | null, timeframe: ChartTimeframeId = DEFAULT_CHART_TIMEFRAME): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
+  if (selected?.venue === "fxcm") {
+    url.searchParams.set("symbol", selected.symbol);
+    url.searchParams.set("provider", "FXCM");
+    url.searchParams.set("timeframe", timeframe);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    return;
+  }
+  url.searchParams.delete("provider");
   if (selected?.venue === "binance-spot") {
     url.searchParams.set("symbol", compactMarketSymbol(selected.symbol));
   } else if (selected) {
