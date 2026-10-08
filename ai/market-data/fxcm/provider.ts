@@ -1,6 +1,6 @@
 /**
- * FXCM Market Data Provider — Phase 25 foundation.
- * Instruments + health only. No live quotes, streaming, candles, or trading.
+ * FXCM Market Data Provider — Phase 25 foundation + Phase 26 authentication.
+ * Instruments + authenticated health only. No live quotes, streaming, candles, or trading.
  */
 import {
   FXCM_INSTRUMENT_CACHE_MS,
@@ -8,7 +8,11 @@ import {
   resolveFxcmConfig,
   type FxcmConfig,
 } from "./config.js";
-import { fxcmGetInstruments, openFxcmSession, type FetchLike } from "./client.js";
+import { fxcmGetInstruments, type FetchLike } from "./client.js";
+import {
+  createFxcmAuthenticationService,
+  type FxcmAuthenticationService,
+} from "./auth-service.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "./errors.js";
 import { mapFxcmInstrumentList, toCanonicalFxcmSymbol } from "./instrument-mapper.js";
 import type {
@@ -18,11 +22,13 @@ import type {
   MarketProviderInfo,
 } from "../providers/types.js";
 import type { FxcmInstrumentCache } from "./types.js";
+import type { SafeFxcmAuthenticationStatus } from "./auth-types.js";
 
 export interface FxcmProviderOptions {
   env?: Record<string, string | undefined>;
   fetchImpl?: FetchLike;
   nowMs?: () => number;
+  auth?: FxcmAuthenticationService;
 }
 
 export class FxcmMarketDataProvider implements MarketDataProvider {
@@ -30,6 +36,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   private readonly env: Record<string, string | undefined>;
   private readonly fetchImpl?: FetchLike;
   private readonly nowMs: () => number;
+  private readonly auth: FxcmAuthenticationService;
   private cache: FxcmInstrumentCache | null = null;
   private lastHealth: MarketProviderHealth | null = null;
 
@@ -38,10 +45,19 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     this.config = resolveFxcmConfig(this.env);
     this.fetchImpl = options.fetchImpl;
     this.nowMs = options.nowMs ?? (() => Date.now());
+    this.auth = options.auth ?? createFxcmAuthenticationService({
+      env: this.env,
+      fetchImpl: this.fetchImpl,
+      nowMs: this.nowMs,
+    });
   }
 
   getConfig(): FxcmConfig {
     return this.config;
+  }
+
+  getAuthService(): FxcmAuthenticationService {
+    return this.auth;
   }
 
   getProviderInfo(): MarketProviderInfo {
@@ -63,17 +79,31 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.lastHealth;
   }
 
+  getSafeAuthenticationStatus(): SafeFxcmAuthenticationStatus {
+    return this.auth.getSafeStatus();
+  }
+
+  async authenticate(options?: { force?: boolean }): Promise<SafeFxcmAuthenticationStatus> {
+    await this.auth.authenticate(options);
+    return this.auth.getSafeStatus();
+  }
+
   async healthCheck(): Promise<MarketProviderHealth> {
     const checkedAt = new Date(this.nowMs()).toISOString();
     const baseNotes = [
-      "Phase 25 foundation only.",
+      "Phase 26 authentication layer.",
       "Live stream: NOT ENABLED YET.",
       "Historical candles: NOT ENABLED YET.",
       "Trading: DISABLED.",
+      "Market data: NOT_STARTED.",
       `Environment: ${this.config.environmentLabel}`,
+      "FXCM authenticated ≠ LIVE market stream.",
     ];
 
-    if (!this.config.enabled) {
+    const authCtx = await this.auth.authenticate();
+    const safe = this.auth.getSafeStatus();
+
+    if (authCtx.state === "DISABLED") {
       this.lastHealth = {
         provider: "FXCM",
         enabled: false,
@@ -95,7 +125,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       return this.lastHealth;
     }
 
-    if (!this.config.accessTokenConfigured) {
+    if (!authCtx.configured || authCtx.state === "NOT_CONFIGURED") {
       this.lastHealth = {
         provider: "FXCM",
         enabled: true,
@@ -110,16 +140,47 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         tradingEnabled: false,
         instrumentDiscovery: "NOT_CONFIGURED",
         checkedAt,
-        errorCode: "FXCM_NOT_CONFIGURED",
-        errorMessage: "Set KWIZERA_FXCM_ACCESS_TOKEN on the server to enable FXCM authentication.",
+        errorCode: safe.authentication.lastErrorCode ?? "FXCM_NOT_CONFIGURED",
+        errorMessage: safe.authentication.lastErrorMessage
+          ?? "Set KWIZERA_FXCM_ACCESS_TOKEN on the server to enable FXCM authentication.",
         notes: [...baseNotes, "Configuration: NOT CONFIGURED"],
       };
       return this.lastHealth;
     }
 
+    if (authCtx.state !== "AUTHENTICATED") {
+      const status =
+        authCtx.state === "AUTHENTICATION_ERROR" ? "AUTHENTICATION_ERROR"
+          : authCtx.state === "NETWORK_ERROR" || authCtx.state === "RECONNECTING" ? "NETWORK_ERROR"
+            : authCtx.state === "UNAVAILABLE" ? "UNAVAILABLE"
+              : "ERROR";
+      this.lastHealth = {
+        provider: "FXCM",
+        enabled: true,
+        environment: this.config.environment,
+        environmentLabel: this.config.environmentLabel,
+        configured: true,
+        authenticated: false,
+        reachable: status !== "NETWORK_ERROR",
+        status,
+        connectionState: "ERROR",
+        liveStreamEnabled: false,
+        tradingEnabled: false,
+        instrumentDiscovery: "ERROR",
+        checkedAt,
+        errorCode: safe.authentication.lastErrorCode,
+        errorMessage: safe.authentication.lastErrorMessage,
+        notes: baseNotes,
+      };
+      return this.lastHealth;
+    }
+
+    // Authenticated — optionally refresh instrument metadata cache (metadata only).
     try {
-      const session = await openFxcmSession(this.config, { env: this.env, fetchImpl: this.fetchImpl });
-      // Lightweight authenticated probe: instrument list (metadata only, no prices).
+      const session = this.auth.getSessionHandle();
+      if (!session) {
+        throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "Authenticated session missing.");
+      }
       const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
       const instruments = mapFxcmInstrumentList(raw);
       this.cache = {
@@ -129,6 +190,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         restBaseHost: this.config.restBaseHost,
         cached: false,
       };
+      this.auth.touchValidated();
       this.lastHealth = {
         provider: "FXCM",
         enabled: true,
@@ -147,37 +209,36 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         errorMessage: null,
         notes: [
           ...baseNotes,
-          "API: CONNECTED (authenticated session established).",
-          "Connected to API ≠ live market data stream.",
+          "Authentication: AUTHENTICATED.",
+          "API session active — market streaming not enabled in this phase.",
           `Instruments discovered: ${instruments.length}`,
         ],
       };
       console.info("[fxcm] health", JSON.stringify({
         status: "CONNECTED",
+        authState: "AUTHENTICATED",
         environment: this.config.environment,
         host: this.config.restBaseHost,
         instruments: instruments.length,
         liveStreamEnabled: false,
         tradingEnabled: false,
+        marketData: "NOT_STARTED",
       }));
       return this.lastHealth;
     } catch (error) {
       const mapped = userFacingFxcmError(error);
-      const authFail = mapped.code === "FXCM_AUTHENTICATION_FAILED" || mapped.code === "FXCM_NOT_CONFIGURED";
-      const network = mapped.code === "FXCM_NETWORK" || mapped.code === "FXCM_TIMEOUT" || mapped.code === "FXCM_CONNECTION_FAILED";
+      if (mapped.code === "FXCM_AUTHENTICATION_FAILED") {
+        await this.auth.markExpiredAndReauthenticate();
+      }
       this.lastHealth = {
         provider: "FXCM",
         enabled: true,
         environment: this.config.environment,
         environmentLabel: this.config.environmentLabel,
         configured: true,
-        authenticated: false,
-        reachable: network ? false : authFail,
-        status: authFail
-          ? "AUTHENTICATION_ERROR"
-          : network
-            ? "NETWORK_ERROR"
-            : "ERROR",
+        authenticated: this.auth.getState() === "AUTHENTICATED",
+        reachable: mapped.code !== "FXCM_NETWORK" && mapped.code !== "FXCM_TIMEOUT",
+        status: mapped.code === "FXCM_AUTHENTICATION_FAILED" ? "AUTHENTICATION_ERROR" : "ERROR",
         connectionState: "ERROR",
         liveStreamEnabled: false,
         tradingEnabled: false,
@@ -187,12 +248,6 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         errorMessage: mapped.message,
         notes: baseNotes,
       };
-      console.info("[fxcm] health", JSON.stringify({
-        status: this.lastHealth.status,
-        environment: this.config.environment,
-        host: this.config.restBaseHost,
-        errorCode: mapped.code,
-      }));
       return this.lastHealth;
     }
   }
@@ -213,23 +268,55 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       return this.cache.instruments.map((i) => ({ ...i, metadata: { ...i.metadata } }));
     }
 
-    const session = await openFxcmSession(this.config, { env: this.env, fetchImpl: this.fetchImpl });
-    const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
-    const instruments = mapFxcmInstrumentList(raw);
-    this.cache = {
-      instruments,
-      fetchedAtUtc: now,
-      environment: this.config.environment,
-      restBaseHost: this.config.restBaseHost,
-      cached: false,
-    };
-    console.info("[fxcm] instruments", JSON.stringify({
-      count: instruments.length,
-      environment: this.config.environment,
-      host: this.config.restBaseHost,
-      cached: false,
-    }));
-    return instruments;
+    const authCtx = await this.auth.authenticate();
+    if (authCtx.state !== "AUTHENTICATED") {
+      throw new FxcmMarketDataError(
+        "FXCM_AUTHENTICATION_FAILED",
+        authCtx.lastErrorMessage ?? "FXCM authentication failed.",
+      );
+    }
+    let session = this.auth.getSessionHandle();
+    if (!session) {
+      throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "Authenticated session missing.");
+    }
+
+    try {
+      const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
+      const instruments = mapFxcmInstrumentList(raw);
+      this.cache = {
+        instruments,
+        fetchedAtUtc: now,
+        environment: this.config.environment,
+        restBaseHost: this.config.restBaseHost,
+        cached: false,
+      };
+      this.auth.touchValidated();
+      console.info("[fxcm] instruments", JSON.stringify({
+        count: instruments.length,
+        environment: this.config.environment,
+        host: this.config.restBaseHost,
+        cached: false,
+      }));
+      return instruments;
+    } catch (error) {
+      const mapped = userFacingFxcmError(error);
+      if (mapped.code === "FXCM_AUTHENTICATION_FAILED") {
+        await this.auth.markExpiredAndReauthenticate();
+        session = this.auth.getSessionHandle();
+        if (!session) throw error;
+        const raw = await fxcmGetInstruments(this.config, session, { fetchImpl: this.fetchImpl });
+        const instruments = mapFxcmInstrumentList(raw);
+        this.cache = {
+          instruments,
+          fetchedAtUtc: now,
+          environment: this.config.environment,
+          restBaseHost: this.config.restBaseHost,
+          cached: false,
+        };
+        return instruments;
+      }
+      throw error;
+    }
   }
 
   async getInstrument(symbol: string): Promise<MarketInstrument | null> {

@@ -196,10 +196,25 @@ export const forexProvidersApi = {
       ok: boolean;
       provider: Record<string, unknown>;
       health: Record<string, unknown>;
+      authentication?: Record<string, unknown>;
       capabilities: Record<string, boolean>;
       liveStream: string;
       trading: string;
+      marketData?: string;
+      note?: string;
     }>("/api/forex/providers/fxcm/status"),
+  fxcmAuthenticate: () =>
+    request<{
+      ok: boolean;
+      authentication: Record<string, unknown>;
+      liveStream: string;
+      trading: string;
+      marketData: string;
+      note?: string;
+    }>("/api/forex/providers/fxcm/authenticate", {
+      method: "POST",
+      body: "{}",
+    }),
   fxcmInstruments: (refresh = false) =>
     request<{
       ok: true;

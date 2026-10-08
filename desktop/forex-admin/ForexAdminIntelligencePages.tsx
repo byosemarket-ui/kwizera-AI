@@ -112,7 +112,14 @@ export function ForexAdminAiConfigurationPage() {
                 <li>historicalPrices: {String(caps.historicalPrices)}</li>
                 <li>candles: {String(caps.candles)}</li>
                 <li>trading: {String(caps.trading)}</li>
-                {isFxcm ? <li>Live Stream: NOT ENABLED YET</li> : null}
+                {isFxcm ? (
+                  <>
+                    <li>authenticated: {String(health.authenticated)}</li>
+                    <li>Market data: NOT_STARTED</li>
+                    <li>Live Stream: NOT ENABLED YET</li>
+                    <li>FXCM authenticated ≠ LIVE</li>
+                  </>
+                ) : null}
               </ul>
             </article>
           );

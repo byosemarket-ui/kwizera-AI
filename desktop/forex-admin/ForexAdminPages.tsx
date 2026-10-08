@@ -42,19 +42,47 @@ function Badge({ value }: { value: string }) {
 export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => void }) {
   const [overview, setOverview] = useState<ForexAdminOverview | null>(null);
   const [fxcmHealth, setFxcmHealth] = useState<Record<string, unknown> | null>(null);
+  const [fxcmAuth, setFxcmAuth] = useState<Record<string, unknown> | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authNote, setAuthNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const loadFxcm = () => {
+    void forexProvidersApi.fxcmStatus()
+      .then((res) => {
+        setFxcmHealth(res.health);
+        setFxcmAuth((res.authentication as Record<string, unknown>) ?? null);
+        setAuthNote(res.note ?? null);
+      })
+      .catch(() => setFxcmHealth({ status: "UNAVAILABLE", environmentLabel: "FXCM", liveStreamEnabled: false }));
+  };
 
   useEffect(() => {
     void forexAdminApi.overview()
       .then((res) => setOverview(res.overview))
       .catch((err: Error) => setError(err.message));
-    void forexProvidersApi.fxcmStatus()
-      .then((res) => setFxcmHealth(res.health))
-      .catch(() => setFxcmHealth({ status: "UNAVAILABLE", environmentLabel: "FXCM", liveStreamEnabled: false }));
+    loadFxcm();
   }, []);
+
+  const testAuth = async () => {
+    setAuthBusy(true);
+    try {
+      const res = await forexProvidersApi.fxcmAuthenticate();
+      setFxcmAuth(res.authentication);
+      setAuthNote(res.note ?? null);
+      loadFxcm();
+    } catch (err) {
+      setAuthNote(err instanceof Error ? err.message : "FXCM authentication failed.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
 
   if (error) return <div className="fxa-error" role="alert">{error}</div>;
   if (!overview) return <p className="fxa-muted">Loading Forex AI admin overview…</p>;
+
+  const authBlock = (fxcmAuth?.authentication as Record<string, unknown> | undefined) ?? null;
+  const authState = String(authBlock?.state ?? (fxcmHealth?.authenticated ? "AUTHENTICATED" : "NOT_CONFIGURED"));
 
   return (
     <div data-forex-admin-dashboard>
@@ -67,20 +95,35 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
       </section>
       <section className="fxa-card" data-forex-admin-fxcm-status>
         <h3>FXCM MARKET DATA</h3>
-        <p className="fxa-muted">Phase 25 foundation — no live stream, no historical candles, trading disabled.</p>
+        <p className="fxa-muted">
+          Phase 26 authentication — no live stream, no historical candles, trading disabled.
+          FXCM authenticated ≠ LIVE market data.
+        </p>
         <ul>
           <li>Provider: FXCM</li>
-          <li>Environment: {String(fxcmHealth?.environmentLabel ?? "—")}</li>
-          <li>Configuration: {fxcmHealth?.configured ? "READY" : "NOT CONFIGURED"}</li>
-          <li>Authentication: {fxcmHealth?.authenticated ? "READY" : "NOT AUTHENTICATED"}</li>
+          <li>Environment: {String(fxcmAuth?.environmentLabel ?? fxcmHealth?.environmentLabel ?? "—")}</li>
+          <li>Configuration: {(fxcmAuth?.configured ?? fxcmHealth?.configured) ? "CONFIGURED" : "NOT CONFIGURED"}</li>
+          <li>Authentication: {authState}</li>
+          <li>Last authentication: {String(authBlock?.authenticatedAt ?? "—")}</li>
+          <li>Session: {String(authBlock?.session ?? "NONE")}</li>
           <li>API: {fxcmHealth?.status === "CONNECTED" ? "CONNECTED" : String(fxcmHealth?.status ?? "DISCONNECTED")}</li>
           <li>Instrument Discovery: {String(fxcmHealth?.instrumentDiscovery ?? "—")}</li>
+          <li>Market data: NOT_STARTED</li>
           <li>Live Stream: NOT ENABLED YET</li>
           <li>Trading: DISABLED</li>
+          {authBlock?.lastErrorMessage
+            ? <li>Safe error: {String(authBlock.lastErrorMessage)}</li>
+            : null}
         </ul>
-        <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/ai-configuration")}>
-          Open AI Configuration
-        </button>
+        {authNote ? <p className="fxa-muted">{authNote}</p> : null}
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="fxa-btn" disabled={authBusy} onClick={() => void testAuth()}>
+            {authBusy ? "Authenticating…" : "Test FXCM Authentication"}
+          </button>
+          <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/ai-configuration")}>
+            Open AI Configuration
+          </button>
+        </div>
       </section>
       <section className="fxa-grid">
         {[
