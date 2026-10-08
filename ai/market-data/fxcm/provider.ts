@@ -1,10 +1,10 @@
 /**
- * FXCM Market Data Provider — Phases 25–27.
- * Authentication (26) + instrument discovery (27).
- * No live quotes, streaming, candles, or trading.
+ * FXCM Market Data Provider — Phases 25–29.
+ * Authentication (26) + discovery (27) + historical (28) + real-time quotes (29).
+ * No live candles, no trading.
  */
 import {
-  FXCM_PHASE28_CAPABILITIES,
+  FXCM_PHASE29_CAPABILITIES,
   resolveFxcmConfig,
   type FxcmConfig,
 } from "./config.js";
@@ -20,8 +20,13 @@ import {
   createFxcmHistoricalMarketDataService,
   type FxcmHistoricalMarketDataService,
 } from "./historical-service.js";
+import {
+  createFxcmRealtimeStreamService,
+  type FxcmRealtimeStreamService,
+} from "./stream-service.js";
 import type { SafeFxcmDiscoveryResult } from "./instrument-discovery-types.js";
 import type { FxcmHistoricalRequest, SafeFxcmHistoricalResult } from "./historical-types.js";
+import type { SafeFxcmStreamStatus, SafeFxcmQuoteSnapshot, FxcmSubscriptionRecord } from "./stream-types.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "./errors.js";
 import type { FetchLike } from "./client.js";
 import type {
@@ -39,6 +44,7 @@ export interface FxcmProviderOptions {
   auth?: FxcmAuthenticationService;
   discovery?: FxcmInstrumentDiscoveryService;
   historical?: FxcmHistoricalMarketDataService;
+  stream?: FxcmRealtimeStreamService;
 }
 
 export class FxcmMarketDataProvider implements MarketDataProvider {
@@ -49,6 +55,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   private readonly auth: FxcmAuthenticationService;
   private readonly discovery: FxcmInstrumentDiscoveryService;
   private readonly historical: FxcmHistoricalMarketDataService;
+  private readonly stream: FxcmRealtimeStreamService;
   private lastHealth: MarketProviderHealth | null = null;
 
   constructor(options: FxcmProviderOptions = {}) {
@@ -74,6 +81,13 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       auth: this.auth,
       discovery: this.discovery,
     });
+    this.stream = options.stream ?? createFxcmRealtimeStreamService({
+      env: this.env,
+      fetchImpl: this.fetchImpl,
+      nowMs: this.nowMs,
+      auth: this.auth,
+      discovery: this.discovery,
+    });
   }
 
   getConfig(): FxcmConfig {
@@ -92,6 +106,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.historical;
   }
 
+  getStreamService(): FxcmRealtimeStreamService {
+    return this.stream;
+  }
+
   getProviderInfo(): MarketProviderInfo {
     return {
       provider: "FXCM",
@@ -99,12 +117,12 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       apiPath: "FXCM Socket REST API (official)",
       marketTypes: ["FOREX", "CFD", "COMMODITY", "INDEX", "TREASURY", "SHARE", "OTHER"],
       environmentLabel: this.config.environmentLabel,
-      capabilities: { ...FXCM_PHASE28_CAPABILITIES },
+      capabilities: { ...FXCM_PHASE29_CAPABILITIES },
     };
   }
 
   getCapabilities() {
-    return { ...FXCM_PHASE28_CAPABILITIES };
+    return { ...FXCM_PHASE29_CAPABILITIES };
   }
 
   getLastHealth(): MarketProviderHealth | null {
@@ -132,15 +150,34 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.discovery.discover(options);
   }
 
+  getStreamStatus(): SafeFxcmStreamStatus {
+    return this.stream.toSafeApiPayload();
+  }
+
+  async subscribeQuote(symbol: string): Promise<FxcmSubscriptionRecord> {
+    return this.stream.subscribe(symbol);
+  }
+
+  async unsubscribeQuote(symbol: string): Promise<void> {
+    return this.stream.unsubscribe(symbol);
+  }
+
+  listQuotes(): SafeFxcmQuoteSnapshot[] {
+    return this.stream.listQuotes();
+  }
+
   async healthCheck(): Promise<MarketProviderHealth> {
     const checkedAt = new Date(this.nowMs()).toISOString();
+    const streamState = this.stream.getStreamState();
+    const streamLive = streamState === "LIVE";
     const baseNotes = [
+      "Phase 29 real-time quotes available.",
       "Phase 28 historical candles available.",
-      "Live stream: NOT ENABLED YET.",
+      "Live candles: NOT ENABLED (Phase 30).",
       "Trading: DISABLED.",
-      "Market mode: HISTORICAL (not LIVE).",
+      `Stream state: ${streamState}`,
       `Environment: ${this.config.environmentLabel}`,
-      "FXCM authenticated ≠ LIVE market stream.",
+      "CONNECTED ≠ LIVE; LIVE requires a recent valid quote event.",
     ];
 
     const authCtx = await this.auth.authenticate();
@@ -228,6 +265,13 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         );
       }
       this.auth.touchValidated();
+      const connectionState =
+        streamState === "RECONNECTING" ? "RECONNECTING"
+          : streamState === "CONNECTING" ? "CONNECTING"
+            : streamState === "LIVE" || streamState === "CONNECTED" || streamState === "STALE" ? "CONNECTED"
+              : streamState === "NETWORK_ERROR" || streamState === "ERROR" || streamState === "AUTHENTICATION_ERROR"
+                ? "ERROR"
+                : "DISCONNECTED";
       this.lastHealth = {
         provider: "FXCM",
         enabled: true,
@@ -237,8 +281,8 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         authenticated: true,
         reachable: true,
         status: "CONNECTED",
-        connectionState: "CONNECTED",
-        liveStreamEnabled: false,
+        connectionState,
+        liveStreamEnabled: streamLive || streamState === "CONNECTED" || streamState === "STALE",
         tradingEnabled: false,
         instrumentDiscovery: "READY",
         checkedAt,
@@ -247,9 +291,9 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         notes: [
           ...baseNotes,
           "Authentication: AUTHENTICATED.",
-          "API session active — market streaming not enabled in this phase.",
           `Instruments discovered: ${discovery.count}`,
           `Discovery source: ${discovery.source}`,
+          `Quote subscriptions: ${this.stream.listSubscriptions().length}`,
         ],
       };
       console.info("[fxcm] health", JSON.stringify({
@@ -259,9 +303,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
         host: this.config.restBaseHost,
         instruments: discovery.count,
         discoverySource: discovery.source,
-        liveStreamEnabled: false,
+        streamState,
+        liveStreamEnabled: this.lastHealth.liveStreamEnabled,
         tradingEnabled: false,
-        marketData: "NOT_STARTED",
+        marketData: streamLive ? "STREAMING" : "READY",
       }));
       return this.lastHealth;
     } catch (error) {

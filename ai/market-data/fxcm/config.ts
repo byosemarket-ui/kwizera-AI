@@ -19,6 +19,9 @@ export const FXCM_REST_PATHS = {
   getModel: "/trading/get_model",
   /** Official: GET /candles/{offer_id}/{period_id} */
   candles: "/candles",
+  /** Official market-data stream subscribe/unsubscribe (POST). */
+  subscribe: "/subscribe",
+  unsubscribe: "/unsubscribe",
 } as const;
 
 /** Max candles per official FXCM historical request (num parameter). */
@@ -48,6 +51,26 @@ export const FXCM_PHASE28_CAPABILITIES = {
   trading: false,
 } as const;
 
+/**
+ * Phase 29 — real-time quote streaming enabled.
+ * Live candle construction remains Phase 30 (not enabled here).
+ */
+export const FXCM_PHASE29_CAPABILITIES = {
+  instruments: true,
+  liveQuotes: true,
+  streamingQuotes: true,
+  historicalPrices: true,
+  candles: true,
+  trading: false,
+} as const;
+
+/** Default freshness window: no valid quote within this → LIVE becomes STALE. */
+export const FXCM_QUOTE_STALE_MS_DEFAULT = 45_000;
+export const FXCM_STREAM_RECONNECT_BASE_MS = 1_000;
+export const FXCM_STREAM_RECONNECT_MAX_MS = 30_000;
+/** Safety cap on simultaneous FXCM instrument subscriptions. */
+export const FXCM_MAX_STREAM_SUBSCRIPTIONS = 32;
+
 export type FxcmEnvironment = "demo" | "real";
 
 export interface FxcmConfig {
@@ -60,6 +83,8 @@ export interface FxcmConfig {
   /** True when a non-empty access token is present in server env. Never expose the token. */
   accessTokenConfigured: boolean;
   apiPath: "FXCM_SOCKET_REST";
+  /** Max age of last valid quote before stream status becomes STALE. */
+  quoteStaleMs: number;
 }
 
 function stripTrailingSlash(value: string): string {
@@ -109,6 +134,12 @@ export function resolveFxcmConfig(
 
   const token = String(env.KWIZERA_FXCM_ACCESS_TOKEN ?? env.FXCM_ACCESS_TOKEN ?? "").trim();
 
+  // Quote stale window (5s–5min); independent of HTTP timeout parsing.
+  const quoteStaleRaw = Number(env.KWIZERA_FXCM_QUOTE_STALE_MS);
+  const quoteStaleMs = Number.isFinite(quoteStaleRaw) && quoteStaleRaw >= 5_000 && quoteStaleRaw <= 300_000
+    ? Math.floor(quoteStaleRaw)
+    : FXCM_QUOTE_STALE_MS_DEFAULT;
+
   return {
     enabled,
     environment,
@@ -118,6 +149,7 @@ export function resolveFxcmConfig(
     timeoutMs: parsePositiveInt(env.KWIZERA_FXCM_TIMEOUT_MS, FXCM_DEFAULT_TIMEOUT_MS),
     accessTokenConfigured: token.length >= 16,
     apiPath: "FXCM_SOCKET_REST",
+    quoteStaleMs,
   };
 }
 

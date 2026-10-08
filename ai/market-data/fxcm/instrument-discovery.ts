@@ -128,13 +128,19 @@ export class FxcmInstrumentDiscoveryService {
       instruments: partial.instruments ?? [],
       conflicts: partial.conflicts ?? [],
       authenticationState: partial.authenticationState ?? this.auth.getState(),
-      marketData: "NOT_STARTED",
-      liveStream: "NOT_ENABLED_YET",
+      marketData: partial.marketData
+        ?? (partial.discoveryStatus === "DISABLED" || partial.discoveryStatus === "NOT_CONFIGURED"
+          ? "NOT_STARTED"
+          : "STREAMING_READY"),
+      liveStream: partial.liveStream
+        ?? (partial.discoveryStatus === "DISABLED" || partial.discoveryStatus === "NOT_CONFIGURED"
+          ? "NOT_ENABLED_YET"
+          : "ENABLED"),
       trading: "DISABLED",
       errorCode: partial.errorCode ?? null,
       errorMessage: partial.errorMessage ?? null,
       note: partial.note
-        ?? "Phase 27 instrument discovery — metadata only; no live prices, candles, or trading.",
+        ?? "Phase 27–29 instrument discovery — subscribe via Phase 29 stream for real-time quotes; no live candles or trading.",
     };
   }
 

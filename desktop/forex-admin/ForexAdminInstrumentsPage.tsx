@@ -204,10 +204,12 @@ export function ForexAdminInstrumentsPage({ onOpen }: { onOpen: (path: string) =
             <li>Mapping: {String(selected.mappingStatus)}</li>
             <li>Source: FXCM</li>
             <li>Discovery: {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : "—"}</li>
-            <li>Capabilities: instruments (phase-enabled); quotes/streaming/candles/trading not enabled</li>
+            <li>Capabilities: instruments + historical + streaming quotes (phase-enabled); live candles/trading not enabled</li>
             {selected.conflictReason ? <li>Conflict: {String(selected.conflictReason)}</li> : null}
           </ul>
-          <p className="fxa-muted">No prices are shown — Phase 27 is metadata discovery only.</p>
+          <p className="fxa-muted">
+            Discovery is identity/metadata. Use FXCM Stream for real-time quotes; Historical for candles.
+          </p>
           <button type="button" className="fxa-btn-secondary" onClick={() => setSelectedSymbol(null)}>
             Close detail
           </button>

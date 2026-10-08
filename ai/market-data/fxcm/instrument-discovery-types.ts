@@ -74,8 +74,8 @@ export interface SafeFxcmDiscoveredInstrument {
     /** Official surface used in this phase — discovery only. */
     providerOfficialSurface: {
       instruments: true;
-      quotes: "NOT_ENABLED";
-      streaming: "NOT_ENABLED";
+      quotes: "STREAMING_ENABLED" | "NOT_ENABLED";
+      streaming: "STREAMING_ENABLED" | "NOT_ENABLED";
       historical: "HISTORICAL_ENABLED" | "NOT_ENABLED";
       candles: "HISTORICAL_ENABLED" | "NOT_ENABLED";
       trading: "DISABLED";
@@ -107,8 +107,8 @@ export interface SafeFxcmDiscoveryResult {
   instruments: SafeFxcmDiscoveredInstrument[];
   conflicts: FxcmMappingConflict[];
   authenticationState: string;
-  marketData: "NOT_STARTED";
-  liveStream: "NOT_ENABLED_YET";
+  marketData: "NOT_STARTED" | "STREAMING_READY";
+  liveStream: "ENABLED" | "NOT_ENABLED_YET";
   trading: "DISABLED";
   errorCode: string | null;
   errorMessage: string | null;

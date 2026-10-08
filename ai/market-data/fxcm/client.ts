@@ -280,6 +280,114 @@ export async function fxcmGetCandles(
   return json;
 }
 
+/**
+ * Official market-data subscribe:
+ * POST /subscribe  body: pairs=EUR%2FUSD
+ * Price updates are then pushed on the Socket.IO connection (event name = symbol).
+ */
+export async function fxcmSubscribeMarketData(
+  config: FxcmConfig,
+  session: FxcmSessionHandle,
+  providerSymbol: string,
+  options?: { fetchImpl?: FetchLike; signal?: AbortSignal },
+): Promise<unknown> {
+  const symbol = String(providerSymbol ?? "").trim();
+  if (!symbol) {
+    throw new FxcmMarketDataError("FXCM_INVALID_SYMBOL", "Symbol is required for FXCM subscribe.");
+  }
+  const fetchImpl = options?.fetchImpl ?? fetch;
+  const url = new URL(FXCM_REST_PATHS.subscribe, `${config.restBaseUrl}/`);
+  const body = new URLSearchParams({ pairs: symbol }).toString();
+  let res: Response;
+  try {
+    res = await fetchImpl(url.toString(), {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: session.authorizationHeader,
+        "User-Agent": "kwizera-ai-studio/fxcm-stream",
+      },
+      body,
+      signal: options?.signal ?? withTimeout(config.timeoutMs),
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (/abort|timeout/i.test(msg)) {
+      throw new FxcmMarketDataError("FXCM_TIMEOUT", "FXCM subscribe timed out.");
+    }
+    throw new FxcmMarketDataError("FXCM_NETWORK", "Could not reach FXCM subscribe endpoint.");
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "FXCM subscribe unauthorized.", res.status);
+  }
+  if (res.status === 429) {
+    throw new FxcmMarketDataError("FXCM_RATE_LIMITED", "FXCM rate limited subscribe request.", res.status);
+  }
+  if (!res.ok) {
+    throw new FxcmMarketDataError("FXCM_UNAVAILABLE", `FXCM subscribe HTTP ${res.status}.`, res.status);
+  }
+  const json = await res.json().catch(() => null);
+  if (!json || typeof json !== "object") {
+    throw new FxcmMarketDataError("FXCM_INVALID_RESPONSE", "FXCM subscribe response was not JSON.");
+  }
+  const executed = (json as { response?: { executed?: boolean } }).response?.executed;
+  if (executed === false) {
+    throw new FxcmMarketDataError("FXCM_UNAVAILABLE", "FXCM subscribe was not executed.");
+  }
+  return json;
+}
+
+/** Official: POST /unsubscribe body: pairs=EUR%2FUSD */
+export async function fxcmUnsubscribeMarketData(
+  config: FxcmConfig,
+  session: FxcmSessionHandle,
+  providerSymbol: string,
+  options?: { fetchImpl?: FetchLike; signal?: AbortSignal },
+): Promise<unknown> {
+  const symbol = String(providerSymbol ?? "").trim();
+  if (!symbol) {
+    throw new FxcmMarketDataError("FXCM_INVALID_SYMBOL", "Symbol is required for FXCM unsubscribe.");
+  }
+  const fetchImpl = options?.fetchImpl ?? fetch;
+  const url = new URL(FXCM_REST_PATHS.unsubscribe, `${config.restBaseUrl}/`);
+  const body = new URLSearchParams({ pairs: symbol }).toString();
+  let res: Response;
+  try {
+    res = await fetchImpl(url.toString(), {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: session.authorizationHeader,
+        "User-Agent": "kwizera-ai-studio/fxcm-stream",
+      },
+      body,
+      signal: options?.signal ?? withTimeout(config.timeoutMs),
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (/abort|timeout/i.test(msg)) {
+      throw new FxcmMarketDataError("FXCM_TIMEOUT", "FXCM unsubscribe timed out.");
+    }
+    throw new FxcmMarketDataError("FXCM_NETWORK", "Could not reach FXCM unsubscribe endpoint.");
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new FxcmMarketDataError("FXCM_AUTHENTICATION_FAILED", "FXCM unsubscribe unauthorized.", res.status);
+  }
+  if (res.status === 429) {
+    throw new FxcmMarketDataError("FXCM_RATE_LIMITED", "FXCM rate limited unsubscribe request.", res.status);
+  }
+  if (!res.ok) {
+    throw new FxcmMarketDataError("FXCM_UNAVAILABLE", `FXCM unsubscribe HTTP ${res.status}.`, res.status);
+  }
+  const json = await res.json().catch(() => null);
+  if (!json || typeof json !== "object") {
+    throw new FxcmMarketDataError("FXCM_INVALID_RESPONSE", "FXCM unsubscribe response was not JSON.");
+  }
+  return json;
+}
+
 /** Explicitly rejects trading/order endpoints. */
 export function assertFxcmTradingDisabled(operation: string): never {
   throw new FxcmMarketDataError(

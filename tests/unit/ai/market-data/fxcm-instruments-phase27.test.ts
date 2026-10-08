@@ -67,8 +67,8 @@ describe("Forex Phase 27 — FXCM instrument discovery", () => {
     expect(result.source).toBe("FXCM");
     expect(result.environmentLabel).toBe("FXCM DEMO");
     expect(result.count).toBe(4);
-    expect(result.marketData).toBe("NOT_STARTED");
-    expect(result.liveStream).toBe("NOT_ENABLED_YET");
+    expect(result.marketData).toBe("STREAMING_READY");
+    expect(result.liveStream).toBe("ENABLED");
     expect(result.trading).toBe("DISABLED");
     expect(result.authenticationState).toBe("AUTHENTICATED");
   });
@@ -312,12 +312,13 @@ describe("Forex Phase 27 — FXCM instrument discovery", () => {
     const result = await discovery.discover({ refresh: true });
     const caps = result.instruments[0]!.capabilities;
     expect(caps.phaseEnabled.instruments).toBe(true);
-    expect(caps.phaseEnabled.liveQuotes).toBe(false);
+    expect(caps.phaseEnabled.liveQuotes).toBe(true);
+    expect(caps.phaseEnabled.streamingQuotes).toBe(true);
     expect(caps.phaseEnabled.trading).toBe(false);
     expect(caps.providerOfficialSurface.instruments).toBe(true);
     expect(caps.providerOfficialSurface.trading).toBe("DISABLED");
-    expect(caps.providerOfficialSurface.streaming).toBe("NOT_ENABLED");
-    // Phase 28 enables historical candles on the phase/capability surface.
+    expect(caps.providerOfficialSurface.streaming).toBe("STREAMING_ENABLED");
+    // Phase 28–29: historical + streaming quotes on the phase/capability surface.
     expect(caps.phaseEnabled.historicalPrices).toBe(true);
     expect(caps.phaseEnabled.candles).toBe(true);
     expect(caps.providerOfficialSurface.historical).toBe("HISTORICAL_ENABLED");

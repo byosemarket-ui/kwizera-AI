@@ -2,6 +2,7 @@ export type ForexAdminRouteId =
   | "dashboard"
   | "instruments"
   | "historical-data"
+  | "stream"
   | "knowledge"
   | "knowledge-documents"
   | "knowledge-topics"
@@ -45,6 +46,7 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "dashboard", label: "Dashboard", path: "/admin/forex", implemented: true, group: "overview", groupLabel: "Overview" },
   { id: "instruments", label: "FXCM Instruments", path: "/admin/forex/instruments", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "historical-data", label: "FXCM Historical", path: "/admin/forex/historical-data", implemented: true, group: "market-data", groupLabel: "Market Data" },
+  { id: "stream", label: "FXCM Stream", path: "/admin/forex/stream", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "knowledge", label: "Knowledge Base", path: "/admin/forex/knowledge", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-documents", label: "Documents", path: "/admin/forex/knowledge/documents", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
   { id: "knowledge-topics", label: "Topics", path: "/admin/forex/knowledge/topics", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
@@ -100,6 +102,9 @@ export function parseForexAdminRouteFromLocation(
   }
   if (rest === "historical-data") {
     return { view: "historical-data", documentId: null, canonicalPath: "/admin/forex/historical-data" };
+  }
+  if (rest === "stream") {
+    return { view: "stream", documentId: null, canonicalPath: "/admin/forex/stream" };
   }
   if (rest === "knowledge") return { view: "knowledge", documentId: null, canonicalPath: "/admin/forex/knowledge" };
   if (rest === "knowledge/documents") {
@@ -185,6 +190,8 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
       return "KWIZERA AI STUDIO — FXCM Instruments";
     case "historical-data":
       return "KWIZERA AI STUDIO — FXCM Historical Data";
+    case "stream":
+      return "KWIZERA AI STUDIO — FXCM Real-Time Stream";
     case "knowledge":
     case "knowledge-documents":
       return "KWIZERA AI STUDIO — Forex Knowledge Base";

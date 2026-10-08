@@ -25,7 +25,10 @@ export type FxcmErrorCode =
   | "FXCM_INVALID_RANGE"
   | "FXCM_MAPPING_UNRESOLVED"
   | "FXCM_MAPPING_CONFLICT"
-  | "FXCM_OFFER_NOT_FOUND";
+  | "FXCM_OFFER_NOT_FOUND"
+  | "FXCM_STREAM_ERROR"
+  | "FXCM_SUBSCRIBE_FAILED"
+  | "FXCM_UNSUBSCRIBE_FAILED";
 
 export interface FxcmRawInstrument {
   symbol: string;
@@ -66,6 +69,18 @@ export function emptyFxcmCapabilities(): MarketDataCapabilities {
     streamingQuotes: false,
     historicalPrices: false,
     candles: false,
+    trading: false,
+  };
+}
+
+/** Phase 29 surface capabilities (quotes/streaming on; trading off). */
+export function phase29FxcmCapabilities(): MarketDataCapabilities {
+  return {
+    instruments: true,
+    liveQuotes: true,
+    streamingQuotes: true,
+    historicalPrices: true,
+    candles: true,
     trading: false,
   };
 }

@@ -252,6 +252,65 @@ export const forexProvidersApi = {
       errorMessage?: string | null;
     }>(`/api/forex/providers/fxcm/historical?${q.toString()}`);
   },
+  fxcmStreamStatus: () =>
+    request<{
+      ok: boolean;
+      provider: "FXCM";
+      environment: string;
+      environmentLabel: string;
+      stream: Record<string, unknown>;
+      subscriptions: Array<Record<string, unknown>>;
+      quotes: Array<Record<string, unknown>>;
+      authenticationState: string;
+      marketData: string;
+      liveStream: string;
+      trading: string;
+      mode: string;
+      note?: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    }>("/api/forex/providers/fxcm/stream/status"),
+  fxcmQuotes: (symbol?: string) => {
+    const q = new URLSearchParams();
+    if (symbol) q.set("symbol", symbol);
+    const qs = q.toString();
+    return request<{
+      ok: boolean;
+      provider: "FXCM";
+      streamState: string;
+      count: number;
+      quotes: Array<Record<string, unknown>>;
+      mode: string;
+      trading: string;
+    }>(`/api/forex/providers/fxcm/quotes${qs ? `?${qs}` : ""}`);
+  },
+  fxcmStreamSubscribe: (symbol: string) =>
+    request<{
+      ok: boolean;
+      provider: "FXCM";
+      subscription: Record<string, unknown>;
+      quote: Record<string, unknown> | null;
+      streamState: string;
+      mode: string;
+      trading: string;
+      note?: string;
+    }>("/api/forex/providers/fxcm/stream/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    }),
+  fxcmStreamUnsubscribe: (symbol: string) =>
+    request<{
+      ok: boolean;
+      provider: "FXCM";
+      symbol: string;
+      streamState: string;
+      subscriptions: Array<Record<string, unknown>>;
+      mode: string;
+      trading: string;
+    }>("/api/forex/providers/fxcm/stream/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    }),
   fxcmInstruments: (params?: {
     refresh?: boolean;
     marketType?: string;
