@@ -15,7 +15,9 @@ export function SelectedMarketBar({
   const label = selected
     ? selected.venue === "binance-spot"
       ? `${selected.displaySymbol} · Binance Spot`
-      : `${selected.displaySymbol} · not connected`
+      : selected.venue === "fxcm"
+        ? `${selected.displaySymbol} · FXCM HISTORICAL`
+        : `${selected.displaySymbol} · not connected`
     : "No Binance market selected";
   return (
     <div className="fx-selected-market" data-selected-market={selected?.symbol ?? ""} data-selected-venue={selected?.venue ?? "none"}>
@@ -25,6 +27,11 @@ export function SelectedMarketBar({
       </p>
       {selected?.venue === "binance-spot" ? (
         <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selected.symbol} />
+      ) : selected?.venue === "fxcm" ? (
+        <p className="fx-panel-meta">
+          HISTORICAL · SOURCE: FXCM — not LIVE. Streaming is not enabled in this phase.
+          Configure server-side FXCM credentials to load candles.
+        </p>
       ) : (
         <p className="fx-panel-meta">
           {selected
