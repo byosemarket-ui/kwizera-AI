@@ -153,7 +153,8 @@ describe("Forex Phase 1 shell integration", () => {
     const gate = fs.readFileSync(path.resolve("desktop/forex/market-data/allow-development-market-data.ts"), "utf8");
     expect(gate).toContain("allowDevelopmentMarketData");
     expect(gate).toContain("LIVE_MARKET_UNAVAILABLE");
-    expect(dashboard).toContain("Active Binance market");
+    expect(dashboard).toContain("Active market");
+    expect(dashboard).toContain("data-ms-provider");
     expect(dashboard).toContain("Market data connection:");
     expect(dashboard).toContain("data-binance-connection");
     expect(dashboard).toContain("data-live-market");
