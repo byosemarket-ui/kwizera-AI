@@ -17,8 +17,11 @@ import {
 } from "../../ai/market-data/providers/market-data-service.js";
 import { parseMarketProviderId } from "../../ai/market-data/providers/identity.js";
 import { userFacingBinanceError } from "../../ai/market-data/binance/errors.js";
-import { userFacingForexConnectError } from "../../ai/market-data/forexconnect/errors.js";
-import { userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
+import {
+  ForexConnectMarketDataError,
+  userFacingForexConnectError,
+} from "../../ai/market-data/forexconnect/errors.js";
+import { FxcmMarketDataError, userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -33,16 +36,13 @@ function mapError(error: unknown): { status: number; code: string; message: stri
   if (error instanceof MarketDataRoutingError) {
     return { status: 400, code: error.code, message: error.message };
   }
-  const fxcm = userFacingFxcmError(error);
-  if (fxcm.code.startsWith("FXCM_")) {
-    return {
-      status: fxcm.code === "FXCM_DISABLED" || fxcm.code === "FXCM_NOT_CONFIGURED" ? 503 : 502,
-      code: fxcm.code,
-      message: fxcm.message,
-    };
-  }
-  const fc = userFacingForexConnectError(error);
-  if (fc.code.startsWith("FOREXCONNECT_")) {
+  // ForexConnect before FXCM — userFacingFxcmError defaults unknown errors to FXCM_UNAVAILABLE.
+  if (
+    error instanceof ForexConnectMarketDataError
+    || String((error as { code?: string })?.code ?? "").startsWith("FOREXCONNECT_")
+    || /forexconnect/i.test(error instanceof Error ? error.message : String(error ?? ""))
+  ) {
+    const fc = userFacingForexConnectError(error);
     return {
       status: fc.code === "FOREXCONNECT_DISABLED" || fc.code === "FOREXCONNECT_NOT_CONFIGURED"
         ? 503
@@ -53,11 +53,27 @@ function mapError(error: unknown): { status: number; code: string; message: stri
       message: fc.message,
     };
   }
+  if (error instanceof FxcmMarketDataError) {
+    const fxcm = userFacingFxcmError(error);
+    return {
+      status: fxcm.code === "FXCM_DISABLED" || fxcm.code === "FXCM_NOT_CONFIGURED" ? 503 : 502,
+      code: fxcm.code,
+      message: fxcm.message,
+    };
+  }
   const binance = userFacingBinanceError(error);
+  if (String(binance.code).startsWith("BINANCE_")) {
+    return {
+      status: binance.code === "BINANCE_DISABLED" ? 503 : 502,
+      code: binance.code,
+      message: binance.message,
+    };
+  }
+  const fxcm = userFacingFxcmError(error);
   return {
-    status: binance.code === "BINANCE_DISABLED" ? 503 : 502,
-    code: binance.code,
-    message: binance.message,
+    status: fxcm.code === "FXCM_DISABLED" || fxcm.code === "FXCM_NOT_CONFIGURED" ? 503 : 502,
+    code: fxcm.code,
+    message: fxcm.message,
   };
 }
 
