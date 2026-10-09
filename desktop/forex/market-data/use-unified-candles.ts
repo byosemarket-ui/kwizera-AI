@@ -44,7 +44,10 @@ export function useUnifiedCandles(
   timeframe: ChartTimeframeId,
   options?: { marketType?: string | null },
 ): UnifiedCandlesResult & { refresh: () => void } {
-  const marketType = options?.marketType ?? (provider === "FXCM" ? "FOREX" : provider === "BINANCE" ? "CRYPTO" : null);
+  const marketType = options?.marketType
+    ?? (provider === "FXCM" || provider === "FOREXCONNECT"
+      ? "FOREX"
+      : provider === "BINANCE" ? "CRYPTO" : null);
   const [result, setResult] = useState<UnifiedCandlesResult>(() => idle(provider, symbol, timeframe));
   const generation = useRef(0);
 
@@ -58,8 +61,8 @@ export function useUnifiedCandles(
     if (!opts?.soft) {
       setResult(idle(nextProvider, nextSymbol, nextTimeframe));
     }
-    // FXCM: live mode starts server sync session. Binance: historical baseline
-    // (browser WS still overlays forming candle in Charts).
+    // FXCM Socket REST: live mode. ForexConnect Phase 34: historical only.
+    // Binance: historical baseline (browser WS still overlays forming candle).
     const mode = nextProvider === "FXCM" ? "live" : "historical";
     const next = await fetchUnifiedCandleSeries({
       provider: nextProvider,

@@ -32,6 +32,15 @@ function classifyError(code: string | undefined, message: string): UnifiedInstru
         "FXCM is disabled on this server. Set KWIZERA_FXCM_ENABLED=1 and KWIZERA_FXCM_ACCESS_TOKEN in the server environment, then use Admin → Forex → Test FXCM Authentication.",
     };
   }
+  if (normalized === "FOREXCONNECT_DISABLED") {
+    return {
+      state: "disabled",
+      instruments: [],
+      errorCode: normalized,
+      message:
+        "ForexConnect is disabled on this server. Set KWIZERA_FOREXCONNECT_ENABLED=1 and credentials, then connect from Admin → ForexConnect.",
+    };
+  }
   if (
     normalized === "FXCM_NOT_CONFIGURED"
     || normalized === "FXCM_CONFIG_MISSING"
@@ -45,20 +54,34 @@ function classifyError(code: string | undefined, message: string): UnifiedInstru
     };
   }
   if (
+    normalized === "FOREXCONNECT_NOT_CONFIGURED"
+    || normalized === "FOREXCONNECT_DISCONNECTED"
+    || normalized === "FOREXCONNECT_SERVICE_UNAVAILABLE"
+  ) {
+    return {
+      state: normalized === "FOREXCONNECT_NOT_CONFIGURED" ? "not_configured" : "error",
+      instruments: [],
+      errorCode: normalized,
+      message: message
+        || "ForexConnect is not ready. Configure credentials, start the sidecar, and connect from Admin → ForexConnect.",
+    };
+  }
+  if (
     normalized === "FXCM_AUTHENTICATION_FAILED"
+    || normalized === "FOREXCONNECT_AUTHENTICATION_FAILED"
     || normalized === "AUTHENTICATION_ERROR"
   ) {
     return {
       state: "auth_error",
       instruments: [],
-      errorCode: normalized || "FXCM_AUTHENTICATION_FAILED",
-      message: message || "FXCM authentication failed. Check the server access token and environment (demo/real).",
+      errorCode: normalized || "AUTHENTICATION_FAILED",
+      message: message || "Provider authentication failed.",
     };
   }
   return {
     state: "error",
     instruments: [],
-    errorCode: normalized || "FXCM_UNAVAILABLE",
+    errorCode: normalized || "PROVIDER_UNAVAILABLE",
     message: message || "Unable to load instruments.",
   };
 }

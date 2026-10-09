@@ -7,7 +7,12 @@ import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import { buildForexMarketState, type ForexBinanceMarketState } from "../../../ai/forex-market-state";
 import type { ChartTimeframeId } from "../chart/types";
 import { sanitizeCandles } from "../chart/validate-candles";
-import { isBinanceSpotSelection, isFxcmSelection, type SelectedMarket } from "./selected-market";
+import {
+  isBinanceSpotSelection,
+  isForexConnectSelection,
+  isFxcmSelection,
+  type SelectedMarket,
+} from "./selected-market";
 import { useBinanceLiveKline } from "./use-binance-live-kline";
 import { useUnifiedCandles } from "./use-unified-candles";
 import { resolveKlineUiStatus } from "./live-market-status";
@@ -21,11 +26,20 @@ export function useForexMarketState(
 } {
   const binanceSelected = isBinanceSpotSelection(selectedMarket);
   const fxcmSelected = isFxcmSelection(selectedMarket);
-  const provider = fxcmSelected ? "FXCM" as const : binanceSelected ? "BINANCE" as const : null;
-  const symbol = (binanceSelected || fxcmSelected) && selectedMarket ? selectedMarket.symbol : null;
+  const forexConnectSelected = isForexConnectSelection(selectedMarket);
+  const provider = forexConnectSelected
+    ? "FOREXCONNECT" as const
+    : fxcmSelected
+      ? "FXCM" as const
+      : binanceSelected
+        ? "BINANCE" as const
+        : null;
+  const symbol = (binanceSelected || fxcmSelected || forexConnectSelected) && selectedMarket
+    ? selectedMarket.symbol
+    : null;
 
   const unified = useUnifiedCandles(provider, symbol, timeframe, {
-    marketType: fxcmSelected ? "FOREX" : binanceSelected ? "CRYPTO" : null,
+    marketType: (fxcmSelected || forexConnectSelected) ? "FOREX" : binanceSelected ? "CRYPTO" : null,
   });
   const liveKline = useBinanceLiveKline(binanceSelected && selectedMarket ? selectedMarket.symbol : null, timeframe);
 
@@ -86,7 +100,7 @@ export function useForexMarketState(
     && candles.length > 0,
   );
 
-  const connection = fxcmSelected
+  const connection = (fxcmSelected || forexConnectSelected)
     ? (unified.live ? "LIVE"
       : unified.state === "ready" || unified.state === "stale" ? "CONNECTED"
         : unified.state === "loading" ? "CONNECTING"
@@ -100,7 +114,7 @@ export function useForexMarketState(
 
   const marketState = useMemo(() => {
     if (!selectedMarket || candles.length === 0) return null;
-    if (fxcmSelected) {
+    if (fxcmSelected || forexConnectSelected) {
       return buildForexMarketState({
         symbol: selectedMarket.symbol,
         timeframe,
@@ -109,7 +123,7 @@ export function useForexMarketState(
         lastMarketUpdateMs: unified.lastQuoteAt
           ? Date.parse(unified.lastQuoteAt)
           : (candles[candles.length - 1] ? candles[candles.length - 1]!.time * 1000 : null),
-        provider: "FXCM",
+        provider: forexConnectSelected ? "FOREXCONNECT" : "FXCM",
         marketType: "FOREX",
         displaySymbol: selectedMarket.displaySymbol,
         providerSymbol: selectedMarket.symbol,
@@ -132,6 +146,7 @@ export function useForexMarketState(
   }, [
     selectedMarket,
     fxcmSelected,
+    forexConnectSelected,
     binanceSelected,
     symbol,
     timeframe,

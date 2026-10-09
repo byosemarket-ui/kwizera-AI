@@ -1,8 +1,20 @@
 /**
- * Phase 33 — Node → localhost ForexConnect sidecar client.
+ * Phase 33/34 — Node → localhost ForexConnect sidecar client.
  */
 import { resolveForexConnectConfig, type ForexConnectConfig } from "./config.js";
+import { ForexConnectMarketDataError } from "./errors.js";
+import {
+  normalizeForexConnectHistoryRows,
+} from "./historical-normalize.js";
+import type { SafeForexConnectHistoricalResult } from "./historical-types.js";
+import {
+  FOREXCONNECT_MAX_CANDLES,
+  FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES,
+  isForexConnectSupportedTimeframe,
+  toForexConnectPeriodId,
+} from "./timeframes.js";
 import type {
+  ForexConnectCandlesRequest,
   ForexConnectInstrumentsResult,
   ForexConnectSafeStatus,
 } from "./types.js";
@@ -39,6 +51,11 @@ function localStatus(
     instrumentCount: partial.instrumentCount ?? 0,
     connectedAt: partial.connectedAt ?? null,
     lastInstrumentAt: partial.lastInstrumentAt ?? null,
+    historicalCapable: partial.historicalCapable ?? false,
+    supportedTimeframes: partial.supportedTimeframes
+      ?? [...FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES],
+    lastHistoricalAt: partial.lastHistoricalAt ?? null,
+    priceBasis: "bid",
     sdkAvailable: partial.sdkAvailable,
     sdkImportError: partial.sdkImportError ?? null,
     connecting: partial.connecting ?? false,
@@ -281,6 +298,123 @@ export class ForexConnectBridge {
           ),
         },
       };
+    }
+  }
+
+  /**
+   * Historical candles via sidecar ForexConnect.get_history.
+   * Throws ForexConnectMarketDataError for disabled/unconfigured/auth/unavailable.
+   * Empty authentic provider response returns ok:true with count:0 (never fabricated).
+   */
+  async getHistoricalCandles(
+    request: ForexConnectCandlesRequest,
+  ): Promise<SafeForexConnectHistoricalResult> {
+    const cfg = this.getConfig();
+    const symbol = String(request.symbol ?? "").trim();
+    if (!symbol) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_INVALID_SYMBOL",
+        "symbol is required for ForexConnect historical candles.",
+      );
+    }
+    if (!isForexConnectSupportedTimeframe(request.timeframe)) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_UNSUPPORTED_TIMEFRAME",
+        `Unsupported ForexConnect timeframe "${request.timeframe}". `
+          + `Supported: ${FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES.join(", ")}.`,
+      );
+    }
+    const periodId = toForexConnectPeriodId(request.timeframe)!;
+    const limitRaw = request.limit == null ? 100 : Number(request.limit);
+    const limit = Number.isFinite(limitRaw)
+      ? Math.min(FOREXCONNECT_MAX_CANDLES, Math.max(1, Math.floor(limitRaw)))
+      : 100;
+
+    if (!cfg.enabled) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_DISABLED",
+        "ForexConnect is disabled. Set KWIZERA_FOREXCONNECT_ENABLED=1.",
+      );
+    }
+    if (!(cfg.usernameConfigured && cfg.passwordConfigured)) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_NOT_CONFIGURED",
+        "ForexConnect is not configured on the server.",
+      );
+    }
+
+    const status = await this.getStatus();
+    if (status.status !== "CONNECTED") {
+      throw new ForexConnectMarketDataError(
+        String(status.errorCode ?? `FOREXCONNECT_${status.status}`),
+        status.errorMessage
+          ?? "ForexConnect is not connected. Authenticate before requesting historical candles.",
+      );
+    }
+
+    try {
+      const qs = new URLSearchParams({
+        symbol,
+        timeframe: request.timeframe,
+        limit: String(limit),
+      });
+      const remote = await sidecarFetch(
+        cfg,
+        `/candles?${qs.toString()}`,
+        { method: "GET" },
+        this.fetchImpl,
+      );
+      const body = remote.body as Record<string, unknown>;
+      if (!remote.ok || body.ok === false) {
+        const err = (body.error as { code?: string; message?: string } | undefined) ?? {};
+        throw new ForexConnectMarketDataError(
+          String(err.code ?? "FOREXCONNECT_HISTORICAL_FAILED"),
+          sanitize(String(err.message ?? "ForexConnect historical request failed.")),
+        );
+      }
+
+      const timeframe = request.timeframe;
+      const { candles, invalidCandles, duplicatesRemoved } = normalizeForexConnectHistoryRows(
+        body.candles,
+        timeframe,
+      );
+
+      return {
+        ok: true,
+        provider: "FOREXCONNECT",
+        marketType: "FOREX",
+        providerSymbol: String(body.providerSymbol ?? symbol),
+        canonicalSymbol: String(body.canonicalSymbol
+          ?? symbol.replace(/[/_-\s]/g, "").toUpperCase()),
+        displaySymbol: String(body.displaySymbol ?? body.providerSymbol ?? symbol),
+        timeframe,
+        periodId: String(body.periodId ?? periodId),
+        priceBasis: "bid",
+        environment: cfg.environment,
+        environmentLabel: cfg.environmentLabel,
+        candles,
+        count: candles.length,
+        invalidCandles,
+        duplicatesRemoved,
+        fetchedAt: String(body.fetchedAt ?? new Date().toISOString()),
+        lastHistoricalAt: body.lastHistoricalAt
+          ? String(body.lastHistoricalAt)
+          : String(body.fetchedAt ?? new Date().toISOString()),
+        note: String(
+          body.note
+            ?? "ForexConnect historical candles (bid OHLC via get_history). Trading disabled.",
+        ),
+        errorCode: null,
+        errorMessage: null,
+      };
+    } catch (error) {
+      if (error instanceof ForexConnectMarketDataError) throw error;
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_SERVICE_UNAVAILABLE",
+        sanitize(
+          error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+        ),
+      );
     }
   }
 }

@@ -3,6 +3,8 @@ import { forexProvidersApi } from "./api";
 
 type FcStatus = Record<string, unknown>;
 
+const SAMPLE_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const;
+
 function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
   if (status === "CONNECTED") return "ok";
   if (status === "CONNECTING" || status === "NOT_CONFIGURED" || status === "DISCONNECTED") return "warn";
@@ -21,9 +23,19 @@ function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
 export function ForexAdminForexConnectPage() {
   const [status, setStatus] = useState<FcStatus | null>(null);
   const [instruments, setInstruments] = useState<Array<Record<string, unknown>>>([]);
-  const [busy, setBusy] = useState<"connect" | "instruments" | "disconnect" | null>(null);
+  const [busy, setBusy] = useState<"connect" | "instruments" | "disconnect" | "candles" | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sampleSymbol, setSampleSymbol] = useState("EUR/USD");
+  const [sampleTf, setSampleTf] = useState<(typeof SAMPLE_TIMEFRAMES)[number]>("1h");
+  const [candleSample, setCandleSample] = useState<{
+    count: number;
+    priceBasis?: string;
+    periodId?: string;
+    fetchedAt?: string | null;
+    first?: Record<string, unknown> | null;
+    last?: Record<string, unknown> | null;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -65,6 +77,7 @@ export function ForexAdminForexConnectPage() {
       const res = await forexProvidersApi.forexConnectDisconnect();
       setStatus(res as unknown as FcStatus);
       setInstruments([]);
+      setCandleSample(null);
       setNote("Disconnected.");
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Disconnect failed.");
@@ -78,7 +91,11 @@ export function ForexAdminForexConnectPage() {
     setNote(null);
     try {
       const res = await forexProvidersApi.forexConnectInstruments();
-      setInstruments((res.instruments as Array<Record<string, unknown>>) ?? []);
+      const list = (res.instruments as Array<Record<string, unknown>>) ?? [];
+      setInstruments(list);
+      if (list[0]?.providerSymbol) {
+        setSampleSymbol(String(list[0].providerSymbol));
+      }
       setNote(`Discovered ${res.count} instruments from ForexConnect Offers.`);
       void refresh();
     } catch (err) {
@@ -89,9 +106,53 @@ export function ForexAdminForexConnectPage() {
     }
   };
 
+  const testHistorical = async () => {
+    setBusy("candles");
+    setNote(null);
+    setCandleSample(null);
+    try {
+      const res = await forexProvidersApi.forexConnectCandles({
+        symbol: sampleSymbol,
+        timeframe: sampleTf,
+        limit: 20,
+      });
+      const candles = Array.isArray(res.candles) ? res.candles : [];
+      const providerOk = res.ok && candles.every((c) => {
+        // Bridge returns normalized candles; accept either shape.
+        return Number.isFinite(Number(c.time ?? c.Date ? Date.parse(String(c.Date)) / 1000 : NaN))
+          || Number.isFinite(Number(c.open ?? c.BidOpen));
+      });
+      if (!res.ok || !providerOk) {
+        setNote(res.error?.message ?? "Historical sample failed validation.");
+        return;
+      }
+      setCandleSample({
+        count: res.count,
+        priceBasis: res.priceBasis,
+        periodId: res.periodId,
+        fetchedAt: res.fetchedAt ?? res.lastHistoricalAt ?? null,
+        first: candles[0] ?? null,
+        last: candles[candles.length - 1] ?? null,
+      });
+      setNote(
+        `Historical sample OK: ${res.count} candles · basis ${res.priceBasis ?? "bid"} · period ${res.periodId ?? sampleTf}.`,
+      );
+      void refresh();
+    } catch (err) {
+      setCandleSample(null);
+      setNote(err instanceof Error ? err.message : "Historical candle request failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const connectionStatus = String(status?.status ?? "—");
   const configured = Boolean(status?.configured);
   const enabled = Boolean(status?.enabled);
+  const historicalCapable = Boolean(status?.historicalCapable) || connectionStatus === "CONNECTED";
+  const supportedTfs = Array.isArray(status?.supportedTimeframes)
+    ? (status?.supportedTimeframes as string[])
+    : [...SAMPLE_TIMEFRAMES];
 
   return (
     <div data-forex-admin-forexconnect>
@@ -100,7 +161,7 @@ export function ForexAdminForexConnectPage() {
         <p className="fxa-muted">
           Official FXCM ForexConnect SDK via private localhost sidecar.
           Username/password authentication (not Socket REST token). Trading disabled.
-          Credentials stay server-side.
+          Historical candles use get_history (bid OHLC). Credentials stay server-side.
         </p>
       </section>
 
@@ -122,6 +183,10 @@ export function ForexAdminForexConnectPage() {
           <li>Sidecar reachable: {String(status?.sidecarReachable ?? "—")}</li>
           <li>Connected at: {String(status?.connectedAt ?? "—")}</li>
           <li>Instrument count: {String(status?.instrumentCount ?? 0)}</li>
+          <li>Historical capable: {historicalCapable ? "YES (when CONNECTED)" : "NO"}</li>
+          <li>Price basis: bid</li>
+          <li>Supported timeframes: {supportedTfs.join(", ")}</li>
+          <li>Last historical at: {String(status?.lastHistoricalAt ?? candleSample?.fetchedAt ?? "—")}</li>
           <li>Trading: DISABLED</li>
           {status?.errorCode ? <li>Error code: {String(status.errorCode)}</li> : null}
           {status?.errorMessage ? <li>Safe error: {String(status.errorMessage)}</li> : null}
@@ -148,6 +213,68 @@ export function ForexAdminForexConnectPage() {
             Python package on the VPS, and start kwizera-forexconnect.service.
           </p>
         ) : null}
+      </section>
+
+      <section className="fxa-card" data-fc-historical>
+        <h3>Historical candles (diagnostics)</h3>
+        <p className="fxa-muted">
+          Bounded sample via official ForexConnect.get_history. Never fabricates candles.
+          Requires an authenticated session. Distinct from FXCM Socket REST.
+        </p>
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "end" }}>
+          <label>
+            Instrument
+            <input
+              value={sampleSymbol}
+              onChange={(e) => setSampleSymbol(e.target.value)}
+              disabled={busy !== null}
+              aria-label="ForexConnect sample instrument"
+            />
+          </label>
+          <label>
+            Timeframe
+            <select
+              value={sampleTf}
+              onChange={(e) => setSampleTf(e.target.value as (typeof SAMPLE_TIMEFRAMES)[number])}
+              disabled={busy !== null}
+              aria-label="ForexConnect sample timeframe"
+            >
+              {SAMPLE_TIMEFRAMES.map((tf) => (
+                <option key={tf} value={tf}>{tf}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || connectionStatus !== "CONNECTED"}
+            onClick={() => void testHistorical()}
+          >
+            {busy === "candles" ? "Requesting…" : "Test historical sample (20)"}
+          </button>
+        </div>
+        {candleSample ? (
+          <ul>
+            <li>Candles returned: {candleSample.count}</li>
+            <li>Price basis: {candleSample.priceBasis ?? "bid"}</li>
+            <li>Period id: {candleSample.periodId ?? "—"}</li>
+            <li>Fetched at: {String(candleSample.fetchedAt ?? "—")}</li>
+            {candleSample.first ? (
+              <li>
+                First: t={String(candleSample.first.time ?? "—")} O={String(candleSample.first.open ?? candleSample.first.BidOpen ?? "—")}
+                {" "}C={String(candleSample.first.close ?? candleSample.first.BidClose ?? "—")}
+              </li>
+            ) : null}
+            {candleSample.last ? (
+              <li>
+                Last: t={String(candleSample.last.time ?? "—")} O={String(candleSample.last.open ?? candleSample.last.BidOpen ?? "—")}
+                {" "}C={String(candleSample.last.close ?? candleSample.last.BidClose ?? "—")}
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <p className="fxa-muted">No historical sample loaded yet.</p>
+        )}
       </section>
 
       <section className="fxa-card">

@@ -29,6 +29,14 @@ function fxcmEmptyTitle(state: string): string {
   return "No FXCM instruments available.";
 }
 
+function forexConnectEmptyTitle(state: string): string {
+  if (state === "disabled") return "ForexConnect is disabled on this server.";
+  if (state === "not_configured") return "ForexConnect is not configured.";
+  if (state === "auth_error") return "ForexConnect authentication failed.";
+  if (state === "error") return "Unable to load ForexConnect instruments.";
+  return "No ForexConnect instruments available.";
+}
+
 export function ForexMarketsPage({
   selected,
   onSelect,
@@ -49,6 +57,10 @@ export function ForexMarketsPage({
   const fxcmCatalog = useUnifiedInstruments({
     provider: "FXCM",
     enabled: providerFilter === "ALL" || providerFilter === "FXCM",
+  });
+  const forexConnectCatalog = useUnifiedInstruments({
+    provider: "FOREXCONNECT",
+    enabled: providerFilter === "ALL" || providerFilter === "FOREXCONNECT",
   });
   const [query, setQuery] = useState("");
   const [quote, setQuote] = useState<(typeof QUOTE_FILTERS)[number]>("ALL");
@@ -73,20 +85,36 @@ export function ForexMarketsPage({
     });
   }, [fxcmCatalog.instruments, query]);
 
+  const filteredForexConnect = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    return forexConnectCatalog.instruments.filter((item) => {
+      if (!q) return true;
+      const hay = `${item.providerSymbol} ${item.canonicalSymbol} ${item.displaySymbol}`.toUpperCase();
+      return hay.includes(q);
+    });
+  }, [forexConnectCatalog.instruments, query]);
+
   const showBinance = providerFilter === "ALL" || providerFilter === "BINANCE";
   const showFxcm = providerFilter === "ALL" || providerFilter === "FXCM";
+  const showForexConnect = providerFilter === "ALL" || providerFilter === "FOREXCONNECT";
   const binancePage = showBinance ? filteredBinance.slice(0, visible) : [];
   const fxcmPage = showFxcm ? filteredFxcm.slice(0, visible) : [];
-  const selectedSymbol = selected?.venue === "binance-spot" || selected?.venue === "fxcm"
+  const forexConnectPage = showForexConnect ? filteredForexConnect.slice(0, visible) : [];
+  const selectedSymbol = selected?.venue === "binance-spot"
+    || selected?.venue === "fxcm"
+    || selected?.venue === "forexconnect"
     ? selected.symbol
     : null;
 
   const changeProviderFilter = (next: "ALL" | MarketProviderId) => {
     setProviderFilter(next);
     setVisible(PAGE_SIZE);
-    // Clearing incompatible selection prevents silent Binance↔FXCM symbol mapping.
+    // Clearing incompatible selection prevents silent cross-provider symbol mapping.
     if (next === "FXCM" && selected?.venue === "binance-spot") onClearSelection?.();
-    if (next === "BINANCE" && selected?.venue === "fxcm") onClearSelection?.();
+    if (next === "FOREXCONNECT" && selected?.venue === "binance-spot") onClearSelection?.();
+    if (next === "BINANCE" && (selected?.venue === "fxcm" || selected?.venue === "forexconnect")) {
+      onClearSelection?.();
+    }
   };
 
   const fxcmBlocked = showFxcm && (
@@ -95,6 +123,14 @@ export function ForexMarketsPage({
     || fxcmCatalog.state === "auth_error"
     || fxcmCatalog.state === "error"
     || (fxcmCatalog.state === "empty" && providerFilter === "FXCM")
+  );
+
+  const forexConnectBlocked = showForexConnect && (
+    forexConnectCatalog.state === "disabled"
+    || forexConnectCatalog.state === "not_configured"
+    || forexConnectCatalog.state === "auth_error"
+    || forexConnectCatalog.state === "error"
+    || (forexConnectCatalog.state === "empty" && providerFilter === "FOREXCONNECT")
   );
 
   return (
@@ -110,11 +146,11 @@ export function ForexMarketsPage({
       <ForexSectionHeader
         eyebrow="Market"
         title="Markets"
-        description="Unified provider-aware catalog. Binance Spot and FXCM instruments stay isolated — selection updates the shared workspace market."
+        description="Unified provider-aware catalog. Binance Spot, FXCM Socket REST, and ForexConnect instruments stay isolated — selection updates the shared workspace market."
       />
 
       <p className="fx-panel-meta" role="note">
-        Provider identity is required. FXCM Forex and Binance Crypto never share the same market identity.
+        Provider identity is required. ForexConnect, FXCM Socket REST, and Binance Crypto never share the same market identity.
       </p>
 
       {selectedSymbol && selected?.venue === "binance-spot" && liveTicker ? (
@@ -128,6 +164,11 @@ export function ForexMarketsPage({
       {selected?.venue === "fxcm" ? (
         <p className="fx-panel-meta" data-markets-selected-fxcm={selected.symbol}>
           Active workspace market · {selected.displaySymbol} · Provider FXCM · Market FOREX
+        </p>
+      ) : null}
+      {selected?.venue === "forexconnect" ? (
+        <p className="fx-panel-meta" data-markets-selected-forexconnect={selected.symbol}>
+          Active workspace market · {selected.displaySymbol} · Provider FOREXCONNECT · Market FOREX · bid OHLC
         </p>
       ) : null}
 
@@ -144,6 +185,7 @@ export function ForexMarketsPage({
             <option value="ALL">All providers</option>
             <option value="BINANCE">Binance</option>
             <option value="FXCM">FXCM</option>
+            <option value="FOREXCONNECT">ForexConnect</option>
           </select>
         </label>
         <label className="fx-markets-search">
@@ -199,6 +241,7 @@ export function ForexMarketsPage({
           onClick={() => {
             refresh();
             fxcmCatalog.refresh();
+            forexConnectCatalog.refresh();
           }}
         >
           Refresh
@@ -210,6 +253,9 @@ export function ForexMarketsPage({
       ) : null}
       {showFxcm && fxcmCatalog.state === "loading" ? (
         <p className="fx-page-desc" role="status" data-fxcm-loading="true">Loading FXCM instruments...</p>
+      ) : null}
+      {showForexConnect && forexConnectCatalog.state === "loading" ? (
+        <p className="fx-page-desc" role="status" data-forexconnect-loading="true">Loading ForexConnect instruments...</p>
       ) : null}
       {showBinance && result.state === "disconnected" ? (
         <ForexEmptyState title="Binance market service unavailable." description={result.message} actionLabel="Retry" onAction={refresh} />
@@ -233,6 +279,24 @@ export function ForexMarketsPage({
             Open Forex Admin
           </button>
           {" "}(authentication / provider status). Credentials never leave the server.
+        </p>
+      ) : null}
+
+      {forexConnectBlocked ? (
+        <ForexEmptyState
+          title={forexConnectEmptyTitle(forexConnectCatalog.state)}
+          description={forexConnectCatalog.message}
+          actionLabel="Retry"
+          onAction={forexConnectCatalog.refresh}
+        />
+      ) : null}
+      {forexConnectBlocked && onOpenAdmin ? (
+        <p className="fx-panel-meta">
+          Server-side ForexConnect setup:{" "}
+          <button type="button" className="fx-text-button" onClick={onOpenAdmin}>
+            Open Forex Admin → ForexConnect
+          </button>
+          {" "}(connect SDK session, then discover instruments). Credentials never leave the server.
         </p>
       ) : null}
 
@@ -363,7 +427,73 @@ export function ForexMarketsPage({
         </>
       ) : null}
 
-      {(binancePage.length > 0 || fxcmPage.length > 0) && (
+      {showForexConnect && forexConnectPage.length > 0 ? (
+        <>
+          <p className="fx-panel-meta">
+            ForexConnect · Showing {forexConnectPage.length} of {filteredForexConnect.length} instruments · historical bid candles
+          </p>
+          <div className="fx-markets-table-wrap">
+            <table className="fx-markets-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Symbol</th>
+                  <th>Base</th>
+                  <th>Quote</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Select</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forexConnectPage.map((instrument) => {
+                  const active = selected?.venue === "forexconnect"
+                    && selected.symbol.replace(/[/_-\s]/g, "").toUpperCase()
+                      === instrument.canonicalSymbol.toUpperCase();
+                  return (
+                    <tr
+                      key={`FOREXCONNECT:${instrument.marketType}:${instrument.canonicalSymbol}`}
+                      data-selected={active ? "true" : "false"}
+                      data-provider="FOREXCONNECT"
+                    >
+                      <td>FOREXCONNECT</td>
+                      <td>
+                        <strong>{instrument.displaySymbol}</strong>
+                        <span className="fx-panel-meta"> {instrument.canonicalSymbol}</span>
+                      </td>
+                      <td>{instrument.baseAsset ?? "—"}</td>
+                      <td>{instrument.quoteAsset ?? "—"}</td>
+                      <td>{instrument.marketType}</td>
+                      <td>
+                        <ForexStatusBadge tone={instrumentTone(instrument)}>
+                          {instrument.status}
+                        </ForexStatusBadge>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="fx-text-button"
+                          aria-pressed={active}
+                          onClick={() => onSelect({
+                            venue: "forexconnect",
+                            symbol: instrument.providerSymbol,
+                            displaySymbol: instrument.displaySymbol,
+                            provider: "FOREXCONNECT",
+                          })}
+                        >
+                          {active ? "Selected" : "Select"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : null}
+
+      {(binancePage.length > 0 || fxcmPage.length > 0 || forexConnectPage.length > 0) && (
         <button type="button" className="fx-text-button" onClick={() => setVisible((count) => count + PAGE_SIZE)}>
           Show more markets
         </button>

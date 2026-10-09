@@ -41,6 +41,11 @@ export interface ForexConnectSafeStatus {
   connectedAt?: string | null;
   lastInstrumentAt?: string | null;
   instrumentCount?: number;
+  /** Phase 34 — historical get_history capability (true only when CONNECTED). */
+  historicalCapable?: boolean;
+  supportedTimeframes?: string[];
+  lastHistoricalAt?: string | null;
+  priceBasis?: "bid";
   errorCode?: string | null;
   errorMessage?: string | null;
   trading: "DISABLED";
@@ -56,5 +61,34 @@ export interface ForexConnectInstrumentsResult {
   fetchedAt?: string | null;
   status?: ForexConnectSafeStatus;
   note?: string;
+  error?: { code: string; message: string };
+}
+
+export interface ForexConnectCandlesRequest {
+  symbol: string;
+  timeframe: string;
+  limit?: number | null;
+}
+
+export interface ForexConnectCandlesResult {
+  ok: boolean;
+  provider: "FOREXCONNECT";
+  marketType?: string;
+  providerSymbol?: string;
+  canonicalSymbol?: string;
+  displaySymbol?: string;
+  timeframe?: string;
+  periodId?: string;
+  priceBasis?: "bid";
+  environment?: string;
+  environmentLabel?: string;
+  candles: Array<Record<string, unknown>>;
+  count: number;
+  invalidCandles?: number;
+  duplicatesRemoved?: number;
+  fetchedAt?: string | null;
+  lastHistoricalAt?: string | null;
+  note?: string;
+  status?: ForexConnectSafeStatus;
   error?: { code: string; message: string };
 }

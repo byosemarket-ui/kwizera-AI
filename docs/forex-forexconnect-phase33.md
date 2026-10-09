@@ -42,4 +42,6 @@ Browser → Node gateway (:5173)
 
 ## Out of scope (later phases)
 
-Historical candles, live streaming into Charts, order placement.
+Live streaming into Charts, order placement.
+
+Historical candles: see `docs/forex-forexconnect-phase34.md`.

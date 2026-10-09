@@ -242,5 +242,7 @@ describe("Phase 33 ForexConnect bridge", () => {
     expect(sidecar).toContain("127.0.0.1");
     expect(sidecar).toContain("ForexConnect");
     expect(sidecar).not.toContain("place_order");
+    // Phase 34 extends the same sidecar with get_history — still no trading.
+    expect(sidecar).toContain("get_history");
   });
 });

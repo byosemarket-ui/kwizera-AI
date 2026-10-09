@@ -4,7 +4,12 @@ import { ForexStatusBadge } from "../components/ForexStatusBadge";
 import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
-import { isBinanceSpotSelection, isFxcmSelection, type SelectedMarket } from "../market-data/selected-market";
+import {
+  isBinanceSpotSelection,
+  isForexConnectSelection,
+  isFxcmSelection,
+  type SelectedMarket,
+} from "../market-data/selected-market";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
 import { useUnifiedCandles } from "../market-data/use-unified-candles";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
@@ -143,10 +148,17 @@ export function ForexChartWorkspace({
 
   const binanceSelected = isBinanceSpotSelection(selected);
   const fxcmSelected = isFxcmSelection(selected);
-  const candleProvider = fxcmSelected ? "FXCM" as const : binanceSelected ? "BINANCE" as const : null;
-  const candleSymbol = (binanceSelected || fxcmSelected) ? selected.symbol : null;
+  const forexConnectSelected = isForexConnectSelection(selected);
+  const candleProvider = forexConnectSelected
+    ? "FOREXCONNECT" as const
+    : fxcmSelected
+      ? "FXCM" as const
+      : binanceSelected
+        ? "BINANCE" as const
+        : null;
+  const candleSymbol = (binanceSelected || fxcmSelected || forexConnectSelected) ? selected.symbol : null;
   const unified = useUnifiedCandles(candleProvider, candleSymbol, timeframe, {
-    marketType: fxcmSelected ? "FOREX" : binanceSelected ? "CRYPTO" : null,
+    marketType: (fxcmSelected || forexConnectSelected) ? "FOREX" : binanceSelected ? "CRYPTO" : null,
   });
   const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
   const wasLiveRef = useRef(false);
@@ -229,7 +241,7 @@ export function ForexChartWorkspace({
     timeframe,
   ]);
 
-  const providerReady = (binanceSelected || fxcmSelected) && candles.length > 0;
+  const providerReady = (binanceSelected || fxcmSelected || forexConnectSelected) && candles.length > 0;
 
   const overlayData = useMemo((): OverlaySeries[] => {
     if (!providerReady) return [];
@@ -376,7 +388,7 @@ export function ForexChartWorkspace({
                   ? "ready"
                   : "unavailable";
   const chartMessage = !candleProvider
-    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE or FXCM instrument from Markets.")
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE, FXCM, or ForexConnect instrument from Markets.")
     : historyPending
       ? (binanceSelected && klineStatus === "RECONNECTING"
         ? "Reconnecting to Binance..."
@@ -387,9 +399,13 @@ export function ForexChartWorkspace({
           ? `No ${candleProvider} candle data available.`
           : chartLive
             ? (fxcmSelected ? "Live FXCM data" : "Live Binance data")
-            : (binanceSelected ? liveMarketStatusLabel(klineStatus) : unified.message);
+            : (binanceSelected
+              ? liveMarketStatusLabel(klineStatus)
+              : forexConnectSelected
+                ? "ForexConnect historical bid candles"
+                : unified.message);
   const analysisUnavailableReason = !candleProvider
-    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE or FXCM instrument from Markets.")
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE, FXCM, or ForexConnect instrument from Markets.")
     : historyPending
       ? `Loading ${candleProvider} candle data for technical analysis…`
       : unified.message || `Waiting for ${candleProvider} candles…`;
@@ -397,7 +413,7 @@ export function ForexChartWorkspace({
 
   const marketState = useMemo(() => {
     if (!selected || candles.length === 0) return null;
-    if (fxcmSelected) {
+    if (fxcmSelected || forexConnectSelected) {
       return buildForexMarketState({
         symbol: selected.symbol,
         timeframe,
@@ -406,7 +422,7 @@ export function ForexChartWorkspace({
         lastMarketUpdateMs: unified.lastQuoteAt
           ? Date.parse(unified.lastQuoteAt)
           : (last ? last.time * 1000 : null),
-        provider: "FXCM",
+        provider: forexConnectSelected ? "FOREXCONNECT" : "FXCM",
         marketType: "FOREX",
         displaySymbol: selected.displaySymbol,
         providerSymbol: selected.symbol,
@@ -426,6 +442,7 @@ export function ForexChartWorkspace({
   }, [
     binanceSelected,
     fxcmSelected,
+    forexConnectSelected,
     selected,
     candles,
     timeframe,
@@ -448,10 +465,10 @@ export function ForexChartWorkspace({
       data-chart-symbol={selected?.symbol ?? ""}
       data-chart-timeframe={timeframe}
       data-market-venue={selected?.venue ?? "none"}
-      data-fx-provider={fxcmSelected ? "FXCM" : binanceSelected ? "BINANCE" : "none"}
-      data-fx-source={fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}
+      data-fx-provider={forexConnectSelected ? "FOREXCONNECT" : fxcmSelected ? "FXCM" : binanceSelected ? "BINANCE" : "none"}
+      data-fx-source={forexConnectSelected ? "forexconnect-bid" : fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}
       data-candle-source="unified-market-data"
-      data-fx-symbol={(binanceSelected || fxcmSelected) && selected ? selected.symbol : ""}
+      data-fx-symbol={(binanceSelected || fxcmSelected || forexConnectSelected) && selected ? selected.symbol : ""}
       data-fx-timeframe={timeframe}
       data-fx-candle-count={canAnalyze ? String(candles.length) : "0"}
       data-fx-last-time={canAnalyze && last ? String(last.time) : ""}
@@ -460,7 +477,7 @@ export function ForexChartWorkspace({
       data-fx-low={canAnalyze && last ? String(last.low) : ""}
       data-fx-close={canAnalyze && last ? String(last.close) : ""}
       data-fx-volume={canAnalyze && last && last.volume != null ? String(last.volume) : ""}
-      data-fx-connection={chartLive ? "LIVE" : (fxcmSelected ? (unified.connectionState ?? "NO_DATA") : klineStatus)}
+      data-fx-connection={chartLive ? "LIVE" : ((fxcmSelected || forexConnectSelected) ? (unified.connectionState ?? "NO_DATA") : klineStatus)}
       data-fx-forming={canAnalyze && last && last.closed === false ? "true" : "false"}
       data-ms-version={marketState?.version ?? ""}
       data-ms-symbol={marketState?.symbol ?? ""}
@@ -486,8 +503,8 @@ export function ForexChartWorkspace({
         eyebrow={analysis ? "Analysis" : "Market"}
         title={analysis ? "Technical Analysis" : "Charts"}
         description={analysis
-          ? "Indicators use the same unified Market Data candle series as Charts (BINANCE or FXCM). This is not a trading signal."
-          : "Interactive candlestick workspace fed by the unified Market Data layer (BINANCE Spot or FXCM mid)."}
+          ? "Indicators use the same unified Market Data candle series as Charts (BINANCE, FXCM, or ForexConnect). This is not a trading signal."
+          : "Interactive candlestick workspace fed by the unified Market Data layer (BINANCE Spot, FXCM mid, or ForexConnect bid)."}
       />
 
       <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
@@ -495,15 +512,17 @@ export function ForexChartWorkspace({
           Instrument
           <select
             aria-label="Instrument"
-            value={(binanceSelected || fxcmSelected) && selected ? selected.symbol : ""}
+            value={(binanceSelected || fxcmSelected || forexConnectSelected) && selected ? selected.symbol : ""}
             disabled
           >
             {binanceSelected && selected ? (
               <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
             ) : fxcmSelected && selected ? (
               <option value={selected.symbol}>{selected.displaySymbol} · FXCM</option>
+            ) : forexConnectSelected && selected ? (
+              <option value={selected.symbol}>{selected.displaySymbol} · ForexConnect (bid)</option>
             ) : (
-              <option value="">Select a BINANCE or FXCM instrument…</option>
+              <option value="">Select a BINANCE, FXCM, or ForexConnect instrument…</option>
             )}
           </select>
         </label>

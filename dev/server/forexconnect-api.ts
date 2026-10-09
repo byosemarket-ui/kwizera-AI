@@ -1,9 +1,10 @@
 /**
- * Phase 33 — ForexConnect provider bridge API.
+ * Phase 33/34 — ForexConnect provider bridge API.
  * GET  /api/forex/providers/forexconnect/status
  * POST /api/forex/providers/forexconnect/connect
  * POST /api/forex/providers/forexconnect/disconnect
  * GET  /api/forex/providers/forexconnect/instruments
+ * GET  /api/forex/providers/forexconnect/candles?symbol=&timeframe=&limit=
  *
  * Never returns passwords, tokens, or session secrets.
  */
@@ -14,6 +15,8 @@ import {
   createForexConnectBridge,
   type ForexConnectBridge,
 } from "../../ai/market-data/forexconnect/client.js";
+import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
+import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "../../ai/market-data/forexconnect/timeframes.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -118,6 +121,40 @@ export async function handleForexConnectApi(
         note: result.note,
       });
       return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/candles") {
+      const symbol = url.searchParams.get("symbol") ?? "";
+      const timeframe = url.searchParams.get("timeframe") ?? "";
+      const limitRaw = url.searchParams.get("limit");
+      const limit = limitRaw != null ? Number(limitRaw) : 50;
+      try {
+        const result = await bridge.getHistoricalCandles({ symbol, timeframe, limit });
+        assertNoSecretsInForexConnectPayload(result);
+        sendJson(res, 200, {
+          ok: true,
+          ...result,
+          supportedTimeframes: [...FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES],
+        });
+        return true;
+      } catch (error) {
+        if (error instanceof ForexConnectMarketDataError) {
+          const http = error.code.includes("UNSUPPORTED") || error.code.includes("INVALID")
+            ? 400
+            : error.code.includes("DISABLED") || error.code.includes("NOT_CONFIGURED")
+              ? 503
+              : 502;
+          sendJson(res, http, {
+            ok: false,
+            error: { code: error.code, message: error.message },
+            provider: "FOREXCONNECT",
+            candles: [],
+            count: 0,
+          });
+          return true;
+        }
+        throw error;
+      }
     }
 
     sendJson(res, 404, {

@@ -39,7 +39,7 @@ describe("Forex Phase 25 — FXCM market data foundation", () => {
     const registry = createMarketDataProviderRegistry({
       env: { KWIZERA_FXCM_ENABLED: "0" },
     });
-    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM"]);
+    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM", "FOREXCONNECT"]);
     expect(registry.getProvider("FXCM")).toBeTruthy();
     const snap = await registry.snapshot();
     expect(snap.providers.some((p) => p.info.provider === "BINANCE")).toBe(true);

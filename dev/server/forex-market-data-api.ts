@@ -17,6 +17,7 @@ import {
 } from "../../ai/market-data/providers/market-data-service.js";
 import { parseMarketProviderId } from "../../ai/market-data/providers/identity.js";
 import { userFacingBinanceError } from "../../ai/market-data/binance/errors.js";
+import { userFacingForexConnectError } from "../../ai/market-data/forexconnect/errors.js";
 import { userFacingFxcmError } from "../../ai/market-data/fxcm/errors.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -38,6 +39,18 @@ function mapError(error: unknown): { status: number; code: string; message: stri
       status: fxcm.code === "FXCM_DISABLED" || fxcm.code === "FXCM_NOT_CONFIGURED" ? 503 : 502,
       code: fxcm.code,
       message: fxcm.message,
+    };
+  }
+  const fc = userFacingForexConnectError(error);
+  if (fc.code.startsWith("FOREXCONNECT_")) {
+    return {
+      status: fc.code === "FOREXCONNECT_DISABLED" || fc.code === "FOREXCONNECT_NOT_CONFIGURED"
+        ? 503
+        : fc.code.includes("UNSUPPORTED") || fc.code.includes("INVALID")
+          ? 400
+          : 502,
+      code: fc.code,
+      message: fc.message,
     };
   }
   const binance = userFacingBinanceError(error);

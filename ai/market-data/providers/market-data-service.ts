@@ -4,6 +4,7 @@
  */
 import { createBinanceMarketDataService, type BinanceMarketDataService } from "../binance/service.js";
 import { toDisplaySymbol } from "../binance/adapter.js";
+import type { SafeForexConnectHistoricalResult } from "../forexconnect/historical-types.js";
 import type { SafeFxcmHistoricalResult } from "../fxcm/historical-types.js";
 import type { SafeFxcmLiveCandleSeries } from "../fxcm/live-candle-types.js";
 import type { SafeFxcmQuoteSnapshot } from "../fxcm/stream-types.js";
@@ -230,13 +231,18 @@ export class MarketDataService {
       ? String(request.marketType).toUpperCase()
       : providerId === "BINANCE" ? "CRYPTO" : "FOREX") as MarketAssetType;
 
+    const environment = providerId === "FXCM"
+      ? this.registry.getFxcm().getConfig().environment
+      : providerId === "FOREXCONNECT"
+        ? this.registry.getForexConnect().getBridge().getConfig().environment
+        : "public";
     const cacheKey = marketDataCacheKey({
       provider: providerId,
       marketType,
       symbol: request.symbol,
       timeframe,
       kind: "historical",
-      environment: providerId === "FXCM" ? this.registry.getFxcm().getConfig().environment : "public",
+      environment,
     });
     const cached = this.historicalCache.get(cacheKey);
     if (cached && Date.now() - cached.at < this.HIST_CACHE_MS && !request.refresh) {
@@ -249,7 +255,20 @@ export class MarketDataService {
       return series;
     }
 
-    // FXCM only — never fall back to Binance.
+    if (providerId === "FOREXCONNECT") {
+      // ForexConnect SDK path — never fall back to Binance or FXCM Socket REST.
+      const fc = this.registry.getForexConnect();
+      const result = await fc.getBridge().getHistoricalCandles({
+        symbol: request.symbol,
+        timeframe,
+        limit: request.limit,
+      });
+      const series = unifyForexConnectHistorical(result);
+      this.historicalCache.set(cacheKey, { at: Date.now(), series });
+      return series;
+    }
+
+    // FXCM Socket REST only — never fall back to Binance or ForexConnect.
     const fxcm = this.registry.getFxcm();
     const result = await fxcm.getHistoricalCandles({
       symbol: request.symbol,
@@ -278,6 +297,22 @@ export class MarketDataService {
         ...historical,
         sourceMode: "HISTORICAL",
         note: "Binance live candles are delivered via the existing browser WebSocket path; REST historical snapshot returned here.",
+      };
+    }
+
+    if (providerId === "FOREXCONNECT") {
+      // Phase 34: historical only. Live ForexConnect streaming is Phase 35.
+      const historical = await this.getHistoricalCandles({
+        provider: "FOREXCONNECT",
+        symbol: request.symbol,
+        timeframe,
+        marketType: request.marketType,
+        limit: 300,
+      });
+      return {
+        ...historical,
+        sourceMode: "HISTORICAL",
+        note: "ForexConnect live streaming is not enabled in Phase 34; historical bid candles returned.",
       };
     }
 
@@ -472,6 +507,52 @@ export class MarketDataService {
       errorMessage: null,
     };
   }
+}
+
+function unifyForexConnectHistorical(result: SafeForexConnectHistoricalResult): UnifiedCandleSeries {
+  const identity = buildMarketIdentity({
+    provider: "FOREXCONNECT",
+    marketType: result.marketType,
+    providerSymbol: result.providerSymbol,
+    canonicalSymbol: result.canonicalSymbol,
+    displaySymbol: result.displaySymbol,
+    environment: result.environment,
+  });
+  const candles: UnifiedCandle[] = result.candles.map((c) => ({
+    provider: "FOREXCONNECT",
+    marketType: result.marketType,
+    providerSymbol: result.providerSymbol,
+    canonicalSymbol: result.canonicalSymbol,
+    displaySymbol: result.displaySymbol,
+    timeframe: result.timeframe,
+    time: c.time,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+    volume: c.volume,
+    isClosed: c.closed,
+    source: "FOREXCONNECT",
+    sourceMode: "HISTORICAL",
+    dataQuality: result.count > 0 ? "VALID" : "NO_DATA",
+  }));
+  return {
+    identity,
+    timeframe: result.timeframe,
+    source: "FOREXCONNECT",
+    sourceMode: "HISTORICAL",
+    connectionState: candles.length ? "CONNECTED" : "NO_DATA",
+    dataQuality: candles.length ? "VALID" : "NO_DATA",
+    candles,
+    forming: null,
+    count: candles.length,
+    lastQuoteAt: null,
+    updatedAt: result.fetchedAt,
+    note: result.note
+      ?? "ForexConnect historical candles (bid OHLC via get_history).",
+    errorCode: result.errorCode,
+    errorMessage: result.errorMessage,
+  };
 }
 
 function unifyFxcmHistorical(result: SafeFxcmHistoricalResult): UnifiedCandleSeries {

@@ -35,7 +35,7 @@ export function resolveMarketProviderForSymbol(
   explicit?: MarketProviderId | string | null,
 ): MarketProviderId {
   const p = String(explicit ?? "").trim().toUpperCase();
-  if (p === "BINANCE" || p === "FXCM") return p;
+  if (p === "BINANCE" || p === "FXCM" || p === "FOREXCONNECT") return p;
   if (looksLikeBinanceCryptoSymbol(symbol)) return "BINANCE";
   if (looksLikeFxcmForexSymbol(symbol)) return "FXCM";
   // Default existing crypto path for ambiguous compact symbols.
@@ -67,10 +67,10 @@ export function requireExplicitProvider(
     };
   }
   const p = raw.toUpperCase();
-  if (p === "BINANCE" || p === "FXCM") return { ok: true, provider: p };
+  if (p === "BINANCE" || p === "FXCM" || p === "FOREXCONNECT") return { ok: true, provider: p };
   return {
     ok: false,
     code: "UNKNOWN_PROVIDER",
-    message: `Unknown provider "${raw}". Supported: BINANCE, FXCM.`,
+    message: `Unknown provider "${raw}". Supported: BINANCE, FXCM, FOREXCONNECT.`,
   };
 }

@@ -16,7 +16,7 @@ export interface MarketIdentity {
 
 export function parseMarketProviderId(raw: unknown): MarketProviderId | null {
   const value = String(raw ?? "").trim().toUpperCase();
-  if (value === "BINANCE" || value === "FXCM") return value;
+  if (value === "BINANCE" || value === "FXCM" || value === "FOREXCONNECT") return value;
   return null;
 }
 

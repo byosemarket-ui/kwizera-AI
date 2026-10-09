@@ -37,5 +37,23 @@ and exposes a safe HTTP control plane for the Node.js gateway.
 - `POST /connect`
 - `POST /disconnect`
 - `GET /instruments`
+- `GET /candles?symbol=&timeframe=&limit=` — historical via `ForexConnect.get_history` (bid OHLC)
 
 Passwords are never returned in responses or logs.
+
+## Historical candles
+
+Requires an authenticated session. Project timeframes map 1:1 to SDK periods:
+
+| Project | SDK |
+|---------|-----|
+| 1m | m1 |
+| 5m | m5 |
+| 15m | m15 |
+| 30m | m30 |
+| 1h | H1 |
+| 4h | H4 |
+| 1d | D1 |
+| 1w | W1 |
+
+Price basis: **bid**. Max `limit`: 300. Unsupported timeframes are rejected (no silent substitution).

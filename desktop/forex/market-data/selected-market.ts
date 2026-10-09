@@ -2,15 +2,16 @@ import { FOREX_INSTRUMENTS } from "../dashboard-data";
 import { DEFAULT_CHART_TIMEFRAME, type ChartTimeframeId } from "../chart/types";
 import { parseChartTimeframe } from "../chart/market-data";
 import { toDisplaySymbol } from "../../../ai/market-data/binance/adapter";
+import type { MarketProviderId } from "../../../ai/market-data/providers/types";
 
-export type MarketVenue = "binance-spot" | "fxcm" | "unsupported";
+export type MarketVenue = "binance-spot" | "fxcm" | "forexconnect" | "unsupported";
 
 export interface SelectedMarket {
   venue: MarketVenue;
   symbol: string;
   displaySymbol: string;
-  /** Explicit provider when set (e.g. provider=FXCM). */
-  provider?: "BINANCE" | "FXCM";
+  /** Explicit provider when set. */
+  provider?: MarketProviderId;
 }
 
 const TRADITIONAL_FX_COMPACT = new Set(
@@ -30,8 +31,8 @@ function traditionalFxDisplay(compact: string): string {
 
 /**
  * Parse a market from URL/query.
- * Traditional FX labels (EUR/USD, EURUSD) are not Binance Spot instruments — they are unsupported
- * for live market data (Phase 11). Only compact Binance-style symbols become binance-spot.
+ * Traditional FX labels (EUR/USD, EURUSD) are not Binance Spot instruments.
+ * Explicit provider=FXCM | FOREXCONNECT selects the matching Forex venue.
  */
 export function parseSelectedMarket(
   raw: string | null | undefined,
@@ -43,10 +44,23 @@ export function parseSelectedMarket(
   const provider = String(explicitProvider ?? "").trim().toUpperCase();
 
   const looksLikeFxSlash = /^[A-Z]{3}\/[A-Z]{3}$/i.test(raw.trim()) || /^XAU\/[A-Z]{3}$/i.test(raw.trim());
-  if (provider === "FXCM" || looksLikeFxSlash || TRADITIONAL_FX_COMPACT.has(compact)) {
+  if (
+    provider === "FXCM"
+    || provider === "FOREXCONNECT"
+    || looksLikeFxSlash
+    || TRADITIONAL_FX_COMPACT.has(compact)
+  ) {
     const display = looksLikeFxSlash
       ? raw.trim().toUpperCase()
       : (raw.includes("/") ? raw.trim().toUpperCase() : traditionalFxDisplay(compact));
+    if (provider === "FOREXCONNECT") {
+      return {
+        venue: "forexconnect",
+        symbol: display,
+        displaySymbol: display,
+        provider: "FOREXCONNECT",
+      };
+    }
     // Only treat as FXCM historical when explicitly requested — avoids accidental FXCM calls.
     if (provider === "FXCM") {
       return {
@@ -85,6 +99,10 @@ export function isFxcmSelection(market: SelectedMarket | null | undefined): mark
   return market?.venue === "fxcm";
 }
 
+export function isForexConnectSelection(market: SelectedMarket | null | undefined): market is SelectedMarket {
+  return market?.venue === "forexconnect";
+}
+
 export function readMarketQuery(search = typeof window !== "undefined" ? window.location.search : ""): {
   selected: SelectedMarket | null;
   timeframe: ChartTimeframeId;
@@ -102,6 +120,13 @@ export function writeMarketQuery(selected: SelectedMarket | null, timeframe: Cha
   if (selected?.venue === "fxcm") {
     url.searchParams.set("symbol", selected.symbol);
     url.searchParams.set("provider", "FXCM");
+    url.searchParams.set("timeframe", timeframe);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    return;
+  }
+  if (selected?.venue === "forexconnect") {
+    url.searchParams.set("symbol", selected.symbol);
+    url.searchParams.set("provider", "FOREXCONNECT");
     url.searchParams.set("timeframe", timeframe);
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     return;

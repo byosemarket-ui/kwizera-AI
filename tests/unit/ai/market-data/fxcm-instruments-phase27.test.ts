@@ -295,7 +295,7 @@ describe("Forex Phase 27 — FXCM instrument discovery", () => {
     const registry = createMarketDataProviderRegistry({
       env: { KWIZERA_FXCM_ENABLED: "0" },
     });
-    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM"]);
+    expect(registry.listProviderIds()).toEqual(["BINANCE", "FXCM", "FOREXCONNECT"]);
     const snap = await registry.snapshot();
     expect(snap.providers.some((p) => p.info.provider === "BINANCE")).toBe(true);
   });

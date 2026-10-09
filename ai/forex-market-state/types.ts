@@ -155,7 +155,7 @@ export interface ForexBinanceMarketState {
   supportResistance: null;
   supportResistanceReason: "MANUAL_ONLY" | "INSUFFICIENT_DATA";
   dataQuality: MarketStateDataQuality;
-  dataSource: "binance-spot" | "fxcm-mid" | "none";
+  dataSource: "binance-spot" | "fxcm-mid" | "forexconnect-bid" | "none";
 }
 
 /** @deprecated Alias — use ForexBinanceMarketState (provider-aware). */

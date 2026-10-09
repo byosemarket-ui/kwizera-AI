@@ -51,19 +51,21 @@ function timeframeMinutes(timeframe: NormalizedTimeframeId): number {
 }
 
 function resolveProvider(input: BuildMarketStateInput): ForexMarketStateProvider {
-  return input.provider === "FXCM" ? "FXCM" : "BINANCE";
+  if (input.provider === "FXCM") return "FXCM";
+  if (input.provider === "FOREXCONNECT") return "FOREXCONNECT";
+  return "BINANCE";
 }
 
 function resolveMarketType(provider: ForexMarketStateProvider, input: BuildMarketStateInput): ForexMarketType {
   if (input.marketType) return input.marketType;
-  return provider === "FXCM" ? "FOREX" : "SPOT";
+  return provider === "FXCM" || provider === "FOREXCONNECT" ? "FOREX" : "SPOT";
 }
 
 function assertSymbol(symbol: string, provider: ForexMarketStateProvider): string {
   const compact = normalizeCanonicalSymbol(symbol);
-  if (provider === "FXCM") {
+  if (provider === "FXCM" || provider === "FOREXCONNECT") {
     if (!/^[A-Z0-9]{4,30}$/.test(compact)) {
-      throw new Error("Invalid FXCM symbol for market state.");
+      throw new Error(`Invalid ${provider} symbol for market state.`);
     }
     return compact;
   }
@@ -74,7 +76,9 @@ function assertSymbol(symbol: string, provider: ForexMarketStateProvider): strin
 }
 
 function dataSourceFor(provider: ForexMarketStateProvider): ForexBinanceMarketState["dataSource"] {
-  return provider === "FXCM" ? "fxcm-mid" : "binance-spot";
+  if (provider === "FXCM") return "fxcm-mid";
+  if (provider === "FOREXCONNECT") return "forexconnect-bid";
+  return "binance-spot";
 }
 
 function buildBasicStructure(

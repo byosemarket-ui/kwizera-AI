@@ -265,6 +265,30 @@ export const forexProvidersApi = {
       fetchedAt?: string | null;
       note?: string;
     }>("/api/forex/providers/forexconnect/instruments"),
+  forexConnectCandles: (params: {
+    symbol: string;
+    timeframe: string;
+    limit?: number;
+  }) => {
+    const q = new URLSearchParams();
+    q.set("symbol", params.symbol);
+    q.set("timeframe", params.timeframe);
+    if (params.limit != null) q.set("limit", String(params.limit));
+    return request<{
+      ok: boolean;
+      count: number;
+      candles: Array<Record<string, unknown>>;
+      providerSymbol?: string;
+      timeframe?: string;
+      periodId?: string;
+      priceBasis?: string;
+      fetchedAt?: string | null;
+      lastHistoricalAt?: string | null;
+      note?: string;
+      supportedTimeframes?: string[];
+      error?: { code: string; message: string };
+    }>(`/api/forex/providers/forexconnect/candles?${q.toString()}`);
+  },
   fxcmHistorical: (params: {
     symbol: string;
     timeframe: string;
