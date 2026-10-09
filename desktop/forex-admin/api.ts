@@ -222,6 +222,49 @@ export const forexProvidersApi = {
       method: "POST",
       body: "{}",
     }),
+  forexConnectStatus: () =>
+    request<{
+      ok: boolean;
+      status: string;
+      enabled: boolean;
+      configured: boolean;
+      environmentLabel?: string;
+      sdkAvailable?: boolean;
+      sidecarReachable?: boolean;
+      instrumentCount?: number;
+      connectedAt?: string | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+      sdkImportError?: string | null;
+      note?: string;
+    }>("/api/forex/providers/forexconnect/status"),
+  forexConnectConnect: () =>
+    request<{
+      ok: boolean;
+      status: string;
+      instrumentCount?: number;
+      errorMessage?: string | null;
+      errorCode?: string | null;
+    }>("/api/forex/providers/forexconnect/connect", {
+      method: "POST",
+      body: "{}",
+    }),
+  forexConnectDisconnect: () =>
+    request<{
+      ok: boolean;
+      status: string;
+    }>("/api/forex/providers/forexconnect/disconnect", {
+      method: "POST",
+      body: "{}",
+    }),
+  forexConnectInstruments: () =>
+    request<{
+      ok: boolean;
+      count: number;
+      instruments: Array<Record<string, unknown>>;
+      fetchedAt?: string | null;
+      note?: string;
+    }>("/api/forex/providers/forexconnect/instruments"),
   fxcmHistorical: (params: {
     symbol: string;
     timeframe: string;

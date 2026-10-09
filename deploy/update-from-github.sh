@@ -212,6 +212,18 @@ restart_service() {
     echo "[KWIZERA] systemd unit was not updated to production-gateway.js" >&2
     return 1
   fi
+  # Phase 33 — optional ForexConnect sidecar (localhost only). Never blocks main deploy.
+  if [[ -f "$APP_DIR/deploy/kwizera-forexconnect.service" ]]; then
+    install -m 644 "$APP_DIR/deploy/kwizera-forexconnect.service" /etc/systemd/system/kwizera-forexconnect.service
+    if grep -Eq '^[[:space:]]*KWIZERA_FOREXCONNECT_ENABLED[[:space:]]*=[[:space:]]*(1|true|yes|on)' "$APP_DIR/.env" 2>/dev/null; then
+      echo "[KWIZERA] enabling ForexConnect sidecar (localhost:5179)"
+      systemctl enable kwizera-forexconnect.service 2>/dev/null || true
+      systemctl restart kwizera-forexconnect.service 2>/dev/null || echo "[KWIZERA] ForexConnect sidecar restart skipped/failed (install python3 + forexconnect on VPS)" >&2
+    else
+      echo "[KWIZERA] ForexConnect sidecar unit installed; left disabled (KWIZERA_FOREXCONNECT_ENABLED not set)"
+      systemctl disable --now kwizera-forexconnect.service 2>/dev/null || true
+    fi
+  fi
   systemctl daemon-reload
   systemctl reset-failed "$SERVICE" 2>/dev/null || true
   if ! systemctl restart "$SERVICE"; then

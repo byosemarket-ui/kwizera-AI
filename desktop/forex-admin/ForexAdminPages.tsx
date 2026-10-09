@@ -24,6 +24,7 @@ import {
 import { ForexAdminInstrumentsPage } from "./ForexAdminInstrumentsPage";
 import { ForexAdminHistoricalPage } from "./ForexAdminHistoricalPage";
 import { ForexAdminStreamPage } from "./ForexAdminStreamPage";
+import { ForexAdminForexConnectPage } from "./ForexAdminForexConnectPage";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -124,13 +125,22 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
           </li>
         </ul>
       </section>
+      <section className="fxa-card" data-forex-admin-forexconnect-summary>
+        <h3>FOREXCONNECT (Phase 33)</h3>
+        <p className="fxa-muted">
+          Official FXCM ForexConnect SDK via localhost sidecar (username/password — not Socket REST token).
+          Open the ForexConnect page to connect and discover instruments.
+        </p>
+        <button type="button" className="fxa-btn" onClick={() => onOpen("/admin/forex/forexconnect")}>
+          Open ForexConnect
+        </button>
+      </section>
       <section className="fxa-card" data-forex-admin-fxcm-status>
-        <h3>FXCM MARKET DATA</h3>
+        <h3>FXCM SOCKET REST (legacy path)</h3>
         <p className="fxa-muted">
           Phases 26–30: authentication, discovery, historical, streaming, live candles via Socket REST.
-          Trading disabled. CONNECTED ≠ LIVE. ForexConnect native SDK is not integrated into this Node gateway
-          (see docs/forex-fxcm-forexconnect-investigation.md). Use Trading Station Web access token +
-          KWIZERA_FXCM_* env; Live REST may require api@fxcm.com enablement.
+          Trading disabled. CONNECTED ≠ LIVE. Prefer ForexConnect for live-account username/password auth.
+          Socket REST still uses Trading Station Web access token (KWIZERA_FXCM_*).
         </p>
         <ul>
           <li>Provider: FXCM</li>
@@ -724,6 +734,7 @@ export function ForexAdminNotFound({ onOpen }: { onOpen: (path: string) => void 
 export function titleForView(view: ForexAdminViewId): string {
   const map: Record<string, string> = {
     dashboard: "Forex AI Admin Dashboard",
+    forexconnect: "ForexConnect",
     instruments: "FXCM Instruments",
     "historical-data": "FXCM Historical Data",
     stream: "FXCM Real-Time Stream",
@@ -765,6 +776,8 @@ export function ForexAdminPageRouter({
     switch (view) {
       case "dashboard":
         return <ForexAdminDashboardPage onOpen={onOpen} />;
+      case "forexconnect":
+        return <ForexAdminForexConnectPage />;
       case "instruments":
         return <ForexAdminInstrumentsPage onOpen={onOpen} />;
       case "historical-data":

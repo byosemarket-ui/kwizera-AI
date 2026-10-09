@@ -1,0 +1,5 @@
+# Official FXCM ForexConnect Python package (native wheels; OS/arch specific).
+# Install on the VPS only after confirming a compatible wheel exists for the host.
+# pip install forexconnect
+# Or install the Gehtsoft wheel matching your OS from FXCM / fxcodebase downloads.
+forexconnect>=1.6.43
