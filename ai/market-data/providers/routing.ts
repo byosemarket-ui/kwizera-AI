@@ -1,6 +1,9 @@
 /**
  * Provider routing helpers — prevent Binance/FXCM symbol collisions.
+ * Phase 31: explicit provider is mandatory for authoritative requests;
+ * heuristics are only for legacy convenience and never imply fallback.
  */
+import { marketIdentityKey as identityKey } from "./identity.js";
 import type { MarketProviderId } from "./types.js";
 
 const CRYPTO_SUFFIXES = ["USDT", "USDC", "BUSD", "BTC", "ETH", "BNB", "FDUSD", "TUSD"];
@@ -25,7 +28,7 @@ export function looksLikeFxcmForexSymbol(symbol: string): boolean {
 
 /**
  * Select provider for a symbol request.
- * Explicit provider always wins. Otherwise heuristics route crypto→BINANCE, FX→FXCM.
+ * Explicit provider always wins. No silent cross-provider fallback.
  */
 export function resolveMarketProviderForSymbol(
   symbol: string,
@@ -39,10 +42,35 @@ export function resolveMarketProviderForSymbol(
   return "BINANCE";
 }
 
+/** @deprecated Prefer identity.marketIdentityKey — kept for Phase 25 tests. */
 export function marketIdentityKey(input: {
   provider: MarketProviderId;
   marketType: string;
   symbol: string;
 }): string {
-  return `${input.provider}|${input.marketType}|${String(input.symbol).toUpperCase()}`;
+  return identityKey(input);
+}
+
+/**
+ * Reject requests that would silently substitute another provider.
+ * Returns an error code when the explicit provider is missing or unknown.
+ */
+export function requireExplicitProvider(
+  explicit?: MarketProviderId | string | null,
+): { ok: true; provider: MarketProviderId } | { ok: false; code: "PROVIDER_REQUIRED" | "UNKNOWN_PROVIDER"; message: string } {
+  const raw = String(explicit ?? "").trim();
+  if (!raw) {
+    return {
+      ok: false,
+      code: "PROVIDER_REQUIRED",
+      message: "provider is required. Never route by symbol alone.",
+    };
+  }
+  const p = raw.toUpperCase();
+  if (p === "BINANCE" || p === "FXCM") return { ok: true, provider: p };
+  return {
+    ok: false,
+    code: "UNKNOWN_PROVIDER",
+    message: `Unknown provider "${raw}". Supported: BINANCE, FXCM.`,
+  };
 }

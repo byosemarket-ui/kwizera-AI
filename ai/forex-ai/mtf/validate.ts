@@ -155,10 +155,10 @@ export function parseMtfAiAnalysis(
       generatedAt: new Date().toISOString(),
       narrativeStatus: "MODEL",
       market: {
-        exchange: "BINANCE",
+        exchange: context.mtf.exchange,
         symbol: context.mtf.symbol,
         displaySymbol: context.mtf.displaySymbol,
-        marketType: "CRYPTO",
+        marketType: context.mtf.exchange === "FXCM" ? "FOREX" : "CRYPTO",
       },
       timeframes: context.mtf.timeframes,
       timeframeStates: context.mtf.slots.map((s) => s.compact),

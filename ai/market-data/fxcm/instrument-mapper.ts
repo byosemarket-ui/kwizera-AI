@@ -2,7 +2,7 @@
  * Map FXCM provider symbols → canonical / display forms.
  * Driven by provider metadata — never invents instruments or prices.
  */
-import { FXCM_PHASE29_CAPABILITIES } from "./config.js";
+import { FXCM_PHASE31_CAPABILITIES } from "./config.js";
 import { FXCM_INSTRUMENT_TYPE_MAP, type FxcmRawInstrument } from "./types.js";
 import type { MarketAssetType, MarketInstrument, NormalizedMarketQuote } from "../providers/types.js";
 import type {
@@ -56,8 +56,8 @@ export function mapFxcmInstrumentType(rawType: unknown, providerSymbol: string):
 }
 
 function phaseCapabilities(): MarketInstrument["capabilities"] {
-  // Phase 29 enables live/streaming quotes; trading remains disabled.
-  return { ...FXCM_PHASE29_CAPABILITIES };
+  // Phase 31: historical + streaming + live candles; trading remains disabled.
+  return { ...FXCM_PHASE31_CAPABILITIES };
 }
 
 export function mapFxcmRawInstrument(raw: FxcmRawInstrument): MarketInstrument | null {

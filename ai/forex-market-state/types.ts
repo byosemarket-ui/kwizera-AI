@@ -1,9 +1,11 @@
 /**
- * Real Binance Market State — Phase 18.
+ * Provider-aware Market State — Phases 18 + 31.
  * Facts only. AI reasoning consumes this later; never invent market numbers.
+ * Same engine for BINANCE and FXCM — provider identity is always retained.
  */
 
 import type { NormalizedTimeframeId } from "../market-data/binance/types.js";
+import type { MarketProviderId } from "../market-data/providers/types.js";
 
 export const FOREX_MARKET_STATE_VERSION = "forex-market-state-v1";
 
@@ -17,7 +19,8 @@ export type MarketStateConnection =
   | "ERROR"
   | "NO_DATA";
 
-export type ForexMarketType = "SPOT";
+export type ForexMarketStateProvider = MarketProviderId;
+export type ForexMarketType = "SPOT" | "CRYPTO" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
 export type TrendDirection = "BULLISH" | "BEARISH" | "NEUTRAL";
 export type TrendStrength = "STRONG" | "MODERATE" | "WEAK" | "UNKNOWN";
 export type MomentumClassification = "STRONG" | "POSITIVE" | "NEUTRAL" | "NEGATIVE" | "WEAK";
@@ -31,7 +34,7 @@ export interface MarketStateCandle {
   low: number;
   close: number;
   volume: number;
-  /** Unix seconds — Binance candle open. */
+  /** Unix seconds — candle open. */
   openTime: number;
   /** Unix seconds — interval end (open + timeframe). */
   closeTime: number;
@@ -121,12 +124,20 @@ export interface MarketStateDataQuality {
   reason?: string;
 }
 
-/** Authoritative structured market facts for one symbol+timeframe. */
+/**
+ * Authoritative structured market facts for one provider+symbol+timeframe.
+ * `exchange` mirrors `provider` for Phase 17–22 AI contract compatibility.
+ */
 export interface ForexBinanceMarketState {
   version: typeof FOREX_MARKET_STATE_VERSION;
-  exchange: "BINANCE";
+  /** Authoritative provider identity (Phase 31). */
+  provider: ForexMarketStateProvider;
+  /** Alias of provider — kept for AI / Decision consumers. */
+  exchange: ForexMarketStateProvider;
   symbol: string;
   displaySymbol: string;
+  providerSymbol: string;
+  canonicalSymbol: string;
   marketType: ForexMarketType;
   timeframe: NormalizedTimeframeId;
   candleOpenTime: number | null;
@@ -144,12 +155,16 @@ export interface ForexBinanceMarketState {
   supportResistance: null;
   supportResistanceReason: "MANUAL_ONLY" | "INSUFFICIENT_DATA";
   dataQuality: MarketStateDataQuality;
-  dataSource: "binance-spot";
+  dataSource: "binance-spot" | "fxcm-mid" | "none";
 }
+
+/** @deprecated Alias — use ForexBinanceMarketState (provider-aware). */
+export type ForexMarketStateSnapshot = ForexBinanceMarketState;
 
 export interface ForexMarketStateSet {
   version: typeof FOREX_MARKET_STATE_VERSION;
-  exchange: "BINANCE";
+  provider: ForexMarketStateProvider;
+  exchange: ForexMarketStateProvider;
   symbol: string;
   displaySymbol: string;
   states: Partial<Record<NormalizedTimeframeId, ForexBinanceMarketState>>;
@@ -168,7 +183,13 @@ export interface BuildMarketStateInput {
     closed?: boolean;
   }>;
   connection: MarketStateConnection;
-  /** Binance event time ms when available. */
+  /** Market event time ms when available. */
   lastMarketUpdateMs?: number | null;
   nowMs?: number;
+  /** Explicit provider — defaults to BINANCE for legacy callers. */
+  provider?: ForexMarketStateProvider;
+  marketType?: ForexMarketType;
+  displaySymbol?: string;
+  providerSymbol?: string;
+  canonicalSymbol?: string;
 }

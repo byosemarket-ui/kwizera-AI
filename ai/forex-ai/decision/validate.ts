@@ -163,10 +163,10 @@ export function assembleDecisionAnalysis(input: {
     generatedAt: new Date().toISOString(),
     narrativeStatus: input.narrativeStatus,
     market: {
-      exchange: "BINANCE",
+      exchange: pack.mtf.exchange,
       symbol: pack.mtf.symbol,
       displaySymbol: pack.mtf.displaySymbol,
-      marketType: "SPOT",
+      marketType: pack.mtf.marketType,
       currentPrice: pack.entryZone.currentPrice,
     },
     timeframes: pack.mtf.timeframes,

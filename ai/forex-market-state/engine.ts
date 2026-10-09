@@ -1,9 +1,10 @@
 /**
- * Real Binance Market State Engine — Phase 18.
- * Consumes validated Binance candles (same series as Charts/TA).
- * Does not open WebSockets or invent market values.
+ * Provider-aware Market State Engine — Phases 18 + 31.
+ * Consumes validated candles from the unified market-data layer (Binance or FXCM).
+ * Does not invent market values. Same engine — provider identity retained.
  */
 import { toDisplaySymbol } from "../market-data/binance/adapter.js";
+import { normalizeCanonicalSymbol } from "../market-data/providers/identity.js";
 import type { NormalizedTimeframeId } from "../market-data/binance/types.js";
 import {
   calculateATR,
@@ -28,6 +29,8 @@ import {
   FOREX_MARKET_STATE_VERSION,
   type BuildMarketStateInput,
   type ForexBinanceMarketState,
+  type ForexMarketStateProvider,
+  type ForexMarketType,
   type MarketStateCandle,
   type MarketStateIndicators,
 } from "./types.js";
@@ -47,12 +50,31 @@ function timeframeMinutes(timeframe: NormalizedTimeframeId): number {
   return TIMEFRAME_MINUTES[timeframe] ?? 60;
 }
 
-function assertSymbol(symbol: string): string {
-  const compact = symbol.replace(/[/_-]/g, "").trim().toUpperCase();
+function resolveProvider(input: BuildMarketStateInput): ForexMarketStateProvider {
+  return input.provider === "FXCM" ? "FXCM" : "BINANCE";
+}
+
+function resolveMarketType(provider: ForexMarketStateProvider, input: BuildMarketStateInput): ForexMarketType {
+  if (input.marketType) return input.marketType;
+  return provider === "FXCM" ? "FOREX" : "SPOT";
+}
+
+function assertSymbol(symbol: string, provider: ForexMarketStateProvider): string {
+  const compact = normalizeCanonicalSymbol(symbol);
+  if (provider === "FXCM") {
+    if (!/^[A-Z0-9]{4,30}$/.test(compact)) {
+      throw new Error("Invalid FXCM symbol for market state.");
+    }
+    return compact;
+  }
   if (!/^[A-Z0-9]{4,30}$/.test(compact)) {
     throw new Error("Invalid Binance symbol for market state.");
   }
   return compact;
+}
+
+function dataSourceFor(provider: ForexMarketStateProvider): ForexBinanceMarketState["dataSource"] {
+  return provider === "FXCM" ? "fxcm-mid" : "binance-spot";
 }
 
 function buildBasicStructure(
@@ -88,14 +110,22 @@ function emptyInvalidState(
   connection: BuildMarketStateInput["connection"],
   reason: string,
   nowMs: number,
+  provider: ForexMarketStateProvider,
+  marketType: ForexMarketType,
   candleCount = 0,
+  displaySymbol?: string,
 ): ForexBinanceMarketState {
+  const display = displaySymbol
+    ?? (provider === "BINANCE" ? toDisplaySymbol(symbol) : symbol);
   return {
     version: FOREX_MARKET_STATE_VERSION,
-    exchange: "BINANCE",
+    provider,
+    exchange: provider,
     symbol,
-    displaySymbol: toDisplaySymbol(symbol),
-    marketType: "SPOT",
+    displaySymbol: display,
+    providerSymbol: symbol,
+    canonicalSymbol: normalizeCanonicalSymbol(symbol),
+    marketType,
     timeframe,
     candleOpenTime: null,
     candleCloseTime: null,
@@ -124,18 +154,28 @@ function emptyInvalidState(
       valid: false,
       reason,
     },
-    dataSource: "binance-spot",
+    dataSource: dataSourceFor(provider),
   };
 }
 
-/** Build authoritative Market State from a validated Binance candle series. */
+/** Build authoritative Market State from a validated candle series (any registered provider). */
 export function buildForexMarketState(input: BuildMarketStateInput): ForexBinanceMarketState {
   const nowMs = input.nowMs ?? Date.now();
+  const provider = resolveProvider(input);
+  const marketType = resolveMarketType(provider, input);
   let symbol: string;
   try {
-    symbol = assertSymbol(input.symbol);
+    symbol = assertSymbol(input.symbol, provider);
   } catch {
-    return emptyInvalidState("INVALID", input.timeframe, input.connection, "INVALID_SYMBOL", nowMs);
+    return emptyInvalidState(
+      "INVALID",
+      input.timeframe,
+      input.connection,
+      "INVALID_SYMBOL",
+      nowMs,
+      provider,
+      marketType,
+    );
   }
 
   const sanitized = sanitizeCandles(input.candles.map((candle) => ({
@@ -149,12 +189,21 @@ export function buildForexMarketState(input: BuildMarketStateInput): ForexBinanc
   })));
 
   if (sanitized.length === 0) {
-    return emptyInvalidState(symbol, input.timeframe, input.connection, "NO_VALID_CANDLES", nowMs, 0);
+    return emptyInvalidState(
+      symbol,
+      input.timeframe,
+      input.connection,
+      "NO_VALID_CANDLES",
+      nowMs,
+      provider,
+      marketType,
+      0,
+      input.displaySymbol,
+    );
   }
 
   const minutes = timeframeMinutes(input.timeframe);
   const last = sanitized[sanitized.length - 1]!;
-  /** Change reference = previous candle close (prior interval), not invented session open. */
   const previousCandle = sanitized.length > 1 ? sanitized[sanitized.length - 2]! : null;
 
   const openTime = last.time;
@@ -222,12 +271,20 @@ export function buildForexMarketState(input: BuildMarketStateInput): ForexBinanc
   const stale = input.connection !== "LIVE"
     || (lastUpdate != null && nowMs - lastUpdate > staleLimitMs(minutes));
 
+  const displaySymbol = input.displaySymbol
+    ?? (provider === "BINANCE" ? toDisplaySymbol(symbol) : (input.providerSymbol ?? symbol));
+  const providerSymbol = input.providerSymbol ?? (provider === "BINANCE" ? symbol : displaySymbol);
+  const canonicalSymbol = input.canonicalSymbol ?? symbol;
+
   return {
     version: FOREX_MARKET_STATE_VERSION,
-    exchange: "BINANCE",
+    provider,
+    exchange: provider,
     symbol,
-    displaySymbol: toDisplaySymbol(symbol),
-    marketType: "SPOT",
+    displaySymbol,
+    providerSymbol,
+    canonicalSymbol,
+    marketType,
     timeframe: input.timeframe,
     candleOpenTime: openTime,
     candleCloseTime: closeTime,
@@ -281,6 +338,6 @@ export function buildForexMarketState(input: BuildMarketStateInput): ForexBinanc
       valid: true,
       reason: stale ? "STALE_OR_NOT_LIVE" : undefined,
     },
-    dataSource: "binance-spot",
+    dataSource: dataSourceFor(provider),
   };
 }

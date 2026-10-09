@@ -24,10 +24,10 @@ export function assembleMtfMarketStateOnly(input: {
     generatedAt: new Date().toISOString(),
     narrativeStatus: "MARKET_STATE_ONLY",
     market: {
-      exchange: "BINANCE",
+      exchange: mtf.exchange,
       symbol: mtf.symbol,
       displaySymbol: mtf.displaySymbol,
-      marketType: "CRYPTO",
+      marketType: mtf.exchange === "FXCM" ? "FOREX" : "CRYPTO",
     },
     timeframes: mtf.timeframes,
     timeframeStates: mtf.slots.map((s) => s.compact),

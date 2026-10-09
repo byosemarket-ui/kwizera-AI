@@ -20,6 +20,7 @@ export function ForexAdminAiConfigurationPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [providers, setProviders] = useState<Array<{ info: Record<string, unknown>; health: Record<string, unknown> }>>([]);
+  const [unifiedNote, setUnifiedNote] = useState<string>("");
 
   const load = () => {
     void forexIntelligenceApi.configuration()
@@ -33,6 +34,9 @@ export function ForexAdminAiConfigurationPage() {
     void forexProvidersApi.list()
       .then((res) => setProviders(res.providers))
       .catch(() => setProviders([]));
+    void forexProvidersApi.unifiedStatus()
+      .then((res) => setUnifiedNote(res.note ?? `Phase ${res.phase} unified market-data health.`))
+      .catch(() => setUnifiedNote(""));
   };
 
   useEffect(() => { load(); }, []);
@@ -87,7 +91,8 @@ export function ForexAdminAiConfigurationPage() {
       <section className="fxa-card" data-forex-admin-market-providers>
         <h3>Market Data Providers</h3>
         <p className="fxa-muted">
-          Status only — no FXCM trading controls. Phase 27 discovery available; live FXCM stream is not enabled.
+          Phase 31 unified registry — BINANCE + FXCM. Trading disabled. No cross-provider fallback.
+          {unifiedNote ? ` ${unifiedNote}` : ""}
         </p>
         {providers.length === 0 ? (
           <p className="fxa-muted">Loading provider status…</p>
@@ -97,7 +102,7 @@ export function ForexAdminAiConfigurationPage() {
           const caps = (info.capabilities as Record<string, boolean>) ?? {};
           const isFxcm = String(info.provider) === "FXCM";
           return (
-            <article key={String(info.provider)} style={{ marginBottom: 12 }}>
+            <article key={String(info.provider)} style={{ marginBottom: 12 }} data-provider={String(info.provider)}>
               <strong>{String(info.displayName ?? info.provider)}</strong>
               {" · "}
               <Badge
@@ -111,13 +116,13 @@ export function ForexAdminAiConfigurationPage() {
                 <li>streamingQuotes: {String(caps.streamingQuotes)}</li>
                 <li>historicalPrices: {String(caps.historicalPrices)}</li>
                 <li>candles: {String(caps.candles)}</li>
+                <li>liveCandles: {String(caps.liveCandles)}</li>
                 <li>trading: {String(caps.trading)}</li>
                 {isFxcm ? (
                   <>
                     <li>authenticated: {String(health.authenticated)}</li>
-                    <li>Market data: NOT_STARTED</li>
-                    <li>Live Stream: NOT ENABLED YET</li>
-                    <li>FXCM authenticated ≠ LIVE</li>
+                    <li>liveStreamEnabled: {String(health.liveStreamEnabled)}</li>
+                    <li>CONNECTED ≠ LIVE</li>
                   </>
                 ) : null}
               </ul>

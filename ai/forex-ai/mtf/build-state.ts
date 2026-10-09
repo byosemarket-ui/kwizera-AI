@@ -1,11 +1,14 @@
 /**
  * Build multi-timeframe Market State using Phase 18 engine only (no second pipeline).
+ * Phase 31: all timeframes for a request must come from the same explicit provider.
  */
 import { buildForexMarketState } from "../../forex-market-state/index.js";
 import type { ForexBinanceMarketState } from "../../forex-market-state/types.js";
 import { parseInterval } from "../../market-data/binance/adapter.js";
 import type { BinanceMarketDataService } from "../../market-data/binance/service.js";
 import type { NormalizedTimeframeId } from "../../market-data/binance/types.js";
+import { getMarketDataService } from "../../market-data/providers/market-data-service.js";
+import type { MarketProviderId } from "../../market-data/providers/types.js";
 import { assessMarketStateForAnalysis, formatDisplaySymbol } from "../data-quality.js";
 import {
   FOREX_MTF_DEFAULT_STACK,
@@ -69,35 +72,78 @@ export async function buildMultiTimeframeMarketState(input: {
   binance: BinanceMarketDataService;
   nowMs?: number;
   required?: NormalizedTimeframeId[];
+  /** Explicit provider — defaults BINANCE. Never mixes providers across slots. */
+  provider?: MarketProviderId;
 }): Promise<ForexMultiTimeframeMarketState> {
-  const symbol = input.symbol.toUpperCase();
+  const provider: MarketProviderId = input.provider === "FXCM" ? "FXCM" : "BINANCE";
+  const symbol = provider === "FXCM"
+    ? input.symbol.trim()
+    : input.symbol.toUpperCase().replace(/[/_-\s]/g, "");
   const nowMs = input.nowMs ?? Date.now();
   const required = (input.required ?? FOREX_MTF_REQUIRED).filter((tf) =>
     input.timeframes.includes(tf),
   );
   const slots: ForexMtfSlot[] = [];
+  const marketData = getMarketDataService();
 
   for (const timeframe of input.timeframes) {
     let marketState: ForexBinanceMarketState | null = null;
     let quality = null;
     try {
-      const series = await input.binance.listKlines({ symbol, timeframe, limit: 300 });
-      if (series.symbol !== symbol) {
-        throw new Error(`Symbol mismatch: expected ${symbol}, got ${series.symbol}`);
+      if (provider === "BINANCE") {
+        const series = await input.binance.listKlines({ symbol, timeframe, limit: 300 });
+        if (series.symbol !== symbol) {
+          throw new Error(`Symbol mismatch: expected ${symbol}, got ${series.symbol}`);
+        }
+        if (series.timeframe !== timeframe) {
+          throw new Error(`Timeframe mismatch: expected ${timeframe}, got ${series.timeframe}`);
+        }
+        marketState = buildForexMarketState({
+          symbol: series.symbol,
+          timeframe: series.timeframe,
+          candles: series.candles,
+          connection: series.candles.length > 0 ? "CONNECTED" : "NO_DATA",
+          lastMarketUpdateMs: series.candles.length
+            ? series.candles[series.candles.length - 1]!.time * 1000
+            : null,
+          nowMs,
+          provider: "BINANCE",
+          marketType: "SPOT",
+        });
+      } else {
+        const series = await marketData.getHistoricalCandles({
+          provider: "FXCM",
+          symbol,
+          timeframe,
+          limit: 300,
+        });
+        if (series.identity.provider !== "FXCM") {
+          throw new Error("FXCM MTF refused cross-provider candles.");
+        }
+        marketState = buildForexMarketState({
+          symbol: series.identity.canonicalSymbol,
+          timeframe: series.timeframe,
+          candles: series.candles.map((c) => ({
+            time: c.time,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+            volume: c.volume ?? 0,
+            closed: c.isClosed,
+          })),
+          connection: series.candles.length > 0 ? "CONNECTED" : "NO_DATA",
+          lastMarketUpdateMs: series.candles.length
+            ? series.candles[series.candles.length - 1]!.time * 1000
+            : null,
+          nowMs,
+          provider: "FXCM",
+          marketType: "FOREX",
+          displaySymbol: series.identity.displaySymbol,
+          providerSymbol: series.identity.providerSymbol,
+          canonicalSymbol: series.identity.canonicalSymbol,
+        });
       }
-      if (series.timeframe !== timeframe) {
-        throw new Error(`Timeframe mismatch: expected ${timeframe}, got ${series.timeframe}`);
-      }
-      marketState = buildForexMarketState({
-        symbol: series.symbol,
-        timeframe: series.timeframe,
-        candles: series.candles,
-        connection: series.candles.length > 0 ? "CONNECTED" : "NO_DATA",
-        lastMarketUpdateMs: series.candles.length
-          ? series.candles[series.candles.length - 1]!.time * 1000
-          : null,
-        nowMs,
-      });
       quality = assessMarketStateForAnalysis(marketState, nowMs);
     } catch (error) {
       quality = {
@@ -119,11 +165,15 @@ export async function buildMultiTimeframeMarketState(input: {
     });
   }
 
+  const displaySymbol = provider === "BINANCE"
+    ? formatDisplaySymbol(symbol)
+    : (slots.find((s) => s.marketState)?.marketState?.displaySymbol ?? symbol);
+
   return {
-    symbol,
-    exchange: "BINANCE",
-    marketType: "SPOT",
-    displaySymbol: formatDisplaySymbol(symbol),
+    symbol: provider === "BINANCE" ? symbol : (slots.find((s) => s.marketState)?.marketState?.canonicalSymbol ?? symbol.replace(/[/_-\s]/g, "").toUpperCase()),
+    exchange: provider,
+    marketType: provider === "FXCM" ? "FOREX" : "SPOT",
+    displaySymbol,
     generatedAt: new Date(nowMs).toISOString(),
     timeframes: input.timeframes,
     required,

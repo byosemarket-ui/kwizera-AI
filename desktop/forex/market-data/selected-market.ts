@@ -68,6 +68,7 @@ export function parseSelectedMarket(
     venue: "binance-spot",
     symbol: compact,
     displaySymbol: toDisplaySymbol(compact),
+    provider: "BINANCE",
   };
 }
 

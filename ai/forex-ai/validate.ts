@@ -53,16 +53,31 @@ export function validateForexMarketState(input: unknown): {
     return { ok: false, code: "INVALID_MARKET_STATE", error: "Market state must be an object." };
   }
   const raw = input as Record<string, unknown>;
-  const symbol = asString(raw.symbol).toUpperCase();
+  const symbol = asString(raw.symbol).toUpperCase().replace(/[/_-\s]/g, "");
   const timeframe = asString(raw.timeframe).toLowerCase();
   if (!/^[A-Z0-9]{4,30}$/.test(symbol)) {
-    return { ok: false, code: "INVALID_MARKET_STATE", error: "symbol must be a Binance-style compact symbol." };
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "symbol must be a compact provider symbol." };
   }
   if (!timeframe) {
     return { ok: false, code: "INVALID_MARKET_STATE", error: "timeframe is required." };
   }
-  if (raw.exchange !== "BINANCE" || raw.marketType !== "SPOT") {
-    return { ok: false, code: "INVALID_MARKET_STATE", error: "exchange must be BINANCE and marketType SPOT." };
+  const exchange = raw.exchange === "FXCM" ? "FXCM" : raw.exchange === "BINANCE" ? "BINANCE" : null;
+  if (!exchange) {
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "exchange must be BINANCE or FXCM." };
+  }
+  const allowedMarketTypes = new Set(["SPOT", "FOREX", "CFD", "COMMODITY", "INDEX", "OTHER"]);
+  const marketTypeRaw = asString(raw.marketType).toUpperCase();
+  const marketType = allowedMarketTypes.has(marketTypeRaw)
+    ? marketTypeRaw as ForexMarketState["marketType"]
+    : null;
+  if (!marketType) {
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "marketType is invalid for the selected provider." };
+  }
+  if (exchange === "BINANCE" && marketType !== "SPOT") {
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "BINANCE marketType must be SPOT." };
+  }
+  if (exchange === "FXCM" && marketType === "SPOT") {
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "FXCM marketType must not be SPOT." };
   }
 
   const candleRaw = (raw.candle && typeof raw.candle === "object")
@@ -96,8 +111,8 @@ export function validateForexMarketState(input: unknown): {
 
   const market: ForexMarketState = {
     symbol,
-    exchange: "BINANCE",
-    marketType: "SPOT",
+    exchange,
+    marketType,
     timeframe,
     timestamp: typeof raw.timestamp === "string" ? raw.timestamp : null,
     price: asNullableNumber(raw.price),
@@ -138,7 +153,11 @@ export function validateForexMarketState(input: unknown): {
         ? srRaw.resistance.filter((n): n is number => typeof n === "number" && Number.isFinite(n))
         : [],
     },
-    dataSource: raw.dataSource === "binance-spot" ? "binance-spot" : "none",
+    dataSource: raw.dataSource === "binance-spot"
+      ? "binance-spot"
+      : raw.dataSource === "fxcm-mid"
+        ? "fxcm-mid"
+        : "none",
     live: raw.live === true,
   };
 
@@ -146,7 +165,8 @@ export function validateForexMarketState(input: unknown): {
 }
 
 export function marketStateHasAnalyzableFacts(market: ForexMarketState): boolean {
-  return market.dataSource === "binance-spot"
+  const knownSource = market.dataSource === "binance-spot" || market.dataSource === "fxcm-mid";
+  return knownSource
     && (
       market.price != null
       || market.candle.close != null
@@ -293,10 +313,10 @@ export function parseForexAiAnalysis(
     generatedAt: new Date().toISOString(),
     analysisType: context.analysisType ?? "MARKET_OVERVIEW",
     market: {
-      exchange: "BINANCE",
+      exchange: context.market.exchange,
       symbol: context.market.symbol,
       displaySymbol: formatDisplaySymbol(context.market.symbol),
-      marketType: "CRYPTO",
+      marketType: context.market.exchange === "FXCM" ? context.market.marketType : "CRYPTO",
       timeframe: context.market.timeframe,
     },
     dataQuality: {

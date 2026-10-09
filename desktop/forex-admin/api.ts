@@ -182,7 +182,7 @@ export const forexAdminMemoryApi = {
     ),
 };
 
-/** Phase 25 — Market-data providers (Binance + FXCM foundation). */
+/** Phase 25–31 — Market-data providers (Binance + FXCM). */
 export const forexProvidersApi = {
   list: () =>
     request<{
@@ -191,6 +191,13 @@ export const forexProvidersApi = {
       providers: Array<{ info: Record<string, unknown>; health: Record<string, unknown> }>;
       note?: string;
     }>("/api/forex/providers"),
+  unifiedStatus: () =>
+    request<{
+      ok: true;
+      phase: number;
+      providers: Array<Record<string, unknown>>;
+      note?: string;
+    }>("/api/forex/market-data/status"),
   fxcmStatus: () =>
     request<{
       ok: boolean;

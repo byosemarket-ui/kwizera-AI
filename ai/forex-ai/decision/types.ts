@@ -125,10 +125,10 @@ export interface ForexDecisionAnalysis {
   generatedAt: string;
   narrativeStatus: ForexDecisionNarrativeStatus;
   market: {
-    exchange: "BINANCE";
+    exchange: "BINANCE" | "FXCM";
     symbol: string;
     displaySymbol: string;
-    marketType: "SPOT";
+    marketType: "SPOT" | "FOREX";
     currentPrice: number | null;
   };
   timeframes: NormalizedTimeframeId[];

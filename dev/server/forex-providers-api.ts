@@ -72,7 +72,7 @@ export async function handleForexProvidersApi(
       sendJson(res, 200, {
         ok: true,
         ...snapshot,
-        note: "FXCM Phase 30 — historical + live candle sync; trading is not enabled.",
+        note: "Phase 31 unified market-data registry — BINANCE + FXCM; trading is not enabled.",
       });
       return true;
     }

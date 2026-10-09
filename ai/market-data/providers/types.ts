@@ -1,5 +1,5 @@
 /**
- * Provider-neutral market-data contracts (Phase 25).
+ * Provider-neutral market-data contracts (Phases 25–31).
  * Binance and FXCM both register through this layer.
  */
 
@@ -15,6 +15,8 @@ export const MARKET_ASSET_TYPES = [
   "TREASURY",
   "SHARE",
   "OTHER",
+  "UNKNOWN",
+  "STOCK",
 ] as const;
 export type MarketAssetType = (typeof MARKET_ASSET_TYPES)[number];
 
@@ -26,6 +28,10 @@ export const MARKET_DATA_QUALITY_STATES = [
   "NO_DATA",
   "INVALID",
   "PARTIAL",
+  "GAP",
+  "RECONNECTING",
+  "ERROR",
+  "VALID",
 ] as const;
 export type MarketDataQualityState = (typeof MARKET_DATA_QUALITY_STATES)[number];
 
@@ -48,6 +54,8 @@ export interface MarketDataCapabilities {
   streamingQuotes: boolean;
   historicalPrices: boolean;
   candles: boolean;
+  /** Phase 30/31 — historical + live forming candle sync. */
+  liveCandles: boolean;
   trading: boolean;
 }
 
@@ -115,3 +123,6 @@ export interface MarketDataProvider {
   listInstruments(options?: { refresh?: boolean }): Promise<MarketInstrument[]>;
   getInstrument(symbol: string): Promise<MarketInstrument | null>;
 }
+
+/** Explicit capability defaults — trading always false. */
+export const CAPABILITY_TRADING_DISABLED = false as const;

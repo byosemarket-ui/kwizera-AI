@@ -416,16 +416,46 @@ export function ForexChartWorkspace({
   const showChart = historyReady;
 
   const marketState = useMemo(() => {
-    // Phase 30: FXCM Market State remains deferred — only Binance feeds Market State here.
-    if (!binanceSelected || !selected || candles.length === 0) return null;
+    if (!selected || candles.length === 0) return null;
+    if (fxcmSelected) {
+      return buildForexMarketState({
+        symbol: selected.symbol,
+        timeframe,
+        candles,
+        connection: fxcmLive.live ? "LIVE" : (fxcmLive.state === "ready" ? "CONNECTED" : "NO_DATA"),
+        lastMarketUpdateMs: fxcmLive.lastQuoteAt
+          ? Date.parse(fxcmLive.lastQuoteAt)
+          : (last ? last.time * 1000 : null),
+        provider: "FXCM",
+        marketType: "FOREX",
+        displaySymbol: selected.displaySymbol,
+        providerSymbol: selected.symbol,
+        canonicalSymbol: selected.symbol.replace(/[/_-\s]/g, "").toUpperCase(),
+      });
+    }
+    if (!binanceSelected) return null;
     return buildForexMarketState({
       symbol: selected.symbol,
       timeframe,
       candles,
       connection: klineStatus,
       lastMarketUpdateMs: liveKline.kline?.eventTimeUtc ?? (last ? last.time * 1000 : null),
+      provider: "BINANCE",
+      marketType: "SPOT",
     });
-  }, [binanceSelected, selected, candles, timeframe, klineStatus, liveKline.kline?.eventTimeUtc, last]);
+  }, [
+    binanceSelected,
+    fxcmSelected,
+    selected,
+    candles,
+    timeframe,
+    klineStatus,
+    liveKline.kline?.eventTimeUtc,
+    last,
+    fxcmLive.live,
+    fxcmLive.state,
+    fxcmLive.lastQuoteAt,
+  ]);
 
   return (
     <section
@@ -438,8 +468,9 @@ export function ForexChartWorkspace({
       data-chart-symbol={selected?.symbol ?? ""}
       data-chart-timeframe={timeframe}
       data-market-venue={selected?.venue ?? "none"}
-      data-fx-source={binanceSelected ? "binance-spot" : "none"}
-      data-fx-symbol={binanceSelected ? selected.symbol : ""}
+      data-fx-provider={fxcmSelected ? "FXCM" : binanceSelected ? "BINANCE" : "none"}
+      data-fx-source={fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}
+      data-fx-symbol={(binanceSelected || fxcmSelected) && selected ? selected.symbol : ""}
       data-fx-timeframe={timeframe}
       data-fx-candle-count={canAnalyze ? String(candles.length) : "0"}
       data-fx-last-time={canAnalyze && last ? String(last.time) : ""}

@@ -48,8 +48,9 @@ export type ForexAiErrorCode =
 /** Structured market input for AI reasoning. Null = unknown (do not invent). */
 export interface ForexMarketState {
   symbol: string;
-  exchange: "BINANCE";
-  marketType: "SPOT";
+  /** Provider identity — BINANCE or FXCM (Phase 31). Never mixed. */
+  exchange: "BINANCE" | "FXCM";
+  marketType: "SPOT" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
   timeframe: string;
   timestamp: string | null;
   price: number | null;
@@ -84,7 +85,7 @@ export interface ForexMarketState {
     support: number[];
     resistance: number[];
   };
-  dataSource: "binance-spot" | "none";
+  dataSource: "binance-spot" | "fxcm-mid" | "none";
   live: boolean;
 }
 
@@ -113,10 +114,10 @@ export interface ForexAiAnalysis {
   generatedAt: string;
   analysisType: ForexAiAnalysisType;
   market: {
-    exchange: "BINANCE";
+    exchange: "BINANCE" | "FXCM";
     symbol: string;
     displaySymbol: string;
-    marketType: "SPOT" | "CRYPTO";
+    marketType: "SPOT" | "CRYPTO" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
     timeframe: string;
   };
   dataQuality: {
@@ -191,8 +192,8 @@ export interface ForexAiAnalysisRequest {
 export function emptyForexMarketState(partial?: Partial<ForexMarketState>): ForexMarketState {
   return {
     symbol: partial?.symbol ?? "",
-    exchange: "BINANCE",
-    marketType: "SPOT",
+    exchange: partial?.exchange ?? "BINANCE",
+    marketType: partial?.marketType ?? "SPOT",
     timeframe: partial?.timeframe ?? "",
     timestamp: partial?.timestamp ?? null,
     price: partial?.price ?? null,

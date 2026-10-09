@@ -1,17 +1,28 @@
 /**
- * Adapt Market State → Phase 17 ForexMarketState for future AI consumption.
+ * Adapt Market State → Phase 17 ForexMarketState for AI consumption.
+ * Provider identity is preserved; raw provider events are never forwarded.
  */
 import type { ForexMarketState } from "../forex-ai/types.js";
 import { emptyForexMarketState } from "../forex-ai/types.js";
 import type { ForexBinanceMarketState } from "./types.js";
 
 export function toForexAiMarketState(state: ForexBinanceMarketState): ForexMarketState {
+  const exchange = state.provider === "FXCM" ? "FXCM" : "BINANCE";
+  const marketType = state.provider === "FXCM"
+    ? (state.marketType === "SPOT" || state.marketType === "CRYPTO" ? "FOREX" : state.marketType)
+    : "SPOT";
+  const dataSource = state.dataSource === "fxcm-mid"
+    ? "fxcm-mid"
+    : state.dataSource === "binance-spot"
+      ? "binance-spot"
+      : "none";
+
   if (!state.dataQuality.valid || !state.candle || !state.price) {
     return emptyForexMarketState({
       symbol: state.symbol,
       timeframe: state.timeframe,
-      exchange: "BINANCE",
-      marketType: "SPOT",
+      exchange,
+      marketType: marketType === "CRYPTO" ? "SPOT" : marketType as ForexMarketState["marketType"],
       dataSource: "none",
       live: false,
       timestamp: null,
@@ -21,9 +32,9 @@ export function toForexAiMarketState(state: ForexBinanceMarketState): ForexMarke
   return emptyForexMarketState({
     symbol: state.symbol,
     timeframe: state.timeframe,
-    exchange: "BINANCE",
-    marketType: "SPOT",
-    dataSource: "binance-spot",
+    exchange,
+    marketType: marketType === "CRYPTO" ? "SPOT" : marketType as ForexMarketState["marketType"],
+    dataSource,
     live: state.dataQuality.connection === "LIVE" && !state.dataQuality.stale,
     timestamp: state.lastMarketUpdate != null
       ? new Date(state.lastMarketUpdate).toISOString()

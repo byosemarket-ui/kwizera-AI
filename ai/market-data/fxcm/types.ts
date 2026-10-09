@@ -69,6 +69,7 @@ export function emptyFxcmCapabilities(): MarketDataCapabilities {
     streamingQuotes: false,
     historicalPrices: false,
     candles: false,
+    liveCandles: false,
     trading: false,
   };
 }
@@ -81,6 +82,20 @@ export function phase29FxcmCapabilities(): MarketDataCapabilities {
     streamingQuotes: true,
     historicalPrices: true,
     candles: true,
+    liveCandles: false,
+    trading: false,
+  };
+}
+
+/** Phase 31 — live candles enabled for unified layer. */
+export function phase31FxcmCapabilities(): MarketDataCapabilities {
+  return {
+    instruments: true,
+    liveQuotes: true,
+    streamingQuotes: true,
+    historicalPrices: true,
+    candles: true,
+    liveCandles: true,
     trading: false,
   };
 }

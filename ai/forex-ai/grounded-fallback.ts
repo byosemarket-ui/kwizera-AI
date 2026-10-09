@@ -29,7 +29,7 @@ export function assembleGroundedMarketReadout(input: {
 }): ForexAiAnalysis {
   const { market } = input;
   const observedFacts = [
-    `Symbol ${market.symbol} · timeframe ${market.timeframe} · exchange BINANCE SPOT`,
+    `Symbol ${market.symbol} · timeframe ${market.timeframe} · exchange ${market.exchange} ${market.marketType}`,
     market.price != null ? `Last price ${market.price}` : "Last price unavailable",
     market.candle.close != null
       ? `Candle O=${market.candle.open} H=${market.candle.high} L=${market.candle.low} C=${market.candle.close} V=${market.candle.volume}`
@@ -50,10 +50,10 @@ export function assembleGroundedMarketReadout(input: {
     generatedAt: new Date().toISOString(),
     analysisType: input.analysisType,
     market: {
-      exchange: "BINANCE",
+      exchange: market.exchange,
       symbol: market.symbol,
       displaySymbol: formatDisplaySymbol(market.symbol),
-      marketType: "CRYPTO",
+      marketType: market.exchange === "FXCM" ? market.marketType : "CRYPTO",
       timeframe: market.timeframe,
     },
     dataQuality: {

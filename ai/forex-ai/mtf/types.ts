@@ -60,8 +60,8 @@ export interface ForexMtfSlot {
 
 export interface ForexMultiTimeframeMarketState {
   symbol: string;
-  exchange: "BINANCE";
-  marketType: "SPOT";
+  exchange: "BINANCE" | "FXCM";
+  marketType: "SPOT" | "FOREX";
   displaySymbol: string;
   generatedAt: string;
   timeframes: NormalizedTimeframeId[];
@@ -104,10 +104,10 @@ export interface ForexMtfAiAnalysis {
   generatedAt: string;
   narrativeStatus: ForexMtfNarrativeStatus;
   market: {
-    exchange: "BINANCE";
+    exchange: "BINANCE" | "FXCM";
     symbol: string;
     displaySymbol: string;
-    marketType: "SPOT" | "CRYPTO";
+    marketType: "SPOT" | "CRYPTO" | "FOREX";
   };
   timeframes: NormalizedTimeframeId[];
   timeframeStates: ForexMtfCompactFacts[];

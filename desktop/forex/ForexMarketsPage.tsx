@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { filterBinanceMarkets } from "../../ai/market-data/binance/adapter";
 import type { LiveTickerSnapshot, NormalizedMarket } from "../../ai/market-data/binance/types";
+import type { MarketInstrument, MarketProviderId } from "../../ai/market-data/providers/types";
 import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import { ForexEmptyState } from "./components/ForexEmptyState";
 import { useBinanceMarkets } from "./market-data/use-binance-markets";
+import { useUnifiedInstruments } from "./market-data/use-unified-instruments";
 import type { SelectedMarket } from "./market-data/selected-market";
 import { LiveTickerPanel } from "./LiveTickerPanel";
 
@@ -13,6 +15,10 @@ const QUOTE_FILTERS = ["ALL", "USDT", "USDC", "BTC", "ETH", "BNB"] as const;
 
 function statusTone(market: NormalizedMarket): "future" | "offline" {
   return market.tradable ? "future" : "offline";
+}
+
+function instrumentTone(instrument: MarketInstrument): "future" | "offline" {
+  return instrument.status === "available" ? "future" : "offline";
 }
 
 export function ForexMarketsPage({
@@ -26,13 +32,18 @@ export function ForexMarketsPage({
   liveTicker?: LiveTickerSnapshot | null;
   onOpenCharts: () => void;
 }) {
+  const [providerFilter, setProviderFilter] = useState<"ALL" | MarketProviderId>("ALL");
   const { result, refresh } = useBinanceMarkets();
+  const fxcmCatalog = useUnifiedInstruments({
+    provider: "FXCM",
+    enabled: providerFilter === "ALL" || providerFilter === "FXCM",
+  });
   const [query, setQuery] = useState("");
   const [quote, setQuote] = useState<(typeof QUOTE_FILTERS)[number]>("ALL");
   const [tradable, setTradable] = useState<"all" | "trading" | "not-trading">("all");
   const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const filtered = useMemo(
+  const filteredBinance = useMemo(
     () => filterBinanceMarkets(result.markets, {
       query,
       quoteAsset: quote === "ALL" ? "" : quote,
@@ -41,8 +52,22 @@ export function ForexMarketsPage({
     [result.markets, query, quote, tradable],
   );
 
-  const page = filtered.slice(0, visible);
-  const selectedSymbol = selected?.venue === "binance-spot" ? selected.symbol : null;
+  const filteredFxcm = useMemo(() => {
+    const q = query.trim().toUpperCase();
+    return fxcmCatalog.instruments.filter((item) => {
+      if (!q) return true;
+      const hay = `${item.providerSymbol} ${item.canonicalSymbol} ${item.displaySymbol}`.toUpperCase();
+      return hay.includes(q);
+    });
+  }, [fxcmCatalog.instruments, query]);
+
+  const showBinance = providerFilter === "ALL" || providerFilter === "BINANCE";
+  const showFxcm = providerFilter === "ALL" || providerFilter === "FXCM";
+  const binancePage = showBinance ? filteredBinance.slice(0, visible) : [];
+  const fxcmPage = showFxcm ? filteredFxcm.slice(0, visible) : [];
+  const selectedSymbol = selected?.venue === "binance-spot" || selected?.venue === "fxcm"
+    ? selected.symbol
+    : null;
 
   return (
     <section
@@ -50,26 +75,48 @@ export function ForexMarketsPage({
       data-forex-page="markets"
       data-forex-markets="true"
       data-market-symbol={selectedSymbol ?? ""}
+      data-provider-filter={providerFilter}
     >
       <ForexSectionHeader
         eyebrow="Market"
-        title="Binance Markets"
-        description="Spot market discovery from Binance exchange information. Selection updates the shared workspace market used by Dashboard, Charts, and Technical Analysis."
+        title="Markets"
+        description="Unified provider-aware catalog. Binance Spot and FXCM instruments stay isolated — selection updates the shared workspace market."
       />
 
       <p className="fx-panel-meta" role="note">
-        Market type: Spot. The catalog is identity-only. Live price for the selected symbol uses the shared Binance miniTicker stream.
+        Provider identity is required. FXCM Forex and Binance Crypto never share the same market identity.
       </p>
 
-      {selectedSymbol && liveTicker ? (
+      {selectedSymbol && selected?.venue === "binance-spot" && liveTicker ? (
         <div className="fx-markets-selected-ticker" data-markets-selected-ticker={selectedSymbol}>
           <p className="fx-panel-meta">
-            Active workspace market · {selected?.displaySymbol} ({selectedSymbol})
+            Active workspace market · {selected.displaySymbol} · Provider BINANCE
           </p>
           <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedSymbol} compact />
         </div>
       ) : null}
+      {selected?.venue === "fxcm" ? (
+        <p className="fx-panel-meta" data-markets-selected-fxcm={selected.symbol}>
+          Active workspace market · {selected.displaySymbol} · Provider FXCM · Market FOREX
+        </p>
+      ) : null}
+
       <div className="fx-markets-toolbar">
+        <label>
+          Provider
+          <select
+            aria-label="Filter by provider"
+            value={providerFilter}
+            onChange={(event) => {
+              setProviderFilter(event.target.value as "ALL" | MarketProviderId);
+              setVisible(PAGE_SIZE);
+            }}
+          >
+            <option value="ALL">All providers</option>
+            <option value="BINANCE">Binance</option>
+            <option value="FXCM">FXCM</option>
+          </select>
+        </label>
         <label className="fx-markets-search">
           Search
           <input
@@ -79,69 +126,83 @@ export function ForexMarketsPage({
               setQuery(event.target.value);
               setVisible(PAGE_SIZE);
             }}
-            placeholder="BTC, ETH, SOL, USDT, BTCUSDT"
-            aria-label="Search Binance markets"
+            placeholder="BTCUSDT, EUR/USD…"
+            aria-label="Search markets"
           />
         </label>
-        <label>
-          Quote
-          <select
-            aria-label="Filter by quote asset"
-            value={quote}
-            onChange={(event) => {
-              setQuote(event.target.value as (typeof QUOTE_FILTERS)[number]);
-              setVisible(PAGE_SIZE);
-            }}
-          >
-            {QUOTE_FILTERS.map((item) => (
-              <option key={item} value={item}>{item === "ALL" ? "All quotes" : item}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Status
-          <select
-            aria-label="Filter by market status"
-            value={tradable}
-            onChange={(event) => {
-              setTradable(event.target.value as "all" | "trading" | "not-trading");
-              setVisible(PAGE_SIZE);
-            }}
-          >
-            <option value="all">All statuses</option>
-            <option value="trading">Trading</option>
-            <option value="not-trading">Not trading</option>
-          </select>
-        </label>
-        <button type="button" className="fx-text-button" onClick={refresh}>Refresh</button>
+        {showBinance ? (
+          <>
+            <label>
+              Quote
+              <select
+                aria-label="Filter by quote asset"
+                value={quote}
+                onChange={(event) => {
+                  setQuote(event.target.value as (typeof QUOTE_FILTERS)[number]);
+                  setVisible(PAGE_SIZE);
+                }}
+              >
+                {QUOTE_FILTERS.map((item) => (
+                  <option key={item} value={item}>{item === "ALL" ? "All quotes" : item}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Status
+              <select
+                aria-label="Filter by market status"
+                value={tradable}
+                onChange={(event) => {
+                  setTradable(event.target.value as "all" | "trading" | "not-trading");
+                  setVisible(PAGE_SIZE);
+                }}
+              >
+                <option value="all">All statuses</option>
+                <option value="trading">Trading</option>
+                <option value="not-trading">Not trading</option>
+              </select>
+            </label>
+          </>
+        ) : null}
+        <button
+          type="button"
+          className="fx-text-button"
+          onClick={() => {
+            refresh();
+            fxcmCatalog.refresh();
+          }}
+        >
+          Refresh
+        </button>
       </div>
 
-      {result.state === "loading" ? (
+      {showBinance && result.state === "loading" ? (
         <p className="fx-page-desc" role="status">Loading Binance markets...</p>
       ) : null}
-      {result.state === "disconnected" ? (
+      {showFxcm && fxcmCatalog.state === "loading" ? (
+        <p className="fx-page-desc" role="status">Loading FXCM instruments...</p>
+      ) : null}
+      {showBinance && result.state === "disconnected" ? (
         <ForexEmptyState title="Binance market service unavailable." description={result.message} actionLabel="Retry" onAction={refresh} />
       ) : null}
-      {result.state === "error" ? (
+      {showBinance && result.state === "error" ? (
         <ForexEmptyState title="Unable to load Binance markets." description={result.message} actionLabel="Retry" onAction={refresh} />
       ) : null}
-      {result.state === "empty" ? (
-        <ForexEmptyState title="No Binance markets available." description="Binance returned no Spot symbols." actionLabel="Retry" onAction={refresh} />
-      ) : null}
-      {result.state === "ready" && filtered.length === 0 ? (
-        <ForexEmptyState title="No markets match your search." description="Try another symbol, base asset, or quote filter." />
+      {showFxcm && fxcmCatalog.state === "error" ? (
+        <ForexEmptyState title="Unable to load FXCM instruments." description={fxcmCatalog.message} actionLabel="Retry" onAction={fxcmCatalog.refresh} />
       ) : null}
 
-      {result.state === "ready" && page.length > 0 ? (
+      {showBinance && result.state === "ready" && binancePage.length > 0 ? (
         <>
           <p className="fx-panel-meta">
-            Showing {page.length} of {filtered.length} Spot markets
-            {result.restBaseHost ? ` · ${result.restBaseHost}` : ""} · no live prices
+            Binance · Showing {binancePage.length} of {filteredBinance.length} Spot markets
+            {result.restBaseHost ? ` · ${result.restBaseHost}` : ""}
           </p>
           <div className="fx-markets-table-wrap">
             <table className="fx-markets-table">
               <thead>
                 <tr>
+                  <th>Provider</th>
                   <th>Symbol</th>
                   <th>Base</th>
                   <th>Quote</th>
@@ -151,17 +212,18 @@ export function ForexMarketsPage({
                 </tr>
               </thead>
               <tbody>
-                {page.map((market) => {
-                  const active = market.symbol === selectedSymbol;
+                {binancePage.map((market) => {
+                  const active = selected?.venue === "binance-spot" && market.symbol === selected.symbol;
                   return (
-                    <tr key={market.symbol} data-selected={active ? "true" : "false"}>
+                    <tr key={`BINANCE:${market.symbol}`} data-selected={active ? "true" : "false"} data-provider="BINANCE">
+                      <td>BINANCE</td>
                       <td>
                         <strong>{market.symbol}</strong>
                         <span className="fx-panel-meta"> {market.displaySymbol}</span>
                       </td>
                       <td>{market.baseAsset}</td>
                       <td>{market.quoteAsset}</td>
-                      <td>Spot</td>
+                      <td>Crypto</td>
                       <td>
                         <ForexStatusBadge tone={statusTone(market)}>
                           {market.status}
@@ -176,6 +238,7 @@ export function ForexMarketsPage({
                             venue: "binance-spot",
                             symbol: market.symbol,
                             displaySymbol: market.displaySymbol,
+                            provider: "BINANCE",
                           })}
                         >
                           {active ? "Selected" : "Select"}
@@ -187,18 +250,97 @@ export function ForexMarketsPage({
               </tbody>
             </table>
           </div>
-          {visible < filtered.length ? (
-            <button type="button" className="fx-text-button" onClick={() => setVisible((count) => count + PAGE_SIZE)}>
-              Show more markets
-            </button>
-          ) : null}
-          {selectedSymbol ? (
-            <p className="fx-panel-meta">
-              Selected {selected?.displaySymbol ?? selectedSymbol}. Charts and Technical Analysis use this same workspace market.{" "}
-              <button type="button" className="fx-text-button" onClick={onOpenCharts}>Open Charts</button>
-            </p>
-          ) : null}
         </>
+      ) : null}
+
+      {showFxcm && fxcmPage.length > 0 ? (
+        <>
+          <p className="fx-panel-meta">
+            FXCM · Showing {fxcmPage.length} of {filteredFxcm.length} instruments
+          </p>
+          <div className="fx-markets-table-wrap">
+            <table className="fx-markets-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Symbol</th>
+                  <th>Base</th>
+                  <th>Quote</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Select</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fxcmPage.map((instrument) => {
+                  const active = selected?.venue === "fxcm"
+                    && selected.symbol.replace(/[/_-\s]/g, "").toUpperCase()
+                      === instrument.canonicalSymbol.toUpperCase();
+                  return (
+                    <tr
+                      key={`FXCM:${instrument.marketType}:${instrument.canonicalSymbol}`}
+                      data-selected={active ? "true" : "false"}
+                      data-provider="FXCM"
+                    >
+                      <td>FXCM</td>
+                      <td>
+                        <strong>{instrument.displaySymbol}</strong>
+                        <span className="fx-panel-meta"> {instrument.canonicalSymbol}</span>
+                      </td>
+                      <td>{instrument.baseAsset ?? "—"}</td>
+                      <td>{instrument.quoteAsset ?? "—"}</td>
+                      <td>{instrument.marketType}</td>
+                      <td>
+                        <ForexStatusBadge tone={instrumentTone(instrument)}>
+                          {instrument.status}
+                        </ForexStatusBadge>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="fx-text-button"
+                          aria-pressed={active}
+                          onClick={() => onSelect({
+                            venue: "fxcm",
+                            symbol: instrument.providerSymbol,
+                            displaySymbol: instrument.displaySymbol,
+                            provider: "FXCM",
+                          })}
+                        >
+                          {active ? "Selected" : "Select"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : null}
+
+      {showFxcm && fxcmCatalog.state === "empty" && providerFilter === "FXCM" ? (
+        <ForexEmptyState
+          title="No FXCM instruments available."
+          description="FXCM may be disabled or not configured on this server."
+          actionLabel="Retry"
+          onAction={fxcmCatalog.refresh}
+        />
+      ) : null}
+
+      {(binancePage.length > 0 || fxcmPage.length > 0) && (
+        <button type="button" className="fx-text-button" onClick={() => setVisible((count) => count + PAGE_SIZE)}>
+          Show more markets
+        </button>
+      )}
+
+      {selectedSymbol ? (
+        <p className="fx-panel-meta">
+          Selected {selected?.displaySymbol ?? selectedSymbol}
+          {selected?.provider ? ` · Provider ${selected.provider}` : ""}.
+          Charts and Technical Analysis use this same workspace market.{" "}
+          <button type="button" className="fx-text-button" onClick={onOpenCharts}>Open Charts</button>
+        </p>
       ) : null}
     </section>
   );

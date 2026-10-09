@@ -63,6 +63,7 @@ export class MarketDataProviderRegistry {
       streamingQuotes: true,
       historicalPrices: true,
       candles: true,
+      liveCandles: true,
       trading: false,
     };
 
@@ -131,6 +132,7 @@ function createBinanceRegistryAdapter(env?: Record<string, string | undefined>):
           streamingQuotes: true,
           historicalPrices: true,
           candles: true,
+          liveCandles: true,
           trading: false,
         },
       };
@@ -142,6 +144,7 @@ function createBinanceRegistryAdapter(env?: Record<string, string | undefined>):
         streamingQuotes: true,
         historicalPrices: true,
         candles: true,
+        liveCandles: true,
         trading: false,
       };
     },
@@ -190,6 +193,7 @@ function createBinanceRegistryAdapter(env?: Record<string, string | undefined>):
           streamingQuotes: true,
           historicalPrices: true,
           candles: true,
+          liveCandles: true,
           trading: false,
         },
         metadata: {
@@ -217,6 +221,7 @@ function createBinanceRegistryAdapter(env?: Record<string, string | undefined>):
           streamingQuotes: true,
           historicalPrices: true,
           candles: true,
+          liveCandles: true,
           trading: false,
         },
         metadata: { venue: market.venue, source: market.source },
@@ -243,4 +248,9 @@ export function resetMarketDataProviderRegistryForTests(): void {
   singleton = null;
 }
 
-export { FXCM_PHASE28_CAPABILITIES, FXCM_PHASE25_CAPABILITIES } from "../fxcm/config.js";
+export {
+  FXCM_PHASE28_CAPABILITIES,
+  FXCM_PHASE25_CAPABILITIES,
+  FXCM_PHASE29_CAPABILITIES,
+  FXCM_PHASE31_CAPABILITIES,
+} from "../fxcm/config.js";

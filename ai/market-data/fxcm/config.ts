@@ -38,6 +38,7 @@ export const FXCM_PHASE25_CAPABILITIES = {
   streamingQuotes: false,
   historicalPrices: false,
   candles: false,
+  liveCandles: false,
   trading: false,
 } as const;
 
@@ -48,6 +49,7 @@ export const FXCM_PHASE28_CAPABILITIES = {
   streamingQuotes: false,
   historicalPrices: true,
   candles: true,
+  liveCandles: false,
   trading: false,
 } as const;
 
@@ -61,6 +63,18 @@ export const FXCM_PHASE29_CAPABILITIES = {
   streamingQuotes: true,
   historicalPrices: true,
   candles: true,
+  liveCandles: false,
+  trading: false,
+} as const;
+
+/** Phase 30/31 — live candle sync + unified market-data layer. */
+export const FXCM_PHASE31_CAPABILITIES = {
+  instruments: true,
+  liveQuotes: true,
+  streamingQuotes: true,
+  historicalPrices: true,
+  candles: true,
+  liveCandles: true,
   trading: false,
 } as const;
 

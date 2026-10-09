@@ -4,7 +4,7 @@
  * No live candles, no trading.
  */
 import {
-  FXCM_PHASE29_CAPABILITIES,
+  FXCM_PHASE31_CAPABILITIES,
   resolveFxcmConfig,
   type FxcmConfig,
 } from "./config.js";
@@ -137,12 +137,12 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       apiPath: "FXCM Socket REST API (official)",
       marketTypes: ["FOREX", "CFD", "COMMODITY", "INDEX", "TREASURY", "SHARE", "OTHER"],
       environmentLabel: this.config.environmentLabel,
-      capabilities: { ...FXCM_PHASE29_CAPABILITIES },
+      capabilities: { ...FXCM_PHASE31_CAPABILITIES },
     };
   }
 
   getCapabilities() {
-    return { ...FXCM_PHASE29_CAPABILITIES };
+    return { ...FXCM_PHASE31_CAPABILITIES };
   }
 
   getLastHealth(): MarketProviderHealth | null {
