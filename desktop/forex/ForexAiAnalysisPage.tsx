@@ -206,6 +206,9 @@ export function ForexAiAnalysisPage({
 
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
+  const fxcmSelected = selectedMarket?.venue === "fxcm";
+  const marketReady = Boolean(binanceSelected || fxcmSelected);
+  const provider = fxcmSelected ? "FXCM" as const : "BINANCE" as const;
 
   useEffect(() => {
     let cancelled = false;
@@ -235,10 +238,10 @@ export function ForexAiAnalysisPage({
   };
 
   const runAnalysis = useCallback(async () => {
-    if (!binanceSelected || !selectedMarket) {
+    if (!marketReady || !selectedMarket) {
       setPhase("error");
       setAnalyzeCode("DATA_UNAVAILABLE");
-      setAnalyzeError("Select a Binance Spot symbol from Markets before analyzing.");
+      setAnalyzeError("Select a BINANCE or FXCM instrument from Markets before analyzing.");
       return;
     }
     setPhase("analyzing");
@@ -254,8 +257,18 @@ export function ForexAiAnalysisPage({
           ? "/api/forex/ai/multi-timeframe"
           : "/api/forex/ai/analyze";
       const body = mode === "decision" || mode === "mtf"
-        ? { symbol: selectedMarket.symbol, timeframes: mtfSelected, analysisType: "MARKET_OVERVIEW" }
-        : { symbol: selectedMarket.symbol, timeframe: tf, analysisType: "MARKET_OVERVIEW" };
+        ? {
+          provider,
+          symbol: selectedMarket.symbol,
+          timeframes: mtfSelected,
+          analysisType: "MARKET_OVERVIEW",
+        }
+        : {
+          provider,
+          symbol: selectedMarket.symbol,
+          timeframe: tf,
+          analysisType: "MARKET_OVERVIEW",
+        };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -286,7 +299,7 @@ export function ForexAiAnalysisPage({
       setAnalyzeCode("AI_ERROR");
       setAnalyzeError(err instanceof Error ? err.message : "AI analysis request failed");
     }
-  }, [binanceSelected, selectedMarket, mode, mtfSelected, tf]);
+  }, [marketReady, provider, selectedMarket, mode, mtfSelected, tf]);
 
   return (
     <section
@@ -298,12 +311,13 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase22="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
+      data-ai-provider={marketReady ? provider : ""}
       aria-labelledby="fx-page-ai-analysis"
     >
       <ForexSectionHeader
         eyebrow="AI Trading"
         title="AI Market Analysis"
-        description="Single-timeframe, multi-timeframe, and decision analysis from Binance Market State + Forex Knowledge. Interpretive only — not trade execution."
+        description="Single-timeframe, multi-timeframe, and decision analysis from provider-aware Market State + Forex Knowledge. Interpretive only — not trade execution."
       />
       <h2 id="fx-page-ai-analysis" className="fx-sr-only">AI Market Analysis</h2>
 
@@ -311,7 +325,9 @@ export function ForexAiAnalysisPage({
         <div className="fx-ai-toolbar">
           <div>
             <p className="fx-panel-meta">
-              Market: <strong data-ai-market-symbol="true">{binanceSelected ? selectedMarket!.displaySymbol : "None selected"}</strong>
+              Provider: <strong data-ai-market-provider="true">{marketReady ? provider : "None"}</strong>
+              {" · "}
+              Market: <strong data-ai-market-symbol="true">{marketReady ? selectedMarket!.displaySymbol : "None selected"}</strong>
               {mode === "single" ? <> · Timeframe <strong data-ai-market-timeframe="true">{tf}</strong></> : null}
             </p>
             <div className="fx-ai-mode-toggle" role="group" aria-label="Analysis mode">
@@ -345,7 +361,7 @@ export function ForexAiAnalysisPage({
             type="button"
             className="fx-text-button fx-ai-analyze-btn"
             data-ai-analyze-btn="true"
-            disabled={phase === "analyzing" || !binanceSelected}
+            disabled={phase === "analyzing" || !marketReady}
             onClick={() => void runAnalysis()}
           >
             {phase === "analyzing"
@@ -693,9 +709,9 @@ export function ForexAiAnalysisPage({
         </div>
       ) : null}
 
-      {!binanceSelected ? (
+      {!marketReady ? (
         <div className="fx-placeholder-panel">
-          <p className="fx-panel-meta">Select a Binance Spot symbol from Markets to run AI analysis.</p>
+          <p className="fx-panel-meta">Select a BINANCE or FXCM instrument from Markets to run AI analysis.</p>
         </div>
       ) : null}
     </section>

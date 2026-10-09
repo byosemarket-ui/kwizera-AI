@@ -53,8 +53,14 @@ export type ForexStatisticalConfidence = "OK" | "INSUFFICIENT_SAMPLE";
 export interface ForexMarketMemorySnapshot {
   id: string;
   symbol: string;
-  marketType: "SPOT";
-  exchange: "BINANCE";
+  /** Provider-aware market type (Phase 32). */
+  marketType: "SPOT" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
+  /** Provider identity — BINANCE or FXCM. */
+  exchange: "BINANCE" | "FXCM";
+  provider?: "BINANCE" | "FXCM";
+  providerSymbol?: string;
+  canonicalSymbol?: string;
+  displaySymbol?: string;
   timeframe: string | null;
   timestamp: string | null;
   candleTimestamp: string | null;
@@ -73,7 +79,7 @@ export interface ForexMarketMemorySnapshot {
   swingHigh: number | null;
   swingLow: number | null;
   dataQuality: string;
-  source: "binance-spot";
+  source: "binance-spot" | "fxcm-mid";
   createdAt: string;
 }
 

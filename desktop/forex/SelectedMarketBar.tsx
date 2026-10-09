@@ -18,9 +18,14 @@ export function SelectedMarketBar({
       : selected.venue === "fxcm"
         ? `${selected.displaySymbol} · FXCM`
         : `${selected.displaySymbol} · not connected`
-    : "No Binance market selected";
+    : "No market selected";
   return (
-    <div className="fx-selected-market" data-selected-market={selected?.symbol ?? ""} data-selected-venue={selected?.venue ?? "none"}>
+    <div
+      className="fx-selected-market"
+      data-selected-market={selected?.symbol ?? ""}
+      data-selected-venue={selected?.venue ?? "none"}
+      data-selected-provider={selected?.provider ?? (selected?.venue === "fxcm" ? "FXCM" : selected?.venue === "binance-spot" ? "BINANCE" : "")}
+    >
       <p>
         <span className="fx-eyebrow">Selected market</span>
         <strong>{label}</strong>
@@ -29,18 +34,17 @@ export function SelectedMarketBar({
         <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selected.symbol} />
       ) : selected?.venue === "fxcm" ? (
         <p className="fx-panel-meta">
-          SOURCE: FXCM · mid candles (Phase 30). LIVE only after authenticated stream + valid quotes.
-          Configure server-side FXCM credentials to load historical + live sync.
+          Provider FXCM · FOREX · mid candles via unified Market Data. LIVE only after authenticated stream + valid quotes.
         </p>
       ) : (
         <p className="fx-panel-meta">
           {selected
-            ? "Live market data unavailable. This symbol is not a connected Binance Spot market."
-            : "Select a Binance Spot symbol from Markets to start live data."}
+            ? "Live market data unavailable for this selection."
+            : "Select a BINANCE or FXCM instrument from Markets to start live data."}
         </p>
       )}
       <button type="button" className="fx-text-button" onClick={() => onOpenMarkets("markets")}>
-        Browse Binance markets
+        Browse Markets
       </button>
     </div>
   );

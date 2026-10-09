@@ -37,13 +37,23 @@ export function buildMarketSnapshotFromCompact(input: {
   structure: string | null;
   timestamp: string | null;
   dataQuality: string;
+  provider?: "BINANCE" | "FXCM";
+  marketType?: ForexMarketMemorySnapshot["marketType"];
+  displaySymbol?: string;
+  providerSymbol?: string;
 }): ForexMarketMemorySnapshot {
   const createdAt = nowIso();
+  const provider = input.provider === "FXCM" ? "FXCM" : "BINANCE";
+  const compact = input.symbol.replace(/[/_-\s]/g, "").toUpperCase();
   return {
     id: randomUUID(),
-    symbol: input.symbol.toUpperCase(),
-    marketType: "SPOT",
-    exchange: "BINANCE",
+    symbol: compact,
+    marketType: input.marketType ?? (provider === "FXCM" ? "FOREX" : "SPOT"),
+    exchange: provider,
+    provider,
+    providerSymbol: input.providerSymbol ?? input.symbol,
+    canonicalSymbol: compact,
+    displaySymbol: input.displaySymbol ?? input.symbol,
     timeframe: input.timeframe,
     timestamp: input.timestamp,
     candleTimestamp: input.timestamp,
@@ -62,7 +72,7 @@ export function buildMarketSnapshotFromCompact(input: {
     swingHigh: null,
     swingLow: null,
     dataQuality: input.dataQuality,
-    source: "binance-spot",
+    source: provider === "FXCM" ? "fxcm-mid" : "binance-spot",
     createdAt,
   };
 }
@@ -213,6 +223,11 @@ export function buildAnalysisMemoryFromPayload(input: PersistAnalysisInput): {
     trends: timeframeStates.map((t) => t.trend),
   });
 
+  const provider = market.exchange === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+  const marketType = provider === "FXCM"
+    ? (String(market.marketType ?? "FOREX").toUpperCase() as ForexMarketMemorySnapshot["marketType"])
+    : "SPOT";
+
   const marketSnapshots = timeframeStates
     .filter((t) => t.usable)
     .map((t) => buildMarketSnapshotFromCompact({
@@ -226,6 +241,9 @@ export function buildAnalysisMemoryFromPayload(input: PersistAnalysisInput): {
       structure: null,
       timestamp: t.timestamp,
       dataQuality: t.status,
+      provider,
+      marketType,
+      displaySymbol,
     }));
 
   // Single-TF fallback snapshot
@@ -247,6 +265,9 @@ export function buildAnalysisMemoryFromPayload(input: PersistAnalysisInput): {
       structure: null,
       timestamp: generatedAt,
       dataQuality,
+      provider,
+      marketType,
+      displaySymbol,
     }));
   }
 

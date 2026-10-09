@@ -33,14 +33,19 @@ export async function runForexMultiTimeframeAnalysis(
   deps?: { binance?: BinanceMarketDataService; nowMs?: number },
 ): Promise<ForexMtfAnalyzeResult> {
   const started = Date.now();
-  const symbol = String(request.symbol ?? "").trim().toUpperCase();
-  if (!/^[A-Z0-9]{4,30}$/.test(symbol)) {
+  const provider = request.provider === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+  const symbolRaw = String(request.symbol ?? "").trim();
+  const symbol = provider === "FXCM"
+    ? symbolRaw
+    : symbolRaw.toUpperCase().replace(/[/_-\s]/g, "");
+  const compact = symbol.replace(/[/_-\s]/g, "").toUpperCase();
+  if (!/^[A-Z0-9]{4,30}$/.test(compact)) {
     return {
       ok: false,
       code: "INVALID_MARKET_STATE",
       analysis: null,
       latencyMs: Date.now() - started,
-      error: "symbol must be a Binance-style compact symbol (e.g. BTCUSDT).",
+      error: "symbol must identify a valid provider instrument.",
     };
   }
 
@@ -64,9 +69,12 @@ export async function runForexMultiTimeframeAnalysis(
       binance: deps?.binance ?? getBinance(),
       nowMs: deps?.nowMs,
       required: FOREX_MTF_REQUIRED.filter((tf) => resolved.timeframes.includes(tf)),
+      provider,
     });
   } catch (error) {
-    const mapped = userFacingBinanceError(error);
+    const mapped = provider === "FXCM"
+      ? { message: error instanceof Error ? error.message : "FXCM MTF data unavailable." }
+      : userFacingBinanceError(error);
     return {
       ok: false,
       code: "DATA_UNAVAILABLE",
@@ -77,9 +85,30 @@ export async function runForexMultiTimeframeAnalysis(
   }
   const marketStateMs = Date.now() - marketStateStarted;
 
-  // Same-symbol enforcement
+  if (mtf.exchange !== provider) {
+    return {
+      ok: false,
+      code: "INVALID_MARKET_STATE",
+      analysis: null,
+      latencyMs: Date.now() - started,
+      error: "MTF provider mismatch — refusing cross-provider analysis.",
+    };
+  }
+
+  // Same-symbol + same-provider enforcement (canonical compact compare)
   for (const slot of mtf.slots) {
-    if (slot.marketState && slot.marketState.symbol !== symbol) {
+    if (!slot.marketState) continue;
+    if (slot.marketState.provider !== provider) {
+      return {
+        ok: false,
+        code: "INVALID_MARKET_STATE",
+        analysis: null,
+        latencyMs: Date.now() - started,
+        error: `Cross-provider contamination detected for ${slot.timeframe}.`,
+      };
+    }
+    const slotCompact = slot.marketState.canonicalSymbol.replace(/[/_-\s]/g, "").toUpperCase();
+    if (slotCompact !== compact && slot.marketState.symbol !== compact) {
       return {
         ok: false,
         code: "INVALID_MARKET_STATE",

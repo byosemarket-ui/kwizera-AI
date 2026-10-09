@@ -183,6 +183,8 @@ export interface ForexDecisionAnalyzeRequest {
   scenarioMode?: string;
   knowledgeQuery?: string;
   timeoutMs?: number;
+  /** Explicit provider — Decision MTF stack must stay single-provider. */
+  provider?: "BINANCE" | "FXCM";
 }
 
 export interface ForexDecisionAnalyzeResult {

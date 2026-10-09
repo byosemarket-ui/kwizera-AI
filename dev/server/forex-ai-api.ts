@@ -112,8 +112,10 @@ export async function handleForexAiApi(
         timeoutMs?: number;
         market?: unknown;
         allowInsufficient?: boolean;
+        provider?: string;
       };
       const started = Date.now();
+      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
 
       const hasAuthoritativeRequest = Boolean(
         String(body.symbol ?? "").trim() && String(body.timeframe ?? "").trim(),
@@ -126,6 +128,7 @@ export async function handleForexAiApi(
           analysisType: body.analysisType,
           knowledgeQuery: body.knowledgeQuery,
           timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+          provider,
         })
         : await analyzeForexMarketState(body.market ?? body, {
           allowInsufficient: body.allowInsufficient === true,
@@ -168,14 +171,17 @@ export async function handleForexAiApi(
         analysisType?: string;
         knowledgeQuery?: string;
         timeoutMs?: number;
+        provider?: string;
       };
       const started = Date.now();
+      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
       const result = await runForexMultiTimeframeAnalysis({
         symbol: String(body.symbol ?? ""),
         timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
         analysisType: body.analysisType,
         knowledgeQuery: body.knowledgeQuery,
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+        provider,
       });
       let memoryId: string | null = null;
       if (result.ok && result.analysis) {
@@ -215,14 +221,17 @@ export async function handleForexAiApi(
         scenarioMode?: string;
         knowledgeQuery?: string;
         timeoutMs?: number;
+        provider?: string;
       };
       const started = Date.now();
+      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
       const result = await runForexDecisionAnalysis({
         symbol: String(body.symbol ?? ""),
         timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
         scenarioMode: body.scenarioMode,
         knowledgeQuery: body.knowledgeQuery,
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+        provider,
       });
       let memoryId: string | null = null;
       if (result.ok && result.analysis) {

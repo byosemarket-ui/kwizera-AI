@@ -35,14 +35,19 @@ export async function runForexDecisionAnalysis(
   deps?: { binance?: BinanceMarketDataService; nowMs?: number },
 ): Promise<ForexDecisionAnalyzeResult> {
   const started = Date.now();
-  const symbol = String(request.symbol ?? "").trim().toUpperCase();
-  if (!/^[A-Z0-9]{4,30}$/.test(symbol)) {
+  const provider = request.provider === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+  const symbolRaw = String(request.symbol ?? "").trim();
+  const symbol = provider === "FXCM"
+    ? symbolRaw
+    : symbolRaw.toUpperCase().replace(/[/_-\s]/g, "");
+  const compact = symbol.replace(/[/_-\s]/g, "").toUpperCase();
+  if (!/^[A-Z0-9]{4,30}$/.test(compact)) {
     return {
       ok: false,
       code: "INVALID_MARKET_STATE",
       analysis: null,
       latencyMs: Date.now() - started,
-      error: "symbol must be a Binance-style compact symbol (e.g. BTCUSDT).",
+      error: "symbol must identify a valid provider instrument.",
     };
   }
 
@@ -66,9 +71,12 @@ export async function runForexDecisionAnalysis(
       binance: deps?.binance ?? getBinance(),
       nowMs: deps?.nowMs,
       required: FOREX_DECISION_REQUIRED.filter((tf) => resolved.timeframes.includes(tf)),
+      provider,
     });
   } catch (error) {
-    const mapped = userFacingBinanceError(error);
+    const mapped = provider === "FXCM"
+      ? { message: error instanceof Error ? error.message : "FXCM decision data unavailable." }
+      : userFacingBinanceError(error);
     return {
       ok: false,
       code: "DATA_UNAVAILABLE",
@@ -78,6 +86,16 @@ export async function runForexDecisionAnalysis(
     };
   }
   const marketStateMs = Date.now() - marketStateStarted;
+
+  if (mtf.exchange !== provider) {
+    return {
+      ok: false,
+      code: "INVALID_MARKET_STATE",
+      analysis: null,
+      latencyMs: Date.now() - started,
+      error: "Decision provider mismatch — refusing cross-provider analysis.",
+    };
+  }
 
   for (const slot of mtf.slots) {
     if (slot.marketState && slot.marketState.symbol !== symbol) {

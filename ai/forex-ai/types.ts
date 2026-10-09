@@ -187,6 +187,8 @@ export interface ForexAiAnalysisRequest {
   analysisType?: ForexAiAnalysisType;
   knowledgeQuery?: string;
   timeoutMs?: number;
+  /** Explicit provider — defaults BINANCE. Never silently remaps FXCM↔Binance. */
+  provider?: "BINANCE" | "FXCM";
 }
 
 export function emptyForexMarketState(partial?: Partial<ForexMarketState>): ForexMarketState {

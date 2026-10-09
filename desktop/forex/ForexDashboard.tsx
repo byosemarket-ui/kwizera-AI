@@ -50,20 +50,26 @@ export function ForexDashboard({
   const { marketState, loading: marketStateLoading } = useForexMarketState(selectedMarket, timeframe);
   const sessions = resolveMarketSessions();
   const clock = formatUtcClock(new Date());
-  const tickerStatus = selectedMarket?.venue === "binance-spot"
+  const binanceSelected = selectedMarket?.venue === "binance-spot";
+  const fxcmSelected = selectedMarket?.venue === "fxcm";
+  const providerLabel = fxcmSelected ? "FXCM" : binanceSelected ? "BINANCE" : null;
+  const tickerStatus = binanceSelected
     ? resolveTickerUiStatus(liveTicker, selectedMarket.symbol)
     : null;
   const sessionWatchlist = listSessionWatchlist();
-  const taStatus = selectedMarket?.venue === "binance-spot"
+  const taStatus = binanceSelected
     ? `${selectedMarket.displaySymbol} · ${timeframeLabel(timeframe)} · shared Binance candles with Charts`
-    : "Select a Binance Spot symbol for live candles";
+    : fxcmSelected
+      ? `${selectedMarket.displaySymbol} · ${timeframeLabel(timeframe)} · shared FXCM mid candles with Charts`
+      : "Select a provider market from Markets for live candles";
 
   return (
     <section
       className="fx-dashboard"
       data-forex-dashboard="true"
       data-forex-page="dashboard"
-      data-market-symbol={selectedMarket?.venue === "binance-spot" ? selectedMarket.symbol : ""}
+      data-market-provider={providerLabel ?? ""}
+      data-market-symbol={binanceSelected || fxcmSelected ? selectedMarket!.symbol : ""}
       data-market-timeframe={timeframe}
       aria-labelledby="fx-dashboard-title"
     >
@@ -71,7 +77,7 @@ export function ForexDashboard({
         <ForexSectionHeader
           eyebrow="Welcome to KWIZERA Forex"
           title="Forex Dashboard"
-          description="Monitor markets, analyze opportunities and manage your trading workflow from one workspace."
+          description="Provider-aware market intelligence from the unified Market Data layer. No fake prices."
         />
         <h2 id="fx-dashboard-title" className="fx-sr-only">Forex Dashboard</h2>
         <p className="fx-panel-meta">Forex workspace · {clock}</p>
@@ -80,45 +86,58 @@ export function ForexDashboard({
       <section className="fx-selected-binance" data-forex-section="selected-market">
         <div className="fx-panel-header">
           <div>
-            <h2>Active Binance market</h2>
+            <h2>Active market</h2>
             <p className="fx-panel-meta">
-              {selectedMarket?.venue === "binance-spot"
-                ? `${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot miniTicker · status ${tickerStatus ?? "NO_DATA"} · last update ${formatLastUpdateUtc(liveTicker.ticker?.eventTimeUtc)}`
-                : "Select a Binance Spot symbol from Markets. Live price is shown only after valid Binance data arrives."}
+              {binanceSelected
+                ? `Provider BINANCE · ${selectedMarket.displaySymbol} (${selectedMarket.symbol}) · Spot miniTicker · status ${tickerStatus ?? "NO_DATA"} · last update ${formatLastUpdateUtc(liveTicker.ticker?.eventTimeUtc)}`
+                : fxcmSelected
+                  ? `Provider FXCM · ${selectedMarket.displaySymbol} · FOREX · Market State from unified FXCM candles (mid). LIVE only with authenticated stream + fresh quotes.`
+                  : "Select a BINANCE or FXCM instrument from Markets. Prices appear only after valid provider data arrives."}
             </p>
           </div>
           <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
             Open Markets
           </button>
         </div>
-        {selectedMarket?.venue === "binance-spot" ? (
+        {binanceSelected ? (
           <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket.symbol} />
         ) : null}
-        {selectedMarket?.venue === "binance-spot" ? (
+        {(binanceSelected || fxcmSelected) ? (
           <div
             className="fx-placeholder-panel"
             data-forex-section="market-state"
             data-ms-dashboard="true"
+            data-ms-provider={marketState?.provider ?? providerLabel ?? ""}
             data-ms-symbol={marketState?.symbol ?? ""}
             data-ms-timeframe={marketState?.timeframe ?? ""}
             data-ms-close={marketState?.price?.close != null ? String(marketState.price.close) : ""}
             data-ms-connection={marketState?.dataQuality.connection ?? ""}
+            data-ms-source={marketState?.dataSource ?? ""}
           >
             <h3>Market State</h3>
             <p className="fx-panel-meta">
-              Structured Binance facts for {selectedMarket.displaySymbol} · {timeframeLabel(timeframe)}.
+              Structured {providerLabel} facts for {selectedMarket!.displaySymbol} · {timeframeLabel(timeframe)}.
               Same candle series as Charts / Technical Analysis. Not AI reasoning.
             </p>
             {marketStateLoading ? <p className="fx-panel-meta">Loading market state…</p> : null}
             {marketState?.dataQuality.valid ? (
               <dl className="fx-ohlc" aria-label="Market state summary">
+                <div><dt>Provider</dt><dd>{marketState.provider}</dd></div>
                 <div><dt>Close</dt><dd>{marketState.price?.close ?? "—"}</dd></div>
                 <div><dt>Trend</dt><dd>{marketState.trend?.direction ?? "—"}</dd></div>
+                <div><dt>Momentum</dt><dd>{marketState.momentum?.classification ?? "—"}</dd></div>
+                <div><dt>Volatility</dt><dd>{marketState.volatility?.classification ?? "—"}</dd></div>
                 <div><dt>RSI 14</dt><dd>{marketState.momentum?.rsi == null ? "—" : marketState.momentum.rsi.toFixed(1)}</dd></div>
                 <div><dt>Connection</dt><dd>{marketState.dataQuality.connection}</dd></div>
+                <div><dt>Quality</dt><dd>{marketState.dataQuality.stale ? "STALE" : "VALID"}</dd></div>
               </dl>
             ) : (
-              <p className="fx-panel-meta">{marketState?.dataQuality.reason ?? "Waiting for Binance candles…"}</p>
+              <p className="fx-panel-meta">
+                {marketState?.dataQuality.reason
+                  ?? (fxcmSelected
+                    ? "Waiting for FXCM candles… (configure credentials if NO_DATA)"
+                    : "Waiting for Binance candles…")}
+              </p>
             )}
           </div>
         ) : null}

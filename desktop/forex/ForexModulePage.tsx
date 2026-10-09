@@ -45,29 +45,35 @@ export function ForexModulePage({
         {item.id === "watchlist" ? (
           <>
             <p>
-              Session watchlist lists Binance Spot symbols you selected this browser session.
-              Persistence is not implemented. No fabricated prices are stored.
+              Session watchlist is provider-aware (BINANCE + FXCM). Entries never collide across providers.
+              Persistence is session-local. No fabricated prices are stored.
             </p>
             {selectedMarket?.venue === "binance-spot" && liveTicker ? (
-              <div data-watchlist-selected-symbol={selectedMarket.symbol}>
-                <p className="fx-panel-meta">Active market · {selectedMarket.symbol}</p>
+              <div data-watchlist-selected-symbol={selectedMarket.symbol} data-watchlist-provider="BINANCE">
+                <p className="fx-panel-meta">Active market · BINANCE · {selectedMarket.symbol}</p>
                 <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket.symbol} />
+              </div>
+            ) : selectedMarket?.venue === "fxcm" ? (
+              <div data-watchlist-selected-symbol={selectedMarket.symbol} data-watchlist-provider="FXCM">
+                <p className="fx-panel-meta">Active market · FXCM · {selectedMarket.displaySymbol}</p>
               </div>
             ) : (
               <p className="fx-panel-meta" data-watchlist-selected-symbol="">
-                Select a Binance Spot symbol from Markets to start live data.
+                Select a BINANCE or FXCM instrument from Markets.
               </p>
             )}
             {watchlist.length === 0 ? (
-              <p className="fx-panel-meta">No session symbols yet. Browse Markets and select a Spot pair.</p>
+              <p className="fx-panel-meta">No session symbols yet. Browse Markets and select an instrument.</p>
             ) : (
               <ul className="fx-watchlist-rows" data-session-watchlist="true">
                 {watchlist.map((entry) => {
-                  const active = selectedMarket?.symbol === entry.symbol;
+                  const entryProvider = entry.provider ?? (entry.venue === "fxcm" ? "FXCM" : "BINANCE");
+                  const active = selectedMarket?.symbol === entry.symbol
+                    && (selectedMarket.provider ?? (selectedMarket.venue === "fxcm" ? "FXCM" : "BINANCE")) === entryProvider;
                   return (
-                    <li key={entry.symbol}>
-                      <span>{entry.displaySymbol}</span>
-                      <span>{active && liveTicker?.liveMarketData && liveTicker.ticker?.symbol === entry.symbol
+                    <li key={`${entryProvider}:${entry.symbol}`} data-watchlist-provider={entryProvider}>
+                      <span>{entryProvider} · {entry.displaySymbol}</span>
+                      <span>{active && entryProvider === "BINANCE" && liveTicker?.liveMarketData && liveTicker.ticker?.symbol === entry.symbol
                         ? "LIVE"
                         : active
                           ? "Selected"
@@ -83,7 +89,7 @@ export function ForexModulePage({
                         type="button"
                         className="fx-text-button"
                         onClick={() => {
-                          removeSessionWatchlistSymbol(entry.symbol);
+                          removeSessionWatchlistSymbol(entry.symbol, entryProvider);
                           setWatchlistTick((value) => value + 1);
                         }}
                       >

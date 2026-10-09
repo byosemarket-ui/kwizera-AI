@@ -46,6 +46,7 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
   const [overview, setOverview] = useState<ForexAdminOverview | null>(null);
   const [fxcmHealth, setFxcmHealth] = useState<Record<string, unknown> | null>(null);
   const [fxcmAuth, setFxcmAuth] = useState<Record<string, unknown> | null>(null);
+  const [unifiedProviders, setUnifiedProviders] = useState<Array<Record<string, unknown>>>([]);
   const [authBusy, setAuthBusy] = useState(false);
   const [authNote, setAuthNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,9 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
         setAuthNote(res.note ?? null);
       })
       .catch(() => setFxcmHealth({ status: "UNAVAILABLE", environmentLabel: "FXCM", liveStreamEnabled: false }));
+    void forexProvidersApi.unifiedStatus()
+      .then((res) => setUnifiedProviders(res.providers ?? []))
+      .catch(() => setUnifiedProviders([]));
   };
 
   useEffect(() => {
@@ -86,21 +90,45 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
 
   const authBlock = (fxcmAuth?.authentication as Record<string, unknown> | undefined) ?? null;
   const authState = String(authBlock?.state ?? (fxcmHealth?.authenticated ? "AUTHENTICATED" : "NOT_CONFIGURED"));
+  const unifiedFxcm = unifiedProviders.find((p) => String(p.provider) === "FXCM");
+  const unifiedBinance = unifiedProviders.find((p) => String(p.provider) === "BINANCE");
+  const fxcmCaps = (unifiedFxcm?.capabilities as Record<string, boolean> | undefined) ?? {};
+  const liveStreamLabel = fxcmHealth?.liveStreamEnabled
+    ? "ENABLED"
+    : fxcmCaps.streaming
+      ? "CAPABLE (not LIVE until fresh quote)"
+      : "DISABLED / NOT CONFIGURED";
 
   return (
     <div data-forex-admin-dashboard>
       <section className="fxa-card">
         <h2>FOREX AI ADMIN</h2>
         <p className="fxa-muted">
-          Dedicated administration for the Forex AI Knowledge Base. Authentication is deferred by design for Phase 19.
-          Knowledge is prepared for future retrieval (chunk → index → RAG), not fake model training.
+          Operational control for Forex intelligence + unified market data (BINANCE + FXCM).
+          Trading execution is disabled. LIVE requires a genuine fresh provider event.
         </p>
+      </section>
+      <section className="fxa-card" data-forex-admin-unified-providers>
+        <h3>UNIFIED MARKET DATA</h3>
+        <p className="fxa-muted">Phase 31/32 provider registry health. No cross-provider fallback.</p>
+        <ul>
+          <li>
+            BINANCE · {String(unifiedBinance?.authentication ?? "—")} · connection {String(unifiedBinance?.connection ?? "—")}
+            · liveCandles={String((unifiedBinance?.capabilities as Record<string, boolean> | undefined)?.liveCandles ?? false)}
+            · trading=false
+          </li>
+          <li>
+            FXCM · {String(unifiedFxcm?.authentication ?? authState)} · connection {String(unifiedFxcm?.connection ?? fxcmHealth?.connectionState ?? "—")}
+            · liveCandles={String(fxcmCaps.liveCandles ?? false)}
+            · trading=false
+          </li>
+        </ul>
       </section>
       <section className="fxa-card" data-forex-admin-fxcm-status>
         <h3>FXCM MARKET DATA</h3>
         <p className="fxa-muted">
-          Phase 27 instrument discovery — authentication + catalog mapping.
-          No live stream, no historical candles, trading disabled. FXCM authenticated ≠ LIVE market data.
+          Phases 26–30: authentication, discovery, historical, streaming, live candles.
+          Trading disabled. CONNECTED ≠ LIVE.
         </p>
         <ul>
           <li>Provider: FXCM</li>
@@ -111,8 +139,9 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
           <li>Session: {String(authBlock?.session ?? "NONE")}</li>
           <li>API: {fxcmHealth?.status === "CONNECTED" ? "CONNECTED" : String(fxcmHealth?.status ?? "DISCONNECTED")}</li>
           <li>Instrument Discovery: {String(fxcmHealth?.instrumentDiscovery ?? "—")}</li>
-          <li>Market data: NOT_STARTED</li>
-          <li>Live Stream: NOT ENABLED YET</li>
+          <li>Historical: {fxcmCaps.historical ? "ENABLED" : "NOT AVAILABLE"}</li>
+          <li>Live Stream: {liveStreamLabel}</li>
+          <li>Live Candles: {fxcmCaps.liveCandles ? "ENABLED" : "NOT AVAILABLE"}</li>
           <li>Trading: DISABLED</li>
           {authBlock?.lastErrorMessage
             ? <li>Safe error: {String(authBlock.lastErrorMessage)}</li>

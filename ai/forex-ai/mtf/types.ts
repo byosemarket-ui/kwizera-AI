@@ -144,6 +144,8 @@ export interface ForexMtfAnalyzeRequest {
   analysisType?: string;
   knowledgeQuery?: string;
   timeoutMs?: number;
+  /** Explicit provider — all MTF slots must share this provider. */
+  provider?: "BINANCE" | "FXCM";
 }
 
 export interface ForexMtfAnalyzeResult {

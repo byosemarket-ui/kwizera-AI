@@ -115,9 +115,13 @@ export function rememberSessionWatchlist(market: SelectedMarket | null): Selecte
 export function removeSessionWatchlistSymbol(symbol: string, provider?: "BINANCE" | "FXCM"): SelectedMarket[] {
   const compact = symbol.replace(/[/_-]/g, "").toUpperCase();
   writeRaw(readRaw().filter((item) => {
-    if (provider && item.provider !== provider) return true;
-    return item.symbol.replace(/[/_-]/g, "").toUpperCase() !== compact
-      || (provider == null && item.provider !== "BINANCE");
+    const itemCompact = item.symbol.replace(/[/_-]/g, "").toUpperCase();
+    if (provider) {
+      // Keep entries that are a different provider or a different symbol.
+      return item.provider !== provider || itemCompact !== compact;
+    }
+    // Legacy: remove matching Binance compact symbols only.
+    return !(item.provider === "BINANCE" && itemCompact === compact);
   }));
   return listSessionWatchlist();
 }
