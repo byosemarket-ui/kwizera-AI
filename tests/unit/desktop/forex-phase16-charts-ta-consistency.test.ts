@@ -30,14 +30,15 @@ describe("Forex Phase 16 — Charts + Technical Analysis live consistency", () =
     expect(shell).toContain("timeframe={chartTimeframe}");
     expect(shell).toContain("liveTicker={liveTicker}");
 
-    expect(workspace).toContain("useBinanceKlines");
+    expect(workspace).toContain("useUnifiedCandles");
     expect(workspace).toContain("useBinanceLiveKline");
     expect(workspace).toContain("applyLiveKline");
     expect(workspace).toContain("sanitizeCandles");
+    expect(workspace).toContain('data-candle-source="unified-market-data"');
+    expect(workspace).not.toContain("useBinanceKlines");
     expect(workspace).not.toContain("fetchMarketSeries");
     expect(workspace).not.toContain("getDevelopmentSeries");
     expect(workspace).not.toContain("Math.random");
-    expect(workspace).not.toContain("setInterval");
 
     expect(workspace).toContain("data-fx-provider=");
     expect(workspace).toContain('data-fx-source={fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}');
@@ -59,7 +60,8 @@ describe("Forex Phase 16 — Charts + Technical Analysis live consistency", () =
     expect(workspace).not.toContain("technicalAnalysisWebSocket");
     expect(workspace).not.toContain("createBinanceLiveKlineClient(");
     expect(workspace).toContain("useBinanceLiveKline(");
-    expect(workspace).toContain("useBinanceKlines(");
+    expect(workspace).toContain("useUnifiedCandles(");
+    expect(workspace).not.toContain("useBinanceKlines(");
   });
 
   it("shared candle identity attrs cover both Charts and Technical Analysis pages", () => {

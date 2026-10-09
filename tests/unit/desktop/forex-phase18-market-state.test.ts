@@ -48,10 +48,11 @@ describe("Forex Phase 18 — Real Binance Market State Engine", () => {
     expect(api).toContain("/api/forex/market-state");
     expect(api).toContain("getHistoricalCandles");
     expect(api).toContain("No cross-provider fallback");
-    expect(hook).toContain("useBinanceKlines");
+    expect(hook).toContain("useUnifiedCandles");
     expect(hook).toContain("useBinanceLiveKline");
     expect(hook).toContain("buildForexMarketState");
-    expect(hook).toContain("useFxcmLiveCandles");
+    expect(hook).not.toContain("useBinanceKlines");
+    expect(hook).not.toContain("useFxcmLiveCandles");
     expect(server).toContain("handleForexMarketStateApi");
   });
 

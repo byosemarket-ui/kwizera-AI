@@ -5,9 +5,8 @@ import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
 import { isBinanceSpotSelection, isFxcmSelection, type SelectedMarket } from "../market-data/selected-market";
-import { useBinanceKlines } from "../market-data/use-binance-klines";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
-import { useFxcmLiveCandles } from "../market-data/use-fxcm-live-candles";
+import { useUnifiedCandles } from "../market-data/use-unified-candles";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import { buildForexMarketState } from "../../../ai/forex-market-state";
 import {
@@ -144,35 +143,29 @@ export function ForexChartWorkspace({
 
   const binanceSelected = isBinanceSpotSelection(selected);
   const fxcmSelected = isFxcmSelection(selected);
-  const history = useBinanceKlines(binanceSelected ? selected.symbol : null, timeframe);
+  const candleProvider = fxcmSelected ? "FXCM" as const : binanceSelected ? "BINANCE" as const : null;
+  const candleSymbol = (binanceSelected || fxcmSelected) ? selected.symbol : null;
+  const unified = useUnifiedCandles(candleProvider, candleSymbol, timeframe, {
+    marketType: fxcmSelected ? "FOREX" : binanceSelected ? "CRYPTO" : null,
+  });
   const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
-  const fxcmLive = useFxcmLiveCandles(fxcmSelected ? selected.symbol : null, timeframe);
   const wasLiveRef = useRef(false);
   const lastClosedRef = useRef<number | null>(null);
 
   const candles = useMemo(() => {
-    if (fxcmSelected) {
-      if (
-        fxcmLive.state === "loading"
-        || fxcmLive.state === "error"
-        || fxcmLive.state === "unavailable"
-        || fxcmLive.state === "empty"
-      ) {
-        return [];
-      }
-      return sanitizeCandles(fxcmLive.candles.map((candle) => ({
-        time: candle.time,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-        volume: candle.volume,
-        closed: candle.closed,
-      })));
+    if (!candleProvider || !candleSymbol) return [];
+    if (
+      unified.state === "loading"
+      || unified.state === "error"
+      || unified.state === "unavailable"
+      || unified.state === "empty"
+    ) {
+      return [];
     }
-    if (!binanceSelected || history.state !== "ready") return [];
-    if (history.symbol !== selected.symbol || history.timeframe !== timeframe) return [];
-    const base = sanitizeCandles(history.candles.map((candle) => ({
+    if (unified.provider !== candleProvider || unified.symbol !== candleSymbol || unified.timeframe !== timeframe) {
+      return [];
+    }
+    const base = sanitizeCandles(unified.candles.map((candle) => ({
       time: candle.time,
       open: candle.open,
       high: candle.high,
@@ -181,6 +174,8 @@ export function ForexChartWorkspace({
       volume: candle.volume,
       closed: candle.closed,
     })));
+    // Binance forming candle: browser WS overlay on unified historical baseline.
+    if (!binanceSelected) return base;
     const live = liveKline.kline;
     if (
       !live
@@ -192,10 +187,19 @@ export function ForexChartWorkspace({
       return base;
     }
     return sanitizeCandles(applyLiveKline(base, live.candle));
-  }, [binanceSelected, fxcmSelected, fxcmLive, history, liveKline.kline, liveKline.subscribedSymbol, liveKline.timeframe, selected, timeframe]);
+  }, [
+    candleProvider,
+    candleSymbol,
+    unified,
+    binanceSelected,
+    liveKline.kline,
+    liveKline.subscribedSymbol,
+    liveKline.timeframe,
+    selected,
+    timeframe,
+  ]);
 
-  // After reconnect becomes LIVE, softly resync REST history so gaps are filled without inventing candles.
-  // When a forming candle closes, refresh once so the closed series matches Binance REST.
+  // After Binance reconnect becomes LIVE, softly resync unified REST history.
   useEffect(() => {
     if (!binanceSelected) {
       wasLiveRef.current = false;
@@ -208,17 +212,17 @@ export function ForexChartWorkspace({
       && liveKline.kline.timeframe === timeframe,
     );
     if (live && !wasLiveRef.current) {
-      history.refresh();
+      unified.refresh();
     }
     wasLiveRef.current = live;
     const closedTime = liveKline.kline?.candle.closed ? liveKline.kline.candle.time : null;
     if (closedTime != null && closedTime !== lastClosedRef.current) {
       lastClosedRef.current = closedTime;
-      history.refresh();
+      unified.refresh();
     }
   }, [
     binanceSelected,
-    history.refresh,
+    unified.refresh,
     liveKline.liveMarketData,
     liveKline.kline,
     selected,
@@ -311,26 +315,24 @@ export function ForexChartWorkspace({
   };
 
   const analysis = mode === "analysis";
-  const fxcmSeriesReady = Boolean(
-    fxcmSelected
-    && (fxcmLive.state === "ready" || fxcmLive.state === "live" || fxcmLive.state === "stale" || fxcmLive.state === "connecting" || fxcmLive.state === "reconnecting")
+  const seriesReady = Boolean(
+    candleProvider
+    && candleSymbol
+    && (unified.state === "ready" || unified.state === "live" || unified.state === "stale"
+      || unified.state === "connecting" || unified.state === "reconnecting")
+    && unified.provider === candleProvider
+    && unified.symbol === candleSymbol
+    && unified.timeframe === timeframe
     && candles.length > 0,
   );
-  const historyReady = Boolean(
-    (binanceSelected
-      && history.state === "ready"
-      && history.symbol === selected.symbol
-      && history.timeframe === timeframe
-      && candles.length > 0)
-    || fxcmSeriesReady,
-  );
+  const historyReady = seriesReady;
   const historyPending = Boolean(
-    (binanceSelected && (
-      history.state === "loading"
-      || history.symbol !== selected.symbol
-      || history.timeframe !== timeframe
-    ))
-    || (fxcmSelected && fxcmLive.state === "loading"),
+    candleProvider
+    && candleSymbol
+    && (unified.state === "loading"
+      || unified.symbol !== candleSymbol
+      || unified.timeframe !== timeframe
+      || unified.provider !== candleProvider),
   );
   const klineStatus = resolveKlineUiStatus(
     liveKline,
@@ -338,7 +340,7 @@ export function ForexChartWorkspace({
     timeframe,
     historyReady && binanceSelected,
   );
-  const fxcmLiveChart = Boolean(fxcmSelected && fxcmLive.live);
+  const fxcmLiveChart = Boolean(fxcmSelected && unified.live);
   const chartLive = fxcmLiveChart || (!fxcmSelected && klineStatus === "LIVE");
   const tickerStatus = liveTicker && binanceSelected
     ? resolveTickerUiStatus(liveTicker, selected.symbol)
@@ -356,63 +358,41 @@ export function ForexChartWorkspace({
         : last
           ? formatPrice(selected.symbol, last.close)
           : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...");
-  const chartState = fxcmSelected
-    ? (fxcmLive.state === "loading" ? "loading"
-      : fxcmLive.state === "error" || fxcmLive.state === "unavailable" ? "error"
-        : fxcmLive.state === "empty" ? "empty"
-          : fxcmLive.state === "reconnecting" ? "reconnecting"
-            : fxcmLive.state === "connecting" ? "connecting"
-              : fxcmLiveChart ? "live"
-                : fxcmSeriesReady ? "ready" : "unavailable")
-    : !binanceSelected
-      ? "unavailable"
-      : historyPending
-        ? (klineStatus === "RECONNECTING" ? "reconnecting" : "loading")
-        : history.state === "error"
-          ? "error"
-          : history.state === "disconnected"
-            ? "disconnected"
-            : history.state === "empty"
-              ? "empty"
-              : klineStatus === "RECONNECTING"
-                ? "reconnecting"
-                : klineStatus === "CONNECTING" || klineStatus === "CONNECTED"
-                  ? "connecting"
-                  : chartLive
-                    ? "live"
-                    : "ready";
-  const chartMessage = fxcmSelected
-    ? (fxcmLive.state === "loading" ? "Loading FXCM candles…"
-      : fxcmLive.state === "error" || fxcmLive.state === "unavailable" ? fxcmLive.message
-        : fxcmLive.state === "empty" ? "No FXCM candles."
-          : fxcmLive.message)
-    : !binanceSelected
-      ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
-      : historyPending
-        ? (klineStatus === "RECONNECTING" ? "Reconnecting to Binance..." : "Loading Binance market data...")
-        : history.state === "error"
-          ? "Unable to load Binance market data."
-          : history.state === "disconnected"
-            ? "Binance live data unavailable."
-            : history.state === "empty"
-              ? "No Binance candle data available."
+  const chartState = !candleProvider
+    ? "unavailable"
+    : historyPending
+      ? (binanceSelected && klineStatus === "RECONNECTING" ? "reconnecting" : "loading")
+      : unified.state === "error" || unified.state === "unavailable"
+        ? "error"
+        : unified.state === "empty"
+          ? "empty"
+          : unified.state === "reconnecting"
+            ? "reconnecting"
+            : unified.state === "connecting"
+              ? "connecting"
               : chartLive
-                ? "Live Binance data"
-                : liveMarketStatusLabel(klineStatus);
-  const analysisUnavailableReason = fxcmSelected
-    ? (fxcmLive.state === "loading" ? "Loading FXCM candles for technical analysis…"
-      : fxcmLive.message || "Waiting for FXCM candles…")
-    : !binanceSelected
-      ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
-      : historyPending
-        ? "Loading Binance candle data for technical analysis..."
-        : history.state === "error"
-          ? "Unable to load Binance market data."
-          : history.state === "disconnected"
-            ? "Binance live data unavailable."
-            : history.state === "empty"
-              ? "No Binance candle data available."
-              : "Waiting for Binance candle data...";
+                ? "live"
+                : seriesReady
+                  ? "ready"
+                  : "unavailable";
+  const chartMessage = !candleProvider
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE or FXCM instrument from Markets.")
+    : historyPending
+      ? (binanceSelected && klineStatus === "RECONNECTING"
+        ? "Reconnecting to Binance..."
+        : `Loading ${candleProvider} market data…`)
+      : unified.state === "error" || unified.state === "unavailable"
+        ? unified.message
+        : unified.state === "empty"
+          ? `No ${candleProvider} candle data available.`
+          : chartLive
+            ? (fxcmSelected ? "Live FXCM data" : "Live Binance data")
+            : (binanceSelected ? liveMarketStatusLabel(klineStatus) : unified.message);
+  const analysisUnavailableReason = !candleProvider
+    ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE or FXCM instrument from Markets.")
+    : historyPending
+      ? `Loading ${candleProvider} candle data for technical analysis…`
+      : unified.message || `Waiting for ${candleProvider} candles…`;
   const showChart = historyReady;
 
   const marketState = useMemo(() => {
@@ -422,9 +402,9 @@ export function ForexChartWorkspace({
         symbol: selected.symbol,
         timeframe,
         candles,
-        connection: fxcmLive.live ? "LIVE" : (fxcmLive.state === "ready" ? "CONNECTED" : "NO_DATA"),
-        lastMarketUpdateMs: fxcmLive.lastQuoteAt
-          ? Date.parse(fxcmLive.lastQuoteAt)
+        connection: unified.live ? "LIVE" : (unified.state === "ready" || unified.state === "stale" ? "CONNECTED" : "NO_DATA"),
+        lastMarketUpdateMs: unified.lastQuoteAt
+          ? Date.parse(unified.lastQuoteAt)
           : (last ? last.time * 1000 : null),
         provider: "FXCM",
         marketType: "FOREX",
@@ -452,9 +432,9 @@ export function ForexChartWorkspace({
     klineStatus,
     liveKline.kline?.eventTimeUtc,
     last,
-    fxcmLive.live,
-    fxcmLive.state,
-    fxcmLive.lastQuoteAt,
+    unified.live,
+    unified.state,
+    unified.lastQuoteAt,
   ]);
 
   return (
@@ -470,6 +450,7 @@ export function ForexChartWorkspace({
       data-market-venue={selected?.venue ?? "none"}
       data-fx-provider={fxcmSelected ? "FXCM" : binanceSelected ? "BINANCE" : "none"}
       data-fx-source={fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}
+      data-candle-source="unified-market-data"
       data-fx-symbol={(binanceSelected || fxcmSelected) && selected ? selected.symbol : ""}
       data-fx-timeframe={timeframe}
       data-fx-candle-count={canAnalyze ? String(candles.length) : "0"}
@@ -479,7 +460,7 @@ export function ForexChartWorkspace({
       data-fx-low={canAnalyze && last ? String(last.low) : ""}
       data-fx-close={canAnalyze && last ? String(last.close) : ""}
       data-fx-volume={canAnalyze && last && last.volume != null ? String(last.volume) : ""}
-      data-fx-connection={chartLive ? "LIVE" : klineStatus}
+      data-fx-connection={chartLive ? "LIVE" : (fxcmSelected ? (unified.connectionState ?? "NO_DATA") : klineStatus)}
       data-fx-forming={canAnalyze && last && last.closed === false ? "true" : "false"}
       data-ms-version={marketState?.version ?? ""}
       data-ms-symbol={marketState?.symbol ?? ""}
@@ -491,7 +472,7 @@ export function ForexChartWorkspace({
       data-ms-connection={marketState?.dataQuality.connection ?? ""}
       data-ms-valid={marketState?.dataQuality.valid ? "true" : "false"}
       data-ms-candle-count={marketState ? String(marketState.dataQuality.candleCount) : "0"}
-      data-ta-source={binanceSelected ? "binance-spot" : "none"}
+      data-ta-source={candleProvider ? "unified-market-data" : "none"}
       data-ta-candle-count={canAnalyze ? String(candles.length) : "0"}
       data-ta-last-close={canAnalyze && last ? String(last.close) : ""}
       data-ta-last-time={canAnalyze && last ? String(last.time) : ""}
@@ -505,18 +486,24 @@ export function ForexChartWorkspace({
         eyebrow={analysis ? "Analysis" : "Market"}
         title={analysis ? "Technical Analysis" : "Charts"}
         description={analysis
-          ? "Indicators use the same Binance Spot candle series as Charts. This is not a trading signal."
-          : "Interactive candlestick workspace for Binance Spot OHLCV. Non-Binance symbols are not charted."}
+          ? "Indicators use the same unified Market Data candle series as Charts (BINANCE or FXCM). This is not a trading signal."
+          : "Interactive candlestick workspace fed by the unified Market Data layer (BINANCE Spot or FXCM mid)."}
       />
 
       <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
         <label>
           Instrument
-          <select aria-label="Instrument" value={binanceSelected ? selected.symbol : ""} disabled>
-            {binanceSelected ? (
+          <select
+            aria-label="Instrument"
+            value={(binanceSelected || fxcmSelected) && selected ? selected.symbol : ""}
+            disabled
+          >
+            {binanceSelected && selected ? (
               <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
+            ) : fxcmSelected && selected ? (
+              <option value={selected.symbol}>{selected.displaySymbol} · FXCM</option>
             ) : (
-              <option value="">Select a Binance Spot symbol…</option>
+              <option value="">Select a BINANCE or FXCM instrument…</option>
             )}
           </select>
         </label>
@@ -623,7 +610,7 @@ export function ForexChartWorkspace({
         <section className="fx-indicator-manager" aria-labelledby="fx-ind-title">
           <h2 id="fx-ind-title">Indicators</h2>
           <p className="fx-panel-meta" data-ta-indicator-source="binance-spot">
-            Calculated from Binance Spot OHLCV — the same candle series as Charts.
+            Calculated from the unified Market Data candle series — the same series as Charts.
           </p>
           {!canAnalyze ? <p className="fx-panel-meta" data-analysis-unavailable="true">{analysisUnavailableReason}</p> : null}
           <div className="fx-indicator-add">
@@ -768,7 +755,7 @@ export function ForexChartWorkspace({
         {" · Last candle "}
         {last && (binanceSelected || fxcmSelected) ? formatUtc(last.time) : "unavailable"}
         {chartLive && liveKline.kline && binanceSelected ? ` · Last update ${formatLastUpdateUtc(liveKline.kline.eventTimeUtc)}` : ""}
-        {chartLive && fxcmSelected && fxcmLive.lastQuoteAt ? ` · Last quote ${fxcmLive.lastQuoteAt}` : ""}
+        {chartLive && fxcmSelected && unified.lastQuoteAt ? ` · Last quote ${unified.lastQuoteAt}` : ""}
         {" · Connection: "}
         {chartLive ? "LIVE" : "not live"}
         {last && (binanceSelected || fxcmSelected) && last.closed === false ? " · Forming candle" : ""}

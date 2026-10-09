@@ -21,16 +21,28 @@ function instrumentTone(instrument: MarketInstrument): "future" | "offline" {
   return instrument.status === "available" ? "future" : "offline";
 }
 
+function fxcmEmptyTitle(state: string): string {
+  if (state === "disabled") return "FXCM is disabled on this server.";
+  if (state === "not_configured") return "FXCM is not configured.";
+  if (state === "auth_error") return "FXCM authentication failed.";
+  if (state === "error") return "Unable to load FXCM instruments.";
+  return "No FXCM instruments available.";
+}
+
 export function ForexMarketsPage({
   selected,
   onSelect,
+  onClearSelection,
   liveTicker,
   onOpenCharts,
+  onOpenAdmin,
 }: {
   selected: SelectedMarket | null;
   onSelect: (market: SelectedMarket) => void;
+  onClearSelection?: () => void;
   liveTicker?: LiveTickerSnapshot | null;
   onOpenCharts: () => void;
+  onOpenAdmin?: () => void;
 }) {
   const [providerFilter, setProviderFilter] = useState<"ALL" | MarketProviderId>("ALL");
   const { result, refresh } = useBinanceMarkets();
@@ -69,6 +81,22 @@ export function ForexMarketsPage({
     ? selected.symbol
     : null;
 
+  const changeProviderFilter = (next: "ALL" | MarketProviderId) => {
+    setProviderFilter(next);
+    setVisible(PAGE_SIZE);
+    // Clearing incompatible selection prevents silent Binance↔FXCM symbol mapping.
+    if (next === "FXCM" && selected?.venue === "binance-spot") onClearSelection?.();
+    if (next === "BINANCE" && selected?.venue === "fxcm") onClearSelection?.();
+  };
+
+  const fxcmBlocked = showFxcm && (
+    fxcmCatalog.state === "disabled"
+    || fxcmCatalog.state === "not_configured"
+    || fxcmCatalog.state === "auth_error"
+    || fxcmCatalog.state === "error"
+    || (fxcmCatalog.state === "empty" && providerFilter === "FXCM")
+  );
+
   return (
     <section
       className="fx-markets-page"
@@ -76,6 +104,8 @@ export function ForexMarketsPage({
       data-forex-markets="true"
       data-market-symbol={selectedSymbol ?? ""}
       data-provider-filter={providerFilter}
+      data-fxcm-catalog-state={fxcmCatalog.state}
+      data-fxcm-error-code={fxcmCatalog.errorCode ?? ""}
     >
       <ForexSectionHeader
         eyebrow="Market"
@@ -108,8 +138,7 @@ export function ForexMarketsPage({
             aria-label="Filter by provider"
             value={providerFilter}
             onChange={(event) => {
-              setProviderFilter(event.target.value as "ALL" | MarketProviderId);
-              setVisible(PAGE_SIZE);
+              changeProviderFilter(event.target.value as "ALL" | MarketProviderId);
             }}
           >
             <option value="ALL">All providers</option>
@@ -180,7 +209,7 @@ export function ForexMarketsPage({
         <p className="fx-page-desc" role="status">Loading Binance markets...</p>
       ) : null}
       {showFxcm && fxcmCatalog.state === "loading" ? (
-        <p className="fx-page-desc" role="status">Loading FXCM instruments...</p>
+        <p className="fx-page-desc" role="status" data-fxcm-loading="true">Loading FXCM instruments...</p>
       ) : null}
       {showBinance && result.state === "disconnected" ? (
         <ForexEmptyState title="Binance market service unavailable." description={result.message} actionLabel="Retry" onAction={refresh} />
@@ -188,8 +217,23 @@ export function ForexMarketsPage({
       {showBinance && result.state === "error" ? (
         <ForexEmptyState title="Unable to load Binance markets." description={result.message} actionLabel="Retry" onAction={refresh} />
       ) : null}
-      {showFxcm && fxcmCatalog.state === "error" ? (
-        <ForexEmptyState title="Unable to load FXCM instruments." description={fxcmCatalog.message} actionLabel="Retry" onAction={fxcmCatalog.refresh} />
+
+      {fxcmBlocked ? (
+        <ForexEmptyState
+          title={fxcmEmptyTitle(fxcmCatalog.state)}
+          description={fxcmCatalog.message}
+          actionLabel="Retry"
+          onAction={fxcmCatalog.refresh}
+        />
+      ) : null}
+      {fxcmBlocked && onOpenAdmin ? (
+        <p className="fx-panel-meta">
+          Server-side FXCM setup:{" "}
+          <button type="button" className="fx-text-button" onClick={onOpenAdmin}>
+            Open Forex Admin
+          </button>
+          {" "}(authentication / provider status). Credentials never leave the server.
+        </p>
       ) : null}
 
       {showBinance && result.state === "ready" && binancePage.length > 0 ? (
@@ -317,15 +361,6 @@ export function ForexMarketsPage({
             </table>
           </div>
         </>
-      ) : null}
-
-      {showFxcm && fxcmCatalog.state === "empty" && providerFilter === "FXCM" ? (
-        <ForexEmptyState
-          title="No FXCM instruments available."
-          description="FXCM may be disabled or not configured on this server."
-          actionLabel="Retry"
-          onAction={fxcmCatalog.refresh}
-        />
       ) : null}
 
       {(binancePage.length > 0 || fxcmPage.length > 0) && (

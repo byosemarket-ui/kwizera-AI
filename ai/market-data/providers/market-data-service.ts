@@ -127,43 +127,66 @@ export class MarketDataService {
     limit?: number;
   }): Promise<MarketInstrument[]> {
     const providerFilter = options?.provider ? this.resolveProvider(options.provider) : null;
-    const providers: MarketProviderId[] = providerFilter
-      ? [providerFilter]
-      : this.registry.listProviderIds();
+    const marketType = options?.marketType
+      ? String(options.marketType).trim().toUpperCase() as MarketAssetType
+      : null;
+    const limit = options?.limit ?? 5_000;
 
+    // Explicit single-provider request: never return a silent empty list when that
+    // provider is DISABLED / NOT_CONFIGURED / auth-failed. Never fall back to Binance.
+    if (providerFilter) {
+      const provider = this.registry.getProvider(providerFilter);
+      if (!provider) {
+        throw new MarketDataRoutingError("UNKNOWN_PROVIDER", `Provider ${providerFilter} is not registered.`);
+      }
+      const cached = this.instruments.listByProvider(providerFilter);
+      if (options?.refresh || cached.length === 0) {
+        // Propagate provider errors (FXCM_DISABLED, FXCM_NOT_CONFIGURED, …).
+        const list = await provider.listInstruments({ refresh: options?.refresh });
+        this.instruments.removeByProvider(providerFilter);
+        this.instruments.upsertMany(list);
+      }
+      if (options?.search) {
+        return this.instruments.search(options.search, {
+          provider: providerFilter,
+          marketType,
+          limit: options.limit ?? 200,
+        });
+      }
+      let list = this.instruments.listByProvider(providerFilter);
+      if (marketType) list = list.filter((item) => item.marketType === marketType);
+      return list.slice(0, limit);
+    }
+
+    // All-providers catalog: a single provider failure must not wipe the other.
     if (options?.refresh || this.instruments.size() === 0) {
-      this.instruments.clear();
+      if (options?.refresh) this.instruments.clear();
       for (const providerId of this.registry.listProviderIds()) {
         const provider = this.registry.getProvider(providerId);
         if (!provider) continue;
         try {
           const list = await provider.listInstruments({ refresh: options?.refresh });
+          this.instruments.removeByProvider(providerId);
           this.instruments.upsertMany(list);
         } catch {
-          // Provider-specific failure must not poison the other provider catalog.
+          // Keep other providers; explicit ?provider=FXCM path above surfaces FXCM errors.
         }
       }
     }
 
-    const marketType = options?.marketType
-      ? String(options.marketType).trim().toUpperCase() as MarketAssetType
-      : null;
-
     if (options?.search) {
       return this.instruments.search(options.search, {
-        provider: providerFilter,
+        provider: null,
         marketType,
         limit: options.limit ?? 200,
       });
     }
 
-    let list = providerFilter
-      ? this.instruments.listByProvider(providerFilter)
-      : this.instruments.listAll();
+    let list = this.instruments.listAll();
     if (marketType) {
       list = list.filter((item) => item.marketType === marketType);
     }
-    return list.slice(0, options?.limit ?? 5_000);
+    return list.slice(0, limit);
   }
 
   async getInstrument(input: {

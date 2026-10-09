@@ -12,6 +12,13 @@ export class MarketInstrumentRegistry {
     this.byKey.clear();
   }
 
+  /** Drop only one provider's rows — used when refreshing FXCM without wiping Binance. */
+  removeByProvider(provider: MarketProviderId): void {
+    for (const [key, instrument] of this.byKey) {
+      if (instrument.provider === provider) this.byKey.delete(key);
+    }
+  }
+
   upsert(instrument: MarketInstrument): void {
     const key = marketIdentityKey({
       provider: instrument.provider,

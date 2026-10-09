@@ -15,16 +15,17 @@ describe("Forex Phase 15 — Technical Analysis Binance live integration", () =>
     const workspace = read("desktop/forex/chart/ForexChartWorkspace.tsx");
     expect(shell).toContain('route === "charts" || route === "technical-analysis"');
     expect(shell).toContain('mode={route === "charts" ? "charts" : "analysis"}');
-    expect(workspace).toContain("useBinanceKlines");
+    expect(workspace).toContain("useUnifiedCandles");
     expect(workspace).toContain("useBinanceLiveKline");
     expect(workspace).toContain("applyLiveKline");
+    expect(workspace).not.toContain("useBinanceKlines");
     expect(workspace).not.toContain("fetchMarketSeries");
     expect(workspace).not.toContain("getDevelopmentSeries");
     expect(workspace).not.toContain("generateDevelopmentCandles");
     expect(workspace).not.toContain("Math.random");
-    expect(workspace).toContain('data-ta-source={binanceSelected ? "binance-spot" : "none"}');
-    expect(workspace).toContain("Loading Binance candle data for technical analysis...");
-    expect(workspace).toContain("Calculated from Binance Spot OHLCV");
+    expect(workspace).toContain('data-ta-source={candleProvider ? "unified-market-data" : "none"}');
+    expect(workspace).toContain('data-candle-source="unified-market-data"');
+    expect(workspace).toContain("Loading ${candleProvider} candle data for technical analysis");
   });
 
   it("Analysis summary exposes real calculated Binance-derived values", () => {

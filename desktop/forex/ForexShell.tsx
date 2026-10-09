@@ -106,6 +106,11 @@ export function ForexShell({
     writeMarketQuery(market, chartTimeframe);
   };
 
+  const clearSelectedMarket = () => {
+    setSelectedMarket(null);
+    writeMarketQuery(null, chartTimeframe);
+  };
+
   const selectTimeframe = (timeframe: ChartTimeframeId) => {
     setChartTimeframe(timeframe);
     writeMarketQuery(selectedMarket, timeframe);
@@ -175,8 +180,12 @@ export function ForexShell({
       <ForexMarketsPage
         selected={selectedMarket}
         onSelect={selectMarket}
+        onClearSelection={clearSelectedMarket}
         liveTicker={liveTicker}
         onOpenCharts={() => navigate("charts")}
+        onOpenAdmin={() => {
+          window.location.assign("/admin/forex");
+        }}
       />
     );
   } else if (route === "charts" || route === "technical-analysis") {

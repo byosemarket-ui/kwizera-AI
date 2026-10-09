@@ -130,10 +130,12 @@ describe("Forex Phase 1 shell integration", () => {
     expect(shell).toContain("rememberSessionWatchlist");
     expect(shell).not.toContain("key={route}");
     const charts = fs.readFileSync(path.resolve("desktop/forex/chart/ForexChartWorkspace.tsx"), "utf8");
-    expect(charts).toContain("useBinanceKlines");
+    expect(charts).toContain("useUnifiedCandles");
     expect(charts).toContain("useBinanceLiveKline");
     expect(charts).toContain("applyLiveKline");
     expect(charts).toContain("resolveKlineUiStatus");
+    expect(charts).toContain('data-candle-source="unified-market-data"');
+    expect(charts).not.toContain("useBinanceKlines");
     expect(charts).not.toContain("fetchMarketSeries");
     expect(charts).not.toContain("generateDevelopmentCandles");
     expect(charts).not.toContain("writeChartQuery");

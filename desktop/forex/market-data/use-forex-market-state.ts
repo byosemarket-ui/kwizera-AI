@@ -1,6 +1,6 @@
 /**
- * Client Market State — builds from the SAME candle hooks as Charts/TA.
- * Phase 31: Binance and FXCM share one Market State engine; provider identity retained.
+ * Client Market State — builds from the SAME unified candle hook as Charts/TA.
+ * Provider identity retained; no Binance↔FXCM silent fallback.
  */
 import { useMemo } from "react";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
@@ -8,9 +8,8 @@ import { buildForexMarketState, type ForexBinanceMarketState } from "../../../ai
 import type { ChartTimeframeId } from "../chart/types";
 import { sanitizeCandles } from "../chart/validate-candles";
 import { isBinanceSpotSelection, isFxcmSelection, type SelectedMarket } from "./selected-market";
-import { useBinanceKlines } from "./use-binance-klines";
 import { useBinanceLiveKline } from "./use-binance-live-kline";
-import { useFxcmLiveCandles } from "./use-fxcm-live-candles";
+import { useUnifiedCandles } from "./use-unified-candles";
 import { resolveKlineUiStatus } from "./live-market-status";
 
 export function useForexMarketState(
@@ -22,36 +21,37 @@ export function useForexMarketState(
 } {
   const binanceSelected = isBinanceSpotSelection(selectedMarket);
   const fxcmSelected = isFxcmSelection(selectedMarket);
-  const binanceSymbol = binanceSelected ? selectedMarket.symbol : null;
-  const fxcmSymbol = fxcmSelected ? selectedMarket.symbol : null;
+  const provider = fxcmSelected ? "FXCM" as const : binanceSelected ? "BINANCE" as const : null;
+  const symbol = (binanceSelected || fxcmSelected) && selectedMarket ? selectedMarket.symbol : null;
 
-  const history = useBinanceKlines(binanceSymbol, timeframe);
-  const liveKline = useBinanceLiveKline(binanceSymbol, timeframe);
-  const fxcmLive = useFxcmLiveCandles(fxcmSymbol, timeframe);
+  const unified = useUnifiedCandles(provider, symbol, timeframe, {
+    marketType: fxcmSelected ? "FOREX" : binanceSelected ? "CRYPTO" : null,
+  });
+  const liveKline = useBinanceLiveKline(binanceSelected && selectedMarket ? selectedMarket.symbol : null, timeframe);
 
   const candles = useMemo(() => {
-    if (fxcmSelected && fxcmLive.state === "ready") {
-      return sanitizeCandles(fxcmLive.candles.map((candle) => ({
-        time: candle.time,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-        volume: candle.volume ?? 0,
-        closed: candle.closed,
-      })));
+    if (!provider || !symbol) return [];
+    if (
+      unified.state === "loading"
+      || unified.state === "error"
+      || unified.state === "unavailable"
+      || unified.state === "empty"
+    ) {
+      return [];
     }
-    if (!binanceSelected || history.state !== "ready") return [];
-    if (history.symbol !== selectedMarket.symbol || history.timeframe !== timeframe) return [];
-    const base = sanitizeCandles(history.candles.map((candle) => ({
+    if (unified.provider !== provider || unified.symbol !== symbol || unified.timeframe !== timeframe) {
+      return [];
+    }
+    const base = sanitizeCandles(unified.candles.map((candle) => ({
       time: candle.time,
       open: candle.open,
       high: candle.high,
       low: candle.low,
       close: candle.close,
-      volume: candle.volume,
+      volume: candle.volume ?? 0,
       closed: candle.closed,
     })));
+    if (!binanceSelected || !selectedMarket) return base;
     const live = liveKline.kline;
     if (
       !live
@@ -64,10 +64,10 @@ export function useForexMarketState(
     }
     return sanitizeCandles(applyLiveKline(base, live.candle));
   }, [
+    provider,
+    symbol,
+    unified,
     binanceSelected,
-    fxcmSelected,
-    fxcmLive,
-    history,
     liveKline.kline,
     liveKline.subscribedSymbol,
     liveKline.timeframe,
@@ -76,22 +76,24 @@ export function useForexMarketState(
   ]);
 
   const historyReady = Boolean(
-    (binanceSelected
-      && history.state === "ready"
-      && history.symbol === selectedMarket?.symbol
-      && history.timeframe === timeframe
-      && candles.length > 0)
-    || (fxcmSelected && fxcmLive.state === "ready" && candles.length > 0),
+    provider
+    && symbol
+    && (unified.state === "ready" || unified.state === "live" || unified.state === "stale"
+      || unified.state === "connecting" || unified.state === "reconnecting")
+    && unified.provider === provider
+    && unified.symbol === symbol
+    && unified.timeframe === timeframe
+    && candles.length > 0,
   );
 
   const connection = fxcmSelected
-    ? (fxcmLive.live ? "LIVE"
-      : fxcmLive.state === "ready" ? "CONNECTED"
-        : fxcmLive.state === "loading" ? "CONNECTING"
+    ? (unified.live ? "LIVE"
+      : unified.state === "ready" || unified.state === "stale" ? "CONNECTED"
+        : unified.state === "loading" ? "CONNECTING"
           : "NO_DATA")
     : resolveKlineUiStatus(
       liveKline,
-      binanceSymbol,
+      binanceSelected && selectedMarket ? selectedMarket.symbol : null,
       timeframe,
       historyReady,
     );
@@ -104,8 +106,8 @@ export function useForexMarketState(
         timeframe,
         candles,
         connection,
-        lastMarketUpdateMs: fxcmLive.lastQuoteAt
-          ? Date.parse(fxcmLive.lastQuoteAt)
+        lastMarketUpdateMs: unified.lastQuoteAt
+          ? Date.parse(unified.lastQuoteAt)
           : (candles[candles.length - 1] ? candles[candles.length - 1]!.time * 1000 : null),
         provider: "FXCM",
         marketType: "FOREX",
@@ -114,10 +116,10 @@ export function useForexMarketState(
         canonicalSymbol: selectedMarket.symbol.replace(/[/_-\s]/g, "").toUpperCase(),
       });
     }
-    if (!binanceSelected || !binanceSymbol) return null;
+    if (!binanceSelected || !symbol) return null;
     if (!historyReady && candles.length === 0) return null;
     return buildForexMarketState({
-      symbol: binanceSymbol,
+      symbol,
       timeframe,
       candles,
       connection,
@@ -131,20 +133,17 @@ export function useForexMarketState(
     selectedMarket,
     fxcmSelected,
     binanceSelected,
-    binanceSymbol,
+    symbol,
     timeframe,
     candles,
     connection,
     historyReady,
     liveKline.kline?.eventTimeUtc,
-    fxcmLive.lastQuoteAt,
+    unified.lastQuoteAt,
   ]);
 
   return {
     marketState,
-    loading: Boolean(
-      (binanceSelected && history.state === "loading")
-      || (fxcmSelected && fxcmLive.state === "loading"),
-    ),
+    loading: Boolean(provider && symbol && unified.state === "loading"),
   };
 }
