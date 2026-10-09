@@ -41,7 +41,7 @@ describe("Forex Phase 16 — Charts + Technical Analysis live consistency", () =
     expect(workspace).not.toContain("Math.random");
 
     expect(workspace).toContain("data-fx-provider=");
-    expect(workspace).toContain('data-fx-source={fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}');
+    expect(workspace).toContain('data-fx-source={forexConnectSelected ? "forexconnect-bid" : fxcmSelected ? "fxcm-mid" : binanceSelected ? "binance-spot" : "none"}');
     expect(workspace).toContain("data-fx-symbol=");
     expect(workspace).toContain("data-fx-timeframe=");
     expect(workspace).toContain("data-fx-open=");
