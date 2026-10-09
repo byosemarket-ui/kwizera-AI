@@ -127,8 +127,10 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
       <section className="fxa-card" data-forex-admin-fxcm-status>
         <h3>FXCM MARKET DATA</h3>
         <p className="fxa-muted">
-          Phases 26–30: authentication, discovery, historical, streaming, live candles.
-          Trading disabled. CONNECTED ≠ LIVE.
+          Phases 26–30: authentication, discovery, historical, streaming, live candles via Socket REST.
+          Trading disabled. CONNECTED ≠ LIVE. ForexConnect native SDK is not integrated into this Node gateway
+          (see docs/forex-fxcm-forexconnect-investigation.md). Use Trading Station Web access token +
+          KWIZERA_FXCM_* env; Live REST may require api@fxcm.com enablement.
         </p>
         <ul>
           <li>Provider: FXCM</li>

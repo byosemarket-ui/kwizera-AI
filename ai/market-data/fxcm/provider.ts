@@ -212,6 +212,9 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       `Live candle sessions: ${liveSessions}`,
       `Environment: ${this.config.environmentLabel}`,
       "CONNECTED ≠ LIVE; LIVE requires a recent valid quote event.",
+      "API path: FXCM Socket REST (official). ForexConnect SDK is NOT integrated.",
+      "ForexConnect uses username/password (not Socket REST token) but requires native C++/Java/Python SDK — incompatible with this Node.js gateway without a separate sidecar.",
+      "Next action: set KWIZERA_FXCM_ENABLED=1 + KWIZERA_FXCM_ACCESS_TOKEN (Trading Station Web token). Live REST often needs api@fxcm.com enablement. See docs/forex-fxcm-forexconnect-investigation.md.",
     ];
 
     const authCtx = await this.auth.authenticate();
