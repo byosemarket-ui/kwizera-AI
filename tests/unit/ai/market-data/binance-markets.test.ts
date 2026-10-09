@@ -70,8 +70,18 @@ describe("Binance Phase 7 selected market", () => {
   it("parses compact Binance symbols separately from unsupported traditional Forex pairs", () => {
     expect(parseSelectedMarket("EURUSD")).toEqual({ venue: "unsupported", symbol: "EUR/USD", displaySymbol: "EUR/USD" });
     expect(parseSelectedMarket("EUR/USD")).toEqual({ venue: "unsupported", symbol: "EUR/USD", displaySymbol: "EUR/USD" });
-    expect(parseSelectedMarket("btcusdt")).toEqual({ venue: "binance-spot", symbol: "BTCUSDT", displaySymbol: "BTC/USDT" });
-    expect(parseSelectedMarket("EURUSDC")).toEqual({ venue: "binance-spot", symbol: "EURUSDC", displaySymbol: "EUR/USDC" });
+    expect(parseSelectedMarket("btcusdt")).toEqual({
+      venue: "binance-spot",
+      symbol: "BTCUSDT",
+      displaySymbol: "BTC/USDT",
+      provider: "BINANCE",
+    });
+    expect(parseSelectedMarket("EURUSDC")).toEqual({
+      venue: "binance-spot",
+      symbol: "EURUSDC",
+      displaySymbol: "EUR/USDC",
+      provider: "BINANCE",
+    });
     expect(parseSelectedMarket("!!!")).toBeNull();
     expect(parseSelectedMarket("")).toBeNull();
   });
