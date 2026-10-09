@@ -289,6 +289,42 @@ export const forexProvidersApi = {
       error?: { code: string; message: string };
     }>(`/api/forex/providers/forexconnect/candles?${q.toString()}`);
   },
+  forexConnectStreamStatus: () =>
+    request<{
+      ok: boolean;
+      sessionStatus: string;
+      streamState: string;
+      offersListenerActive: boolean;
+      subscriptionCount: number;
+      subscriptions: string[];
+      maxSubscriptions: number;
+      lastQuoteAt: string | null;
+      lastQuoteAgeMs: number | null;
+      lastStreamError: string | null;
+      updateCount: number;
+      priceBasis?: string;
+      note?: string;
+    }>("/api/forex/providers/forexconnect/stream/status"),
+  forexConnectSubscribe: (symbol: string) =>
+    request<{
+      ok: boolean;
+      providerSymbol?: string;
+      error?: { code: string; message: string };
+    }>("/api/forex/providers/forexconnect/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    }),
+  forexConnectUnsubscribe: (symbol: string) =>
+    request<{ ok: boolean }>("/api/forex/providers/forexconnect/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    }),
+  forexConnectQuotes: () =>
+    request<{
+      ok: boolean;
+      count: number;
+      quotes: Array<Record<string, unknown>>;
+    }>("/api/forex/providers/forexconnect/quotes"),
   fxcmHistorical: (params: {
     symbol: string;
     timeframe: string;

@@ -13,6 +13,8 @@ import {
   isForexConnectSupportedTimeframe,
   toForexConnectPeriodId,
 } from "./timeframes.js";
+import { normalizeFcOfferQuote } from "./live-candle-sync.js";
+import type { ForexConnectLiveQuote, ForexConnectStreamStatus } from "./live-types.js";
 import type {
   ForexConnectCandlesRequest,
   ForexConnectInstrumentsResult,
@@ -415,6 +417,180 @@ export class ForexConnectBridge {
           error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
         ),
       );
+    }
+  }
+
+  async subscribeQuotes(symbol: string): Promise<{
+    ok: boolean;
+    providerSymbol?: string;
+    canonicalSymbol?: string;
+    displaySymbol?: string;
+    error?: { code: string; message: string };
+  }> {
+    const cfg = this.getConfig();
+    if (!cfg.enabled) {
+      return {
+        ok: false,
+        error: { code: "FOREXCONNECT_DISABLED", message: "ForexConnect is disabled." },
+      };
+    }
+    try {
+      const remote = await sidecarFetch(
+        cfg,
+        "/subscribe",
+        { method: "POST", body: JSON.stringify({ symbol }) },
+        this.fetchImpl,
+      );
+      if (!remote.ok || remote.body.ok === false) {
+        const err = remote.body.error as { code?: string; message?: string } | undefined;
+        return {
+          ok: false,
+          error: {
+            code: String(err?.code ?? "FOREXCONNECT_SUBSCRIBE_FAILED"),
+            message: sanitize(String(err?.message ?? "Subscribe failed.")),
+          },
+        };
+      }
+      return {
+        ok: true,
+        providerSymbol: remote.body.providerSymbol
+          ? String(remote.body.providerSymbol)
+          : symbol,
+        canonicalSymbol: remote.body.canonicalSymbol
+          ? String(remote.body.canonicalSymbol)
+          : undefined,
+        displaySymbol: remote.body.displaySymbol
+          ? String(remote.body.displaySymbol)
+          : undefined,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+      };
+    }
+  }
+
+  async unsubscribeQuotes(symbol: string): Promise<void> {
+    const cfg = this.getConfig();
+    try {
+      await sidecarFetch(
+        cfg,
+        "/unsubscribe",
+        { method: "POST", body: JSON.stringify({ symbol }) },
+        this.fetchImpl,
+      );
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  async pollQuotes(): Promise<ForexConnectLiveQuote[]> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(cfg, "/quotes", { method: "GET" }, this.fetchImpl);
+    if (!remote.ok || remote.body.ok === false) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_STREAM_ERROR",
+        sanitize(String(
+          (remote.body.error as { message?: string } | undefined)?.message
+            ?? "Failed to poll ForexConnect quotes.",
+        )),
+      );
+    }
+    const list = Array.isArray(remote.body.quotes) ? remote.body.quotes : [];
+    const out: ForexConnectLiveQuote[] = [];
+    const receivedAtMs = Date.now();
+    for (const raw of list) {
+      const n = normalizeFcOfferQuote(raw, receivedAtMs);
+      if (!n || n.candlePrice == null) continue;
+      out.push({
+        provider: "FOREXCONNECT",
+        providerSymbol: n.providerSymbol,
+        canonicalSymbol: n.canonicalSymbol,
+        displaySymbol: n.displaySymbol,
+        bid: n.bid,
+        ask: n.ask,
+        mid: n.mid,
+        candlePrice: n.candlePrice,
+        priceBasis: "bid",
+        sourceTimestampMs: n.sourceTimestampMs,
+        receivedAtMs: n.receivedAtMs,
+        offerId: n.offerId,
+      });
+    }
+    return out;
+  }
+
+  async getStreamStatus(): Promise<ForexConnectStreamStatus> {
+    const cfg = this.getConfig();
+    if (!cfg.enabled) {
+      return {
+        ok: true,
+        provider: "FOREXCONNECT",
+        sessionStatus: "DISABLED",
+        streamState: "DISABLED",
+        offersListenerActive: false,
+        subscriptionCount: 0,
+        subscriptions: [],
+        maxSubscriptions: 8,
+        lastQuoteAt: null,
+        lastQuoteAgeMs: null,
+        lastStreamError: null,
+        updateCount: 0,
+        priceBasis: "bid",
+        trading: "DISABLED",
+        note: "ForexConnect is disabled.",
+      };
+    }
+    try {
+      const remote = await sidecarFetch(cfg, "/stream/status", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as Partial<ForexConnectStreamStatus>;
+      return {
+        ok: true,
+        provider: "FOREXCONNECT",
+        sessionStatus: String(body.sessionStatus ?? "UNKNOWN"),
+        streamState: (body.streamState as ForexConnectStreamStatus["streamState"])
+          ?? "DISCONNECTED",
+        offersListenerActive: Boolean(body.offersListenerActive),
+        subscriptionCount: Number(body.subscriptionCount ?? 0),
+        subscriptions: Array.isArray(body.subscriptions)
+          ? body.subscriptions.map(String)
+          : [],
+        maxSubscriptions: Number(body.maxSubscriptions ?? 8),
+        lastQuoteAt: body.lastQuoteAt ? String(body.lastQuoteAt) : null,
+        lastQuoteAgeMs: body.lastQuoteAgeMs == null ? null : Number(body.lastQuoteAgeMs),
+        lastStreamError: body.lastStreamError
+          ? sanitize(String(body.lastStreamError))
+          : null,
+        updateCount: Number(body.updateCount ?? 0),
+        priceBasis: "bid",
+        trading: "DISABLED",
+        note: body.note ? String(body.note) : undefined,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        provider: "FOREXCONNECT",
+        sessionStatus: "SERVICE_UNAVAILABLE",
+        streamState: "SERVICE_UNAVAILABLE",
+        offersListenerActive: false,
+        subscriptionCount: 0,
+        subscriptions: [],
+        maxSubscriptions: 8,
+        lastQuoteAt: null,
+        lastQuoteAgeMs: null,
+        lastStreamError: sanitize(
+          error instanceof Error ? error.message : "Sidecar unreachable.",
+        ),
+        updateCount: 0,
+        priceBasis: "bid",
+        trading: "DISABLED",
+      };
     }
   }
 }

@@ -38,8 +38,12 @@ and exposes a safe HTTP control plane for the Node.js gateway.
 - `POST /disconnect`
 - `GET /instruments`
 - `GET /candles?symbol=&timeframe=&limit=` — historical via `ForexConnect.get_history` (bid OHLC)
+- `POST /subscribe` `{ "symbol": "EUR/USD" }` — Offers table updates (`Common.subscribe_table_updates`)
+- `POST /unsubscribe` `{ "symbol": "EUR/USD" }`
+- `GET /quotes` / `GET /quote?symbol=` — latest bid/ask for subscribed instruments
+- `GET /stream/status` — subscription / LIVE / STALE diagnostics
 
-Passwords are never returned in responses or logs.
+Passwords are never returned in responses or logs. Max 8 concurrent subscriptions.
 
 ## Historical candles
 

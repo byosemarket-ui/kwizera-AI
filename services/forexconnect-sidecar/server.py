@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-KWIZERA ForexConnect sidecar — Phase 33/34.
+KWIZERA ForexConnect sidecar — Phase 33/34/35.
 Binds to localhost only. Wraps official forexconnect SDK when installed.
-Historical candles via ForexConnect.get_history (bid OHLC). Never logs passwords.
+Historical: get_history (bid OHLC). Live: Offers table updates via Common.subscribe_table_updates.
+Never logs passwords. Read-only — no trading.
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 5179
 DEFAULT_URL = "https://www.fxcorporate.com/Hosts.jsp"
 MAX_CANDLES = 300
+MAX_SUBSCRIPTIONS = 8
 
 # Project timeframe → ForexConnect.get_history period id (exact 1:1 only).
 TIMEFRAME_MAP: dict[str, str] = {
@@ -44,6 +46,15 @@ TIMEFRAME_MS: dict[str, int] = {
 
 _state_lock = threading.RLock()
 _fx: Any = None
+_offers_listener: Any = None
+_subscriptions: set[str] = set()  # provider symbols (e.g. EUR/USD)
+_quotes: dict[str, dict[str, Any]] = {}  # canonical -> quote
+_stream: dict[str, Any] = {
+    "updateCount": 0,
+    "lastQuoteAt": None,
+    "lastStreamError": None,
+    "offersListenerActive": False,
+}
 _state: dict[str, Any] = {
     "status": "DISCONNECTED",
     "errorCode": None,
@@ -147,14 +158,22 @@ def _safe_status() -> dict[str, Any]:
             "lastHistoricalAt": _state["lastHistoricalAt"],
             "instrumentCount": int(_state["instrumentCount"] or 0),
             "historicalCapable": status == "CONNECTED",
+            "streamingCapable": status == "CONNECTED",
             "supportedTimeframes": sorted(TIMEFRAME_MAP.keys()),
             "priceBasis": "bid",
+            "subscriptionCount": len(_subscriptions),
+            "subscriptions": sorted(_subscriptions),
+            "offersListenerActive": bool(_stream["offersListenerActive"]),
+            "lastQuoteAt": _stream["lastQuoteAt"],
+            "streamUpdateCount": int(_stream["updateCount"] or 0),
+            "lastStreamError": _stream["lastStreamError"],
             "errorCode": _state["errorCode"],
             "errorMessage": _state["errorMessage"],
             "trading": "DISABLED",
             "note": (
                 "ForexConnect sidecar. Trading disabled. "
                 "Historical via get_history (bid OHLC). "
+                "Live via Offers table updates (bid candle basis). "
                 "CONNECTED only after authenticated SDK session."
             ),
             "checkedAt": _now_iso(),
@@ -170,8 +189,22 @@ def _set_error(code: str, message: str, status: str) -> None:
         _state["connecting"] = False
 
 
+def _stop_offers_listener_locked() -> None:
+    global _offers_listener
+    if _offers_listener is not None:
+        try:
+            _offers_listener.unsubscribe()
+        except Exception:
+            pass
+        _offers_listener = None
+    _stream["offersListenerActive"] = False
+    _subscriptions.clear()
+    _quotes.clear()
+
+
 def _logout_locked() -> None:
     global _fx
+    _stop_offers_listener_locked()
     if _fx is not None:
         try:
             _fx.logout()
@@ -190,6 +223,9 @@ def _logout_locked() -> None:
     _state["instrumentCount"] = 0
     _state["lastInstrumentAt"] = None
     _state["lastHistoricalAt"] = None
+    _stream["lastQuoteAt"] = None
+    _stream["updateCount"] = 0
+    _stream["lastStreamError"] = None
 
 
 def _row_get(row: Any, *names: str) -> Any:
@@ -642,8 +678,278 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
     }
 
 
+def _canonical(symbol: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]", "", symbol).upper()
+
+
+def _offer_to_quote(row: Any) -> Optional[dict[str, Any]]:
+    instrument = _row_get(row, "instrument", "Instrument")
+    if instrument is None:
+        try:
+            instrument = row.instrument
+        except Exception:
+            instrument = None
+    if not instrument:
+        return None
+    provider_symbol = str(instrument).strip()
+    if not provider_symbol:
+        return None
+    bid = _finite(_row_get(row, "bid", "Bid"))
+    if bid is None:
+        bid = _finite(_try_index(row, "bid"))
+    ask = _finite(_row_get(row, "ask", "Ask"))
+    if ask is None:
+        ask = _finite(_try_index(row, "ask"))
+    offer_id = _row_get(row, "offer_id", "OfferID", "offerId")
+    mid = (bid + ask) / 2 if bid is not None and ask is not None and bid <= ask else None
+    received = _now_iso()
+    received_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    return {
+        "provider": "FOREXCONNECT",
+        "providerSymbol": provider_symbol,
+        "canonicalSymbol": _canonical(provider_symbol),
+        "displaySymbol": provider_symbol,
+        "bid": bid,
+        "ask": ask,
+        "mid": mid,
+        "candlePrice": bid,
+        "priceBasis": "bid",
+        "offerId": str(offer_id) if offer_id is not None else None,
+        "sourceTimestampMs": received_ms,
+        "receivedAt": received,
+        "receivedAtMs": received_ms,
+    }
+
+
+def _store_quote(quote: dict[str, Any]) -> None:
+    with _state_lock:
+        if quote["providerSymbol"] not in _subscriptions:
+            # Also accept if canonical matches a subscribed instrument.
+            wanted = {_canonical(s) for s in _subscriptions}
+            if quote["canonicalSymbol"] not in wanted:
+                return
+        _quotes[quote["canonicalSymbol"]] = quote
+        _stream["updateCount"] = int(_stream["updateCount"] or 0) + 1
+        _stream["lastQuoteAt"] = quote["receivedAt"]
+        _stream["lastStreamError"] = None
+
+
+def _on_offer_changed(_table_listener: Any, _row_id: Any, row: Any) -> None:
+    try:
+        quote = _offer_to_quote(row)
+        if quote is None:
+            return
+        # Filter to subscribed instruments only.
+        with _state_lock:
+            subs = set(_subscriptions)
+        if quote["providerSymbol"] not in subs and quote["canonicalSymbol"] not in {_canonical(s) for s in subs}:
+            return
+        if quote.get("bid") is None:
+            return
+        _store_quote(quote)
+    except Exception as exc:  # pragma: no cover
+        with _state_lock:
+            _stream["lastStreamError"] = _sanitize(str(exc))
+
+
+def _ensure_offers_listener_locked() -> tuple[bool, Optional[str]]:
+    global _offers_listener
+    if _offers_listener is not None:
+        return True, None
+    if _fx is None:
+        return False, "ForexConnect session is not active."
+    try:
+        from forexconnect import ForexConnect, Common
+
+        offers = _fx.get_table(ForexConnect.OFFERS)
+        _offers_listener = Common.subscribe_table_updates(
+            offers,
+            on_change_callback=_on_offer_changed,
+        )
+        _stream["offersListenerActive"] = True
+        # Seed current bids for already-subscribed symbols.
+        for row in offers:
+            quote = _offer_to_quote(row)
+            if quote and quote["providerSymbol"] in _subscriptions:
+                _quotes[quote["canonicalSymbol"]] = quote
+                _stream["lastQuoteAt"] = quote["receivedAt"]
+        return True, None
+    except Exception as exc:
+        _stream["offersListenerActive"] = False
+        _stream["lastStreamError"] = _sanitize(str(exc))
+        return False, _sanitize(str(exc))
+
+
+def subscribe_symbol(symbol: str) -> dict[str, Any]:
+    status = _safe_status()
+    if status["status"] != "CONNECTED":
+        return {
+            "ok": False,
+            "error": {
+                "code": status.get("errorCode") or f"FOREXCONNECT_{status['status']}",
+                "message": status.get("errorMessage") or "Connect before subscribing.",
+            },
+            "status": status,
+        }
+    instrument = _resolve_instrument(symbol)
+    if instrument is None:
+        return {
+            "ok": False,
+            "error": {
+                "code": "FOREXCONNECT_UNKNOWN_INSTRUMENT",
+                "message": f'Instrument "{symbol}" is not available in the authenticated session.',
+            },
+            "status": status,
+        }
+    provider_symbol = str(instrument["providerSymbol"])
+    with _state_lock:
+        if provider_symbol not in _subscriptions and len(_subscriptions) >= MAX_SUBSCRIPTIONS:
+            return {
+                "ok": False,
+                "error": {
+                    "code": "FOREXCONNECT_SUBSCRIPTION_LIMIT",
+                    "message": f"Max concurrent ForexConnect subscriptions is {MAX_SUBSCRIPTIONS}.",
+                },
+                "status": status,
+            }
+        _subscriptions.add(provider_symbol)
+        ok, err = _ensure_offers_listener_locked()
+        if not ok:
+            _subscriptions.discard(provider_symbol)
+            return {
+                "ok": False,
+                "error": {
+                    "code": "FOREXCONNECT_STREAM_ERROR",
+                    "message": err or "Failed to subscribe Offers table updates.",
+                },
+                "status": _safe_status(),
+            }
+        quote = _quotes.get(instrument["canonicalSymbol"])
+    return {
+        "ok": True,
+        "provider": "FOREXCONNECT",
+        "providerSymbol": provider_symbol,
+        "canonicalSymbol": instrument["canonicalSymbol"],
+        "displaySymbol": instrument.get("displaySymbol") or provider_symbol,
+        "subscribed": True,
+        "subscriptionCount": len(_subscriptions),
+        "quote": quote,
+        "priceBasis": "bid",
+        "status": _safe_status(),
+        "note": "Subscribed to Offers table updates. Candle OHLC uses bid.",
+    }
+
+
+def unsubscribe_symbol(symbol: str) -> dict[str, Any]:
+    instrument = _resolve_instrument(symbol)
+    provider_symbol = str(instrument["providerSymbol"]) if instrument else symbol.strip()
+    canonical = instrument["canonicalSymbol"] if instrument else _canonical(symbol)
+    with _state_lock:
+        _subscriptions.discard(provider_symbol)
+        # Also discard by matching canonical
+        for s in list(_subscriptions):
+            if _canonical(s) == canonical:
+                _subscriptions.discard(s)
+        _quotes.pop(canonical, None)
+        if not _subscriptions:
+            _stop_offers_listener_locked()
+    return {
+        "ok": True,
+        "provider": "FOREXCONNECT",
+        "providerSymbol": provider_symbol,
+        "subscribed": False,
+        "subscriptionCount": len(_subscriptions),
+        "status": _safe_status(),
+    }
+
+
+def stream_status_payload() -> dict[str, Any]:
+    status = _safe_status()
+    with _state_lock:
+        last_at = _stream["lastQuoteAt"]
+        age_ms = None
+        if last_at:
+            try:
+                last_ms = int(datetime.fromisoformat(str(last_at).replace("Z", "+00:00")).timestamp() * 1000)
+                age_ms = max(0, int(datetime.now(timezone.utc).timestamp() * 1000) - last_ms)
+            except Exception:
+                age_ms = None
+        stream_state = "DISCONNECTED"
+        if status["status"] == "DISABLED":
+            stream_state = "DISABLED"
+        elif status["status"] == "NOT_CONFIGURED":
+            stream_state = "NOT_CONFIGURED"
+        elif status["status"] != "CONNECTED":
+            stream_state = str(status["status"])
+        elif not _subscriptions:
+            stream_state = "AUTHENTICATED_IDLE"
+        elif int(_stream["updateCount"] or 0) <= 0:
+            stream_state = "SUBSCRIBED_WAITING"
+        elif age_ms is not None and age_ms > 15_000:
+            stream_state = "STALE"
+        else:
+            stream_state = "LIVE"
+        return {
+            "ok": True,
+            "provider": "FOREXCONNECT",
+            "sessionStatus": status["status"],
+            "streamState": stream_state,
+            "offersListenerActive": bool(_stream["offersListenerActive"]),
+            "subscriptionCount": len(_subscriptions),
+            "subscriptions": sorted(_subscriptions),
+            "maxSubscriptions": MAX_SUBSCRIPTIONS,
+            "lastQuoteAt": last_at,
+            "lastQuoteAgeMs": age_ms,
+            "lastStreamError": _stream["lastStreamError"],
+            "updateCount": int(_stream["updateCount"] or 0),
+            "priceBasis": "bid",
+            "trading": "DISABLED",
+            "note": "LIVE only after actual Offers table updates are received.",
+            "status": status,
+        }
+
+
+def quotes_payload(symbol: Optional[str] = None) -> dict[str, Any]:
+    status = _safe_status()
+    if status["status"] != "CONNECTED":
+        return {
+            "ok": False,
+            "error": {
+                "code": status.get("errorCode") or f"FOREXCONNECT_{status['status']}",
+                "message": status.get("errorMessage") or "Not connected.",
+            },
+            "quotes": [],
+            "count": 0,
+            "status": status,
+        }
+    if symbol:
+        inst = _resolve_instrument(symbol)
+        if inst is None:
+            return {
+                "ok": False,
+                "error": {
+                    "code": "FOREXCONNECT_UNKNOWN_INSTRUMENT",
+                    "message": f'Instrument "{symbol}" not found.',
+                },
+                "quotes": [],
+                "count": 0,
+            }
+        with _state_lock:
+            q = _quotes.get(inst["canonicalSymbol"])
+        return {
+            "ok": True,
+            "quotes": [q] if q else [],
+            "count": 1 if q else 0,
+            "providerSymbol": inst["providerSymbol"],
+            "status": status,
+        }
+    with _state_lock:
+        quotes = list(_quotes.values())
+    return {"ok": True, "quotes": quotes, "count": len(quotes), "status": status}
+
+
 class Handler(BaseHTTPRequestHandler):
-    server_version = "KWIZERA-ForexConnect/34"
+    server_version = "KWIZERA-ForexConnect/35"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Avoid logging request bodies / credentials.
@@ -715,11 +1021,20 @@ class Handler(BaseHTTPRequestHandler):
             )
             self._send(code, payload)
             return
+        if path == "/stream/status":
+            self._send(200, stream_status_payload())
+            return
+        if path == "/quote" or path == "/quotes":
+            qs = parse_qs(parsed.query or "")
+            symbol = (qs.get("symbol") or [""])[0].strip() or None
+            payload = quotes_payload(symbol)
+            self._send(200 if payload.get("ok") else 503, payload)
+            return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path.rstrip("/") or "/"
-        _ = self._read_json()  # consume body; ignore client credentials
+        body = self._read_json()  # consume body; ignore client credentials
         if path == "/connect":
             result = connect_session()
             code = 200 if result.get("status") == "CONNECTED" else 503
@@ -728,6 +1043,28 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/disconnect":
             result = disconnect_session()
             self._send(200, {"ok": True, **result})
+            return
+        if path == "/subscribe":
+            symbol = str(body.get("symbol") or "").strip()
+            if not symbol:
+                self._send(400, {
+                    "ok": False,
+                    "error": {"code": "FOREXCONNECT_INVALID_REQUEST", "message": "symbol is required."},
+                })
+                return
+            payload = subscribe_symbol(symbol)
+            self._send(200 if payload.get("ok") else 503, payload)
+            return
+        if path == "/unsubscribe":
+            symbol = str(body.get("symbol") or "").strip()
+            if not symbol:
+                self._send(400, {
+                    "ok": False,
+                    "error": {"code": "FOREXCONNECT_INVALID_REQUEST", "message": "symbol is required."},
+                })
+                return
+            payload = unsubscribe_symbol(symbol)
+            self._send(200, payload)
             return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 

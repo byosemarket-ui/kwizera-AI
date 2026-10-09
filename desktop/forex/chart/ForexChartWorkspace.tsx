@@ -353,7 +353,8 @@ export function ForexChartWorkspace({
     historyReady && binanceSelected,
   );
   const fxcmLiveChart = Boolean(fxcmSelected && unified.live);
-  const chartLive = fxcmLiveChart || (!fxcmSelected && klineStatus === "LIVE");
+  const forexConnectLiveChart = Boolean(forexConnectSelected && unified.live);
+  const chartLive = fxcmLiveChart || forexConnectLiveChart || (!fxcmSelected && !forexConnectSelected && klineStatus === "LIVE");
   const tickerStatus = liveTicker && binanceSelected
     ? resolveTickerUiStatus(liveTicker, selected.symbol)
     : null;
@@ -398,11 +399,15 @@ export function ForexChartWorkspace({
         : unified.state === "empty"
           ? `No ${candleProvider} candle data available.`
           : chartLive
-            ? (fxcmSelected ? "Live FXCM data" : "Live Binance data")
+            ? (fxcmSelected
+              ? "Live FXCM data"
+              : forexConnectSelected
+                ? "Live ForexConnect bid data"
+                : "Live Binance data")
             : (binanceSelected
               ? liveMarketStatusLabel(klineStatus)
               : forexConnectSelected
-                ? "ForexConnect historical bid candles"
+                ? (unified.message || "ForexConnect bid candles")
                 : unified.message);
   const analysisUnavailableReason = !candleProvider
     ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a BINANCE, FXCM, or ForexConnect instrument from Markets.")

@@ -5,6 +5,10 @@
  * POST /api/forex/providers/forexconnect/disconnect
  * GET  /api/forex/providers/forexconnect/instruments
  * GET  /api/forex/providers/forexconnect/candles?symbol=&timeframe=&limit=
+ * POST /api/forex/providers/forexconnect/subscribe
+ * POST /api/forex/providers/forexconnect/unsubscribe
+ * GET  /api/forex/providers/forexconnect/stream/status
+ * GET  /api/forex/providers/forexconnect/quotes
  *
  * Never returns passwords, tokens, or session secrets.
  */
@@ -54,7 +58,9 @@ export async function handleForexConnectApi(
 
   const isPost =
     (url.pathname === "/api/forex/providers/forexconnect/connect"
-      || url.pathname === "/api/forex/providers/forexconnect/disconnect")
+      || url.pathname === "/api/forex/providers/forexconnect/disconnect"
+      || url.pathname === "/api/forex/providers/forexconnect/subscribe"
+      || url.pathname === "/api/forex/providers/forexconnect/unsubscribe")
     && req.method === "POST";
 
   if (!isPost && req.method !== "GET" && req.method !== "HEAD") {
@@ -120,6 +126,56 @@ export async function handleForexConnectApi(
         status: result.status,
         note: result.note,
       });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/stream/status") {
+      const status = await bridge.getStreamStatus();
+      assertNoSecretsInForexConnectPayload(status);
+      sendJson(res, status.ok ? 200 : 503, status);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/quotes") {
+      try {
+        const quotes = await bridge.pollQuotes();
+        assertNoSecretsInForexConnectPayload(quotes);
+        sendJson(res, 200, {
+          ok: true,
+          count: quotes.length,
+          quotes,
+          priceBasis: "bid",
+          note: "Latest Offers-table quotes for subscribed instruments only.",
+        });
+      } catch (error) {
+        if (error instanceof ForexConnectMarketDataError) {
+          sendJson(res, 503, {
+            ok: false,
+            error: { code: error.code, message: error.message },
+            quotes: [],
+            count: 0,
+          });
+          return true;
+        }
+        throw error;
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/subscribe" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? "").trim();
+      const result = await bridge.subscribeQuotes(symbol);
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, result.ok ? 200 : 503, result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/unsubscribe" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? "").trim();
+      await bridge.unsubscribeQuotes(symbol);
+      sendJson(res, 200, { ok: true, provider: "FOREXCONNECT", subscribed: false, symbol });
       return true;
     }
 

@@ -19,11 +19,11 @@ import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "./timeframes.js";
 
 const CAPS: MarketDataCapabilities = {
   instruments: true,
-  liveQuotes: false,
-  streamingQuotes: false,
+  liveQuotes: true,
+  streamingQuotes: true,
   historicalPrices: true,
   candles: true,
-  liveCandles: false,
+  liveCandles: true,
   trading: false,
 };
 
@@ -101,7 +101,7 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
           : status.status === "ERROR" || status.status === "AUTHENTICATION_FAILED"
             ? "ERROR"
             : "DISCONNECTED",
-      liveStreamEnabled: false,
+      liveStreamEnabled: connected,
       tradingEnabled: false,
       instrumentDiscovery: connected
         ? "READY"
@@ -115,6 +115,8 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
       errorMessage: status.errorMessage ?? null,
       notes: [
         "ForexConnect historical candles via official get_history (bid OHLC).",
+        "Live quotes via Offers table updates (Common.subscribe_table_updates).",
+        "Forming candles use bid (same basis as historical).",
         `Supported timeframes: ${FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES.join(", ")}`,
         "Trading: DISABLED",
         "Distinct from FXCM Socket REST.",

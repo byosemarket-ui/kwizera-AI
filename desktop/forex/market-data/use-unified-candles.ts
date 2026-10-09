@@ -61,9 +61,9 @@ export function useUnifiedCandles(
     if (!opts?.soft) {
       setResult(idle(nextProvider, nextSymbol, nextTimeframe));
     }
-    // FXCM Socket REST: live mode. ForexConnect Phase 34: historical only.
+    // FXCM Socket REST + ForexConnect: live mode (forming candles).
     // Binance: historical baseline (browser WS still overlays forming candle).
-    const mode = nextProvider === "FXCM" ? "live" : "historical";
+    const mode = nextProvider === "FXCM" || nextProvider === "FOREXCONNECT" ? "live" : "historical";
     const next = await fetchUnifiedCandleSeries({
       provider: nextProvider,
       symbol: nextSymbol,
@@ -88,8 +88,8 @@ export function useUnifiedCandles(
 
     void load(provider, symbol, timeframe).then(() => {
       if (cancelled || gen !== generation.current) return;
-      // Poll FXCM live series so forming candle updates without inventing ticks.
-      if (provider === "FXCM") {
+      // Poll FXCM / ForexConnect live series so forming candle updates without inventing ticks.
+      if (provider === "FXCM" || provider === "FOREXCONNECT") {
         pollTimer = setInterval(() => {
           void fetchUnifiedCandleSeries({
             provider,

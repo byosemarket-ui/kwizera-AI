@@ -39,6 +39,6 @@ Charts/TA → /api/forex/market-data/candles?provider=FOREXCONNECT
 - `GET /api/forex/providers/forexconnect/candles?symbol=&timeframe=&limit=`
 - Unified: `GET /api/forex/market-data/candles?provider=FOREXCONNECT&symbol=&timeframe=&limit=`
 
-## Out of scope (Phase 35)
+## Follow-on
 
-Live ForexConnect price streaming into Charts.
+Live ForexConnect price streaming: see `docs/forex-forexconnect-phase35.md`.

@@ -5,6 +5,11 @@
 import { createBinanceMarketDataService, type BinanceMarketDataService } from "../binance/service.js";
 import { toDisplaySymbol } from "../binance/adapter.js";
 import type { SafeForexConnectHistoricalResult } from "../forexconnect/historical-types.js";
+import type { SafeForexConnectLiveSeries } from "../forexconnect/live-types.js";
+import {
+  getForexConnectLiveCandleService,
+  type ForexConnectLiveCandleService,
+} from "../forexconnect/live-service.js";
 import type { SafeFxcmHistoricalResult } from "../fxcm/historical-types.js";
 import type { SafeFxcmLiveCandleSeries } from "../fxcm/live-candle-types.js";
 import type { SafeFxcmQuoteSnapshot } from "../fxcm/stream-types.js";
@@ -78,6 +83,7 @@ export class MarketDataService {
   private readonly registry: MarketDataProviderRegistry;
   private readonly instruments: MarketInstrumentRegistry;
   private readonly binance: BinanceMarketDataService;
+  private readonly forexConnectLive: ForexConnectLiveCandleService;
   private readonly historicalCache = new Map<string, { at: number; series: UnifiedCandleSeries }>();
   private readonly HIST_CACHE_MS = 5_000;
 
@@ -87,6 +93,7 @@ export class MarketDataService {
     registry?: MarketDataProviderRegistry;
     binance?: BinanceMarketDataService;
     instruments?: MarketInstrumentRegistry;
+    forexConnectLive?: ForexConnectLiveCandleService;
   }) {
     this.registry = options?.registry ?? createMarketDataProviderRegistry({
       env: options?.env,
@@ -94,6 +101,8 @@ export class MarketDataService {
     });
     this.binance = options?.binance ?? createBinanceMarketDataService({ env: options?.env, fetchImpl: options?.fetchImpl });
     this.instruments = options?.instruments ?? createMarketInstrumentRegistry();
+    this.forexConnectLive = options?.forexConnectLive
+      ?? getForexConnectLiveCandleService();
   }
 
   getRegistry(): MarketDataProviderRegistry {
@@ -301,19 +310,8 @@ export class MarketDataService {
     }
 
     if (providerId === "FOREXCONNECT") {
-      // Phase 34: historical only. Live ForexConnect streaming is Phase 35.
-      const historical = await this.getHistoricalCandles({
-        provider: "FOREXCONNECT",
-        symbol: request.symbol,
-        timeframe,
-        marketType: request.marketType,
-        limit: 300,
-      });
-      return {
-        ...historical,
-        sourceMode: "HISTORICAL",
-        note: "ForexConnect live streaming is not enabled in Phase 34; historical bid candles returned.",
-      };
+      const live = await this.forexConnectLive.subscribe(request.symbol, timeframe);
+      return unifyForexConnectLiveSeries(live);
     }
 
     const fxcm = this.registry.getFxcm();
@@ -323,17 +321,25 @@ export class MarketDataService {
 
   async unsubscribeLiveCandles(request: LiveCandlesRequest): Promise<void> {
     const providerId = this.resolveProvider(request.provider);
-    if (providerId !== "FXCM") return;
     const timeframe = parseCanonicalTimeframe(request.timeframe);
     if (!timeframe) return;
+    if (providerId === "FOREXCONNECT") {
+      await this.forexConnectLive.unsubscribe(request.symbol, timeframe);
+      return;
+    }
+    if (providerId !== "FXCM") return;
     await this.registry.getFxcm().unsubscribeLiveCandles(request.symbol, timeframe);
   }
 
   getLiveCandleSeries(request: LiveCandlesRequest): UnifiedCandleSeries | null {
     const providerId = parseMarketProviderId(request.provider);
-    if (providerId !== "FXCM") return null;
     const timeframe = parseCanonicalTimeframe(request.timeframe);
     if (!timeframe) return null;
+    if (providerId === "FOREXCONNECT") {
+      const live = this.forexConnectLive.getSeries(request.symbol, timeframe);
+      return live ? unifyForexConnectLiveSeries(live) : null;
+    }
+    if (providerId !== "FXCM") return null;
     const live = this.registry.getFxcm().getLiveCandleSeries(request.symbol, timeframe);
     return live ? unifyFxcmLiveSeries(live) : null;
   }
@@ -342,6 +348,30 @@ export class MarketDataService {
     const providerId = this.resolveProvider(request.provider);
     if (providerId === "BINANCE") {
       return null; // Browser miniTicker path remains authoritative for Binance live quotes.
+    }
+    if (providerId === "FOREXCONNECT") {
+      const quote = this.forexConnectLive.getLatestQuote(request.symbol);
+      if (!quote || quote.bid == null) return null;
+      return {
+        provider: "FOREXCONNECT",
+        marketType: "FOREX",
+        providerSymbol: quote.providerSymbol,
+        canonicalSymbol: quote.canonicalSymbol,
+        displaySymbol: quote.displaySymbol,
+        providerTimestamp: quote.sourceTimestampMs
+          ? new Date(quote.sourceTimestampMs).toISOString()
+          : null,
+        normalizedTimestamp: new Date(quote.receivedAtMs).toISOString(),
+        bid: quote.bid,
+        ask: quote.ask,
+        mid: quote.mid,
+        last: quote.bid,
+        source: "forexconnect-offers",
+        dataQuality: "LIVE",
+        sourceMode: "LIVE",
+        connectionState: "LIVE",
+        receivedAt: new Date(quote.receivedAtMs).toISOString(),
+      };
     }
     const quotes = this.registry.getFxcm().listQuotes();
     const compact = normalizeCanonicalSymbol(request.symbol);
@@ -507,6 +537,85 @@ export class MarketDataService {
       errorMessage: null,
     };
   }
+}
+
+function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): UnifiedCandleSeries {
+  const identity = buildMarketIdentity({
+    provider: "FOREXCONNECT",
+    marketType: result.marketType,
+    providerSymbol: result.providerSymbol,
+    canonicalSymbol: result.canonicalSymbol,
+    displaySymbol: result.displaySymbol,
+    environment: result.environment,
+  });
+  const sourceMode = result.mode === "HISTORICAL" ? "HISTORICAL"
+    : result.mode === "LIVE" ? "LIVE"
+      : "HISTORICAL_LIVE";
+  const candles: UnifiedCandle[] = result.candles.map((c) => ({
+    provider: "FOREXCONNECT",
+    marketType: result.marketType,
+    providerSymbol: result.providerSymbol,
+    canonicalSymbol: result.canonicalSymbol,
+    displaySymbol: result.displaySymbol,
+    timeframe: result.timeframe,
+    time: c.time,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+    volume: c.volume,
+    isClosed: c.closed,
+    source: "FOREXCONNECT",
+    sourceMode,
+    dataQuality: result.streamState === "LIVE" ? "LIVE"
+      : result.streamState === "STALE" ? "STALE"
+        : result.count > 0 ? "VALID" : "NO_DATA",
+  }));
+  const forming = result.forming
+    ? {
+        provider: "FOREXCONNECT" as const,
+        marketType: result.marketType,
+        providerSymbol: result.providerSymbol,
+        canonicalSymbol: result.canonicalSymbol,
+        displaySymbol: result.displaySymbol,
+        timeframe: result.timeframe,
+        time: result.forming.time,
+        open: result.forming.open,
+        high: result.forming.high,
+        low: result.forming.low,
+        close: result.forming.close,
+        volume: result.forming.volume,
+        isClosed: result.forming.closed,
+        source: "FOREXCONNECT" as const,
+        sourceMode,
+        dataQuality: result.streamState === "LIVE" ? "LIVE" as const : "VALID" as const,
+      }
+    : null;
+  const connectionState = result.streamState === "LIVE" ? "LIVE"
+    : result.streamState === "STALE" ? "STALE"
+      : result.streamState === "SUBSCRIBED_WAITING" || result.streamState === "SUBSCRIBING"
+        ? "CONNECTING"
+        : result.streamState === "ERROR" || result.streamState === "SERVICE_UNAVAILABLE"
+          ? "ERROR"
+          : candles.length ? "CONNECTED" : "NO_DATA";
+  return {
+    identity,
+    timeframe: result.timeframe,
+    source: "FOREXCONNECT",
+    sourceMode,
+    connectionState,
+    dataQuality: result.streamState === "LIVE" ? "LIVE"
+      : result.streamState === "STALE" ? "STALE"
+        : candles.length ? "VALID" : "NO_DATA",
+    candles,
+    forming,
+    count: candles.length,
+    lastQuoteAt: result.lastQuoteAt,
+    updatedAt: new Date().toISOString(),
+    note: result.note,
+    errorCode: result.errorCode,
+    errorMessage: result.errorMessage,
+  };
 }
 
 function unifyForexConnectHistorical(result: SafeForexConnectHistoricalResult): UnifiedCandleSeries {

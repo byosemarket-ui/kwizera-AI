@@ -23,11 +23,13 @@ function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
 export function ForexAdminForexConnectPage() {
   const [status, setStatus] = useState<FcStatus | null>(null);
   const [instruments, setInstruments] = useState<Array<Record<string, unknown>>>([]);
-  const [busy, setBusy] = useState<"connect" | "instruments" | "disconnect" | "candles" | null>(null);
+  const [busy, setBusy] = useState<"connect" | "instruments" | "disconnect" | "candles" | "stream" | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sampleSymbol, setSampleSymbol] = useState("EUR/USD");
   const [sampleTf, setSampleTf] = useState<(typeof SAMPLE_TIMEFRAMES)[number]>("1h");
+  const [stream, setStream] = useState<Record<string, unknown> | null>(null);
+  const [lastQuote, setLastQuote] = useState<Record<string, unknown> | null>(null);
   const [candleSample, setCandleSample] = useState<{
     count: number;
     priceBasis?: string;
@@ -42,6 +44,12 @@ export function ForexAdminForexConnectPage() {
       const res = await forexProvidersApi.forexConnectStatus();
       setStatus(res as unknown as FcStatus);
       setError(null);
+      try {
+        const streamRes = await forexProvidersApi.forexConnectStreamStatus();
+        setStream(streamRes as unknown as Record<string, unknown>);
+      } catch {
+        setStream(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load ForexConnect status.");
       setStatus({ status: "SERVICE_UNAVAILABLE" });
@@ -213,6 +221,83 @@ export function ForexAdminForexConnectPage() {
             Python package on the VPS, and start kwizera-forexconnect.service.
           </p>
         ) : null}
+      </section>
+
+      <section className="fxa-card" data-fc-stream>
+        <h3>Live stream (Offers table)</h3>
+        <p className="fxa-muted">
+          Read-only subscription via official Common.subscribe_table_updates on Offers.
+          Candle OHLC uses bid (same basis as historical). LIVE only after real updates arrive.
+        </p>
+        <ul>
+          <li>Stream state: {String(stream?.streamState ?? "—")}</li>
+          <li>Offers listener: {String(stream?.offersListenerActive ?? "—")}</li>
+          <li>Active subscriptions: {String(stream?.subscriptionCount ?? 0)} / {String(stream?.maxSubscriptions ?? 8)}</li>
+          <li>Subscribed: {Array.isArray(stream?.subscriptions) ? (stream!.subscriptions as string[]).join(", ") || "—" : "—"}</li>
+          <li>Update count: {String(stream?.updateCount ?? 0)}</li>
+          <li>Last quote at: {String(stream?.lastQuoteAt ?? "—")}</li>
+          <li>Last quote age (ms): {String(stream?.lastQuoteAgeMs ?? "—")}</li>
+          <li>Last stream error: {String(stream?.lastStreamError ?? "—")}</li>
+          <li>Price basis: bid</li>
+          {lastQuote ? (
+            <li>
+              Latest quote {String(lastQuote.providerSymbol)} bid={String(lastQuote.bid)} ask={String(lastQuote.ask ?? "—")}
+            </li>
+          ) : null}
+        </ul>
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || connectionStatus !== "CONNECTED"}
+            onClick={() => {
+              void (async () => {
+                setBusy("stream");
+                setNote(null);
+                try {
+                  const res = await forexProvidersApi.forexConnectSubscribe(sampleSymbol);
+                  setNote(res.ok
+                    ? `Subscribed ${res.providerSymbol ?? sampleSymbol}. Waiting for Offers updates…`
+                    : (res.error?.message ?? "Subscribe failed."));
+                  const quotes = await forexProvidersApi.forexConnectQuotes().catch(() => null);
+                  setLastQuote((quotes?.quotes?.[0] as Record<string, unknown>) ?? null);
+                  void refresh();
+                } catch (err) {
+                  setNote(err instanceof Error ? err.message : "Subscribe failed.");
+                } finally {
+                  setBusy(null);
+                }
+              })();
+            }}
+          >
+            {busy === "stream" ? "Working…" : "Test live subscribe"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null}
+            onClick={() => {
+              void (async () => {
+                setBusy("stream");
+                try {
+                  await forexProvidersApi.forexConnectUnsubscribe(sampleSymbol);
+                  setLastQuote(null);
+                  setNote(`Unsubscribed ${sampleSymbol}.`);
+                  void refresh();
+                } catch (err) {
+                  setNote(err instanceof Error ? err.message : "Unsubscribe failed.");
+                } finally {
+                  setBusy(null);
+                }
+              })();
+            }}
+          >
+            Stop test subscription
+          </button>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void refresh()}>
+            Refresh stream status
+          </button>
+        </div>
       </section>
 
       <section className="fxa-card" data-fc-historical>
