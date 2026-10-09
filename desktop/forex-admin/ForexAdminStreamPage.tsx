@@ -72,8 +72,8 @@ export function ForexAdminStreamPage({ onOpen }: { onOpen: (path: string) => voi
       <section className="fxa-card">
         <h2>FXCM REAL-TIME STREAM</h2>
         <p className="fxa-muted">
-          Phase 29 official FXCM market-data quotes via POST /subscribe + Socket.IO push.
-          Mode = REALTIME_QUOTE — not live candles, not trading.
+          Phase 29 quotes + Phase 30 live candle sync (historical mid OHLC + stream).
+          Mode = REALTIME_QUOTE / HISTORICAL_PLUS_LIVE — not trading.
         </p>
         <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
           <label className="fxa-muted">

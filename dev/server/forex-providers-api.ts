@@ -51,7 +51,10 @@ export async function handleForexProvidersApi(
   const isAuthPost = url.pathname === "/api/forex/providers/fxcm/authenticate" && req.method === "POST";
   const isStreamPost =
     (url.pathname === "/api/forex/providers/fxcm/stream/subscribe"
-      || url.pathname === "/api/forex/providers/fxcm/stream/unsubscribe")
+      || url.pathname === "/api/forex/providers/fxcm/stream/unsubscribe"
+      || url.pathname === "/api/forex/providers/fxcm/candles/live/subscribe"
+      || url.pathname === "/api/forex/providers/fxcm/candles/live/unsubscribe"
+      || url.pathname === "/api/forex/providers/fxcm/candles/live/reconcile")
     && req.method === "POST";
   if (!isAuthPost && !isStreamPost && req.method !== "GET" && req.method !== "HEAD") {
     sendJson(res, 405, {
@@ -69,7 +72,7 @@ export async function handleForexProvidersApi(
       sendJson(res, 200, {
         ok: true,
         ...snapshot,
-        note: "FXCM Phase 29 — historical candles + real-time quotes; live candles and trading are not enabled.",
+        note: "FXCM Phase 30 — historical + live candle sync; trading is not enabled.",
       });
       return true;
     }
@@ -96,8 +99,111 @@ export async function handleForexProvidersApi(
         liveStream: stream.liveStream,
         trading: "DISABLED",
         marketData: stream.marketData,
-        note: "FXCM Phase 29 — real-time quotes enabled; live candles not enabled.",
+        note: "FXCM Phase 30 — real-time quotes + live candle sync; trading not enabled.",
+        liveCandleSessions: fxcm.getLiveCandleService().listSessions().length,
       });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/fxcm/candles/live") {
+      const fxcm = registry.getFxcm();
+      const symbol = (url.searchParams.get("symbol") ?? "").trim();
+      const timeframe = (url.searchParams.get("timeframe") ?? url.searchParams.get("interval") ?? "").trim();
+      if (!symbol || !timeframe) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "FXCM_INVALID_SYMBOL", message: "symbol and timeframe are required." },
+        });
+        return true;
+      }
+      const series = fxcm.getLiveCandleSeries(symbol, timeframe);
+      if (!series) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "FXCM_INSTRUMENT_NOT_FOUND", message: "No active FXCM live-candle session for this symbol/timeframe." },
+          provider: "FXCM",
+          trading: "DISABLED",
+        });
+        return true;
+      }
+      assertSafeStreamPayload(series, readFxcmAccessToken());
+      sendJson(res, 200, { ok: true, ...series });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/fxcm/candles/live/subscribe" && req.method === "POST") {
+      const fxcm = registry.getFxcm();
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? url.searchParams.get("symbol") ?? "").trim();
+      const timeframe = String(body.timeframe ?? url.searchParams.get("timeframe") ?? "").trim();
+      try {
+        const series = await fxcm.subscribeLiveCandles(symbol, timeframe);
+        assertSafeStreamPayload(series, readFxcmAccessToken());
+        sendJson(res, 200, {
+          ok: true,
+          ...series,
+        });
+        return true;
+      } catch (error) {
+        const mapped = userFacingFxcmError(error);
+        const code = error instanceof FxcmMarketDataError ? error.code : mapped.code;
+        const status =
+          code === "FXCM_INVALID_SYMBOL" ? 400
+            : code === "FXCM_INSTRUMENT_NOT_FOUND" ? 404
+              : code === "FXCM_MAPPING_CONFLICT" ? 409
+                : code === "FXCM_MAPPING_UNRESOLVED" || code === "FXCM_UNSUPPORTED_TIMEFRAME" ? 422
+                  : code === "FXCM_DISABLED" || code === "FXCM_NOT_CONFIGURED" ? 503
+                    : code === "FXCM_AUTHENTICATION_FAILED" ? 503
+                      : 503;
+        sendJson(res, status, {
+          ok: false,
+          error: { code, message: mapped.message },
+          provider: "FXCM",
+          mode: "HISTORICAL_PLUS_LIVE",
+          trading: "DISABLED",
+        });
+        return true;
+      }
+    }
+
+    if (url.pathname === "/api/forex/providers/fxcm/candles/live/unsubscribe" && req.method === "POST") {
+      const fxcm = registry.getFxcm();
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? url.searchParams.get("symbol") ?? "").trim();
+      const timeframe = String(body.timeframe ?? url.searchParams.get("timeframe") ?? "").trim();
+      if (!symbol || !timeframe) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "FXCM_INVALID_SYMBOL", message: "symbol and timeframe are required." },
+        });
+        return true;
+      }
+      await fxcm.unsubscribeLiveCandles(symbol, timeframe);
+      sendJson(res, 200, {
+        ok: true,
+        provider: "FXCM",
+        symbol,
+        timeframe,
+        trading: "DISABLED",
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/fxcm/candles/live/reconcile" && req.method === "POST") {
+      const fxcm = registry.getFxcm();
+      const body = await readJsonBody(req);
+      const symbol = String(body.symbol ?? url.searchParams.get("symbol") ?? "").trim();
+      const timeframe = String(body.timeframe ?? url.searchParams.get("timeframe") ?? "").trim();
+      const series = await fxcm.getLiveCandleService().reconcileSession(symbol, timeframe);
+      if (!series) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "FXCM_INSTRUMENT_NOT_FOUND", message: "No active FXCM live-candle session." },
+        });
+        return true;
+      }
+      assertSafeStreamPayload(series, readFxcmAccessToken());
+      sendJson(res, 200, { ok: true, ...series });
       return true;
     }
 

@@ -268,8 +268,9 @@ describe("Forex Phase 28 — FXCM historical market data", () => {
     const chart = read("desktop/forex/chart/ForexChartWorkspace.tsx");
     const client = read("desktop/forex/market-data/studio-fxcm-historical-client.ts");
     expect(routes).toContain("/admin/forex/historical-data");
-    expect(chart).toContain("useFxcmHistoricalKlines");
-    expect(chart).toContain("HISTORICAL");
+    // Phase 30 charts use live-candle sync; historical client remains for Phase 28 API path.
+    expect(chart).toContain("useFxcmLiveCandles");
+    expect(chart).toMatch(/HISTORICAL|FXCM/);
     expect(client).not.toContain("KWIZERA_FXCM_ACCESS_TOKEN");
     expect(client).not.toContain("Authorization");
   });

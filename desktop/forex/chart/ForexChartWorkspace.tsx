@@ -7,7 +7,7 @@ import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, cal
 import { isBinanceSpotSelection, isFxcmSelection, type SelectedMarket } from "../market-data/selected-market";
 import { useBinanceKlines } from "../market-data/use-binance-klines";
 import { useBinanceLiveKline } from "../market-data/use-binance-live-kline";
-import { useFxcmHistoricalKlines } from "../market-data/use-fxcm-historical-klines";
+import { useFxcmLiveCandles } from "../market-data/use-fxcm-live-candles";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import { buildForexMarketState } from "../../../ai/forex-market-state";
 import {
@@ -146,14 +146,21 @@ export function ForexChartWorkspace({
   const fxcmSelected = isFxcmSelection(selected);
   const history = useBinanceKlines(binanceSelected ? selected.symbol : null, timeframe);
   const liveKline = useBinanceLiveKline(binanceSelected ? selected.symbol : null, timeframe);
-  const fxcmHistory = useFxcmHistoricalKlines(fxcmSelected ? selected.symbol : null, timeframe);
+  const fxcmLive = useFxcmLiveCandles(fxcmSelected ? selected.symbol : null, timeframe);
   const wasLiveRef = useRef(false);
   const lastClosedRef = useRef<number | null>(null);
 
   const candles = useMemo(() => {
     if (fxcmSelected) {
-      if (fxcmHistory.state !== "ready") return [];
-      return sanitizeCandles(fxcmHistory.candles.map((candle) => ({
+      if (
+        fxcmLive.state === "loading"
+        || fxcmLive.state === "error"
+        || fxcmLive.state === "unavailable"
+        || fxcmLive.state === "empty"
+      ) {
+        return [];
+      }
+      return sanitizeCandles(fxcmLive.candles.map((candle) => ({
         time: candle.time,
         open: candle.open,
         high: candle.high,
@@ -185,7 +192,7 @@ export function ForexChartWorkspace({
       return base;
     }
     return sanitizeCandles(applyLiveKline(base, live.candle));
-  }, [binanceSelected, fxcmSelected, fxcmHistory, history, liveKline.kline, liveKline.subscribedSymbol, liveKline.timeframe, selected, timeframe]);
+  }, [binanceSelected, fxcmSelected, fxcmLive, history, liveKline.kline, liveKline.subscribedSymbol, liveKline.timeframe, selected, timeframe]);
 
   // After reconnect becomes LIVE, softly resync REST history so gaps are filled without inventing candles.
   // When a forming candle closes, refresh once so the closed series matches Binance REST.
@@ -304,9 +311,9 @@ export function ForexChartWorkspace({
   };
 
   const analysis = mode === "analysis";
-  const fxcmHistoryReady = Boolean(
+  const fxcmSeriesReady = Boolean(
     fxcmSelected
-    && fxcmHistory.state === "ready"
+    && (fxcmLive.state === "ready" || fxcmLive.state === "live" || fxcmLive.state === "stale" || fxcmLive.state === "connecting" || fxcmLive.state === "reconnecting")
     && candles.length > 0,
   );
   const historyReady = Boolean(
@@ -315,7 +322,7 @@ export function ForexChartWorkspace({
       && history.symbol === selected.symbol
       && history.timeframe === timeframe
       && candles.length > 0)
-    || fxcmHistoryReady,
+    || fxcmSeriesReady,
   );
   const historyPending = Boolean(
     (binanceSelected && (
@@ -323,7 +330,7 @@ export function ForexChartWorkspace({
       || history.symbol !== selected.symbol
       || history.timeframe !== timeframe
     ))
-    || (fxcmSelected && fxcmHistory.state === "loading"),
+    || (fxcmSelected && fxcmLive.state === "loading"),
   );
   const klineStatus = resolveKlineUiStatus(
     liveKline,
@@ -331,13 +338,15 @@ export function ForexChartWorkspace({
     timeframe,
     historyReady && binanceSelected,
   );
-  const chartLive = !fxcmSelected && klineStatus === "LIVE";
+  const fxcmLiveChart = Boolean(fxcmSelected && fxcmLive.live);
+  const chartLive = fxcmLiveChart || (!fxcmSelected && klineStatus === "LIVE");
   const tickerStatus = liveTicker && binanceSelected
     ? resolveTickerUiStatus(liveTicker, selected.symbol)
     : null;
   const tickerLive = !fxcmSelected && tickerStatus === "LIVE";
-  // Only mark the headline price LIVE when the displayed figure is the matching miniTicker.
-  const priceKind = tickerLive ? "live" : "unavailable";
+  // Only mark the headline price LIVE when the displayed figure is the matching miniTicker (Binance)
+  // or FXCM forming/mid close from the live candle engine.
+  const priceKind = fxcmLiveChart || tickerLive ? "live" : "unavailable";
   const headlinePrice = fxcmSelected
     ? (last ? formatPrice(selected.symbol, last.close) : LIVE_PRICE_UNAVAILABLE)
     : !binanceSelected
@@ -348,10 +357,13 @@ export function ForexChartWorkspace({
           ? formatPrice(selected.symbol, last.close)
           : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...");
   const chartState = fxcmSelected
-    ? (fxcmHistory.state === "loading" ? "loading"
-      : fxcmHistory.state === "error" || fxcmHistory.state === "unavailable" ? "error"
-        : fxcmHistory.state === "empty" ? "empty"
-          : fxcmHistoryReady ? "ready" : "unavailable")
+    ? (fxcmLive.state === "loading" ? "loading"
+      : fxcmLive.state === "error" || fxcmLive.state === "unavailable" ? "error"
+        : fxcmLive.state === "empty" ? "empty"
+          : fxcmLive.state === "reconnecting" ? "reconnecting"
+            : fxcmLive.state === "connecting" ? "connecting"
+              : fxcmLiveChart ? "live"
+                : fxcmSeriesReady ? "ready" : "unavailable")
     : !binanceSelected
       ? "unavailable"
       : historyPending
@@ -370,10 +382,10 @@ export function ForexChartWorkspace({
                     ? "live"
                     : "ready";
   const chartMessage = fxcmSelected
-    ? (fxcmHistory.state === "loading" ? "Loading FXCM historical candles…"
-      : fxcmHistory.state === "error" || fxcmHistory.state === "unavailable" ? fxcmHistory.message
-        : fxcmHistory.state === "empty" ? "No FXCM historical candles."
-          : `HISTORICAL · SOURCE: ${fxcmHistory.source ?? "FXCM"} (not LIVE)`)
+    ? (fxcmLive.state === "loading" ? "Loading FXCM candles…"
+      : fxcmLive.state === "error" || fxcmLive.state === "unavailable" ? fxcmLive.message
+        : fxcmLive.state === "empty" ? "No FXCM candles."
+          : fxcmLive.message)
     : !binanceSelected
       ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
       : historyPending
@@ -388,8 +400,8 @@ export function ForexChartWorkspace({
                 ? "Live Binance data"
                 : liveMarketStatusLabel(klineStatus);
   const analysisUnavailableReason = fxcmSelected
-    ? (fxcmHistory.state === "loading" ? "Loading FXCM historical candles for technical analysis…"
-      : fxcmHistory.message || "Waiting for FXCM historical candles…")
+    ? (fxcmLive.state === "loading" ? "Loading FXCM candles for technical analysis…"
+      : fxcmLive.message || "Waiting for FXCM candles…")
     : !binanceSelected
       ? (selected ? LIVE_MARKET_UNAVAILABLE : "Select a Binance Spot symbol from Markets.")
       : historyPending
@@ -404,7 +416,7 @@ export function ForexChartWorkspace({
   const showChart = historyReady;
 
   const marketState = useMemo(() => {
-    // Phase 28: do not invent LIVE Market State for FXCM historical.
+    // Phase 30: FXCM Market State remains deferred — only Binance feeds Market State here.
     if (!binanceSelected || !selected || candles.length === 0) return null;
     return buildForexMarketState({
       symbol: selected.symbol,
@@ -723,12 +735,14 @@ export function ForexChartWorkspace({
         {" · "}
         {chartMessage}
         {" · Last candle "}
-        {last && binanceSelected ? formatUtc(last.time) : "unavailable"}
-        {chartLive && liveKline.kline ? ` · Last update ${formatLastUpdateUtc(liveKline.kline.eventTimeUtc)}` : ""}
+        {last && (binanceSelected || fxcmSelected) ? formatUtc(last.time) : "unavailable"}
+        {chartLive && liveKline.kline && binanceSelected ? ` · Last update ${formatLastUpdateUtc(liveKline.kline.eventTimeUtc)}` : ""}
+        {chartLive && fxcmSelected && fxcmLive.lastQuoteAt ? ` · Last quote ${fxcmLive.lastQuoteAt}` : ""}
         {" · Connection: "}
         {chartLive ? "LIVE" : "not live"}
-        {last && binanceSelected && last.closed === false ? " · Forming candle" : ""}
-        {last && binanceSelected && last.closed === true ? " · Candle closed" : ""}
+        {last && (binanceSelected || fxcmSelected) && last.closed === false ? " · Forming candle" : ""}
+        {last && (binanceSelected || fxcmSelected) && last.closed === true ? " · Candle closed" : ""}
+        {fxcmSelected ? " · Price basis: mid" : ""}
       </p>
     </section>
   );

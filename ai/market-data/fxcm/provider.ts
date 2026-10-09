@@ -24,9 +24,14 @@ import {
   createFxcmRealtimeStreamService,
   type FxcmRealtimeStreamService,
 } from "./stream-service.js";
+import {
+  createFxcmLiveCandleService,
+  type FxcmLiveCandleService,
+} from "./live-candle-service.js";
 import type { SafeFxcmDiscoveryResult } from "./instrument-discovery-types.js";
 import type { FxcmHistoricalRequest, SafeFxcmHistoricalResult } from "./historical-types.js";
 import type { SafeFxcmStreamStatus, SafeFxcmQuoteSnapshot, FxcmSubscriptionRecord } from "./stream-types.js";
+import type { SafeFxcmLiveCandleSeries } from "./live-candle-types.js";
 import { FxcmMarketDataError, userFacingFxcmError } from "./errors.js";
 import type { FetchLike } from "./client.js";
 import type {
@@ -45,6 +50,7 @@ export interface FxcmProviderOptions {
   discovery?: FxcmInstrumentDiscoveryService;
   historical?: FxcmHistoricalMarketDataService;
   stream?: FxcmRealtimeStreamService;
+  liveCandles?: FxcmLiveCandleService;
 }
 
 export class FxcmMarketDataProvider implements MarketDataProvider {
@@ -56,6 +62,7 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
   private readonly discovery: FxcmInstrumentDiscoveryService;
   private readonly historical: FxcmHistoricalMarketDataService;
   private readonly stream: FxcmRealtimeStreamService;
+  private readonly liveCandles: FxcmLiveCandleService;
   private lastHealth: MarketProviderHealth | null = null;
 
   constructor(options: FxcmProviderOptions = {}) {
@@ -88,6 +95,15 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
       auth: this.auth,
       discovery: this.discovery,
     });
+    this.liveCandles = options.liveCandles ?? createFxcmLiveCandleService({
+      env: this.env,
+      fetchImpl: this.fetchImpl,
+      nowMs: this.nowMs,
+      auth: this.auth,
+      discovery: this.discovery,
+      historical: this.historical,
+      stream: this.stream,
+    });
   }
 
   getConfig(): FxcmConfig {
@@ -108,6 +124,10 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
 
   getStreamService(): FxcmRealtimeStreamService {
     return this.stream;
+  }
+
+  getLiveCandleService(): FxcmLiveCandleService {
+    return this.liveCandles;
   }
 
   getProviderInfo(): MarketProviderInfo {
@@ -166,16 +186,30 @@ export class FxcmMarketDataProvider implements MarketDataProvider {
     return this.stream.listQuotes();
   }
 
+  async subscribeLiveCandles(symbol: string, timeframe: string): Promise<SafeFxcmLiveCandleSeries> {
+    return this.liveCandles.subscribe(symbol, timeframe);
+  }
+
+  async unsubscribeLiveCandles(symbol: string, timeframe: string): Promise<void> {
+    return this.liveCandles.unsubscribe(symbol, timeframe);
+  }
+
+  getLiveCandleSeries(symbol: string, timeframe: string): SafeFxcmLiveCandleSeries | null {
+    return this.liveCandles.getSeries(symbol, timeframe);
+  }
+
   async healthCheck(): Promise<MarketProviderHealth> {
     const checkedAt = new Date(this.nowMs()).toISOString();
     const streamState = this.stream.getStreamState();
     const streamLive = streamState === "LIVE";
+    const liveSessions = this.liveCandles.listSessions().length;
     const baseNotes = [
+      "Phase 30 live candle sync available (historical + quotes).",
       "Phase 29 real-time quotes available.",
       "Phase 28 historical candles available.",
-      "Live candles: NOT ENABLED (Phase 30).",
       "Trading: DISABLED.",
       `Stream state: ${streamState}`,
+      `Live candle sessions: ${liveSessions}`,
       `Environment: ${this.config.environmentLabel}`,
       "CONNECTED ≠ LIVE; LIVE requires a recent valid quote event.",
     ];

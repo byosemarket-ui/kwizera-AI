@@ -311,6 +311,42 @@ export const forexProvidersApi = {
       method: "POST",
       body: JSON.stringify({ symbol }),
     }),
+  fxcmLiveCandlesSubscribe: (symbol: string, timeframe: string) =>
+    request<{
+      ok: boolean;
+      provider: "FXCM";
+      providerSymbol: string;
+      timeframe: string;
+      mode: string;
+      live: boolean;
+      streamState: string;
+      count: number;
+      candles: Array<Record<string, unknown>>;
+      forming: Record<string, unknown> | null;
+      quality: Record<string, unknown>;
+      trading: string;
+      note?: string;
+    }>("/api/forex/providers/fxcm/candles/live/subscribe", {
+      method: "POST",
+      body: JSON.stringify({ symbol, timeframe }),
+    }),
+  fxcmLiveCandles: (symbol: string, timeframe: string) => {
+    const q = new URLSearchParams({ symbol, timeframe });
+    return request<{
+      ok: boolean;
+      provider: "FXCM";
+      providerSymbol: string;
+      timeframe: string;
+      mode: string;
+      live: boolean;
+      streamState: string;
+      count: number;
+      candles: Array<Record<string, unknown>>;
+      forming: Record<string, unknown> | null;
+      quality: Record<string, unknown>;
+      trading: string;
+    }>(`/api/forex/providers/fxcm/candles/live?${q.toString()}`);
+  },
   fxcmInstruments: (params?: {
     refresh?: boolean;
     marketType?: string;

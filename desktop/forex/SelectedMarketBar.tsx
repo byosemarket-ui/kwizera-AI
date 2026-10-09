@@ -16,7 +16,7 @@ export function SelectedMarketBar({
     ? selected.venue === "binance-spot"
       ? `${selected.displaySymbol} · Binance Spot`
       : selected.venue === "fxcm"
-        ? `${selected.displaySymbol} · FXCM HISTORICAL`
+        ? `${selected.displaySymbol} · FXCM`
         : `${selected.displaySymbol} · not connected`
     : "No Binance market selected";
   return (
@@ -29,8 +29,8 @@ export function SelectedMarketBar({
         <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selected.symbol} />
       ) : selected?.venue === "fxcm" ? (
         <p className="fx-panel-meta">
-          HISTORICAL · SOURCE: FXCM — not LIVE. Streaming is not enabled in this phase.
-          Configure server-side FXCM credentials to load candles.
+          SOURCE: FXCM · mid candles (Phase 30). LIVE only after authenticated stream + valid quotes.
+          Configure server-side FXCM credentials to load historical + live sync.
         </p>
       ) : (
         <p className="fx-panel-meta">
