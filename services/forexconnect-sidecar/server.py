@@ -578,6 +578,60 @@ def _try_index(row: Any, name: str) -> Any:
         return None
 
 
+def _row_keys(row: Any) -> list[str]:
+    if isinstance(row, dict):
+        return [str(k) for k in row.keys()]
+    if hasattr(row, "_fields"):
+        try:
+            return [str(k) for k in row._fields]
+        except Exception:
+            pass
+    if hasattr(row, "dtype") and getattr(row.dtype, "names", None):
+        return [str(k) for k in row.dtype.names]
+    try:
+        return [str(k) for k in dir(row) if not str(k).startswith("_")][:24]
+    except Exception:
+        return []
+
+
+def _history_raw_len(history: Any) -> int:
+    if history is None:
+        return 0
+    try:
+        return int(len(history))
+    except Exception:
+        return -1
+
+
+def _history_rows(history: Any) -> list[Any]:
+    """Normalize ForexConnect get_history return types (DataFrame / ndarray / list)."""
+    if history is None:
+        return []
+    # pandas DataFrame — list(df) yields column names, not rows.
+    if hasattr(history, "to_dict") and callable(getattr(history, "to_dict", None)):
+        try:
+            records = history.to_dict("records")
+            if isinstance(records, list):
+                return records
+        except Exception:
+            pass
+    if hasattr(history, "itertuples") and callable(getattr(history, "itertuples", None)):
+        try:
+            return list(history.itertuples(index=False))
+        except Exception:
+            pass
+    # numpy structured array / ndarray
+    if hasattr(history, "dtype") and hasattr(history, "__len__"):
+        try:
+            return [history[i] for i in range(len(history))]
+        except Exception:
+            pass
+    try:
+        return list(history)
+    except Exception:
+        return []
+
+
 def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
     status = _safe_status()
     if status["status"] != "CONNECTED":
@@ -663,34 +717,48 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
             "count": 0,
         }
 
+    date_to = datetime.now(timezone.utc).replace(tzinfo=None)
+    lookback_days = {
+        "m1": 3,
+        "m5": 7,
+        "m15": 14,
+        "m30": 21,
+        "H1": 60,
+        "H4": 120,
+        "D1": 365,
+        "W1": 730,
+    }.get(period, 60)
+    date_from = date_to - timedelta(days=lookback_days)
+    history = None
+    history_error: Optional[str] = None
+    history_mode = "dated"
     try:
         # Official API: get_history(instrument, timeframe, date_from, date_to, quotes_count)
-        # Provide an explicit lookback window — some Demo sessions return empty when both
-        # date_from and date_to are None (especially around weekends / market closures).
-        date_to = datetime.now(timezone.utc)
-        lookback_days = {
-            "m1": 3,
-            "m5": 7,
-            "m15": 14,
-            "m30": 21,
-            "H1": 60,
-            "H4": 120,
-            "D1": 365,
-            "W1": 730,
-        }.get(period, 60)
-        date_from = date_to - timedelta(days=lookback_days)
+        # Naive UTC datetimes are more compatible with the FXCM Python wrapper than tz-aware.
         history = fx.get_history(provider_symbol, period, date_from, date_to, quotes_count)
     except Exception as exc:
-        return {
-            "ok": False,
-            "error": {
-                "code": "FOREXCONNECT_HISTORICAL_FAILED",
-                "message": _sanitize(str(exc)),
-            },
-            "status": status,
-            "candles": [],
-            "count": 0,
-        }
+        history_error = _sanitize(str(exc))
+        history = None
+
+    # Fallback: some Demo builds accept quotes_count with open-ended dates.
+    if history is None or _history_raw_len(history) == 0:
+        try:
+            history = fx.get_history(provider_symbol, period, None, None, quotes_count)
+            history_mode = "open-ended"
+            if history_error is None:
+                history_error = None
+        except Exception as exc:
+            if history is None:
+                return {
+                    "ok": False,
+                    "error": {
+                        "code": "FOREXCONNECT_HISTORICAL_FAILED",
+                        "message": _sanitize(str(exc) if not history_error else history_error),
+                    },
+                    "status": status,
+                    "candles": [],
+                    "count": 0,
+                }
 
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     timeframe_ms = TIMEFRAME_MS.get(project_tf, 0)
@@ -698,13 +766,12 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
     invalid = 0
     seen: set[int] = set()
     duplicates = 0
-
-    try:
-        iterable = list(history) if history is not None else []
-    except Exception:
-        iterable = []
+    iterable = _history_rows(history)
+    sample_keys: list[str] = []
 
     for row in iterable:
+        if not sample_keys:
+            sample_keys = _row_keys(row)[:12]
         candle = _row_to_candle(row, timeframe_ms, now_ms)
         if candle is None:
             invalid += 1
@@ -712,6 +779,7 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
         t = int(candle["time"])
         if t in seen:
             duplicates += 1
+            continue
         seen.add(t)
         candles.append(candle)
 
@@ -719,6 +787,17 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
     fetched_at = _now_iso()
     with _state_lock:
         _state["lastHistoricalAt"] = fetched_at
+
+    note = (
+        "ForexConnect historical candles from official get_history. "
+        "Price basis: bid OHLC. Volume is SDK tick volume when supplied. "
+        "No fabricated bars. Trading disabled."
+    )
+    if len(candles) == 0:
+        note += (
+            f" Empty authentic response ({history_mode}; rawRows={len(iterable)}; "
+            f"invalid={invalid}; historyType={type(history).__name__ if history is not None else 'None'})."
+        )
 
     return {
         "ok": True,
@@ -737,13 +816,19 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
         "invalidCandles": invalid,
         "duplicatesRemoved": duplicates,
         "fetchedAt": fetched_at,
-        "lastHistoricalAt": fetched_at,
+        "lastHistoricalAt": fetched_at if candles else fetched_at,
         "status": _safe_status(),
-        "note": (
-            "ForexConnect historical candles from official get_history. "
-            "Price basis: bid OHLC. Volume is SDK tick volume when supplied. "
-            "No fabricated bars. Trading disabled."
-        ),
+        "historyDiagnostics": {
+            "mode": history_mode,
+            "historyType": type(history).__name__ if history is not None else "None",
+            "rawRowCount": len(iterable),
+            "sampleKeys": sample_keys,
+            "dateFrom": date_from.isoformat() + "Z",
+            "dateTo": date_to.isoformat() + "Z",
+            "quotesCount": quotes_count,
+            "lastError": history_error,
+        },
+        "note": note,
     }
 
 
