@@ -126,13 +126,12 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
         </ul>
       </section>
       <section className="fxa-card" data-forex-admin-forexconnect-summary>
-        <h3>FOREXCONNECT (Phase 33)</h3>
+        <h3>FOREXCONNECT</h3>
         <p className="fxa-muted">
-          Official FXCM ForexConnect SDK via localhost sidecar (username/password — not Socket REST token).
-          Open the ForexConnect page to connect and discover instruments.
+          DEMO / LIVE account profiles · SDK sidecar · trading disabled.
         </p>
         <button type="button" className="fxa-btn" onClick={() => onOpen("/admin/forex/forexconnect")}>
-          Open ForexConnect
+          Manage ForexConnect Accounts
         </button>
       </section>
       <section className="fxa-card" data-forex-admin-fxcm-status>

@@ -72,6 +72,14 @@ _state: dict[str, Any] = {
     "enabled": False,
     "connecting": False,
 }
+# Active session auth (localhost Node bridge may supply per-profile overrides).
+# Password retained only for log redaction; never returned in HTTP payloads.
+_session_auth: dict[str, Any] = {
+    "username": None,
+    "password": None,
+    "environment": None,
+    "connectionLabel": None,
+}
 
 
 def _now_iso() -> str:
@@ -91,9 +99,19 @@ def _sanitize(message: str) -> str:
     password = _env("KWIZERA_FOREXCONNECT_PASSWORD")
     if password and len(password) >= 4:
         text = text.replace(password, "[redacted]")
+    session_pwd = _session_auth.get("password")
+    if isinstance(session_pwd, str) and len(session_pwd) >= 4:
+        text = text.replace(session_pwd, "[redacted]")
     text = re.sub(r"(?i)(password|passwd|pwd)\s*[:=]\s*\S+", r"\1=[redacted]", text)
     text = re.sub(r"[0-9a-f]{32,}", "[redacted]", text, flags=re.I)
     return text[:500]
+
+
+def _normalize_environment(raw: Any) -> tuple[str, str]:
+    value = str(raw or "").strip().lower()
+    if value in ("live", "real", "production", "prod"):
+        return "real", "Real"
+    return "demo", "Demo"
 
 
 def _probe_sdk() -> tuple[bool, Optional[str]]:
@@ -130,26 +148,38 @@ def _safe_status() -> dict[str, Any]:
     sdk_ok, sdk_err = _probe_sdk()
     with _state_lock:
         status = str(_state["status"])
+        session_env = _session_auth.get("environment")
+        session_label = _session_auth.get("connectionLabel")
+        session_user = bool(_session_auth.get("username"))
+        session_pwd = bool(_session_auth.get("password")) and len(str(_session_auth.get("password") or "")) >= 4
+        configured = bool(
+            (cfg["usernameConfigured"] and cfg["passwordConfigured"])
+            or (session_user and session_pwd)
+            or status == "CONNECTED"
+        )
         if not cfg["enabled"]:
             status = "DISABLED"
-        elif not (cfg["usernameConfigured"] and cfg["passwordConfigured"]):
-            if status not in ("CONNECTED", "AUTHENTICATION_FAILED", "SDK_UNAVAILABLE", "ERROR"):
-                status = "NOT_CONFIGURED"
+        elif not configured and status not in (
+            "CONNECTED", "AUTHENTICATION_FAILED", "SDK_UNAVAILABLE", "ERROR", "CONNECTING",
+        ):
+            status = "NOT_CONFIGURED"
         elif not sdk_ok and status != "CONNECTED":
             status = "SDK_UNAVAILABLE"
+        environment = session_env if session_env in ("demo", "real") else cfg["environment"]
+        connection_label = session_label if session_label in ("Demo", "Real") else cfg["connectionLabel"]
         payload = {
             "ok": True,
             "provider": "FOREXCONNECT",
             "apiPath": "FXCM ForexConnect SDK (sidecar)",
             "status": status,
             "enabled": cfg["enabled"],
-            "configured": bool(cfg["usernameConfigured"] and cfg["passwordConfigured"]),
-            "environment": cfg["environment"],
-            "environmentLabel": "FXCM REAL" if cfg["environment"] == "real" else "FXCM DEMO",
-            "connectionLabel": cfg["connectionLabel"],
+            "configured": configured,
+            "environment": environment,
+            "environmentLabel": "FXCM REAL" if environment == "real" else "FXCM DEMO",
+            "connectionLabel": connection_label,
             "urlHost": urlparse(cfg["url"]).hostname or "",
-            "usernameConfigured": cfg["usernameConfigured"],
-            "passwordConfigured": cfg["passwordConfigured"],
+            "usernameConfigured": bool(cfg["usernameConfigured"] or session_user),
+            "passwordConfigured": bool(cfg["passwordConfigured"] or session_pwd),
             "sdkAvailable": sdk_ok,
             "sdkImportError": sdk_err,
             "connecting": bool(_state["connecting"]),
@@ -226,6 +256,10 @@ def _logout_locked() -> None:
     _stream["lastQuoteAt"] = None
     _stream["updateCount"] = 0
     _stream["lastStreamError"] = None
+    _session_auth["username"] = None
+    _session_auth["password"] = None
+    _session_auth["environment"] = None
+    _session_auth["connectionLabel"] = None
 
 
 def _row_get(row: Any, *names: str) -> Any:
@@ -295,16 +329,26 @@ def _discover_instruments(fx: Any) -> list[dict[str, Any]]:
     return out
 
 
-def connect_session() -> dict[str, Any]:
+def connect_session(overrides: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     global _fx
     cfg = _config_snapshot()
+    overrides = overrides if isinstance(overrides, dict) else {}
+
+    username = str(overrides.get("username") or "").strip() or _env("KWIZERA_FOREXCONNECT_USERNAME")
+    password = str(overrides.get("password") or "").strip() or _env("KWIZERA_FOREXCONNECT_PASSWORD")
+    if overrides.get("environment") is not None and str(overrides.get("environment") or "").strip():
+        environment, connection = _normalize_environment(overrides.get("environment"))
+    else:
+        environment = cfg["environment"]
+        connection = cfg["connectionLabel"]
+
     if not cfg["enabled"]:
         _set_error("FOREXCONNECT_DISABLED", "ForexConnect is disabled.", "DISABLED")
         return _safe_status()
-    if not (cfg["usernameConfigured"] and cfg["passwordConfigured"]):
+    if not username or len(password) < 4:
         _set_error(
             "FOREXCONNECT_NOT_CONFIGURED",
-            "Set KWIZERA_FOREXCONNECT_USERNAME and KWIZERA_FOREXCONNECT_PASSWORD on the server.",
+            "ForexConnect credentials are not configured for the selected environment.",
             "NOT_CONFIGURED",
         )
         return _safe_status()
@@ -325,19 +369,23 @@ def connect_session() -> dict[str, Any]:
         _state["status"] = "CONNECTING"
         _state["errorCode"] = None
         _state["errorMessage"] = None
+        _session_auth["username"] = username
+        _session_auth["password"] = password
+        _session_auth["environment"] = environment
+        _session_auth["connectionLabel"] = connection
 
     try:
         from forexconnect import ForexConnect
 
-        username = _env("KWIZERA_FOREXCONNECT_USERNAME")
-        password = _env("KWIZERA_FOREXCONNECT_PASSWORD")
         url = cfg["url"]
-        connection = cfg["connectionLabel"]
         session_id = _env("KWIZERA_FOREXCONNECT_SESSION_ID") or None
         pin = _env("KWIZERA_FOREXCONNECT_PIN") or None
 
         with _state_lock:
+            # Preserve intended auth while clearing prior SDK session.
+            intended = dict(_session_auth)
             _logout_locked()
+            _session_auth.update(intended)
 
         fx = ForexConnect()
         fx.login(username, password, url, connection, session_id, pin)
@@ -353,6 +401,10 @@ def connect_session() -> dict[str, Any]:
             _state["errorCode"] = None
             _state["errorMessage"] = None
             _state["connecting"] = False
+            _session_auth["username"] = username
+            _session_auth["password"] = password
+            _session_auth["environment"] = environment
+            _session_auth["connectionLabel"] = connection
         return _safe_status()
     except Exception as exc:
         with _state_lock:
@@ -972,6 +1024,10 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or "0")
         if length <= 0:
             return {}
+        if length > 8192:
+            # Bound credential/body size from localhost bridge.
+            self.rfile.read(length)
+            return {"__error": "PAYLOAD_TOO_LARGE"}
         raw = self.rfile.read(length).decode("utf-8", errors="replace").strip()
         if not raw:
             return {}
@@ -1034,9 +1090,25 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path.rstrip("/") or "/"
-        body = self._read_json()  # consume body; ignore client credentials
+        body = self._read_json()
+        if body.get("__error") == "PAYLOAD_TOO_LARGE":
+            self._send(413, {
+                "ok": False,
+                "error": {"code": "PAYLOAD_TOO_LARGE", "message": "Request body too large."},
+            })
+            return
         if path == "/connect":
-            result = connect_session()
+            # Localhost Node bridge may supply isolated DEMO/LIVE profile credentials.
+            # Never log body fields. Passwords are never echoed in responses.
+            overrides = {
+                "username": body.get("username"),
+                "password": body.get("password"),
+                "environment": body.get("environment"),
+            }
+            result = connect_session(overrides)
+            # Strip any accidental credential echo
+            result.pop("username", None)
+            result.pop("password", None)
             code = 200 if result.get("status") == "CONNECTED" else 503
             self._send(code, {"ok": result.get("status") == "CONNECTED", **result})
             return

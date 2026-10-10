@@ -1,5 +1,5 @@
 /**
- * Phase 33/34 — ForexConnect provider bridge API.
+ * Phase 33–36 — ForexConnect provider bridge API.
  * GET  /api/forex/providers/forexconnect/status
  * POST /api/forex/providers/forexconnect/connect
  * POST /api/forex/providers/forexconnect/disconnect
@@ -9,10 +9,22 @@
  * POST /api/forex/providers/forexconnect/unsubscribe
  * GET  /api/forex/providers/forexconnect/stream/status
  * GET  /api/forex/providers/forexconnect/quotes
+ * GET  /api/forex/providers/forexconnect/profiles
+ * POST /api/forex/providers/forexconnect/profiles/credentials
+ * POST /api/forex/providers/forexconnect/profiles/test
+ * POST /api/forex/providers/forexconnect/profiles/activate
+ * POST /api/forex/providers/forexconnect/profiles/discover
+ * POST /api/forex/providers/forexconnect/profiles/disconnect
  *
  * Never returns passwords, tokens, or session secrets.
+ * Credential mutations require Admin authorization.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  assertAdminAccess,
+  rolesFromHeaders,
+  adminTokenFromHeaders,
+} from "../../ai/admin-control-plane/admin-auth-boundary.js";
 import {
   assertNoSecretsInForexConnectPayload,
   getForexConnectBridge,
@@ -21,8 +33,11 @@ import {
 } from "../../ai/market-data/forexconnect/client.js";
 import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
 import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "../../ai/market-data/forexconnect/timeframes.js";
+import { getForexConnectSessionService } from "../../ai/market-data/forexconnect/session.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
+
+const MAX_BODY_BYTES = 8192;
 
 let bridgeSingleton: ForexConnectBridge | null = null;
 
@@ -31,10 +46,43 @@ function getBridge(): ForexConnectBridge {
   return bridgeSingleton;
 }
 
+function headersRecord(req: IncomingMessage): Record<string, string | string[] | undefined> {
+  return req.headers as Record<string, string | string[] | undefined>;
+}
+
+function requireAdmin(
+  req: IncomingMessage,
+  res: ServerResponse,
+  sendJson: SendJson,
+  pathname: string,
+): boolean {
+  const decision = assertAdminAccess({
+    roles: rolesFromHeaders(headersRecord(req)),
+    adminToken: adminTokenFromHeaders(headersRecord(req)),
+    path: pathname,
+    adminApi: true,
+    remoteAddress: req.socket.remoteAddress,
+  });
+  if (!decision.allowed) {
+    sendJson(res, 403, {
+      ok: false,
+      error: { code: "ADMIN_FORBIDDEN", message: decision.reason },
+    });
+    return false;
+  }
+  return true;
+}
+
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > MAX_BODY_BYTES) {
+      throw Object.assign(new Error("Request body too large"), { code: "PAYLOAD_TOO_LARGE" });
+    }
+    chunks.push(buf);
   }
   const raw = Buffer.concat(chunks).toString("utf8").trim();
   if (!raw) return {};
@@ -48,6 +96,14 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
   }
 }
 
+const PROFILE_MUTATIONS = new Set([
+  "/api/forex/providers/forexconnect/profiles/credentials",
+  "/api/forex/providers/forexconnect/profiles/test",
+  "/api/forex/providers/forexconnect/profiles/activate",
+  "/api/forex/providers/forexconnect/profiles/discover",
+  "/api/forex/providers/forexconnect/profiles/disconnect",
+]);
+
 export async function handleForexConnectApi(
   req: IncomingMessage,
   res: ServerResponse,
@@ -56,12 +112,13 @@ export async function handleForexConnectApi(
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex/providers/forexconnect")) return false;
 
-  const isPost =
-    (url.pathname === "/api/forex/providers/forexconnect/connect"
-      || url.pathname === "/api/forex/providers/forexconnect/disconnect"
-      || url.pathname === "/api/forex/providers/forexconnect/subscribe"
-      || url.pathname === "/api/forex/providers/forexconnect/unsubscribe")
-    && req.method === "POST";
+  const isPost = (
+    url.pathname === "/api/forex/providers/forexconnect/connect"
+    || url.pathname === "/api/forex/providers/forexconnect/disconnect"
+    || url.pathname === "/api/forex/providers/forexconnect/subscribe"
+    || url.pathname === "/api/forex/providers/forexconnect/unsubscribe"
+    || PROFILE_MUTATIONS.has(url.pathname)
+  ) && req.method === "POST";
 
   if (!isPost && req.method !== "GET" && req.method !== "HEAD") {
     sendJson(res, 405, {
@@ -74,20 +131,120 @@ export async function handleForexConnectApi(
   const bridge = getBridge();
 
   try {
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles") {
+      const session = await getForexConnectSessionService();
+      const profiles = await session.getProfilesState();
+      assertNoSecretsInForexConnectPayload(profiles);
+      sendJson(res, 200, profiles);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/credentials" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      try {
+        const result = await session.saveCredentials(body.environment, {
+          username: String(body.username ?? ""),
+          password: String(body.password ?? ""),
+        });
+        assertNoSecretsInForexConnectPayload(result, process.env as Record<string, string | undefined>, [
+          String(body.password ?? ""),
+        ]);
+        sendJson(res, 200, result);
+      } catch (error) {
+        sendJson(res, 400, {
+          ok: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: error instanceof Error ? error.message.slice(0, 200) : "Invalid credentials.",
+          },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/test" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      const result = await session.testConnection(body.environment, {
+        confirmSwitch: Boolean(body.confirmSwitch),
+      });
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, result.ok ? 200 : (result.requiresConfirmation ? 409 : 503), result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/activate" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      const result = await session.activate(body.environment, {
+        confirmSwitch: Boolean(body.confirmSwitch),
+      });
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, result.ok ? 200 : (result.requiresConfirmation ? 409 : 503), result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/discover" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      const result = await session.discoverInstruments(body.environment);
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, result.ok ? 200 : 503, result);
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/disconnect" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      const result = await session.disconnect();
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, 200, result);
+      return true;
+    }
+
     if (url.pathname === "/api/forex/providers/forexconnect/status") {
       const status = await bridge.getStatus();
-      assertNoSecretsInForexConnectPayload(status);
-      sendJson(res, 200, {
+      let profiles = null;
+      try {
+        const session = await getForexConnectSessionService();
+        profiles = await session.getProfilesState();
+      } catch {
+        profiles = null;
+      }
+      const payload = {
         ok: true,
         ...status,
+        profiles,
         note: status.note
           ?? "ForexConnect status via private sidecar. Trading disabled.",
-      });
+      };
+      assertNoSecretsInForexConnectPayload(payload);
+      sendJson(res, 200, payload);
       return true;
     }
 
     if (url.pathname === "/api/forex/providers/forexconnect/connect" && req.method === "POST") {
-      await readJsonBody(req); // ignore any client-supplied secrets
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      // Prefer profile activate when environment is supplied; never accept client passwords here.
+      if (body.environment != null) {
+        const session = await getForexConnectSessionService();
+        const result = await session.activate(body.environment, {
+          confirmSwitch: Boolean(body.confirmSwitch),
+        });
+        assertNoSecretsInForexConnectPayload(result);
+        sendJson(res, result.ok ? 200 : (result.requiresConfirmation ? 409 : 503), {
+          ...result,
+          note: "Connect uses server-side DEMO/LIVE profile credentials only.",
+        });
+        return true;
+      }
       const status = await bridge.connect();
       assertNoSecretsInForexConnectPayload(status);
       const http = status.status === "CONNECTED" ? 200 : 503;
@@ -100,10 +257,12 @@ export async function handleForexConnectApi(
     }
 
     if (url.pathname === "/api/forex/providers/forexconnect/disconnect" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
       await readJsonBody(req);
-      const status = await bridge.disconnect();
-      assertNoSecretsInForexConnectPayload(status);
-      sendJson(res, 200, { ok: true, ...status });
+      const session = await getForexConnectSessionService();
+      const result = await session.disconnect();
+      assertNoSecretsInForexConnectPayload(result);
+      sendJson(res, 200, { ok: true, ...result });
       return true;
     }
 
@@ -219,6 +378,14 @@ export async function handleForexConnectApi(
     });
     return true;
   } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === "PAYLOAD_TOO_LARGE") {
+      sendJson(res, 413, {
+        ok: false,
+        error: { code: "PAYLOAD_TOO_LARGE", message: "Request body too large." },
+      });
+      return true;
+    }
     sendJson(res, 500, {
       ok: false,
       error: {

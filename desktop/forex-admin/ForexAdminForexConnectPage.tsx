@@ -1,13 +1,37 @@
-import { useCallback, useEffect, useState } from "react";
-import { forexProvidersApi } from "./api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  forexProvidersApi,
+  type ForexConnectProfilePublic,
+  type ForexConnectProfilesState,
+} from "./api";
 
 type FcStatus = Record<string, unknown>;
+type EnvTab = "demo" | "live";
+type Busy =
+  | "save"
+  | "test"
+  | "discover"
+  | "activate"
+  | "disconnect"
+  | "candles"
+  | "stream"
+  | null;
 
 const SAMPLE_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const;
 
 function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
-  if (status === "CONNECTED") return "ok";
-  if (status === "CONNECTING" || status === "NOT_CONFIGURED" || status === "DISCONNECTED") return "warn";
+  if (status === "CONNECTED" || status === "INSTRUMENTS_READY" || status === "STREAMING" || status === "LIVE") {
+    return "ok";
+  }
+  if (
+    status === "CONNECTING"
+    || status === "NOT_CONFIGURED"
+    || status === "DISCONNECTED"
+    || status === "STALE"
+    || status === "SUBSCRIBED_WAITING"
+  ) {
+    return "warn";
+  }
   if (
     status === "AUTHENTICATION_FAILED"
     || status === "SDK_UNAVAILABLE"
@@ -20,10 +44,34 @@ function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
   return "neutral";
 }
 
+function emptyProfile(env: EnvTab): ForexConnectProfilePublic {
+  return {
+    environment: env,
+    sdkEnvironment: env === "live" ? "real" : "demo",
+    label: env === "live" ? "LIVE" : "DEMO",
+    usernameConfigured: false,
+    passwordConfigured: false,
+    usernameHint: null,
+    configured: false,
+    lastAuthStatus: null,
+    lastAuthAt: null,
+    lastAuthError: null,
+    lastInstrumentCount: null,
+    lastInstrumentAt: null,
+    lastConnectedAt: null,
+  };
+}
+
 export function ForexAdminForexConnectPage() {
+  const [tab, setTab] = useState<EnvTab>("demo");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [profiles, setProfiles] = useState<ForexConnectProfilesState | null>(null);
   const [status, setStatus] = useState<FcStatus | null>(null);
   const [instruments, setInstruments] = useState<Array<Record<string, unknown>>>([]);
-  const [busy, setBusy] = useState<"connect" | "instruments" | "disconnect" | "candles" | "stream" | null>(null);
+  const [instrumentQuery, setInstrumentQuery] = useState("");
+  const [busy, setBusy] = useState<Busy>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sampleSymbol, setSampleSymbol] = useState("EUR/USD");
@@ -39,10 +87,35 @@ export function ForexAdminForexConnectPage() {
     last?: Record<string, unknown> | null;
   } | null>(null);
 
+  const profile = profiles?.profiles?.[tab] ?? emptyProfile(tab);
+  const connectionStatus = String(status?.status ?? "—");
+  const activeEnv = profiles?.activeEnvironment ?? null;
+  const activeLabel = activeEnv === "live" ? "LIVE" : activeEnv === "demo" ? "DEMO" : "NONE";
+
+  const filteredInstruments = useMemo(() => {
+    const q = instrumentQuery.trim().toLowerCase();
+    if (!q) return instruments;
+    return instruments.filter((row) => {
+      const hay = [
+        row.providerSymbol,
+        row.displaySymbol,
+        row.canonicalSymbol,
+        row.baseAsset,
+        row.quoteAsset,
+      ].map((v) => String(v ?? "").toLowerCase()).join(" ");
+      return hay.includes(q);
+    });
+  }, [instruments, instrumentQuery]);
+
   const refresh = useCallback(async () => {
     try {
-      const res = await forexProvidersApi.forexConnectStatus();
-      setStatus(res as unknown as FcStatus);
+      const [statusRes, profilesRes] = await Promise.all([
+        forexProvidersApi.forexConnectStatus(),
+        forexProvidersApi.forexConnectProfiles().catch(() => null),
+      ]);
+      setStatus(statusRes as unknown as FcStatus);
+      const nextProfiles = profilesRes ?? (statusRes.profiles ?? null);
+      setProfiles(nextProfiles);
       setError(null);
       try {
         const streamRes = await forexProvidersApi.forexConnectStreamStatus();
@@ -60,19 +133,97 @@ export function ForexAdminForexConnectPage() {
     void refresh();
   }, [refresh]);
 
-  const connect = async () => {
-    setBusy("connect");
+  useEffect(() => {
+    setUsername("");
+    setPassword("");
+    setShowPassword(false);
+  }, [tab]);
+
+  const confirmIfNeeded = (message?: string): boolean => {
+    if (!message) return true;
+    return window.confirm(message);
+  };
+
+  const saveCredentials = async () => {
+    setBusy("save");
     setNote(null);
     try {
-      const res = await forexProvidersApi.forexConnectConnect();
-      setStatus(res as unknown as FcStatus);
+      const res = await forexProvidersApi.forexConnectSaveCredentials({
+        environment: tab,
+        username,
+        password,
+      });
+      setProfiles(res.profiles);
+      setPassword("");
+      setShowPassword(false);
+      setNote(`${res.profile.label} credentials saved.`);
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runProfileAction = async (
+    kind: "test" | "activate",
+    confirmSwitch = false,
+  ) => {
+    setBusy(kind);
+    setNote(null);
+    try {
+      const res = kind === "test"
+        ? await forexProvidersApi.forexConnectTestProfile({ environment: tab, confirmSwitch })
+        : await forexProvidersApi.forexConnectActivateProfile({ environment: tab, confirmSwitch });
+      setProfiles(res.profiles);
+      setStatus(res.status as unknown as FcStatus);
+      if (res.ok) {
+        setNote(
+          kind === "activate"
+            ? `${res.label} activated. Instruments: ${Number(res.status.instrumentCount ?? 0)}`
+            : `${res.label} test OK. Status: ${res.status.status}`,
+        );
+      } else {
+        setNote(res.error?.message ?? res.status.errorMessage ?? res.status.status);
+      }
+    } catch (err) {
+      const payload = (err as { payload?: {
+        requiresConfirmation?: boolean;
+        confirmationMessage?: string;
+        profiles?: ForexConnectProfilesState;
+      } }).payload;
+      if (payload?.requiresConfirmation && payload.confirmationMessage) {
+        if (confirmIfNeeded(payload.confirmationMessage)) {
+          await runProfileAction(kind, true);
+          return;
+        }
+        setNote("Switch cancelled.");
+      } else {
+        setNote(err instanceof Error ? err.message : `${kind} failed.`);
+      }
+      if (payload?.profiles) setProfiles(payload.profiles);
+    } finally {
+      setBusy(null);
+      void refresh();
+    }
+  };
+
+  const discover = async () => {
+    setBusy("discover");
+    setNote(null);
+    try {
+      const res = await forexProvidersApi.forexConnectDiscoverProfile({ environment: tab });
+      const list = res.instruments ?? [];
+      setInstruments(list);
+      if (res.profiles) setProfiles(res.profiles);
+      if (list[0]?.providerSymbol) setSampleSymbol(String(list[0].providerSymbol));
       setNote(
-        res.status === "CONNECTED"
-          ? `Connected. Instruments available: ${Number(res.instrumentCount ?? 0)}`
-          : String(res.errorMessage ?? res.status),
+        res.ok
+          ? `${res.label ?? tab.toUpperCase()}: ${res.count} instruments · FOREXCONNECT`
+          : (res.error?.message ?? "Discovery failed."),
       );
     } catch (err) {
-      setNote(err instanceof Error ? err.message : "Connect failed.");
+      setInstruments([]);
+      setNote(err instanceof Error ? err.message : "Instrument discovery failed.");
     } finally {
       setBusy(null);
       void refresh();
@@ -82,35 +233,16 @@ export function ForexAdminForexConnectPage() {
   const disconnect = async () => {
     setBusy("disconnect");
     try {
-      const res = await forexProvidersApi.forexConnectDisconnect();
-      setStatus(res as unknown as FcStatus);
+      await forexProvidersApi.forexConnectDisconnect();
       setInstruments([]);
       setCandleSample(null);
+      setLastQuote(null);
       setNote("Disconnected.");
     } catch (err) {
       setNote(err instanceof Error ? err.message : "Disconnect failed.");
     } finally {
       setBusy(null);
-    }
-  };
-
-  const loadInstruments = async () => {
-    setBusy("instruments");
-    setNote(null);
-    try {
-      const res = await forexProvidersApi.forexConnectInstruments();
-      const list = (res.instruments as Array<Record<string, unknown>>) ?? [];
-      setInstruments(list);
-      if (list[0]?.providerSymbol) {
-        setSampleSymbol(String(list[0].providerSymbol));
-      }
-      setNote(`Discovered ${res.count} instruments from ForexConnect Offers.`);
       void refresh();
-    } catch (err) {
-      setInstruments([]);
-      setNote(err instanceof Error ? err.message : "Instrument discovery failed.");
-    } finally {
-      setBusy(null);
     }
   };
 
@@ -125,13 +257,8 @@ export function ForexAdminForexConnectPage() {
         limit: 20,
       });
       const candles = Array.isArray(res.candles) ? res.candles : [];
-      const providerOk = res.ok && candles.every((c) => {
-        // Bridge returns normalized candles; accept either shape.
-        return Number.isFinite(Number(c.time ?? c.Date ? Date.parse(String(c.Date)) / 1000 : NaN))
-          || Number.isFinite(Number(c.open ?? c.BidOpen));
-      });
-      if (!res.ok || !providerOk) {
-        setNote(res.error?.message ?? "Historical sample failed validation.");
+      if (!res.ok) {
+        setNote(res.error?.message ?? "Historical sample failed.");
         return;
       }
       setCandleSample({
@@ -142,10 +269,7 @@ export function ForexAdminForexConnectPage() {
         first: candles[0] ?? null,
         last: candles[candles.length - 1] ?? null,
       });
-      setNote(
-        `Historical sample OK: ${res.count} candles · basis ${res.priceBasis ?? "bid"} · period ${res.periodId ?? sampleTf}.`,
-      );
-      void refresh();
+      setNote(`Historical OK: ${res.count} candles · bid · ${res.periodId ?? sampleTf}.`);
     } catch (err) {
       setCandleSample(null);
       setNote(err instanceof Error ? err.message : "Historical candle request failed.");
@@ -154,158 +278,134 @@ export function ForexAdminForexConnectPage() {
     }
   };
 
-  const connectionStatus = String(status?.status ?? "—");
-  const configured = Boolean(status?.configured);
-  const enabled = Boolean(status?.enabled);
-  const historicalCapable = Boolean(status?.historicalCapable) || connectionStatus === "CONNECTED";
-  const supportedTfs = Array.isArray(status?.supportedTimeframes)
-    ? (status?.supportedTimeframes as string[])
-    : [...SAMPLE_TIMEFRAMES];
+  const streamState = String(stream?.streamState ?? "—");
+  const configLabel = profile.configured ? "CONFIGURED" : "NOT_CONFIGURED";
+  const authLabel = profile.lastAuthStatus
+    ?? (connectionStatus === "CONNECTED" && activeEnv === tab ? "CONNECTED" : "—");
+  const instrumentsLabel = profile.lastInstrumentCount != null && profile.lastInstrumentCount > 0
+    ? "INSTRUMENTS_READY"
+    : (Number(status?.instrumentCount ?? 0) > 0 && activeEnv === tab ? "INSTRUMENTS_READY" : "—");
+  const streamingLabel = streamState === "LIVE"
+    ? "STREAMING"
+    : streamState === "STALE"
+      ? "STALE"
+      : streamState;
 
   return (
     <div data-forex-admin-forexconnect>
       <section className="fxa-card">
-        <h2>FOREXCONNECT</h2>
+        <h2>ForexConnect Accounts</h2>
         <p className="fxa-muted">
-          Official FXCM ForexConnect SDK via private localhost sidecar.
-          Username/password authentication (not Socket REST token). Trading disabled.
-          Historical candles use get_history (bid OHLC). Credentials stay server-side.
+          DEMO and LIVE profiles · FOREXCONNECT · trading disabled
         </p>
       </section>
 
       {error ? <div className="fxa-error" role="alert">{error}</div> : null}
+      {profiles?.persistenceWarning ? (
+        <div className="fxa-error" role="status">{profiles.persistenceWarning}</div>
+      ) : null}
+
+      <section className="fxa-card" data-fc-accounts>
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          {(["demo", "live"] as const).map((env) => (
+            <button
+              key={env}
+              type="button"
+              className="fxa-btn"
+              data-tone={tab === env ? "ok" : undefined}
+              aria-pressed={tab === env}
+              onClick={() => setTab(env)}
+            >
+              {env === "demo" ? "DEMO" : "LIVE"}
+              {profiles?.profiles?.[env]?.configured ? " · ✓" : ""}
+            </button>
+          ))}
+        </div>
+
+        <div className="fxa-row" style={{ gap: 12, flexWrap: "wrap", alignItems: "end" }}>
+          <label>
+            Username / Login ID
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="off"
+              disabled={busy !== null}
+              placeholder={profile.usernameHint ? `Saved: ${profile.usernameHint}` : "FXCM login"}
+              aria-label={`${tab} username`}
+            />
+          </label>
+          <label>
+            Password
+            <span className="fxa-row" style={{ gap: 6, alignItems: "center" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                disabled={busy !== null}
+                placeholder={profile.passwordConfigured ? "••••••••" : "Password"}
+                aria-label={`${tab} password`}
+              />
+              <button
+                type="button"
+                className="fxa-btn"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={busy !== null}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </span>
+          </label>
+        </div>
+
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void saveCredentials()}>
+            {busy === "save" ? "Saving…" : "Save Credentials"}
+          </button>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void runProfileAction("test")}>
+            {busy === "test" ? "Testing…" : "Test Connection"}
+          </button>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void discover()}>
+            {busy === "discover" ? "Discovering…" : "Discover Instruments"}
+          </button>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void runProfileAction("activate")}>
+            {busy === "activate" ? "Activating…" : "Activate / Connect"}
+          </button>
+          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void disconnect()}>
+            {busy === "disconnect" ? "…" : "Disconnect"}
+          </button>
+        </div>
+        {note ? <p className="fxa-muted" style={{ marginTop: 10 }}>{note}</p> : null}
+      </section>
 
       <section className="fxa-card" data-fc-status={connectionStatus}>
-        <h3>Connection status</h3>
+        <h3>Status</h3>
         <ul>
           <li>
-            Status:{" "}
+            Active environment:{" "}
+            <span className="fxa-badge" data-tone={activeEnv ? "ok" : "warn"}>{activeLabel}</span>
+          </li>
+          <li>
+            Session:{" "}
             <span className="fxa-badge" data-tone={tone(connectionStatus) === "neutral" ? undefined : tone(connectionStatus)}>
               {connectionStatus}
             </span>
           </li>
-          <li>Enabled: {enabled ? "YES" : "NO"}</li>
-          <li>Configured: {configured ? "YES (username/password present)" : "NO"}</li>
-          <li>Environment: {String(status?.environmentLabel ?? "—")}</li>
-          <li>SDK available: {String(status?.sdkAvailable ?? "—")}</li>
-          <li>Sidecar reachable: {String(status?.sidecarReachable ?? "—")}</li>
-          <li>Connected at: {String(status?.connectedAt ?? "—")}</li>
-          <li>Instrument count: {String(status?.instrumentCount ?? 0)}</li>
-          <li>Historical capable: {historicalCapable ? "YES (when CONNECTED)" : "NO"}</li>
-          <li>Price basis: bid</li>
-          <li>Supported timeframes: {supportedTfs.join(", ")}</li>
-          <li>Last historical at: {String(status?.lastHistoricalAt ?? candleSample?.fetchedAt ?? "—")}</li>
+          <li>Configuration ({profile.label}): {configLabel}</li>
+          <li>SDK / sidecar: {String(status?.sdkAvailable ?? "—")} / {String(status?.sidecarReachable ?? "—")}</li>
+          <li>Authentication: {authLabel}</li>
+          <li>Instruments: {instrumentsLabel} ({String(profile.lastInstrumentCount ?? status?.instrumentCount ?? 0)})</li>
+          <li>Streaming: {streamingLabel}</li>
+          <li>Last quote: {String(stream?.lastQuoteAt ?? "—")}</li>
+          <li>Storage: {profiles?.storageMode ?? "—"}</li>
           <li>Trading: DISABLED</li>
-          {status?.errorCode ? <li>Error code: {String(status.errorCode)}</li> : null}
-          {status?.errorMessage ? <li>Safe error: {String(status.errorMessage)}</li> : null}
-          {status?.sdkImportError ? <li>SDK import: {String(status.sdkImportError)}</li> : null}
+          {profile.lastAuthError ? <li>Error: {profile.lastAuthError}</li> : null}
+          {status?.errorMessage && !profile.lastAuthError ? <li>Error: {String(status.errorMessage)}</li> : null}
         </ul>
-        {note ? <p className="fxa-muted">{note}</p> : null}
-        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void connect()}>
-            {busy === "connect" ? "Connecting…" : "Connect ForexConnect"}
-          </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null || connectionStatus !== "CONNECTED"} onClick={() => void loadInstruments()}>
-            {busy === "instruments" ? "Loading…" : "Discover instruments"}
-          </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void disconnect()}>
-            Disconnect
-          </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void refresh()}>
-            Refresh status
-          </button>
-        </div>
-        {!enabled ? (
-          <p className="fxa-muted">
-            Set KWIZERA_FOREXCONNECT_ENABLED=1 and credentials in the server .env, install the ForexConnect
-            Python package on the VPS, and start kwizera-forexconnect.service.
-          </p>
-        ) : null}
       </section>
 
       <section className="fxa-card" data-fc-stream>
-        <h3>Live stream (Offers table)</h3>
-        <p className="fxa-muted">
-          Read-only subscription via official Common.subscribe_table_updates on Offers.
-          Candle OHLC uses bid (same basis as historical). LIVE only after real updates arrive.
-        </p>
-        <ul>
-          <li>Stream state: {String(stream?.streamState ?? "—")}</li>
-          <li>Offers listener: {String(stream?.offersListenerActive ?? "—")}</li>
-          <li>Active subscriptions: {String(stream?.subscriptionCount ?? 0)} / {String(stream?.maxSubscriptions ?? 8)}</li>
-          <li>Subscribed: {Array.isArray(stream?.subscriptions) ? (stream!.subscriptions as string[]).join(", ") || "—" : "—"}</li>
-          <li>Update count: {String(stream?.updateCount ?? 0)}</li>
-          <li>Last quote at: {String(stream?.lastQuoteAt ?? "—")}</li>
-          <li>Last quote age (ms): {String(stream?.lastQuoteAgeMs ?? "—")}</li>
-          <li>Last stream error: {String(stream?.lastStreamError ?? "—")}</li>
-          <li>Price basis: bid</li>
-          {lastQuote ? (
-            <li>
-              Latest quote {String(lastQuote.providerSymbol)} bid={String(lastQuote.bid)} ask={String(lastQuote.ask ?? "—")}
-            </li>
-          ) : null}
-        </ul>
-        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="fxa-btn"
-            disabled={busy !== null || connectionStatus !== "CONNECTED"}
-            onClick={() => {
-              void (async () => {
-                setBusy("stream");
-                setNote(null);
-                try {
-                  const res = await forexProvidersApi.forexConnectSubscribe(sampleSymbol);
-                  setNote(res.ok
-                    ? `Subscribed ${res.providerSymbol ?? sampleSymbol}. Waiting for Offers updates…`
-                    : (res.error?.message ?? "Subscribe failed."));
-                  const quotes = await forexProvidersApi.forexConnectQuotes().catch(() => null);
-                  setLastQuote((quotes?.quotes?.[0] as Record<string, unknown>) ?? null);
-                  void refresh();
-                } catch (err) {
-                  setNote(err instanceof Error ? err.message : "Subscribe failed.");
-                } finally {
-                  setBusy(null);
-                }
-              })();
-            }}
-          >
-            {busy === "stream" ? "Working…" : "Test live subscribe"}
-          </button>
-          <button
-            type="button"
-            className="fxa-btn"
-            disabled={busy !== null}
-            onClick={() => {
-              void (async () => {
-                setBusy("stream");
-                try {
-                  await forexProvidersApi.forexConnectUnsubscribe(sampleSymbol);
-                  setLastQuote(null);
-                  setNote(`Unsubscribed ${sampleSymbol}.`);
-                  void refresh();
-                } catch (err) {
-                  setNote(err instanceof Error ? err.message : "Unsubscribe failed.");
-                } finally {
-                  setBusy(null);
-                }
-              })();
-            }}
-          >
-            Stop test subscription
-          </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void refresh()}>
-            Refresh stream status
-          </button>
-        </div>
-      </section>
-
-      <section className="fxa-card" data-fc-historical>
-        <h3>Historical candles (diagnostics)</h3>
-        <p className="fxa-muted">
-          Bounded sample via official ForexConnect.get_history. Never fabricates candles.
-          Requires an authenticated session. Distinct from FXCM Socket REST.
-        </p>
+        <h3>Live data</h3>
         <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "end" }}>
           <label>
             Instrument
@@ -313,7 +413,7 @@ export function ForexAdminForexConnectPage() {
               value={sampleSymbol}
               onChange={(e) => setSampleSymbol(e.target.value)}
               disabled={busy !== null}
-              aria-label="ForexConnect sample instrument"
+              aria-label="ForexConnect instrument"
             />
           </label>
           <label>
@@ -322,7 +422,7 @@ export function ForexAdminForexConnectPage() {
               value={sampleTf}
               onChange={(e) => setSampleTf(e.target.value as (typeof SAMPLE_TIMEFRAMES)[number])}
               disabled={busy !== null}
-              aria-label="ForexConnect sample timeframe"
+              aria-label="ForexConnect timeframe"
             >
               {SAMPLE_TIMEFRAMES.map((tf) => (
                 <option key={tf} value={tf}>{tf}</option>
@@ -335,37 +435,86 @@ export function ForexAdminForexConnectPage() {
             disabled={busy !== null || connectionStatus !== "CONNECTED"}
             onClick={() => void testHistorical()}
           >
-            {busy === "candles" ? "Requesting…" : "Test historical sample (20)"}
+            {busy === "candles" ? "…" : "Load history"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || connectionStatus !== "CONNECTED"}
+            onClick={() => {
+              void (async () => {
+                setBusy("stream");
+                try {
+                  const res = await forexProvidersApi.forexConnectSubscribe(sampleSymbol);
+                  setNote(res.ok
+                    ? `Subscribed ${res.providerSymbol ?? sampleSymbol}`
+                    : (res.error?.message ?? "Subscribe failed."));
+                  const quotes = await forexProvidersApi.forexConnectQuotes().catch(() => null);
+                  setLastQuote((quotes?.quotes?.[0] as Record<string, unknown>) ?? null);
+                  void refresh();
+                } catch (err) {
+                  setNote(err instanceof Error ? err.message : "Subscribe failed.");
+                } finally {
+                  setBusy(null);
+                }
+              })();
+            }}
+          >
+            {busy === "stream" ? "…" : "Subscribe quotes"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null}
+            onClick={() => {
+              void (async () => {
+                setBusy("stream");
+                try {
+                  await forexProvidersApi.forexConnectUnsubscribe(sampleSymbol);
+                  setLastQuote(null);
+                  setNote(`Unsubscribed ${sampleSymbol}`);
+                  void refresh();
+                } catch (err) {
+                  setNote(err instanceof Error ? err.message : "Unsubscribe failed.");
+                } finally {
+                  setBusy(null);
+                }
+              })();
+            }}
+          >
+            Stop
           </button>
         </div>
-        {candleSample ? (
-          <ul>
-            <li>Candles returned: {candleSample.count}</li>
-            <li>Price basis: {candleSample.priceBasis ?? "bid"}</li>
-            <li>Period id: {candleSample.periodId ?? "—"}</li>
-            <li>Fetched at: {String(candleSample.fetchedAt ?? "—")}</li>
-            {candleSample.first ? (
-              <li>
-                First: t={String(candleSample.first.time ?? "—")} O={String(candleSample.first.open ?? candleSample.first.BidOpen ?? "—")}
-                {" "}C={String(candleSample.first.close ?? candleSample.first.BidClose ?? "—")}
-              </li>
-            ) : null}
-            {candleSample.last ? (
-              <li>
-                Last: t={String(candleSample.last.time ?? "—")} O={String(candleSample.last.open ?? candleSample.last.BidOpen ?? "—")}
-                {" "}C={String(candleSample.last.close ?? candleSample.last.BidClose ?? "—")}
-              </li>
-            ) : null}
-          </ul>
-        ) : (
-          <p className="fxa-muted">No historical sample loaded yet.</p>
-        )}
+        <ul style={{ marginTop: 10 }}>
+          <li>Stream: {streamState}</li>
+          <li>Updates: {String(stream?.updateCount ?? 0)}</li>
+          <li>Age (ms): {String(stream?.lastQuoteAgeMs ?? "—")}</li>
+          {lastQuote ? (
+            <li>
+              Quote {String(lastQuote.providerSymbol)} bid={String(lastQuote.bid)} ask={String(lastQuote.ask ?? "—")}
+            </li>
+          ) : null}
+          {candleSample ? (
+            <li>
+              History sample: {candleSample.count} · {candleSample.priceBasis ?? "bid"} · {String(candleSample.fetchedAt ?? "—")}
+            </li>
+          ) : null}
+        </ul>
       </section>
 
       <section className="fxa-card">
-        <h3>Instruments ({instruments.length})</h3>
-        {instruments.length === 0 ? (
-          <p className="fxa-muted">No instruments loaded. Connect successfully, then discover.</p>
+        <h3>Instruments ({filteredInstruments.length}{instrumentQuery ? ` / ${instruments.length}` : ""})</h3>
+        <label>
+          Search
+          <input
+            value={instrumentQuery}
+            onChange={(e) => setInstrumentQuery(e.target.value)}
+            placeholder="EUR, USD, …"
+            aria-label="Search instruments"
+          />
+        </label>
+        {filteredInstruments.length === 0 ? (
+          <p className="fxa-muted">No instruments loaded for the active environment.</p>
         ) : (
           <div className="fx-markets-table-wrap">
             <table className="fx-markets-table">
@@ -374,19 +523,15 @@ export function ForexAdminForexConnectPage() {
                   <th>Provider</th>
                   <th>Symbol</th>
                   <th>Canonical</th>
-                  <th>Base</th>
-                  <th>Quote</th>
                   <th>Type</th>
                 </tr>
               </thead>
               <tbody>
-                {instruments.slice(0, 200).map((row) => (
+                {filteredInstruments.slice(0, 200).map((row) => (
                   <tr key={String(row.canonicalSymbol ?? row.providerSymbol)}>
                     <td>{String(row.provider ?? "FOREXCONNECT")}</td>
                     <td>{String(row.displaySymbol ?? row.providerSymbol)}</td>
                     <td>{String(row.canonicalSymbol ?? "—")}</td>
-                    <td>{String(row.baseAsset ?? "—")}</td>
-                    <td>{String(row.quoteAsset ?? "—")}</td>
                     <td>{String(row.marketType ?? "FOREX")}</td>
                   </tr>
                 ))}

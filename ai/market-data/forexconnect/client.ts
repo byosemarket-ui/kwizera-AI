@@ -169,7 +169,15 @@ export class ForexConnectBridge {
     }
   }
 
-  async connect(): Promise<ForexConnectSafeStatus> {
+  /**
+   * Authenticate via sidecar. Optional overrides come from server-side DEMO/LIVE profiles
+   * (never from browser). When overrides are provided, env credentials are not required.
+   */
+  async connect(options?: {
+    username?: string;
+    password?: string;
+    environment?: "demo" | "real";
+  }): Promise<ForexConnectSafeStatus> {
     const cfg = this.getConfig();
     if (!cfg.enabled) {
       return localStatus(cfg, {
@@ -178,24 +186,37 @@ export class ForexConnectBridge {
         errorMessage: "ForexConnect is disabled.",
       });
     }
-    if (!(cfg.usernameConfigured && cfg.passwordConfigured)) {
+    const overrideUser = String(options?.username ?? "").trim();
+    const overridePass = String(options?.password ?? "").trim();
+    const hasOverrides = Boolean(overrideUser && overridePass.length >= 4);
+    if (!hasOverrides && !(cfg.usernameConfigured && cfg.passwordConfigured)) {
       return localStatus(cfg, {
         status: "NOT_CONFIGURED",
         errorCode: "FOREXCONNECT_NOT_CONFIGURED",
         errorMessage:
-          "Set KWIZERA_FOREXCONNECT_USERNAME and KWIZERA_FOREXCONNECT_PASSWORD on the server.",
+          "ForexConnect credentials are not configured for the selected environment.",
       });
     }
     try {
+      const payload: Record<string, string> = {};
+      if (hasOverrides) {
+        payload.username = overrideUser;
+        payload.password = overridePass;
+        if (options?.environment) payload.environment = options.environment;
+      }
       const remote = await sidecarFetch(
         cfg,
         "/connect",
-        { method: "POST", body: "{}" },
+        { method: "POST", body: JSON.stringify(payload) },
         this.fetchImpl,
       );
       const body = remote.body as unknown as ForexConnectSafeStatus;
+      // Never echo credentials from any accidental sidecar field.
+      const safe = { ...body } as Record<string, unknown>;
+      delete safe.username;
+      delete safe.password;
       return {
-        ...body,
+        ...(safe as unknown as ForexConnectSafeStatus),
         ok: body.status === "CONNECTED",
         sidecarReachable: true,
         trading: "DISABLED",
@@ -612,10 +633,19 @@ export function createForexConnectBridge(options?: {
 export function assertNoSecretsInForexConnectPayload(
   payload: unknown,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  extraSecrets: string[] = [],
 ): void {
-  const password = String(env.KWIZERA_FOREXCONNECT_PASSWORD ?? "").trim();
   const text = JSON.stringify(payload);
-  if (password.length >= 4 && text.includes(password)) {
-    throw new Error("Refusing to expose ForexConnect password in API payload.");
+  const candidates = [
+    String(env.KWIZERA_FOREXCONNECT_PASSWORD ?? "").trim(),
+    ...extraSecrets.map((s) => String(s ?? "").trim()),
+  ].filter((s) => s.length >= 4);
+  for (const secret of candidates) {
+    if (text.includes(secret)) {
+      throw new Error("Refusing to expose ForexConnect password in API payload.");
+    }
+  }
+  if (/"password"\s*:\s*"[^"]{4,}"/i.test(text)) {
+    throw new Error("Refusing to expose ForexConnect password field in API payload.");
   }
 }

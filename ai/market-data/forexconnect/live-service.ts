@@ -171,6 +171,20 @@ export class ForexConnectLiveCandleService {
     return this.bridge.getStreamStatus();
   }
 
+  /** Drop all live sessions (used when switching DEMO ↔ LIVE). */
+  async clearAllSessions(): Promise<void> {
+    const symbols = [...new Set([...this.sessions.values()].map((s) => s.providerSymbol))];
+    this.sessions.clear();
+    this.stopPoller();
+    for (const symbol of symbols) {
+      try {
+        await this.bridge.unsubscribeQuotes(symbol);
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
+
   private ensurePoller(): void {
     if (this.pollTimer) return;
     this.pollTimer = setInterval(() => {

@@ -61,18 +61,95 @@ export interface ForexAdminTopic {
   description: string;
 }
 
+export interface ForexConnectProfilePublic {
+  environment: "demo" | "live";
+  sdkEnvironment: "demo" | "real";
+  label: "DEMO" | "LIVE";
+  usernameConfigured: boolean;
+  passwordConfigured: boolean;
+  usernameHint: string | null;
+  configured: boolean;
+  lastAuthStatus: string | null;
+  lastAuthAt: string | null;
+  lastAuthError: string | null;
+  lastInstrumentCount: number | null;
+  lastInstrumentAt: string | null;
+  lastConnectedAt: string | null;
+}
+
+export interface ForexConnectProfilesState {
+  ok: true;
+  vaultUnlocked: boolean;
+  storageMode: "encrypted-vault" | "memory-only";
+  persistenceWarning: string | null;
+  preferredEnvironment: "demo" | "live";
+  activeEnvironment: "demo" | "live" | null;
+  activeSessionStatus: string | null;
+  profiles: {
+    demo: ForexConnectProfilePublic;
+    live: ForexConnectProfilePublic;
+  };
+  note: string;
+}
+
+export interface ForexConnectProfileActionResult {
+  ok: boolean;
+  environment: "demo" | "live";
+  label: "DEMO" | "LIVE";
+  status: {
+    status: string;
+    instrumentCount?: number;
+    errorMessage?: string | null;
+    errorCode?: string | null;
+    environmentLabel?: string;
+    sdkAvailable?: boolean;
+    sidecarReachable?: boolean;
+  };
+  profiles: ForexConnectProfilesState;
+  requiresConfirmation?: boolean;
+  confirmationMessage?: string;
+  error?: { code: string; message: string };
+}
+
+const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+
+function forexAdminAuthHeaders(): Record<string, string> {
+  try {
+    const token = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+    if (!token) return {};
+    return {
+      Authorization: `Bearer ${token}`,
+      "x-kwizera-admin-token": token,
+    };
+  } catch {
+    return {};
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {
       Accept: "application/json",
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...forexAdminAuthHeaders(),
       ...(init?.headers ?? {}),
     },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.ok === false) {
-    throw new Error(data?.error?.message || `Request failed (${res.status})`);
+    const msg = data?.error?.message
+      || data?.confirmationMessage
+      || `Request failed (${res.status})`;
+    const err = new Error(msg) as Error & {
+      status?: number;
+      code?: string;
+      payload?: unknown;
+    };
+    err.status = res.status;
+    err.code = data?.error?.code;
+    err.payload = data;
+    throw err;
   }
   return data as T;
 }
@@ -229,6 +306,7 @@ export const forexProvidersApi = {
       enabled: boolean;
       configured: boolean;
       environmentLabel?: string;
+      environment?: string;
       sdkAvailable?: boolean;
       sidecarReachable?: boolean;
       instrumentCount?: number;
@@ -237,22 +315,74 @@ export const forexProvidersApi = {
       errorMessage?: string | null;
       sdkImportError?: string | null;
       note?: string;
+      profiles?: ForexConnectProfilesState | null;
     }>("/api/forex/providers/forexconnect/status"),
-  forexConnectConnect: () =>
+  forexConnectProfiles: () =>
+    request<ForexConnectProfilesState>("/api/forex/providers/forexconnect/profiles"),
+  forexConnectSaveCredentials: (body: {
+    environment: "demo" | "live";
+    username: string;
+    password: string;
+  }) =>
+    request<{
+      ok: boolean;
+      profile: ForexConnectProfilePublic;
+      profiles: ForexConnectProfilesState;
+      note?: string;
+    }>("/api/forex/providers/forexconnect/profiles/credentials", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  forexConnectTestProfile: (body: {
+    environment: "demo" | "live";
+    confirmSwitch?: boolean;
+  }) =>
+    request<ForexConnectProfileActionResult>(
+      "/api/forex/providers/forexconnect/profiles/test",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  forexConnectActivateProfile: (body: {
+    environment: "demo" | "live";
+    confirmSwitch?: boolean;
+  }) =>
+    request<ForexConnectProfileActionResult>(
+      "/api/forex/providers/forexconnect/profiles/activate",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  forexConnectDiscoverProfile: (body: { environment: "demo" | "live" }) =>
+    request<{
+      ok: boolean;
+      count: number;
+      instruments: Array<Record<string, unknown>>;
+      fetchedAt?: string | null;
+      environment?: string;
+      label?: string;
+      error?: { code: string; message: string };
+      profiles?: ForexConnectProfilesState;
+    }>("/api/forex/providers/forexconnect/profiles/discover", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  forexConnectConnect: (body?: {
+    environment?: "demo" | "live";
+    confirmSwitch?: boolean;
+  }) =>
     request<{
       ok: boolean;
       status: string;
       instrumentCount?: number;
       errorMessage?: string | null;
       errorCode?: string | null;
+      requiresConfirmation?: boolean;
+      confirmationMessage?: string;
     }>("/api/forex/providers/forexconnect/connect", {
       method: "POST",
-      body: "{}",
+      body: JSON.stringify(body ?? {}),
     }),
   forexConnectDisconnect: () =>
     request<{
       ok: boolean;
-      status: string;
+      status?: string;
     }>("/api/forex/providers/forexconnect/disconnect", {
       method: "POST",
       body: "{}",
