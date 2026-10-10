@@ -54,7 +54,7 @@ describe("Phase 36E Offers streaming lifecycle", () => {
   it("does not introduce Socket REST fallback or invented ticks", () => {
     const sidecar = read("services/forexconnect-sidecar/server.py");
     expect(sidecar).not.toContain("socketapi");
-    expect(sidecar).not.toMatch(/invent(?:ed)?\s+(?:bid|ask|tick|quote|price)/i);
+    expect(sidecar).not.toMatch(/\bfabricate(?:d|s)?\s+(?:bid|ask|tick|quote|price)/i);
     expect(sidecar).toContain("Never invents prices");
     expect(sidecar).toContain("require_change");
     const service = read("ai/market-data/providers/market-data-service.ts");

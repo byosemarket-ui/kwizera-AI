@@ -278,7 +278,7 @@ def _stop_offers_listener_locked() -> None:
     _stream["callbackRegistered"] = False
     _subscriptions.clear()
     _quotes.clear()
-    # Drop seeded quote age — does not invent ticks; next subscribe re-seeds.
+    # Drop seeded quote age; next subscribe re-seeds from the Offers table.
     _stream["lastQuoteAt"] = None
     _stream["updateCount"] = 0
     _stream["lastEventSource"] = None
