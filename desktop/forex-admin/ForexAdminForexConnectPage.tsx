@@ -393,6 +393,19 @@ export function ForexAdminForexConnectPage() {
           </li>
           <li>Configuration ({profile.label}): {configLabel}</li>
           <li>SDK / sidecar: {String(status?.sdkAvailable ?? "—")} / {String(status?.sidecarReachable ?? "—")}</li>
+          {status?.runtimeProbe && typeof status.runtimeProbe === "object" ? (
+            <li>
+              Runtime probe: {String((status.runtimeProbe as Record<string, unknown>).runtimeReady ?? "—")}
+              {" · "}
+              {String((status.runtimeProbe as Record<string, unknown>).os ?? "")}
+              {" · "}
+              {String((status.runtimeProbe as Record<string, unknown>).arch ?? "")}
+              {" · "}
+              {String((status.runtimeProbe as Record<string, unknown>).sdkVersionInstalled
+                ?? (status.runtimeProbe as Record<string, unknown>).note
+                ?? "")}
+            </li>
+          ) : null}
           <li>Authentication: {authLabel}</li>
           <li>Instruments: {instrumentsLabel} ({String(profile.lastInstrumentCount ?? status?.instrumentCount ?? 0)})</li>
           <li>Streaming: {streamingLabel}</li>

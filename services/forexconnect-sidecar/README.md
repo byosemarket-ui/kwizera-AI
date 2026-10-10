@@ -25,10 +25,12 @@ and exposes a safe HTTP control plane for the Node.js gateway.
 ## Prerequisites (VPS)
 
 1. Sign FXCM Software EULA.
-2. Python 3.8+ recommended (official PyPI package historically listed 3.5–3.7; verify wheel availability for your OS).
-3. `pip install forexconnect` (or install the Gehtsoft wheel matching your OS/arch).
-4. Native libraries required by the ForexConnect package must load on the host.
-5. Enable via systemd unit `kwizera-forexconnect.service` (localhost only).
+2. Official PyPI `forexconnect` linux wheels target **Python 3.5–3.7** (cp35–cp37).  
+   Production provisioning (`deploy/provision-forexconnect.sh`) installs a dedicated **Python 3.7** venv under `.venv/` and verifies `import forexconnect` as user `kwizera`.
+3. Native libraries required by the ForexConnect package must load on the host.
+4. `KWIZERA_FOREXCONNECT_ENABLED=1` is set by the provisioner **only after** a successful import test.
+5. DEMO/LIVE passwords are entered via Forex Admin profiles (encrypted vault) — not required in `.env`.
+6. systemd unit `kwizera-forexconnect.service` binds `127.0.0.1:5179` only.
 
 ## Endpoints (private)
 

@@ -4,6 +4,7 @@ Documentation=file:///opt/kwizera-ai/services/forexconnect-sidecar/README.md
 After=network-online.target
 Wants=network-online.target
 # Optional companion to kwizera-ai — does not replace the main gateway.
+# Starts independently; Node talks to 127.0.0.1:5179 only when this unit is active.
 
 [Service]
 Type=simple
@@ -15,11 +16,15 @@ EnvironmentFile=-/opt/kwizera-ai/.env
 # Hard-bind localhost regardless of misconfigured env.
 Environment=KWIZERA_FOREXCONNECT_SIDECAR_HOST=127.0.0.1
 Environment=KWIZERA_FOREXCONNECT_SIDECAR_PORT=5179
-ExecStart=/usr/bin/python3 /opt/kwizera-ai/services/forexconnect-sidecar/server.py
+# Dedicated Python 3.7 venv provisioned by deploy/provision-forexconnect.sh
+# (official ForexConnect linux wheels target cp35–cp37).
+ExecStart=/opt/kwizera-ai/services/forexconnect-sidecar/.venv/bin/python /opt/kwizera-ai/services/forexconnect-sidecar/server.py
 Restart=on-failure
 RestartSec=5
+TimeoutStartSec=60
 TimeoutStopSec=30
 KillSignal=SIGTERM
+KillMode=mixed
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=kwizera-forexconnect

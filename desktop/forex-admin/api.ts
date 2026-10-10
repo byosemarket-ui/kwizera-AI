@@ -316,6 +316,7 @@ export const forexProvidersApi = {
       sdkImportError?: string | null;
       note?: string;
       profiles?: ForexConnectProfilesState | null;
+      runtimeProbe?: Record<string, unknown> | null;
     }>("/api/forex/providers/forexconnect/status"),
   forexConnectProfiles: () =>
     request<ForexConnectProfilesState>("/api/forex/providers/forexconnect/profiles"),

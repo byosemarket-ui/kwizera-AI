@@ -135,7 +135,7 @@ export class ForexConnectBridge {
         status: "NOT_CONFIGURED",
         errorCode: "FOREXCONNECT_NOT_CONFIGURED",
         errorMessage:
-          "Set KWIZERA_FOREXCONNECT_USERNAME and KWIZERA_FOREXCONNECT_PASSWORD on the server.",
+          "Save DEMO or LIVE credentials in Forex Admin (ForexConnect Accounts), then Test Connection.",
       });
     }
 

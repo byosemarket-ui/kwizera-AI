@@ -212,15 +212,45 @@ restart_service() {
     echo "[KWIZERA] systemd unit was not updated to production-gateway.js" >&2
     return 1
   fi
-  # Phase 33 — optional ForexConnect sidecar (localhost only). Never blocks main deploy.
+  # Phase 36A — provision ForexConnect runtime (venv + SDK import) before enablement.
+  # Never blocks main gateway deploy on failure.
+  if [[ -f "$APP_DIR/deploy/provision-forexconnect.sh" ]]; then
+    echo "[KWIZERA] provisioning ForexConnect sidecar runtime"
+    chmod +x "$APP_DIR/deploy/provision-forexconnect.sh" || true
+    if ! bash "$APP_DIR/deploy/provision-forexconnect.sh"; then
+      echo "[KWIZERA] ForexConnect provision script exited non-zero (non-fatal)" >&2
+    fi
+  fi
+
+  # Phase 33/36A — optional ForexConnect sidecar (localhost only). Never blocks main deploy.
   if [[ -f "$APP_DIR/deploy/kwizera-forexconnect.service" ]]; then
     install -m 644 "$APP_DIR/deploy/kwizera-forexconnect.service" /etc/systemd/system/kwizera-forexconnect.service
-    if grep -Eq '^[[:space:]]*KWIZERA_FOREXCONNECT_ENABLED[[:space:]]*=[[:space:]]*(1|true|yes|on)' "$APP_DIR/.env" 2>/dev/null; then
+    systemctl daemon-reload
+    if grep -Eq '^[[:space:]]*KWIZERA_FOREXCONNECT_ENABLED[[:space:]]*=[[:space:]]*(1|true|yes|on)' "$APP_DIR/.env" 2>/dev/null \
+      && [[ -x "$APP_DIR/services/forexconnect-sidecar/.venv/bin/python" ]]; then
       echo "[KWIZERA] enabling ForexConnect sidecar (localhost:5179)"
       systemctl enable kwizera-forexconnect.service 2>/dev/null || true
-      systemctl restart kwizera-forexconnect.service 2>/dev/null || echo "[KWIZERA] ForexConnect sidecar restart skipped/failed (install python3 + forexconnect on VPS)" >&2
+      systemctl reset-failed kwizera-forexconnect.service 2>/dev/null || true
+      if ! systemctl restart kwizera-forexconnect.service; then
+        echo "[KWIZERA] ForexConnect sidecar restart failed — leaving main gateway deploy intact" >&2
+        systemctl status kwizera-forexconnect.service --no-pager -l || true
+        journalctl -u kwizera-forexconnect.service --no-pager -n 80 || true
+      else
+        # Confirm localhost bind only.
+        sleep 2
+        if ss -lntp 2>/dev/null | grep -E '127\.0\.0\.1:5179\b' >/dev/null; then
+          echo "[KWIZERA] ForexConnect sidecar listening on 127.0.0.1:5179"
+        else
+          echo "[KWIZERA] ForexConnect sidecar active but 127.0.0.1:5179 not observed yet" >&2
+        fi
+        if ss -lntp 2>/dev/null | grep -E '0\.0\.0\.0:5179\b|:::5179\b' >/dev/null; then
+          echo "[KWIZERA] SECURITY: ForexConnect appears bound publicly — stopping sidecar" >&2
+          systemctl stop kwizera-forexconnect.service || true
+          systemctl disable kwizera-forexconnect.service || true
+        fi
+      fi
     else
-      echo "[KWIZERA] ForexConnect sidecar unit installed; left disabled (KWIZERA_FOREXCONNECT_ENABLED not set)"
+      echo "[KWIZERA] ForexConnect sidecar unit installed; left disabled (enabled flag or venv not ready)"
       systemctl disable --now kwizera-forexconnect.service 2>/dev/null || true
     fi
   fi

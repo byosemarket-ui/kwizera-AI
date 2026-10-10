@@ -34,6 +34,7 @@ import {
 import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
 import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "../../ai/market-data/forexconnect/timeframes.js";
 import { getForexConnectSessionService } from "../../ai/market-data/forexconnect/session.js";
+import { readForexConnectRuntimeProbe } from "../../ai/market-data/forexconnect/runtime-probe.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -217,10 +218,12 @@ export async function handleForexConnectApi(
       } catch {
         profiles = null;
       }
+      const runtimeProbe = await readForexConnectRuntimeProbe();
       const payload = {
         ok: true,
         ...status,
         profiles,
+        runtimeProbe,
         note: status.note
           ?? "ForexConnect status via private sidecar. Trading disabled.",
       };
