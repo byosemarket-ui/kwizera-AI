@@ -225,6 +225,16 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
     const parsed = Date.parse(ts);
     if (Number.isFinite(parsed)) sourceTimestampMs = parsed;
   }
+  let resolvedReceivedAtMs = receivedAtMs;
+  const rawReceived = r.receivedAtMs ?? r.receivedAt;
+  if (typeof rawReceived === "number" && Number.isFinite(rawReceived) && rawReceived > 0) {
+    resolvedReceivedAtMs = rawReceived > 1e12
+      ? Math.floor(rawReceived)
+      : Math.floor(rawReceived * 1000);
+  } else if (typeof rawReceived === "string" && rawReceived.trim()) {
+    const parsed = Date.parse(rawReceived);
+    if (Number.isFinite(parsed)) resolvedReceivedAtMs = parsed;
+  }
   return {
     providerSymbol,
     canonicalSymbol,
@@ -234,7 +244,7 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
     mid,
     candlePrice,
     sourceTimestampMs,
-    receivedAtMs,
+    receivedAtMs: resolvedReceivedAtMs,
     offerId: r.offerId != null ? String(r.offerId) : null,
   };
 }

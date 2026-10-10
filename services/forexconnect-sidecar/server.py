@@ -11,7 +11,7 @@ import json
 import os
 import re
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
@@ -665,7 +665,21 @@ def candles_payload(symbol: str, timeframe: str, limit: int) -> dict[str, Any]:
 
     try:
         # Official API: get_history(instrument, timeframe, date_from, date_to, quotes_count)
-        history = fx.get_history(provider_symbol, period, None, None, quotes_count)
+        # Provide an explicit lookback window — some Demo sessions return empty when both
+        # date_from and date_to are None (especially around weekends / market closures).
+        date_to = datetime.now(timezone.utc)
+        lookback_days = {
+            "m1": 3,
+            "m5": 7,
+            "m15": 14,
+            "m30": 21,
+            "H1": 60,
+            "H4": 120,
+            "D1": 365,
+            "W1": 730,
+        }.get(period, 60)
+        date_from = date_to - timedelta(days=lookback_days)
+        history = fx.get_history(provider_symbol, period, date_from, date_to, quotes_count)
     except Exception as exc:
         return {
             "ok": False,

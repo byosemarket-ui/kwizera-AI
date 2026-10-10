@@ -536,9 +536,10 @@ export class ForexConnectBridge {
     }
     const list = Array.isArray(remote.body.quotes) ? remote.body.quotes : [];
     const out: ForexConnectLiveQuote[] = [];
-    const receivedAtMs = Date.now();
     for (const raw of list) {
-      const n = normalizeFcOfferQuote(raw, receivedAtMs);
+      // Preserve sidecar receivedAtMs / sourceTimestampMs — never stamp Date.now() here,
+      // or seeded Offers snapshots would look like fresh ticks every poll and fake LIVE.
+      const n = normalizeFcOfferQuote(raw);
       if (!n || n.candlePrice == null) continue;
       out.push({
         provider: "FOREXCONNECT",

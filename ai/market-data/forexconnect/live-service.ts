@@ -52,6 +52,8 @@ export class ForexConnectLiveCandleService {
   private readonly sessions = new Map<string, Session>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private pollInFlight = false;
+  /** Sidecar Offers callback counter — LIVE only when this increases. */
+  private lastSeenStreamUpdateCount = 0;
 
   constructor(options?: { bridge?: ForexConnectBridge }) {
     this.bridge = options?.bridge ?? getForexConnectBridge();
@@ -203,23 +205,48 @@ export class ForexConnectLiveCandleService {
     if (this.pollInFlight || this.sessions.size === 0) return;
     this.pollInFlight = true;
     try {
-      const quotes = await this.bridge.pollQuotes();
+      const [quotes, stream] = await Promise.all([
+        this.bridge.pollQuotes(),
+        this.bridge.getStreamStatus(),
+      ]);
       const now = Date.now();
+      const streamUpdates = Number(stream.updateCount ?? 0);
+      const hasNewOffersEvents = streamUpdates > this.lastSeenStreamUpdateCount;
+      if (hasNewOffersEvents) this.lastSeenStreamUpdateCount = streamUpdates;
+
       for (const session of this.sessions.values()) {
         const match = quotes.find((q) =>
           q.canonicalSymbol === session.canonicalSymbol
           || q.providerSymbol.toUpperCase() === session.providerSymbol.toUpperCase()
         );
         if (!match) {
-          if (session.lastQuoteAtMs != null && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS) {
+          if (session.updateCount > 0
+            && session.lastQuoteAtMs != null
+            && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS) {
+            session.streamState = "STALE";
+          } else if (session.updateCount <= 0) {
+            session.streamState = "SUBSCRIBED_WAITING";
+          }
+          continue;
+        }
+
+        // Seeded Offers snapshots may be shown as last quote, but must not fabricate LIVE candles.
+        if (!hasNewOffersEvents) {
+          if (session.lastQuote == null) session.lastQuote = match;
+          if (session.updateCount <= 0) {
+            session.streamState = "SUBSCRIBED_WAITING";
+          } else if (
+            session.lastQuoteAtMs != null
+            && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS
+          ) {
             session.streamState = "STALE";
           }
           continue;
         }
+
         const eventTimeMs = match.sourceTimestampMs ?? match.receivedAtMs;
         const price = match.candlePrice;
         if (price == null) continue;
-        // Ignore stale cached quotes republished without newer timestamps.
         if (
           session.lastQuoteAtMs != null
           && match.receivedAtMs <= session.lastQuoteAtMs

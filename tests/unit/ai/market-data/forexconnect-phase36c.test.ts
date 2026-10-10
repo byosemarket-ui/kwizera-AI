@@ -277,12 +277,33 @@ describe("Phase 36C Offers freshness and no fabricated ticks", () => {
     expect(FOREXCONNECT_STALE_MS).toBeGreaterThan(0);
   });
 
+  it("preserves sidecar quote timestamps instead of stamping Date.now()", () => {
+    const fixed = Date.parse("2026-10-10T12:00:00Z");
+    const q = normalizeFcOfferQuote({
+      providerSymbol: "AUD/CNH",
+      bid: 4.71,
+      ask: 4.712,
+      receivedAtMs: fixed,
+      sourceTimestampMs: fixed,
+    });
+    expect(q!.receivedAtMs).toBe(fixed);
+    expect(q!.sourceTimestampMs).toBe(fixed);
+  });
+
   it("client source no longer gates candles on env username/password alone", () => {
     const client = read("ai/market-data/forexconnect/client.ts");
     expect(client).toContain("Trust sidecar CONNECTED");
+    expect(client).toContain("never stamp Date.now()");
     expect(client).not.toMatch(
       /getHistoricalCandles[\s\S]{0,800}FOREXCONNECT_NOT_CONFIGURED[\s\S]{0,200}usernameConfigured/,
     );
+  });
+
+  it("live service gates LIVE on sidecar Offers updateCount", () => {
+    const live = read("ai/market-data/forexconnect/live-service.ts");
+    expect(live).toContain("hasNewOffersEvents");
+    expect(live).toContain("lastSeenStreamUpdateCount");
+    expect(live).toContain("SUBSCRIBED_WAITING");
   });
 });
 
