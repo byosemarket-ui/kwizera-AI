@@ -498,50 +498,97 @@ def _validate_ohlc(o: float, h: float, l: float, c: float) -> bool:
     return True
 
 
-def _row_to_candle(row: Any, timeframe_ms: int, now_ms: int) -> Optional[dict[str, Any]]:
-    """Normalize one ForexConnect history bar (bid OHLC). Never invent values."""
-    # numpy structured rows support both attribute and index access.
-    date_val = _row_get(row, "Date", "date", "Time", "time")
-    if date_val is None:
+def _coerce_history_row(row: Any) -> Optional[dict[str, Any]]:
+    """Turn numpy/pandas/tuple history rows into a plain dict for field access."""
+    if isinstance(row, dict):
+        return {str(k): v for k, v in row.items()}
+    names = getattr(getattr(row, "dtype", None), "names", None)
+    if names:
         try:
-            date_val = row["Date"]
+            return {str(n): row[n] for n in names}
         except Exception:
-            date_val = None
+            pass
+    if hasattr(row, "_asdict") and callable(row._asdict):
+        try:
+            return {str(k): v for k, v in row._asdict().items()}
+        except Exception:
+            pass
+    try:
+        seq = list(row)
+    except Exception:
+        seq = None
+    if seq is not None and len(seq) >= 5 and not isinstance(row, (str, bytes)):
+        keys = ["Date", "BidOpen", "BidHigh", "BidLow", "BidClose", "Volume"]
+        return {keys[i]: seq[i] for i in range(min(len(seq), len(keys)))}
+    return None
+
+
+def _history_ts_sec(date_val: Any) -> Optional[int]:
     if date_val is None:
         return None
+    if hasattr(date_val, "timestamp") and callable(getattr(date_val, "timestamp", None)):
+        try:
+            return int(date_val.timestamp())
+        except Exception:
+            pass
+    try:
+        import numpy as np  # type: ignore
 
-    if hasattr(date_val, "timestamp"):
-        try:
-            ts_sec = int(date_val.timestamp())
-        except Exception:
-            ts_sec = None
-    else:
-        try:
-            # pandas / numpy datetime64 → string parse
-            parsed = datetime.fromisoformat(str(date_val).replace("Z", "+00:00"))
-            if parsed.tzinfo is None:
-                parsed = parsed.replace(tzinfo=timezone.utc)
-            ts_sec = int(parsed.timestamp())
-        except Exception:
-            ts_sec = None
+        if isinstance(date_val, np.datetime64):
+            return int(date_val.astype("datetime64[s]").astype(np.int64))
+    except Exception:
+        pass
+    text = str(date_val).strip()
+    if not text or text.lower() in {"nat", "none", "nan"}:
+        return None
+    # numpy datetime64 string often includes nanoseconds — trim for fromisoformat.
+    if "." in text:
+        head, rest = text.split(".", 1)
+        digits = ""
+        for ch in rest:
+            if ch.isdigit():
+                digits += ch
+            else:
+                break
+        suffix = rest[len(digits):]
+        text = f"{head}.{digits[:6]}{suffix}" if digits else f"{head}{suffix}"
+    text = text.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return int(parsed.timestamp())
+    except Exception:
+        return None
+
+
+def _row_to_candle(row: Any, timeframe_ms: int, now_ms: int) -> Optional[dict[str, Any]]:
+    """Normalize one ForexConnect history bar (bid OHLC). Never invent values."""
+    mapping = _coerce_history_row(row) or {}
+    view: Any = mapping if mapping else row
+
+    date_val = _row_get(view, "Date", "date", "Time", "time", "datetime")
+    if date_val is None:
+        date_val = _try_index(view, "Date")
+    ts_sec = _history_ts_sec(date_val)
     if ts_sec is None or ts_sec <= 0:
         return None
 
-    bid_open = _finite(_row_get(row, "BidOpen", "bidOpen", "Open"))
+    bid_open = _finite(_row_get(view, "BidOpen", "bidOpen", "Open", "open"))
     if bid_open is None:
-        bid_open = _finite(_try_index(row, "BidOpen"))
-    bid_high = _finite(_row_get(row, "BidHigh", "bidHigh", "High"))
+        bid_open = _finite(_try_index(view, "BidOpen"))
+    bid_high = _finite(_row_get(view, "BidHigh", "bidHigh", "High", "high"))
     if bid_high is None:
-        bid_high = _finite(_try_index(row, "BidHigh"))
-    bid_low = _finite(_row_get(row, "BidLow", "bidLow", "Low"))
+        bid_high = _finite(_try_index(view, "BidHigh"))
+    bid_low = _finite(_row_get(view, "BidLow", "bidLow", "Low", "low"))
     if bid_low is None:
-        bid_low = _finite(_try_index(row, "BidLow"))
-    bid_close = _finite(_row_get(row, "BidClose", "bidClose", "Close"))
+        bid_low = _finite(_try_index(view, "BidLow"))
+    bid_close = _finite(_row_get(view, "BidClose", "bidClose", "Close", "close"))
     if bid_close is None:
-        bid_close = _finite(_try_index(row, "BidClose"))
-    volume_raw = _finite(_row_get(row, "Volume", "volume"))
+        bid_close = _finite(_try_index(view, "BidClose"))
+    volume_raw = _finite(_row_get(view, "Volume", "volume"))
     if volume_raw is None:
-        volume_raw = _finite(_try_index(row, "Volume"))
+        volume_raw = _finite(_try_index(view, "Volume"))
 
     if bid_open is None or bid_high is None or bid_low is None or bid_close is None:
         return None

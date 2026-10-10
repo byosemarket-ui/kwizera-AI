@@ -440,6 +440,9 @@ export class ForexConnectBridge {
         ),
         errorCode: null,
         errorMessage: null,
+        ...(body.historyDiagnostics && typeof body.historyDiagnostics === "object"
+          ? { historyDiagnostics: body.historyDiagnostics }
+          : {}),
       };
     } catch (error) {
       if (error instanceof ForexConnectMarketDataError) throw error;
