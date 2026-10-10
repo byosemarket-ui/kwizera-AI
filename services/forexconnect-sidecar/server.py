@@ -278,6 +278,19 @@ def _stop_offers_listener_locked() -> None:
     _stream["callbackRegistered"] = False
     _subscriptions.clear()
     _quotes.clear()
+    # Drop seeded quote age — does not invent ticks; next subscribe re-seeds.
+    _stream["lastQuoteAt"] = None
+    _stream["updateCount"] = 0
+    _stream["lastEventSource"] = None
+    _stream["pollCycles"] = 0
+    _stream["pollChanges"] = 0
+    _stream["callbackInvocations"] = 0
+    _stream["callbackAccepted"] = 0
+    _stream["callbackFiltered"] = 0
+    _stream["callbackNoBid"] = 0
+    _stream["callbackParseFailures"] = 0
+    _stream["lastCallbackAt"] = None
+    _stream["lastPollChangeAt"] = None
 
 
 def _logout_locked() -> None:
@@ -1211,6 +1224,22 @@ def subscribe_symbol(symbol: str) -> dict[str, Any]:
                 },
                 "status": _safe_status(),
             }
+        # Seed current Offers row for this symbol (no updateCount advance).
+        if instrument["canonicalSymbol"] not in _quotes and _fx is not None:
+            try:
+                from forexconnect import ForexConnect
+
+                for row in _fx.get_table(ForexConnect.OFFERS):
+                    seeded = _offer_to_quote(row)
+                    if not seeded:
+                        continue
+                    if seeded["providerSymbol"] != provider_symbol:
+                        continue
+                    _quotes[seeded["canonicalSymbol"]] = seeded
+                    _stream["lastQuoteAt"] = seeded["receivedAt"]
+                    break
+            except Exception as exc:
+                _stream["lastStreamError"] = _sanitize(str(exc))
         quote = _quotes.get(instrument["canonicalSymbol"])
     return {
         "ok": True,
@@ -1271,7 +1300,18 @@ def stream_status_payload() -> dict[str, Any]:
         elif not _subscriptions:
             stream_state = "AUTHENTICATED_IDLE"
         elif int(_stream["updateCount"] or 0) <= 0:
-            stream_state = "SUBSCRIBED_WAITING"
+            # Poller cycling with zero bid/ask diffs ⇒ market inactive / no ticks yet.
+            # Keep SUBSCRIBED_WAITING until enough evidence; then MARKET_INACTIVE.
+            if (
+                bool(_stream["offersPollerActive"])
+                and bool(_stream["callbackRegistered"])
+                and int(_stream["pollCycles"] or 0) >= 20
+                and int(_stream["pollChanges"] or 0) == 0
+                and int(_stream["callbackAccepted"] or 0) == 0
+            ):
+                stream_state = "MARKET_INACTIVE"
+            else:
+                stream_state = "SUBSCRIBED_WAITING"
         elif age_ms is not None and age_ms > 15_000:
             stream_state = "STALE"
         else:

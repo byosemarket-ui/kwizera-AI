@@ -23,6 +23,7 @@ describe("Phase 36E Offers streaming lifecycle", () => {
     expect(sidecar).toContain("require_change");
     expect(sidecar).toContain("callbackInvocations");
     expect(sidecar).toContain("pollChanges");
+    expect(sidecar).toContain("MARKET_INACTIVE");
     expect(sidecar).toContain("Seeded snapshots do not set LIVE");
   });
 
@@ -44,6 +45,7 @@ describe("Phase 36E Offers streaming lifecycle", () => {
     expect(client).toContain("assertNoSecretsInForexConnectPayload");
     const types = read("ai/market-data/forexconnect/live-types.ts");
     expect(types).toContain("ForexConnectStreamDiagnostics");
+    expect(types).toContain("MARKET_INACTIVE");
     const admin = read("desktop/forex-admin/ForexAdminForexConnectPage.tsx");
     expect(admin).toContain("data-fc-stream-diagnostics");
     expect(admin).toContain("Offers poll:");

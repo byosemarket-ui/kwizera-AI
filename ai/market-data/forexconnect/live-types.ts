@@ -12,6 +12,7 @@ export type ForexConnectLiveStreamState =
   | "DISCONNECTED"
   | "SUBSCRIBING"
   | "SUBSCRIBED_WAITING"
+  | "MARKET_INACTIVE"
   | "LIVE"
   | "STALE"
   | "ERROR"
