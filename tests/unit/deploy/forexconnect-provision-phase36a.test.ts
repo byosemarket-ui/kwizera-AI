@@ -19,6 +19,7 @@ describe("Phase 36A ForexConnect provision", () => {
     expect(script).toContain("KWIZERA_FOREXCONNECT_ENABLED");
     expect(script).toContain("su -s /bin/bash");
     expect(script).toContain("import forexconnect");
+    expect(script).toContain("numpy==1.14.5");
     // Must not embed live credentials.
     expect(script).not.toMatch(/KWIZERA_FOREXCONNECT_PASSWORD=.+/);
     expect(script).not.toContain("place_order");

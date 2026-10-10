@@ -117,11 +117,33 @@ install_venv_and_sdk() {
   # shellcheck disable=SC1091
   source "${VENV_DIR}/bin/activate"
   python -m pip install --upgrade pip wheel setuptools >/dev/null
-  # Official Gehtsoft package. Do not claim success from pip alone — import is verified below.
+  # Official Gehtsoft package + documented runtime deps (numpy/pandas).
+  # Do not claim success from pip alone — import is verified below.
   if ! python -m pip install "forexconnect==${FC_VERSION}"; then
     echo "[KWIZERA] pip install forexconnect==${FC_VERSION} failed" >&2
     deactivate || true
     return 1
+  fi
+  # Prefer package-bundled requirements when present.
+  local req=""
+  req="$(find "${VENV_DIR}/lib" -path '*/forexconnect/*requirements.txt' 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$req" && -f "$req" ]]; then
+    echo "[KWIZERA] installing ForexConnect requirements from ${req}"
+    python -m pip install -r "$req" || true
+  fi
+  # Documented pins from Gehtsoft forexconnect README.
+  if ! python -m pip install \
+      "numpy==1.14.5" \
+      "pandas==0.23.4" \
+      "python-dateutil==2.7.3" \
+      "pytz==2018.5" \
+      "six==1.11.0"; then
+    echo "[KWIZERA] pinned ForexConnect deps failed — trying compatible numpy/pandas for cp37" >&2
+    if ! python -m pip install "numpy<1.22" "pandas<1.4" "python-dateutil" "pytz" "six"; then
+      echo "[KWIZERA] numpy/pandas install failed" >&2
+      deactivate || true
+      return 1
+    fi
   fi
   deactivate || true
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "$VENV_DIR"
