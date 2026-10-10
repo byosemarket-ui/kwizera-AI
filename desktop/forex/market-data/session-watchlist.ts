@@ -11,7 +11,7 @@ const LEGACY_STORAGE_KEY = "kwizera-forex-binance-watchlist";
 const MAX_ENTRIES = 8;
 
 interface StoredWatchlistEntry {
-  provider: "BINANCE" | "FXCM";
+  provider: "BINANCE" | "FXCM" | "FOREXCONNECT";
   venue: SelectedMarket["venue"];
   symbol: string;
   displaySymbol: string;
@@ -34,6 +34,14 @@ function toStored(market: SelectedMarket): StoredWatchlistEntry | null {
       displaySymbol: market.displaySymbol,
     };
   }
+  if (market.venue === "forexconnect") {
+    return {
+      provider: "FOREXCONNECT",
+      venue: "forexconnect",
+      symbol: market.symbol,
+      displaySymbol: market.displaySymbol,
+    };
+  }
   return null;
 }
 
@@ -49,7 +57,7 @@ function fromStored(entry: StoredWatchlistEntry): SelectedMarket {
 function entryKey(entry: StoredWatchlistEntry): string {
   return marketIdentityKey({
     provider: entry.provider,
-    marketType: entry.provider === "FXCM" ? "FOREX" : "CRYPTO",
+    marketType: entry.provider === "BINANCE" ? "CRYPTO" : "FOREX",
     symbol: entry.symbol,
   });
 }
@@ -112,7 +120,7 @@ export function rememberSessionWatchlist(market: SelectedMarket | null): Selecte
   return next.map(fromStored);
 }
 
-export function removeSessionWatchlistSymbol(symbol: string, provider?: "BINANCE" | "FXCM"): SelectedMarket[] {
+export function removeSessionWatchlistSymbol(symbol: string, provider?: "BINANCE" | "FXCM" | "FOREXCONNECT"): SelectedMarket[] {
   const compact = symbol.replace(/[/_-]/g, "").toUpperCase();
   writeRaw(readRaw().filter((item) => {
     const itemCompact = item.symbol.replace(/[/_-]/g, "").toUpperCase();

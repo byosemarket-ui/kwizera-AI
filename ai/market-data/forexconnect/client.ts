@@ -365,13 +365,9 @@ export class ForexConnectBridge {
         "ForexConnect is disabled. Set KWIZERA_FOREXCONNECT_ENABLED=1.",
       );
     }
-    if (!(cfg.usernameConfigured && cfg.passwordConfigured)) {
-      throw new ForexConnectMarketDataError(
-        "FOREXCONNECT_NOT_CONFIGURED",
-        "ForexConnect is not configured on the server.",
-      );
-    }
 
+    // Session may be authenticated via Admin DEMO/LIVE profiles (encrypted vault),
+    // not only KWIZERA_FOREXCONNECT_USERNAME/PASSWORD env vars. Trust sidecar CONNECTED.
     const status = await this.getStatus();
     if (status.status !== "CONNECTED") {
       throw new ForexConnectMarketDataError(
@@ -408,6 +404,13 @@ export class ForexConnectBridge {
         timeframe,
       );
 
+      const sessionEnv = (status.environment === "demo" || status.environment === "real")
+        ? status.environment
+        : (body.environment === "demo" || body.environment === "real"
+          ? body.environment
+          : cfg.environment);
+      const sessionEnvLabel = sessionEnv === "real" ? "LIVE" : "DEMO";
+
       return {
         ok: true,
         provider: "FOREXCONNECT",
@@ -419,8 +422,8 @@ export class ForexConnectBridge {
         timeframe,
         periodId: String(body.periodId ?? periodId),
         priceBasis: "bid",
-        environment: cfg.environment,
-        environmentLabel: cfg.environmentLabel,
+        environment: sessionEnv,
+        environmentLabel: sessionEnvLabel,
         candles,
         count: candles.length,
         invalidCandles,
@@ -428,7 +431,9 @@ export class ForexConnectBridge {
         fetchedAt: String(body.fetchedAt ?? new Date().toISOString()),
         lastHistoricalAt: body.lastHistoricalAt
           ? String(body.lastHistoricalAt)
-          : String(body.fetchedAt ?? new Date().toISOString()),
+          : (candles.length > 0
+            ? new Date(candles[candles.length - 1]!.time * 1000).toISOString()
+            : String(body.fetchedAt ?? new Date().toISOString())),
         note: String(
           body.note
             ?? "ForexConnect historical candles (bid OHLC via get_history). Trading disabled.",

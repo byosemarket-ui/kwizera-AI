@@ -34,6 +34,8 @@ function tone(status: string): "ok" | "warn" | "danger" | "neutral" {
     || status === "DISCONNECTED"
     || status === "STALE"
     || status === "SUBSCRIBED_WAITING"
+    || status === "AUTHENTICATED_IDLE"
+    || status === "SUBSCRIBED"
   ) {
     return "warn";
   }
@@ -374,7 +376,41 @@ export function ForexAdminForexConnectPage() {
     ? "STREAMING"
     : streamState === "STALE"
       ? "STALE"
-      : streamState;
+      : streamState === "AUTHENTICATED_IDLE"
+        ? "AUTHENTICATED_IDLE"
+        : streamState;
+  const feedLabel = streamState === "LIVE"
+    ? "LIVE"
+    : streamState === "STALE"
+      ? "STALE"
+      : connectionStatus === "CONNECTED"
+        ? (Number(stream?.updateCount ?? 0) > 0 ? "AUTHENTICATED_IDLE" : "AUTHENTICATED_IDLE")
+        : connectionStatus === "DISCONNECTED" || connectionStatus === "—"
+          ? "DISCONNECTED"
+          : String(connectionStatus);
+  const subscribedInstrument = String(
+    stream?.providerSymbol
+    ?? stream?.symbol
+    ?? (Array.isArray(stream?.subscriptions) && stream.subscriptions[0]
+      ? (stream.subscriptions[0] as Record<string, unknown>).providerSymbol
+      : null)
+    ?? "—",
+  );
+  const activeSubscriptionCount = Number(
+    stream?.activeSubscriptionCount
+    ?? stream?.subscriptionCount
+    ?? (Array.isArray(stream?.subscriptions) ? stream.subscriptions.length : 0)
+    ?? 0,
+  );
+  const nextAction = !adminAuthorized
+    ? "Authorize with Admin API token, then Test Connection on DEMO."
+    : connectionStatus !== "CONNECTED"
+      ? "Activate / Connect DEMO, then Discover Instruments."
+      : candleSample == null || candleSample.count <= 0
+        ? "Load history for a discovered instrument (e.g. EUR/USD), then open Charts with provider=FOREXCONNECT."
+        : Number(stream?.updateCount ?? 0) <= 0
+          ? "Subscribe quotes on a discovered instrument. If updates stay 0, market may be closed — keep AUTHENTICATED_IDLE, retest when FXCM publishes ticks."
+          : "Charts/Technical Analysis should consume the same FOREXCONNECT series. Retest live only when updateCount increases.";
 
   return (
     <div data-forex-admin-forexconnect>
@@ -572,12 +608,23 @@ export function ForexAdminForexConnectPage() {
           ) : null}
           <li>Authentication: {authLabel}</li>
           <li>Instruments: {instrumentsLabel} ({String(profile.lastInstrumentCount ?? status?.instrumentCount ?? 0)})</li>
+          <li>Feed: <span className="fxa-badge" data-tone={tone(feedLabel) === "neutral" ? undefined : tone(feedLabel)}>{feedLabel}</span></li>
           <li>Streaming: {streamingLabel}</li>
-          <li>Last quote: {String(stream?.lastQuoteAt ?? "—")}</li>
+          <li>Subscribed instrument: {subscribedInstrument}</li>
+          <li>Active subscriptions: {String(activeSubscriptionCount)}</li>
+          <li>Offers updates: {String(stream?.updateCount ?? 0)}</li>
+          <li>Last quote: {String(stream?.lastQuoteAt ?? "—")} (age ms: {String(stream?.lastQuoteAgeMs ?? "—")})</li>
+          <li>
+            Historical sample:{" "}
+            {candleSample
+              ? `${candleSample.count} candles · last ${String((candleSample.last as { time?: number } | null)?.time ?? candleSample.fetchedAt ?? "—")}`
+              : "not loaded"}
+          </li>
           <li>Storage: {profiles?.storageMode ?? "—"}</li>
           <li>Trading: DISABLED</li>
           {profile.lastAuthError ? <li>Error: {profile.lastAuthError}</li> : null}
           {status?.errorMessage && !profile.lastAuthError ? <li>Error: {String(status.errorMessage)}</li> : null}
+          <li data-fc-next-action>Next: {nextAction}</li>
         </ul>
       </section>
 
@@ -674,6 +721,9 @@ export function ForexAdminForexConnectPage() {
           {candleSample ? (
             <li>
               History sample: {candleSample.count} · {candleSample.priceBasis ?? "bid"} · {String(candleSample.fetchedAt ?? "—")}
+              {candleSample.last && typeof (candleSample.last as { time?: number }).time === "number"
+                ? ` · last candle t=${String((candleSample.last as { time: number }).time)}`
+                : ""}
             </li>
           ) : null}
         </ul>

@@ -20,13 +20,15 @@ export function identityFromSelectedMarket(
   market: SelectedMarket,
   timeframe: ChartTimeframeId | string,
 ): ForexMarketIdentityView {
-  const provider: MarketProviderId = market.provider === "FXCM" || market.venue === "fxcm"
-    ? "FXCM"
-    : "BINANCE";
+  const provider: MarketProviderId = market.provider === "FOREXCONNECT" || market.venue === "forexconnect"
+    ? "FOREXCONNECT"
+    : market.provider === "FXCM" || market.venue === "fxcm"
+      ? "FXCM"
+      : "BINANCE";
   const canonicalSymbol = normalizeCanonicalSymbol(market.symbol);
   return {
     provider,
-    marketType: provider === "FXCM" ? "FOREX" : "CRYPTO",
+    marketType: provider === "BINANCE" ? "CRYPTO" : "FOREX",
     providerSymbol: market.symbol,
     canonicalSymbol,
     displaySymbol: market.displaySymbol,

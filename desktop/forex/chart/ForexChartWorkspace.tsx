@@ -358,11 +358,16 @@ export function ForexChartWorkspace({
   const tickerStatus = liveTicker && binanceSelected
     ? resolveTickerUiStatus(liveTicker, selected.symbol)
     : null;
-  const tickerLive = !fxcmSelected && tickerStatus === "LIVE";
+  const tickerLive = !fxcmSelected && !forexConnectSelected && tickerStatus === "LIVE";
   // Only mark the headline price LIVE when the displayed figure is the matching miniTicker (Binance)
-  // or FXCM forming/mid close from the live candle engine.
-  const priceKind = fxcmLiveChart || tickerLive ? "live" : "unavailable";
-  const headlinePrice = fxcmSelected
+  // or FXCM / ForexConnect forming close from a live quote-driven candle engine.
+  const forexHeadlineReady = (fxcmSelected || forexConnectSelected) && Boolean(last);
+  const priceKind = fxcmLiveChart || forexConnectLiveChart || tickerLive
+    ? "live"
+    : forexHeadlineReady || (binanceSelected && last)
+      ? "historical"
+      : "unavailable";
+  const headlinePrice = (fxcmSelected || forexConnectSelected)
     ? (last ? formatPrice(selected.symbol, last.close) : LIVE_PRICE_UNAVAILABLE)
     : !binanceSelected
       ? LIVE_PRICE_UNAVAILABLE
@@ -371,6 +376,13 @@ export function ForexChartWorkspace({
         : last
           ? formatPrice(selected.symbol, last.close)
           : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...");
+  const providerMetaLabel = binanceSelected
+    ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
+    : fxcmSelected
+      ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · FXCM mid · ${unified.live ? "LIVE" : (unified.connectionState ?? "historical")}`
+      : forexConnectSelected
+        ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · ForexConnect bid · ${unified.live ? "LIVE" : (unified.connectionState ?? "historical")}`
+        : LIVE_MARKET_UNAVAILABLE;
   const chartState = !candleProvider
     ? "unavailable"
     : historyPending
@@ -577,9 +589,7 @@ export function ForexChartWorkspace({
             {headlinePrice}
           </p>
           <p className="fx-panel-meta">
-            {binanceSelected
-              ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
-              : LIVE_MARKET_UNAVAILABLE}
+            {providerMetaLabel}
           </p>
         </div>
         <div className="fx-status-stack">
@@ -590,6 +600,37 @@ export function ForexChartWorkspace({
               </ForexStatusBadge>
               {tickerLive ? (
                 <ForexStatusBadge tone="live">Price LIVE</ForexStatusBadge>
+              ) : null}
+            </>
+          ) : fxcmSelected || forexConnectSelected ? (
+            <>
+              <ForexStatusBadge
+                tone={
+                  chartLive
+                    ? "live"
+                    : historyPending || seriesReady
+                      ? "future"
+                      : "offline"
+                }
+              >
+                {historyPending
+                  ? `Loading ${candleProvider} market data…`
+                  : chartLive
+                    ? (forexConnectSelected ? "LIVE · ForexConnect Offers" : "LIVE · FXCM stream")
+                    : seriesReady
+                      ? (unified.connectionState === "STALE"
+                        ? "STALE · last quote aged out"
+                        : unified.connectionState === "AUTHENTICATED_IDLE"
+                          || unified.connectionState === "CONNECTED"
+                          || unified.connectionState === "SUBSCRIBED"
+                          ? "Authenticated · waiting for fresh quotes"
+                          : "Historical candles · market idle")
+                      : (unified.message || "Market data unavailable")}
+              </ForexStatusBadge>
+              {seriesReady && last ? (
+                <ForexStatusBadge tone="future">
+                  Last candle {formatUtc(last.time)}
+                </ForexStatusBadge>
               ) : null}
             </>
           ) : (
@@ -616,24 +657,39 @@ export function ForexChartWorkspace({
           <p>
             {binanceSelected
               ? chartMessage
-              : "Open Markets, select a Binance Spot symbol, then return here for genuine OHLCV. Development candles are not shown in production."}
+              : fxcmSelected || forexConnectSelected
+                ? (unified.message
+                  || "Open Markets, select a valid instrument for this provider, then return here. Development candles are not shown in production.")
+                : "Open Markets, select a BINANCE, FXCM, or ForexConnect instrument, then return here for genuine OHLCV."}
           </p>
         </div>
       )}
 
-      <dl className="fx-ohlc" data-forex-ohlc="true" aria-label={binanceSelected ? "Binance OHLC" : "OHLC unavailable"}>
-        <div><dt>Open</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.open ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>High</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.high ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Low</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.low ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Close</dt><dd>{binanceSelected ? formatPrice(selected.symbol, display?.close ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Time</dt><dd>{display && binanceSelected ? formatUtc(display.time) : "—"}</dd></div>
-        <div><dt>Volume</dt><dd>{binanceSelected && display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
+      <dl
+        className="fx-ohlc"
+        data-forex-ohlc="true"
+        aria-label={
+          binanceSelected
+            ? "Binance OHLC"
+            : fxcmSelected
+              ? "FXCM OHLC"
+              : forexConnectSelected
+                ? "ForexConnect bid OHLC"
+                : "OHLC unavailable"
+        }
+      >
+        <div><dt>Open</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.open ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>High</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.high ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Low</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.low ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Close</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.close ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Time</dt><dd>{display && (binanceSelected || fxcmSelected || forexConnectSelected) ? formatUtc(display.time) : "—"}</dd></div>
+        <div><dt>Volume</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) && display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
       </dl>
 
       <div className={`fx-chart-side ${analysis ? "is-wide" : ""}`}>
         <section className="fx-indicator-manager" aria-labelledby="fx-ind-title">
           <h2 id="fx-ind-title">Indicators</h2>
-          <p className="fx-panel-meta" data-ta-indicator-source="binance-spot">
+          <p className="fx-panel-meta" data-ta-indicator-source={candleProvider ? "unified-market-data" : "none"}>
             Calculated from the unified Market Data candle series — the same series as Charts.
           </p>
           {!canAnalyze ? <p className="fx-panel-meta" data-analysis-unavailable="true">{analysisUnavailableReason}</p> : null}
@@ -684,7 +740,10 @@ export function ForexChartWorkspace({
           <>
             <section aria-labelledby="fx-summary-title" data-ta-analysis-summary="true">
               <h2 id="fx-summary-title">Analysis summary</h2>
-              <p className="fx-panel-meta">Descriptive measurements from Binance Spot candles only. No buy or sell recommendation.</p>
+              <p className="fx-panel-meta">
+                Descriptive measurements from the selected provider candle series
+                {candleProvider ? ` (${candleProvider})` : ""}. No buy or sell recommendation.
+              </p>
               {!canAnalyze ? (
                 <p className="fx-panel-meta" data-analysis-unavailable="true">{analysisUnavailableReason}</p>
               ) : (
@@ -735,7 +794,7 @@ export function ForexChartWorkspace({
                   <div>
                     <dt>Series</dt>
                     <dd data-ta-series="true">
-                      {selected!.symbol} · {timeframe} · {candles.length} Binance candles
+                      {selected!.symbol} · {timeframe} · {candles.length} {candleProvider ?? "provider"} candles
                       {last ? ` · last close ${formatPrice(selected!.symbol, last.close)}` : ""}
                     </dd>
                   </div>
@@ -777,14 +836,15 @@ export function ForexChartWorkspace({
         {" · "}
         {chartMessage}
         {" · Last candle "}
-        {last && (binanceSelected || fxcmSelected) ? formatUtc(last.time) : "unavailable"}
+        {last && (binanceSelected || fxcmSelected || forexConnectSelected) ? formatUtc(last.time) : "unavailable"}
         {chartLive && liveKline.kline && binanceSelected ? ` · Last update ${formatLastUpdateUtc(liveKline.kline.eventTimeUtc)}` : ""}
-        {chartLive && fxcmSelected && unified.lastQuoteAt ? ` · Last quote ${unified.lastQuoteAt}` : ""}
+        {(fxcmSelected || forexConnectSelected) && unified.lastQuoteAt ? ` · Last quote ${unified.lastQuoteAt}` : ""}
         {" · Connection: "}
-        {chartLive ? "LIVE" : "not live"}
-        {last && (binanceSelected || fxcmSelected) && last.closed === false ? " · Forming candle" : ""}
-        {last && (binanceSelected || fxcmSelected) && last.closed === true ? " · Candle closed" : ""}
+        {chartLive ? "LIVE" : ((fxcmSelected || forexConnectSelected) ? (unified.connectionState ?? "not live") : "not live")}
+        {last && (binanceSelected || fxcmSelected || forexConnectSelected) && last.closed === false ? " · Forming candle" : ""}
+        {last && (binanceSelected || fxcmSelected || forexConnectSelected) && last.closed === true ? " · Candle closed" : ""}
         {fxcmSelected ? " · Price basis: mid" : ""}
+        {forexConnectSelected ? " · Price basis: bid" : ""}
       </p>
     </section>
   );
