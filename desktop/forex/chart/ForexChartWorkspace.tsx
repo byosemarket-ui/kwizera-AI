@@ -548,17 +548,16 @@ export function ForexChartWorkspace({
                   ? (forexConnectSelected ? "LIVE · ForexConnect Offers" : "LIVE · FXCM stream")
                   : seriesReady
                     ? (unified.connectionState === "STALE"
-                      ? "STALE"
-                      : unified.connectionState === "AUTHENTICATED_IDLE"
-                        || unified.connectionState === "CONNECTED"
-                        || unified.connectionState === "SUBSCRIBED"
-                        || unified.connectionState === "SUBSCRIBED_WAITING"
-                        || unified.connectionState === "MARKET_INACTIVE"
-                        ? (unified.connectionState === "MARKET_INACTIVE"
-                          ? "MARKET_INACTIVE"
-                          : "SUBSCRIBED_WAITING")
-                        : "Historical")
-                    : (unified.message || "Unavailable")}
+                      ? "STALE · last quote aged out"
+                      : unified.connectionState === "MARKET_INACTIVE"
+                        ? "MARKET_INACTIVE"
+                        : unified.connectionState === "AUTHENTICATED_IDLE"
+                          || unified.connectionState === "CONNECTED"
+                          || unified.connectionState === "SUBSCRIBED"
+                          || unified.connectionState === "SUBSCRIBED_WAITING"
+                          ? "Authenticated · waiting for fresh quotes"
+                          : "Historical candles · market idle")
+                    : (unified.message || "Market data unavailable")}
             </ForexStatusBadge>
           ) : (
             <ForexStatusBadge tone="offline">No live feed</ForexStatusBadge>

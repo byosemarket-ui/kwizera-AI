@@ -25,7 +25,7 @@ describe("Phase 37A trading layout compactness", () => {
 
   it("keeps truthful stream status labels without inventing LIVE", () => {
     const workspace = read("desktop/forex/chart/ForexChartWorkspace.tsx");
-    expect(workspace).toContain("SUBSCRIBED_WAITING");
+    expect(workspace).toContain("Authenticated · waiting for fresh quotes");
     expect(workspace).toContain("MARKET_INACTIVE");
     expect(workspace).toContain("LIVE · ForexConnect Offers");
     expect(workspace).not.toContain("fabricat");
