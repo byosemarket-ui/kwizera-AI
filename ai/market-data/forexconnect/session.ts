@@ -333,6 +333,65 @@ export class ForexConnectSessionService {
 }
 
 let singleton: ForexConnectSessionService | null = null;
+/** One attempt per process — restore DEMO after deploy/sidecar restart when vault credentials exist. */
+let demoRestoreAttempted = false;
+
+/**
+ * After gateway/sidecar restarts the in-memory SDK session is gone while DEMO credentials
+ * remain in the encrypted vault. Reconnect DEMO once (never auto-login LIVE).
+ */
+export async function maybeRestoreDemoSession(
+  service: ForexConnectSessionService,
+  options?: { force?: boolean },
+): Promise<{ attempted: boolean; ok: boolean; status?: string; note: string }> {
+  if (demoRestoreAttempted && !options?.force) {
+    return { attempted: false, ok: false, note: "DEMO restore already attempted this process." };
+  }
+  demoRestoreAttempted = true;
+
+  const state = await service.getProfilesState();
+  const demo = state.profiles?.demo;
+  if (!demo?.configured) {
+    return { attempted: false, ok: false, note: "DEMO credentials not configured in vault." };
+  }
+
+  const bridge = getForexConnectBridge();
+  const status = await bridge.getStatus();
+  if (status.status === "CONNECTED") {
+    if (status.environment === "demo" || status.environmentLabel?.toUpperCase().includes("DEMO")) {
+      // Rehydrate in-memory active environment after process restart.
+      const profiles = await getForexConnectProfilesManager();
+      profiles.setActiveSession("demo", status.status);
+    }
+    return {
+      attempted: false,
+      ok: true,
+      status: status.status,
+      note: "Sidecar already CONNECTED; active DEMO session rehydrated when environment matches.",
+    };
+  }
+  if (status.enabled === false || status.status === "DISABLED") {
+    return { attempted: false, ok: false, status: status.status, note: "ForexConnect disabled." };
+  }
+  if (status.sidecarReachable === false) {
+    return {
+      attempted: false,
+      ok: false,
+      status: status.status,
+      note: "Sidecar unreachable; DEMO restore deferred.",
+    };
+  }
+
+  const result = await service.activate("demo", { confirmSwitch: true });
+  return {
+    attempted: true,
+    ok: result.ok,
+    status: result.status.status,
+    note: result.ok
+      ? `DEMO session restored after restart (${result.status.instrumentCount ?? 0} instruments).`
+      : (result.error?.message ?? result.status.errorMessage ?? "DEMO restore failed."),
+  };
+}
 
 export async function getForexConnectSessionService(): Promise<ForexConnectSessionService> {
   if (!singleton) {
@@ -342,6 +401,10 @@ export async function getForexConnectSessionService(): Promise<ForexConnectSessi
       getForexConnectBridge(),
       getForexConnectLiveCandleService(),
     );
+    // Fire-and-forget: never block the first Admin/status request on FXCM login latency.
+    void maybeRestoreDemoSession(singleton).catch(() => {
+      /* restore is best-effort; Admin Activate remains available */
+    });
   }
   return singleton;
 }
@@ -356,4 +419,5 @@ export function createForexConnectSessionService(deps: {
 
 export function resetForexConnectSessionServiceForTests(): void {
   singleton = null;
+  demoRestoreAttempted = false;
 }

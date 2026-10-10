@@ -33,7 +33,10 @@ import {
 } from "../../ai/market-data/forexconnect/client.js";
 import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
 import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "../../ai/market-data/forexconnect/timeframes.js";
-import { getForexConnectSessionService } from "../../ai/market-data/forexconnect/session.js";
+import {
+  getForexConnectSessionService,
+  maybeRestoreDemoSession,
+} from "../../ai/market-data/forexconnect/session.js";
 import { readForexConnectRuntimeProbe } from "../../ai/market-data/forexconnect/runtime-probe.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -383,6 +386,13 @@ export async function handleForexConnectApi(
       const limitRaw = url.searchParams.get("limit");
       const limit = limitRaw != null ? Number(limitRaw) : 50;
       try {
+        // After deploy/sidecar restart, vault DEMO credentials may exist while the
+        // in-memory SDK session is gone. Restore once before historical get_history.
+        const pre = await bridge.getStatus();
+        if (pre.status !== "CONNECTED") {
+          const session = await getForexConnectSessionService();
+          await maybeRestoreDemoSession(session);
+        }
         const result = await bridge.getHistoricalCandles({ symbol, timeframe, limit });
         assertNoSecretsInForexConnectPayload(result);
         sendJson(res, 200, {

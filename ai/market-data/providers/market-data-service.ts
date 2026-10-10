@@ -267,6 +267,16 @@ export class MarketDataService {
     if (providerId === "FOREXCONNECT") {
       // ForexConnect SDK path — never fall back to Binance or FXCM Socket REST.
       const fc = this.registry.getForexConnect();
+      // Vault DEMO may still be configured after deploy/sidecar restart wiped the SDK session.
+      try {
+        const { getForexConnectSessionService, maybeRestoreDemoSession } = await import(
+          "../forexconnect/session.js"
+        );
+        const session = await getForexConnectSessionService();
+        await maybeRestoreDemoSession(session);
+      } catch {
+        /* best-effort restore; bridge will surface CONNECTED/not-connected truthfully */
+      }
       const result = await fc.getBridge().getHistoricalCandles({
         symbol: request.symbol,
         timeframe,
@@ -310,6 +320,15 @@ export class MarketDataService {
     }
 
     if (providerId === "FOREXCONNECT") {
+      try {
+        const { getForexConnectSessionService, maybeRestoreDemoSession } = await import(
+          "../forexconnect/session.js"
+        );
+        const session = await getForexConnectSessionService();
+        await maybeRestoreDemoSession(session);
+      } catch {
+        /* best-effort restore */
+      }
       const live = await this.forexConnectLive.subscribe(request.symbol, timeframe);
       return unifyForexConnectLiveSeries(live);
     }

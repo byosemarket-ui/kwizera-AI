@@ -286,6 +286,16 @@ describe("Phase 36C Offers freshness and no fabricated ticks", () => {
   });
 });
 
+describe("Phase 36C DEMO session restore after restart", () => {
+  it("exposes maybeRestoreDemoSession and never auto-activates LIVE", () => {
+    const session = read("ai/market-data/forexconnect/session.ts");
+    expect(session).toContain("maybeRestoreDemoSession");
+    expect(session).toContain('service.activate("demo"');
+    expect(session).toContain("never auto-login LIVE");
+    expect(session).not.toMatch(/activate\(\s*["']live["']/);
+  });
+});
+
 describe("Phase 36C Charts / Admin UI provider identity", () => {
   it("SelectedMarketBar and Chart workspace label ForexConnect as connected venue", () => {
     const bar = read("desktop/forex/SelectedMarketBar.tsx");

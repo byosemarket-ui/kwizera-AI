@@ -405,9 +405,11 @@ export function ForexAdminForexConnectPage() {
   const nextAction = !adminAuthorized
     ? "Authorize with Admin API token, then Test Connection on DEMO."
     : connectionStatus !== "CONNECTED"
-      ? "Activate / Connect DEMO, then Discover Instruments."
+      ? (profile.configured
+        ? "DEMO credentials are saved. Click Activate / Connect (or wait for post-deploy DEMO restore), then Discover Instruments."
+        : "Save DEMO credentials, then Activate / Connect and Discover Instruments.")
       : candleSample == null || candleSample.count <= 0
-        ? "Load history for a discovered instrument (e.g. EUR/USD), then open Charts with provider=FOREXCONNECT."
+        ? "Load history for a discovered instrument (e.g. EUR/USD or AUD/CNH), then open Charts with provider=FOREXCONNECT."
         : Number(stream?.updateCount ?? 0) <= 0
           ? "Subscribe quotes on a discovered instrument. If updates stay 0, market may be closed — keep AUTHENTICATED_IDLE, retest when FXCM publishes ticks."
           : "Charts/Technical Analysis should consume the same FOREXCONNECT series. Retest live only when updateCount increases.";
