@@ -203,7 +203,9 @@ function classifyFromProviderType(
   if (!t) return null;
   if (t.includes("forex") && t.includes("ndf")) return { categoryId: "forex_ndf", confidence: "high" };
   if (t.includes("basket") && t.includes("forex")) return { categoryId: "forex_baskets", confidence: "high" };
-  if (t.includes("forex") || t === "1" || t === "fx") return { categoryId: "forex", confidence: "high" };
+  // Generic "Forex" / numeric type alone is not enough to force Forex vs NDF/basket —
+  // fall through to symbol rules for those distinctions.
+  if (t.includes("forex") || t === "1" || t === "fx") return null;
   if (t.includes("index") || t.includes("indice")) return { categoryId: "indices", confidence: "high" };
   if (t.includes("metal")) return { categoryId: "metals", confidence: "high" };
   if (t.includes("energy") || t.includes("oil") || t.includes("gas")) {
@@ -270,17 +272,15 @@ export function classifyForexConnectInstrument(
     confidence = fromType.confidence;
   } else {
     const suffix = shareSuffix(providerSymbol);
-    if (suffix && SHARE_SUFFIX_TO_CATEGORY[suffix]) {
-      // Sector baskets like MAG7.ECOMM / FOO.TECH stay stock baskets, not country shares.
-      if (["ecomm", "tech", "auto", "banks"].includes(suffix)) {
-        categoryId = "stock_baskets";
-        source = "symbol_rule";
-        confidence = "medium";
-      } else {
-        categoryId = SHARE_SUFFIX_TO_CATEGORY[suffix]!;
-        source = "share_suffix";
-        confidence = "high";
-      }
+    if (suffix && ["ecomm", "tech", "auto", "banks"].includes(suffix)) {
+      // Sector baskets like CHN.ECOMM / MAG7.TECH — not country share listings.
+      categoryId = "stock_baskets";
+      source = "symbol_rule";
+      confidence = "medium";
+    } else if (suffix && SHARE_SUFFIX_TO_CATEGORY[suffix]) {
+      categoryId = SHARE_SUFFIX_TO_CATEGORY[suffix]!;
+      source = "share_suffix";
+      confidence = "high";
     } else if (FOREX_NDF_SYMBOLS.has(upper)) {
       categoryId = "forex_ndf";
       source = "symbol_rule";

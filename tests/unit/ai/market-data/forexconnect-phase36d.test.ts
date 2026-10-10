@@ -68,6 +68,8 @@ describe("Phase 36D classification rules", () => {
     const unknown = classifyForexConnectInstrument(inst("WEIRDTHING"));
     expect(unknown.categoryId).toBe("other");
     expect(unknown.classificationConfidence).toBe("low");
+    expect(classifyForexConnectInstrument(inst("CHN.ECOMM")).categoryId).toBe("stock_baskets");
+    expect(classifyForexConnectInstrument(inst("USD/INR")).categoryId).toBe("forex_ndf");
   });
 
   it("deduplicates and reconciles All Markets counts", () => {
