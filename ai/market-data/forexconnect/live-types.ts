@@ -74,12 +74,28 @@ export interface SafeForexConnectLiveSeries {
   errorMessage: string | null;
 }
 
+export interface ForexConnectStreamDiagnostics {
+  callbackRegistered: boolean;
+  callbackInvocations: number;
+  callbackAccepted: number;
+  callbackFiltered: number;
+  callbackNoBid: number;
+  callbackParseFailures: number;
+  pollCycles: number;
+  pollChanges: number;
+  lastCallbackAt: string | null;
+  lastPollChangeAt: string | null;
+  offersPollerActive: boolean;
+}
+
 export interface ForexConnectStreamStatus {
   ok: boolean;
   provider: "FOREXCONNECT";
   sessionStatus: string;
   streamState: ForexConnectLiveStreamState;
   offersListenerActive: boolean;
+  offersPollerActive?: boolean;
+  callbackRegistered?: boolean;
   subscriptionCount: number;
   subscriptions: string[];
   maxSubscriptions: number;
@@ -87,6 +103,8 @@ export interface ForexConnectStreamStatus {
   lastQuoteAgeMs: number | null;
   lastStreamError: string | null;
   updateCount: number;
+  lastEventSource?: string | null;
+  diagnostics?: ForexConnectStreamDiagnostics | null;
   priceBasis: "bid";
   trading: "DISABLED";
   note?: string;

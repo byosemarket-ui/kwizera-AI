@@ -737,10 +737,23 @@ export function ForexAdminForexConnectPage() {
             Stop
           </button>
         </div>
-        <ul style={{ marginTop: 10 }}>
+        <ul style={{ marginTop: 10 }} data-fc-stream-diagnostics>
           <li>Stream: {streamState}</li>
           <li>Updates: {String(stream?.updateCount ?? 0)}</li>
           <li>Age (ms): {String(stream?.lastQuoteAgeMs ?? "—")}</li>
+          <li>Event source: {String(stream?.lastEventSource ?? "—")}</li>
+          <li>
+            Listener / poller: {String(stream?.offersListenerActive ?? "—")} / {String(stream?.offersPollerActive ?? "—")}
+          </li>
+          <li>
+            Callbacks: inv={String((stream?.diagnostics as Record<string, unknown> | undefined)?.callbackInvocations ?? 0)}
+            {" · "}acc={String((stream?.diagnostics as Record<string, unknown> | undefined)?.callbackAccepted ?? 0)}
+            {" · "}filt={String((stream?.diagnostics as Record<string, unknown> | undefined)?.callbackFiltered ?? 0)}
+          </li>
+          <li>
+            Offers poll: cycles={String((stream?.diagnostics as Record<string, unknown> | undefined)?.pollCycles ?? 0)}
+            {" · "}changes={String((stream?.diagnostics as Record<string, unknown> | undefined)?.pollChanges ?? 0)}
+          </li>
           {lastQuote ? (
             <li>
               Quote {String(lastQuote.providerSymbol)} bid={String(lastQuote.bid)} ask={String(lastQuote.ask ?? "—")}

@@ -593,6 +593,8 @@ export class ForexConnectBridge {
         streamState: (body.streamState as ForexConnectStreamStatus["streamState"])
           ?? "DISCONNECTED",
         offersListenerActive: Boolean(body.offersListenerActive),
+        offersPollerActive: Boolean(body.offersPollerActive),
+        callbackRegistered: Boolean(body.callbackRegistered),
         subscriptionCount: Number(body.subscriptionCount ?? 0),
         subscriptions: Array.isArray(body.subscriptions)
           ? body.subscriptions.map(String)
@@ -604,6 +606,40 @@ export class ForexConnectBridge {
           ? sanitize(String(body.lastStreamError))
           : null,
         updateCount: Number(body.updateCount ?? 0),
+        lastEventSource: body.lastEventSource != null ? String(body.lastEventSource) : null,
+        diagnostics: body.diagnostics && typeof body.diagnostics === "object"
+          ? {
+              callbackRegistered: Boolean(
+                (body.diagnostics as Record<string, unknown>).callbackRegistered,
+              ),
+              callbackInvocations: Number(
+                (body.diagnostics as Record<string, unknown>).callbackInvocations ?? 0,
+              ),
+              callbackAccepted: Number(
+                (body.diagnostics as Record<string, unknown>).callbackAccepted ?? 0,
+              ),
+              callbackFiltered: Number(
+                (body.diagnostics as Record<string, unknown>).callbackFiltered ?? 0,
+              ),
+              callbackNoBid: Number(
+                (body.diagnostics as Record<string, unknown>).callbackNoBid ?? 0,
+              ),
+              callbackParseFailures: Number(
+                (body.diagnostics as Record<string, unknown>).callbackParseFailures ?? 0,
+              ),
+              pollCycles: Number((body.diagnostics as Record<string, unknown>).pollCycles ?? 0),
+              pollChanges: Number((body.diagnostics as Record<string, unknown>).pollChanges ?? 0),
+              lastCallbackAt: (body.diagnostics as Record<string, unknown>).lastCallbackAt
+                ? String((body.diagnostics as Record<string, unknown>).lastCallbackAt)
+                : null,
+              lastPollChangeAt: (body.diagnostics as Record<string, unknown>).lastPollChangeAt
+                ? String((body.diagnostics as Record<string, unknown>).lastPollChangeAt)
+                : null,
+              offersPollerActive: Boolean(
+                (body.diagnostics as Record<string, unknown>).offersPollerActive,
+              ),
+            }
+          : null,
         priceBasis: "bid",
         trading: "DISABLED",
         note: body.note ? String(body.note) : undefined,

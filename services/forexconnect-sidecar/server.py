@@ -47,6 +47,8 @@ TIMEFRAME_MS: dict[str, int] = {
 _state_lock = threading.RLock()
 _fx: Any = None
 _offers_listener: Any = None
+_offers_poller_stop = threading.Event()
+_offers_poller_thread: Optional[threading.Thread] = None
 _subscriptions: set[str] = set()  # provider symbols (e.g. EUR/USD)
 _quotes: dict[str, dict[str, Any]] = {}  # canonical -> quote
 _stream: dict[str, Any] = {
@@ -54,6 +56,19 @@ _stream: dict[str, Any] = {
     "lastQuoteAt": None,
     "lastStreamError": None,
     "offersListenerActive": False,
+    # Phase 36E diagnostics — never include secrets.
+    "callbackRegistered": False,
+    "callbackInvocations": 0,
+    "callbackAccepted": 0,
+    "callbackFiltered": 0,
+    "callbackNoBid": 0,
+    "callbackParseFailures": 0,
+    "pollCycles": 0,
+    "pollChanges": 0,
+    "lastEventSource": None,
+    "lastCallbackAt": None,
+    "lastPollChangeAt": None,
+    "offersPollerActive": False,
 }
 _state: dict[str, Any] = {
     "status": "DISCONNECTED",
@@ -219,8 +234,40 @@ def _set_error(code: str, message: str, status: str) -> None:
         _state["connecting"] = False
 
 
+def _reset_stream_diagnostics_locked() -> None:
+    _stream["updateCount"] = 0
+    _stream["lastQuoteAt"] = None
+    _stream["lastStreamError"] = None
+    _stream["callbackRegistered"] = False
+    _stream["callbackInvocations"] = 0
+    _stream["callbackAccepted"] = 0
+    _stream["callbackFiltered"] = 0
+    _stream["callbackNoBid"] = 0
+    _stream["callbackParseFailures"] = 0
+    _stream["pollCycles"] = 0
+    _stream["pollChanges"] = 0
+    _stream["lastEventSource"] = None
+    _stream["lastCallbackAt"] = None
+    _stream["lastPollChangeAt"] = None
+    _stream["offersPollerActive"] = False
+
+
+def _stop_offers_poller_locked() -> None:
+    global _offers_poller_thread
+    _offers_poller_stop.set()
+    thread = _offers_poller_thread
+    _offers_poller_thread = None
+    _stream["offersPollerActive"] = False
+    if thread is not None and thread.is_alive() and thread is not threading.current_thread():
+        try:
+            thread.join(timeout=1.5)
+        except Exception:
+            pass
+
+
 def _stop_offers_listener_locked() -> None:
     global _offers_listener
+    _stop_offers_poller_locked()
     if _offers_listener is not None:
         try:
             _offers_listener.unsubscribe()
@@ -228,6 +275,7 @@ def _stop_offers_listener_locked() -> None:
             pass
         _offers_listener = None
     _stream["offersListenerActive"] = False
+    _stream["callbackRegistered"] = False
     _subscriptions.clear()
     _quotes.clear()
 
@@ -253,9 +301,7 @@ def _logout_locked() -> None:
     _state["instrumentCount"] = 0
     _state["lastInstrumentAt"] = None
     _state["lastHistoricalAt"] = None
-    _stream["lastQuoteAt"] = None
-    _stream["updateCount"] = 0
-    _stream["lastStreamError"] = None
+    _reset_stream_diagnostics_locked()
     _session_auth["username"] = None
     _session_auth["password"] = None
     _session_auth["environment"] = None
@@ -953,40 +999,144 @@ def _offer_to_quote(row: Any) -> Optional[dict[str, Any]]:
     }
 
 
-def _store_quote(quote: dict[str, Any]) -> None:
+def _quote_subscribed_locked(quote: dict[str, Any]) -> bool:
+    if quote["providerSymbol"] in _subscriptions:
+        return True
+    wanted = {_canonical(s) for s in _subscriptions}
+    return quote["canonicalSymbol"] in wanted
+
+
+def _store_quote(
+    quote: dict[str, Any],
+    *,
+    event_source: str,
+    require_change: bool = True,
+) -> bool:
+    """Persist a genuine Offers quote. Increments updateCount only on accepted events."""
     with _state_lock:
-        if quote["providerSymbol"] not in _subscriptions:
-            # Also accept if canonical matches a subscribed instrument.
-            wanted = {_canonical(s) for s in _subscriptions}
-            if quote["canonicalSymbol"] not in wanted:
-                return
+        if not _quote_subscribed_locked(quote):
+            return False
+        prev = _quotes.get(quote["canonicalSymbol"])
+        if require_change and prev is not None:
+            if prev.get("bid") == quote.get("bid") and prev.get("ask") == quote.get("ask"):
+                return False
+        quote = dict(quote)
+        quote["eventSource"] = event_source
         _quotes[quote["canonicalSymbol"]] = quote
         _stream["updateCount"] = int(_stream["updateCount"] or 0) + 1
         _stream["lastQuoteAt"] = quote["receivedAt"]
+        _stream["lastEventSource"] = event_source
         _stream["lastStreamError"] = None
+        if event_source == "offers-callback":
+            _stream["callbackAccepted"] = int(_stream["callbackAccepted"] or 0) + 1
+            _stream["lastCallbackAt"] = quote["receivedAt"]
+        elif event_source == "offers-table-diff":
+            _stream["pollChanges"] = int(_stream["pollChanges"] or 0) + 1
+            _stream["lastPollChangeAt"] = quote["receivedAt"]
+        return True
 
 
 def _on_offer_changed(_table_listener: Any, _row_id: Any, row: Any) -> None:
+    with _state_lock:
+        _stream["callbackInvocations"] = int(_stream["callbackInvocations"] or 0) + 1
     try:
+        # Official GetOffers.py filters by Offers table type when present.
+        try:
+            from forexconnect import ForexConnect
+
+            table_type = getattr(row, "table_type", None)
+            if table_type is not None and table_type != ForexConnect.OFFERS:
+                with _state_lock:
+                    _stream["callbackFiltered"] = int(_stream["callbackFiltered"] or 0) + 1
+                return
+        except Exception:
+            pass
+
         quote = _offer_to_quote(row)
         if quote is None:
+            with _state_lock:
+                _stream["callbackParseFailures"] = int(_stream["callbackParseFailures"] or 0) + 1
             return
-        # Filter to subscribed instruments only.
         with _state_lock:
-            subs = set(_subscriptions)
-        if quote["providerSymbol"] not in subs and quote["canonicalSymbol"] not in {_canonical(s) for s in subs}:
+            subscribed = _quote_subscribed_locked(quote)
+        if not subscribed:
+            with _state_lock:
+                _stream["callbackFiltered"] = int(_stream["callbackFiltered"] or 0) + 1
             return
         if quote.get("bid") is None:
+            with _state_lock:
+                _stream["callbackNoBid"] = int(_stream["callbackNoBid"] or 0) + 1
             return
-        _store_quote(quote)
+        _store_quote(quote, event_source="offers-callback", require_change=True)
     except Exception as exc:  # pragma: no cover
         with _state_lock:
+            _stream["callbackParseFailures"] = int(_stream["callbackParseFailures"] or 0) + 1
             _stream["lastStreamError"] = _sanitize(str(exc))
+
+
+def _poll_offers_table_once() -> None:
+    """Read live Offers table rows and accept only real bid/ask changes for subscriptions.
+
+    This complements SDK callbacks. FXCM Table Manager updates Offers in-memory even when
+    Python on_change callbacks are delayed/missed under ThreadingHTTPServer. Never invents prices.
+    """
+    with _state_lock:
+        fx = _fx
+        subs = set(_subscriptions)
+        if fx is None or not subs:
+            return
+        _stream["pollCycles"] = int(_stream["pollCycles"] or 0) + 1
+    try:
+        from forexconnect import ForexConnect
+
+        offers = fx.get_table(ForexConnect.OFFERS)
+    except Exception as exc:
+        with _state_lock:
+            _stream["lastStreamError"] = _sanitize(str(exc))
+        return
+
+    wanted_canon = {_canonical(s) for s in subs}
+    for row in offers:
+        try:
+            quote = _offer_to_quote(row)
+            if quote is None or quote.get("bid") is None:
+                continue
+            if quote["providerSymbol"] not in subs and quote["canonicalSymbol"] not in wanted_canon:
+                continue
+            _store_quote(quote, event_source="offers-table-diff", require_change=True)
+        except Exception:
+            continue
+
+
+def _offers_poller_main() -> None:
+    while not _offers_poller_stop.wait(0.5):
+        try:
+            _poll_offers_table_once()
+        except Exception as exc:  # pragma: no cover
+            with _state_lock:
+                _stream["lastStreamError"] = _sanitize(str(exc))
+
+
+def _ensure_offers_poller_locked() -> None:
+    global _offers_poller_thread
+    if _offers_poller_thread is not None and _offers_poller_thread.is_alive():
+        _stream["offersPollerActive"] = True
+        return
+    _offers_poller_stop.clear()
+    thread = threading.Thread(
+        target=_offers_poller_main,
+        name="forexconnect-offers-poller",
+        daemon=True,
+    )
+    _offers_poller_thread = thread
+    _stream["offersPollerActive"] = True
+    thread.start()
 
 
 def _ensure_offers_listener_locked() -> tuple[bool, Optional[str]]:
     global _offers_listener
     if _offers_listener is not None:
+        _ensure_offers_poller_locked()
         return True, None
     if _fx is None:
         return False, "ForexConnect session is not active."
@@ -997,17 +1147,22 @@ def _ensure_offers_listener_locked() -> tuple[bool, Optional[str]]:
         _offers_listener = Common.subscribe_table_updates(
             offers,
             on_change_callback=_on_offer_changed,
+            on_add_callback=_on_offer_changed,
         )
         _stream["offersListenerActive"] = True
-        # Seed current bids for already-subscribed symbols.
+        _stream["callbackRegistered"] = True
+        # Seed current bids for already-subscribed symbols (does NOT increment updateCount).
         for row in offers:
             quote = _offer_to_quote(row)
             if quote and quote["providerSymbol"] in _subscriptions:
                 _quotes[quote["canonicalSymbol"]] = quote
-                _stream["lastQuoteAt"] = quote["receivedAt"]
+                if _stream["lastQuoteAt"] is None:
+                    _stream["lastQuoteAt"] = quote["receivedAt"]
+        _ensure_offers_poller_locked()
         return True, None
     except Exception as exc:
         _stream["offersListenerActive"] = False
+        _stream["callbackRegistered"] = False
         _stream["lastStreamError"] = _sanitize(str(exc))
         return False, _sanitize(str(exc))
 
@@ -1127,6 +1282,8 @@ def stream_status_payload() -> dict[str, Any]:
             "sessionStatus": status["status"],
             "streamState": stream_state,
             "offersListenerActive": bool(_stream["offersListenerActive"]),
+            "offersPollerActive": bool(_stream["offersPollerActive"]),
+            "callbackRegistered": bool(_stream["callbackRegistered"]),
             "subscriptionCount": len(_subscriptions),
             "subscriptions": sorted(_subscriptions),
             "maxSubscriptions": MAX_SUBSCRIPTIONS,
@@ -1134,9 +1291,26 @@ def stream_status_payload() -> dict[str, Any]:
             "lastQuoteAgeMs": age_ms,
             "lastStreamError": _stream["lastStreamError"],
             "updateCount": int(_stream["updateCount"] or 0),
+            "lastEventSource": _stream.get("lastEventSource"),
+            "diagnostics": {
+                "callbackRegistered": bool(_stream["callbackRegistered"]),
+                "callbackInvocations": int(_stream["callbackInvocations"] or 0),
+                "callbackAccepted": int(_stream["callbackAccepted"] or 0),
+                "callbackFiltered": int(_stream["callbackFiltered"] or 0),
+                "callbackNoBid": int(_stream["callbackNoBid"] or 0),
+                "callbackParseFailures": int(_stream["callbackParseFailures"] or 0),
+                "pollCycles": int(_stream["pollCycles"] or 0),
+                "pollChanges": int(_stream["pollChanges"] or 0),
+                "lastCallbackAt": _stream.get("lastCallbackAt"),
+                "lastPollChangeAt": _stream.get("lastPollChangeAt"),
+                "offersPollerActive": bool(_stream["offersPollerActive"]),
+            },
             "priceBasis": "bid",
             "trading": "DISABLED",
-            "note": "LIVE only after actual Offers table updates are received.",
+            "note": (
+                "LIVE only after a genuine Offers bid/ask change "
+                "(SDK callback or Offers table diff). Seeded snapshots do not set LIVE."
+            ),
             "status": status,
         }
 
