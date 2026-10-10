@@ -122,7 +122,8 @@ describe("Phase 35 files and routes", () => {
     expect(sidecar).toContain("/stream/status");
     expect(api).toContain("/api/forex/providers/forexconnect/subscribe");
     expect(api).toContain("/api/forex/providers/forexconnect/stream/status");
-    expect(page).toContain("Test live subscribe");
+    expect(page).toContain("Subscribe quotes");
+    expect(page).toContain("ForexConnect Accounts");
     expect(charts).toContain('nextProvider === "FXCM" || nextProvider === "FOREXCONNECT"');
     expect(sidecar).not.toContain("place_order");
   });

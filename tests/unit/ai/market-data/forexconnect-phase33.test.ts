@@ -234,8 +234,9 @@ describe("Phase 33 ForexConnect bridge", () => {
     const page = read("desktop/forex-admin/ForexAdminForexConnectPage.tsx");
     const api = read("dev/server/forexconnect-api.ts");
     const sidecar = read("services/forexconnect-sidecar/server.py");
-    expect(page).toContain("Connect ForexConnect");
-    expect(page).toContain("Discover instruments");
+    expect(page).toContain("Activate / Connect");
+    expect(page).toContain("Discover Instruments");
+    expect(page).toContain("ForexConnect Accounts");
     expect(api).toContain("/api/forex/providers/forexconnect/status");
     expect(api).toContain("/api/forex/providers/forexconnect/connect");
     expect(api).toContain("/api/forex/providers/forexconnect/instruments");

@@ -294,7 +294,8 @@ describe("Phase 34 file/route presence", () => {
     expect(api).toContain("/api/forex/providers/forexconnect/candles");
     expect(sidecar).toContain("get_history");
     expect(sidecar).toContain("/candles");
-    expect(page).toContain("Test historical sample");
+    expect(page).toContain("Load history");
+    expect(page).toContain("ForexConnect Accounts");
     expect(charts).toContain("FOREXCONNECT");
     expect(charts).toContain("forexconnect-bid");
   });
