@@ -31,6 +31,9 @@ function toFcInstrument(item: MarketInstrument): ForexConnectInstrument {
     source: item.metadata?.source != null ? String(item.metadata.source) : "forexconnect-offers",
     description: item.metadata?.description != null ? String(item.metadata.description) : item.displaySymbol,
     instrumentType: item.metadata?.instrumentType ?? null,
+    instrumentTypeLabel: item.metadata?.instrumentTypeLabel != null
+      ? String(item.metadata.instrumentTypeLabel)
+      : null,
     contractCurrency: item.metadata?.contractCurrency != null
       ? String(item.metadata.contractCurrency)
       : null,
@@ -39,8 +42,13 @@ function toFcInstrument(item: MarketInstrument): ForexConnectInstrument {
 }
 
 function dataStatusLabel(item: ClassifiedForexConnectInstrument): string {
-  if (item.status === "available") return "In catalog";
+  if (item.dataAvailability === "SESSION_CLOSED") return "Session closed";
+  if (item.dataAvailability === "AVAILABLE_IN_CATALOG") return "In catalog";
   return item.status || "unknown";
+}
+
+function dataStatusTone(item: ClassifiedForexConnectInstrument): "future" | "offline" {
+  return item.dataAvailability === "SESSION_CLOSED" ? "offline" : "future";
 }
 
 export function ForexConnectMarketExplorer({
@@ -218,7 +226,7 @@ export function ForexConnectMarketExplorer({
                   setQuery(event.target.value);
                   setVisible(PAGE_SIZE);
                 }}
-                placeholder="EUR/USD, AAPL.us, US30…"
+                placeholder="EUR/USD, Gold, CORNF, AAPL.us…"
                 aria-label="Search ForexConnect instruments"
               />
             </label>
@@ -227,6 +235,8 @@ export function ForexConnectMarketExplorer({
               {categoryId !== "all"
                 ? ` · ${FOREXCONNECT_EXPLORER_CATEGORIES.find((c) => c.id === categoryId)?.label}`
                 : ""}
+              {" · "}
+              classified {catalog.summary.classifiedCount}/{catalog.summary.deduplicatedCount}
             </p>
           </div>
 
@@ -257,6 +267,7 @@ export function ForexConnectMarketExplorer({
                   <tr>
                     <th>Symbol</th>
                     <th>Category</th>
+                    <th>Type</th>
                     <th>Offer</th>
                     <th>Data</th>
                     <th>Select</th>
@@ -268,20 +279,27 @@ export function ForexConnectMarketExplorer({
                       && selected.symbol === item.providerSymbol;
                     return (
                       <tr
-                        key={`FOREXCONNECT:${item.canonicalSymbol}`}
+                        key={`FOREXCONNECT:${item.providerSymbol}`}
                         data-selected={active ? "true" : "false"}
                         data-provider="FOREXCONNECT"
                         data-fc-category={item.categoryId}
                         data-fc-symbol={item.providerSymbol}
+                        data-fc-availability={item.dataAvailability}
                       >
                         <td>
                           <strong>{item.displaySymbol}</strong>
-                          <span className="fx-panel-meta"> {item.providerSymbol}</span>
+                          {item.searchAliases.length > 0 ? (
+                            <span className="fx-panel-meta">
+                              {" "}
+                              ({item.searchAliases.slice(0, 2).join(", ").toLowerCase()})
+                            </span>
+                          ) : null}
                         </td>
                         <td>{item.categoryLabel}</td>
+                        <td>{item.instrumentTypeLabel ?? item.instrumentType ?? "—"}</td>
                         <td>{item.offerId ?? "—"}</td>
                         <td>
-                          <ForexStatusBadge tone="future">
+                          <ForexStatusBadge tone={dataStatusTone(item)}>
                             {dataStatusLabel(item)}
                           </ForexStatusBadge>
                         </td>

@@ -361,6 +361,19 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
         "instrumentType",
         "InstrumentTypeID",
     )
+    # FXCM Offers InstrumentType numeric codes (Demo-verified).
+    _type_labels = {
+        "1": "Forex",
+        "2": "Indices",
+        "3": "Commodity",
+        "4": "Treasury",
+        "5": "Bullion",
+        "7": "Forex Basket",
+        "8": "Shares",
+        "9": "Crypto",
+    }
+    type_key = str(instrument_type).strip() if instrument_type is not None else ""
+    instrument_type_label = _type_labels.get(type_key)
     contract_currency = _row_get(
         row,
         "contract_currency",
@@ -393,6 +406,7 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
         "source": "forexconnect-offers",
         "description": str(description).strip() if description is not None else provider_symbol,
         "instrumentType": str(instrument_type) if instrument_type is not None else None,
+        "instrumentTypeLabel": instrument_type_label,
         "contractCurrency": str(contract_currency) if contract_currency is not None else None,
         "bid": bid,
         "ask": ask,

@@ -41,12 +41,15 @@ describe("Phase 36D classification rules", () => {
     expect(classifyForexConnectInstrument(inst("US30")).categoryId).toBe("indices");
     expect(classifyForexConnectInstrument(inst("XAU/USD")).categoryId).toBe("metals");
     expect(classifyForexConnectInstrument(inst("USOil")).categoryId).toBe("energy");
+    expect(classifyForexConnectInstrument(inst("CORNF")).categoryId).toBe("agriculture");
+    expect(classifyForexConnectInstrument(inst("WHEATF")).categoryId).toBe("agriculture");
     expect(classifyForexConnectInstrument(inst("BTC/USD")).categoryId).toBe("cryptocurrency");
     expect(classifyForexConnectInstrument(inst("10USNote")).categoryId).toBe("treasury");
     expect(classifyForexConnectInstrument(inst("Bund")).categoryId).toBe("treasury");
     expect(classifyForexConnectInstrument(inst("EMBasket")).categoryId).toBe("forex_baskets");
     expect(classifyForexConnectInstrument(inst("USD/INR")).categoryId).toBe("forex_ndf");
     expect(classifyForexConnectInstrument(inst("FAANG")).categoryId).toBe("stock_baskets");
+    expect(classifyForexConnectInstrument(inst("CORNF")).categoryId).toBe("agriculture");
   });
 
   it("classifies country share suffixes without inventing prices", () => {

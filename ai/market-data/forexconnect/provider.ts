@@ -151,7 +151,9 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
     return result.instruments.map((item) => ({
       provider: "FOREXCONNECT" as const,
       providerSymbol: item.providerSymbol,
-      canonicalSymbol: item.canonicalSymbol,
+      // Preserve dots (AAPL.us / MAG7.24h) — never collapse share suffixes.
+      canonicalSymbol: item.canonicalSymbol
+        || item.providerSymbol.replace(/[^A-Za-z0-9.]/g, "").toUpperCase(),
       displaySymbol: item.displaySymbol,
       marketType: "FOREX" as const,
       baseAsset: item.baseAsset,
@@ -163,6 +165,7 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         source: item.source ?? "forexconnect-offers",
         venue: "forexconnect",
         instrumentType: item.instrumentType ?? null,
+        instrumentTypeLabel: item.instrumentTypeLabel ?? null,
         description: item.description ?? null,
         contractCurrency: item.contractCurrency ?? null,
         tradingStatus: item.tradingStatus ?? null,

@@ -23,6 +23,7 @@ export interface ForexConnectInstrument {
   /** Optional Offers-table / SDK fields when available. */
   description?: string | null;
   instrumentType?: string | number | null;
+  instrumentTypeLabel?: string | null;
   assetClass?: string | null;
   metadataType?: string | null;
   contractCurrency?: string | null;
