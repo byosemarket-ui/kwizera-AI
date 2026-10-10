@@ -99,10 +99,12 @@ async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknow
 
 const PROFILE_MUTATIONS = new Set([
   "/api/forex/providers/forexconnect/profiles/credentials",
+  "/api/forex/providers/forexconnect/profiles/credentials/clear",
   "/api/forex/providers/forexconnect/profiles/test",
   "/api/forex/providers/forexconnect/profiles/activate",
   "/api/forex/providers/forexconnect/profiles/discover",
   "/api/forex/providers/forexconnect/profiles/disconnect",
+  "/api/forex/providers/forexconnect/profiles/auth-check",
 ]);
 
 export async function handleForexConnectApi(
@@ -140,6 +142,18 @@ export async function handleForexConnectApi(
       return true;
     }
 
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/auth-check" && req.method === "POST") {
+      // Authorized probe for Forex Admin UI — never returns the token.
+      await readJsonBody(req);
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      sendJson(res, 200, {
+        ok: true,
+        authorized: true,
+        note: "Admin API token accepted for ForexConnect credential actions.",
+      });
+      return true;
+    }
+
     if (url.pathname === "/api/forex/providers/forexconnect/profiles/credentials" && req.method === "POST") {
       if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
       const body = await readJsonBody(req);
@@ -154,11 +168,33 @@ export async function handleForexConnectApi(
         ]);
         sendJson(res, 200, result);
       } catch (error) {
+        const message = error instanceof Error ? error.message.slice(0, 300) : "Invalid credentials.";
+        const vaultLocked = /vault|passphrase|persist/i.test(message);
+        sendJson(res, vaultLocked ? 503 : 400, {
+          ok: false,
+          error: {
+            code: vaultLocked ? "VAULT_UNAVAILABLE" : "VALIDATION_ERROR",
+            message,
+          },
+        });
+      }
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/providers/forexconnect/profiles/credentials/clear" && req.method === "POST") {
+      if (!requireAdmin(req, res, sendJson, url.pathname)) return true;
+      const body = await readJsonBody(req);
+      const session = await getForexConnectSessionService();
+      try {
+        const result = await session.clearCredentials(body.environment);
+        assertNoSecretsInForexConnectPayload(result);
+        sendJson(res, 200, result);
+      } catch (error) {
         sendJson(res, 400, {
           ok: false,
           error: {
             code: "VALIDATION_ERROR",
-            message: error instanceof Error ? error.message.slice(0, 200) : "Invalid credentials.",
+            message: error instanceof Error ? error.message.slice(0, 200) : "Clear failed.",
           },
         });
       }

@@ -378,8 +378,10 @@ def connect_session(overrides: Optional[dict[str, Any]] = None) -> dict[str, Any
         from forexconnect import ForexConnect
 
         url = cfg["url"]
-        session_id = _env("KWIZERA_FOREXCONNECT_SESSION_ID") or None
-        pin = _env("KWIZERA_FOREXCONNECT_PIN") or None
+        # Official ForexConnect.login(user_id, password, url, connection, session_id, pin)
+        # connection must be "Demo" or "Real". Empty strings are preferred over None for optional fields.
+        session_id = _env("KWIZERA_FOREXCONNECT_SESSION_ID") or ""
+        pin = _env("KWIZERA_FOREXCONNECT_PIN") or ""
 
         with _state_lock:
             # Preserve intended auth while clearing prior SDK session.
@@ -388,7 +390,8 @@ def connect_session(overrides: Optional[dict[str, Any]] = None) -> dict[str, Any
             _session_auth.update(intended)
 
         fx = ForexConnect()
-        fx.login(username, password, url, connection, session_id, pin)
+        # Synchronous official login — waits for authenticated session or raises.
+        fx.login(str(username), str(password), str(url), str(connection), session_id, pin)
 
         instruments = _discover_instruments(fx)
         with _state_lock:

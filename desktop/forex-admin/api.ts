@@ -111,19 +111,38 @@ export interface ForexConnectProfileActionResult {
   error?: { code: string; message: string };
 }
 
-const ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+/** Shared with Admin Control Center — browser session only, never persisted to disk by us. */
+export const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+
+export function getForexAdminSessionToken(): string {
+  try {
+    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setForexAdminSessionToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
+    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearForexAdminSessionToken(): void {
+  setForexAdminSessionToken("");
+}
 
 function forexAdminAuthHeaders(): Record<string, string> {
-  try {
-    const token = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
-    if (!token) return {};
-    return {
-      Authorization: `Bearer ${token}`,
-      "x-kwizera-admin-token": token,
-    };
-  } catch {
-    return {};
-  }
+  const token = getForexAdminSessionToken();
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+    "x-kwizera-admin-token": token,
+  };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -138,9 +157,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.ok === false) {
-    const msg = data?.error?.message
+    let msg = data?.error?.message
       || data?.confirmationMessage
       || `Request failed (${res.status})`;
+    if (res.status === 403 && /Admin API token/i.test(String(msg))) {
+      msg = "Admin API token required. Enter the server KWIZERA_ADMIN_API_TOKEN below (same session token as Admin Control Center → API Access).";
+    }
     const err = new Error(msg) as Error & {
       status?: number;
       code?: string;
@@ -320,6 +342,11 @@ export const forexProvidersApi = {
     }>("/api/forex/providers/forexconnect/status"),
   forexConnectProfiles: () =>
     request<ForexConnectProfilesState>("/api/forex/providers/forexconnect/profiles"),
+  forexConnectAuthCheck: () =>
+    request<{ ok: boolean; authorized: boolean; note?: string }>(
+      "/api/forex/providers/forexconnect/profiles/auth-check",
+      { method: "POST", body: "{}" },
+    ),
   forexConnectSaveCredentials: (body: {
     environment: "demo" | "live";
     username: string;
@@ -329,8 +356,19 @@ export const forexProvidersApi = {
       ok: boolean;
       profile: ForexConnectProfilePublic;
       profiles: ForexConnectProfilesState;
+      storageMode?: string;
       note?: string;
     }>("/api/forex/providers/forexconnect/profiles/credentials", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  forexConnectClearCredentials: (body: { environment: "demo" | "live" }) =>
+    request<{
+      ok: boolean;
+      profile: ForexConnectProfilePublic;
+      profiles: ForexConnectProfilesState;
+      note?: string;
+    }>("/api/forex/providers/forexconnect/profiles/credentials/clear", {
       method: "POST",
       body: JSON.stringify(body),
     }),

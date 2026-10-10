@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  clearForexAdminSessionToken,
   forexProvidersApi,
+  getForexAdminSessionToken,
+  setForexAdminSessionToken,
   type ForexConnectProfilePublic,
   type ForexConnectProfilesState,
 } from "./api";
@@ -15,6 +18,8 @@ type Busy =
   | "disconnect"
   | "candles"
   | "stream"
+  | "auth"
+  | "clear"
   | null;
 
 const SAMPLE_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const;
@@ -86,6 +91,9 @@ export function ForexAdminForexConnectPage() {
     first?: Record<string, unknown> | null;
     last?: Record<string, unknown> | null;
   } | null>(null);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
+  const [adminTokenDraft, setAdminTokenDraft] = useState("");
+  const [adminAuthChecking, setAdminAuthChecking] = useState(true);
 
   const profile = profiles?.profiles?.[tab] ?? emptyProfile(tab);
   const connectionStatus = String(status?.status ?? "—");
@@ -106,6 +114,23 @@ export function ForexAdminForexConnectPage() {
       return hay.includes(q);
     });
   }, [instruments, instrumentQuery]);
+
+  const checkAdminAuth = useCallback(async () => {
+    setAdminAuthChecking(true);
+    if (!getForexAdminSessionToken()) {
+      setAdminAuthorized(false);
+      setAdminAuthChecking(false);
+      return;
+    }
+    try {
+      await forexProvidersApi.forexConnectAuthCheck();
+      setAdminAuthorized(true);
+    } catch {
+      setAdminAuthorized(false);
+    } finally {
+      setAdminAuthChecking(false);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -130,8 +155,9 @@ export function ForexAdminForexConnectPage() {
   }, []);
 
   useEffect(() => {
+    void checkAdminAuth();
     void refresh();
-  }, [refresh]);
+  }, [checkAdminAuth, refresh]);
 
   useEffect(() => {
     setUsername("");
@@ -142,6 +168,37 @@ export function ForexAdminForexConnectPage() {
   const confirmIfNeeded = (message?: string): boolean => {
     if (!message) return true;
     return window.confirm(message);
+  };
+
+  const unlockAdmin = async () => {
+    setBusy("auth");
+    setNote(null);
+    const token = adminTokenDraft.trim();
+    if (!token) {
+      setNote("Paste the Admin API token from the server .env (KWIZERA_ADMIN_API_TOKEN).");
+      setBusy(null);
+      return;
+    }
+    setForexAdminSessionToken(token);
+    setAdminTokenDraft("");
+    try {
+      await forexProvidersApi.forexConnectAuthCheck();
+      setAdminAuthorized(true);
+      setNote("Admin session authorized for ForexConnect credential actions.");
+    } catch (err) {
+      clearForexAdminSessionToken();
+      setAdminAuthorized(false);
+      setNote(err instanceof Error ? err.message : "Admin authorization failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const clearAdminSession = () => {
+    clearForexAdminSessionToken();
+    setAdminAuthorized(false);
+    setAdminTokenDraft("");
+    setNote("Admin session cleared. Re-enter the Admin API token to save credentials.");
   };
 
   const saveCredentials = async () => {
@@ -156,9 +213,37 @@ export function ForexAdminForexConnectPage() {
       setProfiles(res.profiles);
       setPassword("");
       setShowPassword(false);
-      setNote(`${res.profile.label} credentials saved.`);
+      setAdminAuthorized(true);
+      setNote(
+        res.storageMode === "encrypted-vault"
+          ? `${res.profile.label} credentials saved · Storage: encrypted-vault`
+          : `${res.profile.label} credentials saved.`,
+      );
+      void refresh();
     } catch (err) {
-      setNote(err instanceof Error ? err.message : "Save failed.");
+      const message = err instanceof Error ? err.message : "Save failed.";
+      if (/Admin API token/i.test(message)) setAdminAuthorized(false);
+      setNote(message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const clearCredentials = async () => {
+    if (!window.confirm(`Remove saved ${tab.toUpperCase()} credentials from the encrypted vault?`)) {
+      return;
+    }
+    setBusy("clear");
+    setNote(null);
+    try {
+      const res = await forexProvidersApi.forexConnectClearCredentials({ environment: tab });
+      setProfiles(res.profiles);
+      setUsername("");
+      setPassword("");
+      setNote(`${tab.toUpperCase()} credentials cleared.`);
+      void refresh();
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : "Clear failed.");
     } finally {
       setBusy(null);
     }
@@ -305,6 +390,48 @@ export function ForexAdminForexConnectPage() {
         <div className="fxa-error" role="status">{profiles.persistenceWarning}</div>
       ) : null}
 
+      <section className="fxa-card" data-fc-admin-access>
+        <h3>Admin API Access</h3>
+        <p className="fxa-muted">
+          Production requires the server Admin API token for Save / Test / Activate.
+          Same browser session token as Admin Control Center → API Access. Not an FXCM password.
+        </p>
+        <ul>
+          <li>
+            Session:{" "}
+            <span className="fxa-badge" data-tone={adminAuthorized ? "ok" : "warn"}>
+              {adminAuthChecking ? "Checking…" : adminAuthorized ? "Authorized" : "Not authorized"}
+            </span>
+          </li>
+        </ul>
+        {!adminAuthorized ? (
+          <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "end" }}>
+            <label>
+              Admin API Token
+              <input
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                value={adminTokenDraft}
+                onChange={(e) => setAdminTokenDraft(e.target.value)}
+                placeholder="Paste KWIZERA_ADMIN_API_TOKEN"
+                aria-label="Admin API token"
+                disabled={busy !== null}
+              />
+            </label>
+            <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void unlockAdmin()}>
+              {busy === "auth" ? "Checking…" : "Authorize session"}
+            </button>
+          </div>
+        ) : (
+          <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="fxa-btn" disabled={busy !== null} onClick={clearAdminSession}>
+              Clear admin session
+            </button>
+          </div>
+        )}
+      </section>
+
       <section className="fxa-card" data-fc-accounts>
         <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           {(["demo", "live"] as const).map((env) => (
@@ -359,22 +486,59 @@ export function ForexAdminForexConnectPage() {
         </div>
 
         <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void saveCredentials()}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void saveCredentials()}
+          >
             {busy === "save" ? "Saving…" : "Save Credentials"}
           </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void runProfileAction("test")}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void clearCredentials()}
+          >
+            {busy === "clear" ? "…" : "Clear Saved"}
+          </button>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void runProfileAction("test")}
+          >
             {busy === "test" ? "Testing…" : "Test Connection"}
           </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void discover()}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void discover()}
+          >
             {busy === "discover" ? "Discovering…" : "Discover Instruments"}
           </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void runProfileAction("activate")}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void runProfileAction("activate")}
+          >
             {busy === "activate" ? "Activating…" : "Activate / Connect"}
           </button>
-          <button type="button" className="fxa-btn" disabled={busy !== null} onClick={() => void disconnect()}>
+          <button
+            type="button"
+            className="fxa-btn"
+            disabled={busy !== null || !adminAuthorized}
+            onClick={() => void disconnect()}
+          >
             {busy === "disconnect" ? "…" : "Disconnect"}
           </button>
         </div>
+        <p className="fxa-muted" style={{ marginTop: 8 }}>
+          Password: {profile.passwordConfigured ? "saved" : "not saved"}
+          {profile.usernameHint ? ` · User: ${profile.usernameHint}` : ""}
+        </p>
         {note ? <p className="fxa-muted" style={{ marginTop: 10 }}>{note}</p> : null}
       </section>
 

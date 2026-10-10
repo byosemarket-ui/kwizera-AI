@@ -57,11 +57,30 @@ export class ForexConnectSessionService {
       throw new Error("environment must be demo or live");
     }
     const profile = await this.profiles.saveCredentials(env, input);
+    const state = this.profiles.publicState();
+    if (state.storageMode !== "encrypted-vault" || !profile.configured) {
+      throw new Error("Credentials were not persisted to the encrypted vault.");
+    }
+    return {
+      ok: true as const,
+      profile,
+      profiles: state,
+      storageMode: state.storageMode,
+      note: "Credentials saved to encrypted-vault. Password is never returned.",
+    };
+  }
+
+  async clearCredentials(envRaw: unknown) {
+    const env = parseUiEnvironment(envRaw);
+    if (!env) {
+      throw new Error("environment must be demo or live");
+    }
+    const profile = await this.profiles.clearCredentials(env);
     return {
       ok: true as const,
       profile,
       profiles: this.profiles.publicState(),
-      note: "Credentials saved. Password is never returned.",
+      note: "Credentials cleared for this environment.",
     };
   }
 
@@ -231,6 +250,7 @@ export class ForexConnectSessionService {
       username: creds.username,
       password: creds.password,
       environment: creds.sdkEnvironment,
+      timeoutMs: 90_000,
     });
 
     await this.profiles.recordAuthResult(env, {

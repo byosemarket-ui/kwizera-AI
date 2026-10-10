@@ -177,6 +177,8 @@ export class ForexConnectBridge {
     username?: string;
     password?: string;
     environment?: "demo" | "real";
+    /** Override sidecar timeout for slow FXCM login (ms). */
+    timeoutMs?: number;
   }): Promise<ForexConnectSafeStatus> {
     const cfg = this.getConfig();
     if (!cfg.enabled) {
@@ -187,7 +189,8 @@ export class ForexConnectBridge {
       });
     }
     const overrideUser = String(options?.username ?? "").trim();
-    const overridePass = String(options?.password ?? "").trim();
+    // Do not trim interior spaces; only strip accidental leading/trailing whitespace.
+    const overridePass = String(options?.password ?? "").replace(/^\s+|\s+$/g, "");
     const hasOverrides = Boolean(overrideUser && overridePass.length >= 4);
     if (!hasOverrides && !(cfg.usernameConfigured && cfg.passwordConfigured)) {
       return localStatus(cfg, {
@@ -204,8 +207,11 @@ export class ForexConnectBridge {
         payload.password = overridePass;
         if (options?.environment) payload.environment = options.environment;
       }
+      const connectCfg = options?.timeoutMs
+        ? { ...cfg, timeoutMs: options.timeoutMs }
+        : { ...cfg, timeoutMs: Math.max(cfg.timeoutMs, 60_000) };
       const remote = await sidecarFetch(
-        cfg,
+        connectCfg,
         "/connect",
         { method: "POST", body: JSON.stringify(payload) },
         this.fetchImpl,

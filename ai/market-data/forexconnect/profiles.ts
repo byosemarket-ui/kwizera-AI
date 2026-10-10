@@ -161,14 +161,35 @@ export class ForexConnectProfilesManager {
     if (!username) throw new Error("Username is required");
     if (password.length < 4) throw new Error("Password must be at least 4 characters");
 
-    this.file.profiles[env].username = username;
-
-    if (this.vaultUnlocked() && this.secrets) {
-      await this.secrets.set(secretId(env), password);
-      this.memoryPasswords.delete(env);
-    } else {
-      this.memoryPasswords.set(env, password);
+    // Durable Admin saves require the encrypted vault — never claim persistence via memory-only.
+    if (!this.vaultUnlocked() || !this.secrets) {
+      throw new Error(
+        "Encrypted vault is locked or unavailable. Set KWIZERA_SECRETS_PASSPHRASE on the server and restart. Credentials were not saved.",
+      );
     }
+
+    this.file.profiles[env].username = username;
+    await this.secrets.set(secretId(env), password);
+    this.memoryPasswords.delete(env);
+    if (!this.secrets.has(secretId(env))) {
+      throw new Error("Credential vault write verification failed. Credentials were not saved.");
+    }
+    // Round-trip decrypt check (never returned to clients).
+    const stored = this.secrets.get(secretId(env));
+    if (stored !== password) {
+      throw new Error("Credential vault round-trip verification failed. Credentials were not saved.");
+    }
+    await this.persistMeta();
+    return this.publicProfile(env);
+  }
+
+  async clearCredentials(env: ForexConnectUiEnvironment): Promise<ForexConnectProfilePublic> {
+    this.ensureInitialized();
+    this.memoryPasswords.delete(env);
+    if (this.secrets?.has(secretId(env))) {
+      await this.secrets.remove(secretId(env));
+    }
+    this.file.profiles[env] = emptyMeta();
     await this.persistMeta();
     return this.publicProfile(env);
   }
