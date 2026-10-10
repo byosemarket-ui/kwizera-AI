@@ -1,7 +1,8 @@
 /**
- * Phase 36D — ForexConnect Multi-Asset Market Explorer (existing Markets shell).
+ * Phase 37B — compact Market Categories sidebar + functional instrument explorer.
+ * Reuses Phase 36D/36F classification; never invents instruments or quotes.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MarketInstrument } from "../../ai/market-data/providers/types";
 import {
   buildForexConnectCatalog,
@@ -16,6 +17,32 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const PAGE_SIZE = 40;
+
+/** Compact category marks — geometric letters only (no FXCM branding). */
+const CATEGORY_MARK: Record<ForexConnectExplorerCategoryId, string> = {
+  all: "∗",
+  forex: "FX",
+  forex_ndf: "ND",
+  forex_baskets: "FB",
+  indices: "IX",
+  commodities: "CO",
+  agriculture: "AG",
+  metals: "MT",
+  energy: "EN",
+  cryptocurrency: "CR",
+  shares_us: "US",
+  shares_ca: "CA",
+  shares_uk: "UK",
+  shares_de: "DE",
+  shares_fr: "FR",
+  shares_nl: "NL",
+  shares_jp: "JP",
+  shares_hk: "HK",
+  stock_baskets: "SB",
+  treasury: "TB",
+  etfs: "ET",
+  other: "?",
+};
 
 function toFcInstrument(item: MarketInstrument): ForexConnectInstrument {
   return {
@@ -51,6 +78,10 @@ function dataStatusTone(item: ClassifiedForexConnectInstrument): "future" | "off
   return item.dataAvailability === "SESSION_CLOSED" ? "offline" : "future";
 }
 
+function categoryLabel(id: ForexConnectExplorerCategoryId): string {
+  return FOREXCONNECT_EXPLORER_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+}
+
 export function ForexConnectMarketExplorer({
   instruments,
   catalogState,
@@ -83,6 +114,7 @@ export function ForexConnectMarketExplorer({
   const [categoryId, setCategoryId] = useState<ForexConnectExplorerCategoryId>("all");
   const [query, setQuery] = useState("");
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const catalog = useMemo(
     () => buildForexConnectCatalog(instruments.map(toFcInstrument), {
@@ -97,6 +129,11 @@ export function ForexConnectMarketExplorer({
     () => filterClassifiedInstruments(catalog.instruments, { categoryId, query }),
     [catalog.instruments, categoryId, query],
   );
+
+  // Keep page window valid when category/search shrinks the list.
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [categoryId, query]);
 
   const page = filtered.slice(0, visible);
   const envLabel = catalog.summary.environmentLabel
@@ -120,7 +157,7 @@ export function ForexConnectMarketExplorer({
 
   if (blocked && catalog.summary.deduplicatedCount === 0) {
     return (
-      <div data-fc-explorer="blocked" data-fc-explorer-state={catalogState}>
+      <div data-fc-explorer="blocked" data-fc-explorer-state={catalogState} data-phase="37b">
         <ForexEmptyState
           title={
             catalogState === "disabled"
@@ -148,50 +185,80 @@ export function ForexConnectMarketExplorer({
     );
   }
 
+  const toSelectedMarket = (item: ClassifiedForexConnectInstrument): SelectedMarket => ({
+    venue: "forexconnect",
+    symbol: item.providerSymbol,
+    displaySymbol: item.displaySymbol,
+    provider: "FOREXCONNECT",
+  });
+
   const selectInstrument = (item: ClassifiedForexConnectInstrument) => {
-    onSelect({
-      venue: "forexconnect",
-      symbol: item.providerSymbol,
-      displaySymbol: item.displaySymbol,
-      provider: "FOREXCONNECT",
-    });
+    onSelect(toSelectedMarket(item));
+  };
+
+  /** Phase 37B — selecting an instrument opens Charts with exact provider symbol. */
+  const openInstrumentInCharts = (item: ClassifiedForexConnectInstrument) => {
+    onSelect(toSelectedMarket(item));
+    onOpenCharts();
+  };
+
+  const selectCategory = (id: ForexConnectExplorerCategoryId) => {
+    setCategoryId(id);
+    setMobileNavOpen(false);
   };
 
   return (
     <div
-      className="fx-fc-explorer"
+      className="fx-fc-explorer fx-market-explorer"
       data-fc-explorer="true"
+      data-market-explorer="true"
+      data-phase="37b"
       data-fc-explorer-total={String(catalog.summary.deduplicatedCount)}
       data-fc-explorer-raw={String(catalog.summary.rawCount)}
       data-fc-explorer-unclassified={String(catalog.summary.unclassifiedCount)}
       data-fc-explorer-env={String(envLabel)}
       data-fc-explorer-category={categoryId}
+      data-mobile-nav-open={mobileNavOpen ? "true" : "false"}
     >
-      <div className="fx-fc-explorer-header">
-        <div>
-          <p className="fx-eyebrow">ForexConnect Market Explorer</p>
-          <p className="fx-panel-meta">
-            Provider FOREXCONNECT · {envLabel}
+      <header className="fx-market-explorer-header">
+        <div className="fx-market-explorer-identity">
+          <h2 className="fx-market-explorer-title">Market Explorer</h2>
+          <p className="fx-market-explorer-meta">
+            FOREXCONNECT · {envLabel}
             {" · "}
-            {catalog.summary.deduplicatedCount} instruments
-            {catalog.summary.rawCount !== catalog.summary.deduplicatedCount
-              ? ` · ${catalog.summary.rawCount} raw / ${catalog.summary.deduplicatedCount} deduped`
-              : ""}
+            <span data-fc-explorer-deduped={String(catalog.summary.deduplicatedCount)}>
+              {catalog.summary.deduplicatedCount} instruments
+            </span>
             {catalog.summary.unclassifiedCount > 0
-              ? ` · ${catalog.summary.unclassifiedCount} unclassified`
+              ? ` · ${catalog.summary.unclassifiedCount} in Other`
               : ""}
-          </p>
-          <p className="fx-panel-meta">
-            Catalog from authenticated Offers table. LIVE only after Offers quote events — historical availability is separate.
           </p>
         </div>
-        <button type="button" className="fx-text-button" onClick={onRefresh} data-fc-explorer-refresh="true">
-          Refresh catalog
-        </button>
-      </div>
+        <div className="fx-market-explorer-actions">
+          <button
+            type="button"
+            className="fx-text-button fx-market-explorer-cat-toggle"
+            aria-expanded={mobileNavOpen}
+            aria-controls="fx-market-category-nav"
+            data-fc-explorer-cat-toggle="true"
+            onClick={() => setMobileNavOpen((open) => !open)}
+          >
+            {mobileNavOpen ? "Hide categories" : `Categories · ${categoryLabel(categoryId)}`}
+          </button>
+          <button type="button" className="fx-text-button" onClick={onRefresh} data-fc-explorer-refresh="true">
+            Refresh catalog
+          </button>
+        </div>
+      </header>
 
-      <div className="fx-fc-explorer-layout">
-        <nav className="fx-fc-explorer-nav" aria-label="ForexConnect categories">
+      <div className="fx-fc-explorer-layout fx-market-explorer-layout">
+        <nav
+          id="fx-market-category-nav"
+          className={`fx-fc-explorer-nav fx-market-category-nav${mobileNavOpen ? " is-open" : ""}`}
+          aria-label="Market categories"
+          data-fc-category-nav="true"
+        >
+          <p className="fx-market-category-heading">Categories</p>
           {FOREXCONNECT_EXPLORER_CATEGORIES.map((cat) => {
             const count = catalog.summary.categoryCounts[cat.id] ?? 0;
             const empty = cat.id !== "all" && count === 0;
@@ -199,78 +266,78 @@ export function ForexConnectMarketExplorer({
               <button
                 key={cat.id}
                 type="button"
-                className={`fx-fc-explorer-cat${categoryId === cat.id ? " is-active" : ""}${empty ? " is-empty" : ""}`}
+                className={`fx-fc-explorer-cat fx-market-category${categoryId === cat.id ? " is-active" : ""}${empty ? " is-empty" : ""}`}
                 aria-pressed={categoryId === cat.id}
                 data-fc-category={cat.id}
                 data-fc-category-count={String(count)}
-                onClick={() => {
-                  setCategoryId(cat.id);
-                  setVisible(PAGE_SIZE);
-                }}
+                title={empty ? `${cat.label}: no instruments in this catalog` : cat.label}
+                onClick={() => selectCategory(cat.id)}
               >
-                <span>{cat.label}</span>
+                <span className="fx-market-category-mark" aria-hidden="true">{CATEGORY_MARK[cat.id]}</span>
+                <span className="fx-market-category-label">{cat.label}</span>
                 <span className="fx-fc-explorer-count">{count}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="fx-fc-explorer-main">
-          <div className="fx-fc-explorer-toolbar">
-            <label className="fx-markets-search">
-              Search ForexConnect
+        <div className="fx-fc-explorer-main fx-market-instrument-panel">
+          <div className="fx-fc-explorer-toolbar fx-market-instrument-toolbar">
+            <label className="fx-markets-search fx-market-search">
+              Search
               <input
                 type="search"
                 value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setVisible(PAGE_SIZE);
-                }}
-                placeholder="EUR/USD, Gold, CORNF, AAPL.us…"
-                aria-label="Search ForexConnect instruments"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="EUR/USD, Gold, AAPL.us, US30…"
+                aria-label="Search instruments in selected category"
+                data-fc-explorer-search="true"
               />
             </label>
             <p className="fx-panel-meta" data-fc-explorer-filtered={String(filtered.length)}>
-              Showing {page.length} of {filtered.length}
-              {categoryId !== "all"
-                ? ` · ${FOREXCONNECT_EXPLORER_CATEGORIES.find((c) => c.id === categoryId)?.label}`
-                : ""}
+              {categoryLabel(categoryId)}
               {" · "}
-              classified {catalog.summary.classifiedCount}/{catalog.summary.deduplicatedCount}
+              {page.length}/{filtered.length}
+              {query.trim() ? ` · “${query.trim()}”` : ""}
             </p>
           </div>
 
-          {filtered.length === 0 ? (
+          {categoryId !== "all" && (catalog.summary.categoryCounts[categoryId] ?? 0) === 0 && !query.trim() ? (
+            <ForexEmptyState
+              title={`${categoryLabel(categoryId)} has no instruments in this catalog.`}
+              description="Empty categories are kept for navigation — they do not invent markets. Counts come from the authenticated ForexConnect Offers catalog only."
+              actionLabel="Show all markets"
+              onAction={() => selectCategory("all")}
+            />
+          ) : filtered.length === 0 ? (
             <ForexEmptyState
               title={
                 query.trim()
-                  ? "No instruments match this search."
-                  : categoryId === "all"
-                    ? "No ForexConnect instruments available."
-                    : "This category has no instruments in the authenticated account."
+                  ? "No instruments match this search in the selected category."
+                  : "No ForexConnect instruments available."
               }
               description={
                 query.trim()
-                  ? "Try another symbol or clear the search."
-                  : "Categories are derived from the real Demo catalog — empty categories are not fabricated."
+                  ? "Search stays category-scoped. Clear the query or switch category — the selected workspace symbol is unchanged."
+                  : "Categories are derived from the real Demo catalog."
               }
-              actionLabel="Clear filters"
+              actionLabel={query.trim() ? "Clear search" : "Show all markets"}
               onAction={() => {
-                setQuery("");
-                setCategoryId("all");
+                if (query.trim()) setQuery("");
+                else selectCategory("all");
               }}
             />
           ) : (
-            <div className="fx-markets-table-wrap">
+            <div className="fx-markets-table-wrap fx-market-instrument-list">
               <table className="fx-markets-table" data-fc-explorer-table="true">
                 <thead>
                   <tr>
+                    <th>Name</th>
                     <th>Symbol</th>
                     <th>Category</th>
-                    <th>Type</th>
-                    <th>Offer</th>
+                    <th>Quote</th>
                     <th>Data</th>
-                    <th>Select</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -285,6 +352,7 @@ export function ForexConnectMarketExplorer({
                         data-fc-category={item.categoryId}
                         data-fc-symbol={item.providerSymbol}
                         data-fc-availability={item.dataAvailability}
+                        className={active ? "is-selected" : undefined}
                       >
                         <td>
                           <strong>{item.displaySymbol}</strong>
@@ -295,22 +363,39 @@ export function ForexConnectMarketExplorer({
                             </span>
                           ) : null}
                         </td>
+                        <td>
+                          <code className="fx-market-symbol-code" data-fc-exact-symbol={item.providerSymbol}>
+                            {item.providerSymbol}
+                          </code>
+                        </td>
                         <td>{item.categoryLabel}</td>
-                        <td>{item.instrumentTypeLabel ?? item.instrumentType ?? "—"}</td>
-                        <td>{item.offerId ?? "—"}</td>
+                        <td>
+                          <span className="fx-panel-meta" data-fc-quote="unavailable">
+                            No live quote
+                          </span>
+                        </td>
                         <td>
                           <ForexStatusBadge tone={dataStatusTone(item)}>
                             {dataStatusLabel(item)}
                           </ForexStatusBadge>
                         </td>
-                        <td>
+                        <td className="fx-market-row-actions">
                           <button
                             type="button"
                             className="fx-text-button"
                             aria-pressed={active}
+                            data-fc-select={item.providerSymbol}
                             onClick={() => selectInstrument(item)}
                           >
                             {active ? "Selected" : "Select"}
+                          </button>
+                          <button
+                            type="button"
+                            className="fx-text-button fx-market-open-charts"
+                            data-fc-open-charts={item.providerSymbol}
+                            onClick={() => openInstrumentInCharts(item)}
+                          >
+                            Open Charts
                           </button>
                         </td>
                       </tr>
@@ -332,9 +417,11 @@ export function ForexConnectMarketExplorer({
           ) : null}
 
           {selected?.venue === "forexconnect" ? (
-            <p className="fx-panel-meta" data-fc-explorer-selected={selected.symbol}>
-              Selected {selected.displaySymbol} · Provider FOREXCONNECT · {envLabel}.
-              Charts and Technical Analysis use this exact provider symbol.{" "}
+            <p className="fx-panel-meta fx-market-selected-bar" data-fc-explorer-selected={selected.symbol}>
+              Selected{" "}
+              <code data-fc-selected-exact={selected.symbol}>{selected.symbol}</code>
+              {" · "}
+              Provider FOREXCONNECT · {envLabel}. Exact symbol preserved for Charts.{" "}
               <button type="button" className="fx-text-button" onClick={onOpenCharts}>
                 Open Charts
               </button>

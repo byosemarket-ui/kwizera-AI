@@ -129,11 +129,18 @@ export function ForexMarketsPage({
       <ForexSectionHeader
         eyebrow="Market"
         title="Markets"
-        description="Unified provider-aware catalog. Binance Spot, FXCM Socket REST, and ForexConnect instruments stay isolated — selection updates the shared workspace market."
+        description={
+          providerFilter === "FOREXCONNECT"
+            ? "ForexConnect Market Explorer — browse categories, search instruments, open Charts with exact provider symbols."
+            : "Unified provider-aware catalog. Binance Spot, FXCM Socket REST, and ForexConnect instruments stay isolated — selection updates the shared workspace market."
+        }
       />
 
       <p className="fx-panel-meta" role="note">
         Provider identity is required. ForexConnect, FXCM Socket REST, and Binance Crypto never share the same market identity.
+        {providerFilter === "FOREXCONNECT"
+          ? " Category counts come from the authenticated Offers catalog only."
+          : ""}
       </p>
 
       {selectedSymbol && selected?.venue === "binance-spot" && liveTicker ? (
@@ -171,20 +178,22 @@ export function ForexMarketsPage({
             <option value="FOREXCONNECT">ForexConnect</option>
           </select>
         </label>
-        <label className="fx-markets-search">
-          Search
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setVisible(PAGE_SIZE);
-            }}
-            placeholder="BTCUSDT, EUR/USD…"
-            aria-label="Search markets"
-          />
-        </label>
-        {showBinance ? (
+        {providerFilter !== "FOREXCONNECT" ? (
+          <label className="fx-markets-search">
+            Search
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setVisible(PAGE_SIZE);
+              }}
+              placeholder="BTCUSDT, EUR/USD…"
+              aria-label="Search markets"
+            />
+          </label>
+        ) : null}
+        {showBinance && providerFilter !== "FOREXCONNECT" ? (
           <>
             <label>
               Quote
@@ -312,6 +321,22 @@ export function ForexMarketsPage({
                           })}
                         >
                           {active ? "Selected" : "Select"}
+                        </button>
+                        <button
+                          type="button"
+                          className="fx-text-button"
+                          data-binance-open-charts={market.symbol}
+                          onClick={() => {
+                            onSelect({
+                              venue: "binance-spot",
+                              symbol: market.symbol,
+                              displaySymbol: market.displaySymbol,
+                              provider: "BINANCE",
+                            });
+                            onOpenCharts();
+                          }}
+                        >
+                          Open Charts
                         </button>
                       </td>
                     </tr>
