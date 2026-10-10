@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { ForexStatusBadge } from "../components/ForexStatusBadge";
-import { ForexSectionHeader } from "../components/ForexSectionHeader";
 import { ForexPriceChart, type ForexPriceChartHandle, type OverlaySeries } from "./ForexPriceChart";
 import { calculateBollingerBands, calculateEMA, calculateMACD, calculateRSI, calculateSMA, lastValue } from "./indicators";
 import {
@@ -516,15 +515,58 @@ export function ForexChartWorkspace({
       data-ta-rsi14={rsiLast == null ? "" : String(rsiLast)}
       data-ta-macd={macdLast == null ? "" : String(macdLast)}
     >
-      <ForexSectionHeader
-        eyebrow={analysis ? "Analysis" : "Market"}
-        title={analysis ? "Technical Analysis" : "Charts"}
-        description={analysis
-          ? "Indicators use the same unified Market Data candle series as Charts (BINANCE, FXCM, or ForexConnect). This is not a trading signal."
-          : "Interactive candlestick workspace fed by the unified Market Data layer (BINANCE Spot, FXCM mid, or ForexConnect bid)."}
-      />
+      <header className="fx-trading-header" data-fx-trading-header="true">
+        <div className="fx-trading-identity">
+          <h1 className="fx-trading-title">{analysis ? "Technical Analysis" : "Charts"}</h1>
+          <p className="fx-trading-symbol" data-fx-trading-symbol={selected?.symbol ?? ""}>
+            <strong>{selected?.displaySymbol ?? "No market selected"}</strong>
+            <span className="fx-panel-meta">{providerMetaLabel}</span>
+          </p>
+          <p className="fx-chart-price" data-price-kind={priceKind}>{headlinePrice}</p>
+        </div>
+        <div className="fx-status-stack fx-trading-status" aria-label="Market data status">
+          {binanceSelected ? (
+            <>
+              <ForexStatusBadge tone={liveMarketStatusTone(historyPending ? "CONNECTING" : klineStatus)}>
+                {historyPending ? "Loading Binance…" : liveMarketStatusLabel(klineStatus)}
+              </ForexStatusBadge>
+              {tickerLive ? <ForexStatusBadge tone="live">Price LIVE</ForexStatusBadge> : null}
+            </>
+          ) : fxcmSelected || forexConnectSelected ? (
+            <ForexStatusBadge
+              tone={
+                chartLive
+                  ? "live"
+                  : historyPending || seriesReady
+                    ? "future"
+                    : "offline"
+              }
+            >
+              {historyPending
+                ? `Loading ${candleProvider}…`
+                : chartLive
+                  ? (forexConnectSelected ? "LIVE · ForexConnect Offers" : "LIVE · FXCM stream")
+                  : seriesReady
+                    ? (unified.connectionState === "STALE"
+                      ? "STALE"
+                      : unified.connectionState === "AUTHENTICATED_IDLE"
+                        || unified.connectionState === "CONNECTED"
+                        || unified.connectionState === "SUBSCRIBED"
+                        || unified.connectionState === "SUBSCRIBED_WAITING"
+                        || unified.connectionState === "MARKET_INACTIVE"
+                        ? (unified.connectionState === "MARKET_INACTIVE"
+                          ? "MARKET_INACTIVE"
+                          : "SUBSCRIBED_WAITING")
+                        : "Historical")
+                    : (unified.message || "Unavailable")}
+            </ForexStatusBadge>
+          ) : (
+            <ForexStatusBadge tone="offline">No live feed</ForexStatusBadge>
+          )}
+        </div>
+      </header>
 
-      <div className="fx-chart-controls" role="toolbar" aria-label="Chart controls">
+      <div className="fx-chart-controls fx-trading-toolbar" role="toolbar" aria-label="Chart controls">
         <label>
           Instrument
           <select
@@ -539,7 +581,7 @@ export function ForexChartWorkspace({
             ) : forexConnectSelected && selected ? (
               <option value={selected.symbol}>{selected.displaySymbol} · ForexConnect (bid)</option>
             ) : (
-              <option value="">Select a BINANCE, FXCM, or ForexConnect instrument…</option>
+              <option value="">Select instrument…</option>
             )}
           </select>
         </label>
@@ -582,91 +624,36 @@ export function ForexChartWorkspace({
         </div>
       </div>
 
-      <div className="fx-chart-summary">
-        <div>
-          <p className="fx-eyebrow">{selected?.displaySymbol ?? "No market selected"}</p>
-          <p className="fx-chart-price" data-price-kind={priceKind}>
-            {headlinePrice}
-          </p>
-          <p className="fx-panel-meta">
-            {providerMetaLabel}
-          </p>
-        </div>
-        <div className="fx-status-stack">
-          {binanceSelected ? (
-            <>
-              <ForexStatusBadge tone={liveMarketStatusTone(historyPending ? "CONNECTING" : klineStatus)}>
-                {historyPending ? "Loading Binance market data..." : liveMarketStatusLabel(klineStatus)}
-              </ForexStatusBadge>
-              {tickerLive ? (
-                <ForexStatusBadge tone="live">Price LIVE</ForexStatusBadge>
-              ) : null}
-            </>
-          ) : fxcmSelected || forexConnectSelected ? (
-            <>
-              <ForexStatusBadge
-                tone={
-                  chartLive
-                    ? "live"
-                    : historyPending || seriesReady
-                      ? "future"
-                      : "offline"
-                }
-              >
-                {historyPending
-                  ? `Loading ${candleProvider} market data…`
-                  : chartLive
-                    ? (forexConnectSelected ? "LIVE · ForexConnect Offers" : "LIVE · FXCM stream")
-                    : seriesReady
-                      ? (unified.connectionState === "STALE"
-                        ? "STALE · last quote aged out"
-                        : unified.connectionState === "AUTHENTICATED_IDLE"
-                          || unified.connectionState === "CONNECTED"
-                          || unified.connectionState === "SUBSCRIBED"
-                          ? "Authenticated · waiting for fresh quotes"
-                          : "Historical candles · market idle")
-                      : (unified.message || "Market data unavailable")}
-              </ForexStatusBadge>
-              {seriesReady && last ? (
-                <ForexStatusBadge tone="future">
-                  Last candle {formatUtc(last.time)}
-                </ForexStatusBadge>
-              ) : null}
-            </>
-          ) : (
-            <ForexStatusBadge tone="offline">Live market data unavailable</ForexStatusBadge>
-          )}
-        </div>
+      <div className="fx-chart-stage-wrap" data-fx-chart-stage="true">
+        {showChart ? (
+          <ForexPriceChart
+            ref={chartRef}
+            seriesKey={`${selected!.symbol}:${timeframe}`}
+            candles={candles}
+            chartType={chartType}
+            overlays={overlayData}
+            rsi={rsiPoints}
+            macd={macdData}
+            levels={levels}
+            onCandleFocus={onCandleFocus}
+          />
+        ) : (
+          <div className="fx-chart-state" role="status" data-chart-unavailable="true">
+            <h2>{chartMessage}</h2>
+            <p>
+              {binanceSelected
+                ? chartMessage
+                : fxcmSelected || forexConnectSelected
+                  ? (unified.message
+                    || "Open Markets, select a valid instrument for this provider, then return here. Development candles are not shown in production.")
+                  : "Open Markets, select a BINANCE, FXCM, or ForexConnect instrument, then return here for genuine OHLCV."}
+            </p>
+          </div>
+        )}
       </div>
 
-      {showChart ? (
-        <ForexPriceChart
-          ref={chartRef}
-          seriesKey={`${selected!.symbol}:${timeframe}`}
-          candles={candles}
-          chartType={chartType}
-          overlays={overlayData}
-          rsi={rsiPoints}
-          macd={macdData}
-          levels={levels}
-          onCandleFocus={onCandleFocus}
-        />
-      ) : (
-        <div className="fx-chart-state" role="status" data-chart-unavailable="true">
-          <h2>{chartMessage}</h2>
-          <p>
-            {binanceSelected
-              ? chartMessage
-              : fxcmSelected || forexConnectSelected
-                ? (unified.message
-                  || "Open Markets, select a valid instrument for this provider, then return here. Development candles are not shown in production.")
-                : "Open Markets, select a BINANCE, FXCM, or ForexConnect instrument, then return here for genuine OHLCV."}
-          </p>
-        </div>
-      )}
-
       <dl
-        className="fx-ohlc"
+        className="fx-ohlc fx-ohlc-compact"
         data-forex-ohlc="true"
         aria-label={
           binanceSelected

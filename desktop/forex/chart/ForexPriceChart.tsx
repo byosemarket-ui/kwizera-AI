@@ -114,7 +114,9 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     if (!host) return;
     let disposed = false;
     const width = host.clientWidth || 640;
-    const main = createChart(host, { width, ...chartOptions(showRsi || showMacd ? 380 : 440) });
+    const fallbackHeight = showRsi || showMacd ? 360 : 480;
+    const height = Math.max(240, host.clientHeight || fallbackHeight);
+    const main = createChart(host, { width, ...chartOptions(height) });
     mainApi.current = main;
     const candleSeries = main.addCandlestickSeries({
       upColor: BULL,
@@ -141,7 +143,8 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     const observer = new ResizeObserver(() => {
       if (disposed) return;
       try {
-        main.applyOptions({ width: host.clientWidth });
+        const nextHeight = Math.max(240, host.clientHeight || fallbackHeight);
+        main.applyOptions({ width: host.clientWidth, height: nextHeight });
       } catch {
         // Ignore resize after dispose.
       }
