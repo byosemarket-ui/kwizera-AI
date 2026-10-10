@@ -20,6 +20,15 @@ export interface ForexConnectInstrument {
   status: string;
   offerId?: string | null;
   source?: string;
+  /** Optional Offers-table / SDK fields when available. */
+  description?: string | null;
+  instrumentType?: string | number | null;
+  assetClass?: string | null;
+  metadataType?: string | null;
+  contractCurrency?: string | null;
+  bid?: number | null;
+  ask?: number | null;
+  tradingStatus?: string | null;
 }
 
 export interface ForexConnectSafeStatus {

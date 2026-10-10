@@ -43,24 +43,28 @@ export function parseSelectedMarket(
   if (!compact) return null;
   const provider = String(explicitProvider ?? "").trim().toUpperCase();
 
+  // ForexConnect multi-asset symbols (AAPL.us, US30, 10USNote, EUR/USD) must keep
+  // the exact providerSymbol — never collapse dots or invent a traditional FX label.
+  if (provider === "FOREXCONNECT") {
+    const symbol = raw.trim();
+    if (!symbol) return null;
+    return {
+      venue: "forexconnect",
+      symbol,
+      displaySymbol: symbol,
+      provider: "FOREXCONNECT",
+    };
+  }
+
   const looksLikeFxSlash = /^[A-Z]{3}\/[A-Z]{3}$/i.test(raw.trim()) || /^XAU\/[A-Z]{3}$/i.test(raw.trim());
   if (
     provider === "FXCM"
-    || provider === "FOREXCONNECT"
     || looksLikeFxSlash
     || TRADITIONAL_FX_COMPACT.has(compact)
   ) {
     const display = looksLikeFxSlash
       ? raw.trim().toUpperCase()
       : (raw.includes("/") ? raw.trim().toUpperCase() : traditionalFxDisplay(compact));
-    if (provider === "FOREXCONNECT") {
-      return {
-        venue: "forexconnect",
-        symbol: display,
-        displaySymbol: display,
-        provider: "FOREXCONNECT",
-      };
-    }
     // Only treat as FXCM historical when explicitly requested — avoids accidental FXCM calls.
     if (provider === "FXCM") {
       return {

@@ -183,8 +183,9 @@ export function ForexShell({
         onClearSelection={clearSelectedMarket}
         liveTicker={liveTicker}
         onOpenCharts={() => navigate("charts")}
+        onOpenTechnicalAnalysis={() => navigate("technical-analysis")}
         onOpenAdmin={() => {
-          window.location.assign("/admin/forex");
+          window.location.assign("/admin/forex/forexconnect");
         }}
       />
     );

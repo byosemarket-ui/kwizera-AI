@@ -1169,6 +1169,104 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
+/* Phase 36D — ForexConnect Multi-Asset Market Explorer */
+.fx-fc-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.fx-fc-explorer-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.fx-fc-explorer-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.fx-fc-explorer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(70vh, 640px);
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: color-mix(in srgb, var(--fx-elevated) 88%, transparent);
+}
+
+.fx-fc-explorer-cat {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--fx-text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.fx-fc-explorer-cat:hover {
+  background: color-mix(in srgb, var(--fx-accent-dim) 70%, transparent);
+}
+
+.fx-fc-explorer-cat.is-active {
+  background: var(--fx-accent-dim);
+}
+
+.fx-fc-explorer-cat.is-empty {
+  opacity: 0.55;
+}
+
+.fx-fc-explorer-count {
+  color: var(--fx-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-fc-explorer-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fx-fc-explorer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+@media (max-width: 900px) {
+  .fx-fc-explorer-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fx-fc-explorer-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+  }
+
+  .fx-fc-explorer-cat {
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+}
+
 /* Phase 20 — AI Market Analysis */
 .fx-ai-toolbar {
   display: flex;

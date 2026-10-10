@@ -133,12 +133,7 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         "ForexConnect is disabled. Set KWIZERA_FOREXCONNECT_ENABLED=1.",
       );
     }
-    if (!status.configured) {
-      throw new ForexConnectMarketDataError(
-        "FOREXCONNECT_NOT_CONFIGURED",
-        "ForexConnect is not configured on the server.",
-      );
-    }
+    // Session may be CONNECTED via Admin DEMO/LIVE vault profiles without env credentials.
     if (status.status !== "CONNECTED") {
       throw new ForexConnectMarketDataError(
         String(status.errorCode ?? `FOREXCONNECT_${status.status}`),
@@ -167,6 +162,12 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         offerId: item.offerId ?? null,
         source: item.source ?? "forexconnect-offers",
         venue: "forexconnect",
+        instrumentType: item.instrumentType ?? null,
+        description: item.description ?? null,
+        contractCurrency: item.contractCurrency ?? null,
+        tradingStatus: item.tradingStatus ?? null,
+        environment: status.environment ?? null,
+        environmentLabel: status.environmentLabel ?? null,
       },
     }));
   }

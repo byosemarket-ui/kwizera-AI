@@ -289,24 +289,55 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
     provider_symbol = str(instrument).strip()
     if not provider_symbol:
         return None
-    canonical = re.sub(r"[^A-Za-z0-9]", "", provider_symbol).upper()
+    # Preserve dots in share symbols (AAPL.us) — only strip separators for canonical id.
+    canonical = re.sub(r"[^A-Za-z0-9.]", "", provider_symbol).upper()
     parts = re.split(r"[/\s_-]+", provider_symbol)
     base = parts[0].upper() if parts else None
     quote = parts[1].upper() if len(parts) > 1 else None
     offer_id = _row_get(row, "offer_id", "OfferID", "offerId")
+    instrument_type = _row_get(
+        row,
+        "instrument_type",
+        "InstrumentType",
+        "instrumentType",
+        "InstrumentTypeID",
+    )
+    contract_currency = _row_get(
+        row,
+        "contract_currency",
+        "ContractCurrency",
+        "contractCurrency",
+        "Currency",
+    )
+    description = _row_get(
+        row,
+        "instrument",
+        "Instrument",
+        "description",
+        "Description",
+        "name",
+        "Name",
+    )
+    bid = _finite(_row_get(row, "bid", "Bid"))
+    ask = _finite(_row_get(row, "ask", "Ask"))
+    trading_status = _row_get(row, "trading_status", "TradingStatus", "tradingStatus")
     return {
         "provider": "FOREXCONNECT",
         "providerSymbol": provider_symbol,
         "canonicalSymbol": canonical,
-        "displaySymbol": provider_symbol if "/" in provider_symbol else (
-            f"{base}/{quote}" if base and quote else provider_symbol
-        ),
+        "displaySymbol": provider_symbol,
         "marketType": "FOREX",
         "baseAsset": base,
         "quoteAsset": quote,
         "status": "available",
         "offerId": str(offer_id) if offer_id is not None else None,
         "source": "forexconnect-offers",
+        "description": str(description).strip() if description is not None else provider_symbol,
+        "instrumentType": str(instrument_type) if instrument_type is not None else None,
+        "contractCurrency": str(contract_currency) if contract_currency is not None else None,
+        "bid": bid,
+        "ask": ask,
+        "tradingStatus": str(trading_status) if trading_status is not None else None,
     }
 
 

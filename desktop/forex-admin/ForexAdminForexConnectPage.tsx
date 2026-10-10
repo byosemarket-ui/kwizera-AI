@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  buildForexConnectCatalog,
+  FOREXCONNECT_EXPLORER_CATEGORIES,
+} from "../../ai/market-data/forexconnect/instrument-classify";
+import type { ForexConnectInstrument } from "../../ai/market-data/forexconnect/types";
+import {
   clearForexAdminSessionToken,
   forexProvidersApi,
   getForexAdminSessionToken,
@@ -116,6 +121,27 @@ export function ForexAdminForexConnectPage() {
       return hay.includes(q);
     });
   }, [instruments, instrumentQuery]);
+
+  const catalogSummary = useMemo(() => {
+    const mapped = instruments.map((row): ForexConnectInstrument => ({
+      provider: "FOREXCONNECT",
+      providerSymbol: String(row.providerSymbol ?? ""),
+      canonicalSymbol: String(row.canonicalSymbol ?? ""),
+      displaySymbol: String(row.displaySymbol ?? row.providerSymbol ?? ""),
+      marketType: String(row.marketType ?? "FOREX"),
+      baseAsset: row.baseAsset != null ? String(row.baseAsset) : null,
+      quoteAsset: row.quoteAsset != null ? String(row.quoteAsset) : null,
+      status: String(row.status ?? "available"),
+      offerId: row.offerId != null ? String(row.offerId) : null,
+      description: row.description != null ? String(row.description) : null,
+      instrumentType: row.instrumentType ?? null,
+    }));
+    return buildForexConnectCatalog(mapped, {
+      environment: activeEnv === "live" ? "real" : activeEnv === "demo" ? "demo" : null,
+      environmentLabel: activeLabel === "NONE" ? null : activeLabel,
+      fetchedAt: profile.lastInstrumentAt,
+    }).summary;
+  }, [instruments, activeEnv, activeLabel, profile.lastInstrumentAt]);
 
   const checkAdminAuth = useCallback(async () => {
     setAdminAuthChecking(true);
@@ -728,6 +754,25 @@ export function ForexAdminForexConnectPage() {
                 : ""}
             </li>
           ) : null}
+        </ul>
+      </section>
+
+      <section className="fxa-card" data-fc-catalog-summary>
+        <h3>Market Explorer diagnostics</h3>
+        <ul>
+          <li>Provider / environment: FOREXCONNECT · {activeLabel}</li>
+          <li>Last discovery: {String(profile.lastInstrumentAt ?? "—")}</li>
+          <li>Raw instruments: {catalogSummary.rawCount}</li>
+          <li>Deduplicated: {catalogSummary.deduplicatedCount}</li>
+          <li>Classified: {catalogSummary.classifiedCount}</li>
+          <li>Unclassified: {catalogSummary.unclassifiedCount}</li>
+        </ul>
+        <ul data-fc-category-counts>
+          {FOREXCONNECT_EXPLORER_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+            <li key={cat.id}>
+              {cat.label}: {catalogSummary.categoryCounts[cat.id] ?? 0}
+            </li>
+          ))}
         </ul>
       </section>
 

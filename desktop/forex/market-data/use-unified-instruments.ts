@@ -122,7 +122,8 @@ export function useUnifiedInstruments(options?: {
     if (marketType) params.set("marketType", marketType);
     if (search.trim()) params.set("search", search.trim());
     if (tick > 0) params.set("refresh", "1");
-    params.set("limit", "500");
+    // ForexConnect Demo catalogs can exceed 500 (e.g. 516); keep headroom for growth.
+    params.set("limit", provider === "FOREXCONNECT" ? "2000" : "500");
 
     fetch(`/api/forex/market-data/instruments?${params.toString()}`, {
       signal: controller.signal,

@@ -37,6 +37,7 @@ import {
   getForexConnectSessionService,
   maybeRestoreDemoSession,
 } from "../../ai/market-data/forexconnect/session.js";
+import { buildForexConnectCatalog } from "../../ai/market-data/forexconnect/instrument-classify.js";
 import { readForexConnectRuntimeProbe } from "../../ai/market-data/forexconnect/runtime-probe.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -309,6 +310,15 @@ export async function handleForexConnectApi(
     }
 
     if (url.pathname === "/api/forex/providers/forexconnect/instruments") {
+      const pre = await bridge.getStatus();
+      if (pre.status !== "CONNECTED") {
+        try {
+          const session = await getForexConnectSessionService();
+          await maybeRestoreDemoSession(session);
+        } catch {
+          /* best-effort */
+        }
+      }
       const result = await bridge.listInstruments();
       assertNoSecretsInForexConnectPayload(result);
       if (!result.ok) {
@@ -319,6 +329,11 @@ export async function handleForexConnectApi(
         });
         return true;
       }
+      const catalog = buildForexConnectCatalog(result.instruments, {
+        environment: result.status?.environment ?? null,
+        environmentLabel: result.status?.environmentLabel ?? null,
+        fetchedAt: result.fetchedAt ?? null,
+      });
       sendJson(res, 200, {
         ok: true,
         count: result.count,
@@ -326,6 +341,7 @@ export async function handleForexConnectApi(
         fetchedAt: result.fetchedAt,
         status: result.status,
         note: result.note,
+        catalogSummary: catalog.summary,
       });
       return true;
     }
