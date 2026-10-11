@@ -26,6 +26,10 @@ import {
   VOLUME_LOOKBACK,
 } from "./classifications.js";
 import {
+  detectMarketStructure,
+  DEFAULT_STRUCTURE_PARAMS,
+} from "../forex-structure/index.js";
+import {
   FOREX_MARKET_STATE_VERSION,
   type BuildMarketStateInput,
   type ForexBinanceMarketState,
@@ -82,8 +86,16 @@ function dataSourceFor(provider: ForexMarketStateProvider): ForexBinanceMarketSt
 }
 
 function buildBasicStructure(
-  candles: Array<{ high: number; low: number; close: number }>,
+  candles: Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    closed?: boolean;
+  }>,
   trendDirection: "BULLISH" | "BEARISH" | "NEUTRAL",
+  meta: { provider: ForexMarketStateProvider; symbol: string; timeframe: string },
 ): ForexBinanceMarketState["marketStructure"] {
   if (candles.length < 20) {
     return {
@@ -93,6 +105,54 @@ function buildBasicStructure(
       structureState: "INSUFFICIENT_DATA",
     };
   }
+
+  // Prefer Phase 38D deterministic structure when enough closed history exists.
+  const closed = candles.filter((c) => c.closed !== false);
+  const minBars =
+    DEFAULT_STRUCTURE_PARAMS.swingLeft + DEFAULT_STRUCTURE_PARAMS.swingRight + 1;
+  if (closed.length >= Math.max(minBars, DEFAULT_STRUCTURE_PARAMS.minConfirmedSwingsForTrend)) {
+    try {
+      const analysis = detectMarketStructure({
+        provider: meta.provider,
+        symbol: meta.symbol,
+        timeframe: meta.timeframe,
+        candles: closed.map((c) => ({
+          time: c.time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+          isClosed: true,
+          closed: true,
+        })),
+        includeForming: false,
+      });
+      const confirmed = analysis.swings.filter((s) => s.status === "CONFIRMED");
+      if (confirmed.length >= DEFAULT_STRUCTURE_PARAMS.minConfirmedSwingsForTrend) {
+        const highs = confirmed.filter((s) => s.kind === "HIGH");
+        const lows = confirmed.filter((s) => s.kind === "LOW");
+        const lastSwingHigh = highs.length > 0 ? highs[highs.length - 1]!.price : null;
+        const lastSwingLow = lows.length > 0 ? lows[lows.length - 1]!.price : null;
+        if (lastSwingHigh != null && lastSwingLow != null) {
+          const trendMap = {
+            BULLISH: "BULLISH" as const,
+            BEARISH: "BEARISH" as const,
+            RANGE: "NEUTRAL" as const,
+            UNKNOWN: "UNKNOWN" as const,
+          };
+          return {
+            trend: trendMap[analysis.trendState] ?? trendDirection,
+            lastSwingHigh,
+            lastSwingLow,
+            structureState: "STRUCTURE_V1",
+          };
+        }
+      }
+    } catch {
+      // Fall through to BASIC_SWINGS — never break market-state on structure errors.
+    }
+  }
+
   const window = candles.slice(-20);
   let lastSwingHigh = window[0]!.high;
   let lastSwingLow = window[0]!.low;
@@ -331,7 +391,11 @@ export function buildForexMarketState(input: BuildMarketStateInput): ForexBinanc
       classification: momentumClass,
     },
     indicators,
-    marketStructure: buildBasicStructure(sanitized, trend.direction),
+    marketStructure: buildBasicStructure(sanitized, trend.direction, {
+      provider,
+      symbol,
+      timeframe: input.timeframe,
+    }),
     supportResistance: null,
     supportResistanceReason: "MANUAL_ONLY",
     dataQuality: {

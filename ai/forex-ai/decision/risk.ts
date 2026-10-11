@@ -113,7 +113,7 @@ export function buildStopAndTargets(
   const swingLow = state?.marketStructure?.lastSwingLow ?? null;
 
   if (swingHigh == null || swingLow == null) {
-    return unavailable("SL/TP unavailable — BASIC_SWINGS high/low missing.");
+    return unavailable("SL/TP unavailable — BASIC_SWINGS/STRUCTURE_V1 high/low missing.");
   }
 
   let stopLossCandidate: number | null = entryZone.invalidationLevel;

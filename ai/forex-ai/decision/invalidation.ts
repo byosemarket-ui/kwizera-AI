@@ -64,7 +64,7 @@ export function buildInvalidationConditions(
     }
     conditions.push({
       id: "structure-level",
-      description: "Price breaches structural invalidation level derived from BASIC_SWINGS",
+      description: "Price breaches structural invalidation level derived from BASIC_SWINGS/STRUCTURE_V1",
       status: breached,
       level: entryZone.invalidationLevel,
       timeframe: entryZone.timeframe,

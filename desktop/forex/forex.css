@@ -1229,6 +1229,66 @@ html.reduce-motion .fx-sidebar {
   color: var(--fx-muted);
 }
 
+.fx-structure-class-list,
+.fx-structure-event-list,
+.fx-structure-zone-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fx-structure-class-list > li,
+.fx-structure-zone-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.fx-structure-class-list > li span,
+.fx-structure-zone-list > li span {
+  color: var(--fx-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fx-structure-event-list > li {
+  padding: 6px 0;
+  border-top: 1px solid color-mix(in srgb, var(--fx-muted) 28%, transparent);
+}
+
+.fx-structure-event-list > li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.fx-structure-event-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.fx-structure-event-head span {
+  color: var(--fx-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fx-structure-evidence {
+  margin: 4px 0 0;
+  padding-left: 1.1em;
+  font-size: 12px;
+  color: var(--fx-muted);
+}
+
 .fx-chart-state h2 {
   margin: 0 0 8px;
 }

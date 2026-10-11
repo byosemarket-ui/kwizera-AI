@@ -111,7 +111,7 @@ export interface MarketStateStructure {
   trend: TrendDirection | "UNKNOWN";
   lastSwingHigh: number | null;
   lastSwingLow: number | null;
-  structureState: "INSUFFICIENT_DATA" | "BASIC_SWINGS";
+  structureState: "INSUFFICIENT_DATA" | "BASIC_SWINGS" | "STRUCTURE_V1";
 }
 
 export interface MarketStateDataQuality {

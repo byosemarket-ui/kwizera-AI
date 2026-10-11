@@ -1,5 +1,5 @@
 /**
- * Entry zone from objective Phase 18 structure (BASIC_SWINGS) + ATR padding.
+ * Entry zone from objective structure (BASIC_SWINGS or STRUCTURE_V1) + ATR padding.
  * No fabricated support/resistance — Market State.supportResistance is always null.
  */
 import type { ForexBinanceMarketState } from "../../forex-market-state/types.js";
@@ -7,11 +7,15 @@ import type { ForexMultiTimeframeMarketState } from "../mtf/types.js";
 import { FOREX_ENTRY_ZONE_ATR_PAD } from "./config.js";
 import type { ForexDecisionScenario, ForexEntryZone } from "./types.js";
 
+function isUsableStructureState(state: string | undefined): boolean {
+  return state === "BASIC_SWINGS" || state === "STRUCTURE_V1";
+}
+
 function pickPrimaryState(mtf: ForexMultiTimeframeMarketState): ForexBinanceMarketState | null {
   const prefer = ["15m", "1h", "30m", "5m", "4h"] as const;
   for (const tf of prefer) {
     const slot = mtf.slots.find((s) => s.timeframe === tf && s.marketState);
-    if (slot?.marketState?.marketStructure?.structureState === "BASIC_SWINGS") {
+    if (isUsableStructureState(slot?.marketState?.marketStructure?.structureState)) {
       return slot.marketState;
     }
   }
@@ -51,7 +55,7 @@ function unavailable(
 
 /**
  * Derive a candidate entry zone only from lastSwingHigh/Low + optional ATR pad.
- * If BASIC_SWINGS or swings are missing → ENTRY_ZONE_UNAVAILABLE.
+ * If BASIC_SWINGS/STRUCTURE_V1 or swings are missing → ENTRY_ZONE_UNAVAILABLE.
  */
 export function buildEntryZone(
   mtf: ForexMultiTimeframeMarketState,
@@ -83,11 +87,11 @@ export function buildEntryZone(
   }
 
   const structure = state.marketStructure;
-  if (!structure || structure.structureState !== "BASIC_SWINGS") {
+  if (!structure || !isUsableStructureState(structure.structureState)) {
     return unavailable(
       symbol,
       scenario,
-      "ENTRY_ZONE_UNAVAILABLE — market structure is not BASIC_SWINGS (insufficient swing window).",
+      "ENTRY_ZONE_UNAVAILABLE — market structure is not BASIC_SWINGS/STRUCTURE_V1 (insufficient swing window).",
       currentPrice,
       mtf.dataQuality,
     );
@@ -122,7 +126,7 @@ export function buildEntryZone(
   let referencePrice: number;
   let invalidationLevel: number | null;
   const basis: string[] = [
-    `${state.timeframe} marketStructure.structureState=BASIC_SWINGS`,
+    `${state.timeframe} marketStructure.structureState=${structure.structureState}`,
     `${state.timeframe} lastSwingLow=${swingLow}`,
     `${state.timeframe} lastSwingHigh=${swingHigh}`,
   ];

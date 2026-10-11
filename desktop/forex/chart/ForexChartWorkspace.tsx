@@ -19,6 +19,11 @@ import {
   type PatternAnalysisResult,
 } from "../../../ai/forex-patterns";
 import {
+  detectMarketStructure,
+  RULE_VERSION as STRUCTURE_RULE_VERSION,
+  type MarketStructureAnalysisResult,
+} from "../../../ai/forex-structure";
+import {
   liveTickerPriceLabel,
   type LiveTickerSnapshot,
 } from "../../../ai/market-data/binance/live-ticker";
@@ -538,6 +543,42 @@ export function ForexChartWorkspace({
     forexConnectSelected,
   ]);
 
+  const marketStructure: MarketStructureAnalysisResult | null = useMemo(() => {
+    if (!analysis || !canAnalyze || !candleProvider || !candleSymbol || candles.length === 0) {
+      return null;
+    }
+    const priceBasis =
+      fxcmSelected ? "mid"
+        : forexConnectSelected ? "bid"
+          : null;
+    return detectMarketStructure({
+      provider: candleProvider,
+      environment: null,
+      symbol: candleSymbol,
+      timeframe,
+      candles: candles.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        closed: c.closed,
+        isClosed: c.closed,
+      })),
+      includeForming: true,
+      priceBasis,
+    });
+  }, [
+    analysis,
+    canAnalyze,
+    candleProvider,
+    candleSymbol,
+    candles,
+    timeframe,
+    fxcmSelected,
+    forexConnectSelected,
+  ]);
+
   return (
     <section
       ref={workspaceRef}
@@ -896,7 +937,18 @@ export function ForexChartWorkspace({
                         : "Insufficient data for Bollinger Bands"}
                     </dd>
                   </div>
-                  <div><dt>Structure</dt><dd>Automatic market-structure detection is not implemented.</dd></div>
+                  <div>
+                    <dt>Structure</dt>
+                    <dd data-ta-structure-summary="true">
+                      {!canAnalyze
+                        ? analysisUnavailableReason
+                        : marketStructure?.validation.insufficientHistory
+                          ? "Insufficient history for market structure"
+                          : marketStructure
+                            ? `${marketStructure.trendState} · ${marketStructure.swings.filter((s) => s.status === "CONFIRMED").length} confirmed swings · ${marketStructure.events.length} events (${STRUCTURE_RULE_VERSION})`
+                            : "Market structure unavailable"}
+                    </dd>
+                  </div>
                   <div>
                     <dt>Series</dt>
                     <dd data-ta-series="true">
@@ -966,6 +1018,119 @@ export function ForexChartWorkspace({
               {candlestickPatterns && candlestickPatterns.validation.warnings.length > 0 ? (
                 <p className="fx-panel-meta" data-ta-candlestick-validation-warnings="true">
                   {candlestickPatterns.validation.warnings.join(" · ")}
+                </p>
+              ) : null}
+            </section>
+            <section
+              aria-labelledby="fx-market-structure-title"
+              data-ta-market-structure="true"
+              data-ta-structure-rule-version={STRUCTURE_RULE_VERSION}
+            >
+              <h2 id="fx-market-structure-title">Market structure</h2>
+              <p className="fx-panel-meta">
+                Analytical rule-based swings / BOS / CHoCH / zones ({STRUCTURE_RULE_VERSION}).
+                Not a trade signal; levels are not guaranteed.
+              </p>
+              {!canAnalyze ? (
+                <p className="fx-panel-meta" data-ta-structure-unavailable="true">
+                  {analysisUnavailableReason}
+                </p>
+              ) : marketStructure?.validation.insufficientHistory ? (
+                <p className="fx-panel-meta" data-ta-structure-insufficient="true">
+                  {marketStructure.note}
+                </p>
+              ) : !marketStructure ? (
+                <p className="fx-panel-meta" data-ta-structure-empty="true">
+                  Market structure unavailable for the current series.
+                </p>
+              ) : (
+                <>
+                  <p className="fx-panel-meta" data-ta-structure-trend={marketStructure.trendState}>
+                    Trend state: <strong>{marketStructure.trendState}</strong>
+                    {" · "}
+                    {marketStructure.swings.filter((s) => s.status === "CONFIRMED").length} confirmed /
+                    {" "}
+                    {marketStructure.swings.length} swings
+                  </p>
+                  {marketStructure.classifications.length === 0 ? (
+                    <p className="fx-panel-meta" data-ta-structure-classifications-empty="true">
+                      No HH/HL/LH/LL classifications yet (need paired confirmed swings of the same kind).
+                    </p>
+                  ) : (
+                    <ul className="fx-structure-class-list" data-ta-structure-classifications="true">
+                      {marketStructure.classifications.slice(-6).map((row) => (
+                        <li key={`${row.swingId}-${row.label}`}>
+                          <strong>{row.label}</strong>
+                          <span>{row.kind}</span>
+                          <span>{formatUtc(row.time)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {marketStructure.events.length === 0 ? (
+                    <p className="fx-panel-meta" data-ta-structure-events-empty="true">
+                      No BOS/CHoCH events under current trend state ({marketStructure.trendState}).
+                    </p>
+                  ) : (
+                    <ul className="fx-structure-event-list" data-ta-structure-events="true">
+                      {marketStructure.events.map((evt) => (
+                        <li
+                          key={evt.eventKey}
+                          data-ta-structure-event={evt.type}
+                          data-ta-structure-event-status={evt.status}
+                          data-ta-structure-event-direction={evt.direction}
+                        >
+                          <div className="fx-structure-event-head">
+                            <strong>{evt.type}</strong>
+                            <span>{evt.direction}</span>
+                            <span>{evt.status}</span>
+                          </div>
+                          <p className="fx-panel-meta">
+                            Level {selected ? formatPrice(selected.symbol, evt.level) : evt.level}
+                            {" · "}
+                            {formatUtc(evt.breakCandleTime)}
+                          </p>
+                          {evt.evidence.length > 0 ? (
+                            <ul className="fx-structure-evidence">
+                              {evt.evidence.map((line) => (
+                                <li key={line}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {(() => {
+                    const activeZones = marketStructure.zones.filter((z) => z.status === "ACTIVE");
+                    if (activeZones.length === 0) {
+                      return (
+                        <p className="fx-panel-meta" data-ta-structure-zones-empty="true">
+                          No ACTIVE analytical zones (need ≥2 confirmed swings; zones are not guaranteed levels).
+                        </p>
+                      );
+                    }
+                    return (
+                      <ul className="fx-structure-zone-list" data-ta-structure-zones="true">
+                        {activeZones.map((zone) => (
+                          <li key={zone.id} data-ta-structure-zone={zone.kind} data-ta-structure-zone-status={zone.status}>
+                            <strong>{zone.kind}</strong>
+                            <span>
+                              {selected
+                                ? `${formatPrice(selected.symbol, zone.low)} – ${formatPrice(selected.symbol, zone.high)}`
+                                : `${zone.low} – ${zone.high}`}
+                            </span>
+                            <span>touches {zone.touchCount}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </>
+              )}
+              {marketStructure && marketStructure.warnings.length > 0 ? (
+                <p className="fx-panel-meta" data-ta-structure-warnings="true">
+                  {marketStructure.warnings.join(" · ")}
                 </p>
               ) : null}
             </section>
