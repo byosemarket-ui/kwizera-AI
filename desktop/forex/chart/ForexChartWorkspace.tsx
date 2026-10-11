@@ -554,7 +554,7 @@ export function ForexChartWorkspace({
       data-fx-poll-changes={forexConnectSelected && unified.streamDiagnostics
         ? String(unified.streamDiagnostics.pollChanges)
         : ""}
-      data-phase="37e"
+      data-phase="37f"
     >
       <header className="fx-trading-header fx-trading-chrome" data-fx-trading-header="true">
         <div className="fx-trading-identity">

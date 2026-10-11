@@ -1204,6 +1204,14 @@ html.reduce-motion .fx-sidebar {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    padding-inline-end: 12px;
+    scrollbar-width: thin;
+  }
+
+  .fx-chart-controls label,
+  .fx-chart-controls select,
+  .fx-chart-controls button {
+    flex-shrink: 0;
   }
 
   .fx-chart-control-buttons {
@@ -1231,6 +1239,8 @@ html.reduce-motion .fx-sidebar {
   .fx-trading-chrome .fx-trading-toolbar {
     flex-wrap: nowrap;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-inline-end: 12px;
   }
 }
 
@@ -1245,12 +1255,32 @@ html.reduce-motion .fx-sidebar {
     padding: 10px 10px 16px;
   }
 
+  .fx-root[data-forex-route="charts"] .fx-chart-workspace,
+  .fx-root[data-forex-route="technical-analysis"] .fx-chart-workspace {
+    min-height: calc(100dvh - 96px);
+  }
+
+  .fx-chart-stage-wrap,
+  .fx-price-chart-main {
+    min-height: clamp(240px, 46vh, 420px);
+  }
+
   .fx-trading-header {
     padding: 6px 8px;
   }
 
   .fx-ohlc-compact {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Keep status badges; diagnostics remain on data-* attrs for verification. */
+  .fx-stream-diagnostics {
+    display: none;
+  }
+
+  .fx-market-row-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -1601,7 +1631,8 @@ html.reduce-motion .fx-sidebar {
   display: none;
 }
 
-@media (max-width: 900px) {
+/* Align explorer collapse with shell drawer breakpoint (820). */
+@media (max-width: 820px) {
   .fx-fc-explorer-layout,
   .fx-market-explorer-layout {
     grid-template-columns: 1fr;
@@ -1616,7 +1647,7 @@ html.reduce-motion .fx-sidebar {
     display: none;
     flex-direction: column;
     flex-wrap: nowrap;
-    max-height: min(50vh, 360px);
+    max-height: min(42vh, 320px);
   }
 
   .fx-market-category-nav.is-open {
@@ -1635,6 +1666,17 @@ html.reduce-motion .fx-sidebar {
   .fx-market-explorer .fx-markets-table th:nth-child(4),
   .fx-market-explorer .fx-markets-table td:nth-child(4) {
     display: none;
+  }
+
+  .fx-fc-explorer-nav,
+  .fx-market-category-nav {
+    max-height: min(36vh, 260px);
+  }
+
+  .fx-market-explorer .fx-markets-table td:nth-child(1),
+  .fx-market-explorer .fx-markets-table td:nth-child(2) {
+    white-space: normal;
+    word-break: break-word;
   }
 }
 

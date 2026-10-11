@@ -52,7 +52,7 @@ describe("Phase 37E live data & TA integration", () => {
 
   it("Charts/TA workspace exposes stream diagnostics and shared series key", () => {
     const workspace = read("desktop/forex/chart/ForexChartWorkspace.tsx");
-    expect(workspace).toContain('data-phase="37e"');
+    expect(workspace).toMatch(/data-phase="37[ef]"/);
     expect(workspace).toContain("data-fx-stream-diagnostics");
     expect(workspace).toContain("data-ta-series-key");
     expect(workspace).toContain("data-candle-source=\"unified-market-data\"");
