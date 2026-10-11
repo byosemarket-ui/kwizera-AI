@@ -14,6 +14,11 @@ import { useUnifiedCandles } from "../market-data/use-unified-candles";
 import { applyLiveKline } from "../../../ai/market-data/binance/adapter";
 import { buildForexMarketState } from "../../../ai/forex-market-state";
 import {
+  detectCandlestickPatterns,
+  RULE_VERSION as CANDLESTICK_RULE_VERSION,
+  type PatternAnalysisResult,
+} from "../../../ai/forex-patterns";
+import {
   liveTickerPriceLabel,
   type LiveTickerSnapshot,
 } from "../../../ai/market-data/binance/live-ticker";
@@ -497,6 +502,42 @@ export function ForexChartWorkspace({
     unified.lastQuoteAt,
   ]);
 
+  const candlestickPatterns: PatternAnalysisResult | null = useMemo(() => {
+    if (!analysis || !canAnalyze || !candleProvider || !candleSymbol || candles.length === 0) {
+      return null;
+    }
+    const priceBasis =
+      fxcmSelected ? "mid"
+        : forexConnectSelected ? "bid"
+          : null;
+    return detectCandlestickPatterns({
+      provider: candleProvider,
+      environment: null,
+      symbol: candleSymbol,
+      timeframe,
+      candles: candles.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        closed: c.closed,
+        isClosed: c.closed,
+      })),
+      includeForming: true,
+      priceBasis,
+    });
+  }, [
+    analysis,
+    canAnalyze,
+    candleProvider,
+    candleSymbol,
+    candles,
+    timeframe,
+    fxcmSelected,
+    forexConnectSelected,
+  ]);
+
   return (
     <section
       ref={workspaceRef}
@@ -865,6 +906,68 @@ export function ForexChartWorkspace({
                   </div>
                 </dl>
               )}
+            </section>
+            <section
+              aria-labelledby="fx-candlestick-patterns-title"
+              data-ta-candlestick-patterns="true"
+              data-ta-candlestick-rule-version={CANDLESTICK_RULE_VERSION}
+            >
+              <h2 id="fx-candlestick-patterns-title">Candlestick patterns</h2>
+              <p className="fx-panel-meta">
+                Rule-based educational detection ({CANDLESTICK_RULE_VERSION}). Not a trade signal;
+                does not guarantee direction.
+              </p>
+              {!canAnalyze ? (
+                <p className="fx-panel-meta" data-ta-candlestick-unavailable="true">
+                  {analysisUnavailableReason}
+                </p>
+              ) : candlestickPatterns?.validation.insufficientHistory ? (
+                <p className="fx-panel-meta" data-ta-candlestick-insufficient="true">
+                  {candlestickPatterns.note}
+                </p>
+              ) : !candlestickPatterns || candlestickPatterns.detections.length === 0 ? (
+                <p className="fx-panel-meta" data-ta-candlestick-empty="true">
+                  No candlestick patterns matched the current closed bars under rule version{" "}
+                  {CANDLESTICK_RULE_VERSION}.
+                </p>
+              ) : (
+                <ul className="fx-candlestick-pattern-list">
+                  {candlestickPatterns.detections.map((detection) => (
+                    <li
+                      key={`${detection.patternId}-${detection.candleEndTime}-${detection.candleStartTime}`}
+                      data-ta-candlestick-pattern={detection.patternId}
+                      data-ta-candlestick-status={detection.status}
+                      data-ta-candlestick-direction={detection.direction}
+                    >
+                      <div className="fx-candlestick-pattern-head">
+                        <strong>{detection.patternName}</strong>
+                        <span>{detection.direction}</span>
+                        <span>{detection.status}</span>
+                      </div>
+                      <p className="fx-panel-meta">
+                        {detection.candleTimes.map((t) => formatUtc(t)).join(" · ")}
+                      </p>
+                      {detection.evidence.length > 0 ? (
+                        <ul className="fx-candlestick-evidence">
+                          {detection.evidence.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {detection.warnings.length > 0 ? (
+                        <p className="fx-panel-meta" data-ta-candlestick-warning="true">
+                          {detection.warnings.join(" · ")}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {candlestickPatterns && candlestickPatterns.validation.warnings.length > 0 ? (
+                <p className="fx-panel-meta" data-ta-candlestick-validation-warnings="true">
+                  {candlestickPatterns.validation.warnings.join(" · ")}
+                </p>
+              ) : null}
             </section>
             <section aria-labelledby="fx-levels-title">
               <h2 id="fx-levels-title">Support / Resistance</h2>

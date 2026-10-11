@@ -23,6 +23,7 @@ import { handleForexIntelligenceApi } from "./forex-intelligence-api.js";
 import { handleForexMemoryApi } from "./forex-memory-api.js";
 import { handleForexMarketStateApi } from "./forex-market-state-api.js";
 import { handleForexMarketDataApi } from "./forex-market-data-api.js";
+import { handleForexPatternsApi } from "./forex-patterns-api.js";
 import { handleForexProvidersApi } from "./forex-providers-api.js";
 import { handleForexConnectApi } from "./forexconnect-api.js";
 import { isVerifiedLive, loadDeploymentRecord, loadImagePrepVerification } from "./deployment-status.js";
@@ -1209,6 +1210,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleForexMarketStateApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleForexPatternsApi(req, res, url, sendJson)) {
     return;
   }
 
