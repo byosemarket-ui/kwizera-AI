@@ -35,6 +35,7 @@ function idle(
     errorCode: null,
     lastQuoteAt: null,
     dataSource: "unified-market-data",
+    streamDiagnostics: null,
   };
 }
 

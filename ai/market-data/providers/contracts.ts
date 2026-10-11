@@ -28,6 +28,8 @@ export const UNIFIED_CONNECTION_STATES = [
   "NOT_CONFIGURED",
   "CONNECTING",
   "CONNECTED",
+  "SUBSCRIBED_WAITING",
+  "MARKET_INACTIVE",
   "LIVE",
   "RECONNECTING",
   "STALE",
@@ -77,6 +79,17 @@ export interface UnifiedCandle {
   dataQuality: UnifiedDataQualityState;
 }
 
+/** Optional Offers-stream counters — never includes credentials. */
+export interface UnifiedStreamDiagnostics {
+  streamState: string | null;
+  updateCount: number;
+  pollCycles: number;
+  pollChanges: number;
+  callbackAccepted: number;
+  callbackInvocations: number;
+  lastQuoteAgeMs: number | null;
+}
+
 export interface UnifiedCandleSeries {
   identity: MarketIdentity;
   timeframe: CanonicalTimeframeId;
@@ -92,6 +105,8 @@ export interface UnifiedCandleSeries {
   note: string;
   errorCode: string | null;
   errorMessage: string | null;
+  /** ForexConnect Offers diagnostics when available; omitted for other providers. */
+  streamDiagnostics?: UnifiedStreamDiagnostics | null;
 }
 
 export interface UnifiedQuote extends NormalizedMarketQuote {

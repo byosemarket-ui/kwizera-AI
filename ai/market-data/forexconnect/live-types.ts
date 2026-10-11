@@ -51,6 +51,20 @@ export interface ForexConnectLiveCandle {
   timeframe: CanonicalTimeframeId;
 }
 
+export interface ForexConnectStreamDiagnostics {
+  callbackRegistered: boolean;
+  callbackInvocations: number;
+  callbackAccepted: number;
+  callbackFiltered: number;
+  callbackNoBid: number;
+  callbackParseFailures: number;
+  pollCycles: number;
+  pollChanges: number;
+  lastCallbackAt: string | null;
+  lastPollChangeAt: string | null;
+  offersPollerActive: boolean;
+}
+
 export interface SafeForexConnectLiveSeries {
   ok: boolean;
   provider: "FOREXCONNECT";
@@ -73,20 +87,9 @@ export interface SafeForexConnectLiveSeries {
   note: string;
   errorCode: string | null;
   errorMessage: string | null;
-}
-
-export interface ForexConnectStreamDiagnostics {
-  callbackRegistered: boolean;
-  callbackInvocations: number;
-  callbackAccepted: number;
-  callbackFiltered: number;
-  callbackNoBid: number;
-  callbackParseFailures: number;
-  pollCycles: number;
-  pollChanges: number;
-  lastCallbackAt: string | null;
-  lastPollChangeAt: string | null;
-  offersPollerActive: boolean;
+  /** Sidecar Offers counters mirrored for Charts/TA freshness display. */
+  streamDiagnostics: ForexConnectStreamDiagnostics | null;
+  sidecarUpdateCount: number;
 }
 
 export interface ForexConnectStreamStatus {

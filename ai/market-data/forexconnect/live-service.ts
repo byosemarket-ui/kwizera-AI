@@ -25,6 +25,9 @@ import {
   type ForexConnectSupportedTimeframe,
 } from "./timeframes.js";
 import { normalizeCanonicalSymbol } from "../providers/identity.js";
+import { resolveFcWaitingStreamState } from "./stream-state.js";
+
+export { resolveFcWaitingStreamState } from "./stream-state.js";
 
 const MAX_SERIES = 32;
 const POLL_MS = 500;
@@ -54,6 +57,7 @@ export class ForexConnectLiveCandleService {
   private pollInFlight = false;
   /** Sidecar Offers callback counter — LIVE only when this increases. */
   private lastSeenStreamUpdateCount = 0;
+  private lastStreamStatus: ForexConnectStreamStatus | null = null;
 
   constructor(options?: { bridge?: ForexConnectBridge }) {
     this.bridge = options?.bridge ?? getForexConnectBridge();
@@ -209,6 +213,7 @@ export class ForexConnectLiveCandleService {
         this.bridge.pollQuotes(),
         this.bridge.getStreamStatus(),
       ]);
+      this.lastStreamStatus = stream;
       const now = Date.now();
       const streamUpdates = Number(stream.updateCount ?? 0);
       const hasNewOffersEvents = streamUpdates > this.lastSeenStreamUpdateCount;
@@ -225,7 +230,8 @@ export class ForexConnectLiveCandleService {
             && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS) {
             session.streamState = "STALE";
           } else if (session.updateCount <= 0) {
-            session.streamState = "SUBSCRIBED_WAITING";
+            // Preserve sidecar MARKET_INACTIVE / SUBSCRIBED_WAITING — do not collapse to CONNECTING.
+            session.streamState = resolveFcWaitingStreamState(stream.streamState, session.updateCount);
           }
           continue;
         }
@@ -234,7 +240,7 @@ export class ForexConnectLiveCandleService {
         if (!hasNewOffersEvents) {
           if (session.lastQuote == null) session.lastQuote = match;
           if (session.updateCount <= 0) {
-            session.streamState = "SUBSCRIBED_WAITING";
+            session.streamState = resolveFcWaitingStreamState(stream.streamState, session.updateCount);
           } else if (
             session.lastQuoteAtMs != null
             && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS
@@ -296,6 +302,9 @@ export class ForexConnectLiveCandleService {
   private toSeries(session: Session): SafeForexConnectLiveSeries {
     const now = Date.now();
     let streamState = session.streamState;
+    if (session.updateCount <= 0 && this.lastStreamStatus) {
+      streamState = resolveFcWaitingStreamState(this.lastStreamStatus.streamState, session.updateCount);
+    }
     if (
       session.lastQuoteAtMs != null
       && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS
@@ -312,6 +321,24 @@ export class ForexConnectLiveCandleService {
     const forming = formingCandleOf(candles);
     const cfg = this.bridge.getConfig();
     const mode = session.updateCount > 0 ? "HISTORICAL_LIVE" : "HISTORICAL";
+    const diag = this.lastStreamStatus?.diagnostics ?? null;
+    const sidecarUpdateCount = Number(this.lastStreamStatus?.updateCount ?? 0);
+    const sidecarLastQuoteAt = this.lastStreamStatus?.lastQuoteAt ?? null;
+    const sidecarLastQuoteAgeMs = this.lastStreamStatus?.lastQuoteAgeMs ?? null;
+    const lastQuoteAt = session.lastQuoteAtMs
+      ? new Date(session.lastQuoteAtMs).toISOString()
+      : sidecarLastQuoteAt;
+    const lastQuoteAgeMs = session.lastQuoteAtMs != null
+      ? Math.max(0, now - session.lastQuoteAtMs)
+      : sidecarLastQuoteAgeMs;
+    const diagNote = diag
+      ? ` pollCycles=${diag.pollCycles} pollChanges=${diag.pollChanges} updateCount=${sidecarUpdateCount}`
+      : ` updateCount=${sidecarUpdateCount}`;
+    const note = session.updateCount > 0
+      ? `ForexConnect live bid candles (Offers table updates + historical baseline).${diagNote}`
+      : streamState === "MARKET_INACTIVE"
+        ? `ForexConnect Offers subscribed; market inactive (no bid/ask changes).${diagNote}`
+        : `ForexConnect subscribed; waiting for Offers table price updates.${diagNote}`;
     return {
       ok: true,
       provider: "FOREXCONNECT",
@@ -328,14 +355,14 @@ export class ForexConnectLiveCandleService {
       candles,
       forming,
       count: candles.length,
-      lastQuoteAt: session.lastQuoteAtMs ? new Date(session.lastQuoteAtMs).toISOString() : null,
-      lastQuoteAgeMs: session.lastQuoteAtMs != null ? Math.max(0, now - session.lastQuoteAtMs) : null,
+      lastQuoteAt,
+      lastQuoteAgeMs,
       updateCount: session.updateCount,
-      note: session.updateCount > 0
-        ? "ForexConnect live bid candles (Offers table updates + historical baseline)."
-        : "ForexConnect subscribed; waiting for Offers table price updates.",
+      note,
       errorCode: session.errorCode,
       errorMessage: session.errorMessage,
+      streamDiagnostics: diag,
+      sidecarUpdateCount,
     };
   }
 }

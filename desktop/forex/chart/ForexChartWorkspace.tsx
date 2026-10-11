@@ -277,7 +277,19 @@ export function ForexChartWorkspace({
 
   const last = candles[candles.length - 1] ?? null;
   const display = focused ?? last;
-  const canAnalyze = providerReady;
+  const analysis = mode === "analysis";
+  const seriesReady = Boolean(
+    candleProvider
+    && candleSymbol
+    && (unified.state === "ready" || unified.state === "live" || unified.state === "stale"
+      || unified.state === "connecting" || unified.state === "reconnecting")
+    && unified.provider === candleProvider
+    && unified.symbol === candleSymbol
+    && unified.timeframe === timeframe
+    && candles.length > 0,
+  );
+  // Indicators must use the same matched series as the chart — never a prior instrument/timeframe.
+  const canAnalyze = Boolean(seriesReady && providerReady);
   const sma20 = useMemo(() => (canAnalyze ? lastValue(calculateSMA(candles, 20)) : null), [canAnalyze, candles]);
   const sma50 = useMemo(() => (canAnalyze ? lastValue(calculateSMA(candles, 50)) : null), [canAnalyze, candles]);
   const ema50 = useMemo(() => (canAnalyze ? lastValue(calculateEMA(candles, 50)) : null), [canAnalyze, candles]);
@@ -324,17 +336,6 @@ export function ForexChartWorkspace({
     setLevelPrice("");
   };
 
-  const analysis = mode === "analysis";
-  const seriesReady = Boolean(
-    candleProvider
-    && candleSymbol
-    && (unified.state === "ready" || unified.state === "live" || unified.state === "stale"
-      || unified.state === "connecting" || unified.state === "reconnecting")
-    && unified.provider === candleProvider
-    && unified.symbol === candleSymbol
-    && unified.timeframe === timeframe
-    && candles.length > 0,
-  );
   const historyReady = seriesReady;
   const historyPending = Boolean(
     candleProvider
@@ -374,12 +375,28 @@ export function ForexChartWorkspace({
         : last
           ? formatPrice(selected.symbol, last.close)
           : (liveTicker ? liveTickerPriceLabel(liveTicker) : "Waiting for live Binance data...");
+  const fcConn = String(unified.connectionState ?? "").toUpperCase();
+  const fcStatusShort = forexConnectSelected
+    ? (unified.live
+      ? "LIVE"
+      : fcConn === "MARKET_INACTIVE"
+        ? "MARKET_INACTIVE"
+        : fcConn === "SUBSCRIBED_WAITING"
+          ? "WAITING"
+          : fcConn === "STALE"
+            ? "STALE"
+            : fcConn === "CONNECTING"
+              ? "CONNECTING"
+              : seriesReady
+                ? "HISTORICAL"
+                : (unified.connectionState ?? "historical"))
+    : null;
   const providerMetaLabel = binanceSelected
     ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
     : fxcmSelected
       ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · FXCM mid · ${unified.live ? "LIVE" : (unified.connectionState ?? "historical")}`
       : forexConnectSelected
-        ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · ForexConnect bid · ${unified.live ? "LIVE" : (unified.connectionState ?? "historical")}`
+        ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · ForexConnect bid · ${fcStatusShort}`
         : LIVE_MARKET_UNAVAILABLE;
   const chartState = !candleProvider
     ? "unavailable"
@@ -429,11 +446,21 @@ export function ForexChartWorkspace({
   const marketState = useMemo(() => {
     if (!selected || candles.length === 0) return null;
     if (fxcmSelected || forexConnectSelected) {
+      const fcConnection = unified.live
+        ? "LIVE"
+        : unified.connectionState === "STALE"
+          ? "STALE"
+          : unified.connectionState === "MARKET_INACTIVE"
+            || unified.connectionState === "SUBSCRIBED_WAITING"
+            || unified.state === "ready"
+            || unified.state === "stale"
+            ? "CONNECTED"
+            : "NO_DATA";
       return buildForexMarketState({
         symbol: selected.symbol,
         timeframe,
         candles,
-        connection: unified.live ? "LIVE" : (unified.state === "ready" || unified.state === "stale" ? "CONNECTED" : "NO_DATA"),
+        connection: fcConnection,
         lastMarketUpdateMs: unified.lastQuoteAt
           ? Date.parse(unified.lastQuoteAt)
           : (last ? last.time * 1000 : null),
@@ -466,6 +493,7 @@ export function ForexChartWorkspace({
     last,
     unified.live,
     unified.state,
+    unified.connectionState,
     unified.lastQuoteAt,
   ]);
 
@@ -513,7 +541,20 @@ export function ForexChartWorkspace({
       data-ta-ema50={ema50 == null ? "" : String(ema50)}
       data-ta-rsi14={rsiLast == null ? "" : String(rsiLast)}
       data-ta-macd={macdLast == null ? "" : String(macdLast)}
-      data-phase="37d"
+      data-ta-series-key={canAnalyze && candleProvider && candleSymbol
+        ? `${candleProvider}:${candleSymbol}:${timeframe}`
+        : ""}
+      data-fx-stream-state={forexConnectSelected ? (unified.connectionState ?? "") : ""}
+      data-fx-update-count={forexConnectSelected && unified.streamDiagnostics
+        ? String(unified.streamDiagnostics.updateCount)
+        : ""}
+      data-fx-poll-cycles={forexConnectSelected && unified.streamDiagnostics
+        ? String(unified.streamDiagnostics.pollCycles)
+        : ""}
+      data-fx-poll-changes={forexConnectSelected && unified.streamDiagnostics
+        ? String(unified.streamDiagnostics.pollChanges)
+        : ""}
+      data-phase="37e"
     >
       <header className="fx-trading-header fx-trading-chrome" data-fx-trading-header="true">
         <div className="fx-trading-identity">
@@ -552,18 +593,33 @@ export function ForexChartWorkspace({
                     ? (unified.connectionState === "STALE"
                       ? "STALE · last quote aged out"
                       : unified.connectionState === "MARKET_INACTIVE"
-                        ? "MARKET_INACTIVE"
-                        : unified.connectionState === "AUTHENTICATED_IDLE"
-                          || unified.connectionState === "CONNECTED"
-                          || unified.connectionState === "SUBSCRIBED"
-                          || unified.connectionState === "SUBSCRIBED_WAITING"
+                        ? "MARKET_INACTIVE · no Offers bid/ask changes"
+                        : unified.connectionState === "SUBSCRIBED_WAITING"
                           ? "Authenticated · waiting for fresh quotes"
-                          : "Historical candles · market idle")
+                          : unified.connectionState === "AUTHENTICATED_IDLE"
+                            || unified.connectionState === "CONNECTED"
+                            || unified.connectionState === "SUBSCRIBED"
+                            ? "Authenticated · waiting for fresh quotes"
+                            : "Historical candles · market idle")
                     : (unified.message || "Market data unavailable")}
             </ForexStatusBadge>
           ) : (
             <ForexStatusBadge tone="offline">No live feed</ForexStatusBadge>
           )}
+          {forexConnectSelected && seriesReady && unified.streamDiagnostics ? (
+            <p
+              className="fx-panel-meta fx-stream-diagnostics"
+              data-fx-stream-diagnostics="true"
+              aria-label="ForexConnect Offers stream diagnostics"
+            >
+              Offers · updates {unified.streamDiagnostics.updateCount}
+              {" · "}poll {unified.streamDiagnostics.pollChanges}/{unified.streamDiagnostics.pollCycles}
+              {unified.streamDiagnostics.lastQuoteAgeMs != null
+                ? ` · quote age ${Math.round(unified.streamDiagnostics.lastQuoteAgeMs / 1000)}s`
+                : ""}
+              {unified.lastQuoteAt ? ` · last ${unified.lastQuoteAt}` : ""}
+            </p>
+          ) : null}
         </div>
 
         <div className="fx-chart-controls fx-trading-toolbar" role="toolbar" aria-label="Chart controls">

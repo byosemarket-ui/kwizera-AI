@@ -16,7 +16,8 @@ function read(rel: string): string {
 describe("Phase 37D professional chart workspace", () => {
   it("keeps compact chrome with chart-first stage and loading affordance", () => {
     const workspace = read("desktop/forex/chart/ForexChartWorkspace.tsx");
-    expect(workspace).toContain('data-phase="37d"');
+    // Phase 37E continues the chart workspace; 37D chrome contracts remain.
+    expect(workspace).toMatch(/data-phase="37[de]"/);
     expect(workspace).toContain('data-fx-trading-header="true"');
     expect(workspace).toContain("fx-trading-chrome");
     expect(workspace).toContain("fx-trading-toolbar");

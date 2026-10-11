@@ -942,6 +942,15 @@ html.reduce-motion .fx-sidebar {
   align-items: center;
 }
 
+.fx-stream-diagnostics {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.85;
+  word-break: break-word;
+}
+
 .fx-chart-controls,
 .fx-ohlc,
 .fx-chart-side section,

@@ -16,6 +16,16 @@ export type UnifiedCandlesLoadState =
   | "connecting"
   | "reconnecting";
 
+export interface UnifiedStreamDiagnosticsView {
+  streamState: string | null;
+  updateCount: number;
+  pollCycles: number;
+  pollChanges: number;
+  callbackAccepted: number;
+  callbackInvocations: number;
+  lastQuoteAgeMs: number | null;
+}
+
 export interface UnifiedCandlesResult {
   state: UnifiedCandlesLoadState;
   provider: MarketProviderId | null;
@@ -32,6 +42,7 @@ export interface UnifiedCandlesResult {
   errorCode: string | null;
   lastQuoteAt: string | null;
   dataSource: "unified-market-data";
+  streamDiagnostics: UnifiedStreamDiagnosticsView | null;
 }
 
 function mapCandle(raw: Record<string, unknown>): Candle {
@@ -56,9 +67,30 @@ function stateFromSeries(series: {
   if (conn === "LIVE") return "live";
   if (conn === "STALE") return "stale";
   if (conn === "RECONNECTING") return "reconnecting";
-  if (conn === "CONNECTING" || conn === "CONNECTED") return "connecting";
+  // Historical available while Offers wait / market idle — not a connecting spinner.
+  if (conn === "MARKET_INACTIVE" || conn === "SUBSCRIBED_WAITING") {
+    return (series.count ?? 0) > 0 ? "ready" : "connecting";
+  }
+  if (conn === "CONNECTING") return "connecting";
+  if (conn === "CONNECTED") return (series.count ?? 0) > 0 ? "ready" : "connecting";
   if ((series.count ?? 0) > 0) return "ready";
   return "empty";
+}
+
+function mapStreamDiagnostics(raw: unknown): UnifiedStreamDiagnosticsView | null {
+  if (!raw || typeof raw !== "object") return null;
+  const d = raw as Record<string, unknown>;
+  return {
+    streamState: d.streamState == null ? null : String(d.streamState),
+    updateCount: Number(d.updateCount ?? 0),
+    pollCycles: Number(d.pollCycles ?? 0),
+    pollChanges: Number(d.pollChanges ?? 0),
+    callbackAccepted: Number(d.callbackAccepted ?? 0),
+    callbackInvocations: Number(d.callbackInvocations ?? 0),
+    lastQuoteAgeMs: d.lastQuoteAgeMs == null || !Number.isFinite(Number(d.lastQuoteAgeMs))
+      ? null
+      : Number(d.lastQuoteAgeMs),
+  };
 }
 
 function emptyResult(
@@ -83,6 +115,7 @@ function emptyResult(
     errorCode: partial.errorCode ?? null,
     lastQuoteAt: partial.lastQuoteAt ?? null,
     dataSource: "unified-market-data",
+    streamDiagnostics: partial.streamDiagnostics ?? null,
   };
 }
 
@@ -164,6 +197,7 @@ export async function fetchUnifiedCandleSeries(options: {
       errorCode: typeof series.errorCode === "string" ? series.errorCode : null,
       lastQuoteAt: typeof series.lastQuoteAt === "string" ? series.lastQuoteAt : null,
       dataSource: "unified-market-data",
+      streamDiagnostics: mapStreamDiagnostics(series.streamDiagnostics),
     };
   } catch {
     return emptyResult(options.provider, options.symbol, options.timeframe, {

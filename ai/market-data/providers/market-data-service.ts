@@ -612,11 +612,15 @@ function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): Unifie
     : null;
   const connectionState = result.streamState === "LIVE" ? "LIVE"
     : result.streamState === "STALE" ? "STALE"
-      : result.streamState === "SUBSCRIBED_WAITING" || result.streamState === "SUBSCRIBING"
-        ? "CONNECTING"
-        : result.streamState === "ERROR" || result.streamState === "SERVICE_UNAVAILABLE"
-          ? "ERROR"
-          : candles.length ? "CONNECTED" : "NO_DATA";
+      : result.streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
+        : result.streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
+          : result.streamState === "SUBSCRIBING" ? "CONNECTING"
+            : result.streamState === "ERROR" || result.streamState === "SERVICE_UNAVAILABLE"
+              ? "ERROR"
+              : result.streamState === "DISABLED" || result.streamState === "NOT_CONFIGURED"
+                ? "DISABLED"
+                : candles.length ? "CONNECTED" : "NO_DATA";
+  const diag = result.streamDiagnostics;
   return {
     identity,
     timeframe: result.timeframe,
@@ -634,6 +638,15 @@ function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): Unifie
     note: result.note,
     errorCode: result.errorCode,
     errorMessage: result.errorMessage,
+    streamDiagnostics: {
+      streamState: result.streamState,
+      updateCount: Number(result.sidecarUpdateCount ?? result.updateCount ?? 0),
+      pollCycles: Number(diag?.pollCycles ?? 0),
+      pollChanges: Number(diag?.pollChanges ?? 0),
+      callbackAccepted: Number(diag?.callbackAccepted ?? 0),
+      callbackInvocations: Number(diag?.callbackInvocations ?? 0),
+      lastQuoteAgeMs: result.lastQuoteAgeMs,
+    },
   };
 }
 
