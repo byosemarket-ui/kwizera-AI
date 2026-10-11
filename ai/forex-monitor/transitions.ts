@@ -5,7 +5,17 @@ import type { ForexMonitorLifecycleState } from "./types.js";
 
 const ALLOWED: Record<ForexMonitorLifecycleState, readonly ForexMonitorLifecycleState[]> = {
   STOPPED: ["STARTING"],
-  STARTING: ["WATCHING", "STALE", "ERROR", "STOPPED", "PAUSED"],
+  STARTING: [
+    "WATCHING",
+    "SETUP_DETECTED",
+    "WAITING_FOR_CONFIRMATION",
+    "CONFIRMED",
+    "INVALIDATED",
+    "STALE",
+    "ERROR",
+    "STOPPED",
+    "PAUSED",
+  ],
   WATCHING: [
     "SETUP_DETECTED",
     "WAITING_FOR_CONFIRMATION",

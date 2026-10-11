@@ -137,6 +137,8 @@ describe.sequential("Forex Phase 38F — Continuous Monitor Core", () => {
 
   it("assertTransition allows valid edges and rejects invalid (API unauthorized)", () => {
     expect(() => assertTransition("WATCHING", "SETUP_DETECTED")).not.toThrow();
+    expect(() => assertTransition("STARTING", "SETUP_DETECTED")).not.toThrow();
+    expect(() => assertTransition("STARTING", "CONFIRMED")).not.toThrow();
     expect(() => assertTransition("STOPPED", "WATCHING")).toThrow(ForexMonitorTransitionError);
   });
 
