@@ -7,11 +7,26 @@ import { ForexSectionHeader } from "./components/ForexSectionHeader";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 import type { ChartTimeframeId } from "./chart/types";
-import {
-  FOREX_ADMIN_TOKEN_STORAGE_KEY,
-  getForexAdminSessionToken,
-  setForexAdminSessionToken,
-} from "../forex-admin/api";
+/** Shared with Forex Admin / Admin Control Center — browser session only. */
+const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
+
+function getForexAdminSessionToken(): string {
+  try {
+    return sessionStorage.getItem(FOREX_ADMIN_TOKEN_STORAGE_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function setForexAdminSessionToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed) sessionStorage.setItem(FOREX_ADMIN_TOKEN_STORAGE_KEY, trimmed);
+    else sessionStorage.removeItem(FOREX_ADMIN_TOKEN_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 type MonitorSession = {
   sessionId: string;
@@ -110,19 +125,17 @@ function reqText(item: { description: string; met?: boolean } | string): string 
 
 function toneFor(state: string): "live" | "future" | "offline" {
   const s = state.toUpperCase();
-  if (s.includes("FRESH") || s === "WATCHING" || s === "CONFIRMED" || s === "COMPLETED") return "live";
-  if (s.includes("STALE") || s.includes("ERROR") || s.includes("TIMEOUT") || s === "STOPPED" || s === "INACTIVE") {
-    return "offline";
-  }
-  return "future";
-}
-
-function toneFor(state: string): "live" | "future" | "offline" {
-  const s = state.toUpperCase();
   if (s.includes("FRESH") || s.includes("CONFIRMED") || s.includes("WATCHING") || s === "COMPLETED") {
     return "live";
   }
-  if (s.includes("ERROR") || s.includes("STALE") || s.includes("STOPPED") || s.includes("TIMEOUT") || s.includes("FAILED")) {
+  if (
+    s.includes("ERROR")
+    || s.includes("STALE")
+    || s.includes("STOPPED")
+    || s.includes("TIMEOUT")
+    || s.includes("FAILED")
+    || s.includes("INACTIVE")
+  ) {
     return "offline";
   }
   return "future";
