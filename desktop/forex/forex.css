@@ -1473,6 +1473,38 @@ html.reduce-motion .fx-sidebar {
   min-width: 0;
 }
 
+.fx-market-search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fx-market-search-field input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.fx-market-search-clear {
+  flex-shrink: 0;
+}
+
+.fx-market-search-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fx-muted);
+  white-space: nowrap;
+}
+
+.fx-market-explorer .fx-markets-table tr.is-focused,
+.fx-market-explorer .fx-markets-table tr[data-focused="true"] {
+  outline: 1px solid color-mix(in srgb, var(--fx-accent, #22d3a6) 55%, transparent);
+  outline-offset: -1px;
+}
+
 .fx-market-symbol-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;

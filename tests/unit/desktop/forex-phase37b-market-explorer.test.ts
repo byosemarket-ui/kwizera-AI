@@ -100,7 +100,7 @@ describe("Phase 37B market explorer contracts", () => {
 
   it("wires Open Charts selection and mobile category toggle in the explorer UI", () => {
     const explorer = read("desktop/forex/ForexConnectMarketExplorer.tsx");
-    expect(explorer).toContain('data-phase="37b"');
+    expect(explorer).toMatch(/data-phase="37[bc]"/);
     expect(explorer).toContain('data-market-explorer="true"');
     expect(explorer).toContain("data-fc-open-charts");
     expect(explorer).toContain("data-fc-exact-symbol");

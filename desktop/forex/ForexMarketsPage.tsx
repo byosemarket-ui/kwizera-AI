@@ -14,6 +14,16 @@ import { LiveTickerPanel } from "./LiveTickerPanel";
 const PAGE_SIZE = 50;
 const QUOTE_FILTERS = ["ALL", "USDT", "USDC", "BTC", "ETH", "BNB"] as const;
 
+function initialProviderFilter(): "ALL" | MarketProviderId {
+  if (typeof window === "undefined") return "ALL";
+  const raw = new URLSearchParams(window.location.search).get("provider");
+  const provider = String(raw ?? "").trim().toUpperCase();
+  if (provider === "BINANCE" || provider === "FXCM" || provider === "FOREXCONNECT") {
+    return provider;
+  }
+  return "ALL";
+}
+
 function statusTone(market: NormalizedMarket): "future" | "offline" {
   return market.tradable ? "future" : "offline";
 }
@@ -47,7 +57,7 @@ export function ForexMarketsPage({
   onOpenTechnicalAnalysis?: () => void;
   onOpenAdmin?: () => void;
 }) {
-  const [providerFilter, setProviderFilter] = useState<"ALL" | MarketProviderId>("ALL");
+  const [providerFilter, setProviderFilter] = useState<"ALL" | MarketProviderId>(initialProviderFilter);
   const { result, refresh } = useBinanceMarkets();
   const fxcmCatalog = useUnifiedInstruments({
     provider: "FXCM",

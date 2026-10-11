@@ -35,7 +35,8 @@ describe("Binance Phase 7 market discovery", () => {
 
   it("filters locally by query, quote, and trading status", () => {
     const markets = normalizeBinanceExchangeInfo(sampleInfo);
-    expect(filterBinanceMarkets(markets, { query: "btc" }).map((item) => item.symbol)).toEqual(["BTCUSDT", "ETHBTC", "BTCUSDC"]);
+    // Ranked: base/prefix matches ahead of quote-only includes; stable within equal scores.
+    expect(filterBinanceMarkets(markets, { query: "btc" }).map((item) => item.symbol)).toEqual(["BTCUSDT", "BTCUSDC", "ETHBTC"]);
     expect(filterBinanceMarkets(markets, { query: "USDT" }).every((item) => item.quoteAsset === "USDT" || item.symbol.includes("USDT"))).toBe(true);
     expect(filterBinanceMarkets(markets, { query: "BTCUSDT" }).map((item) => item.symbol)).toEqual(["BTCUSDT"]);
     expect(filterBinanceMarkets(markets, { quoteAsset: "USDT", tradable: "trading" }).map((item) => item.symbol)).toEqual(["BTCUSDT", "SOLUSDT"]);

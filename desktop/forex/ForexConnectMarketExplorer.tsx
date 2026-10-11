@@ -1,8 +1,9 @@
 /**
- * Phase 37B — compact Market Categories sidebar + functional instrument explorer.
+ * Phase 37B/37C — Market Explorer with ranked instrument search & selection.
  * Reuses Phase 36D/36F classification; never invents instruments or quotes.
+ * Catalog filtering is local — no network request per keystroke.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { MarketInstrument } from "../../ai/market-data/providers/types";
 import {
   buildForexConnectCatalog,
@@ -17,6 +18,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const PAGE_SIZE = 40;
+const SEARCH_DEBOUNCE_MS = 120;
 
 /** Compact category marks — geometric letters only (no FXCM branding). */
 const CATEGORY_MARK: Record<ForexConnectExplorerCategoryId, string> = {
@@ -113,8 +115,13 @@ export function ForexConnectMarketExplorer({
 }) {
   const [categoryId, setCategoryId] = useState<ForexConnectExplorerCategoryId>("all");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchAllCategories, setSearchAllCategories] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [focusIndex, setFocusIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const queryGenRef = useRef(0);
 
   const catalog = useMemo(
     () => buildForexConnectCatalog(instruments.map(toFcInstrument), {
@@ -125,15 +132,41 @@ export function ForexConnectMarketExplorer({
     [instruments, environment, environmentLabel, fetchedAt],
   );
 
+  // Debounce only the filter input — catalog itself is not re-fetched.
+  useEffect(() => {
+    const gen = ++queryGenRef.current;
+    const timer = window.setTimeout(() => {
+      if (gen !== queryGenRef.current) return; // ignore stale debounce ticks
+      setDebouncedQuery(query);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const effectiveSearchAll = searchAllCategories || categoryId === "all";
+
   const filtered = useMemo(
-    () => filterClassifiedInstruments(catalog.instruments, { categoryId, query }),
-    [catalog.instruments, categoryId, query],
+    () => filterClassifiedInstruments(catalog.instruments, {
+      categoryId,
+      query: debouncedQuery,
+      searchAllCategories: effectiveSearchAll,
+    }),
+    [catalog.instruments, categoryId, debouncedQuery, effectiveSearchAll],
   );
+
+  const globalMatches = useMemo(() => {
+    if (!debouncedQuery.trim() || effectiveSearchAll) return [];
+    return filterClassifiedInstruments(catalog.instruments, {
+      categoryId: "all",
+      query: debouncedQuery,
+      searchAllCategories: true,
+    });
+  }, [catalog.instruments, debouncedQuery, effectiveSearchAll]);
 
   // Keep page window valid when category/search shrinks the list.
   useEffect(() => {
     setVisible(PAGE_SIZE);
-  }, [categoryId, query]);
+    setFocusIndex(0);
+  }, [categoryId, debouncedQuery, effectiveSearchAll]);
 
   const page = filtered.slice(0, visible);
   const envLabel = catalog.summary.environmentLabel
@@ -157,7 +190,7 @@ export function ForexConnectMarketExplorer({
 
   if (blocked && catalog.summary.deduplicatedCount === 0) {
     return (
-      <div data-fc-explorer="blocked" data-fc-explorer-state={catalogState} data-phase="37b">
+      <div data-fc-explorer="blocked" data-fc-explorer-state={catalogState} data-phase="37c">
         <ForexEmptyState
           title={
             catalogState === "disabled"
@@ -205,6 +238,38 @@ export function ForexConnectMarketExplorer({
   const selectCategory = (id: ForexConnectExplorerCategoryId) => {
     setCategoryId(id);
     setMobileNavOpen(false);
+    if (id !== "all") setSearchAllCategories(false);
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setDebouncedQuery("");
+    searchInputRef.current?.focus();
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      if (query) {
+        event.preventDefault();
+        clearSearch();
+      }
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setFocusIndex((i) => Math.min(i + 1, Math.max(page.length - 1, 0)));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setFocusIndex((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (event.key === "Enter" && page.length > 0) {
+      event.preventDefault();
+      const target = page[Math.min(focusIndex, page.length - 1)];
+      if (target) openInstrumentInCharts(target);
+    }
   };
 
   return (
@@ -212,12 +277,13 @@ export function ForexConnectMarketExplorer({
       className="fx-fc-explorer fx-market-explorer"
       data-fc-explorer="true"
       data-market-explorer="true"
-      data-phase="37b"
+      data-phase="37c"
       data-fc-explorer-total={String(catalog.summary.deduplicatedCount)}
       data-fc-explorer-raw={String(catalog.summary.rawCount)}
       data-fc-explorer-unclassified={String(catalog.summary.unclassifiedCount)}
       data-fc-explorer-env={String(envLabel)}
       data-fc-explorer-category={categoryId}
+      data-fc-search-all={effectiveSearchAll ? "true" : "false"}
       data-mobile-nav-open={mobileNavOpen ? "true" : "false"}
     >
       <header className="fx-market-explorer-header">
@@ -285,24 +351,54 @@ export function ForexConnectMarketExplorer({
           <div className="fx-fc-explorer-toolbar fx-market-instrument-toolbar">
             <label className="fx-markets-search fx-market-search">
               Search
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="EUR/USD, Gold, AAPL.us, US30…"
-                aria-label="Search instruments in selected category"
-                data-fc-explorer-search="true"
-              />
+              <span className="fx-market-search-field">
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder="EUR/USD, Gold, AAPL, US30…"
+                  aria-label={effectiveSearchAll
+                    ? "Search all ForexConnect instruments"
+                    : `Search instruments in ${categoryLabel(categoryId)}`}
+                  data-fc-explorer-search="true"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    className="fx-text-button fx-market-search-clear"
+                    onClick={clearSearch}
+                    data-fc-search-clear="true"
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </span>
             </label>
+            {categoryId !== "all" ? (
+              <label className="fx-market-search-scope">
+                <input
+                  type="checkbox"
+                  checked={searchAllCategories}
+                  onChange={(event) => setSearchAllCategories(event.target.checked)}
+                  data-fc-search-all-toggle="true"
+                />
+                All categories
+              </label>
+            ) : null}
             <p className="fx-panel-meta" data-fc-explorer-filtered={String(filtered.length)}>
-              {categoryLabel(categoryId)}
+              {effectiveSearchAll && categoryId !== "all" ? "All categories" : categoryLabel(categoryId)}
               {" · "}
               {page.length}/{filtered.length}
-              {query.trim() ? ` · “${query.trim()}”` : ""}
+              {debouncedQuery.trim() ? ` · “${debouncedQuery.trim()}”` : ""}
+              {" · Enter opens Charts"}
             </p>
           </div>
 
-          {categoryId !== "all" && (catalog.summary.categoryCounts[categoryId] ?? 0) === 0 && !query.trim() ? (
+          {categoryId !== "all" && (catalog.summary.categoryCounts[categoryId] ?? 0) === 0 && !debouncedQuery.trim() ? (
             <ForexEmptyState
               title={`${categoryLabel(categoryId)} has no instruments in this catalog.`}
               description="Empty categories are kept for navigation — they do not invent markets. Counts come from the authenticated ForexConnect Offers catalog only."
@@ -310,23 +406,39 @@ export function ForexConnectMarketExplorer({
               onAction={() => selectCategory("all")}
             />
           ) : filtered.length === 0 ? (
-            <ForexEmptyState
-              title={
-                query.trim()
-                  ? "No instruments match this search in the selected category."
-                  : "No ForexConnect instruments available."
-              }
-              description={
-                query.trim()
-                  ? "Search stays category-scoped. Clear the query or switch category — the selected workspace symbol is unchanged."
-                  : "Categories are derived from the real Demo catalog."
-              }
-              actionLabel={query.trim() ? "Clear search" : "Show all markets"}
-              onAction={() => {
-                if (query.trim()) setQuery("");
-                else selectCategory("all");
-              }}
-            />
+            <div data-fc-search-empty="true">
+              <ForexEmptyState
+                title={
+                  debouncedQuery.trim()
+                    ? effectiveSearchAll
+                      ? `No instruments match “${debouncedQuery.trim()}”.`
+                      : `No instruments match “${debouncedQuery.trim()}” in ${categoryLabel(categoryId)}.`
+                    : "No ForexConnect instruments available."
+                }
+                description={
+                  debouncedQuery.trim()
+                    ? globalMatches.length > 0 && !effectiveSearchAll
+                      ? `${globalMatches.length} match${globalMatches.length === 1 ? "" : "es"} in other categories. Exact provider symbols are preserved — nothing is invented.`
+                      : "Clear the query or change category. The selected workspace symbol is unchanged."
+                    : "Categories are derived from the real Demo catalog."
+                }
+                actionLabel={
+                  debouncedQuery.trim() && globalMatches.length > 0 && !effectiveSearchAll
+                    ? `Search all categories (${globalMatches.length})`
+                    : debouncedQuery.trim()
+                      ? "Clear search"
+                      : "Show all markets"
+                }
+                onAction={() => {
+                  if (debouncedQuery.trim() && globalMatches.length > 0 && !effectiveSearchAll) {
+                    setSearchAllCategories(true);
+                    return;
+                  }
+                  if (debouncedQuery.trim()) clearSearch();
+                  else selectCategory("all");
+                }}
+              />
+            </div>
           ) : (
             <div className="fx-markets-table-wrap fx-market-instrument-list">
               <table className="fx-markets-table" data-fc-explorer-table="true">
@@ -341,18 +453,21 @@ export function ForexConnectMarketExplorer({
                   </tr>
                 </thead>
                 <tbody>
-                  {page.map((item) => {
+                  {page.map((item, index) => {
                     const active = selected?.venue === "forexconnect"
                       && selected.symbol === item.providerSymbol;
+                    const focused = index === focusIndex;
                     return (
                       <tr
                         key={`FOREXCONNECT:${item.providerSymbol}`}
                         data-selected={active ? "true" : "false"}
+                        data-focused={focused ? "true" : "false"}
                         data-provider="FOREXCONNECT"
                         data-fc-category={item.categoryId}
                         data-fc-symbol={item.providerSymbol}
                         data-fc-availability={item.dataAvailability}
-                        className={active ? "is-selected" : undefined}
+                        className={[active ? "is-selected" : "", focused ? "is-focused" : ""].filter(Boolean).join(" ") || undefined}
+                        onMouseEnter={() => setFocusIndex(index)}
                       >
                         <td>
                           <strong>{item.displaySymbol}</strong>

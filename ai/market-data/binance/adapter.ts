@@ -394,16 +394,42 @@ export function filterBinanceMarkets(
 ): NormalizedMarket[] {
   const query = (options.query ?? "").trim().toUpperCase().replace("/", "");
   const quote = (options.quoteAsset ?? "").trim().toUpperCase();
-  return markets.filter((market) => {
-    if (quote && market.quoteAsset !== quote) return false;
-    if (options.tradable === "trading" && !market.tradable) return false;
-    if (options.tradable === "not-trading" && market.tradable) return false;
-    if (!query) return true;
-    return (
-      market.symbol.includes(query) ||
-      market.baseAsset.includes(query) ||
-      market.quoteAsset.includes(query) ||
-      market.displaySymbol.replace("/", "").includes(query)
-    );
+  const scored: Array<{ market: NormalizedMarket; score: number; index: number }> = [];
+  markets.forEach((market, index) => {
+    if (quote && market.quoteAsset !== quote) return;
+    if (options.tradable === "trading" && !market.tradable) return;
+    if (options.tradable === "not-trading" && market.tradable) return;
+    if (!query) {
+      scored.push({ market, score: 0, index });
+      return;
+    }
+    const symbol = market.symbol.toUpperCase();
+    const displayCompact = market.displaySymbol.replace("/", "").toUpperCase();
+    let score: number | null = null;
+    if (symbol === query || displayCompact === query) score = 100;
+    else if (symbol.startsWith(query) || market.baseAsset.startsWith(query)) score = 85;
+    else if (
+      symbol.includes(query)
+      || market.baseAsset.includes(query)
+      || market.quoteAsset.includes(query)
+      || displayCompact.includes(query)
+    ) {
+      score = 60;
+    }
+    if (score == null) return;
+    scored.push({ market, score, index });
   });
+  if (!query) return scored.map((row) => row.market);
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.index - b.index;
+  });
+  const seen = new Set<string>();
+  const out: NormalizedMarket[] = [];
+  for (const row of scored) {
+    if (seen.has(row.market.symbol)) continue;
+    seen.add(row.market.symbol);
+    out.push(row.market);
+  }
+  return out;
 }

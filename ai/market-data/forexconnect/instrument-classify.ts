@@ -574,28 +574,109 @@ export function buildForexConnectCatalog(
   };
 }
 
+/** Alphanumeric compact form for punctuation-tolerant search (AAPL ↔ AAPL.us). */
+export function compactInstrumentSearchToken(value: string): string {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/**
+ * Rank a catalog row against a user query.
+ * Higher is better. null = no match. Never invents instruments.
+ */
+export function scoreInstrumentSearchMatch(
+  item: ClassifiedForexConnectInstrument,
+  query: string,
+): number | null {
+  const raw = String(query ?? "").trim();
+  if (!raw) return 0;
+  const q = raw.toUpperCase();
+  const qCompact = compactInstrumentSearchToken(q);
+  if (!qCompact && !q) return 0;
+
+  const symbol = String(item.providerSymbol ?? "").toUpperCase();
+  const display = String(item.displaySymbol ?? "").toUpperCase();
+  const canonical = String(item.canonicalSymbol ?? "").toUpperCase();
+  const compact = compactInstrumentSearchToken(item.providerSymbol);
+  const aliases = item.searchAliases.map((a) => String(a).toUpperCase());
+  const aliasCompact = aliases.map((a) => compactInstrumentSearchToken(a));
+
+  if (symbol === q || compact === qCompact) return 100;
+  if (aliases.some((a) => a === q) || aliasCompact.some((a) => a === qCompact)) return 95;
+  if (symbol.startsWith(q) || compact.startsWith(qCompact)) return 85;
+  if (display.startsWith(q) || compactInstrumentSearchToken(display).startsWith(qCompact)) return 80;
+  if (aliases.some((a) => a.startsWith(q)) || aliasCompact.some((a) => a.startsWith(qCompact))) {
+    return 75;
+  }
+  if (
+    symbol.includes(q)
+    || compact.includes(qCompact)
+    || canonical.includes(q)
+    || compactInstrumentSearchToken(canonical).includes(qCompact)
+    || display.includes(q)
+    || compactInstrumentSearchToken(display).includes(qCompact)
+  ) {
+    return 60;
+  }
+  if (
+    aliases.some((a) => a.includes(q))
+    || aliasCompact.some((a) => a.includes(qCompact))
+  ) {
+    return 55;
+  }
+  const description = String(item.description ?? "").toUpperCase();
+  const typeLabel = String(item.instrumentTypeLabel ?? "").toUpperCase();
+  if (
+    description.includes(q)
+    || compactInstrumentSearchToken(description).includes(qCompact)
+    || typeLabel.includes(q)
+  ) {
+    return 40;
+  }
+  return null;
+}
+
+/**
+ * Phase 37C — category-scoped or global catalog search with ranked local filtering.
+ * Does not hit the network; operates on the already-loaded catalog.
+ */
 export function filterClassifiedInstruments(
   instruments: ClassifiedForexConnectInstrument[],
   options: {
     categoryId?: ForexConnectExplorerCategoryId;
     query?: string;
+    /** When true, ignore categoryId and search the full catalog. */
+    searchAllCategories?: boolean;
   },
 ): ClassifiedForexConnectInstrument[] {
   const categoryId = options.categoryId ?? "all";
-  const q = String(options.query ?? "").trim().toUpperCase();
-  return instruments.filter((item) => {
-    if (categoryId !== "all" && item.categoryId !== categoryId) return false;
-    if (!q) return true;
-    const hay = [
-      item.providerSymbol,
-      item.canonicalSymbol,
-      item.displaySymbol,
-      item.description ?? "",
-      item.categoryLabel,
-      item.offerId ?? "",
-      item.instrumentTypeLabel ?? "",
-      ...item.searchAliases,
-    ].join(" ").toUpperCase();
-    return hay.includes(q);
+  const searchAll = options.searchAllCategories === true || categoryId === "all";
+  const q = String(options.query ?? "").trim();
+
+  const scoped = instruments.filter((item) => {
+    if (!searchAll && item.categoryId !== categoryId) return false;
+    return true;
   });
+
+  if (!q) return scoped;
+
+  const scored: Array<{ item: ClassifiedForexConnectInstrument; score: number }> = [];
+  for (const item of scoped) {
+    const score = scoreInstrumentSearchMatch(item, q);
+    if (score == null) continue;
+    scored.push({ item, score });
+  }
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.item.providerSymbol.localeCompare(b.item.providerSymbol);
+  });
+  // Dedupe by exact provider symbol (catalog should already be unique).
+  const seen = new Set<string>();
+  const out: ClassifiedForexConnectInstrument[] = [];
+  for (const row of scored) {
+    const key = row.item.providerSymbol.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row.item);
+  }
+  return out;
 }
