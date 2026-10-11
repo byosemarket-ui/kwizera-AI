@@ -122,9 +122,17 @@ export function assessCandleFreshnessDetailed(input: CandleFreshnessInput): Cand
   }
 
   if (historicalOnly) {
-    warnings.push("Series sourceMode is HISTORICAL — not live FRESH.");
-    if (dataAgeMs != null && dataAgeMs > ageLimit) {
+    warnings.push(
+      "Series sourceMode is HISTORICAL — closed-candle snapshot only; live stream not confirmed.",
+    );
+    if (dataAgeMs == null || !Number.isFinite(dataAgeMs) || dataAgeMs > ageLimit) {
       return { state: "STALE", dataAgeMs, warnings, liveCapable: false };
+    }
+    // Binance closed-candle monitoring uses REST historical snapshots. Age-acceptable
+    // snapshots may be FRESH for evaluation, but liveCapable stays false so UI/API
+    // must not equate this with a live Offers/websocket stream.
+    if (providerId === "BINANCE") {
+      return { state: "FRESH", dataAgeMs, warnings, liveCapable: false };
     }
     return { state: "STALE", dataAgeMs, warnings, liveCapable: false };
   }

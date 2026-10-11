@@ -140,13 +140,29 @@ describe.sequential("Forex Phase 38F — Continuous Monitor Core", () => {
     expect(() => assertTransition("STOPPED", "WATCHING")).toThrow(ForexMonitorTransitionError);
   });
 
-  it("freshness: historical-only is not FRESH live", () => {
+  it("freshness: age-ok Binance HISTORICAL is FRESH for closed-candle eval but not liveCapable", () => {
     const t = nowMs();
     const r = assessCandleFreshnessDetailed({
       provider: "BINANCE",
       timeframe: "15m",
       lastClosedTime: T0,
       lastUpdateAt: new Date(t).toISOString(),
+      nowMs: t,
+      sourceMode: "HISTORICAL",
+      connectionState: "CONNECTED",
+    });
+    expect(r.state).toBe("FRESH");
+    expect(r.liveCapable).toBe(false);
+    expect(r.warnings.some((w) => /live stream not confirmed|HISTORICAL/i.test(w))).toBe(true);
+  });
+
+  it("freshness: aged Binance HISTORICAL is STALE", () => {
+    const t = nowMs();
+    const r = assessCandleFreshnessDetailed({
+      provider: "BINANCE",
+      timeframe: "15m",
+      lastClosedTime: T0,
+      lastUpdateAt: new Date(t - 3_600_000).toISOString(),
       nowMs: t,
       sourceMode: "HISTORICAL",
       connectionState: "CONNECTED",
