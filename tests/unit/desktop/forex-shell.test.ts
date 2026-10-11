@@ -59,7 +59,9 @@ describe("Forex Phase 1 routing", () => {
     expect(FOREX_NAV.find((item) => item.id === "markets")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "watchlist")?.implemented).toBe(true);
     expect(FOREX_NAV.find((item) => item.id === "ai-analysis")?.implemented).toBe(true);
-    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "signals")?.implemented).toBe(true);
+    expect(FOREX_NAV.find((item) => item.id === "signals")?.label).toBe("Market Monitor");
+    expect(FOREX_NAV.filter((item) => !["dashboard", "markets", "watchlist", "charts", "technical-analysis", "ai-analysis", "signals"].includes(item.id)).every((item) => !item.implemented)).toBe(true);
     expect(FOREX_DASHBOARD_MODULES).toHaveLength(8);
   });
 });
