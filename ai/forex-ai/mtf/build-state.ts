@@ -1,12 +1,13 @@
 /**
  * Build multi-timeframe Market State using Phase 18 engine only (no second pipeline).
- * Phase 31: all timeframes for a request must come from the same explicit provider.
+ * Phase 31/33: all timeframes for a request must come from the same explicit provider.
  */
 import { buildForexMarketState } from "../../forex-market-state/index.js";
 import type { ForexBinanceMarketState } from "../../forex-market-state/types.js";
 import { parseInterval } from "../../market-data/binance/adapter.js";
 import type { BinanceMarketDataService } from "../../market-data/binance/service.js";
 import type { NormalizedTimeframeId } from "../../market-data/binance/types.js";
+import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { getMarketDataService } from "../../market-data/providers/market-data-service.js";
 import type { MarketProviderId } from "../../market-data/providers/types.js";
 import { assessMarketStateForAnalysis, formatDisplaySymbol } from "../data-quality.js";
@@ -66,6 +67,14 @@ function aggregateDataQuality(slots: ForexMtfSlot[], required: NormalizedTimefra
   return "COMPLETE_CONNECTED";
 }
 
+function resolveProvider(raw?: MarketProviderId | string | null): MarketProviderId {
+  return parseMarketProviderId(raw) ?? "BINANCE";
+}
+
+function isForexProvider(provider: MarketProviderId): boolean {
+  return provider === "FXCM" || provider === "FOREXCONNECT";
+}
+
 export async function buildMultiTimeframeMarketState(input: {
   symbol: string;
   timeframes: NormalizedTimeframeId[];
@@ -75,8 +84,8 @@ export async function buildMultiTimeframeMarketState(input: {
   /** Explicit provider — defaults BINANCE. Never mixes providers across slots. */
   provider?: MarketProviderId;
 }): Promise<ForexMultiTimeframeMarketState> {
-  const provider: MarketProviderId = input.provider === "FXCM" ? "FXCM" : "BINANCE";
-  const symbol = provider === "FXCM"
+  const provider = resolveProvider(input.provider);
+  const symbol = isForexProvider(provider)
     ? input.symbol.trim()
     : input.symbol.toUpperCase().replace(/[/_-\s]/g, "");
   const nowMs = input.nowMs ?? Date.now();
@@ -112,13 +121,13 @@ export async function buildMultiTimeframeMarketState(input: {
         });
       } else {
         const series = await marketData.getHistoricalCandles({
-          provider: "FXCM",
+          provider,
           symbol,
           timeframe,
           limit: 300,
         });
-        if (series.identity.provider !== "FXCM") {
-          throw new Error("FXCM MTF refused cross-provider candles.");
+        if (series.identity.provider !== provider) {
+          throw new Error(`${provider} MTF refused cross-provider candles.`);
         }
         marketState = buildForexMarketState({
           symbol: series.identity.canonicalSymbol,
@@ -137,7 +146,7 @@ export async function buildMultiTimeframeMarketState(input: {
             ? series.candles[series.candles.length - 1]!.time * 1000
             : null,
           nowMs,
-          provider: "FXCM",
+          provider,
           marketType: "FOREX",
           displaySymbol: series.identity.displaySymbol,
           providerSymbol: series.identity.providerSymbol,
@@ -170,9 +179,12 @@ export async function buildMultiTimeframeMarketState(input: {
     : (slots.find((s) => s.marketState)?.marketState?.displaySymbol ?? symbol);
 
   return {
-    symbol: provider === "BINANCE" ? symbol : (slots.find((s) => s.marketState)?.marketState?.canonicalSymbol ?? symbol.replace(/[/_-\s]/g, "").toUpperCase()),
+    symbol: provider === "BINANCE"
+      ? symbol
+      : (slots.find((s) => s.marketState)?.marketState?.canonicalSymbol
+        ?? symbol.replace(/[/_-\s]/g, "").toUpperCase()),
     exchange: provider,
-    marketType: provider === "FXCM" ? "FOREX" : "SPOT",
+    marketType: isForexProvider(provider) ? "FOREX" : "SPOT",
     displaySymbol,
     generatedAt: new Date(nowMs).toISOString(),
     timeframes: input.timeframes,

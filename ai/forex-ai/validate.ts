@@ -61,9 +61,15 @@ export function validateForexMarketState(input: unknown): {
   if (!timeframe) {
     return { ok: false, code: "INVALID_MARKET_STATE", error: "timeframe is required." };
   }
-  const exchange = raw.exchange === "FXCM" ? "FXCM" : raw.exchange === "BINANCE" ? "BINANCE" : null;
+  const exchange = raw.exchange === "FXCM"
+    ? "FXCM"
+    : raw.exchange === "FOREXCONNECT"
+      ? "FOREXCONNECT"
+      : raw.exchange === "BINANCE"
+        ? "BINANCE"
+        : null;
   if (!exchange) {
-    return { ok: false, code: "INVALID_MARKET_STATE", error: "exchange must be BINANCE or FXCM." };
+    return { ok: false, code: "INVALID_MARKET_STATE", error: "exchange must be BINANCE, FXCM, or FOREXCONNECT." };
   }
   const allowedMarketTypes = new Set(["SPOT", "FOREX", "CFD", "COMMODITY", "INDEX", "OTHER"]);
   const marketTypeRaw = asString(raw.marketType).toUpperCase();
@@ -76,8 +82,8 @@ export function validateForexMarketState(input: unknown): {
   if (exchange === "BINANCE" && marketType !== "SPOT") {
     return { ok: false, code: "INVALID_MARKET_STATE", error: "BINANCE marketType must be SPOT." };
   }
-  if (exchange === "FXCM" && marketType === "SPOT") {
-    return { ok: false, code: "INVALID_MARKET_STATE", error: "FXCM marketType must not be SPOT." };
+  if ((exchange === "FXCM" || exchange === "FOREXCONNECT") && marketType === "SPOT") {
+    return { ok: false, code: "INVALID_MARKET_STATE", error: `${exchange} marketType must not be SPOT.` };
   }
 
   const candleRaw = (raw.candle && typeof raw.candle === "object")
@@ -157,7 +163,9 @@ export function validateForexMarketState(input: unknown): {
       ? "binance-spot"
       : raw.dataSource === "fxcm-mid"
         ? "fxcm-mid"
-        : "none",
+        : raw.dataSource === "forexconnect-bid"
+          ? "forexconnect-bid"
+          : "none",
     live: raw.live === true,
   };
 
@@ -165,7 +173,9 @@ export function validateForexMarketState(input: unknown): {
 }
 
 export function marketStateHasAnalyzableFacts(market: ForexMarketState): boolean {
-  const knownSource = market.dataSource === "binance-spot" || market.dataSource === "fxcm-mid";
+  const knownSource = market.dataSource === "binance-spot"
+    || market.dataSource === "fxcm-mid"
+    || market.dataSource === "forexconnect-bid";
   return knownSource
     && (
       market.price != null
@@ -316,7 +326,9 @@ export function parseForexAiAnalysis(
       exchange: context.market.exchange,
       symbol: context.market.symbol,
       displaySymbol: formatDisplaySymbol(context.market.symbol),
-      marketType: context.market.exchange === "FXCM" ? context.market.marketType : "CRYPTO",
+      marketType: (context.market.exchange === "FXCM" || context.market.exchange === "FOREXCONNECT")
+        ? context.market.marketType
+        : "CRYPTO",
       timeframe: context.market.timeframe,
     },
     dataQuality: {

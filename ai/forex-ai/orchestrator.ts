@@ -1,13 +1,16 @@
 /**
- * Phase 20/32 — Forex AI Market Analysis orchestrator.
- * Unified Market Data → Market State → Knowledge → Ollama → validated ForexAiAnalysis.
- * Provider identity is explicit; no silent Binance↔FXCM fallback.
+ * Phase 20/32/38E — Forex AI Market Analysis orchestrator.
+ * Unified Market Data → Detectors → Market State → Knowledge → Ollama → validated ForexAiAnalysis.
+ * Provider identity is explicit; no silent Binance↔FXCM↔ForexConnect fallback.
  */
 import { buildForexMarketState, toForexAiMarketState } from "../forex-market-state/index.js";
 import { getForexKnowledgeService } from "../forex-knowledge/index.js";
 import type { ForexKnowledgeRetrievalHit } from "../forex-knowledge/types.js";
 import { parseCanonicalTimeframe } from "../market-data/providers/contracts.js";
-import { normalizeCanonicalSymbol } from "../market-data/providers/identity.js";
+import {
+  normalizeCanonicalSymbol,
+  parseMarketProviderId,
+} from "../market-data/providers/identity.js";
 import {
   getMarketDataService,
   MarketDataRoutingError,
@@ -16,11 +19,19 @@ import {
 import type { MarketProviderId } from "../market-data/providers/types.js";
 import { userFacingBinanceError } from "../market-data/binance/errors.js";
 import { userFacingFxcmError } from "../market-data/fxcm/errors.js";
+import { userFacingForexConnectError } from "../market-data/forexconnect/errors.js";
 import { analyzeForexMarketState } from "./analysis-engine.js";
 import { assessMarketStateForAnalysis } from "./data-quality.js";
 import {
+  buildEvidenceAwareKnowledgeQuery,
+  buildForexAiEvidencePack,
+  enrichEvidencePackKnowledge,
+  type ForexAiEvidencePack,
+} from "./evidence/index.js";
+import {
   buildForexKnowledgeQuery,
   FOREX_AI_KNOWLEDGE_TOP_K,
+  sanitizeKnowledgeQueryInput,
 } from "./knowledge-query.js";
 import type {
   ForexAiAnalysisRequest,
@@ -43,12 +54,17 @@ function parseAnalysisType(value: unknown): ForexAiAnalysisType {
 }
 
 function resolveProvider(raw: unknown): MarketProviderId {
-  return String(raw ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" : "BINANCE";
+  return parseMarketProviderId(raw) ?? "BINANCE";
+}
+
+function isForexSlashProvider(provider: MarketProviderId): boolean {
+  return provider === "FXCM" || provider === "FOREXCONNECT";
 }
 
 function mapProviderError(provider: MarketProviderId, error: unknown): string {
   if (error instanceof MarketDataRoutingError) return error.message;
   if (provider === "FXCM") return userFacingFxcmError(error).message;
+  if (provider === "FOREXCONNECT") return userFacingForexConnectError(error).message;
   return userFacingBinanceError(error).message;
 }
 
@@ -65,7 +81,8 @@ export async function runForexMarketAnalysis(
   const started = Date.now();
   const provider = resolveProvider(request.provider);
   const symbolRaw = String(request.symbol ?? "").trim();
-  const symbol = provider === "FXCM"
+  // FOREXCONNECT / FXCM may use display symbols with `/` — do not force-strip before fetch.
+  const symbol = isForexSlashProvider(provider)
     ? symbolRaw
     : normalizeCanonicalSymbol(symbolRaw);
   const timeframe = parseCanonicalTimeframe(String(request.timeframe ?? "").trim().toLowerCase());
@@ -85,7 +102,7 @@ export async function runForexMarketAnalysis(
   let series;
   try {
     const marketData = deps?.marketData ?? getMarketDataService();
-    series = provider === "FXCM"
+    series = isForexSlashProvider(provider)
       ? (marketData.getLiveCandleSeries({ provider, symbol, timeframe })
         ?? await marketData.getHistoricalCandles({ provider, symbol, timeframe, limit: 300 }))
       : await marketData.getHistoricalCandles({ provider, symbol, timeframe, limit: 300 });
@@ -108,8 +125,24 @@ export async function runForexMarketAnalysis(
     };
   }
 
+  const identitySymbol = series.identity.canonicalSymbol || compact;
+  const displaySymbol = series.identity.displaySymbol || symbol;
+  const providerSymbol = series.identity.providerSymbol || symbol;
+  const environment = series.identity.environment ?? null;
+
+  const evidenceStarted = Date.now();
+  let evidencePack: ForexAiEvidencePack = buildForexAiEvidencePack({
+    provider,
+    environment,
+    symbol: identitySymbol,
+    timeframe: series.timeframe,
+    candles: series.candles,
+    priceBasis: provider === "FOREXCONNECT" ? "bid" : provider === "FXCM" ? "mid" : null,
+  });
+  const evidenceLatencyMs = Date.now() - evidenceStarted;
+
   const marketState = buildForexMarketState({
-    symbol: series.identity.canonicalSymbol,
+    symbol: identitySymbol,
     timeframe: series.timeframe,
     candles: series.candles.map((c) => ({
       time: c.time,
@@ -126,10 +159,10 @@ export async function runForexMarketAnalysis(
       ? Date.parse(series.lastQuoteAt)
       : (series.candles.length ? series.candles[series.candles.length - 1]!.time * 1000 : null),
     provider,
-    marketType: provider === "FXCM" ? "FOREX" : "SPOT",
-    displaySymbol: series.identity.displaySymbol,
-    providerSymbol: series.identity.providerSymbol,
-    canonicalSymbol: series.identity.canonicalSymbol,
+    marketType: isForexSlashProvider(provider) ? "FOREX" : "SPOT",
+    displaySymbol,
+    providerSymbol,
+    canonicalSymbol: identitySymbol,
   });
 
   const quality = assessMarketStateForAnalysis(marketState, deps?.nowMs ?? Date.now());
@@ -140,13 +173,26 @@ export async function runForexMarketAnalysis(
       analysis: null,
       latencyMs: Date.now() - started,
       error: quality.reason ?? quality.code,
+      evidencePack,
+      evidenceLatencyMs,
       diagnostics: { analysisType, knowledgeHits: 0 },
     };
   }
 
   const aiMarketState = toForexAiMarketState(marketState);
-  const knowledgeQuery = String(request.knowledgeQuery ?? "").trim()
+  // Merge STRUCTURE_V1 summary without breaking BASIC_SWINGS consumers.
+  aiMarketState.marketStructure = {
+    ...aiMarketState.marketStructure,
+    structureV1: {
+      trendState: evidencePack.structure.trendState,
+      ruleVersion: evidencePack.structure.ruleVersion,
+      eventCount: evidencePack.structure.events.length,
+    },
+  };
+
+  const baseQuery = sanitizeKnowledgeQueryInput(request.knowledgeQuery)
     || buildForexKnowledgeQuery(aiMarketState, analysisType);
+  const knowledgeQuery = buildEvidenceAwareKnowledgeQuery(baseQuery, evidencePack);
 
   let knowledgeHits: ForexKnowledgeRetrievalHit[] = [];
   try {
@@ -162,11 +208,20 @@ export async function runForexMarketAnalysis(
     knowledgeHits = [];
   }
 
-  return analyzeForexMarketState(aiMarketState, {
+  evidencePack = enrichEvidencePackKnowledge(evidencePack, knowledgeHits);
+
+  const result = await analyzeForexMarketState(aiMarketState, {
     timeoutMs: request.timeoutMs ?? 120_000,
     knowledgeHits,
     analysisType,
     dataQualityStatus: quality.status,
     dataQualityStale: quality.stale,
+    evidencePack,
   });
+
+  return {
+    ...result,
+    evidencePack: result.evidencePack ?? evidencePack,
+    evidenceLatencyMs,
+  };
 }

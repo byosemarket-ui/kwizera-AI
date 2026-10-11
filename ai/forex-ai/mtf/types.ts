@@ -1,9 +1,15 @@
 /**
- * Phase 21 — Multi-timeframe AI contracts.
+ * Phase 21 — Multi-timeframe AI contracts (+ Phase 38E evidence).
  */
 import type { ForexBinanceMarketState } from "../../forex-market-state/types.js";
 import type { NormalizedTimeframeId } from "../../market-data/binance/types.js";
-import type { ForexAiDecisionPosture, ForexAiErrorCode, ForexAiKnowledgeSource } from "../types.js";
+import type {
+  ForexAiDecisionPosture,
+  ForexAiErrorCode,
+  ForexAiEvidencePack,
+  ForexAiInferenceStatus,
+  ForexAiKnowledgeSource,
+} from "../types.js";
 import type { ForexMtfRole } from "./config.js";
 
 export type ForexMtfAlignment =
@@ -60,7 +66,7 @@ export interface ForexMtfSlot {
 
 export interface ForexMultiTimeframeMarketState {
   symbol: string;
-  exchange: "BINANCE" | "FXCM";
+  exchange: "BINANCE" | "FXCM" | "FOREXCONNECT";
   marketType: "SPOT" | "FOREX";
   displaySymbol: string;
   generatedAt: string;
@@ -104,7 +110,7 @@ export interface ForexMtfAiAnalysis {
   generatedAt: string;
   narrativeStatus: ForexMtfNarrativeStatus;
   market: {
-    exchange: "BINANCE" | "FXCM";
+    exchange: "BINANCE" | "FXCM" | "FOREXCONNECT";
     symbol: string;
     displaySymbol: string;
     marketType: "SPOT" | "CRYPTO" | "FOREX";
@@ -136,6 +142,11 @@ export interface ForexMtfAiAnalysis {
   model: string | null;
   promptVersion: string;
   engineVersion: string;
+  /** Phase 38E — compact detector evidence for primary/intermediate TF. */
+  evidencePack?: ForexAiEvidencePack;
+  evidenceSchemaVersion?: string;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: ForexAiInferenceStatus;
 }
 
 export interface ForexMtfAnalyzeRequest {
@@ -145,7 +156,7 @@ export interface ForexMtfAnalyzeRequest {
   knowledgeQuery?: string;
   timeoutMs?: number;
   /** Explicit provider — all MTF slots must share this provider. */
-  provider?: "BINANCE" | "FXCM";
+  provider?: "BINANCE" | "FXCM" | "FOREXCONNECT";
 }
 
 export interface ForexMtfAnalyzeResult {
@@ -154,11 +165,15 @@ export interface ForexMtfAnalyzeResult {
   analysis: ForexMtfAiAnalysis | null;
   latencyMs: number;
   error?: string;
+  evidencePack?: ForexAiEvidencePack;
+  evidenceLatencyMs?: number;
   diagnostics?: {
     promptChars?: number;
     knowledgeHits?: number;
     model?: string | null;
     timeframes?: string[];
     marketStateMs?: number;
+    inferenceLatencyMs?: number | null;
+    inferenceStatus?: ForexAiInferenceStatus;
   };
 }

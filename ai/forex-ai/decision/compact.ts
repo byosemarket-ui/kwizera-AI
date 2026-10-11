@@ -4,16 +4,22 @@
 import { formatCompactFactsLine } from "../mtf/compact.js";
 import type { ForexDecisionDeterministicPack } from "./types.js";
 
-export function formatDecisionFactsBlock(pack: ForexDecisionDeterministicPack): string {
+export function formatDecisionFactsBlock(
+  pack: ForexDecisionDeterministicPack,
+  evidenceLine?: string,
+): string {
   const { mtf, alignment, scenario, entryZone, confirmation, invalidation, riskContext, decisionPosture } = pack;
   const lines: string[] = [
-    `SYMBOL ${mtf.symbol} EXCHANGE BINANCE SPOT`,
+    `SYMBOL ${mtf.symbol} EXCHANGE ${mtf.exchange} ${mtf.marketType}`,
     `PRICE ${entryZone.currentPrice ?? "UNAVAILABLE"}`,
     `DQ ${mtf.dataQuality}`,
     `ALIGN ${alignment.overall} HTF=${alignment.higherBias} LTF=${alignment.lowerState}`,
     `SCENARIO ${scenario.type} DIR=${scenario.direction}`,
     `POSTURE ${decisionPosture}`,
   ];
+  if (evidenceLine) {
+    lines.push(evidenceLine.slice(0, 500));
+  }
 
   for (const slot of mtf.slots) {
     lines.push(formatCompactFactsLine(slot.compact));

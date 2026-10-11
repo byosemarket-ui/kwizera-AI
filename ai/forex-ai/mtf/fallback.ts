@@ -27,7 +27,7 @@ export function assembleMtfMarketStateOnly(input: {
       exchange: mtf.exchange,
       symbol: mtf.symbol,
       displaySymbol: mtf.displaySymbol,
-      marketType: mtf.exchange === "FXCM" ? "FOREX" : "CRYPTO",
+      marketType: (mtf.exchange === "FXCM" || mtf.exchange === "FOREXCONNECT") ? "FOREX" : "CRYPTO",
     },
     timeframes: mtf.timeframes,
     timeframeStates: mtf.slots.map((s) => s.compact),

@@ -28,6 +28,7 @@ export function buildMtfAnalysisPrompt(input: {
   mtf: ForexMultiTimeframeMarketState;
   alignment: ForexMtfAlignmentResult;
   knowledgeText: string;
+  evidenceText?: string;
 }): string {
   const lines = input.mtf.slots.map((s) => formatCompactFactsLine(s.compact));
   const alignmentBlock = [
@@ -41,13 +42,15 @@ export function buildMtfAnalysisPrompt(input: {
   ].join("\n");
 
   let knowledge = input.knowledgeText.slice(0, 500);
+  const evidence = (input.evidenceText ?? "").slice(0, 700);
   let body = [
     "KWIZERA Forex Multi-Timeframe AI. Follow rules:",
     FOREX_AI_SYSTEM_RULES,
     "Reason top-down: higher TF context before lower TF detail. Never invent TF values.",
+    "Cite only DETECTOR_EVIDENCE and KNOWLEDGE_IDS provided.",
     `Prompt:${FOREX_MTF_PROMPT_VERSION} Schema:${FOREX_MTF_SCHEMA_VERSION}`,
     "",
-    `MARKET: BINANCE ${input.mtf.symbol} (${input.mtf.displaySymbol}) SPOT`,
+    `MARKET: ${input.mtf.exchange} ${input.mtf.symbol} (${input.mtf.displaySymbol}) ${input.mtf.marketType}`,
     `DATA_QUALITY: ${input.mtf.dataQuality}`,
     "",
     "TIMEFRAME_STATES (authoritative, top-down):",
@@ -55,6 +58,8 @@ export function buildMtfAnalysisPrompt(input: {
     "",
     "DETERMINISTIC_ALIGNMENT (system facts, not to invent):",
     alignmentBlock,
+    "",
+    evidence || "DETECTOR_EVIDENCE: none",
     "",
     "KNOWLEDGE (reference only):",
     knowledge,

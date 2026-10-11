@@ -18,6 +18,30 @@ type ForexAiHealthPublic = {
   error?: string;
 };
 
+type EvidencePackUi = {
+  schemaVersion?: string;
+  provider?: string;
+  symbol?: string;
+  timeframe?: string;
+  insufficientHistory?: boolean;
+  warnings?: string[];
+  patterns?: { detections?: Array<{ id: string; name: string; direction: string; status: string }> };
+  structure?: {
+    trendState?: string;
+    events?: Array<{ type: string; direction: string; status: string; level: number }>;
+    zones?: Array<{ side: string; low: number; high: number; status: string; touches: number }>;
+    swingSummary?: { confirmedCount?: number; provisionalCount?: number };
+  };
+  knowledge?: Array<{
+    documentId: string;
+    chunkId: string;
+    title: string;
+    sourceName?: string;
+    version?: number;
+    pageNumber?: number | null;
+  }>;
+};
+
 type SingleAnalysis = {
   schemaVersion: string;
   analysisId: string;
@@ -34,12 +58,23 @@ type SingleAnalysis = {
   confirmationNeeded: string[];
   invalidationConditions: string[];
   risks: string[];
-  knowledgeSources: Array<{ documentId: string; title: string; relevanceScore: number; version: number }>;
+  knowledgeSources: Array<{
+    documentId: string;
+    title: string;
+    relevanceScore: number;
+    version: number;
+    chunkId?: string;
+    sourceName?: string;
+    pageNumber?: number | null;
+  }>;
   limitations: string[];
   decisionPosture: string;
   confidence: null;
   model: string | null;
   reasoning: string;
+  evidencePack?: EvidencePackUi;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: string;
 };
 
 type MtfAnalysis = {
@@ -85,11 +120,21 @@ type MtfAnalysis = {
   confirmationNeeded: string[];
   invalidationConditions: string[];
   risks: string[];
-  knowledgeSources: Array<{ documentId: string; title: string; relevanceScore: number; version: number }>;
+  knowledgeSources: Array<{
+    documentId: string;
+    title: string;
+    relevanceScore: number;
+    version: number;
+    chunkId?: string;
+    sourceName?: string;
+  }>;
   limitations: string[];
   decisionPosture: string;
   confidence: null;
   model: string | null;
+  evidencePack?: EvidencePackUi;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: string;
 };
 
 type DecisionAnalysis = {
@@ -161,10 +206,20 @@ type DecisionAnalysis = {
   observedFacts: string[];
   deterministicSummary: string;
   aiInterpretation: string | null;
-  knowledgeSources: Array<{ documentId: string; title: string; relevanceScore: number; version: number }>;
+  knowledgeSources: Array<{
+    documentId: string;
+    title: string;
+    relevanceScore: number;
+    version: number;
+    chunkId?: string;
+    sourceName?: string;
+  }>;
   limitations: string[];
   confidence: null;
   model: string | null;
+  evidencePack?: EvidencePackUi;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: string;
 };
 
 type UiPhase = "idle" | "analyzing" | "ready" | "error";
@@ -180,6 +235,114 @@ function formatTs(value: string | null | undefined): string {
   if (!value) return "—";
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+}
+
+function EvidencePanel({
+  pack,
+  model,
+  inferenceLatencyMs,
+  inferenceStatus,
+}: {
+  pack?: EvidencePackUi | null;
+  model?: string | null;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: string | null;
+}) {
+  if (!pack) {
+    return (
+      <div className="fx-placeholder-panel" data-forex-ai-evidence="true">
+        <h3>Detector evidence</h3>
+        <p className="fx-panel-meta">No detector evidence attached to this result.</p>
+      </div>
+    );
+  }
+  const patterns = pack.patterns?.detections ?? [];
+  const events = pack.structure?.events ?? [];
+  const zones = pack.structure?.zones ?? [];
+  const knowledge = pack.knowledge ?? [];
+  const warnings = pack.warnings ?? [];
+  return (
+    <div className="fx-placeholder-panel" data-forex-ai-evidence="true">
+      <h3>Detector evidence</h3>
+      <p className="fx-panel-meta">
+        {pack.provider ?? "—"} · {pack.symbol ?? "—"} · {pack.timeframe ?? "—"}
+        {pack.insufficientHistory ? " · insufficient history" : ""}
+      </p>
+      <dl className="fx-ohlc">
+        <div>
+          <dt>Structure trend</dt>
+          <dd data-evidence-trend="true">{pack.structure?.trendState ?? "UNKNOWN"}</dd>
+        </div>
+        <div>
+          <dt>Swings</dt>
+          <dd>
+            conf={pack.structure?.swingSummary?.confirmedCount ?? 0}
+            {" · "}
+            prov={pack.structure?.swingSummary?.provisionalCount ?? 0}
+          </dd>
+        </div>
+        <div>
+          <dt>Inference</dt>
+          <dd>
+            {inferenceStatus ?? "—"}
+            {inferenceLatencyMs != null ? ` · ${inferenceLatencyMs} ms` : ""}
+            {model ? ` · ${model}` : ""}
+          </dd>
+        </div>
+      </dl>
+      <h4>Patterns</h4>
+      {patterns.length === 0 ? (
+        <p className="fx-panel-meta">None detected (or insufficient history).</p>
+      ) : (
+        <ul data-evidence-patterns="true">
+          {patterns.map((p) => (
+            <li key={`${p.id}-${p.status}`}>{p.name} · {p.direction} · {p.status}</li>
+          ))}
+        </ul>
+      )}
+      <h4>BOS / CHoCH</h4>
+      {events.length === 0 ? (
+        <p className="fx-panel-meta">None</p>
+      ) : (
+        <ul data-evidence-events="true">
+          {events.map((e, i) => (
+            <li key={`${e.type}-${e.level}-${i}`}>{e.type} · {e.direction} · {e.status} @ {e.level}</li>
+          ))}
+        </ul>
+      )}
+      <h4>Zones</h4>
+      {zones.length === 0 ? (
+        <p className="fx-panel-meta">None</p>
+      ) : (
+        <ul data-evidence-zones="true">
+          {zones.map((z, i) => (
+            <li key={`${z.side}-${i}`}>{z.side} {z.low}–{z.high} · {z.status} · touches {z.touches}</li>
+          ))}
+        </ul>
+      )}
+      <h4>Knowledge citations</h4>
+      {knowledge.length === 0 ? (
+        <p className="fx-panel-meta">Empty knowledge OK — none matched.</p>
+      ) : (
+        <ul data-evidence-knowledge="true">
+          {knowledge.map((k) => (
+            <li key={`${k.documentId}:${k.chunkId}`}>
+              {k.title}
+              {" · "}
+              {k.documentId}/{k.chunkId}
+              {k.sourceName ? ` · ${k.sourceName}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      {warnings.length ? (
+        <>
+          <h4>Warnings</h4>
+          <ul data-evidence-warnings="true">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 export function ForexAiAnalysisPage({
@@ -207,8 +370,13 @@ export function ForexAiAnalysisPage({
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
   const fxcmSelected = selectedMarket?.venue === "fxcm";
-  const marketReady = Boolean(binanceSelected || fxcmSelected);
-  const provider = fxcmSelected ? "FXCM" as const : "BINANCE" as const;
+  const forexConnectSelected = selectedMarket?.venue === "forexconnect";
+  const marketReady = Boolean(binanceSelected || fxcmSelected || forexConnectSelected);
+  const provider = forexConnectSelected
+    ? "FOREXCONNECT" as const
+    : fxcmSelected
+      ? "FXCM" as const
+      : "BINANCE" as const;
 
   useEffect(() => {
     let cancelled = false;
@@ -241,7 +409,7 @@ export function ForexAiAnalysisPage({
     if (!marketReady || !selectedMarket) {
       setPhase("error");
       setAnalyzeCode("DATA_UNAVAILABLE");
-      setAnalyzeError("Select a BINANCE or FXCM instrument from Markets before analyzing.");
+      setAnalyzeError("Select a BINANCE, FXCM, or FOREXCONNECT instrument from Markets before analyzing.");
       return;
     }
     setPhase("analyzing");
@@ -423,8 +591,14 @@ export function ForexAiAnalysisPage({
               <div><dt>Analysis generated</dt><dd>{formatTs(single.generatedAt)}</dd></div>
               <div><dt>Decision posture</dt><dd>{single.decisionPosture}</dd></div>
             </dl>
-            {latencyMs != null ? <p className="fx-panel-meta">Inference latency: {latencyMs} ms</p> : null}
+            {latencyMs != null ? <p className="fx-panel-meta">Total latency: {latencyMs} ms</p> : null}
           </div>
+          <EvidencePanel
+            pack={single.evidencePack}
+            model={single.model}
+            inferenceLatencyMs={single.inferenceLatencyMs}
+            inferenceStatus={single.inferenceStatus}
+          />
           <div className="fx-placeholder-panel"><h3>Summary</h3><p data-ai-summary="true">{single.summary}</p></div>
           <div className="fx-placeholder-panel">
             <h3>Observed Market Facts</h3>
@@ -470,6 +644,13 @@ export function ForexAiAnalysisPage({
               </p>
             ) : null}
           </div>
+
+          <EvidencePanel
+            pack={mtf.evidencePack}
+            model={mtf.model}
+            inferenceLatencyMs={mtf.inferenceLatencyMs}
+            inferenceStatus={mtf.inferenceStatus}
+          />
 
           <div className="fx-placeholder-panel">
             <h3>Higher timeframe bias</h3>
@@ -580,6 +761,13 @@ export function ForexAiAnalysisPage({
               </p>
             ) : null}
           </div>
+
+          <EvidencePanel
+            pack={decision.evidencePack}
+            model={decision.model}
+            inferenceLatencyMs={decision.inferenceLatencyMs}
+            inferenceStatus={decision.inferenceStatus}
+          />
 
           <div className="fx-placeholder-panel" data-ai-decision-scenario="true">
             <h3>Scenario</h3>
@@ -711,7 +899,7 @@ export function ForexAiAnalysisPage({
 
       {!marketReady ? (
         <div className="fx-placeholder-panel">
-          <p className="fx-panel-meta">Select a BINANCE or FXCM instrument from Markets to run AI analysis.</p>
+          <p className="fx-panel-meta">Select a BINANCE, FXCM, or FOREXCONNECT instrument from Markets to run AI analysis.</p>
         </div>
       ) : null}
     </section>

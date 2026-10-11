@@ -1,8 +1,12 @@
 /**
- * Phase 22 — Decision / Scenario / Entry-Zone contracts.
+ * Phase 22 — Decision / Scenario / Entry-Zone contracts (+ Phase 38E evidence).
  */
 import type { NormalizedTimeframeId } from "../../market-data/binance/types.js";
-import type { ForexAiKnowledgeSource } from "../types.js";
+import type {
+  ForexAiEvidencePack,
+  ForexAiInferenceStatus,
+  ForexAiKnowledgeSource,
+} from "../types.js";
 import type {
   ForexMtfAlignmentResult,
   ForexMtfCompactFacts,
@@ -125,7 +129,7 @@ export interface ForexDecisionAnalysis {
   generatedAt: string;
   narrativeStatus: ForexDecisionNarrativeStatus;
   market: {
-    exchange: "BINANCE" | "FXCM";
+    exchange: "BINANCE" | "FXCM" | "FOREXCONNECT";
     symbol: string;
     displaySymbol: string;
     marketType: "SPOT" | "FOREX";
@@ -175,6 +179,11 @@ export interface ForexDecisionAnalysis {
   model: string | null;
   promptVersion: string;
   engineVersion: string;
+  /** Phase 38E — detector evidence for decision primary timeframe. */
+  evidencePack?: ForexAiEvidencePack;
+  evidenceSchemaVersion?: string;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: ForexAiInferenceStatus;
 }
 
 export interface ForexDecisionAnalyzeRequest {
@@ -184,7 +193,7 @@ export interface ForexDecisionAnalyzeRequest {
   knowledgeQuery?: string;
   timeoutMs?: number;
   /** Explicit provider — Decision MTF stack must stay single-provider. */
-  provider?: "BINANCE" | "FXCM";
+  provider?: "BINANCE" | "FXCM" | "FOREXCONNECT";
 }
 
 export interface ForexDecisionAnalyzeResult {
@@ -193,6 +202,8 @@ export interface ForexDecisionAnalyzeResult {
   analysis: ForexDecisionAnalysis | null;
   latencyMs: number;
   error?: string;
+  evidencePack?: ForexAiEvidencePack;
+  evidenceLatencyMs?: number;
   diagnostics?: {
     promptChars?: number;
     knowledgeHits?: number;
@@ -203,6 +214,8 @@ export interface ForexDecisionAnalyzeResult {
     deterministicMs?: number;
     memoryMs?: number;
     promptVersion?: string;
+    inferenceLatencyMs?: number | null;
+    inferenceStatus?: ForexAiInferenceStatus;
   };
 }
 

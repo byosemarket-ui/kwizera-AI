@@ -158,7 +158,9 @@ export function parseMtfAiAnalysis(
         exchange: context.mtf.exchange,
         symbol: context.mtf.symbol,
         displaySymbol: context.mtf.displaySymbol,
-        marketType: context.mtf.exchange === "FXCM" ? "FOREX" : "CRYPTO",
+        marketType: (context.mtf.exchange === "FXCM" || context.mtf.exchange === "FOREXCONNECT")
+          ? "FOREX"
+          : "CRYPTO",
       },
       timeframes: context.mtf.timeframes,
       timeframeStates: context.mtf.slots.map((s) => s.compact),

@@ -7,15 +7,21 @@ import { emptyForexMarketState } from "../forex-ai/types.js";
 import type { ForexBinanceMarketState } from "./types.js";
 
 export function toForexAiMarketState(state: ForexBinanceMarketState): ForexMarketState {
-  const exchange = state.provider === "FXCM" ? "FXCM" : "BINANCE";
-  const marketType = state.provider === "FXCM"
+  const exchange = state.provider === "FXCM"
+    ? "FXCM"
+    : state.provider === "FOREXCONNECT"
+      ? "FOREXCONNECT"
+      : "BINANCE";
+  const marketType = (state.provider === "FXCM" || state.provider === "FOREXCONNECT")
     ? (state.marketType === "SPOT" || state.marketType === "CRYPTO" ? "FOREX" : state.marketType)
     : "SPOT";
   const dataSource = state.dataSource === "fxcm-mid"
     ? "fxcm-mid"
-    : state.dataSource === "binance-spot"
-      ? "binance-spot"
-      : "none";
+    : state.dataSource === "forexconnect-bid"
+      ? "forexconnect-bid"
+      : state.dataSource === "binance-spot"
+        ? "binance-spot"
+        : "none";
 
   if (!state.dataQuality.valid || !state.candle || !state.price) {
     return emptyForexMarketState({

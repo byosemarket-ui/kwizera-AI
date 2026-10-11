@@ -14,7 +14,9 @@ import type { ForexDecisionDeterministicPack } from "./types.js";
 const SYSTEM = [
   "You are a Forex analytical assistant for KWIZERA AI STUDIO.",
   "CURRENT MARKET STATE is authoritative. Knowledge is methodology only. Historical memory is context only — never current fact.",
+  "Cite only DETECTOR_EVIDENCE patterns/events and KNOWLEDGE_IDS provided — never invent them.",
   "Do not invent numbers. Never invent prices, RSI, ATR, support, resistance, entry, SL, TP, or timestamps.",
+  "Never invent SL/TP/entry — deterministic engines are the source of truth for those fields.",
   "Never output BUY, SELL, LONG, SHORT as trade orders.",
   "Never claim current direction because previous memory outcomes succeeded.",
   "Never rewrite historical memory outcomes.",
@@ -27,8 +29,9 @@ export function buildDecisionAnalysisPrompt(input: {
   pack: ForexDecisionDeterministicPack;
   knowledgeText: string;
   memoryText?: string;
+  evidenceText?: string;
 }): string {
-  const facts = formatDecisionFactsBlock(input.pack);
+  const facts = formatDecisionFactsBlock(input.pack, input.evidenceText);
   const header = [
     SYSTEM,
     `Prompt:${FOREX_DECISION_PROMPT_VERSION} Schema:${FOREX_DECISION_SCHEMA_VERSION}`,

@@ -45,6 +45,9 @@ export function toKnowledgeSources(hits: ForexKnowledgeRetrievalHit[]): Array<{
   title: string;
   relevanceScore: number;
   version: number;
+  chunkId?: string;
+  sourceName?: string;
+  pageNumber?: number | null;
 }> {
   const seen = new Set<string>();
   const sources: Array<{
@@ -52,16 +55,28 @@ export function toKnowledgeSources(hits: ForexKnowledgeRetrievalHit[]): Array<{
     title: string;
     relevanceScore: number;
     version: number;
+    chunkId?: string;
+    sourceName?: string;
+    pageNumber?: number | null;
   }> = [];
   for (const hit of hits) {
-    if (seen.has(hit.documentId)) continue;
-    seen.add(hit.documentId);
+    const key = `${hit.documentId}:${hit.chunkId || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     sources.push({
       documentId: hit.documentId,
       title: hit.title,
       relevanceScore: hit.relevanceScore,
       version: hit.version,
+      chunkId: hit.chunkId || undefined,
+      sourceName: hit.sourceName || undefined,
+      pageNumber: hit.pageNumber ?? null,
     });
   }
   return sources;
+}
+
+/** Sanitize user-supplied knowledge query length before prompt/retrieval. */
+export function sanitizeKnowledgeQueryInput(raw: unknown, maxLen = 220): string {
+  return String(raw ?? "").trim().slice(0, maxLen);
 }

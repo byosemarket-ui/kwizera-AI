@@ -14,6 +14,8 @@ import type {
   ForexAiAnalysis,
   ForexAiAnalysisType,
   ForexAiDataQualityStatus,
+  ForexAiEvidencePack,
+  ForexAiInferenceStatus,
   ForexAiKnowledgeSource,
   ForexMarketState,
 } from "./types.js";
@@ -26,8 +28,17 @@ export function assembleGroundedMarketReadout(input: {
   dataQualityStatus: ForexAiDataQualityStatus;
   dataQualityStale: boolean;
   reason: string;
+  evidencePack?: ForexAiEvidencePack | null;
+  inferenceStatus?: ForexAiInferenceStatus;
+  inferenceLatencyMs?: number | null;
 }): ForexAiAnalysis {
   const { market } = input;
+  const pack = input.evidencePack ?? null;
+  const topPatterns = pack?.patterns.detections.slice(0, 3)
+    .map((p) => `${p.name}(${p.direction}/${p.status})`)
+    .join("; ") || null;
+  const structureTrend = pack?.structure.trendState ?? null;
+
   const observedFacts = [
     `Symbol ${market.symbol} · timeframe ${market.timeframe} · exchange ${market.exchange} ${market.marketType}`,
     market.price != null ? `Last price ${market.price}` : "Last price unavailable",
@@ -41,8 +52,19 @@ export function assembleGroundedMarketReadout(input: {
     market.trend ? `Classified trend=${market.trend}` : "Trend classification unavailable",
     market.momentum ? `Classified momentum=${market.momentum}` : "Momentum classification unavailable",
     market.volatility ? `Classified volatility=${market.volatility}` : "Volatility classification unavailable",
+    structureTrend
+      ? `STRUCTURE_V1 trendState=${structureTrend}`
+      : "STRUCTURE_V1 trendState unavailable",
+    topPatterns
+      ? `Top patterns: ${topPatterns}`
+      : (pack?.insufficientHistory
+        ? "Pattern detectors: insufficient history"
+        : "Pattern detectors: none"),
     `live=${market.live} · dataSource=${market.dataSource}`,
   ];
+
+  const structureState = structureTrend
+    || String(market.marketStructure.structureState ?? market.trend ?? "Insufficient data");
 
   return {
     schemaVersion: FOREX_AI_ANALYSIS_SCHEMA_VERSION,
@@ -53,7 +75,9 @@ export function assembleGroundedMarketReadout(input: {
       exchange: market.exchange,
       symbol: market.symbol,
       displaySymbol: formatDisplaySymbol(market.symbol),
-      marketType: market.exchange === "FXCM" ? market.marketType : "CRYPTO",
+      marketType: (market.exchange === "FXCM" || market.exchange === "FOREXCONNECT")
+        ? market.marketType
+        : "CRYPTO",
       timeframe: market.timeframe,
     },
     dataQuality: {
@@ -76,8 +100,10 @@ export function assembleGroundedMarketReadout(input: {
       explanation: "Taken from Phase 18 Market State classification; no model narrative available.",
     },
     marketStructure: {
-      state: String(market.marketStructure.structureState ?? market.trend ?? "Insufficient data"),
-      explanation: "Taken from supplied Market State structure fields only.",
+      state: structureState,
+      explanation: pack
+        ? `STRUCTURE_V1 trend=${pack.structure.trendState} (rule ${pack.structure.ruleVersion}); no model narrative.`
+        : "Taken from supplied Market State structure fields only.",
     },
     scenarios: [{
       type: "WAIT",
@@ -96,7 +122,7 @@ export function assembleGroundedMarketReadout(input: {
     limitations: [
       input.reason,
       "No invented prices or indicators.",
-      "AI narrative unavailable; facts are from Market State only.",
+      "AI narrative unavailable; facts are from Market State + detector evidence only.",
       "Not a trade signal and not trade execution.",
     ],
     decisionPosture: "WAIT",
@@ -110,5 +136,9 @@ export function assembleGroundedMarketReadout(input: {
     marketCondition: "Grounded readout (model JSON unavailable)",
     reasoning: "Ollama did not return parseable JSON after a controlled repair attempt. Returning Market State facts only.",
     invalidation: [],
+    evidencePack: pack ?? undefined,
+    evidenceSchemaVersion: pack?.schemaVersion,
+    inferenceLatencyMs: input.inferenceLatencyMs ?? null,
+    inferenceStatus: input.inferenceStatus ?? "FORMAT_ERROR",
   };
 }

@@ -1,8 +1,13 @@
 /**
- * Forex AI contracts — Phase 17 foundation + Phase 20 Market Analysis Engine.
+ * Forex AI contracts — Phase 17 foundation + Phase 20 Market Analysis Engine + Phase 38E evidence.
  * Market numbers must come from the Binance / Technical Analysis / Market State engines.
  * Null means unknown; never invent values.
  */
+
+import type { ForexAiEvidencePack, ForexAiInferenceStatus } from "./evidence/types.js";
+
+/** Re-export evidence types for consumers importing from forex-ai/types. */
+export type { ForexAiEvidencePack, ForexAiInferenceStatus };
 
 export type ForexAiHealthState =
   | "AI_READY"
@@ -48,8 +53,8 @@ export type ForexAiErrorCode =
 /** Structured market input for AI reasoning. Null = unknown (do not invent). */
 export interface ForexMarketState {
   symbol: string;
-  /** Provider identity — BINANCE or FXCM (Phase 31). Never mixed. */
-  exchange: "BINANCE" | "FXCM";
+  /** Provider identity — BINANCE | FXCM | FOREXCONNECT (Phase 31/33). Never mixed. */
+  exchange: "BINANCE" | "FXCM" | "FOREXCONNECT";
   marketType: "SPOT" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
   timeframe: string;
   timestamp: string | null;
@@ -85,7 +90,7 @@ export interface ForexMarketState {
     support: number[];
     resistance: number[];
   };
-  dataSource: "binance-spot" | "fxcm-mid" | "none";
+  dataSource: "binance-spot" | "fxcm-mid" | "forexconnect-bid" | "none";
   live: boolean;
 }
 
@@ -94,6 +99,9 @@ export interface ForexAiKnowledgeSource {
   title: string;
   relevanceScore: number;
   version: number;
+  chunkId?: string;
+  sourceName?: string;
+  pageNumber?: number | null;
 }
 
 export interface ForexAiScenario {
@@ -114,7 +122,7 @@ export interface ForexAiAnalysis {
   generatedAt: string;
   analysisType: ForexAiAnalysisType;
   market: {
-    exchange: "BINANCE" | "FXCM";
+    exchange: "BINANCE" | "FXCM" | "FOREXCONNECT";
     symbol: string;
     displaySymbol: string;
     marketType: "SPOT" | "CRYPTO" | "FOREX" | "CFD" | "COMMODITY" | "INDEX" | "OTHER";
@@ -150,6 +158,11 @@ export interface ForexAiAnalysis {
   marketCondition: string;
   reasoning: string;
   invalidation: string[];
+  /** Phase 38E — deterministic detector evidence attached after analysis. */
+  evidencePack?: ForexAiEvidencePack;
+  evidenceSchemaVersion?: string;
+  inferenceLatencyMs?: number | null;
+  inferenceStatus?: ForexAiInferenceStatus;
 }
 
 export interface ForexAiHealthPublic {
@@ -173,11 +186,15 @@ export interface ForexAiAnalyzeResult {
   analysis: ForexAiAnalysis | null;
   latencyMs: number;
   error?: string;
+  evidencePack?: ForexAiEvidencePack;
+  evidenceLatencyMs?: number;
   diagnostics?: {
     promptChars?: number;
     knowledgeHits?: number;
     model?: string | null;
     analysisType?: ForexAiAnalysisType;
+    inferenceLatencyMs?: number | null;
+    inferenceStatus?: ForexAiInferenceStatus;
   };
 }
 
@@ -187,8 +204,8 @@ export interface ForexAiAnalysisRequest {
   analysisType?: ForexAiAnalysisType;
   knowledgeQuery?: string;
   timeoutMs?: number;
-  /** Explicit provider — defaults BINANCE. Never silently remaps FXCM↔Binance. */
-  provider?: "BINANCE" | "FXCM";
+  /** Explicit provider — defaults BINANCE. Never silently remaps providers. */
+  provider?: "BINANCE" | "FXCM" | "FOREXCONNECT";
 }
 
 export function emptyForexMarketState(partial?: Partial<ForexMarketState>): ForexMarketState {
