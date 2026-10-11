@@ -26,6 +26,7 @@ import {
 } from "../market-data/live-market-status";
 import { LIVE_MARKET_UNAVAILABLE, LIVE_PRICE_UNAVAILABLE } from "../market-data/allow-development-market-data";
 import { sanitizeCandles } from "./validate-candles";
+import { formatChartPrice, hasGenuineVolume, pricePrecision } from "./price-format";
 import {
   CHART_TIMEFRAMES,
   DEFAULT_CHART_TIMEFRAME,
@@ -55,9 +56,7 @@ function formatUtc(time: number): string {
 }
 
 function formatPrice(symbol: string, value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return LIVE_PRICE_UNAVAILABLE;
-  const digits = symbol.includes("JPY") ? 3 : symbol.startsWith("XAU") ? 2 : 2;
-  return value.toFixed(digits);
+  return formatChartPrice(symbol, value);
 }
 
 function indicatorLatestValue(
@@ -514,13 +513,16 @@ export function ForexChartWorkspace({
       data-ta-ema50={ema50 == null ? "" : String(ema50)}
       data-ta-rsi14={rsiLast == null ? "" : String(rsiLast)}
       data-ta-macd={macdLast == null ? "" : String(macdLast)}
+      data-phase="37d"
     >
-      <header className="fx-trading-header" data-fx-trading-header="true">
+      <header className="fx-trading-header fx-trading-chrome" data-fx-trading-header="true">
         <div className="fx-trading-identity">
           <h1 className="fx-trading-title">{analysis ? "Technical Analysis" : "Charts"}</h1>
           <p className="fx-trading-symbol" data-fx-trading-symbol={selected?.symbol ?? ""}>
             <strong>{selected?.displaySymbol ?? "No market selected"}</strong>
-            <span className="fx-panel-meta">{providerMetaLabel}</span>
+            <span className="fx-panel-meta" data-fx-provider-chip={candleProvider ?? "none"}>
+              {providerMetaLabel}
+            </span>
           </p>
           <p className="fx-chart-price" data-price-kind={priceKind}>{headlinePrice}</p>
         </div>
@@ -563,73 +565,83 @@ export function ForexChartWorkspace({
             <ForexStatusBadge tone="offline">No live feed</ForexStatusBadge>
           )}
         </div>
+
+        <div className="fx-chart-controls fx-trading-toolbar" role="toolbar" aria-label="Chart controls">
+          <label>
+            Instrument
+            <select
+              aria-label="Instrument"
+              value={(binanceSelected || fxcmSelected || forexConnectSelected) && selected ? selected.symbol : ""}
+              disabled
+            >
+              {binanceSelected && selected ? (
+                <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
+              ) : fxcmSelected && selected ? (
+                <option value={selected.symbol}>{selected.displaySymbol} · FXCM</option>
+              ) : forexConnectSelected && selected ? (
+                <option value={selected.symbol}>{selected.displaySymbol} · ForexConnect (bid)</option>
+              ) : (
+                <option value="">Select instrument…</option>
+              )}
+            </select>
+          </label>
+          <label>
+            Timeframe
+            <select aria-label="Timeframe" value={timeframe} onChange={(event) => applyTimeframe(event.target.value as ChartTimeframeId)}>
+              {CHART_TIMEFRAMES.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Chart type
+            <select aria-label="Chart type" value={chartType} onChange={(event) => setChartType(event.target.value as ChartTypeId)}>
+              <option value="candlestick">Candlestick</option>
+              <option value="line">Line</option>
+            </select>
+          </label>
+          <div className="fx-chart-control-buttons">
+            {onOpenModule ? (
+              <>
+                <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
+                  Open Markets
+                </button>
+                <button
+                  type="button"
+                  className="fx-text-button"
+                  onClick={() => onOpenModule(analysis ? "charts" : "technical-analysis")}
+                >
+                  {analysis ? "Open Charts" : "Open Technical Analysis"}
+                </button>
+              </>
+            ) : null}
+            <button type="button" className="fx-icon-button" aria-label="Zoom in" onClick={() => chartRef.current?.zoom(1)}><ZoomIn size={16} /></button>
+            <button type="button" className="fx-icon-button" aria-label="Zoom out" onClick={() => chartRef.current?.zoom(-1)}><ZoomOut size={16} /></button>
+            <button type="button" className="fx-icon-button" aria-label="Fit content" onClick={() => chartRef.current?.fitContent()}><RotateCcw size={16} /></button>
+            <button type="button" className="fx-icon-button" aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={() => void toggleFullscreen()}>
+              {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          </div>
+        </div>
       </header>
 
-      <div className="fx-chart-controls fx-trading-toolbar" role="toolbar" aria-label="Chart controls">
-        <label>
-          Instrument
-          <select
-            aria-label="Instrument"
-            value={(binanceSelected || fxcmSelected || forexConnectSelected) && selected ? selected.symbol : ""}
-            disabled
-          >
-            {binanceSelected && selected ? (
-              <option value={selected.symbol}>{selected.displaySymbol} · Binance Spot</option>
-            ) : fxcmSelected && selected ? (
-              <option value={selected.symbol}>{selected.displaySymbol} · FXCM</option>
-            ) : forexConnectSelected && selected ? (
-              <option value={selected.symbol}>{selected.displaySymbol} · ForexConnect (bid)</option>
-            ) : (
-              <option value="">Select instrument…</option>
-            )}
-          </select>
-        </label>
-        <label>
-          Timeframe
-          <select aria-label="Timeframe" value={timeframe} onChange={(event) => applyTimeframe(event.target.value as ChartTimeframeId)}>
-            {CHART_TIMEFRAMES.map((item) => (
-              <option key={item.id} value={item.id}>{item.label}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Chart type
-          <select aria-label="Chart type" value={chartType} onChange={(event) => setChartType(event.target.value as ChartTypeId)}>
-            <option value="candlestick">Candlestick</option>
-            <option value="line">Line</option>
-          </select>
-        </label>
-        <div className="fx-chart-control-buttons">
-          {onOpenModule ? (
-            <>
-              <button type="button" className="fx-text-button" onClick={() => onOpenModule("markets")}>
-                Open Markets
-              </button>
-              <button
-                type="button"
-                className="fx-text-button"
-                onClick={() => onOpenModule(analysis ? "charts" : "technical-analysis")}
-              >
-                {analysis ? "Open Charts" : "Open Technical Analysis"}
-              </button>
-            </>
-          ) : null}
-          <button type="button" className="fx-icon-button" aria-label="Zoom in" onClick={() => chartRef.current?.zoom(1)}><ZoomIn size={16} /></button>
-          <button type="button" className="fx-icon-button" aria-label="Zoom out" onClick={() => chartRef.current?.zoom(-1)}><ZoomOut size={16} /></button>
-          <button type="button" className="fx-icon-button" aria-label="Fit content" onClick={() => chartRef.current?.fitContent()}><RotateCcw size={16} /></button>
-          <button type="button" className="fx-icon-button" aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={() => void toggleFullscreen()}>
-            {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </button>
-        </div>
-      </div>
-
-      <div className="fx-chart-stage-wrap" data-fx-chart-stage="true">
+      <div
+        className={`fx-chart-stage-wrap${historyPending ? " is-loading" : ""}`}
+        data-fx-chart-stage="true"
+        data-chart-loading={historyPending ? "true" : "false"}
+      >
+        {historyPending ? (
+          <p className="fx-chart-loading" role="status" data-fx-chart-loading="true">
+            Loading {candleProvider ?? "market"} {timeframe.toUpperCase()} candles…
+          </p>
+        ) : null}
         {showChart ? (
           <ForexPriceChart
             ref={chartRef}
-            seriesKey={`${selected!.symbol}:${timeframe}`}
+            seriesKey={`${selected!.symbol}:${timeframe}:${candleProvider ?? ""}`}
             candles={candles}
             chartType={chartType}
+            pricePrecision={pricePrecision(selected!.symbol, last?.close ?? null)}
             overlays={overlayData}
             rsi={rsiPoints}
             macd={macdData}
@@ -638,14 +650,16 @@ export function ForexChartWorkspace({
           />
         ) : (
           <div className="fx-chart-state" role="status" data-chart-unavailable="true">
-            <h2>{chartMessage}</h2>
+            <h2>{historyPending ? `Loading ${candleProvider ?? "candles"}…` : chartMessage}</h2>
             <p>
-              {binanceSelected
-                ? chartMessage
-                : fxcmSelected || forexConnectSelected
-                  ? (unified.message
-                    || "Open Markets, select a valid instrument for this provider, then return here. Development candles are not shown in production.")
-                  : "Open Markets, select a BINANCE, FXCM, or ForexConnect instrument, then return here for genuine OHLCV."}
+              {historyPending
+                ? "Requesting the unified Market Data series for this provider, symbol, and timeframe."
+                : binanceSelected
+                  ? chartMessage
+                  : fxcmSelected || forexConnectSelected
+                    ? (unified.message
+                      || "Open Markets, select a valid instrument for this provider, then return here. Development candles are not shown in production.")
+                    : "Open Markets, select a BINANCE, FXCM, or ForexConnect instrument, then return here for genuine OHLCV."}
             </p>
           </div>
         )}
@@ -654,6 +668,7 @@ export function ForexChartWorkspace({
       <dl
         className="fx-ohlc fx-ohlc-compact"
         data-forex-ohlc="true"
+        data-ohlc-source={focused ? "crosshair" : "last-candle"}
         aria-label={
           binanceSelected
             ? "Binance OHLC"
@@ -664,12 +679,20 @@ export function ForexChartWorkspace({
                 : "OHLC unavailable"
         }
       >
-        <div><dt>Open</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.open ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>High</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.high ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Low</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.low ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Close</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.close ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
-        <div><dt>Time</dt><dd>{display && (binanceSelected || fxcmSelected || forexConnectSelected) ? formatUtc(display.time) : "—"}</dd></div>
-        <div><dt>Volume</dt><dd>{(binanceSelected || fxcmSelected || forexConnectSelected) && display?.volume != null ? display.volume.toFixed(4) : "—"}</dd></div>
+        <div><dt>Open</dt><dd data-ohlc="open">{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.open ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>High</dt><dd data-ohlc="high">{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.high ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Low</dt><dd data-ohlc="low">{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.low ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Close</dt><dd data-ohlc="close">{(binanceSelected || fxcmSelected || forexConnectSelected) ? formatPrice(selected!.symbol, display?.close ?? null) : LIVE_PRICE_UNAVAILABLE}</dd></div>
+        <div><dt>Time</dt><dd data-ohlc="time">{display && (binanceSelected || fxcmSelected || forexConnectSelected) ? formatUtc(display.time) : "—"}</dd></div>
+        <div>
+          <dt>Volume</dt>
+          <dd data-ohlc="volume">
+            {(binanceSelected || fxcmSelected || forexConnectSelected)
+              && hasGenuineVolume(candleProvider, candles, display?.volume ?? null)
+              ? Number(display!.volume).toFixed(binanceSelected ? 4 : 2)
+              : "—"}
+          </dd>
+        </div>
       </dl>
 
       <div className={`fx-chart-side ${analysis ? "is-wide" : ""}`}>

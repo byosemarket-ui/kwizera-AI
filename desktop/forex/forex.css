@@ -878,7 +878,7 @@ html.reduce-motion .fx-sidebar {
   overflow: auto;
 }
 
-/* Phase 37A — compact trading-terminal header (replaces oversized section + summary cards). */
+/* Phase 37A/37D — compact trading-terminal chrome (header + toolbar as one dense bar). */
 .fx-trading-header {
   display: flex;
   flex-wrap: wrap;
@@ -889,6 +889,20 @@ html.reduce-motion .fx-sidebar {
   border: 1px solid var(--fx-border);
   border-radius: var(--fx-radius);
   background: var(--fx-surface);
+}
+
+.fx-trading-chrome {
+  gap: 8px 12px;
+  padding: 6px 10px;
+}
+
+.fx-trading-chrome .fx-trading-toolbar {
+  flex: 1 1 100%;
+  position: static;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .fx-trading-identity {
@@ -991,10 +1005,15 @@ html.reduce-motion .fx-sidebar {
 }
 
 .fx-chart-stage-wrap {
+  position: relative;
   min-width: 0;
-  min-height: clamp(320px, 58vh, 720px);
+  min-height: clamp(360px, 62vh, 820px);
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: #0a0e14;
+  overflow: hidden;
 }
 
 .fx-chart-stage-wrap .fx-price-charts {
@@ -1008,10 +1027,33 @@ html.reduce-motion .fx-sidebar {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  border: 0;
+  background: transparent;
+}
+
+.fx-chart-loading {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--fx-border);
+  background: color-mix(in srgb, var(--fx-surface) 92%, transparent);
+  color: var(--fx-muted);
+  font-size: 12px;
+  pointer-events: none;
 }
 
 .fx-ohlc-compact {
   padding: 6px 10px;
+  margin: 0;
+}
+
+.fx-ohlc-compact[data-ohlc-source="crosshair"] {
+  border-color: color-mix(in srgb, var(--fx-accent, #22d3a6) 40%, var(--fx-border));
 }
 
 .fx-price-charts {
@@ -1025,7 +1067,7 @@ html.reduce-motion .fx-sidebar {
 .fx-price-chart-main {
   width: 100%;
   flex: 1 1 auto;
-  min-height: clamp(280px, 52vh, 640px);
+  min-height: clamp(320px, 58vh, 760px);
 }
 
 .fx-indicator-pane div {
@@ -1035,7 +1077,17 @@ html.reduce-motion .fx-sidebar {
 /* Charts / TA: tighten shell chrome so the chart owns the viewport. */
 .fx-root[data-forex-route="charts"] .fx-main,
 .fx-root[data-forex-route="technical-analysis"] .fx-main {
-  padding: 12px 14px 20px;
+  padding: 10px 12px 16px;
+}
+
+.fx-root[data-forex-route="charts"] .fx-chart-workspace,
+.fx-root[data-forex-route="technical-analysis"] .fx-chart-workspace {
+  min-height: calc(100vh - 128px);
+}
+
+.fx-root[data-forex-route="charts"] .fx-chart-stage-wrap,
+.fx-root[data-forex-route="technical-analysis"] .fx-chart-stage-wrap {
+  flex: 1 1 auto;
 }
 
 .fx-root[data-forex-route="charts"] .fx-selected-market,
@@ -1164,7 +1216,12 @@ html.reduce-motion .fx-sidebar {
 
   .fx-chart-stage-wrap,
   .fx-price-chart-main {
-    min-height: clamp(260px, 48vh, 520px);
+    min-height: clamp(280px, 52vh, 560px);
+  }
+
+  .fx-trading-chrome .fx-trading-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 }
 

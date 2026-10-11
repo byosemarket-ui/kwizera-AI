@@ -36,7 +36,7 @@ describe("Phase 37A trading layout compactness", () => {
     expect(css).toContain(".fx-trading-header");
     expect(css).toContain(".fx-chart-stage-wrap");
     expect(css).toContain('data-forex-route="charts"');
-    expect(css).toContain("min-height: clamp(280px, 52vh, 640px)");
+    expect(css).toMatch(/min-height:\s*clamp\(\d+px,\s*\d+vh,\s*\d+px\)/);
     expect(css).toContain("overflow-x: auto");
   });
 

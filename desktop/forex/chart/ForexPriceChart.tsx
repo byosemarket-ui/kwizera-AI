@@ -31,6 +31,8 @@ interface ForexPriceChartProps {
   seriesKey?: string;
   candles: Candle[];
   chartType: ChartTypeId;
+  /** Right-scale / series decimals for the selected instrument. */
+  pricePrecision?: number;
   overlays: OverlaySeries[];
   rsi: LinePoint[];
   macd: { macd: LinePoint[]; signal: LinePoint[]; histogram: HistogramPoint[] } | null;
@@ -80,7 +82,7 @@ function safeRemoveSeries(chart: IChartApi, series: ISeriesApi<"Line">): void {
 }
 
 export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChartProps>(function ForexPriceChart(
-  { seriesKey = "", candles, chartType, overlays, rsi, macd, levels, onCandleFocus },
+  { seriesKey = "", candles, chartType, pricePrecision = 5, overlays, rsi, macd, levels, onCandleFocus },
   ref,
 ) {
   const mainRef = useRef<HTMLDivElement>(null);
@@ -118,14 +120,17 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
     const height = Math.max(240, host.clientHeight || fallbackHeight);
     const main = createChart(host, { width, ...chartOptions(height) });
     mainApi.current = main;
+    const precision = Math.min(8, Math.max(0, Math.round(pricePrecision)));
+    const priceFormat = { type: "price" as const, precision, minMove: Number((10 ** -precision).toFixed(precision)) };
     const candleSeries = main.addCandlestickSeries({
       upColor: BULL,
       downColor: BEAR,
       wickUpColor: BULL,
       wickDownColor: BEAR,
       borderVisible: false,
+      priceFormat,
     });
-    const closeSeries = main.addLineSeries({ color: BULL, lineWidth: 2 });
+    const closeSeries = main.addLineSeries({ color: BULL, lineWidth: 2, priceFormat });
     candleSeriesRef.current = candleSeries;
     closeSeriesRef.current = closeSeries;
     candleSeries.applyOptions({ visible: chartType === "candlestick" });
@@ -159,7 +164,7 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
       closeSeriesRef.current = null;
       safeChartRemove(main);
     };
-  }, [chartType, showRsi, showMacd, seriesKey]);
+  }, [chartType, showRsi, showMacd, seriesKey, pricePrecision]);
 
   useEffect(() => {
     const candleSeries = candleSeriesRef.current;
