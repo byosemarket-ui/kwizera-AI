@@ -22,7 +22,12 @@ import {
   runForexMultiTimeframeAnalysis,
   type ForexAiAnalysisType,
 } from "../../ai/forex-ai/index.js";
+import { parseMarketProviderId } from "../../ai/market-data/providers/identity.js";
 import { getForexMemoryService, type ForexMemoryAnalysisType } from "../../ai/forex-memory/index.js";
+
+function resolveApiProvider(raw: unknown): "BINANCE" | "FXCM" | "FOREXCONNECT" {
+  return parseMarketProviderId(raw) ?? "BINANCE";
+}
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -115,7 +120,7 @@ export async function handleForexAiApi(
         provider?: string;
       };
       const started = Date.now();
-      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+      const provider = resolveApiProvider(body.provider);
 
       const hasAuthoritativeRequest = Boolean(
         String(body.symbol ?? "").trim() && String(body.timeframe ?? "").trim(),
@@ -174,7 +179,7 @@ export async function handleForexAiApi(
         provider?: string;
       };
       const started = Date.now();
-      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+      const provider = resolveApiProvider(body.provider);
       const result = await runForexMultiTimeframeAnalysis({
         symbol: String(body.symbol ?? ""),
         timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
@@ -224,7 +229,7 @@ export async function handleForexAiApi(
         provider?: string;
       };
       const started = Date.now();
-      const provider = String(body.provider ?? "").trim().toUpperCase() === "FXCM" ? "FXCM" as const : "BINANCE" as const;
+      const provider = resolveApiProvider(body.provider);
       const result = await runForexDecisionAnalysis({
         symbol: String(body.symbol ?? ""),
         timeframes: Array.isArray(body.timeframes) ? body.timeframes.map(String) : undefined,
