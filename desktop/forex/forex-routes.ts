@@ -169,15 +169,15 @@ export const FOREX_NAV: ForexNavItem[] = [
   },
   {
     id: "signals",
-    label: "Signals",
+    label: "Market Monitor",
     path: "/forex/signals",
-    implemented: false,
+    implemented: true,
     inSidebar: true,
     group: "ai",
     groupLabel: "AI Trading",
     icon: "zap",
-    description: "Forex signal generation will be implemented in a future phase.",
-    phaseNote: "Coming Soon",
+    description: "Server-side continuous monitoring of selected instruments with deterministic setup evidence.",
+    phaseNote: "Phase 38F",
   },
   {
     id: "strategies",
@@ -390,7 +390,8 @@ export function isForexMarketStateRoute(route: ForexViewId): boolean {
     route === "watchlist" ||
     route === "charts" ||
     route === "technical-analysis" ||
-    route === "ai-analysis"
+    route === "ai-analysis" ||
+    route === "signals"
   );
 }
 

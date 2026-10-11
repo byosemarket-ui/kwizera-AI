@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type Re
 import { ForexDashboard } from "./ForexDashboard";
 import { ForexMarketsPage } from "./ForexMarketsPage";
 import { ForexAiAnalysisPage } from "./ForexAiAnalysisPage";
+import { ForexMonitorPage } from "./ForexMonitorPage";
 import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
 import { ForexModulePage } from "./ForexModulePage";
@@ -209,6 +210,13 @@ export function ForexShell({
         selectedMarket={selectedMarket}
         timeframe={chartTimeframe}
         liveTicker={liveTicker}
+      />
+    );
+  } else if (route === "signals") {
+    content = (
+      <ForexMonitorPage
+        selectedMarket={selectedMarket}
+        timeframe={chartTimeframe}
       />
     );
   } else {
