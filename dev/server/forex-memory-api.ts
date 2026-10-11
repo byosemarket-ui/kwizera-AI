@@ -7,6 +7,7 @@ import { createBinanceMarketDataService } from "../../ai/market-data/binance/ser
 import { buildForexMarketState } from "../../ai/forex-market-state/index.js";
 import { parseInterval } from "../../ai/market-data/binance/adapter.js";
 import { getForexMemoryService } from "../../ai/forex-memory/index.js";
+import { requireForexAdmin } from "./forex-admin-auth.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -118,6 +119,7 @@ export async function handleForexMemoryApi(
     }
 
     if (sub === "/evaluate" && req.method === "POST") {
+      if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
       const body = (await readJsonBody(req)) as { analysisId?: string };
       const analysisId = String(body.analysisId ?? "").trim();
       if (!analysisId) {

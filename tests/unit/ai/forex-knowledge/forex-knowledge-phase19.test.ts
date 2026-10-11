@@ -71,7 +71,22 @@ describe("Phase 19 Forex Knowledge Base", () => {
     expect(overview.documents).toBe(0);
     expect(overview.published).toBe(0);
     expect(overview.indexed).toBe(0);
+    expect(overview.failedIngestion).toBe(0);
+    expect(overview.lastIndexingAt).toBeNull();
     await service.createCategory({ name: "Custom Alpha" });
     await expect(service.createCategory({ name: "Custom Alpha" })).rejects.toThrow(/already exists/i);
+  });
+
+  it("accepts PDF as a valid source type", async () => {
+    const service = createForexKnowledgeService(tempRoot());
+    await service.ensureReady();
+    const doc = await service.createDocument({
+      title: "PDF Source Compatibility",
+      content: "Extracted PDF body about forex risk rules and position sizing.",
+      sourceType: "PDF",
+      sourceName: "risk.pdf",
+      status: "DRAFT",
+    });
+    expect(doc.sourceType).toBe("PDF");
   });
 });

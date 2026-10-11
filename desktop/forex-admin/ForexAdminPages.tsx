@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_PATTERN_DETECTION_DISCLAIMER,
+  emptyPatternFields,
+  patternFieldsFromUnknown,
+  serializePatternContent,
+  type ForexPatternKnowledgeFields,
+} from "../../ai/forex-knowledge/pattern-content";
+import {
   forexAdminApi,
   forexProvidersApi,
   type ForexAdminCategory,
   type ForexAdminDocument,
   type ForexAdminOverview,
+  type ForexAdminRetrieveHit,
   type ForexAdminTopic,
 } from "./api";
 import type { ForexAdminViewId } from "./forex-admin-routes";
@@ -238,7 +246,7 @@ export function ForexAdminDashboardPage({ onOpen }: { onOpen: (path: string) => 
 
 export function ForexAdminKnowledgeListPage({
   onOpen,
-  title = "Knowledge Base",
+  title = "AI Training",
   defaultType,
 }: {
   onOpen: (path: string) => void;
@@ -247,21 +255,29 @@ export function ForexAdminKnowledgeListPage({
 }) {
   const [items, setItems] = useState<ForexAdminDocument[]>([]);
   const [total, setTotal] = useState(0);
+  const [overview, setOverview] = useState<ForexAdminOverview | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   const [indexingStatus, setIndexingStatus] = useState("");
   const [knowledgeType, setKnowledgeType] = useState(defaultType ?? "");
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfPublish, setPdfPublish] = useState(false);
+  const [pdfNote, setPdfNote] = useState<string | null>(null);
 
   const load = async () => {
     setError(null);
     try {
-      const res = await forexAdminApi.listKnowledge({
-        q, status, indexingStatus, knowledgeType, page, pageSize: 20,
-      });
+      const [res, ov] = await Promise.all([
+        forexAdminApi.listKnowledge({
+          q, status, indexingStatus, knowledgeType, page, pageSize: 20,
+        }),
+        forexAdminApi.overview(),
+      ]);
       setItems(res.items);
       setTotal(res.total);
+      setOverview(ov.overview);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -271,19 +287,106 @@ export function ForexAdminKnowledgeListPage({
     void load();
   }, [page, status, indexingStatus, knowledgeType]);
 
+  const onPdfFile = async (file: File | null) => {
+    if (!file) return;
+    setPdfBusy(true);
+    setPdfNote(null);
+    setError(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]!);
+      const dataBase64 = btoa(binary);
+      const res = await forexAdminApi.uploadPdf({
+        fileName: file.name,
+        mimeType: file.type || "application/pdf",
+        dataBase64,
+        publish: pdfPublish,
+      });
+      const state = String(res.document.metadata?.ingestionState ?? "");
+      if (state === "FAILED" || res.document.indexingStatus === "FAILED") {
+        setPdfNote(res.document.indexingError || "PDF ingestion failed (no extractable text or invalid PDF).");
+      } else {
+        setPdfNote(`Ingested “${res.document.title}” · ${state || res.document.indexingStatus}`);
+      }
+      onOpen(`/admin/forex/knowledge/${res.document.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <div data-forex-admin-knowledge-list>
       <section className="fxa-card">
         <div className="fxa-row" style={{ justifyContent: "space-between" }}>
           <div>
             <h2>{title}</h2>
-            <p className="fxa-muted">{total} document(s)</p>
+            <p className="fxa-muted">
+              Keyword-indexed Forex knowledge for AI retrieval. Educational content only — not live trading signals.
+            </p>
           </div>
-          <button type="button" className="fxa-btn" onClick={() => onOpen("/admin/forex/knowledge/new")}>
-            Create knowledge
-          </button>
+          <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="fxa-btn" onClick={() => onOpen("/admin/forex/knowledge/new")}>
+              Create document
+            </button>
+            <button
+              type="button"
+              className="fxa-btn-secondary"
+              onClick={() => onOpen("/admin/forex/knowledge/new?type=PATTERN")}
+            >
+              New pattern
+            </button>
+          </div>
         </div>
-        <div className="fxa-row" style={{ marginTop: "0.75rem" }}>
+      </section>
+      {overview ? (
+        <section className="fxa-grid" data-forex-ai-training-overview>
+          {[
+            ["Documents", overview.documents],
+            ["Published", overview.published],
+            ["Drafts", overview.drafts],
+            ["Indexed", overview.indexed],
+            ["Failed index", overview.failed],
+            ["Failed ingest", overview.failedIngestion ?? 0],
+            ["Chunks", overview.chunks],
+            ["Last indexed", overview.lastIndexingAt ? new Date(overview.lastIndexingAt).toLocaleString() : "—"],
+          ].map(([label, value]) => (
+            <article className="fxa-card fxa-stat" key={String(label)}>
+              <strong>{value}</strong>
+              <span>{label}</span>
+            </article>
+          ))}
+        </section>
+      ) : null}
+      <section className="fxa-card" data-forex-pdf-upload>
+        <h3>Upload PDF</h3>
+        <p className="fxa-muted">
+          Extract searchable text from educational PDFs (max 15 MB). Scanned/image-only PDFs fail honestly — no OCR.
+        </p>
+        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={pdfBusy}
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              void onPdfFile(f);
+              e.target.value = "";
+            }}
+          />
+          <label className="fxa-muted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input type="checkbox" checked={pdfPublish} onChange={(e) => setPdfPublish(e.target.checked)} />
+            Publish &amp; index after extract
+          </label>
+        </div>
+        {pdfBusy ? <p className="fxa-muted">Uploading &amp; extracting…</p> : null}
+        {pdfNote ? <p className="fxa-muted">{pdfNote}</p> : null}
+      </section>
+      <section className="fxa-card">
+        <div className="fxa-row" style={{ marginTop: "0.25rem" }}>
           <input className="fxa-input" style={{ maxWidth: 260 }} placeholder="Search title, content, tags…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="fxa-select" style={{ maxWidth: 160 }} value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }}>
             <option value="">All statuses</option>
@@ -304,6 +407,7 @@ export function ForexAdminKnowledgeListPage({
             {KNOWLEDGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
           <button type="button" className="fxa-btn-secondary" onClick={() => { setPage(1); void load(); }}>Search</button>
+          <span className="fxa-muted">{total} document(s)</span>
         </div>
       </section>
       {error ? <div className="fxa-error">{error}</div> : null}
@@ -315,12 +419,13 @@ export function ForexAdminKnowledgeListPage({
               <th>Type</th>
               <th>Status</th>
               <th>Index</th>
+              <th>Ingest</th>
               <th>Updated</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
-              <tr><td colSpan={5} className="fxa-muted">No documents match these filters.</td></tr>
+              <tr><td colSpan={6} className="fxa-muted">No documents match these filters.</td></tr>
             ) : items.map((doc) => (
               <tr key={doc.id}>
                 <td>
@@ -331,6 +436,7 @@ export function ForexAdminKnowledgeListPage({
                 <td>{doc.knowledgeType}</td>
                 <td><Badge value={doc.status} /></td>
                 <td><Badge value={doc.indexingStatus} /></td>
+                <td className="fxa-muted">{String(doc.metadata?.ingestionState ?? "—")}</td>
                 <td className="fxa-muted">{new Date(doc.updatedAt).toLocaleString()}</td>
               </tr>
             ))}
@@ -354,10 +460,14 @@ export function ForexAdminKnowledgeEditorPage({
   onOpen: (path: string) => void;
 }) {
   const editing = Boolean(documentId);
+  const initialType = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("type") || "CONCEPT"
+    : "CONCEPT";
   const [categories, setCategories] = useState<ForexAdminCategory[]>([]);
   const [topics, setTopics] = useState<ForexAdminTopic[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pattern, setPattern] = useState<ForexPatternKnowledgeFields>(emptyPatternFields());
   const [form, setForm] = useState({
     title: "",
     summary: "",
@@ -365,7 +475,7 @@ export function ForexAdminKnowledgeEditorPage({
     categoryId: "",
     topicId: "",
     tags: "",
-    knowledgeType: "CONCEPT",
+    knowledgeType: initialType === "PATTERN" ? "PATTERN" : "CONCEPT",
     sourceType: "MANUAL",
     sourceName: "",
     sourceReference: "",
@@ -406,21 +516,46 @@ export function ForexAdminKnowledgeEditorPage({
           language: doc.language,
           status: doc.status,
         });
+        if (doc.knowledgeType === "PATTERN") {
+          setPattern(patternFieldsFromUnknown(doc.metadata?.pattern ?? {
+            patternName: doc.title,
+            description: doc.summary,
+            tags: doc.tags,
+          }));
+        }
       })
       .catch((err: Error) => setError(err.message));
   }, [documentId]);
+
+  const isPattern = form.knowledgeType === "PATTERN";
 
   const save = async (publishAfter = false) => {
     setSaving(true);
     setError(null);
     try {
+      let title = form.title;
+      let content = form.content;
+      let tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+      let metadata: Record<string, unknown> | undefined;
+      if (isPattern) {
+        const fields: ForexPatternKnowledgeFields = {
+          ...pattern,
+          patternName: pattern.patternName || form.title,
+          detectionDisclaimer: pattern.detectionDisclaimer || DEFAULT_PATTERN_DETECTION_DISCLAIMER,
+          tags: pattern.tags.length ? pattern.tags : tags,
+        };
+        content = serializePatternContent(fields);
+        title = fields.patternName || title;
+        tags = fields.tags.length ? fields.tags : tags;
+        metadata = { pattern: fields };
+      }
       const payload = {
-        title: form.title,
+        title,
         summary: form.summary,
-        content: form.content,
+        content,
         categoryId: form.categoryId || null,
         topicId: form.topicId || null,
-        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags,
         knowledgeType: form.knowledgeType,
         sourceType: form.sourceType,
         sourceName: form.sourceName,
@@ -428,6 +563,7 @@ export function ForexAdminKnowledgeEditorPage({
         sourceUrl: form.sourceUrl,
         language: form.language,
         status: publishAfter ? "PUBLISHED" : form.status === "ARCHIVED" ? "DRAFT" : form.status,
+        metadata,
       };
       const res = editing
         ? await forexAdminApi.updateKnowledge(documentId!, payload)
@@ -446,17 +582,20 @@ export function ForexAdminKnowledgeEditorPage({
     }
   };
 
+  const setPat = <K extends keyof ForexPatternKnowledgeFields>(key: K, value: ForexPatternKnowledgeFields[K]) => {
+    setPattern((p) => ({ ...p, [key]: value }));
+  };
+
   return (
     <div data-forex-admin-editor>
       <section className="fxa-card">
-        <h2>{editing ? "Edit knowledge" : "Create knowledge"}</h2>
+        <h2>{editing ? "Edit AI Training entry" : "Create AI Training entry"}</h2>
         <p className="fxa-muted">Save as draft for editing only. Publish makes the document available for AI retrieval after indexing.</p>
       </section>
       {error ? <div className="fxa-error">{error}</div> : null}
       <section className="fxa-card fxa-form">
         <label>Title<input className="fxa-input" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} /></label>
         <label>Summary<textarea className="fxa-textarea" style={{ minHeight: 90 }} value={form.summary} onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))} /></label>
-        <label>Content<textarea className="fxa-textarea" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} /></label>
         <div className="fxa-row">
           <label style={{ flex: 1 }}>Category
             <select className="fxa-select" value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value, topicId: "" }))}>
@@ -476,6 +615,34 @@ export function ForexAdminKnowledgeEditorPage({
             </select>
           </label>
         </div>
+        {isPattern ? (
+          <div data-forex-pattern-fields>
+            <p className="fxa-muted" role="note">{DEFAULT_PATTERN_DETECTION_DISCLAIMER}</p>
+            <label>Pattern name<input className="fxa-input" value={pattern.patternName} onChange={(e) => setPat("patternName", e.target.value)} /></label>
+            <label>Aliases (comma-separated)<input className="fxa-input" value={pattern.aliases.join(", ")} onChange={(e) => setPat("aliases", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></label>
+            <label>Pattern category<input className="fxa-input" value={pattern.category} onChange={(e) => setPat("category", e.target.value)} /></label>
+            <label>Interpretation
+              <select className="fxa-select" value={pattern.interpretation} onChange={(e) => setPat("interpretation", e.target.value as ForexPatternKnowledgeFields["interpretation"])}>
+                <option value="">—</option>
+                <option value="BULLISH">BULLISH</option>
+                <option value="BEARISH">BEARISH</option>
+                <option value="NEUTRAL">NEUTRAL</option>
+              </select>
+            </label>
+            <label>Description<textarea className="fxa-textarea" value={pattern.description} onChange={(e) => setPat("description", e.target.value)} /></label>
+            <label>Preconditions<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.preconditions} onChange={(e) => setPat("preconditions", e.target.value)} /></label>
+            <label>Market context<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.marketContext} onChange={(e) => setPat("marketContext", e.target.value)} /></label>
+            <label>Recognition criteria (educational)<textarea className="fxa-textarea" value={pattern.recognitionRules} onChange={(e) => setPat("recognitionRules", e.target.value)} /></label>
+            <label>Confirmation requirements<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.confirmationRequirements} onChange={(e) => setPat("confirmationRequirements", e.target.value)} /></label>
+            <label>Invalidation<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.invalidationConditions} onChange={(e) => setPat("invalidationConditions", e.target.value)} /></label>
+            <label>Common false positives<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.falsePositives} onChange={(e) => setPat("falsePositives", e.target.value)} /></label>
+            <label>Timeframe notes<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.timeframeNotes} onChange={(e) => setPat("timeframeNotes", e.target.value)} /></label>
+            <label>Source references<textarea className="fxa-textarea" style={{ minHeight: 80 }} value={pattern.sourceReferences} onChange={(e) => setPat("sourceReferences", e.target.value)} /></label>
+            <label>Pattern tags (comma-separated)<input className="fxa-input" value={pattern.tags.join(", ")} onChange={(e) => setPat("tags", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} /></label>
+          </div>
+        ) : (
+          <label>Content<textarea className="fxa-textarea" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} /></label>
+        )}
         <label>Tags (comma-separated)<input className="fxa-input" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} /></label>
         <div className="fxa-row">
           <label style={{ flex: 1 }}>Source name<input className="fxa-input" value={form.sourceName} onChange={(e) => setForm((f) => ({ ...f, sourceName: e.target.value }))} /></label>
@@ -483,7 +650,7 @@ export function ForexAdminKnowledgeEditorPage({
           <label style={{ flex: 1 }}>Language<input className="fxa-input" value={form.language} onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))} /></label>
         </div>
         <div className="fxa-row">
-          <button type="button" className="fxa-btn-secondary" disabled={saving} onClick={() => void save(false)}>Save knowledge</button>
+          <button type="button" className="fxa-btn-secondary" disabled={saving} onClick={() => void save(false)}>Save</button>
           <button type="button" className="fxa-btn" disabled={saving} onClick={() => void save(true)}>Publish &amp; index</button>
           <button type="button" className="fxa-btn-secondary" onClick={() => onOpen("/admin/forex/knowledge")}>Cancel</button>
         </div>
@@ -501,7 +668,7 @@ export function ForexAdminKnowledgeDetailPage({
 }) {
   const [doc, setDoc] = useState<ForexAdminDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [retrieveHits, setRetrieveHits] = useState<Array<{ title: string; content: string; relevanceScore: number }>>([]);
+  const [retrieveHits, setRetrieveHits] = useState<ForexAdminRetrieveHit[]>([]);
 
   const reload = async () => {
     const res = await forexAdminApi.getKnowledge(documentId);
@@ -512,7 +679,7 @@ export function ForexAdminKnowledgeDetailPage({
     void reload().catch((err: Error) => setError(err.message));
   }, [documentId]);
 
-  if (error) return <div className="fxa-error">{error}</div>;
+  if (error && !doc) return <div className="fxa-error">{error}</div>;
   if (!doc) return <p className="fxa-muted">Loading document…</p>;
 
   const run = async (action: "publish" | "unpublish" | "archive" | "reindex") => {
@@ -525,6 +692,21 @@ export function ForexAdminKnowledgeDetailPage({
     }
   };
 
+  const deleteDoc = async () => {
+    if (!window.confirm(`Delete “${doc.title}”? This removes the document and its chunks permanently.`)) return;
+    setError(null);
+    try {
+      await forexAdminApi.deleteKnowledge(doc.id);
+      onOpen("/admin/forex/knowledge");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const ingestionState = String(doc.metadata?.ingestionState ?? "—");
+  const contentHash = typeof doc.metadata?.contentHash === "string" ? String(doc.metadata.contentHash) : null;
+  const isPdf = doc.sourceType === "PDF";
+
   return (
     <div data-forex-admin-detail>
       <section className="fxa-card">
@@ -536,28 +718,38 @@ export function ForexAdminKnowledgeDetailPage({
               <Badge value={doc.status} />
               <Badge value={doc.indexingStatus} />
               <Badge value={doc.knowledgeType} />
+              {isPdf ? <Badge value="PDF" /> : null}
               <span className="fxa-muted">v{doc.version}</span>
             </div>
           </div>
-          <div className="fxa-row">
+          <div className="fxa-row" style={{ flexWrap: "wrap" }}>
             <button type="button" className="fxa-btn-secondary" onClick={() => onOpen(`/admin/forex/knowledge/${doc.id}/edit`)}>Edit</button>
             {doc.status !== "PUBLISHED" ? <button type="button" className="fxa-btn" onClick={() => void run("publish")}>Publish</button> : null}
             {doc.status === "PUBLISHED" ? <button type="button" className="fxa-btn-secondary" onClick={() => void run("unpublish")}>Unpublish</button> : null}
-            {doc.status === "PUBLISHED" ? <button type="button" className="fxa-btn-secondary" onClick={() => void run("reindex")}>Re-index</button> : null}
+            {doc.status === "PUBLISHED" || isPdf ? (
+              <button type="button" className="fxa-btn-secondary" onClick={() => void run("reindex")} disabled={doc.status !== "PUBLISHED"}>
+                {isPdf ? "Retry / re-index" : "Re-index"}
+              </button>
+            ) : null}
             {doc.status !== "ARCHIVED" ? <button type="button" className="fxa-btn-danger" onClick={() => void run("archive")}>Archive</button> : null}
+            <button type="button" className="fxa-btn-danger" onClick={() => void deleteDoc()}>Delete</button>
           </div>
         </div>
       </section>
       {error ? <div className="fxa-error">{error}</div> : null}
       <section className="fxa-card">
         <h3>Content</h3>
-        <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit" }}>{doc.content}</pre>
+        <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit" }}>{doc.content || "(empty)"}</pre>
       </section>
       <section className="fxa-card">
         <h3>Metadata</h3>
         <p className="fxa-muted">Slug: {doc.slug}</p>
         <p className="fxa-muted">Tags: {doc.tags.join(", ") || "—"}</p>
+        <p className="fxa-muted">Source type: {doc.sourceType}</p>
         <p className="fxa-muted">Source: {doc.sourceName || "—"} / {doc.sourceReference || "—"}</p>
+        <p className="fxa-muted">Ingestion state: {ingestionState}</p>
+        {contentHash ? <p className="fxa-muted">Content hash: {contentHash.slice(0, 16)}…</p> : null}
+        {doc.metadata?.pageCount != null ? <p className="fxa-muted">PDF pages: {String(doc.metadata.pageCount)}</p> : null}
         <p className="fxa-muted">Created: {new Date(doc.createdAt).toLocaleString()}</p>
         <p className="fxa-muted">Updated: {new Date(doc.updatedAt).toLocaleString()}</p>
         <p className="fxa-muted">Published: {doc.publishedAt ? new Date(doc.publishedAt).toLocaleString() : "—"}</p>
@@ -583,8 +775,10 @@ export function ForexAdminKnowledgeDetailPage({
         ) : (
           <ul>
             {retrieveHits.map((hit, index) => (
-              <li key={`${hit.title}-${index}`}>
-                <strong>{hit.title}</strong> · score {hit.relevanceScore.toFixed(2)}
+              <li key={`${hit.chunkId ?? hit.title}-${index}`}>
+                <strong>{hit.documentTitle || hit.title}</strong> · score {hit.relevanceScore.toFixed(2)}
+                {hit.pageNumber != null ? <span className="fxa-muted"> · page {hit.pageNumber}</span> : null}
+                {hit.sourceName ? <span className="fxa-muted"> · {hit.sourceName}</span> : null}
                 <div className="fxa-muted">{hit.content.slice(0, 220)}</div>
               </li>
             ))}
@@ -709,13 +903,16 @@ export function ForexAdminSettingsPage() {
     <section className="fxa-card" data-forex-admin-settings>
       <h2>Forex Admin settings</h2>
       <p className="fxa-muted">
-        Phase 19 intentionally defers authentication. Future: `/admin/forex` → Forex Admin Authentication → Forex Admin Application.
+        Forex Admin APIs require the same Admin API token as Admin Control Center when
+        <code> KWIZERA_ADMIN_AUTH_MODE=require-admin-token</code>. Enter the token in ForexConnect /
+        session storage (shared key with Admin Control Center → API Access). Development may use
+        open access until the mode is tightened.
       </p>
       <p className="fxa-muted">
         Canonical entry: <code>/admin/forex</code>. This surface is independent from General Admin navigation.
       </p>
       <p className="fxa-muted">
-        Ollama remains the shared Phase 17 provider. Market State remains the Phase 18 live-data domain. Knowledge is separate.
+        Ollama remains the shared Phase 17 provider. Market State remains the Phase 18 live-data domain. AI Training (keyword knowledge) is separate.
       </p>
     </section>
   );
@@ -737,20 +934,21 @@ export function titleForView(view: ForexAdminViewId): string {
     instruments: "FXCM Instruments",
     "historical-data": "FXCM Historical Data",
     stream: "FXCM Real-Time Stream",
-    knowledge: "Forex Knowledge Base",
+    knowledge: "AI Training",
+    "ai-training": "AI Training",
     "knowledge-documents": "Documents",
     "knowledge-topics": "Topics",
     "knowledge-categories": "Categories",
     "knowledge-concepts": "Concepts",
-    "knowledge-status": "Knowledge Status",
+    "knowledge-status": "AI Training Status",
     indexing: "Indexing",
     "ai-configuration": "AI Configuration",
     "retrieval-diagnostics": "Retrieval Diagnostics",
     "system-health": "System Health",
     settings: "Settings",
-    "knowledge-new": "New Knowledge",
-    "knowledge-edit": "Edit Knowledge",
-    "knowledge-detail": "Knowledge Detail",
+    "knowledge-new": "New AI Training",
+    "knowledge-edit": "Edit AI Training",
+    "knowledge-detail": "AI Training Detail",
     memory: "AI Memory",
     journal: "AI Journal",
     "journal-detail": "Journal Detail",
@@ -784,8 +982,9 @@ export function ForexAdminPageRouter({
       case "stream":
         return <ForexAdminStreamPage onOpen={onOpen} />;
       case "knowledge":
+      case "ai-training":
       case "knowledge-documents":
-        return <ForexAdminKnowledgeListPage onOpen={onOpen} />;
+        return <ForexAdminKnowledgeListPage onOpen={onOpen} title="AI Training" />;
       case "knowledge-concepts":
         return <ForexAdminKnowledgeListPage onOpen={onOpen} title="Concepts" defaultType="CONCEPT" />;
       case "knowledge-new":

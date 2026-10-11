@@ -5,6 +5,7 @@ export type ForexAdminRouteId =
   | "historical-data"
   | "stream"
   | "knowledge"
+  | "ai-training"
   | "knowledge-documents"
   | "knowledge-topics"
   | "knowledge-categories"
@@ -32,7 +33,11 @@ export type ForexAdminNavGroupId = "overview" | "market-data" | "knowledge" | "m
 export interface ForexAdminNavItem {
   id: Exclude<
     ForexAdminRouteId,
-    "knowledge-new" | "knowledge-detail" | "knowledge-edit" | "journal-detail"
+    | "knowledge-new"
+    | "knowledge-detail"
+    | "knowledge-edit"
+    | "journal-detail"
+    | "ai-training"
   >;
   label: string;
   path: string;
@@ -49,11 +54,11 @@ export const FOREX_ADMIN_NAV: ForexAdminNavItem[] = [
   { id: "instruments", label: "FXCM Instruments", path: "/admin/forex/instruments", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "historical-data", label: "FXCM Historical", path: "/admin/forex/historical-data", implemented: true, group: "market-data", groupLabel: "Market Data" },
   { id: "stream", label: "FXCM Stream", path: "/admin/forex/stream", implemented: true, group: "market-data", groupLabel: "Market Data" },
-  { id: "knowledge", label: "Knowledge Base", path: "/admin/forex/knowledge", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
-  { id: "knowledge-documents", label: "Documents", path: "/admin/forex/knowledge/documents", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
-  { id: "knowledge-topics", label: "Topics", path: "/admin/forex/knowledge/topics", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
-  { id: "knowledge-categories", label: "Categories", path: "/admin/forex/knowledge/categories", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
-  { id: "knowledge-concepts", label: "Concepts", path: "/admin/forex/knowledge/concepts", implemented: true, group: "knowledge", groupLabel: "AI Knowledge" },
+  { id: "knowledge", label: "AI Training", path: "/admin/forex/knowledge", implemented: true, group: "knowledge", groupLabel: "AI Training" },
+  { id: "knowledge-documents", label: "Documents", path: "/admin/forex/knowledge/documents", implemented: true, group: "knowledge", groupLabel: "AI Training" },
+  { id: "knowledge-topics", label: "Topics", path: "/admin/forex/knowledge/topics", implemented: true, group: "knowledge", groupLabel: "AI Training" },
+  { id: "knowledge-categories", label: "Categories", path: "/admin/forex/knowledge/categories", implemented: true, group: "knowledge", groupLabel: "AI Training" },
+  { id: "knowledge-concepts", label: "Concepts", path: "/admin/forex/knowledge/concepts", implemented: true, group: "knowledge", groupLabel: "AI Training" },
   { id: "memory", label: "Memory", path: "/admin/forex/memory", implemented: true, group: "memory", groupLabel: "AI Memory" },
   { id: "journal", label: "Journal", path: "/admin/forex/journal", implemented: true, group: "memory", groupLabel: "AI Memory" },
   { id: "outcomes", label: "Outcomes", path: "/admin/forex/outcomes", implemented: true, group: "memory", groupLabel: "AI Memory" },
@@ -111,7 +116,9 @@ export function parseForexAdminRouteFromLocation(
   if (rest === "stream") {
     return { view: "stream", documentId: null, canonicalPath: "/admin/forex/stream" };
   }
-  if (rest === "knowledge") return { view: "knowledge", documentId: null, canonicalPath: "/admin/forex/knowledge" };
+  if (rest === "knowledge" || rest === "ai-training") {
+    return { view: rest === "ai-training" ? "ai-training" : "knowledge", documentId: null, canonicalPath: `/admin/forex/${rest}` };
+  }
   if (rest === "knowledge/documents") {
     return { view: "knowledge-documents", documentId: null, canonicalPath: "/admin/forex/knowledge/documents" };
   }
@@ -200,24 +207,25 @@ export function getForexAdminDocumentTitle(view: ForexAdminViewId): string {
     case "stream":
       return "KWIZERA AI STUDIO — FXCM Real-Time Stream";
     case "knowledge":
+    case "ai-training":
     case "knowledge-documents":
-      return "KWIZERA AI STUDIO — Forex Knowledge Base";
+      return "KWIZERA AI STUDIO — Forex AI Training";
     case "knowledge-new":
-      return "KWIZERA AI STUDIO — New Forex Knowledge";
+      return "KWIZERA AI STUDIO — New Forex AI Training";
     case "knowledge-edit":
-      return "KWIZERA AI STUDIO — Edit Forex Knowledge";
+      return "KWIZERA AI STUDIO — Edit Forex AI Training";
     case "knowledge-detail":
-      return "KWIZERA AI STUDIO — Forex Knowledge Detail";
+      return "KWIZERA AI STUDIO — Forex AI Training Detail";
     case "knowledge-topics":
-      return "KWIZERA AI STUDIO — Forex Knowledge Topics";
+      return "KWIZERA AI STUDIO — Forex AI Training Topics";
     case "knowledge-categories":
-      return "KWIZERA AI STUDIO — Forex Knowledge Categories";
+      return "KWIZERA AI STUDIO — Forex AI Training Categories";
     case "knowledge-concepts":
-      return "KWIZERA AI STUDIO — Forex Knowledge Concepts";
+      return "KWIZERA AI STUDIO — Forex AI Training Concepts";
     case "knowledge-status":
-      return "KWIZERA AI STUDIO — Forex Knowledge Status";
+      return "KWIZERA AI STUDIO — Forex AI Training Status";
     case "indexing":
-      return "KWIZERA AI STUDIO — Forex Knowledge Indexing";
+      return "KWIZERA AI STUDIO — Forex AI Training Indexing";
     case "ai-configuration":
       return "KWIZERA AI STUDIO — Forex AI Configuration";
     case "retrieval-diagnostics":

@@ -37,9 +37,19 @@ export const FOREX_SOURCE_TYPES = [
   "EXTERNAL_URL",
   "BOOK",
   "COURSE",
+  "PDF",
   "OTHER",
 ] as const;
 export type ForexSourceType = (typeof FOREX_SOURCE_TYPES)[number];
+
+/** Stored in document.metadata.ingestionState for PDF / upload pipelines. */
+export const FOREX_INGESTION_STATES = [
+  "UPLOADED",
+  "PROCESSING",
+  "INDEXED",
+  "FAILED",
+] as const;
+export type ForexIngestionState = (typeof FOREX_INGESTION_STATES)[number];
 
 export interface ForexKnowledgeCategory {
   id: string;
@@ -100,6 +110,12 @@ export interface ForexKnowledgeChunk {
   knowledgeType: ForexKnowledgeType;
   status: ForexKnowledgeStatus;
   createdAt: string;
+  /** Citation metadata (PDF / multi-page sources). */
+  sourceName?: string;
+  documentTitle?: string;
+  pageNumber?: number | null;
+  contentHash?: string;
+  locationHint?: string;
 }
 
 export interface ForexKnowledgeCreateInput {
@@ -172,6 +188,10 @@ export interface ForexKnowledgeOverview {
   categories: number;
   topics: number;
   chunks: number;
+  /** Documents with ingestionState FAILED or indexingStatus FAILED. */
+  failedIngestion: number;
+  /** Latest indexedAt across documents, or null. */
+  lastIndexingAt: string | null;
   recentUpdates: Array<{
     id: string;
     title: string;
@@ -202,6 +222,9 @@ export interface ForexKnowledgeRetrievalHit {
   knowledgeType: ForexKnowledgeType;
   sourceName: string;
   version: number;
+  documentTitle: string;
+  pageNumber?: number | null;
+  contentHash?: string;
 }
 
 export const DEFAULT_FOREX_CATEGORIES: Array<{ name: string; slug: string; description: string }> = [

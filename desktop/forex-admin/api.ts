@@ -11,6 +11,8 @@ export interface ForexAdminOverview {
   categories: number;
   topics: number;
   chunks: number;
+  failedIngestion: number;
+  lastIndexingAt: string | null;
   recentUpdates: Array<{
     id: string;
     title: string;
@@ -44,6 +46,20 @@ export interface ForexAdminDocument {
   indexedAt: string | null;
   indexingStatus: string;
   indexingError: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ForexAdminRetrieveHit {
+  documentId: string;
+  chunkId: string;
+  title: string;
+  content: string;
+  relevanceScore: number;
+  sourceName?: string;
+  documentTitle?: string;
+  pageNumber?: number | null;
+  contentHash?: string;
+  version?: number;
 }
 
 export interface ForexAdminCategory {
@@ -235,8 +251,26 @@ export const forexAdminApi = {
       method: "POST",
       body: "{}",
     }),
+  deleteKnowledge: (id: string) =>
+    request<{ ok: true; deleted: true; id: string }>(`/api/forex-admin/knowledge/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  uploadPdf: (body: {
+    fileName: string;
+    mimeType?: string;
+    dataBase64: string;
+    title?: string;
+    categoryId?: string | null;
+    topicId?: string | null;
+    tags?: string[];
+    publish?: boolean;
+  }) =>
+    request<{ ok: true; document: ForexAdminDocument }>("/api/forex-admin/knowledge/upload-pdf", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   retrieve: (body: { query: string; limit?: number }) =>
-    request<{ ok: true; hits: Array<{ documentId: string; title: string; content: string; relevanceScore: number }>; count: number }>(
+    request<{ ok: true; hits: ForexAdminRetrieveHit[]; count: number }>(
       "/api/forex-admin/knowledge/retrieve",
       { method: "POST", body: JSON.stringify(body) },
     ),

@@ -11,6 +11,7 @@ import {
   type ForexIntelligenceSettings,
 } from "../../ai/forex-ai/intelligence/index.js";
 import { getForexMemoryService } from "../../ai/forex-memory/index.js";
+import { requireForexAdmin } from "./forex-admin-auth.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -41,6 +42,8 @@ export async function handleForexIntelligenceApi(
   sendJson: SendJson,
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex-admin/intelligence")) return false;
+
+  if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
 
   const sub = url.pathname.slice("/api/forex-admin/intelligence".length) || "/";
 

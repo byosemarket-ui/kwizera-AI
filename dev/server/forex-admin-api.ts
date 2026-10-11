@@ -1,17 +1,19 @@
 /**
- * Phase 19 — Forex Admin HTTP API (/api/forex-admin/*).
- * Intentionally outside /api/admin/* so general Admin auth is not required in this phase.
+ * Phase 19 / 38B — Forex Admin HTTP API (/api/forex-admin/*).
+ * Protected by requireForexAdmin (Admin Control Plane token / role / development-open).
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   FOREX_INDEXING_STATUSES,
   FOREX_KNOWLEDGE_STATUSES,
   FOREX_KNOWLEDGE_TYPES,
+  FOREX_PDF_MAX_BYTES,
   getForexKnowledgeService,
   type ForexIndexingStatus,
   type ForexKnowledgeStatus,
   type ForexKnowledgeType,
 } from "../../ai/forex-knowledge/index.js";
+import { requireForexAdmin } from "./forex-admin-auth.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
 
@@ -35,6 +37,8 @@ export async function handleForexAdminApi(
 ): Promise<boolean> {
   if (!url.pathname.startsWith("/api/forex-admin")) return false;
 
+  if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
+
   const service = getForexKnowledgeService();
   await service.ensureReady();
   const sub = url.pathname.slice("/api/forex-admin".length) || "/";
@@ -45,10 +49,11 @@ export async function handleForexAdminApi(
         ok: true,
         surface: "forex-admin",
         canonicalEntry: "/admin/forex",
-        authentication: "deferred",
+        authentication: "admin-token",
         knowledgeTypes: FOREX_KNOWLEDGE_TYPES,
         statuses: FOREX_KNOWLEDGE_STATUSES,
         indexingStatuses: FOREX_INDEXING_STATUSES,
+        pdfMaxBytes: FOREX_PDF_MAX_BYTES,
       });
       return true;
     }
@@ -135,6 +140,69 @@ export async function handleForexAdminApi(
         sourceUrl: body.sourceUrl != null ? String(body.sourceUrl) : undefined,
         language: body.language != null ? String(body.language) : undefined,
         author: body.author != null ? String(body.author) : undefined,
+        metadata: body.metadata && typeof body.metadata === "object"
+          ? body.metadata as Record<string, unknown>
+          : undefined,
+      });
+      sendJson(res, 201, { ok: true, document });
+      return true;
+    }
+
+    if (sub === "/knowledge/upload-pdf" && req.method === "POST") {
+      const body = (await readJsonBody(req)) as {
+        fileName?: string;
+        mimeType?: string;
+        dataBase64?: string;
+        title?: string;
+        categoryId?: string | null;
+        topicId?: string | null;
+        tags?: string[];
+        publish?: boolean;
+      };
+      const fileName = String(body.fileName ?? "").trim();
+      const mimeType = String(body.mimeType ?? "application/pdf").trim();
+      const dataBase64 = String(body.dataBase64 ?? "").trim();
+      if (!fileName || !/\.pdf$/i.test(fileName)) {
+        fail(sendJson, res, 400, "BAD_REQUEST", "fileName must end with .pdf");
+        return true;
+      }
+      if (mimeType && mimeType !== "application/pdf" && mimeType !== "application/x-pdf") {
+        fail(sendJson, res, 400, "BAD_REQUEST", "mimeType must be application/pdf");
+        return true;
+      }
+      if (!dataBase64) {
+        fail(sendJson, res, 400, "BAD_REQUEST", "dataBase64 is required.");
+        return true;
+      }
+      let bytes: Buffer;
+      try {
+        bytes = Buffer.from(dataBase64, "base64");
+      } catch {
+        fail(sendJson, res, 400, "BAD_REQUEST", "dataBase64 is not valid base64.");
+        return true;
+      }
+      if (bytes.byteLength > FOREX_PDF_MAX_BYTES) {
+        fail(sendJson, res, 400, "BAD_REQUEST", `PDF exceeds 15 MB limit (${FOREX_PDF_MAX_BYTES} bytes).`);
+        return true;
+      }
+      // Validate PDF magic bytes; full parse happens in ingestPdf via extractPdfText.
+      if (
+        bytes.byteLength < 5
+        || bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46
+      ) {
+        fail(sendJson, res, 400, "BAD_REQUEST", "File is not a valid PDF document.");
+        return true;
+      }
+
+      const document = await service.ingestPdf({
+        bytes,
+        fileName,
+        mimeType,
+        title: body.title != null ? String(body.title) : undefined,
+        categoryId: body.categoryId === null ? null : body.categoryId != null ? String(body.categoryId) : undefined,
+        topicId: body.topicId === null ? null : body.topicId != null ? String(body.topicId) : undefined,
+        tags: Array.isArray(body.tags) ? body.tags.map(String) : undefined,
+        publish: Boolean(body.publish),
       });
       sendJson(res, 201, { ok: true, document });
       return true;
@@ -178,6 +246,12 @@ export async function handleForexAdminApi(
         return true;
       }
 
+      if (!action && req.method === "DELETE") {
+        const result = await service.deleteDocument(id);
+        sendJson(res, 200, { ok: true, ...result });
+        return true;
+      }
+
       if (!action && req.method === "PATCH") {
         const body = (await readJsonBody(req)) as Record<string, unknown>;
         const document = await service.updateDocument(id, {
@@ -194,6 +268,9 @@ export async function handleForexAdminApi(
           sourceUrl: body.sourceUrl != null ? String(body.sourceUrl) : undefined,
           language: body.language != null ? String(body.language) : undefined,
           author: body.author != null ? String(body.author) : undefined,
+          metadata: body.metadata && typeof body.metadata === "object"
+            ? body.metadata as Record<string, unknown>
+            : undefined,
         });
         sendJson(res, 200, { ok: true, document });
         return true;
@@ -221,7 +298,7 @@ export async function handleForexAdminApi(
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = /not found/i.test(message) ? 404 : /required|invalid|already exists|cannot/i.test(message) ? 400 : 500;
+    const status = /not found/i.test(message) ? 404 : /required|invalid|already exists|cannot|exceeds|mime|filename/i.test(message) ? 400 : 500;
     fail(sendJson, res, status, status === 404 ? "NOT_FOUND" : status === 400 ? "BAD_REQUEST" : "INTERNAL", message);
     return true;
   }

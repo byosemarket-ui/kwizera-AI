@@ -57,13 +57,21 @@ describe("Phase 19 dedicated Forex Admin routing", () => {
     expect(src).toContain('data-app-surface="admin"');
   });
 
-  it("exposes Forex Admin API outside general admin auth guard path", () => {
+  it("exposes Forex Admin API with shared Admin token auth (not general /api/admin path)", () => {
     const api = read("dev/server/forex-admin-api.ts");
     const index = read("dev/server/index.ts");
     expect(api).toContain("/api/forex-admin");
     expect(api).toContain("authentication");
-    expect(api).toContain("deferred");
+    expect(api).toContain("admin-token");
+    expect(api).toContain("requireForexAdmin");
     expect(index).toContain("handleForexAdminApi");
-    expect(api).not.toContain("assertAdminAccess");
+    // Auth boundary lives in forex-admin-auth (shared helper), not inline assertAdminAccess.
+    expect(read("dev/server/forex-admin-auth.ts")).toContain("assertAdminAccess");
+  });
+
+  it("aliases /admin/forex/ai-training to AI Training surface", () => {
+    expect(parseForexAdminRouteFromLocation("/admin/forex/ai-training").view).toBe("ai-training");
+    expect(FOREX_ADMIN_NAV.some((item) => item.label === "AI Training")).toBe(true);
+    expect(FOREX_ADMIN_NAV.every((item) => item.label !== "Knowledge Base")).toBe(true);
   });
 });
