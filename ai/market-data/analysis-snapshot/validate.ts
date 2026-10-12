@@ -1,16 +1,38 @@
 /**
- * Deterministic validation for analysis market snapshots (Phase 43B).
+ * Deterministic validation for analysis market snapshots (Phase 43B/43C).
  */
 import type { CanonicalTimeframeId } from "../providers/contracts.js";
 import { timeframeIntervalMs } from "./periods.js";
 import type {
   AnalysisDataGap,
+  AnalysisGapReason,
   AnalysisSnapshotCandle,
   AnalysisSnapshotQuote,
   AnalysisSnapshotValidation,
   AnalysisSnapshotValidationStatus,
   AnalysisTimeRange,
 } from "./types.js";
+
+/** Heuristic: gap spanning a Sat–Sun UTC window is treated as market closure for FX. */
+export function classifyGapReason(
+  startUtc: string,
+  endUtc: string,
+  marketType?: string | null,
+): AnalysisGapReason {
+  if (String(marketType ?? "").toUpperCase() !== "FOREX") return "DATA_GAP";
+  const start = Date.parse(startUtc);
+  const end = Date.parse(endUtc);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return "UNKNOWN";
+  // Walk calendar days in the gap; if Saturday or Sunday appears, call it closure.
+  const dayMs = 24 * 60 * 60_000;
+  for (let t = start; t < end; t += dayMs) {
+    const dow = new Date(t).getUTCDay();
+    if (dow === 0 || dow === 6) return "MARKET_CLOSURE";
+  }
+  const endDow = new Date(end).getUTCDay();
+  if (endDow === 0 || endDow === 6) return "MARKET_CLOSURE";
+  return "DATA_GAP";
+}
 
 function finitePositive(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
@@ -32,23 +54,32 @@ export function detectDataGaps(
   candles: AnalysisSnapshotCandle[],
   timeframe: CanonicalTimeframeId,
   range: AnalysisTimeRange,
+  marketType?: string | null,
 ): AnalysisDataGap[] {
   const intervalSec = timeframeIntervalMs(timeframe) / 1000;
   const closed = candles.filter((c) => c.isClosed).sort((a, b) => a.time - b.time);
   if (closed.length === 0) return [];
 
   const gaps: AnalysisDataGap[] = [];
+  const pushGap = (startUtc: string, endUtc: string, missingIntervals: number) => {
+    gaps.push({
+      startUtc,
+      endUtc,
+      missingIntervals,
+      reason: classifyGapReason(startUtc, endUtc, marketType),
+    });
+  };
   for (let i = 1; i < closed.length; i += 1) {
     const prev = closed[i - 1]!;
     const cur = closed[i]!;
     const delta = cur.time - prev.time;
     if (delta > intervalSec * 1.5) {
       const missing = Math.max(0, Math.round(delta / intervalSec) - 1);
-      gaps.push({
-        startUtc: new Date((prev.time + intervalSec) * 1000).toISOString(),
-        endUtc: new Date(cur.time * 1000).toISOString(),
-        missingIntervals: missing,
-      });
+      pushGap(
+        new Date((prev.time + intervalSec) * 1000).toISOString(),
+        new Date(cur.time * 1000).toISOString(),
+        missing,
+      );
     }
   }
 
@@ -62,14 +93,19 @@ export function detectDataGaps(
       startUtc: range.startUtc,
       endUtc: new Date(first.time * 1000).toISOString(),
       missingIntervals: Math.max(0, Math.round((first.time - rangeStartSec) / intervalSec) - 1),
+      reason: classifyGapReason(
+        range.startUtc,
+        new Date(first.time * 1000).toISOString(),
+        marketType,
+      ),
     });
   }
   if (rangeEndSec - last.time > intervalSec * 2.5) {
-    gaps.push({
-      startUtc: new Date((last.time + intervalSec) * 1000).toISOString(),
-      endUtc: range.endUtc,
-      missingIntervals: Math.max(0, Math.round((rangeEndSec - last.time) / intervalSec) - 1),
-    });
+    pushGap(
+      new Date((last.time + intervalSec) * 1000).toISOString(),
+      range.endUtc,
+      Math.max(0, Math.round((rangeEndSec - last.time) / intervalSec) - 1),
+    );
   }
   return gaps;
 }
@@ -150,7 +186,14 @@ export function buildValidationReport(input: {
     warnings.push(`Partial historical coverage (${(coverage * 100).toFixed(0)}%).`);
   }
   if (input.dataGaps.length) {
-    warnings.push(`${input.dataGaps.length} data gap region(s) detected.`);
+    const closures = input.dataGaps.filter((g) => g.reason === "MARKET_CLOSURE").length;
+    const dataGaps = input.dataGaps.filter((g) => g.reason === "DATA_GAP").length;
+    warnings.push(
+      `${input.dataGaps.length} gap region(s) detected`
+      + (closures ? ` (${closures} likely market closure)` : "")
+      + (dataGaps ? ` (${dataGaps} data gap)` : "")
+      + ".",
+    );
     checks.push({
       id: "gaps",
       ok: true,

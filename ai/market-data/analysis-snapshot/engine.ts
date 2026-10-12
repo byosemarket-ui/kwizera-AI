@@ -1,5 +1,5 @@
 /**
- * Phase 43B — Unified Market Data Snapshot Engine.
+ * Phase 43B/43C — Unified Market Data Snapshot Engine.
  * Builds immutable, instrument-specific analysis snapshots via MarketDataService.
  */
 import { randomUUID } from "node:crypto";
@@ -9,7 +9,12 @@ import {
   getMarketDataService,
   type MarketDataService,
 } from "../providers/market-data-service.js";
-import type { UnifiedCandle, UnifiedQuote } from "../providers/contracts.js";
+import {
+  CANONICAL_TIMEFRAMES,
+  type CanonicalTimeframeId,
+  type UnifiedCandle,
+  type UnifiedQuote,
+} from "../providers/contracts.js";
 import {
   ANALYSIS_SNAPSHOT_SCHEMA_VERSION,
   type AnalysisMarketSnapshot,
@@ -21,7 +26,12 @@ import {
 import {
   ANALYSIS_SNAPSHOT_STALE_QUOTE_MS,
   resolveAndValidateRequestShape,
+  timeframeIntervalMs,
 } from "./periods.js";
+import {
+  preferResampleSource,
+  resampleCandles,
+} from "./resample.js";
 import {
   buildValidationReport,
   computeCoverageRatio,
@@ -169,6 +179,8 @@ export class AnalysisSnapshotEngine {
       candleTimeframe: raw.candleTimeframe,
       analysisPeriod: raw.analysisPeriod,
       higherTimeframes: raw.higherTimeframes,
+      rangeStartUtc: raw.rangeStartUtc,
+      rangeEndUtc: raw.rangeEndUtc,
     });
     if (!shape.ok) {
       return {
@@ -247,6 +259,8 @@ export class AnalysisSnapshotEngine {
     }
 
     let candles: AnalysisSnapshotCandle[] = [];
+    let resampled = false;
+    let sourceTimeframe: CanonicalTimeframeId | null = resolved.candleTimeframe;
     try {
       // Warm live session for FC/FXCM so instrument-specific quote freshness is available.
       if (provider === "FOREXCONNECT" || provider === "FXCM") {
@@ -262,29 +276,67 @@ export class AnalysisSnapshotEngine {
         }
       }
 
-      const series = await this.marketData.getHistoricalCandles({
-        provider,
-        symbol: instrument.providerSymbol,
-        timeframe: resolved.candleTimeframe,
-        marketType: instrument.marketType,
-        limit: resolved.fetchLimit,
-        refresh: true,
-      });
-      seriesNote = series.note ?? null;
-      seriesErrorCode = series.errorCode ?? null;
-      sourceMode = series.sourceMode ?? null;
-      environment = series.identity.environment ?? environment;
-      instrument = {
-        providerSymbol: series.identity.providerSymbol,
-        canonicalSymbol: series.identity.canonicalSymbol,
-        displaySymbol: series.identity.displaySymbol,
-        marketType: series.identity.marketType,
+      const fetchMapped = async (tf: CanonicalTimeframeId, limit: number) => {
+        const series = await this.marketData.getHistoricalCandles({
+          provider,
+          symbol: instrument.providerSymbol,
+          timeframe: tf,
+          marketType: instrument.marketType,
+          limit,
+          refresh: true,
+        });
+        seriesNote = series.note ?? null;
+        seriesErrorCode = series.errorCode ?? null;
+        sourceMode = series.sourceMode ?? null;
+        environment = series.identity.environment ?? environment;
+        instrument = {
+          providerSymbol: series.identity.providerSymbol,
+          canonicalSymbol: series.identity.canonicalSymbol,
+          displaySymbol: series.identity.displaySymbol,
+          marketType: series.identity.marketType,
+        };
+        const mapped = series.candles.map(mapCandle);
+        if (series.forming) mapped.push(mapCandle(series.forming));
+        return dedupeSort(mapped);
       };
 
-      const mapped = series.candles.map(mapCandle);
-      if (series.forming) mapped.push(mapCandle(series.forming));
+      let mapped = await fetchMapped(resolved.candleTimeframe, resolved.fetchLimit);
+      sourceTimeframe = resolved.candleTimeframe;
+
+      // If native series is empty, attempt exact finer→coarser resampling only.
+      if (mapped.length === 0) {
+        const sourceTf = preferResampleSource(resolved.candleTimeframe, CANONICAL_TIMEFRAMES);
+        if (sourceTf) {
+          const ratio = timeframeIntervalMs(resolved.candleTimeframe) / timeframeIntervalMs(sourceTf);
+          const sourceLimit = Math.min(
+            300,
+            Math.ceil(resolved.fetchLimit * ratio) + 5,
+          );
+          const sourceMapped = await fetchMapped(sourceTf, sourceLimit);
+          if (sourceMapped.length) {
+            const resampledResult = resampleCandles(
+              sourceMapped,
+              sourceTf,
+              resolved.candleTimeframe,
+            );
+            if (resampledResult.ok) {
+              mapped = resampledResult.candles;
+              resampled = true;
+              sourceTimeframe = sourceTf;
+              seriesNote = [
+                seriesNote,
+                `Resampled ${sourceTf} → ${resolved.candleTimeframe}`,
+              ].filter(Boolean).join("; ");
+              seriesErrorCode = null;
+            } else {
+              providerError = resampledResult.message;
+            }
+          }
+        }
+      }
+
       candles = filterToRange(
-        dedupeSort(mapped),
+        mapped,
         resolved.requestedRange.startMs,
         resolved.requestedRange.endMs,
       );
@@ -311,7 +363,12 @@ export class AnalysisSnapshotEngine {
       quote = mapQuote(provider, null, environment);
     }
 
-    const dataGaps = detectDataGaps(candles, resolved.candleTimeframe, resolved.requestedRange);
+    const dataGaps = detectDataGaps(
+      candles,
+      resolved.candleTimeframe,
+      resolved.requestedRange,
+      instrument.marketType,
+    );
     const validation = buildValidationReport({
       candles,
       quote,
@@ -366,8 +423,8 @@ export class AnalysisSnapshotEngine {
         historicalSourceMode: sourceMode,
         seriesNote,
         seriesErrorCode,
-        resampled: false,
-        sourceTimeframe: resolved.candleTimeframe,
+        resampled,
+        sourceTimeframe,
       },
       warnings,
       evidenceReady: isEvidenceReady(validation),

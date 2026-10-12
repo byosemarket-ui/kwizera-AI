@@ -1,5 +1,6 @@
 export * from "./types.js";
 export * from "./periods.js";
+export * from "./resample.js";
 export * from "./validate.js";
 export * from "./fingerprint.js";
 export * from "./store.js";

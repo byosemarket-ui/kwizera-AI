@@ -10,8 +10,10 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   ANALYSIS_PERIOD_IDS,
   ANALYSIS_SNAPSHOT_MAX_CANDLES,
+  ANALYSIS_SNAPSHOT_MAX_CUSTOM_SPAN_MS,
   ANALYSIS_SNAPSHOT_SCHEMA_VERSION,
   getAnalysisSnapshotEngine,
+  listAffordablePeriodTimeframePairs,
 } from "../../ai/market-data/analysis-snapshot/index.js";
 import { CANONICAL_TIMEFRAMES } from "../../ai/market-data/providers/contracts.js";
 
@@ -53,7 +55,12 @@ export async function handleForexAnalysisSnapshotApi(
         candleTimeframes: CANONICAL_TIMEFRAMES,
         analysisPeriods: ANALYSIS_PERIOD_IDS,
         maxCandles: ANALYSIS_SNAPSHOT_MAX_CANDLES,
-        note: "Immutable analysis market-data snapshots for future Local AI / OpenAI / Compare Both.",
+        maxCustomSpanMs: ANALYSIS_SNAPSHOT_MAX_CUSTOM_SPAN_MS,
+        affordablePairs: listAffordablePeriodTimeframePairs(),
+        note:
+          "Candle timeframe and analysis period are independent. "
+          + "Unsupported finer timeframes (e.g. 2m/3m) are not advertised. "
+          + "Immutable snapshots for future Local AI / OpenAI / Compare Both.",
       });
       return true;
     }
@@ -78,6 +85,8 @@ export async function handleForexAnalysisSnapshotApi(
         symbol: String(body.symbol ?? ""),
         candleTimeframe: String(body.candleTimeframe ?? body.timeframe ?? ""),
         analysisPeriod: String(body.analysisPeriod ?? ""),
+        rangeStartUtc: body.rangeStartUtc == null ? undefined : String(body.rangeStartUtc),
+        rangeEndUtc: body.rangeEndUtc == null ? undefined : String(body.rangeEndUtc),
         higherTimeframes: Array.isArray(body.higherTimeframes)
           ? body.higherTimeframes.map(String)
           : undefined,

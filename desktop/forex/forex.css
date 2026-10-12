@@ -1,4 +1,4 @@
-/* KWIZERA Forex ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
+/* KWIZERA Forex ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
 
 .fx-root {
   --fx-bg: var(--shell-bg, #0a0e14);
@@ -878,7 +878,7 @@ html.reduce-motion .fx-sidebar {
   overflow: auto;
 }
 
-/* Phase 37A/37D ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ compact trading-terminal chrome (header + toolbar as one dense bar). */
+/* Phase 37A/37D ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ compact trading-terminal chrome (header + toolbar as one dense bar). */
 .fx-trading-header {
   display: flex;
   flex-wrap: wrap;
@@ -1498,7 +1498,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 36D / 37B ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ForexConnect Market Explorer (compact category sidebar) */
+/* Phase 36D / 37B ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ForexConnect Market Explorer (compact category sidebar) */
 .fx-fc-explorer,
 .fx-market-explorer {
   display: flex;
@@ -1781,7 +1781,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 43A ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ AI Market Analysis workstation (scoped) */
+/* Phase 43A ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ AI Market Analysis workstation (scoped) */
 .fx-ai-analysis {
   --fx-ai-gap: 10px;
   --fx-ai-pad: 12px;
@@ -1942,8 +1942,25 @@ html.reduce-motion .fx-sidebar {
   flex: 0 0 auto;
 }
 
-.fx-ai-period-label select {
+.fx-ai-snapshot-config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px 12px;
+  align-items: end;
+  min-width: 0;
+}
+
+.fx-ai-period-label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fx-ai-period-label select,
+.fx-ai-period-label input[type="datetime-local"] {
   min-height: 30px;
+  width: 100%;
+  max-width: 100%;
   padding: 4px 8px;
   border: 1px solid var(--fx-border);
   border-radius: 6px;
@@ -1952,6 +1969,18 @@ html.reduce-motion .fx-sidebar {
   font: inherit;
   font-size: 12px;
   font-weight: 650;
+  box-sizing: border-box;
+}
+
+.fx-ai-custom-range {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.fx-ai-estimate-blocked {
+  color: color-mix(in srgb, var(--fx-accent) 70%, #c44);
 }
 
 .fx-ai-snapshot-status {
@@ -1967,6 +1996,11 @@ html.reduce-motion .fx-sidebar {
   min-width: 0;
 }
 
+.fx-ai-snapshot-status[data-ai-snapshot-stale="true"] {
+  opacity: 0.88;
+  border-style: dashed;
+}
+
 .fx-ai-mono {
   font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
   font-size: 11px;
@@ -1977,6 +2011,19 @@ html.reduce-motion .fx-sidebar {
 .fx-ai-snapshot-warn {
   color: var(--fx-muted);
   overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 480px) {
+  .fx-ai-snapshot-config {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fx-ai-custom-range {
+    grid-template-columns: 1fr;
+  }
 }
 
 .fx-ai-analyze-btn {
@@ -2223,7 +2270,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 38F ÃÂÃÂÃÂÃÂ Market Monitor */
+/* Phase 38F ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Market Monitor */
 .fx-monitor { display: grid; gap: 14px; }
 .fx-monitor-auth { display: grid; gap: 6px; max-width: 640px; }
 .fx-monitor-auth-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

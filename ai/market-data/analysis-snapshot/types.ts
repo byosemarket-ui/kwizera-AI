@@ -1,5 +1,5 @@
 /**
- * Phase 43B — Immutable analysis market-data snapshot contracts.
+ * Phase 43B/43C — Immutable analysis market-data snapshot contracts.
  * Distinct from UnifiedMarketSnapshot (current-market glance) and ForexMarketMemorySnapshot (journal).
  */
 import type { CanonicalTimeframeId } from "../providers/contracts.js";
@@ -7,13 +7,24 @@ import type { MarketAssetType, MarketProviderId } from "../providers/types.js";
 
 export const ANALYSIS_SNAPSHOT_SCHEMA_VERSION = "forex-analysis-snapshot-v1";
 
+/** Validated analysis lookback periods (independent of candle timeframe). */
 export const ANALYSIS_PERIOD_IDS = [
+  "5m",
   "30m",
   "2h",
+  "3h",
+  "4h",
+  "5h",
   "6h",
+  "12h",
   "24h",
+  "2d",
   "3d",
+  "4d",
+  "5d",
+  "6d",
   "7d",
+  "custom",
 ] as const;
 
 export type AnalysisPeriodId = (typeof ANALYSIS_PERIOD_IDS)[number];
@@ -48,7 +59,10 @@ export interface AnalysisSnapshotRequest {
   symbol: string;
   candleTimeframe: CanonicalTimeframeId | string;
   analysisPeriod: AnalysisPeriodId | string;
-  /** Optional higher timeframes reserved for later AI modes — validated but not required in 43B. */
+  /** Required when analysisPeriod is `custom` — server-validated UTC bounds. */
+  rangeStartUtc?: string;
+  rangeEndUtc?: string;
+  /** Optional higher timeframes reserved for later AI modes — validated but not required. */
   higherTimeframes?: string[];
   /** When true, VALID requires a fresh instrument-specific live quote. */
   requireLiveQuote?: boolean;
@@ -72,6 +86,8 @@ export interface AnalysisSnapshotCandle {
   volume: number | null;
   isClosed: boolean;
   resampled: boolean;
+  /** True when the aggregation window lacked a full set of source candles. */
+  incompleteAggregation?: boolean;
 }
 
 export interface AnalysisSnapshotQuote {
@@ -93,10 +109,13 @@ export interface AnalysisSnapshotQuote {
   environment: string | null;
 }
 
+export type AnalysisGapReason = "DATA_GAP" | "MARKET_CLOSURE" | "UNKNOWN";
+
 export interface AnalysisDataGap {
   startUtc: string;
   endUtc: string;
   missingIntervals: number;
+  reason: AnalysisGapReason;
 }
 
 export interface AnalysisSnapshotValidation {

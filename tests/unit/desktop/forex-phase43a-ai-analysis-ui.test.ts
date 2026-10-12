@@ -21,6 +21,8 @@ describe("Phase 43A Forex AI Analysis UI", () => {
     expect(page).toContain("AI Market Analysis");
     expect(page).toContain("data-ai-config");
     expect(page).toContain("data-ai-analyze-btn");
+    expect(page).toContain("data-ai-candle-timeframe");
+    expect(page).toContain("data-ai-analysis-period");
     expect(page).toContain("/api/forex/ai/analyze");
     expect(page).toContain("/api/forex/ai/multi-timeframe");
     expect(page).toContain("/api/forex/ai/decision");

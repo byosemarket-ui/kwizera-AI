@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type HTMLAttributes, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 import type { ChartTimeframeId } from "./chart/types";
@@ -7,7 +7,61 @@ import { LiveTickerPanel } from "./LiveTickerPanel";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
 const MTF_OPTIONS = ["4h", "1h", "30m", "15m", "5m", "1d"] as const;
-const ANALYSIS_PERIODS = ["30m", "2h", "6h", "24h", "3d", "7d"] as const;
+/** Must stay aligned with ANALYSIS_PERIOD_IDS (server). Unsupported ads are omitted. */
+const ANALYSIS_PERIODS = [
+  "5m", "30m", "2h", "3h", "4h", "5h", "6h", "12h", "24h",
+  "2d", "3d", "4d", "5d", "6d", "7d", "custom",
+] as const;
+/** Native canonical candle timeframes only (unsupported sub-minute/hour variants omitted). */
+const CANDLE_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const;
+const MAX_SNAPSHOT_CANDLES = 300;
+
+const PERIOD_MS: Record<Exclude<(typeof ANALYSIS_PERIODS)[number], "custom">, number> = {
+  "5m": 5 * 60_000,
+  "30m": 30 * 60_000,
+  "2h": 2 * 60 * 60_000,
+  "3h": 3 * 60 * 60_000,
+  "4h": 4 * 60 * 60_000,
+  "5h": 5 * 60 * 60_000,
+  "6h": 6 * 60 * 60_000,
+  "12h": 12 * 60 * 60_000,
+  "24h": 24 * 60 * 60_000,
+  "2d": 2 * 24 * 60 * 60_000,
+  "3d": 3 * 24 * 60 * 60_000,
+  "4d": 4 * 24 * 60 * 60_000,
+  "5d": 5 * 24 * 60 * 60_000,
+  "6d": 6 * 24 * 60 * 60_000,
+  "7d": 7 * 24 * 60 * 60_000,
+};
+
+const TF_MS: Record<(typeof CANDLE_TIMEFRAMES)[number], number> = {
+  "1m": 60_000,
+  "5m": 5 * 60_000,
+  "15m": 15 * 60_000,
+  "30m": 30 * 60_000,
+  "1h": 60 * 60_000,
+  "4h": 4 * 60 * 60_000,
+  "1d": 24 * 60 * 60_000,
+  "1w": 7 * 24 * 60 * 60_000,
+};
+
+function estimateCandlesClient(
+  candleTimeframe: (typeof CANDLE_TIMEFRAMES)[number],
+  analysisPeriod: (typeof ANALYSIS_PERIODS)[number],
+  customStart?: string,
+  customEnd?: string,
+): number | null {
+  let spanMs: number | null = null;
+  if (analysisPeriod === "custom") {
+    const a = Date.parse(customStart ?? "");
+    const b = Date.parse(customEnd ?? "");
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return null;
+    spanMs = b - a;
+  } else {
+    spanMs = PERIOD_MS[analysisPeriod];
+  }
+  return Math.max(1, Math.ceil(spanMs / TF_MS[candleTimeframe]));
+}
 
 type SnapshotSummary = {
   snapshotId: string;
@@ -15,9 +69,19 @@ type SnapshotSummary = {
   validationStatus: string;
   evidenceReady: boolean;
   candleCount: number;
+  candlesRequestedEstimate: number;
+  coverageRatio: number;
   quoteFreshness: string;
   analysisPeriod: string;
   candleTimeframe: string;
+  requestedStartUtc: string;
+  requestedEndUtc: string;
+  returnedStartUtc: string | null;
+  returnedEndUtc: string | null;
+  gapCount: number;
+  closureGapCount: number;
+  resampled: boolean;
+  warnings: string[];
   latencyMs: number | null;
 };
 
@@ -415,9 +479,14 @@ export function ForexAiAnalysisPage({
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
   const [analysisPeriod, setAnalysisPeriod] = useState<(typeof ANALYSIS_PERIODS)[number]>("6h");
+  const [candleTf, setCandleTf] = useState<(typeof CANDLE_TIMEFRAMES)[number]>("15m");
+  const [customStartUtc, setCustomStartUtc] = useState("");
+  const [customEndUtc, setCustomEndUtc] = useState("");
   const [snapshotBusy, setSnapshotBusy] = useState(false);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SnapshotSummary | null>(null);
+  const [snapshotStale, setSnapshotStale] = useState(false);
+  const snapshotRequestSeq = useRef(0);
 
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
@@ -429,6 +498,28 @@ export function ForexAiAnalysisPage({
     : fxcmSelected
       ? "FXCM" as const
       : "BINANCE" as const;
+
+  // Seed candle timeframe from chart once when chart TF is a supported canonical value.
+  useEffect(() => {
+    const chartTf = String(timeframe || "").toLowerCase();
+    if ((CANDLE_TIMEFRAMES as readonly string[]).includes(chartTf)) {
+      setCandleTf(chartTf as (typeof CANDLE_TIMEFRAMES)[number]);
+    }
+  }, [timeframe]);
+
+  // Changing selection invalidates displayed snapshot identity (do not reuse incompatible data).
+  useEffect(() => {
+    setSnapshotStale(true);
+    setSnapshotError(null);
+  }, [provider, selectedMarket?.symbol, analysisPeriod, candleTf, customStartUtc, customEndUtc, mode]);
+
+  const estimatedCandles = estimateCandlesClient(
+    candleTf,
+    analysisPeriod,
+    customStartUtc,
+    customEndUtc,
+  );
+  const combinationBlocked = estimatedCandles != null && estimatedCandles > MAX_SNAPSHOT_CANDLES;
 
   useEffect(() => {
     let cancelled = false;
@@ -462,21 +553,44 @@ export function ForexAiAnalysisPage({
       setSnapshotError("Select a market instrument before preparing a snapshot.");
       return;
     }
+    if (combinationBlocked) {
+      setSnapshotError(
+        `Selection needs ~${estimatedCandles} ${candleTf} candles (max ${MAX_SNAPSHOT_CANDLES}). `
+        + "Choose a coarser timeframe or shorter period.",
+      );
+      return;
+    }
+    if (analysisPeriod === "custom") {
+      const a = Date.parse(customStartUtc);
+      const b = Date.parse(customEndUtc);
+      if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
+        setSnapshotError("Custom period requires a valid UTC start and end (end after start).");
+        return;
+      }
+    }
+
+    const seq = ++snapshotRequestSeq.current;
     setSnapshotBusy(true);
     setSnapshotError(null);
     try {
-      const candleTimeframe = mode === "single" ? tf : (mtfSelected[0] || "15m");
+      const body: Record<string, unknown> = {
+        provider,
+        symbol: selectedMarket.symbol,
+        candleTimeframe: candleTf,
+        analysisPeriod,
+        higherTimeframes: mode === "single"
+          ? undefined
+          : mtfSelected.filter((t) => t !== candleTf),
+        requireLiveQuote: false,
+      };
+      if (analysisPeriod === "custom") {
+        body.rangeStartUtc = new Date(customStartUtc).toISOString();
+        body.rangeEndUtc = new Date(customEndUtc).toISOString();
+      }
       const res = await fetch("/api/forex/analysis-snapshot", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          provider,
-          symbol: selectedMarket.symbol,
-          candleTimeframe,
-          analysisPeriod,
-          higherTimeframes: mode === "single" ? undefined : mtfSelected.filter((t) => t !== candleTimeframe),
-          requireLiveQuote: false,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json() as {
         ok?: boolean;
@@ -488,38 +602,71 @@ export function ForexAiAnalysisPage({
           contentFingerprint: string;
           evidenceReady: boolean;
           candleCount: number;
+          candlesRequestedEstimate?: number;
           analysisPeriod: string;
           candleTimeframe: string;
-          validation?: { status?: string };
-          freshness?: { quote?: string };
+          requestedRange?: { startUtc?: string; endUtc?: string };
+          returnedRange?: { startUtc?: string; endUtc?: string } | null;
+          dataGaps?: Array<{ reason?: string }>;
+          warnings?: string[];
+          validation?: { status?: string; warnings?: string[] };
+          freshness?: { quote?: string; historicalCoverageRatio?: number };
+          sourceMetadata?: { resampled?: boolean };
         } | null;
       };
+      if (seq !== snapshotRequestSeq.current) return; // stale response
       if (!data.snapshot) {
-        setSnapshot(null);
+        // Keep prior snapshot visible when a later attempt fails.
         setSnapshotError(data.error || data.code || "Snapshot unavailable");
         return;
       }
+      const gaps = data.snapshot.dataGaps ?? [];
       setSnapshot({
         snapshotId: data.snapshot.snapshotId,
         contentFingerprint: data.snapshot.contentFingerprint,
         validationStatus: data.snapshot.validation?.status || data.code || "UNKNOWN",
         evidenceReady: Boolean(data.snapshot.evidenceReady),
         candleCount: data.snapshot.candleCount,
+        candlesRequestedEstimate: data.snapshot.candlesRequestedEstimate ?? 0,
+        coverageRatio: data.snapshot.freshness?.historicalCoverageRatio ?? 0,
         quoteFreshness: data.snapshot.freshness?.quote || "UNAVAILABLE",
         analysisPeriod: data.snapshot.analysisPeriod,
         candleTimeframe: data.snapshot.candleTimeframe,
+        requestedStartUtc: data.snapshot.requestedRange?.startUtc ?? "",
+        requestedEndUtc: data.snapshot.requestedRange?.endUtc ?? "",
+        returnedStartUtc: data.snapshot.returnedRange?.startUtc ?? null,
+        returnedEndUtc: data.snapshot.returnedRange?.endUtc ?? null,
+        gapCount: gaps.length,
+        closureGapCount: gaps.filter((g) => g.reason === "MARKET_CLOSURE").length,
+        resampled: Boolean(data.snapshot.sourceMetadata?.resampled),
+        warnings: data.snapshot.warnings
+          ?? data.snapshot.validation?.warnings
+          ?? [],
         latencyMs: data.latencyMs ?? null,
       });
+      setSnapshotStale(false);
       if (!data.ok) {
         setSnapshotError(data.error || data.code || "Snapshot completed with validation issues");
       }
     } catch (err) {
-      setSnapshot(null);
+      if (seq !== snapshotRequestSeq.current) return;
       setSnapshotError(err instanceof Error ? err.message : "Snapshot request failed");
     } finally {
-      setSnapshotBusy(false);
+      if (seq === snapshotRequestSeq.current) setSnapshotBusy(false);
     }
-  }, [marketReady, selectedMarket, provider, mode, tf, mtfSelected, analysisPeriod]);
+  }, [
+    marketReady,
+    selectedMarket,
+    provider,
+    mode,
+    mtfSelected,
+    analysisPeriod,
+    candleTf,
+    customStartUtc,
+    customEndUtc,
+    combinationBlocked,
+    estimatedCandles,
+  ]);
 
   const runAnalysis = useCallback(async () => {
     if (!marketReady || !selectedMarket) {
@@ -602,9 +749,12 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase21="true"
       data-forex-ai-phase22="true"
       data-forex-ai-phase43b="true"
+      data-forex-ai-phase43c="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
       data-ai-provider={marketReady ? provider : ""}
+      data-ai-candle-tf={candleTf}
+      data-ai-period-value={analysisPeriod}
       aria-labelledby="fx-page-ai-analysis"
     >
       <header className="fx-ai-page-header">
@@ -634,18 +784,36 @@ export function ForexAiAnalysisPage({
           </div>
           {mode === "single" ? (
             <div className="fx-ai-status-item">
-              <span className="fx-ai-label">Timeframe</span>
+              <span className="fx-ai-label">Chart TF</span>
               <strong data-ai-market-timeframe="true">{tf}</strong>
             </div>
           ) : (
             <div className="fx-ai-status-item">
-              <span className="fx-ai-label">Timeframes</span>
+              <span className="fx-ai-label">AI timeframes</span>
               <strong>{mtfSelected.map((t) => t.toUpperCase()).join(" · ")}</strong>
             </div>
           )}
           <div className="fx-ai-status-item">
             <span className="fx-ai-label">AI mode</span>
             <strong>{mode === "decision" ? "Decision" : mode === "mtf" ? "Multi-TF" : "Single"}</strong>
+          </div>
+        </div>
+
+        <div className="fx-ai-snapshot-config" data-ai-snapshot-config="true">
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">Candle TF</span>
+            <label className="fx-ai-period-label">
+              <select
+                aria-label="Candle timeframe"
+                data-ai-candle-timeframe="true"
+                value={candleTf}
+                onChange={(e) => setCandleTf(e.target.value as (typeof CANDLE_TIMEFRAMES)[number])}
+              >
+                {CANDLE_TIMEFRAMES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
           </div>
           <div className="fx-ai-status-item">
             <span className="fx-ai-label">Analysis period</span>
@@ -662,7 +830,43 @@ export function ForexAiAnalysisPage({
               </select>
             </label>
           </div>
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">Est. candles</span>
+            <strong data-ai-candle-estimate="true" className={combinationBlocked ? "fx-ai-estimate-blocked" : undefined}>
+              {estimatedCandles == null ? "—" : `~${estimatedCandles}`}
+              <span className="fx-ai-muted"> / {MAX_SNAPSHOT_CANDLES}</span>
+            </strong>
+          </div>
         </div>
+
+        {analysisPeriod === "custom" ? (
+          <div className="fx-ai-custom-range" data-ai-custom-range="true">
+            <label className="fx-ai-period-label">
+              <span className="fx-ai-label">Start UTC</span>
+              <input
+                type="datetime-local"
+                aria-label="Custom range start UTC"
+                value={customStartUtc}
+                onChange={(e) => setCustomStartUtc(e.target.value)}
+              />
+            </label>
+            <label className="fx-ai-period-label">
+              <span className="fx-ai-label">End UTC</span>
+              <input
+                type="datetime-local"
+                aria-label="Custom range end UTC"
+                value={customEndUtc}
+                onChange={(e) => setCustomEndUtc(e.target.value)}
+              />
+            </label>
+          </div>
+        ) : null}
+
+        {combinationBlocked ? (
+          <p className="fx-ai-snapshot-warn" role="status" data-ai-combo-blocked="true">
+            Combination exceeds the {MAX_SNAPSHOT_CANDLES}-candle limit. Shorten the period or use a coarser candle timeframe.
+          </p>
+        ) : null}
 
         <div className="fx-ai-toolbar">
           <div className="fx-ai-controls">
@@ -697,7 +901,7 @@ export function ForexAiAnalysisPage({
               type="button"
               className="fx-text-button"
               data-ai-prepare-snapshot-btn="true"
-              disabled={snapshotBusy || !marketReady}
+              disabled={snapshotBusy || !marketReady || combinationBlocked}
               onClick={() => void prepareSnapshot()}
             >
               {snapshotBusy ? "Preparing…" : "Prepare snapshot"}
@@ -716,23 +920,54 @@ export function ForexAiAnalysisPage({
       </div>
 
       {snapshot || snapshotError ? (
-        <div className="fx-ai-snapshot-status" data-ai-snapshot-status="true">
+        <div
+          className="fx-ai-snapshot-status"
+          data-ai-snapshot-status="true"
+          data-ai-snapshot-stale={snapshotStale ? "true" : "false"}
+        >
           {snapshot ? (
             <>
-              <ForexStatusBadge tone={snapshot.evidenceReady ? "live" : "future"}>
-                {snapshot.validationStatus}
+              <ForexStatusBadge tone={snapshot.evidenceReady && !snapshotStale ? "live" : "future"}>
+                {snapshotStale ? "STALE_SELECTION" : snapshot.validationStatus}
               </ForexStatusBadge>
               <span className="fx-ai-muted">
-                {snapshot.candleCount} candles · {snapshot.candleTimeframe}/{snapshot.analysisPeriod}
+                {snapshot.candleCount}/{snapshot.candlesRequestedEstimate || "?"} candles
+                {" · "}{snapshot.candleTimeframe}/{snapshot.analysisPeriod}
+                {" · "}cov {(snapshot.coverageRatio * 100).toFixed(0)}%
                 {" · "}quote {snapshot.quoteFreshness}
+                {snapshot.resampled ? " · resampled" : ""}
                 {snapshot.latencyMs != null ? ` · ${snapshot.latencyMs} ms` : ""}
               </span>
+              {snapshot.requestedStartUtc && snapshot.requestedEndUtc ? (
+                <span className="fx-ai-mono" data-ai-snapshot-range="true" title="Requested UTC range">
+                  req {snapshot.requestedStartUtc.replace(".000Z", "Z")} → {snapshot.requestedEndUtc.replace(".000Z", "Z")}
+                </span>
+              ) : null}
+              {snapshot.returnedStartUtc && snapshot.returnedEndUtc ? (
+                <span className="fx-ai-mono" data-ai-snapshot-returned="true" title="Returned candle coverage">
+                  ret {snapshot.returnedStartUtc.replace(".000Z", "Z")} → {snapshot.returnedEndUtc.replace(".000Z", "Z")}
+                </span>
+              ) : null}
+              {snapshot.gapCount > 0 ? (
+                <span className="fx-ai-muted">
+                  gaps {snapshot.gapCount}
+                  {snapshot.closureGapCount ? ` (${snapshot.closureGapCount} closure)` : ""}
+                </span>
+              ) : null}
               <span className="fx-ai-mono" title={snapshot.snapshotId}>
                 id {snapshot.snapshotId.slice(0, 8)}
               </span>
               <span className="fx-ai-mono" title={snapshot.contentFingerprint}>
                 fp {snapshot.contentFingerprint.slice(0, 12)}
               </span>
+              {snapshotStale ? (
+                <span className="fx-ai-snapshot-warn">Selection changed — prepare a new snapshot.</span>
+              ) : null}
+              {!snapshotStale && snapshot.warnings.length ? (
+                <span className="fx-ai-snapshot-warn" title={snapshot.warnings.join(" · ")}>
+                  {snapshot.warnings[0]}
+                </span>
+              ) : null}
             </>
           ) : null}
           {snapshotError ? (

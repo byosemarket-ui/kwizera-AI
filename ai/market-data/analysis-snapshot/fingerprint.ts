@@ -36,6 +36,7 @@ export function buildAnalysisSnapshotFingerprintPayload(
       volume: c.volume,
       isClosed: c.isClosed,
       resampled: c.resampled,
+      incompleteAggregation: Boolean(c.incompleteAggregation),
     })),
     latestQuote: snapshot.latestQuote
       ? {
