@@ -82,11 +82,15 @@ export interface UnifiedCandle {
 /** Optional Offers-stream counters — never includes credentials. */
 export interface UnifiedStreamDiagnostics {
   streamState: string | null;
+  /** Instrument-specific genuine Offers events applied to this series. */
   updateCount: number;
+  /** Global sidecar Offers price-change counter (peers included) — diagnostics only. */
+  sidecarUpdateCount?: number;
   pollCycles: number;
   pollChanges: number;
   callbackAccepted: number;
   callbackInvocations: number;
+  /** Instrument-specific last quote age; null when this instrument has no session receipt. */
   lastQuoteAgeMs: number | null;
 }
 

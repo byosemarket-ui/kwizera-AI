@@ -19,6 +19,7 @@ export type UnifiedCandlesLoadState =
 export interface UnifiedStreamDiagnosticsView {
   streamState: string | null;
   updateCount: number;
+  sidecarUpdateCount: number;
   pollCycles: number;
   pollChanges: number;
   callbackAccepted: number;
@@ -83,6 +84,7 @@ function mapStreamDiagnostics(raw: unknown): UnifiedStreamDiagnosticsView | null
   return {
     streamState: d.streamState == null ? null : String(d.streamState),
     updateCount: Number(d.updateCount ?? 0),
+    sidecarUpdateCount: Number(d.sidecarUpdateCount ?? 0),
     pollCycles: Number(d.pollCycles ?? 0),
     pollChanges: Number(d.pollChanges ?? 0),
     callbackAccepted: Number(d.callbackAccepted ?? 0),

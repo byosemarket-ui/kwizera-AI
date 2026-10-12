@@ -709,7 +709,9 @@ function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): Unifie
     errorMessage: result.errorMessage,
     streamDiagnostics: {
       streamState: result.streamState,
-      updateCount: Number(result.sidecarUpdateCount ?? result.updateCount ?? 0),
+      // Instrument-specific — peers ticking must not inflate this instrument's updateCount.
+      updateCount: Number(result.updateCount ?? 0),
+      sidecarUpdateCount: Number(result.sidecarUpdateCount ?? 0),
       pollCycles: Number(diag?.pollCycles ?? 0),
       pollChanges: Number(diag?.pollChanges ?? 0),
       callbackAccepted: Number(diag?.callbackAccepted ?? 0),

@@ -27,11 +27,12 @@ describe("Phase 36E Offers streaming lifecycle", () => {
     expect(sidecar).toContain("Seeded snapshots do not set LIVE");
   });
 
-  it("live service marks LIVE only when sidecar updateCount advances", () => {
+  it("live service marks LIVE from genuine instrument Offers (not global updateCount alone)", () => {
     const live = read("ai/market-data/forexconnect/live-service.ts");
-    expect(live).toContain("hasNewOffersEvents");
     expect(live).toContain("lastSeenStreamUpdateCount");
+    expect(live).toContain("isGenuineFcOfferEventSource");
     expect(live).toContain("SUBSCRIBED_WAITING");
+    expect(live).toContain("never gate per-instrument LIVE");
     expect(live).not.toMatch(/streamState\s*=\s*"LIVE"[\s\S]{0,40}seed/i);
     expect(FOREXCONNECT_STALE_MS).toBe(15_000);
   });

@@ -299,10 +299,10 @@ describe("Phase 36C Offers freshness and no fabricated ticks", () => {
     );
   });
 
-  it("live service gates LIVE on sidecar Offers updateCount", () => {
+  it("live service tracks sidecar updateCount for diagnostics and gates LIVE per instrument", () => {
     const live = read("ai/market-data/forexconnect/live-service.ts");
-    expect(live).toContain("hasNewOffersEvents");
     expect(live).toContain("lastSeenStreamUpdateCount");
+    expect(live).toContain("isGenuineFcOfferEventSource");
     expect(live).toContain("SUBSCRIBED_WAITING");
   });
 });

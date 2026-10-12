@@ -694,11 +694,12 @@ export function ForexChartWorkspace({
               data-fx-stream-diagnostics="true"
               aria-label="ForexConnect Offers stream diagnostics"
             >
-              Offers · updates {unified.streamDiagnostics.updateCount}
+              Offers · instrument {unified.streamDiagnostics.updateCount}
+              {" · "}stream {unified.streamDiagnostics.sidecarUpdateCount}
               {" · "}poll {unified.streamDiagnostics.pollChanges}/{unified.streamDiagnostics.pollCycles}
               {unified.streamDiagnostics.lastQuoteAgeMs != null
                 ? ` · quote age ${Math.round(unified.streamDiagnostics.lastQuoteAgeMs / 1000)}s`
-                : ""}
+                : " · no instrument quote yet"}
               {unified.lastQuoteAt ? ` · last ${unified.lastQuoteAt}` : ""}
             </p>
           ) : null}

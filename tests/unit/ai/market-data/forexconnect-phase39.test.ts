@@ -51,11 +51,11 @@ describe("Phase 39 ForexConnect live audit contracts", () => {
     expect(live?.receivedAtMs).toBe(Date.parse("2026-10-12T09:00:00.000Z"));
   });
 
-  it("live service bootstraps from genuine peer-LIVE Offers without inventing ticks", () => {
+  it("live service applies genuine instrument Offers without inventing ticks", () => {
     const live = read("ai/market-data/forexconnect/live-service.ts");
-    expect(live).toContain("bootstrapFromLivePeer");
     expect(live).toContain("isGenuineFcOfferEventSource");
     expect(live).toContain("getLatestQuoteState");
+    expect(live).toContain("Instrument-specific LIVE");
     expect(live).not.toMatch(/\binvent(?:Ticks|Prices|Candles)\b/);
     expect(live).not.toMatch(/\bfake(?:Tick|Quote|Candle)\s*\(/);
   });

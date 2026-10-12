@@ -10,6 +10,7 @@ import {
 import type { LiveTickerSnapshot, MarketConnectionSnapshot } from "../../ai/market-data/binance/types";
 import { connectionBadgeTone, publicConnectionLabel } from "../../ai/market-data/binance/connection";
 import type { SelectedMarket } from "./market-data/selected-market";
+import { isBinanceSpotSelection, isForexConnectSelection, isFxcmSelection } from "./market-data/selected-market";
 import {
   liveMarketStatusLabel,
   liveMarketStatusTone,
@@ -53,9 +54,15 @@ export function ForexHeader({
     : null;
   const live = tickerStatus === "LIVE";
   const wsTone = tickerStatus ? liveMarketStatusTone(tickerStatus) : connectionBadgeTone(binanceConnection);
+  const binanceHealthLabel = publicConnectionLabel(binanceConnection);
+  // Binance REST health is global — never imply it is the selected ForexConnect/FXCM chart source.
   const wsLabel = tickerStatus
     ? liveMarketStatusLabel(tickerStatus)
-    : publicConnectionLabel(binanceConnection);
+    : (isForexConnectSelection(selectedMarket) || isFxcmSelection(selectedMarket))
+      ? `Binance API health · ${binanceHealthLabel}`
+      : isBinanceSpotSelection(selectedMarket)
+        ? binanceHealthLabel
+        : `Binance API health · ${binanceHealthLabel}`;
 
   return (
     <header className="fx-header" role="banner" data-forex-header="true">

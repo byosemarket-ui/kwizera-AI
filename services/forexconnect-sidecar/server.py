@@ -1046,6 +1046,23 @@ def _store_quote(
         prev = _quotes.get(quote["canonicalSymbol"])
         if require_change and prev is not None:
             if prev.get("bid") == quote.get("bid") and prev.get("ask") == quote.get("ask"):
+                # Same bid/ask: still refresh instrument receipt time so LIVE freshness
+                # is not lost solely because the numeric price is unchanged (Phase 42).
+                # Do not increment updateCount (that tracks price-changing Offers events).
+                heart = dict(prev)
+                heart["receivedAt"] = quote["receivedAt"]
+                heart["receivedAtMs"] = quote.get("receivedAtMs", prev.get("receivedAtMs"))
+                heart["sourceTimestampMs"] = quote.get(
+                    "sourceTimestampMs", prev.get("sourceTimestampMs")
+                )
+                heart["eventSource"] = event_source
+                _quotes[quote["canonicalSymbol"]] = heart
+                _stream["lastEventSource"] = event_source
+                _stream["lastStreamError"] = None
+                if event_source == "offers-callback":
+                    _stream["lastCallbackAt"] = quote["receivedAt"]
+                elif event_source == "offers-table-diff":
+                    _stream["lastPollChangeAt"] = quote["receivedAt"]
                 return False
         quote = dict(quote)
         quote["eventSource"] = event_source
