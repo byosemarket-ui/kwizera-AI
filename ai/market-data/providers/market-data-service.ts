@@ -355,11 +355,20 @@ export class MarketDataService {
       } catch {
         /* best-effort restore */
       }
-      const live = await this.forexConnectLive.subscribe(request.symbol, timeframe);
+      // ensure() reuses active sessions without refCount leak from 1s HTTP polls.
+      const live = await this.forexConnectLive.ensure(request.symbol, timeframe);
       return unifyForexConnectLiveSeries(live);
     }
 
     const fxcm = this.registry.getFxcm();
+    // Prefer existing live series for poll clients — avoid FXCM refCount accumulation.
+    const existingFxcm = this.getLiveCandleSeries({
+      provider: providerId,
+      symbol: request.symbol,
+      timeframe,
+      marketType: request.marketType,
+    });
+    if (existingFxcm) return existingFxcm;
     const live = await fxcm.subscribeLiveCandles(request.symbol, timeframe);
     return unifyFxcmLiveSeries(live);
   }

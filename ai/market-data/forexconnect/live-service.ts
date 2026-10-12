@@ -32,6 +32,9 @@ export { resolveFcWaitingStreamState } from "./stream-state.js";
 
 const MAX_SERIES = 32;
 const POLL_MS = 500;
+/** HTTP poll clients do not unsubscribe; release idle live sessions after this quiet period. */
+export const FOREXCONNECT_LIVE_IDLE_MS = 180_000;
+const IDLE_SWEEP_MS = 15_000;
 
 interface Session {
   key: string;
@@ -44,6 +47,8 @@ interface Session {
   candles: ForexConnectLiveCandle[];
   lastQuote: ForexConnectLiveQuote | null;
   lastQuoteAtMs: number | null;
+  /** Last HTTP/API consumer touch — used for idle release (browser close/navigation). */
+  lastClientAtMs: number;
   updateCount: number;
   streamState: ForexConnectLiveStreamState;
   errorCode: string | null;
@@ -55,7 +60,9 @@ export class ForexConnectLiveCandleService {
   private readonly bridge: ForexConnectBridge;
   private readonly sessions = new Map<string, Session>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private idleSweepTimer: ReturnType<typeof setInterval> | null = null;
   private pollInFlight = false;
+  private idleSweepCount = 0;
   /** Sidecar Offers callback counter — LIVE only when this increases. */
   private lastSeenStreamUpdateCount = 0;
   private lastStreamStatus: ForexConnectStreamStatus | null = null;
@@ -68,6 +75,28 @@ export class ForexConnectLiveCandleService {
     return `FOREXCONNECT:${normalizeCanonicalSymbol(symbol)}:${timeframe}`;
   }
 
+  /**
+   * Ensure a live session for HTTP poll clients.
+   * Reuses an existing session without bumping refCount (mode=live polls must not leak).
+   */
+  async ensure(symbol: string, timeframe: string): Promise<SafeForexConnectLiveSeries> {
+    if (!isForexConnectSupportedTimeframe(timeframe)) {
+      throw new ForexConnectMarketDataError(
+        "FOREXCONNECT_UNSUPPORTED_TIMEFRAME",
+        `Unsupported ForexConnect timeframe "${timeframe}".`,
+      );
+    }
+    const key = this.sessionKey(symbol, timeframe);
+    const existing = this.sessions.get(key);
+    if (existing) {
+      existing.lastClientAtMs = Date.now();
+      this.ensurePoller();
+      this.ensureIdleSweeper();
+      return this.toSeries(existing);
+    }
+    return this.subscribe(symbol, timeframe);
+  }
+
   async subscribe(symbol: string, timeframe: string): Promise<SafeForexConnectLiveSeries> {
     if (!isForexConnectSupportedTimeframe(timeframe)) {
       throw new ForexConnectMarketDataError(
@@ -78,9 +107,14 @@ export class ForexConnectLiveCandleService {
     const key = this.sessionKey(symbol, timeframe);
     let session = this.sessions.get(key);
     if (session) {
-      session.refCount += 1;
+      // Touch only — never accumulate refCount from repeated HTTP mode=live polls.
+      session.lastClientAtMs = Date.now();
       this.ensurePoller();
+      this.ensureIdleSweeper();
       return this.toSeries(session);
+    }
+    if (this.sessions.size >= MAX_SERIES) {
+      this.sweepIdleSessions(Date.now());
     }
     if (this.sessions.size >= MAX_SERIES) {
       throw new ForexConnectMarketDataError(
@@ -110,6 +144,7 @@ export class ForexConnectLiveCandleService {
       timeframe,
     };
     const candles = hist.candles.map((c) => historicalToFcLiveCandle(c, identity));
+    const now = Date.now();
 
     session = {
       key,
@@ -122,6 +157,7 @@ export class ForexConnectLiveCandleService {
       candles,
       lastQuote: null,
       lastQuoteAtMs: null,
+      lastClientAtMs: now,
       updateCount: 0,
       streamState: "SUBSCRIBED_WAITING",
       errorCode: null,
@@ -130,6 +166,7 @@ export class ForexConnectLiveCandleService {
     };
     this.sessions.set(key, session);
     this.ensurePoller();
+    this.ensureIdleSweeper();
     await this.pollOnce();
     return this.toSeries(session);
   }
@@ -138,9 +175,35 @@ export class ForexConnectLiveCandleService {
     const key = this.sessionKey(symbol, timeframe);
     const session = this.sessions.get(key);
     if (!session) return;
-    session.refCount -= 1;
+    session.refCount = Math.max(0, session.refCount - 1);
     if (session.refCount > 0) return;
-    this.sessions.delete(key);
+    await this.releaseSession(session);
+  }
+
+  /** Active live session count (diagnostics / tests). */
+  getSessionCount(): number {
+    return this.sessions.size;
+  }
+
+  getIdleSweepCount(): number {
+    return this.idleSweepCount;
+  }
+
+  /** Test helper — run idle release with an explicit clock. */
+  sweepIdleSessionsForTests(nowMs: number = Date.now()): void {
+    this.sweepIdleSessions(nowMs);
+  }
+
+  getSeries(symbol: string, timeframe: string): SafeForexConnectLiveSeries | null {
+    if (!isForexConnectSupportedTimeframe(timeframe)) return null;
+    const session = this.sessions.get(this.sessionKey(symbol, timeframe));
+    if (!session) return null;
+    session.lastClientAtMs = Date.now();
+    return this.toSeries(session);
+  }
+
+  private async releaseSession(session: Session): Promise<void> {
+    this.sessions.delete(session.key);
     const stillNeeded = [...this.sessions.values()].some(
       (s) => normalizeCanonicalSymbol(s.providerSymbol) === session.canonicalSymbol
         || s.providerSymbol === session.providerSymbol,
@@ -152,13 +215,37 @@ export class ForexConnectLiveCandleService {
         /* best-effort */
       }
     }
-    if (this.sessions.size === 0) this.stopPoller();
+    if (this.sessions.size === 0) {
+      this.stopPoller();
+      this.stopIdleSweeper();
+    }
   }
 
-  getSeries(symbol: string, timeframe: string): SafeForexConnectLiveSeries | null {
-    if (!isForexConnectSupportedTimeframe(timeframe)) return null;
-    const session = this.sessions.get(this.sessionKey(symbol, timeframe));
-    return session ? this.toSeries(session) : null;
+  private sweepIdleSessions(nowMs: number = Date.now()): void {
+    const idle: Session[] = [];
+    for (const session of this.sessions.values()) {
+      if (nowMs - session.lastClientAtMs >= FOREXCONNECT_LIVE_IDLE_MS) {
+        idle.push(session);
+      }
+    }
+    for (const session of idle) {
+      this.idleSweepCount += 1;
+      void this.releaseSession(session);
+    }
+  }
+
+  private ensureIdleSweeper(): void {
+    if (this.idleSweepTimer) return;
+    this.idleSweepTimer = setInterval(() => {
+      this.sweepIdleSessions();
+    }, IDLE_SWEEP_MS);
+  }
+
+  private stopIdleSweeper(): void {
+    if (this.idleSweepTimer) {
+      clearInterval(this.idleSweepTimer);
+      this.idleSweepTimer = null;
+    }
   }
 
   getLatestQuote(symbol: string): ForexConnectLiveQuote | null {
@@ -203,6 +290,7 @@ export class ForexConnectLiveCandleService {
     const symbols = [...new Set([...this.sessions.values()].map((s) => s.providerSymbol))];
     this.sessions.clear();
     this.stopPoller();
+    this.stopIdleSweeper();
     for (const symbol of symbols) {
       try {
         await this.bridge.unsubscribeQuotes(symbol);
