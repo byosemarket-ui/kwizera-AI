@@ -369,14 +369,31 @@ export class MarketDataService {
       return null; // Browser miniTicker path remains authoritative for Binance live quotes.
     }
     if (providerId === "FOREXCONNECT") {
-      const quote = this.forexConnectLive.getLatestQuote(request.symbol);
-      if (!quote || quote.bid == null) return null;
+      const state = this.forexConnectLive.getLatestQuoteState(request.symbol);
+      if (!state || state.quote.bid == null) return null;
+      const quote = state.quote;
+      const ageMs = state.lastQuoteAtMs != null ? Date.now() - state.lastQuoteAtMs : null;
+      const streamState = state.streamState;
+      const isLive = streamState === "LIVE" && state.updateCount > 0
+        && (ageMs == null || ageMs <= 15_000);
+      const isStale = streamState === "STALE"
+        || (state.updateCount > 0 && ageMs != null && ageMs > 15_000);
+      const connectionState = isLive ? "LIVE"
+        : isStale ? "STALE"
+          : streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
+            : streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
+              : streamState === "ERROR" || streamState === "SERVICE_UNAVAILABLE" ? "ERROR"
+                : "CONNECTED";
+      const dataQuality = isLive ? "LIVE" : isStale ? "STALE" : "VALID";
+      // UnifiedQuote.sourceMode is LIVE | SNAPSHOT — never claim LIVE from a seed-only quote.
+      const sourceMode = isLive ? "LIVE" as const : "SNAPSHOT" as const;
       return {
         provider: "FOREXCONNECT",
         marketType: "FOREX",
         providerSymbol: quote.providerSymbol,
         canonicalSymbol: quote.canonicalSymbol,
         displaySymbol: quote.displaySymbol,
+        // SDK Offers rows do not expose a distinct broker event time; equals sidecar receipt.
         providerTimestamp: quote.sourceTimestampMs
           ? new Date(quote.sourceTimestampMs).toISOString()
           : null,
@@ -386,9 +403,9 @@ export class MarketDataService {
         mid: quote.mid,
         last: quote.bid,
         source: "forexconnect-offers",
-        dataQuality: "LIVE",
-        sourceMode: "LIVE",
-        connectionState: "LIVE",
+        dataQuality,
+        sourceMode,
+        connectionState,
         receivedAt: new Date(quote.receivedAtMs).toISOString(),
       };
     }
@@ -456,6 +473,11 @@ export class MarketDataService {
       marketType,
     });
 
+    const environment = providerId === "FXCM"
+      ? this.registry.getFxcm().getConfig().environment
+      : providerId === "FOREXCONNECT"
+        ? this.registry.getForexConnect().getBridge().getConfig().environment
+        : "public";
     const identity = buildMarketIdentity({
       provider: providerId,
       marketType: instrument?.marketType ?? marketType,
@@ -463,11 +485,13 @@ export class MarketDataService {
       canonicalSymbol: instrument?.canonicalSymbol ?? normalizeCanonicalSymbol(input.symbol),
       displaySymbol: instrument?.displaySymbol
         ?? (providerId === "BINANCE" ? toDisplaySymbol(normalizeCanonicalSymbol(input.symbol)) : input.symbol),
-      environment: providerId === "FXCM" ? this.registry.getFxcm().getConfig().environment : "public",
+      environment,
     });
 
     let series: UnifiedCandleSeries | null = null;
-    if (providerId === "FXCM") {
+    if (providerId === "FXCM" || providerId === "FOREXCONNECT") {
+      // Prefer in-memory live series when Charts/TA already subscribed — never claim LIVE from
+      // historical-only get_history while Offers are streaming for the same instrument.
       series = this.getLiveCandleSeries({ provider: providerId, symbol: input.symbol, timeframe })
         ?? await this.getHistoricalCandles({
           provider: providerId,
@@ -489,13 +513,23 @@ export class MarketDataService {
       ? series.candles[series.candles.length - 1]!
       : null);
 
+    // Prefer live series state when present; otherwise keep historical series distinct from quote.
+    const connectionState = series?.sourceMode === "HISTORICAL_LIVE" || series?.sourceMode === "LIVE"
+      ? (series.connectionState ?? "NO_DATA")
+      : (quote?.connectionState ?? series?.connectionState ?? "NO_DATA");
+    const dataQuality = series?.sourceMode === "HISTORICAL_LIVE" || series?.sourceMode === "LIVE"
+      ? (series.dataQuality ?? "NO_DATA")
+      : (quote?.dataQuality === "LIVE" || quote?.dataQuality === "STALE"
+        ? quote.dataQuality
+        : series?.dataQuality ?? quote?.dataQuality ?? "NO_DATA");
+
     return {
       identity,
       quote,
       candle: forming,
       series,
-      connectionState: series?.connectionState ?? "NO_DATA",
-      dataQuality: series?.dataQuality ?? "NO_DATA",
+      connectionState,
+      dataQuality,
       updatedAt: new Date().toISOString(),
     };
   }

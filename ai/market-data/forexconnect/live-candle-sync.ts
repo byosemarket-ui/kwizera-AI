@@ -192,6 +192,11 @@ export function mergeHistoricalWithFcLiveCandles(
   return [...byTime.values()].sort((a, b) => a.time - b.time);
 }
 
+/** True only for sidecar-accepted Offers updates (never seeded snapshots). */
+export function isGenuineFcOfferEventSource(eventSource: unknown): boolean {
+  return eventSource === "offers-callback" || eventSource === "offers-table-diff";
+}
+
 export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): {
   providerSymbol: string;
   canonicalSymbol: string;
@@ -203,6 +208,7 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
   sourceTimestampMs: number | null;
   receivedAtMs: number;
   offerId: string | null;
+  eventSource: string | null;
 } | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -235,6 +241,9 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
     const parsed = Date.parse(rawReceived);
     if (Number.isFinite(parsed)) resolvedReceivedAtMs = parsed;
   }
+  const eventSource = typeof r.eventSource === "string" && r.eventSource.trim()
+    ? r.eventSource.trim()
+    : null;
   return {
     providerSymbol,
     canonicalSymbol,
@@ -246,5 +255,6 @@ export function normalizeFcOfferQuote(raw: unknown, receivedAtMs = Date.now()): 
     sourceTimestampMs,
     receivedAtMs: resolvedReceivedAtMs,
     offerId: r.offerId != null ? String(r.offerId) : null,
+    eventSource,
   };
 }

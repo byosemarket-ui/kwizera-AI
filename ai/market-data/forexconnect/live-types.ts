@@ -33,6 +33,8 @@ export interface ForexConnectLiveQuote {
   sourceTimestampMs: number | null;
   receivedAtMs: number;
   offerId?: string | null;
+  /** Sidecar Offers origin — absent on seeded snapshots (must not alone establish LIVE). */
+  eventSource?: "offers-callback" | "offers-table-diff" | string | null;
 }
 
 export interface ForexConnectLiveCandle {

@@ -1359,6 +1359,14 @@ def stream_status_payload() -> dict[str, Any]:
                 "lastPollChangeAt": _stream.get("lastPollChangeAt"),
                 "offersPollerActive": bool(_stream["offersPollerActive"]),
             },
+            "latency": {
+                "providerEventTimestampAvailable": False,
+                "sidecarReceiptAgeMs": age_ms,
+                "note": (
+                    "FXCM Offers rows do not expose a distinct broker event timestamp in this SDK path; "
+                    "sourceTimestampMs equals sidecar receipt time. lastQuoteAgeMs is local receipt age."
+                ),
+            },
             "priceBasis": "bid",
             "trading": "DISABLED",
             "note": (

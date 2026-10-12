@@ -11,6 +11,7 @@ import {
   formingCandleOf,
   historicalToFcLiveCandle,
   mergeHistoricalWithFcLiveCandles,
+  isGenuineFcOfferEventSource,
   normalizeFcOfferQuote,
 } from "./live-candle-sync.js";
 import type {
@@ -161,13 +162,33 @@ export class ForexConnectLiveCandleService {
   }
 
   getLatestQuote(symbol: string): ForexConnectLiveQuote | null {
+    return this.getLatestQuoteState(symbol)?.quote ?? null;
+  }
+
+  /**
+   * Quote + per-session freshness. Seeds may populate quote without LIVE streamState.
+   * Callers must not treat a non-null quote as LIVE without checking streamState.
+   */
+  getLatestQuoteState(symbol: string): {
+    quote: ForexConnectLiveQuote;
+    streamState: ForexConnectLiveStreamState;
+    lastQuoteAtMs: number | null;
+    updateCount: number;
+  } | null {
     const compact = normalizeCanonicalSymbol(symbol);
     for (const session of this.sessions.values()) {
       if (
         session.canonicalSymbol === compact
         || session.providerSymbol.toUpperCase() === symbol.trim().toUpperCase()
       ) {
-        return session.lastQuote;
+        if (!session.lastQuote) return null;
+        const series = this.toSeries(session);
+        return {
+          quote: session.lastQuote,
+          streamState: series.streamState,
+          lastQuoteAtMs: session.lastQuoteAtMs,
+          updateCount: session.updateCount,
+        };
       }
     }
     return null;
@@ -237,7 +258,21 @@ export class ForexConnectLiveCandleService {
         }
 
         // Seeded Offers snapshots may be shown as last quote, but must not fabricate LIVE candles.
-        if (!hasNewOffersEvents) {
+        // Bootstrap exception: when the sidecar stream is already LIVE and this symbol has a
+        // genuine Offers eventSource quote newer than the session, apply without waiting for the
+        // next global updateCount bump (avoids SUBSCRIBED_WAITING while peers are ticking).
+        const genuineEvent = isGenuineFcOfferEventSource(match.eventSource);
+        const quoteAdvanced = session.lastQuoteAtMs == null
+          || match.receivedAtMs > session.lastQuoteAtMs;
+        const bootstrapFromLivePeer = !hasNewOffersEvents
+          && session.updateCount <= 0
+          && stream.streamState === "LIVE"
+          && streamUpdates > 0
+          && genuineEvent
+          && quoteAdvanced
+          && (now - match.receivedAtMs) <= FOREXCONNECT_STALE_MS;
+
+        if (!hasNewOffersEvents && !bootstrapFromLivePeer) {
           if (session.lastQuote == null) session.lastQuote = match;
           if (session.updateCount <= 0) {
             session.streamState = resolveFcWaitingStreamState(stream.streamState, session.updateCount);
