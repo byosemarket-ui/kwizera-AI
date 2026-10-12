@@ -1,4 +1,4 @@
-/* KWIZERA Forex ÃÂ¢ÃÂÃÂ Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
+/* KWIZERA Forex ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
 
 .fx-root {
   --fx-bg: var(--shell-bg, #0a0e14);
@@ -878,7 +878,7 @@ html.reduce-motion .fx-sidebar {
   overflow: auto;
 }
 
-/* Phase 37A/37D ÃÂ¢ÃÂÃÂ compact trading-terminal chrome (header + toolbar as one dense bar). */
+/* Phase 37A/37D ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ compact trading-terminal chrome (header + toolbar as one dense bar). */
 .fx-trading-header {
   display: flex;
   flex-wrap: wrap;
@@ -1498,7 +1498,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 36D / 37B ÃÂ¢ÃÂÃÂ ForexConnect Market Explorer (compact category sidebar) */
+/* Phase 36D / 37B ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ForexConnect Market Explorer (compact category sidebar) */
 .fx-fc-explorer,
 .fx-market-explorer {
   display: flex;
@@ -1781,7 +1781,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 43A Ã¢ÂÂ AI Market Analysis workstation (scoped) */
+/* Phase 43A ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ AI Market Analysis workstation (scoped) */
 .fx-ai-analysis {
   --fx-ai-gap: 10px;
   --fx-ai-pad: 12px;
@@ -1932,6 +1932,51 @@ html.reduce-motion .fx-sidebar {
   width: 14px;
   height: 14px;
   accent-color: var(--fx-accent);
+}
+
+.fx-ai-action-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.fx-ai-period-label select {
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--fx-border);
+  border-radius: 6px;
+  background: var(--fx-elevated);
+  color: var(--fx-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.fx-ai-snapshot-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-elevated);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-mono {
+  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  font-size: 11px;
+  color: var(--fx-muted);
+  overflow-wrap: anywhere;
+}
+
+.fx-ai-snapshot-warn {
+  color: var(--fx-muted);
+  overflow-wrap: anywhere;
 }
 
 .fx-ai-analyze-btn {
@@ -2144,8 +2189,13 @@ html.reduce-motion .fx-sidebar {
     align-items: stretch;
   }
 
-  .fx-ai-analyze-btn {
+  .fx-ai-analyze-btn,
+  .fx-ai-action-stack {
     width: 100%;
+  }
+
+  .fx-ai-action-stack .fx-text-button {
+    flex: 1 1 auto;
   }
 
   .fx-ai-grid,
@@ -2173,7 +2223,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 38F ÃÂ Market Monitor */
+/* Phase 38F ÃÂÃÂÃÂÃÂ Market Monitor */
 .fx-monitor { display: grid; gap: 14px; }
 .fx-monitor-auth { display: grid; gap: 6px; max-width: 640px; }
 .fx-monitor-auth-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

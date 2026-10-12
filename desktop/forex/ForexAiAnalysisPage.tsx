@@ -7,6 +7,19 @@ import { LiveTickerPanel } from "./LiveTickerPanel";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
 const MTF_OPTIONS = ["4h", "1h", "30m", "15m", "5m", "1d"] as const;
+const ANALYSIS_PERIODS = ["30m", "2h", "6h", "24h", "3d", "7d"] as const;
+
+type SnapshotSummary = {
+  snapshotId: string;
+  contentFingerprint: string;
+  validationStatus: string;
+  evidenceReady: boolean;
+  candleCount: number;
+  quoteFreshness: string;
+  analysisPeriod: string;
+  candleTimeframe: string;
+  latencyMs: number | null;
+};
 
 type ForexAiHealthPublic = {
   state: string;
@@ -401,6 +414,10 @@ export function ForexAiAnalysisPage({
   const [analyzeCode, setAnalyzeCode] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
+  const [analysisPeriod, setAnalysisPeriod] = useState<(typeof ANALYSIS_PERIODS)[number]>("6h");
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
+  const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<SnapshotSummary | null>(null);
 
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
@@ -439,6 +456,70 @@ export function ForexAiAnalysisPage({
       return [...prev, id];
     });
   };
+
+  const prepareSnapshot = useCallback(async () => {
+    if (!marketReady || !selectedMarket) {
+      setSnapshotError("Select a market instrument before preparing a snapshot.");
+      return;
+    }
+    setSnapshotBusy(true);
+    setSnapshotError(null);
+    try {
+      const candleTimeframe = mode === "single" ? tf : (mtfSelected[0] || "15m");
+      const res = await fetch("/api/forex/analysis-snapshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          provider,
+          symbol: selectedMarket.symbol,
+          candleTimeframe,
+          analysisPeriod,
+          higherTimeframes: mode === "single" ? undefined : mtfSelected.filter((t) => t !== candleTimeframe),
+          requireLiveQuote: false,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        code?: string;
+        error?: string | null;
+        latencyMs?: number;
+        snapshot?: {
+          snapshotId: string;
+          contentFingerprint: string;
+          evidenceReady: boolean;
+          candleCount: number;
+          analysisPeriod: string;
+          candleTimeframe: string;
+          validation?: { status?: string };
+          freshness?: { quote?: string };
+        } | null;
+      };
+      if (!data.snapshot) {
+        setSnapshot(null);
+        setSnapshotError(data.error || data.code || "Snapshot unavailable");
+        return;
+      }
+      setSnapshot({
+        snapshotId: data.snapshot.snapshotId,
+        contentFingerprint: data.snapshot.contentFingerprint,
+        validationStatus: data.snapshot.validation?.status || data.code || "UNKNOWN",
+        evidenceReady: Boolean(data.snapshot.evidenceReady),
+        candleCount: data.snapshot.candleCount,
+        quoteFreshness: data.snapshot.freshness?.quote || "UNAVAILABLE",
+        analysisPeriod: data.snapshot.analysisPeriod,
+        candleTimeframe: data.snapshot.candleTimeframe,
+        latencyMs: data.latencyMs ?? null,
+      });
+      if (!data.ok) {
+        setSnapshotError(data.error || data.code || "Snapshot completed with validation issues");
+      }
+    } catch (err) {
+      setSnapshot(null);
+      setSnapshotError(err instanceof Error ? err.message : "Snapshot request failed");
+    } finally {
+      setSnapshotBusy(false);
+    }
+  }, [marketReady, selectedMarket, provider, mode, tf, mtfSelected, analysisPeriod]);
 
   const runAnalysis = useCallback(async () => {
     if (!marketReady || !selectedMarket) {
@@ -520,6 +601,7 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase20="true"
       data-forex-ai-phase21="true"
       data-forex-ai-phase22="true"
+      data-forex-ai-phase43b="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
       data-ai-provider={marketReady ? provider : ""}
@@ -565,6 +647,21 @@ export function ForexAiAnalysisPage({
             <span className="fx-ai-label">AI mode</span>
             <strong>{mode === "decision" ? "Decision" : mode === "mtf" ? "Multi-TF" : "Single"}</strong>
           </div>
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">Analysis period</span>
+            <label className="fx-ai-period-label">
+              <select
+                aria-label="Analysis period"
+                data-ai-analysis-period="true"
+                value={analysisPeriod}
+                onChange={(e) => setAnalysisPeriod(e.target.value as (typeof ANALYSIS_PERIODS)[number])}
+              >
+                {ANALYSIS_PERIODS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="fx-ai-toolbar">
@@ -595,17 +692,54 @@ export function ForexAiAnalysisPage({
               </div>
             ) : null}
           </div>
-          <button
-            type="button"
-            className="fx-text-button fx-ai-analyze-btn"
-            data-ai-analyze-btn="true"
-            disabled={phase === "analyzing" || !marketReady}
-            onClick={() => void runAnalysis()}
-          >
-            {analyzeLabel}
-          </button>
+          <div className="fx-ai-action-stack">
+            <button
+              type="button"
+              className="fx-text-button"
+              data-ai-prepare-snapshot-btn="true"
+              disabled={snapshotBusy || !marketReady}
+              onClick={() => void prepareSnapshot()}
+            >
+              {snapshotBusy ? "Preparing…" : "Prepare snapshot"}
+            </button>
+            <button
+              type="button"
+              className="fx-text-button fx-ai-analyze-btn"
+              data-ai-analyze-btn="true"
+              disabled={phase === "analyzing" || !marketReady}
+              onClick={() => void runAnalysis()}
+            >
+              {analyzeLabel}
+            </button>
+          </div>
         </div>
       </div>
+
+      {snapshot || snapshotError ? (
+        <div className="fx-ai-snapshot-status" data-ai-snapshot-status="true">
+          {snapshot ? (
+            <>
+              <ForexStatusBadge tone={snapshot.evidenceReady ? "live" : "future"}>
+                {snapshot.validationStatus}
+              </ForexStatusBadge>
+              <span className="fx-ai-muted">
+                {snapshot.candleCount} candles · {snapshot.candleTimeframe}/{snapshot.analysisPeriod}
+                {" · "}quote {snapshot.quoteFreshness}
+                {snapshot.latencyMs != null ? ` · ${snapshot.latencyMs} ms` : ""}
+              </span>
+              <span className="fx-ai-mono" title={snapshot.snapshotId}>
+                id {snapshot.snapshotId.slice(0, 8)}
+              </span>
+              <span className="fx-ai-mono" title={snapshot.contentFingerprint}>
+                fp {snapshot.contentFingerprint.slice(0, 12)}
+              </span>
+            </>
+          ) : null}
+          {snapshotError ? (
+            <span className="fx-ai-snapshot-warn" role="status">{snapshotError}</span>
+          ) : null}
+        </div>
+      ) : null}
 
       {healthError ? (
         <div className="fx-ai-alert" data-ai-health-error="true" role="alert">
