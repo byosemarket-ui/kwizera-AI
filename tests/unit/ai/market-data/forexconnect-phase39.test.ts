@@ -77,6 +77,9 @@ describe("Phase 39 ForexConnect live audit contracts", () => {
     expect(sidecar).toContain("sidecarReceiptAgeMs");
     expect(sidecar).toContain('require_change and prev is not None');
     expect(sidecar).toContain('stream_state = "MARKET_INACTIVE"');
+    const client = read("ai/market-data/forexconnect/client.ts");
+    expect(client).toContain("providerEventTimestampAvailable");
+    expect(client).toContain("sidecarReceiptAgeMs");
   });
 
   it("frontend Charts continue to request ForexConnect mode=live", () => {

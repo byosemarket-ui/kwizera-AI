@@ -111,6 +111,12 @@ export interface ForexConnectStreamStatus {
   updateCount: number;
   lastEventSource?: string | null;
   diagnostics?: ForexConnectStreamDiagnostics | null;
+  /** Local-stage latency only — SDK Offers lack a distinct broker event timestamp. */
+  latency?: {
+    providerEventTimestampAvailable: boolean;
+    sidecarReceiptAgeMs: number | null;
+    note?: string;
+  } | null;
   priceBasis: "bid";
   trading: "DISABLED";
   note?: string;

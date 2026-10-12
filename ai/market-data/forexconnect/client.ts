@@ -641,6 +641,19 @@ export class ForexConnectBridge {
               ),
             }
           : null,
+        latency: body.latency && typeof body.latency === "object"
+          ? {
+              providerEventTimestampAvailable: Boolean(
+                (body.latency as Record<string, unknown>).providerEventTimestampAvailable,
+              ),
+              sidecarReceiptAgeMs: (body.latency as Record<string, unknown>).sidecarReceiptAgeMs == null
+                ? null
+                : Number((body.latency as Record<string, unknown>).sidecarReceiptAgeMs),
+              note: (body.latency as Record<string, unknown>).note != null
+                ? String((body.latency as Record<string, unknown>).note)
+                : undefined,
+            }
+          : null,
         priceBasis: "bid",
         trading: "DISABLED",
         note: body.note ? String(body.note) : undefined,
