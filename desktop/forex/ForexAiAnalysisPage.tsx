@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
-import { ForexSectionHeader } from "./components/ForexSectionHeader";
+import { useCallback, useEffect, useState, type HTMLAttributes, type ReactNode } from "react";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 import type { ChartTimeframeId } from "./chart/types";
@@ -237,6 +236,31 @@ function formatTs(value: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
 }
 
+function AiPanel({
+  title,
+  children,
+  meta,
+  className = "",
+  ...rest
+}: {
+  title?: string;
+  children: ReactNode;
+  meta?: ReactNode;
+  className?: string;
+} & HTMLAttributes<HTMLElement>) {
+  return (
+    <article className={`fx-ai-panel ${className}`.trim()} {...rest}>
+      {title || meta ? (
+        <header className="fx-ai-panel-head">
+          {title ? <h3 className="fx-ai-panel-title">{title}</h3> : null}
+          {meta ? <div className="fx-ai-panel-meta">{meta}</div> : null}
+        </header>
+      ) : null}
+      <div className="fx-ai-panel-body">{children}</div>
+    </article>
+  );
+}
+
 function EvidencePanel({
   pack,
   model,
@@ -250,10 +274,9 @@ function EvidencePanel({
 }) {
   if (!pack) {
     return (
-      <div className="fx-placeholder-panel" data-forex-ai-evidence="true">
-        <h3>Detector evidence</h3>
-        <p className="fx-panel-meta">No detector evidence attached to this result.</p>
-      </div>
+      <AiPanel title="Detector evidence" data-forex-ai-evidence="true">
+        <p className="fx-ai-muted">No detector evidence attached to this result.</p>
+      </AiPanel>
     );
   }
   const patterns = pack.patterns?.detections ?? [];
@@ -262,15 +285,19 @@ function EvidencePanel({
   const knowledge = pack.knowledge ?? [];
   const warnings = pack.warnings ?? [];
   return (
-    <div className="fx-placeholder-panel" data-forex-ai-evidence="true">
-      <h3>Detector evidence</h3>
-      <p className="fx-panel-meta">
-        {pack.provider ?? "—"} · {pack.symbol ?? "—"} · {pack.timeframe ?? "—"}
-        {pack.insufficientHistory ? " · insufficient history" : ""}
-      </p>
-      <dl className="fx-ohlc">
+    <AiPanel
+      title="Detector evidence"
+      data-forex-ai-evidence="true"
+      meta={(
+        <span>
+          {pack.provider ?? "—"} · {pack.symbol ?? "—"} · {pack.timeframe ?? "—"}
+          {pack.insufficientHistory ? " · insufficient history" : ""}
+        </span>
+      )}
+    >
+      <dl className="fx-ai-kv">
         <div>
-          <dt>Structure trend</dt>
+          <dt>Structure</dt>
           <dd data-evidence-trend="true">{pack.structure?.trendState ?? "UNKNOWN"}</dd>
         </div>
         <div>
@@ -290,58 +317,66 @@ function EvidencePanel({
           </dd>
         </div>
       </dl>
-      <h4>Patterns</h4>
-      {patterns.length === 0 ? (
-        <p className="fx-panel-meta">None detected (or insufficient history).</p>
-      ) : (
-        <ul data-evidence-patterns="true">
-          {patterns.map((p) => (
-            <li key={`${p.id}-${p.status}`}>{p.name} · {p.direction} · {p.status}</li>
-          ))}
-        </ul>
-      )}
-      <h4>BOS / CHoCH</h4>
-      {events.length === 0 ? (
-        <p className="fx-panel-meta">None</p>
-      ) : (
-        <ul data-evidence-events="true">
-          {events.map((e, i) => (
-            <li key={`${e.type}-${e.level}-${i}`}>{e.type} · {e.direction} · {e.status} @ {e.level}</li>
-          ))}
-        </ul>
-      )}
-      <h4>Zones</h4>
-      {zones.length === 0 ? (
-        <p className="fx-panel-meta">None</p>
-      ) : (
-        <ul data-evidence-zones="true">
-          {zones.map((z, i) => (
-            <li key={`${z.side}-${i}`}>{z.side} {z.low}–{z.high} · {z.status} · touches {z.touches}</li>
-          ))}
-        </ul>
-      )}
-      <h4>Knowledge citations</h4>
-      {knowledge.length === 0 ? (
-        <p className="fx-panel-meta">Empty knowledge OK — none matched.</p>
-      ) : (
-        <ul data-evidence-knowledge="true">
-          {knowledge.map((k) => (
-            <li key={`${k.documentId}:${k.chunkId}`}>
-              {k.title}
-              {" · "}
-              {k.documentId}/{k.chunkId}
-              {k.sourceName ? ` · ${k.sourceName}` : ""}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="fx-ai-evidence-grid">
+        <div>
+          <h4>Patterns</h4>
+          {patterns.length === 0 ? (
+            <p className="fx-ai-muted">None detected</p>
+          ) : (
+            <ul data-evidence-patterns="true">
+              {patterns.map((p) => (
+                <li key={`${p.id}-${p.status}`}>{p.name} · {p.direction} · {p.status}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h4>BOS / CHoCH</h4>
+          {events.length === 0 ? (
+            <p className="fx-ai-muted">None</p>
+          ) : (
+            <ul data-evidence-events="true">
+              {events.map((e, i) => (
+                <li key={`${e.type}-${e.level}-${i}`}>{e.type} · {e.direction} · {e.status} @ {e.level}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h4>Zones</h4>
+          {zones.length === 0 ? (
+            <p className="fx-ai-muted">None</p>
+          ) : (
+            <ul data-evidence-zones="true">
+              {zones.map((z, i) => (
+                <li key={`${z.side}-${i}`}>{z.side} {z.low}–{z.high} · {z.status} · touches {z.touches}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h4>Knowledge</h4>
+          {knowledge.length === 0 ? (
+            <p className="fx-ai-muted">None matched</p>
+          ) : (
+            <ul data-evidence-knowledge="true">
+              {knowledge.map((k) => (
+                <li key={`${k.documentId}:${k.chunkId}`}>
+                  {k.title}
+                  {k.sourceName ? ` · ${k.sourceName}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
       {warnings.length ? (
         <>
           <h4>Warnings</h4>
           <ul data-evidence-warnings="true">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
         </>
       ) : null}
-    </div>
+    </AiPanel>
   );
 }
 
@@ -469,6 +504,14 @@ export function ForexAiAnalysisPage({
     }
   }, [marketReady, provider, selectedMarket, mode, mtfSelected, tf]);
 
+  const analyzeLabel = phase === "analyzing"
+    ? "Analyzing…"
+    : mode === "decision"
+      ? (decision ? "Analyze Decision again" : "Analyze Decision")
+      : mode === "mtf"
+        ? (mtf ? "Analyze Multi-Timeframe again" : "Analyze Multi-Timeframe")
+        : (single ? "Analyze again" : "Analyze Market");
+
   return (
     <section
       className="fx-module-page fx-ai-analysis"
@@ -482,28 +525,56 @@ export function ForexAiAnalysisPage({
       data-ai-provider={marketReady ? provider : ""}
       aria-labelledby="fx-page-ai-analysis"
     >
-      <ForexSectionHeader
-        eyebrow="AI Trading"
-        title="AI Market Analysis"
-        description="Single-timeframe, multi-timeframe, and decision analysis from provider-aware Market State + Forex Knowledge. Interpretive only — not trade execution."
-      />
-      <h2 id="fx-page-ai-analysis" className="fx-sr-only">AI Market Analysis</h2>
+      <header className="fx-ai-page-header">
+        <div className="fx-ai-page-header-text">
+          <h1 id="fx-page-ai-analysis" className="fx-ai-page-title">AI Market Analysis</h1>
+          <p className="fx-ai-page-sub">Interpretive market analysis · not trade execution</p>
+        </div>
+        {health ? (
+          <div className="fx-ai-health-chip" data-ai-health="true">
+            <ForexStatusBadge tone={toneForState(health.state)}>{health.state}</ForexStatusBadge>
+            <span className="fx-ai-muted">Model {health.preferredModel}</span>
+          </div>
+        ) : null}
+      </header>
 
-      <div className="fx-placeholder-panel">
+      <div className="fx-ai-config" data-ai-config="true">
+        <div className="fx-ai-status-row" aria-label="Market and AI status">
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">Provider</span>
+            <strong data-ai-market-provider="true">{marketReady ? provider : "None"}</strong>
+          </div>
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">Instrument</span>
+            <strong data-ai-market-symbol="true" className="fx-ai-symbol">
+              {marketReady ? selectedMarket!.displaySymbol : "None selected"}
+            </strong>
+          </div>
+          {mode === "single" ? (
+            <div className="fx-ai-status-item">
+              <span className="fx-ai-label">Timeframe</span>
+              <strong data-ai-market-timeframe="true">{tf}</strong>
+            </div>
+          ) : (
+            <div className="fx-ai-status-item">
+              <span className="fx-ai-label">Timeframes</span>
+              <strong>{mtfSelected.map((t) => t.toUpperCase()).join(" · ")}</strong>
+            </div>
+          )}
+          <div className="fx-ai-status-item">
+            <span className="fx-ai-label">AI mode</span>
+            <strong>{mode === "decision" ? "Decision" : mode === "mtf" ? "Multi-TF" : "Single"}</strong>
+          </div>
+        </div>
+
         <div className="fx-ai-toolbar">
-          <div>
-            <p className="fx-panel-meta">
-              Provider: <strong data-ai-market-provider="true">{marketReady ? provider : "None"}</strong>
-              {" · "}
-              Market: <strong data-ai-market-symbol="true">{marketReady ? selectedMarket!.displaySymbol : "None selected"}</strong>
-              {mode === "single" ? <> · Timeframe <strong data-ai-market-timeframe="true">{tf}</strong></> : null}
-            </p>
+          <div className="fx-ai-controls">
             <div className="fx-ai-mode-toggle" role="group" aria-label="Analysis mode">
               <button type="button" className="fx-text-button" data-active={mode === "single" ? "true" : "false"} onClick={() => setMode("single")}>
-                Single Timeframe
+                Single
               </button>
               <button type="button" className="fx-text-button" data-active={mode === "mtf" ? "true" : "false"} onClick={() => setMode("mtf")}>
-                Multi-Timeframe
+                Multi-TF
               </button>
               <button type="button" className="fx-text-button" data-active={mode === "decision" ? "true" : "false"} onClick={() => setMode("decision")}>
                 Decision
@@ -512,14 +583,13 @@ export function ForexAiAnalysisPage({
             {mode === "mtf" || mode === "decision" ? (
               <div className="fx-ai-mtf-checks" data-ai-mtf-timeframes="true">
                 {MTF_OPTIONS.map((id) => (
-                  <label key={id}>
+                  <label key={id} className="fx-ai-check">
                     <input
                       type="checkbox"
                       checked={mtfSelected.includes(id)}
                       onChange={() => toggleTf(id)}
                     />
-                    {" "}
-                    {id.toUpperCase()}
+                    <span>{id.toUpperCase()}</span>
                   </label>
                 ))}
               </div>
@@ -532,118 +602,115 @@ export function ForexAiAnalysisPage({
             disabled={phase === "analyzing" || !marketReady}
             onClick={() => void runAnalysis()}
           >
-            {phase === "analyzing"
-              ? "Analyzing…"
-              : mode === "decision"
-                ? (decision ? "Analyze Decision again" : "Analyze Decision")
-                : mode === "mtf"
-                  ? (mtf ? "Analyze Multi-Timeframe again" : "Analyze Multi-Timeframe")
-                  : (single ? "Analyze again" : "Analyze Market")}
+            {analyzeLabel}
           </button>
         </div>
-        {healthError ? <p data-ai-health-error="true"><ForexStatusBadge tone="offline">AI unavailable</ForexStatusBadge> {healthError}</p> : null}
-        {health ? (
-          <p>
-            <ForexStatusBadge tone={toneForState(health.state)}>{health.state}</ForexStatusBadge>
-            {" · Model "}
-            <strong>{health.preferredModel}</strong>
-          </p>
-        ) : null}
       </div>
 
-      {binanceSelected && liveTicker ? (
-        <div className="fx-placeholder-panel" data-ai-live-ticker="true">
-          <h3>Live market (separate from AI snapshot)</h3>
-          <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket!.symbol} />
+      {healthError ? (
+        <div className="fx-ai-alert" data-ai-health-error="true" role="alert">
+          <ForexStatusBadge tone="offline">AI unavailable</ForexStatusBadge>
+          <span>{healthError}</span>
         </div>
       ) : null}
 
+      {!marketReady ? (
+        <div className="fx-ai-alert fx-ai-alert-info">
+          <span className="fx-ai-muted">Select a BINANCE, FXCM, or FOREXCONNECT instrument from Markets to run analysis.</span>
+        </div>
+      ) : null}
+
+      {binanceSelected && liveTicker ? (
+        <AiPanel title="Live ticker" data-ai-live-ticker="true" meta={<span className="fx-ai-muted">Separate from AI snapshot</span>}>
+          <LiveTickerPanel snapshot={liveTicker} expectedSymbol={selectedMarket!.symbol} />
+        </AiPanel>
+      ) : null}
+
       {phase === "analyzing" ? (
-        <div className="fx-placeholder-panel" data-ai-analyzing="true">
+        <div className="fx-ai-alert fx-ai-alert-busy" data-ai-analyzing="true" role="status">
           <ForexStatusBadge tone="future">ANALYZING</ForexStatusBadge>
-          <p>
-            {mode === "decision"
-              ? "Building Market States, running scenario/entry/confirmation engines, retrieving knowledge, waiting for Ollama…"
-              : mode === "mtf"
-                ? "Building Market States per timeframe, computing alignment, retrieving knowledge, waiting for Ollama…"
-                : "Building Market State, retrieving knowledge, waiting for Ollama…"}
-          </p>
-          <p className="fx-panel-meta">No fake progress percentage. Ollama may take 1–3 minutes.</p>
+          <div>
+            <p>
+              {mode === "decision"
+                ? "Building market states, scenario engines, and local AI narrative…"
+                : mode === "mtf"
+                  ? "Building per-timeframe market states and alignment…"
+                  : "Building market state and waiting for local AI…"}
+            </p>
+            <p className="fx-ai-muted">Local inference may take 1–3 minutes. No fake progress.</p>
+          </div>
         </div>
       ) : null}
 
       {phase === "error" ? (
-        <div className="fx-placeholder-panel" data-ai-analyze-error="true">
+        <div className="fx-ai-alert" data-ai-analyze-error="true" role="alert">
           <ForexStatusBadge tone="offline">{analyzeCode || "ERROR"}</ForexStatusBadge>
-          <p>{analyzeError}</p>
+          <span>{analyzeError}</span>
         </div>
       ) : null}
 
       {single && mode === "single" ? (
         <div className="fx-ai-result" data-ai-analysis-result="true">
-          <div className="fx-placeholder-panel">
-            <h3>AI MARKET ANALYSIS</h3>
-            <dl className="fx-ohlc">
+          <AiPanel title="Local AI analysis">
+            <dl className="fx-ai-kv">
               <div><dt>Market</dt><dd data-ai-result-symbol="true">{single.market.displaySymbol}</dd></div>
               <div><dt>Timeframe</dt><dd data-ai-result-timeframe="true">{single.market.timeframe}</dd></div>
-              <div><dt>Data status</dt><dd><ForexStatusBadge tone={toneForState(single.dataQuality.status)}>{single.dataQuality.status}</ForexStatusBadge></dd></div>
+              <div><dt>Data</dt><dd><ForexStatusBadge tone={toneForState(single.dataQuality.status)}>{single.dataQuality.status}</ForexStatusBadge></dd></div>
               <div><dt>Market update</dt><dd>{formatTs(single.dataQuality.marketTimestamp)}</dd></div>
-              <div><dt>Analysis generated</dt><dd>{formatTs(single.generatedAt)}</dd></div>
-              <div><dt>Decision posture</dt><dd>{single.decisionPosture}</dd></div>
+              <div><dt>Generated</dt><dd>{formatTs(single.generatedAt)}</dd></div>
+              <div><dt>Posture</dt><dd>{single.decisionPosture}</dd></div>
             </dl>
-            {latencyMs != null ? <p className="fx-panel-meta">Total latency: {latencyMs} ms</p> : null}
-          </div>
+            {latencyMs != null ? <p className="fx-ai-muted">Latency {latencyMs} ms</p> : null}
+          </AiPanel>
           <EvidencePanel
             pack={single.evidencePack}
             model={single.model}
             inferenceLatencyMs={single.inferenceLatencyMs}
             inferenceStatus={single.inferenceStatus}
           />
-          <div className="fx-placeholder-panel"><h3>Summary</h3><p data-ai-summary="true">{single.summary}</p></div>
-          <div className="fx-placeholder-panel">
-            <h3>Observed Market Facts</h3>
+          <AiPanel title="Summary">
+            <p data-ai-summary="true" className="fx-ai-body-text">{single.summary}</p>
+          </AiPanel>
+          <AiPanel title="Observed facts">
             <ul>{single.observedFacts.map((f) => <li key={f}>{f}</li>)}</ul>
-          </div>
+          </AiPanel>
           <div className="fx-ai-grid">
-            <div className="fx-placeholder-panel"><h3>Trend</h3><p><strong>{single.trend.direction}</strong></p><p className="fx-panel-meta">{single.trend.explanation || "—"}</p></div>
-            <div className="fx-placeholder-panel"><h3>Momentum</h3><p><strong>{single.momentum.state}</strong></p><p className="fx-panel-meta">{single.momentum.explanation || "—"}</p></div>
-            <div className="fx-placeholder-panel"><h3>Volatility</h3><p><strong>{single.volatility.state}</strong></p><p className="fx-panel-meta">{single.volatility.explanation || "—"}</p></div>
-            <div className="fx-placeholder-panel"><h3>Market Structure</h3><p><strong>{single.marketStructure.state}</strong></p><p className="fx-panel-meta">{single.marketStructure.explanation || "—"}</p></div>
+            <AiPanel title="Trend"><p><strong>{single.trend.direction}</strong></p><p className="fx-ai-muted">{single.trend.explanation || "—"}</p></AiPanel>
+            <AiPanel title="Momentum"><p><strong>{single.momentum.state}</strong></p><p className="fx-ai-muted">{single.momentum.explanation || "—"}</p></AiPanel>
+            <AiPanel title="Volatility"><p><strong>{single.volatility.state}</strong></p><p className="fx-ai-muted">{single.volatility.explanation || "—"}</p></AiPanel>
+            <AiPanel title="Structure"><p><strong>{single.marketStructure.state}</strong></p><p className="fx-ai-muted">{single.marketStructure.explanation || "—"}</p></AiPanel>
           </div>
-          <div className="fx-placeholder-panel">
-            <h3>Scenarios</h3>
+          <AiPanel title="Scenarios">
             <ul>{single.scenarios.map((s, i) => <li key={`${s.type}-${i}`}><strong>{s.name || s.type}</strong> — {s.reasoning}</li>)}</ul>
-          </div>
-          <div className="fx-placeholder-panel">
-            <h3>Knowledge Sources</h3>
-            {single.knowledgeSources.length === 0 ? <p className="fx-panel-meta">None matched.</p> : (
+          </AiPanel>
+          <AiPanel title="Knowledge sources">
+            {single.knowledgeSources.length === 0 ? <p className="fx-ai-muted">None matched.</p> : (
               <ul>{single.knowledgeSources.map((k) => <li key={k.documentId}>{k.title}</li>)}</ul>
             )}
-          </div>
+          </AiPanel>
         </div>
       ) : null}
 
       {mtf && mode === "mtf" ? (
         <div className="fx-ai-result" data-ai-mtf-result="true" data-ai-analysis-result="true">
-          <div className="fx-placeholder-panel">
-            <h3>MULTI-TIMEFRAME AI ANALYSIS</h3>
-            <dl className="fx-ohlc">
+          <AiPanel title="Multi-timeframe analysis">
+            <dl className="fx-ai-kv">
               <div><dt>Market</dt><dd data-ai-result-symbol="true">{mtf.market.displaySymbol}</dd></div>
-              <div><dt>Overall alignment</dt><dd data-ai-mtf-alignment="true"><ForexStatusBadge tone={toneForState(mtf.overallAlignment.overall)}>{mtf.overallAlignment.overall}</ForexStatusBadge></dd></div>
-              <div><dt>Data quality</dt><dd><ForexStatusBadge tone={toneForState(mtf.dataQuality.status)}>{mtf.dataQuality.status}</ForexStatusBadge></dd></div>
+              <div><dt>Alignment</dt><dd data-ai-mtf-alignment="true"><ForexStatusBadge tone={toneForState(mtf.overallAlignment.overall)}>{mtf.overallAlignment.overall}</ForexStatusBadge></dd></div>
+              <div><dt>Data</dt><dd><ForexStatusBadge tone={toneForState(mtf.dataQuality.status)}>{mtf.dataQuality.status}</ForexStatusBadge></dd></div>
               <div><dt>Narrative</dt><dd data-ai-mtf-narrative="true">{mtf.narrativeStatus}</dd></div>
-              <div><dt>Analysis generated</dt><dd>{formatTs(mtf.generatedAt)}</dd></div>
-              <div><dt>Decision posture</dt><dd>{mtf.decisionPosture}</dd></div>
+              <div><dt>Generated</dt><dd>{formatTs(mtf.generatedAt)}</dd></div>
+              <div><dt>Posture</dt><dd>{mtf.decisionPosture}</dd></div>
             </dl>
             {latencyMs != null ? (
-              <p className="fx-panel-meta" data-ai-latency="true">
-                Latency: {latencyMs} ms
+              <p className="fx-ai-muted" data-ai-latency="true">
+                Latency {latencyMs} ms
                 {diagnostics?.promptChars != null ? ` · prompt ${String(diagnostics.promptChars)} chars` : ""}
                 {diagnostics?.marketStateMs != null ? ` · market-state ${String(diagnostics.marketStateMs)} ms` : ""}
                 {diagnostics?.knowledgeHits != null ? ` · knowledge ${String(diagnostics.knowledgeHits)}` : ""}
               </p>
             ) : null}
-          </div>
+          </AiPanel>
 
           <EvidencePanel
             pack={mtf.evidencePack}
@@ -652,17 +719,15 @@ export function ForexAiAnalysisPage({
             inferenceStatus={mtf.inferenceStatus}
           />
 
-          <div className="fx-placeholder-panel">
-            <h3>Higher timeframe bias</h3>
+          <AiPanel title="Higher timeframe bias">
             <p><strong>{mtf.higherTimeframeBias.direction}</strong></p>
             <ul>{mtf.higherTimeframeBias.basis.map((b) => <li key={b}>{b}</li>)}</ul>
-            <p className="fx-panel-meta">Intermediate: {mtf.intermediateTimeframeState} · Lower: {mtf.lowerTimeframeState}</p>
-          </div>
+            <p className="fx-ai-muted">Intermediate: {mtf.intermediateTimeframeState} · Lower: {mtf.lowerTimeframeState}</p>
+          </AiPanel>
 
           <div className="fx-ai-mtf-cards" data-ai-mtf-cards="true">
             {mtf.timeframeStates.map((state) => (
-              <article key={state.timeframe} className="fx-placeholder-panel" data-ai-mtf-card={state.timeframe}>
-                <h3>{state.timeframe.toUpperCase()} · {state.role}</h3>
+              <AiPanel key={state.timeframe} title={`${state.timeframe.toUpperCase()} · ${state.role}`} data-ai-mtf-card={state.timeframe}>
                 <p><ForexStatusBadge tone={toneForState(state.status)}>{state.status}</ForexStatusBadge></p>
                 {state.usable ? (
                   <ul>
@@ -674,29 +739,25 @@ export function ForexAiAnalysisPage({
                     <li>Updated: {formatTs(state.timestamp)}</li>
                   </ul>
                 ) : (
-                  <p className="fx-panel-meta">NO DATA — {state.reason || state.status}</p>
+                  <p className="fx-ai-muted">NO DATA — {state.reason || state.status}</p>
                 )}
-                <p className="fx-panel-meta">
+                <p className="fx-ai-muted">
                   {mtf.timeframeAnalysis.find((t) => t.timeframe === state.timeframe)?.interpretation || "—"}
                 </p>
-              </article>
+              </AiPanel>
             ))}
           </div>
 
           <div className="fx-ai-grid">
-            <div className="fx-placeholder-panel">
-              <h3>Confluence</h3>
+            <AiPanel title="Confluence">
               <ul>{(mtf.confluence.length ? mtf.confluence : ["None"]).map((c) => <li key={c}>{c}</li>)}</ul>
-            </div>
-            <div className="fx-placeholder-panel">
-              <h3>Conflicts</h3>
+            </AiPanel>
+            <AiPanel title="Conflicts">
               <ul>{(mtf.conflicts.length ? mtf.conflicts : ["None"]).map((c) => <li key={c}>{c}</li>)}</ul>
-            </div>
+            </AiPanel>
           </div>
 
-          <div className="fx-placeholder-panel">
-            <h3>Scenarios</h3>
-            <p className="fx-panel-meta">Analytical only — not trade execution.</p>
+          <AiPanel title="Scenarios" meta={<span className="fx-ai-muted">Analytical only</span>}>
             <ul>
               {mtf.scenarios.map((s, i) => (
                 <li key={`${s.type}-${i}`}>
@@ -704,28 +765,24 @@ export function ForexAiAnalysisPage({
                 </li>
               ))}
             </ul>
-          </div>
+          </AiPanel>
 
           <div className="fx-ai-grid">
-            <div className="fx-placeholder-panel">
-              <h3>Confirmation needed</h3>
+            <AiPanel title="Confirmation needed">
               <ul>{(mtf.confirmationNeeded.length ? mtf.confirmationNeeded : ["—"]).map((x) => <li key={x}>{x}</li>)}</ul>
-            </div>
-            <div className="fx-placeholder-panel">
-              <h3>Invalidation</h3>
+            </AiPanel>
+            <AiPanel title="Invalidation">
               <ul>{(mtf.invalidationConditions.length ? mtf.invalidationConditions : ["—"]).map((x) => <li key={x}>{x}</li>)}</ul>
-            </div>
+            </AiPanel>
           </div>
 
-          <div className="fx-placeholder-panel">
-            <h3>Risks / Limitations</h3>
+          <AiPanel title="Risks / limitations">
             <ul>{[...mtf.risks, ...mtf.limitations].map((x, i) => <li key={`${x}-${i}`}>{x}</li>)}</ul>
-          </div>
+          </AiPanel>
 
-          <div className="fx-placeholder-panel">
-            <h3>Knowledge Sources</h3>
+          <AiPanel title="Knowledge sources">
             {mtf.knowledgeSources.length === 0 ? (
-              <p className="fx-panel-meta">No published indexed knowledge matched.</p>
+              <p className="fx-ai-muted">No published indexed knowledge matched.</p>
             ) : (
               <ul data-ai-knowledge-sources="true">
                 {mtf.knowledgeSources.map((k) => (
@@ -733,34 +790,33 @@ export function ForexAiAnalysisPage({
                 ))}
               </ul>
             )}
-          </div>
+          </AiPanel>
         </div>
       ) : null}
 
       {decision && mode === "decision" ? (
         <div className="fx-ai-result" data-ai-decision-result="true" data-ai-analysis-result="true">
-          <div className="fx-placeholder-panel">
-            <h3>DECISION ANALYSIS</h3>
-            <dl className="fx-ohlc">
+          <AiPanel title="Decision analysis">
+            <dl className="fx-ai-kv">
               <div><dt>Market</dt><dd data-ai-result-symbol="true">{decision.market.displaySymbol}</dd></div>
-              <div><dt>Current price</dt><dd data-ai-decision-price="true">{decision.market.currentPrice ?? "UNAVAILABLE"}</dd></div>
-              <div><dt>Data quality</dt><dd><ForexStatusBadge tone={toneForState(decision.dataQuality.status)}>{decision.dataQuality.status}</ForexStatusBadge></dd></div>
+              <div><dt>Price</dt><dd data-ai-decision-price="true">{decision.market.currentPrice ?? "UNAVAILABLE"}</dd></div>
+              <div><dt>Data</dt><dd><ForexStatusBadge tone={toneForState(decision.dataQuality.status)}>{decision.dataQuality.status}</ForexStatusBadge></dd></div>
               <div><dt>Alignment</dt><dd><ForexStatusBadge tone={toneForState(decision.alignment.overall)}>{decision.alignment.overall}</ForexStatusBadge></dd></div>
-              <div><dt>Decision posture</dt><dd data-ai-decision-posture="true"><ForexStatusBadge tone={toneForState(decision.decisionPosture)}>{decision.decisionPosture}</ForexStatusBadge></dd></div>
+              <div><dt>Posture</dt><dd data-ai-decision-posture="true"><ForexStatusBadge tone={toneForState(decision.decisionPosture)}>{decision.decisionPosture}</ForexStatusBadge></dd></div>
               <div><dt>Narrative</dt><dd>{decision.narrativeStatus}</dd></div>
               <div><dt>Generated</dt><dd>{formatTs(decision.generatedAt)}</dd></div>
               <div><dt>Confidence</dt><dd data-ai-confidence="true">{decision.confidence === null ? "null" : String(decision.confidence)}</dd></div>
             </dl>
             {latencyMs != null ? (
-              <p className="fx-panel-meta" data-ai-latency="true">
-                Latency: {latencyMs} ms
+              <p className="fx-ai-muted" data-ai-latency="true">
+                Latency {latencyMs} ms
                 {diagnostics?.promptChars != null ? ` · prompt ${String(diagnostics.promptChars)} chars` : ""}
                 {diagnostics?.marketStateMs != null ? ` · market-state ${String(diagnostics.marketStateMs)} ms` : ""}
                 {diagnostics?.deterministicMs != null ? ` · deterministic ${String(diagnostics.deterministicMs)} ms` : ""}
                 {diagnostics?.knowledgeHits != null ? ` · knowledge ${String(diagnostics.knowledgeHits)}` : ""}
               </p>
             ) : null}
-          </div>
+          </AiPanel>
 
           <EvidencePanel
             pack={decision.evidencePack}
@@ -769,38 +825,37 @@ export function ForexAiAnalysisPage({
             inferenceStatus={decision.inferenceStatus}
           />
 
-          <div className="fx-placeholder-panel" data-ai-decision-scenario="true">
-            <h3>Scenario</h3>
-            <p><strong>{decision.scenario.name}</strong> · {decision.scenario.direction}</p>
-            <p className="fx-panel-meta">{decision.scenario.type}</p>
-            <ul>{decision.scenario.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
-            {decision.scenario.notes.length ? (
-              <ul className="fx-panel-meta">{decision.scenario.notes.map((n) => <li key={n}>{n}</li>)}</ul>
-            ) : null}
-          </div>
+          <div className="fx-ai-grid fx-ai-grid-primary">
+            <AiPanel title="Scenario" data-ai-decision-scenario="true">
+              <p><strong>{decision.scenario.name}</strong> · {decision.scenario.direction}</p>
+              <p className="fx-ai-muted">{decision.scenario.type}</p>
+              <ul>{decision.scenario.evidence.map((e) => <li key={e}>{e}</li>)}</ul>
+              {decision.scenario.notes.length ? (
+                <ul className="fx-ai-muted">{decision.scenario.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+              ) : null}
+            </AiPanel>
 
-          <div className="fx-placeholder-panel" data-ai-decision-entry="true">
-            <h3>Entry zone</h3>
-            <p><ForexStatusBadge tone={toneForState(decision.entryZone.status)}>{decision.entryZone.status}</ForexStatusBadge></p>
-            {decision.entryZone.status === "UNAVAILABLE" ? (
-              <p className="fx-panel-meta">{decision.entryZone.unavailableReason || "ENTRY_ZONE_UNAVAILABLE"}</p>
-            ) : (
-              <dl className="fx-ohlc">
-                <div><dt>Range</dt><dd>{decision.entryZone.lowerBound} – {decision.entryZone.upperBound}</dd></div>
-                <div><dt>Reference</dt><dd>{decision.entryZone.referencePrice ?? "—"}</dd></div>
-                <div><dt>Timeframe</dt><dd>{decision.entryZone.timeframe ?? "—"}</dd></div>
-                <div><dt>Invalidation level</dt><dd>{decision.entryZone.invalidationLevel ?? "—"}</dd></div>
-              </dl>
-            )}
-            {decision.entryZone.basis.length ? (
-              <ul className="fx-panel-meta">{decision.entryZone.basis.map((b) => <li key={b}>{b}</li>)}</ul>
-            ) : null}
+            <AiPanel title="Entry zone" data-ai-decision-entry="true">
+              <p><ForexStatusBadge tone={toneForState(decision.entryZone.status)}>{decision.entryZone.status}</ForexStatusBadge></p>
+              {decision.entryZone.status === "UNAVAILABLE" ? (
+                <p className="fx-ai-muted">{decision.entryZone.unavailableReason || "ENTRY_ZONE_UNAVAILABLE"}</p>
+              ) : (
+                <dl className="fx-ai-kv">
+                  <div><dt>Range</dt><dd>{decision.entryZone.lowerBound} – {decision.entryZone.upperBound}</dd></div>
+                  <div><dt>Reference</dt><dd>{decision.entryZone.referencePrice ?? "—"}</dd></div>
+                  <div><dt>Timeframe</dt><dd>{decision.entryZone.timeframe ?? "—"}</dd></div>
+                  <div><dt>Invalidation</dt><dd>{decision.entryZone.invalidationLevel ?? "—"}</dd></div>
+                </dl>
+              )}
+              {decision.entryZone.basis.length ? (
+                <ul className="fx-ai-muted">{decision.entryZone.basis.map((b) => <li key={b}>{b}</li>)}</ul>
+              ) : null}
+            </AiPanel>
           </div>
 
           <div className="fx-ai-grid">
-            <div className="fx-placeholder-panel" data-ai-decision-confirmation="true">
-              <h3>Confirmation</h3>
-              <p className="fx-panel-meta">{decision.confirmation.summary}</p>
+            <AiPanel title="Confirmation" data-ai-decision-confirmation="true">
+              <p className="fx-ai-muted">{decision.confirmation.summary}</p>
               <ul>
                 {decision.confirmation.conditions.map((c) => (
                   <li key={c.id}>
@@ -811,10 +866,9 @@ export function ForexAiAnalysisPage({
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="fx-placeholder-panel" data-ai-decision-invalidation="true">
-              <h3>Invalidation</h3>
-              <p className="fx-panel-meta">{decision.invalidation.summary}</p>
+            </AiPanel>
+            <AiPanel title="Invalidation" data-ai-decision-invalidation="true">
+              <p className="fx-ai-muted">{decision.invalidation.summary}</p>
               <ul>
                 {decision.invalidation.conditions.map((c) => (
                   <li key={c.id}>
@@ -825,43 +879,40 @@ export function ForexAiAnalysisPage({
                   </li>
                 ))}
               </ul>
-            </div>
+            </AiPanel>
           </div>
 
-          <div className="fx-placeholder-panel" data-ai-decision-risk="true">
-            <h3>Risk context</h3>
-            <dl className="fx-ohlc">
+          <AiPanel title="Risk context" data-ai-decision-risk="true">
+            <dl className="fx-ai-kv">
               <div><dt>Volatility</dt><dd>{decision.riskContext.volatility ?? "—"}</dd></div>
               <div><dt>ATR</dt><dd>{decision.riskContext.atr ?? "—"}</dd></div>
-              <div><dt>Distance to entry</dt><dd>{decision.riskContext.distanceToEntry ?? "—"}</dd></div>
-              <div><dt>Distance to invalidation</dt><dd>{decision.riskContext.distanceToInvalidation ?? "—"}</dd></div>
-              <div><dt>Risk/Reward</dt><dd data-ai-decision-rr="true">{decision.riskReward.ratio ?? decision.riskReward.unavailableReason ?? "null"}</dd></div>
-              <div><dt>SL candidate</dt><dd>{decision.stopLossCandidate ?? "null"}</dd></div>
-              <div><dt>TP candidates</dt><dd>{decision.takeProfitCandidates.length ? decision.takeProfitCandidates.join(", ") : "none"}</dd></div>
+              <div><dt>To entry</dt><dd>{decision.riskContext.distanceToEntry ?? "—"}</dd></div>
+              <div><dt>To invalidation</dt><dd>{decision.riskContext.distanceToInvalidation ?? "—"}</dd></div>
+              <div><dt>R:R</dt><dd data-ai-decision-rr="true">{decision.riskReward.ratio ?? decision.riskReward.unavailableReason ?? "null"}</dd></div>
+              <div><dt>SL</dt><dd>{decision.stopLossCandidate ?? "null"}</dd></div>
+              <div><dt>TP</dt><dd>{decision.takeProfitCandidates.length ? decision.takeProfitCandidates.join(", ") : "none"}</dd></div>
             </dl>
             <ul>{decision.riskContext.factors.map((f) => <li key={f}>{f}</li>)}</ul>
-          </div>
+          </AiPanel>
 
-          <div className="fx-placeholder-panel">
-            <h3>Observed facts</h3>
-            <ul>{decision.observedFacts.map((f) => <li key={f}>{f}</li>)}</ul>
-            <h3>Deterministic summary</h3>
-            <p data-ai-decision-deterministic="true">{decision.deterministicSummary}</p>
-          </div>
-
-          <div className="fx-placeholder-panel">
-            <h3>AI interpretation</h3>
-            {decision.aiInterpretation ? (
-              <p data-ai-decision-interpretation="true">{decision.aiInterpretation}</p>
-            ) : (
-              <p className="fx-panel-meta">None — deterministic engines only (Ollama narrative unavailable or skipped).</p>
-            )}
+          <div className="fx-ai-grid">
+            <AiPanel title="Observed facts">
+              <ul>{decision.observedFacts.map((f) => <li key={f}>{f}</li>)}</ul>
+              <h4>Deterministic summary</h4>
+              <p data-ai-decision-deterministic="true" className="fx-ai-body-text">{decision.deterministicSummary}</p>
+            </AiPanel>
+            <AiPanel title="Local AI interpretation">
+              {decision.aiInterpretation ? (
+                <p data-ai-decision-interpretation="true" className="fx-ai-body-text">{decision.aiInterpretation}</p>
+              ) : (
+                <p className="fx-ai-muted">None — deterministic engines only (local AI narrative unavailable or skipped).</p>
+              )}
+            </AiPanel>
           </div>
 
           <div className="fx-ai-mtf-cards">
             {decision.timeframeStates.map((state) => (
-              <article key={state.timeframe} className="fx-placeholder-panel" data-ai-mtf-card={state.timeframe}>
-                <h3>{state.timeframe.toUpperCase()}</h3>
+              <AiPanel key={state.timeframe} title={state.timeframe.toUpperCase()} data-ai-mtf-card={state.timeframe}>
                 <p><ForexStatusBadge tone={toneForState(state.status)}>{state.status}</ForexStatusBadge></p>
                 {state.usable ? (
                   <ul>
@@ -871,35 +922,28 @@ export function ForexAiAnalysisPage({
                     <li>Updated: {formatTs(state.timestamp)}</li>
                   </ul>
                 ) : (
-                  <p className="fx-panel-meta">NO DATA</p>
+                  <p className="fx-ai-muted">NO DATA</p>
                 )}
-              </article>
+              </AiPanel>
             ))}
           </div>
 
-          <div className="fx-placeholder-panel">
-            <h3>Knowledge Sources</h3>
-            {decision.knowledgeSources.length === 0 ? (
-              <p className="fx-panel-meta">No published indexed knowledge matched.</p>
-            ) : (
-              <ul data-ai-knowledge-sources="true">
-                {decision.knowledgeSources.map((k) => (
-                  <li key={k.documentId}>{k.title} · v{k.version}</li>
-                ))}
-              </ul>
-            )}
+          <div className="fx-ai-grid">
+            <AiPanel title="Knowledge sources">
+              {decision.knowledgeSources.length === 0 ? (
+                <p className="fx-ai-muted">No published indexed knowledge matched.</p>
+              ) : (
+                <ul data-ai-knowledge-sources="true">
+                  {decision.knowledgeSources.map((k) => (
+                    <li key={k.documentId}>{k.title} · v{k.version}</li>
+                  ))}
+                </ul>
+              )}
+            </AiPanel>
+            <AiPanel title="Limitations">
+              <ul>{decision.limitations.map((x, i) => <li key={`${x}-${i}`}>{x}</li>)}</ul>
+            </AiPanel>
           </div>
-
-          <div className="fx-placeholder-panel">
-            <h3>Limitations</h3>
-            <ul>{decision.limitations.map((x, i) => <li key={`${x}-${i}`}>{x}</li>)}</ul>
-          </div>
-        </div>
-      ) : null}
-
-      {!marketReady ? (
-        <div className="fx-placeholder-panel">
-          <p className="fx-panel-meta">Select a BINANCE, FXCM, or FOREXCONNECT instrument from Markets to run AI analysis.</p>
         </div>
       ) : null}
     </section>
