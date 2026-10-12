@@ -1,4 +1,4 @@
-/* KWIZERA Forex â Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
+/* KWIZERA Forex ÃÂ¢ÃÂÃÂ Phase 1 shell. Reuses Studio tokens; dark-first financial workspace. */
 
 .fx-root {
   --fx-bg: var(--shell-bg, #0a0e14);
@@ -878,7 +878,7 @@ html.reduce-motion .fx-sidebar {
   overflow: auto;
 }
 
-/* Phase 37A/37D â compact trading-terminal chrome (header + toolbar as one dense bar). */
+/* Phase 37A/37D ÃÂ¢ÃÂÃÂ compact trading-terminal chrome (header + toolbar as one dense bar). */
 .fx-trading-header {
   display: flex;
   flex-wrap: wrap;
@@ -1498,7 +1498,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 36D / 37B â ForexConnect Market Explorer (compact category sidebar) */
+/* Phase 36D / 37B ÃÂ¢ÃÂÃÂ ForexConnect Market Explorer (compact category sidebar) */
 .fx-fc-explorer,
 .fx-market-explorer {
   display: flex;
@@ -1781,7 +1781,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 43A — AI Market Analysis workstation (scoped) */
+/* Phase 43A Ã¢ÂÂ AI Market Analysis workstation (scoped) */
 .fx-ai-analysis {
   --fx-ai-gap: 10px;
   --fx-ai-pad: 12px;
@@ -1865,9 +1865,9 @@ html.reduce-motion .fx-sidebar {
 
 .fx-ai-status-item strong,
 .fx-ai-symbol {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 650;
-  line-height: 1.3;
+  line-height: 1.25;
   word-break: break-word;
 }
 
@@ -1888,15 +1888,20 @@ html.reduce-motion .fx-sidebar {
 }
 
 .fx-ai-mode-toggle {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+  max-width: 100%;
 }
 
 .fx-ai-mode-toggle .fx-text-button {
-  min-height: 34px;
-  padding: 6px 10px;
+  flex: 0 0 auto;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
   font-size: 12px;
+  line-height: 1;
 }
 
 .fx-ai-mode-toggle .fx-text-button[data-active="true"] {
@@ -2168,7 +2173,7 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 38F  Market Monitor */
+/* Phase 38F ÃÂ Market Monitor */
 .fx-monitor { display: grid; gap: 14px; }
 .fx-monitor-auth { display: grid; gap: 6px; max-width: 640px; }
 .fx-monitor-auth-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
