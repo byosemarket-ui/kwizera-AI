@@ -121,7 +121,9 @@ export function useUnifiedInstruments(options?: {
     if (provider !== "ALL") params.set("provider", provider);
     if (marketType) params.set("marketType", marketType);
     if (search.trim()) params.set("search", search.trim());
-    if (tick > 0) params.set("refresh", "1");
+    // Always revalidate ForexConnect on load/refresh so a prior single-instrument
+    // registry seed (Charts/live subscribe) cannot hide the authenticated Offers catalog.
+    if (tick > 0 || provider === "FOREXCONNECT") params.set("refresh", "1");
     // ForexConnect Demo catalogs can exceed 500 (e.g. 516); keep headroom for growth.
     params.set("limit", provider === "FOREXCONNECT" ? "2000" : "500");
 

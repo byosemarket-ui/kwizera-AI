@@ -86,6 +86,12 @@ export class MarketDataService {
   private readonly forexConnectLive: ForexConnectLiveCandleService;
   private readonly historicalCache = new Map<string, { at: number; series: UnifiedCandleSeries }>();
   private readonly HIST_CACHE_MS = 5_000;
+  /**
+   * True only after a successful full listInstruments() for that provider.
+   * A single getInstrument()/snapshot upsert must not count as catalog hydration —
+   * otherwise Market Explorer can show only the last selected symbol after live subscribe.
+   */
+  private readonly catalogHydrated = new Set<MarketProviderId>();
 
   constructor(options?: {
     env?: Record<string, string | undefined>;
@@ -150,11 +156,25 @@ export class MarketDataService {
         throw new MarketDataRoutingError("UNKNOWN_PROVIDER", `Provider ${providerFilter} is not registered.`);
       }
       const cached = this.instruments.listByProvider(providerFilter);
-      if (options?.refresh || cached.length === 0) {
+      const needsFullCatalog = options?.refresh
+        || !this.catalogHydrated.has(providerFilter)
+        || cached.length === 0;
+      if (needsFullCatalog) {
         // Propagate provider errors (FXCM_DISABLED, FXCM_NOT_CONFIGURED, …).
-        const list = await provider.listInstruments({ refresh: options?.refresh });
-        this.instruments.removeByProvider(providerFilter);
-        this.instruments.upsertMany(list);
+        // Keep prior rows on failure so a transient discovery error does not erase a valid catalog.
+        try {
+          const list = await provider.listInstruments({ refresh: options?.refresh });
+          this.instruments.removeByProvider(providerFilter);
+          this.instruments.upsertMany(list);
+          this.catalogHydrated.add(providerFilter);
+        } catch (error) {
+          // Preserve last good full catalog on transient discovery failure (incl. refresh).
+          if (cached.length > 0 && this.catalogHydrated.has(providerFilter)) {
+            /* keep prior rows */
+          } else {
+            throw error;
+          }
+        }
       }
       if (options?.search) {
         return this.instruments.search(options.search, {
@@ -169,15 +189,21 @@ export class MarketDataService {
     }
 
     // All-providers catalog: a single provider failure must not wipe the other.
-    if (options?.refresh || this.instruments.size() === 0) {
-      if (options?.refresh) this.instruments.clear();
+    const anyUnhydrated = this.registry.listProviderIds().some((id) => !this.catalogHydrated.has(id));
+    if (options?.refresh || this.instruments.size() === 0 || anyUnhydrated) {
+      if (options?.refresh) {
+        this.instruments.clear();
+        this.catalogHydrated.clear();
+      }
       for (const providerId of this.registry.listProviderIds()) {
+        if (!options?.refresh && this.catalogHydrated.has(providerId)) continue;
         const provider = this.registry.getProvider(providerId);
         if (!provider) continue;
         try {
           const list = await provider.listInstruments({ refresh: options?.refresh });
           this.instruments.removeByProvider(providerId);
           this.instruments.upsertMany(list);
+          this.catalogHydrated.add(providerId);
         } catch {
           // Keep other providers; explicit ?provider=FXCM path above surfaces FXCM errors.
         }
