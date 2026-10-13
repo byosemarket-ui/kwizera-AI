@@ -1,5 +1,6 @@
 export * from "./types.js";
 export * from "./config-store.js";
+export * from "./model-policy.js";
 export * from "./openai-client.js";
 export * from "./prompts.js";
 export * from "./concurrency.js";

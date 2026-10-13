@@ -747,7 +747,7 @@ export const forexIntelligenceApi = {
     ),
 };
 
-/** Phase 43E — OpenAI provider configuration (API key never returned). */
+/** Phase 43E/43F — OpenAI provider configuration (API key never returned). */
 export const forexOpenAiApi = {
   status: () =>
     request<{
@@ -756,9 +756,12 @@ export const forexOpenAiApi = {
         configured: boolean;
         vaultUnlocked: boolean;
         model: string;
+        modelEligible?: boolean;
         updatedAt: string | null;
         lastValidatedAt: string | null;
         lastValidationStatus: string | null;
+        modelsDiscoveredAt?: string | null;
+        eligibleModelCount?: number | null;
         note: string;
       };
       defaultModel: string;
@@ -778,4 +781,25 @@ export const forexOpenAiApi = {
       "/api/forex-admin/openai-config",
       { method: "DELETE" },
     ),
+  listModels: () =>
+    request<{
+      ok: true;
+      discoveredAt: string | null;
+      stale: boolean;
+      models: Array<{ id: string; created: number | null; ownedBy: string | null; eligible: boolean }>;
+      selectedModel: string;
+      note?: string;
+    }>("/api/forex-admin/openai-config/models"),
+  refreshModels: () =>
+    request<{
+      ok: true;
+      latencyMs: number;
+      discoveredAt: string | null;
+      models: Array<{ id: string; created: number | null; ownedBy: string | null; eligible: boolean }>;
+      selectedModel: string;
+      selectedModelInDiscovery: boolean;
+      selectedModelEligible: boolean;
+      status: Record<string, unknown>;
+      note?: string;
+    }>("/api/forex-admin/openai-config/models/refresh", { method: "POST", body: "{}" }),
 };

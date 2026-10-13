@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { forexIntelligenceApi, forexOpenAiApi, forexProvidersApi } from "./api";
 
 function Badge({ value, tone }: { value: string; tone?: "ok" | "warn" | "danger" }) {
   return <span className="fxa-badge" data-tone={tone}>{value}</span>;
 }
+
+type OpenAiModelRow = { id: string; created: number | null; ownedBy: string | null; eligible: boolean };
 
 export function ForexAdminAiConfigurationPage() {
   const [readOnly, setReadOnly] = useState<Record<string, unknown> | null>(null);
@@ -25,15 +27,29 @@ export function ForexAdminAiConfigurationPage() {
     configured: boolean;
     vaultUnlocked: boolean;
     model: string;
+    modelEligible?: boolean;
     updatedAt: string | null;
     lastValidatedAt: string | null;
     lastValidationStatus: string | null;
+    modelsDiscoveredAt?: string | null;
+    eligibleModelCount?: number | null;
     note: string;
   } | null>(null);
   const [openAiKey, setOpenAiKey] = useState("");
   const [openAiModel, setOpenAiModel] = useState("gpt-4o-mini");
   const [openAiBusy, setOpenAiBusy] = useState(false);
   const [openAiMessage, setOpenAiMessage] = useState<string | null>(null);
+  const [modelRows, setModelRows] = useState<OpenAiModelRow[]>([]);
+  const [modelFilter, setModelFilter] = useState("");
+  const [modelsStale, setModelsStale] = useState(true);
+  const [modelsDiscoveredAt, setModelsDiscoveredAt] = useState<string | null>(null);
+  const [manualModel, setManualModel] = useState(false);
+
+  const filteredModels = useMemo(() => {
+    const q = modelFilter.trim().toLowerCase();
+    if (!q) return modelRows;
+    return modelRows.filter((m) => m.id.toLowerCase().includes(q));
+  }, [modelRows, modelFilter]);
 
   const load = () => {
     void forexIntelligenceApi.configuration()
@@ -56,6 +72,16 @@ export function ForexAdminAiConfigurationPage() {
         setOpenAiModel(res.status.model || res.defaultModel || "gpt-4o-mini");
       })
       .catch(() => setOpenAiStatus(null));
+    void forexOpenAiApi.listModels()
+      .then((res) => {
+        setModelRows(res.models ?? []);
+        setModelsStale(Boolean(res.stale));
+        setModelsDiscoveredAt(res.discoveredAt);
+        if (res.selectedModel) setOpenAiModel(res.selectedModel);
+      })
+      .catch(() => {
+        /* cache may be empty before first refresh */
+      });
   };
 
   useEffect(() => { load(); }, []);
@@ -107,13 +133,13 @@ export function ForexAdminAiConfigurationPage() {
         </ul>
       </section>
 
-      <section className="fxa-card" data-forex-admin-openai-config>
-        <h3>OpenAI provider (Phase 43E)</h3>
-        <p className="fxa-muted">
-          Server-side encrypted API key for independent snapshot analysis. The key is never returned by GET responses,
+      <section className="fxa-card fxa-openai-config" data-forex-admin-openai-config>
+        <h3>OpenAI provider (Phase 43F)</h3>
+        <p className="fxa-muted fxa-openai-lead">
+          Server-side encrypted API key for independent snapshot analysis. The key is never returned by GET,
           never shown after save, and never stored in browser storage.
         </p>
-        <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <div className="fxa-openai-badges">
           <Badge
             value={openAiStatus?.configured ? "KEY CONFIGURED" : "KEY NOT CONFIGURED"}
             tone={openAiStatus?.configured ? "ok" : "warn"}
@@ -122,92 +148,213 @@ export function ForexAdminAiConfigurationPage() {
             value={openAiStatus?.vaultUnlocked ? "VAULT UNLOCKED" : "VAULT LOCKED"}
             tone={openAiStatus?.vaultUnlocked ? "ok" : "danger"}
           />
-          <Badge value={`MODEL ${openAiStatus?.model || openAiModel}`} />
+          <Badge
+            value={
+              openAiStatus?.modelEligible === false
+                ? `MODEL ${openAiStatus?.model || openAiModel} (INELIGIBLE)`
+                : `MODEL ${openAiStatus?.model || openAiModel}`
+            }
+            tone={openAiStatus?.modelEligible === false ? "warn" : undefined}
+          />
+          {openAiStatus?.lastValidationStatus && openAiStatus.lastValidationStatus !== "never" ? (
+            <Badge
+              value={`LAST CHECK ${String(openAiStatus.lastValidationStatus).toUpperCase()}`}
+              tone={openAiStatus.lastValidationStatus === "ok" ? "ok" : "warn"}
+            />
+          ) : (
+            <Badge value="NOT VERIFIED" tone="warn" />
+          )}
         </div>
         <p className="fxa-muted">{openAiStatus?.note || "Loading OpenAI status…"}</p>
-        <div className="fxa-form-grid" style={{ display: "grid", gap: 8, maxWidth: 420 }}>
-          <label className="fxa-muted">
-            Model
+
+        <div className="fxa-openai-form">
+          <div className="fxa-openai-field">
+            <label htmlFor="fxa-openai-key">API key (write-only)</label>
             <input
-              type="text"
-              value={openAiModel}
-              onChange={(e) => setOpenAiModel(e.target.value)}
-              aria-label="OpenAI model"
-              style={{ display: "block", width: "100%", marginTop: 4 }}
-            />
-          </label>
-          <label className="fxa-muted">
-            API key (write-only)
-            <input
+              id="fxa-openai-key"
               type="password"
               autoComplete="off"
               value={openAiKey}
               onChange={(e) => setOpenAiKey(e.target.value)}
               placeholder={openAiStatus?.configured ? "•••••••• (enter to replace)" : "sk-…"}
               aria-label="OpenAI API key"
-              style={{ display: "block", width: "100%", marginTop: 4 }}
+              className="fxa-openai-input"
             />
-          </label>
-          <div className="fxa-row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="fxa-btn"
-              disabled={openAiBusy || !openAiKey.trim()}
-              onClick={() => {
-                setOpenAiBusy(true);
-                setOpenAiMessage(null);
-                void forexOpenAiApi.saveKey({ apiKey: openAiKey.trim(), model: openAiModel.trim() || undefined })
-                  .then((res) => {
-                    setOpenAiKey("");
-                    setOpenAiStatus(res.status as typeof openAiStatus);
-                    setOpenAiMessage(res.message);
-                    load();
+            <div className="fxa-openai-actions">
+              <button
+                type="button"
+                className="fxa-btn"
+                disabled={openAiBusy || !openAiKey.trim()}
+                onClick={() => {
+                  setOpenAiBusy(true);
+                  setOpenAiMessage(null);
+                  void forexOpenAiApi.saveKey({
+                    apiKey: openAiKey.trim(),
+                    model: openAiModel.trim() || undefined,
                   })
-                  .catch((err: Error) => setOpenAiMessage(err.message))
-                  .finally(() => setOpenAiBusy(false));
-              }}
-            >
-              {openAiBusy ? "Saving…" : "Save encrypted key"}
-            </button>
-            <button
-              type="button"
-              className="fxa-btn"
-              disabled={openAiBusy}
-              onClick={() => {
-                setOpenAiBusy(true);
-                setOpenAiMessage(null);
-                void forexOpenAiApi.setModel(openAiModel.trim())
-                  .then((res) => {
-                    setOpenAiStatus(res.status as typeof openAiStatus);
-                    setOpenAiMessage(res.message);
-                  })
-                  .catch((err: Error) => setOpenAiMessage(err.message))
-                  .finally(() => setOpenAiBusy(false));
-              }}
-            >
-              Update model
-            </button>
-            <button
-              type="button"
-              className="fxa-btn"
-              disabled={openAiBusy || !openAiStatus?.configured}
-              onClick={() => {
-                setOpenAiBusy(true);
-                setOpenAiMessage(null);
-                void forexOpenAiApi.clearKey()
-                  .then((res) => {
-                    setOpenAiKey("");
-                    setOpenAiStatus(res.status as typeof openAiStatus);
-                    setOpenAiMessage(res.message);
-                  })
-                  .catch((err: Error) => setOpenAiMessage(err.message))
-                  .finally(() => setOpenAiBusy(false));
-              }}
-            >
-              Clear key
-            </button>
+                    .then((res) => {
+                      setOpenAiKey("");
+                      setOpenAiStatus(res.status as typeof openAiStatus);
+                      setOpenAiMessage(res.message);
+                      load();
+                    })
+                    .catch((err: Error) => setOpenAiMessage(err.message))
+                    .finally(() => setOpenAiBusy(false));
+                }}
+              >
+                {openAiBusy ? "Saving…" : "Save encrypted key"}
+              </button>
+              <button
+                type="button"
+                className="fxa-btn-danger"
+                disabled={openAiBusy || !openAiStatus?.configured}
+                onClick={() => {
+                  if (!window.confirm("Clear the stored OpenAI API key? Model selection is kept.")) return;
+                  setOpenAiBusy(true);
+                  setOpenAiMessage(null);
+                  void forexOpenAiApi.clearKey()
+                    .then((res) => {
+                      setOpenAiKey("");
+                      setOpenAiStatus(res.status as typeof openAiStatus);
+                      setOpenAiMessage(res.message);
+                    })
+                    .catch((err: Error) => setOpenAiMessage(err.message))
+                    .finally(() => setOpenAiBusy(false));
+                }}
+              >
+                Clear key
+              </button>
+            </div>
           </div>
-          {openAiMessage ? <p className="fxa-muted" role="status">{openAiMessage}</p> : null}
+
+          <div className="fxa-openai-field">
+            <div className="fxa-openai-model-head">
+              <label htmlFor="fxa-openai-model-search">Model</label>
+              <button
+                type="button"
+                className="fxa-btn-secondary fxa-openai-refresh"
+                disabled={
+                  openAiBusy
+                  || !openAiStatus?.configured
+                  || openAiStatus?.vaultUnlocked === false
+                }
+                title={
+                  !openAiStatus?.configured
+                    ? "Configure an API key before discovering models"
+                    : "Fetch available models from OpenAI (server-side)"
+                }
+                onClick={() => {
+                  setOpenAiBusy(true);
+                  setOpenAiMessage(null);
+                  void forexOpenAiApi.refreshModels()
+                    .then((res) => {
+                      setModelRows(res.models ?? []);
+                      setModelsStale(false);
+                      setModelsDiscoveredAt(res.discoveredAt);
+                      setOpenAiStatus(res.status as typeof openAiStatus);
+                      setOpenAiModel(res.selectedModel || openAiModel);
+                      setOpenAiMessage(
+                        res.selectedModelInDiscovery
+                          ? `Refreshed ${res.models.length} eligible model(s). Saved model is in the list.`
+                          : `Refreshed ${res.models.length} eligible model(s). Saved model may be unavailable — selection was not changed.`,
+                      );
+                    })
+                    .catch((err: Error) => setOpenAiMessage(err.message))
+                    .finally(() => setOpenAiBusy(false));
+                }}
+              >
+                Refresh models
+              </button>
+            </div>
+            <input
+              id="fxa-openai-model-search"
+              type="search"
+              className="fxa-openai-input"
+              value={modelFilter}
+              onChange={(e) => setModelFilter(e.target.value)}
+              placeholder="Search models…"
+              aria-label="Filter OpenAI models"
+              disabled={modelRows.length === 0 && !manualModel}
+            />
+            {manualModel ? (
+              <input
+                type="text"
+                className="fxa-openai-input"
+                value={openAiModel}
+                onChange={(e) => setOpenAiModel(e.target.value)}
+                aria-label="OpenAI model manual entry"
+                placeholder="gpt-4o-mini"
+              />
+            ) : (
+              <select
+                className="fxa-openai-select"
+                value={
+                  modelRows.some((m) => m.id === openAiModel)
+                    ? openAiModel
+                    : openAiModel
+                      ? `__keep__:${openAiModel}`
+                      : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.startsWith("__keep__:")) setOpenAiModel(v.slice("__keep__:".length));
+                  else setOpenAiModel(v);
+                }}
+                aria-label="OpenAI model"
+                disabled={modelRows.length === 0 && !openAiModel}
+              >
+                {!modelRows.some((m) => m.id === openAiModel) && openAiModel ? (
+                  <option value={`__keep__:${openAiModel}`}>
+                    {openAiModel} (saved — not in last discovery)
+                  </option>
+                ) : null}
+                {modelRows.length === 0 ? (
+                  <option value={openAiModel || ""}>
+                    {openAiModel || "Refresh models after saving a key"}
+                  </option>
+                ) : null}
+                {filteredModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.id}</option>
+                ))}
+              </select>
+            )}
+            <p className="fxa-muted fxa-openai-hint">
+              {modelsDiscoveredAt
+                ? `Last discovery ${modelsDiscoveredAt}${modelsStale ? " (stale)" : ""}. `
+                : "No discovery yet. "}
+              Saved model is authoritative for analysis. List membership ≠ Forex suitability.
+              {" "}
+              <button
+                type="button"
+                className="fxa-linkish"
+                onClick={() => setManualModel((v) => !v)}
+              >
+                {manualModel ? "Use dropdown" : "Manual entry"}
+              </button>
+            </p>
+            <div className="fxa-openai-actions">
+              <button
+                type="button"
+                className="fxa-btn"
+                disabled={openAiBusy || !openAiModel.trim()}
+                onClick={() => {
+                  setOpenAiBusy(true);
+                  setOpenAiMessage(null);
+                  void forexOpenAiApi.setModel(openAiModel.trim())
+                    .then((res) => {
+                      setOpenAiStatus(res.status as typeof openAiStatus);
+                      setOpenAiModel(String((res.status as { model?: string }).model || openAiModel));
+                      setOpenAiMessage(res.message);
+                    })
+                    .catch((err: Error) => setOpenAiMessage(err.message))
+                    .finally(() => setOpenAiBusy(false));
+                }}
+              >
+                Save model
+              </button>
+            </div>
+          </div>
+          {openAiMessage ? <p className="fxa-openai-msg" role="status">{openAiMessage}</p> : null}
         </div>
       </section>
 

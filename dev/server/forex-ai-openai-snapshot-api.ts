@@ -1,5 +1,5 @@
 /**
- * Phase 43E — OpenAI analysis from an immutable market-data snapshot.
+ * Phase 43E/43F — OpenAI analysis from an immutable market-data snapshot.
  *
  * POST /api/forex/ai-analysis/openai              analyze snapshot
  * GET  /api/forex/ai-analysis/openai/:analysisId  fetch analysis
@@ -8,6 +8,8 @@
  *
  * Admin config (requireForexAdmin):
  * GET/PUT/DELETE /api/forex-admin/openai-config
+ * GET  /api/forex-admin/openai-config/models
+ * POST /api/forex-admin/openai-config/models/refresh
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
@@ -16,9 +18,11 @@ import {
   OPENAI_MAX_TIMEOUT_MS,
   OPENAI_MIN_TIMEOUT_MS,
   OPENAI_SNAPSHOT_ANALYSIS_SCHEMA,
+  filterEligibleOpenAiModels,
   getForexOpenAiConfigStore,
   getOpenAiInferenceGate,
   getOpenAiSnapshotAnalysisEngine,
+  listOpenAiModels,
 } from "../../ai/forex-ai/snapshot-openai/index.js";
 import { requireForexAdmin } from "./forex-admin-auth.js";
 
@@ -74,12 +78,138 @@ export async function handleForexOpenAiAdminConfigApi(
   url: URL,
   sendJson: SendJson,
 ): Promise<boolean> {
-  if (url.pathname !== "/api/forex-admin/openai-config") return false;
+  if (!url.pathname.startsWith("/api/forex-admin/openai-config")) return false;
   if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
 
   const store = getForexOpenAiConfigStore();
 
   try {
+    // GET cached eligible models (no live OpenAI call)
+    if (url.pathname === "/api/forex-admin/openai-config/models") {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await store.getPublicStatus();
+      const cached = await store.getDiscoveredModels();
+      sendJson(res, 200, {
+        ok: true,
+        status,
+        discoveredAt: cached.discoveredAt,
+        stale: cached.stale,
+        models: cached.models,
+        selectedModel: status.model,
+        note:
+          "Cached discovery only. Use POST …/models/refresh to fetch from OpenAI. "
+          + "Eligible = chat-compatible policy; not a claim of Forex suitability.",
+      });
+      return true;
+    }
+
+    // POST refresh — server decrypts key and calls OpenAI models list
+    if (url.pathname === "/api/forex-admin/openai-config/models/refresh") {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const status = await store.getPublicStatus();
+      if (!status.vaultUnlocked) {
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code: "SECRETS_VAULT_LOCKED",
+            message: "Secret vault is locked. Set KWIZERA_SECRETS_PASSPHRASE on the server.",
+          },
+        });
+        return true;
+      }
+      if (!status.configured) {
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code: "OPENAI_NOT_CONFIGURED",
+            message: "OpenAI API key is not configured. Save an encrypted key first.",
+          },
+        });
+        return true;
+      }
+
+      let apiKey: string | null;
+      try {
+        apiKey = await store.getApiKey();
+      } catch (err) {
+        const code = (err as { code?: string })?.code ?? "SECRET_DECRYPT_FAILED";
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code,
+            message: err instanceof Error ? err.message.slice(0, 200) : "Failed to decrypt API key.",
+          },
+        });
+        return true;
+      }
+      if (!apiKey) {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "OPENAI_NOT_CONFIGURED", message: "OpenAI API key is not configured." },
+        });
+        return true;
+      }
+
+      const listed = await listOpenAiModels({ apiKey, timeoutMs: 15_000 });
+      // Drop key from scope immediately — never include in response.
+      apiKey = null;
+
+      if (!listed.ok) {
+        const http =
+          listed.code === "OPENAI_AUTH_ERROR"
+            ? 401
+            : listed.code === "OPENAI_RATE_LIMIT"
+              ? 429
+              : listed.code === "OPENAI_TIMEOUT" || listed.code === "OPENAI_UNAVAILABLE"
+                ? 503
+                : 422;
+        sendJson(res, http, {
+          ok: false,
+          error: {
+            code: listed.code,
+            message: listed.error || "Model discovery failed.",
+          },
+          latencyMs: listed.latencyMs,
+        });
+        return true;
+      }
+
+      const eligible = filterEligibleOpenAiModels(listed.models);
+      await store.saveDiscoveredModels(eligible);
+      const nextStatus = await store.getPublicStatus();
+      const selectedInList = eligible.some((m) => m.id === nextStatus.model);
+
+      sendJson(res, 200, {
+        ok: true,
+        latencyMs: listed.latencyMs,
+        discoveredAt: nextStatus.modelsDiscoveredAt,
+        models: eligible,
+        selectedModel: nextStatus.model,
+        selectedModelInDiscovery: selectedInList,
+        selectedModelEligible: nextStatus.modelEligible,
+        status: nextStatus,
+        note:
+          "Eligible models pass chat-compatibility policy. "
+          + "Appearance in the list does not alone certify Forex analysis quality. "
+          + "Saved selection is never auto-replaced.",
+      });
+      return true;
+    }
+
+    if (url.pathname !== "/api/forex-admin/openai-config") {
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Unknown OpenAI config route." },
+      });
+      return true;
+    }
+
     if (req.method === "GET" || req.method === "HEAD") {
       const status = await store.getPublicStatus();
       sendJson(res, 200, {

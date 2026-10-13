@@ -294,12 +294,250 @@
   font-size: 0.85rem;
 }
 
+/* Phase 43F — OpenAI configuration layout */
+.fxa-openai-config {
+  margin-bottom: 1.25rem;
+}
+
+.fxa-openai-lead {
+  margin: 0.35rem 0 0.75rem;
+  max-width: 42rem;
+  line-height: 1.4;
+}
+
+.fxa-openai-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fxa-openai-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+  margin-top: 0.75rem;
+}
+
+.fxa-openai-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fxa-openai-field > label {
+  font-size: 0.8rem;
+  color: var(--fxa-muted, #9ca3af);
+  font-weight: 550;
+}
+
+.fxa-openai-model-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+.fxa-openai-input,
+.fxa-openai-select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.fxa-openai-input:focus,
+.fxa-openai-select:focus {
+  outline: 2px solid rgba(96, 165, 250, 0.45);
+  outline-offset: 1px;
+}
+
+.fxa-openai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.fxa-openai-refresh {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  min-height: 1.85rem;
+}
+
+.fxa-openai-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.fxa-openai-msg {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fxa-muted, #9ca3af);
+}
+
+.fxa-linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #93c5fd;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fxa-linkish:hover {
+  color: #bfdbfe;
+}
+
+section.fxa-card[data-forex-admin-market-providers] {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .fxa-openai-form {
+    max-width: 100%;
+  }
+
+  .fxa-openai-actions .fxa-btn,
+  .fxa-openai-actions .fxa-btn-danger,
+  .fxa-openai-actions .fxa-btn-secondary {
+    flex: 1 1 auto;
+  }
+}
+
 .fxa-error {
   color: #fecaca;
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.3);
   border-radius: 0.6rem;
   padding: 0.7rem 0.85rem;
+}
+
+/* Phase 43F — OpenAI config layout (compact, aligned) */
+.fxa-openai-config {
+  margin-bottom: 1.25rem;
+}
+
+.fxa-openai-lead {
+  margin: 0.35rem 0 0.75rem;
+  max-width: 52rem;
+  line-height: 1.4;
+}
+
+.fxa-openai-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fxa-openai-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+  margin-top: 0.75rem;
+}
+
+.fxa-openai-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fxa-openai-field > label,
+.fxa-openai-model-head label {
+  font-size: 0.8rem;
+  color: var(--fxa-muted, #94a3b8);
+  font-weight: 550;
+}
+
+.fxa-openai-model-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+.fxa-openai-input,
+.fxa-openai-select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.fxa-openai-input:focus,
+.fxa-openai-select:focus {
+  outline: 2px solid rgba(56, 189, 248, 0.45);
+  outline-offset: 1px;
+}
+
+.fxa-openai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.fxa-openai-refresh {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem;
+  min-height: 1.85rem;
+}
+
+.fxa-openai-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.fxa-openai-msg {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fxa-muted, #94a3b8);
+}
+
+.fxa-linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #7dd3fc;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fxa-card[data-forex-admin-market-providers] {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .fxa-openai-form {
+    max-width: 100%;
+  }
+
+  .fxa-openai-actions .fxa-btn,
+  .fxa-openai-actions .fxa-btn-danger,
+  .fxa-openai-actions .fxa-btn-secondary {
+    flex: 1 1 auto;
+  }
 }
 
 .fxa-menu-btn {

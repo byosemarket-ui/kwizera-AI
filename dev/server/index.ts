@@ -29,6 +29,7 @@ import {
   handleForexAiOpenAiSnapshotApi,
   handleForexOpenAiAdminConfigApi,
 } from "./forex-ai-openai-snapshot-api.js";
+import { handleForexAiCompareSnapshotApi } from "./forex-ai-compare-snapshot-api.js";
 import { handleForexPatternsApi } from "./forex-patterns-api.js";
 import { handleForexStructureApi } from "./forex-structure-api.js";
 import { handleForexProvidersApi } from "./forex-providers-api.js";
@@ -1215,6 +1216,10 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   }
 
   if (await handleForexAiLocalSnapshotApi(req, res, url, sendJson)) {
+    return;
+  }
+
+  if (await handleForexAiCompareSnapshotApi(req, res, url, sendJson)) {
     return;
   }
 

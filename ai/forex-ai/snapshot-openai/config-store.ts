@@ -7,10 +7,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { resolveStorageRoot } from "../../../storage/paths/storage-paths.js";
 import { readJsonSafeSync, writeJsonAtomic } from "../../../storage/safe-json.js";
-import type { OpenAiProviderPublicStatus } from "./types.js";
+import { isOpenAiChatEligibleModel } from "./model-policy.js";
+import type { OpenAiDiscoveredModelPublic, OpenAiProviderPublicStatus } from "./types.js";
 
 export const OPENAI_DEFAULT_MODEL = "gpt-4o-mini";
 export const OPENAI_SECRET_ID = "forex-openai-api-key";
+/** Discovery cache TTL — not indefinite; refresh is still explicit. */
+export const OPENAI_MODELS_CACHE_TTL_MS = 15 * 60_000;
 
 interface EncryptedBlob {
   salt: string;
@@ -34,6 +37,12 @@ interface PublicConfigFile {
   lastValidationStatus: "never" | "ok" | "error" | null;
 }
 
+interface ModelsCacheFile {
+  version: 1;
+  discoveredAt: string | null;
+  models: OpenAiDiscoveredModelPublic[];
+}
+
 const EMPTY_SECRETS: SecretsFile = {
   version: 1,
   secretId: OPENAI_SECRET_ID,
@@ -47,6 +56,12 @@ const EMPTY_PUBLIC: PublicConfigFile = {
   updatedAt: null,
   lastValidatedAt: null,
   lastValidationStatus: "never",
+};
+
+const EMPTY_MODELS: ModelsCacheFile = {
+  version: 1,
+  discoveredAt: null,
+  models: [],
 };
 
 function passphrase(): string | null {
@@ -82,9 +97,28 @@ function decryptValue(pass: string, blob: EncryptedBlob): string {
   ]).toString("utf8");
 }
 
-function sanitizeModel(raw: unknown): string {
-  const model = String(raw ?? OPENAI_DEFAULT_MODEL).trim();
+/** Format-only sanitize for reads. Never replaces a valid saved id with a hardcoded fallback. */
+function sanitizeModelId(raw: unknown): string {
+  const model = String(raw ?? "").trim();
   if (!/^[a-zA-Z0-9._:-]{3,64}$/.test(model)) return OPENAI_DEFAULT_MODEL;
+  return model;
+}
+
+function assertEligibleModel(raw: unknown): string {
+  const model = String(raw ?? "").trim();
+  if (!/^[a-zA-Z0-9._:-]{3,64}$/.test(model)) {
+    throw Object.assign(new Error("Invalid OpenAI model identifier."), {
+      code: "INVALID_MODEL",
+    });
+  }
+  if (!isOpenAiChatEligibleModel(model)) {
+    throw Object.assign(
+      new Error(
+        `Model "${model}" is not eligible for Forex snapshot chat analysis.`,
+      ),
+      { code: "MODEL_NOT_ELIGIBLE" },
+    );
+  }
   return model;
 }
 
@@ -92,12 +126,14 @@ export class ForexOpenAiConfigStore {
   private readonly dir: string;
   private readonly secretsPath: string;
   private readonly publicPath: string;
+  private readonly modelsPath: string;
   private writeChain: Promise<void> = Promise.resolve();
 
   constructor(storageRoot?: string) {
     this.dir = path.join(storageRoot ?? resolveStorageRoot(), "forex-openai");
     this.secretsPath = path.join(this.dir, "secrets.json");
     this.publicPath = path.join(this.dir, "config.json");
+    this.modelsPath = path.join(this.dir, "models-cache.json");
   }
 
   async ensureReady(): Promise<void> {
@@ -107,6 +143,9 @@ export class ForexOpenAiConfigStore {
     }
     if (!fs.existsSync(this.publicPath)) {
       await writeJsonAtomic(this.publicPath, EMPTY_PUBLIC);
+    }
+    if (!fs.existsSync(this.modelsPath)) {
+      await writeJsonAtomic(this.modelsPath, EMPTY_MODELS);
     }
   }
 
@@ -130,10 +169,20 @@ export class ForexOpenAiConfigStore {
     const value = result.value ?? EMPTY_PUBLIC;
     return {
       version: 1,
-      model: sanitizeModel(value.model),
+      model: sanitizeModelId(value.model),
       updatedAt: value.updatedAt ?? null,
       lastValidatedAt: value.lastValidatedAt ?? null,
       lastValidationStatus: value.lastValidationStatus ?? "never",
+    };
+  }
+
+  private readModelsCache(): ModelsCacheFile {
+    const result = readJsonSafeSync<ModelsCacheFile>(this.modelsPath, EMPTY_MODELS);
+    const value = result.value ?? EMPTY_MODELS;
+    return {
+      version: 1,
+      discoveredAt: value.discoveredAt ?? null,
+      models: Array.isArray(value.models) ? value.models : [],
     };
   }
 
@@ -141,20 +190,29 @@ export class ForexOpenAiConfigStore {
     await this.ensureReady();
     const secrets = this.readSecrets();
     const pub = this.readPublic();
+    const cache = this.readModelsCache();
     const unlocked = this.isVaultUnlocked();
     const configured = Boolean(secrets.blob);
+    const modelEligible = isOpenAiChatEligibleModel(pub.model);
     return {
       configured,
       vaultUnlocked: unlocked,
       model: pub.model,
+      modelEligible,
       updatedAt: secrets.updatedAt ?? pub.updatedAt,
       lastValidatedAt: pub.lastValidatedAt,
       lastValidationStatus: pub.lastValidationStatus,
+      modelsDiscoveredAt: cache.discoveredAt,
+      eligibleModelCount: cache.discoveredAt
+        ? cache.models.filter((m) => m.eligible).length
+        : null,
       note: !unlocked
         ? "Secret vault locked — set KWIZERA_SECRETS_PASSPHRASE on the server."
-        : configured
-          ? "OpenAI API key is configured (value never returned)."
-          : "OpenAI API key is not configured.",
+        : !configured
+          ? "OpenAI API key is not configured."
+          : !modelEligible
+            ? `Saved model "${pub.model}" is not eligible for chat analysis — update the model.`
+            : "OpenAI API key is configured (value never returned).",
     };
   }
 
@@ -187,9 +245,10 @@ export class ForexOpenAiConfigStore {
         updatedAt: now,
       };
       const pub = this.readPublic();
+      const nextModel = model != null ? assertEligibleModel(model) : pub.model;
       const nextPublic: PublicConfigFile = {
         version: 1,
-        model: model != null ? sanitizeModel(model) : pub.model,
+        model: nextModel,
         updatedAt: now,
         lastValidatedAt: pub.lastValidatedAt,
         lastValidationStatus: pub.lastValidationStatus,
@@ -203,12 +262,13 @@ export class ForexOpenAiConfigStore {
   }
 
   async setModel(model: string): Promise<OpenAiProviderPublicStatus> {
+    const nextModel = assertEligibleModel(model);
     const run = this.writeChain.then(async () => {
       await this.ensureReady();
       const pub = this.readPublic();
       const next: PublicConfigFile = {
         ...pub,
-        model: sanitizeModel(model),
+        model: nextModel,
         updatedAt: new Date().toISOString(),
       };
       await writeJsonAtomic(this.publicPath, next);
@@ -216,6 +276,45 @@ export class ForexOpenAiConfigStore {
     this.writeChain = run.then(() => undefined, () => undefined);
     await run;
     return this.getPublicStatus();
+  }
+
+  async saveDiscoveredModels(models: OpenAiDiscoveredModelPublic[]): Promise<void> {
+    const run = this.writeChain.then(async () => {
+      await this.ensureReady();
+      const payload: ModelsCacheFile = {
+        version: 1,
+        discoveredAt: new Date().toISOString(),
+        models: models.map((m) => ({
+          id: String(m.id),
+          created: m.created ?? null,
+          ownedBy: m.ownedBy ?? null,
+          eligible: Boolean(m.eligible),
+        })),
+      };
+      await writeJsonAtomic(this.modelsPath, payload);
+    });
+    this.writeChain = run.then(() => undefined, () => undefined);
+    await run;
+  }
+
+  async getDiscoveredModels(): Promise<{
+    discoveredAt: string | null;
+    stale: boolean;
+    models: OpenAiDiscoveredModelPublic[];
+  }> {
+    await this.ensureReady();
+    const cache = this.readModelsCache();
+    const discoveredAt = cache.discoveredAt;
+    let stale = true;
+    if (discoveredAt) {
+      const age = Date.now() - Date.parse(discoveredAt);
+      stale = !Number.isFinite(age) || age > OPENAI_MODELS_CACHE_TTL_MS;
+    }
+    return {
+      discoveredAt,
+      stale,
+      models: cache.models,
+    };
   }
 
   async clearApiKey(): Promise<OpenAiProviderPublicStatus> {

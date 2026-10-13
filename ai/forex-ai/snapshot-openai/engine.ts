@@ -11,6 +11,7 @@ import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snaps
 import { verifySnapshotFingerprint } from "../snapshot-local/engine.js";
 import { getForexOpenAiConfigStore, type ForexOpenAiConfigStore } from "./config-store.js";
 import { getOpenAiInferenceGate } from "./concurrency.js";
+import { isOpenAiChatEligibleModel } from "./model-policy.js";
 import {
   buildOpenAiNoTradeResult,
   normalizeOpenAiAnalysisFromModel,
@@ -156,6 +157,15 @@ export class OpenAiSnapshotAnalysisEngine {
     const analysisId = randomUUID();
     const timeoutMs = clampTimeout(raw.timeoutMs);
     const model = await config.getModel();
+    // Never silently substitute a hardcoded model when the saved selection is ineligible.
+    if (!isOpenAiChatEligibleModel(model)) {
+      return fail(
+        started,
+        "MODEL_NOT_ELIGIBLE",
+        `Configured OpenAI model "${model}" is not eligible for snapshot chat analysis. `
+          + "Update the model in Forex Admin.",
+      );
+    }
     const store = this.deps?.store ?? getOpenAiSnapshotAnalysisStore();
     const newsResearchStatus = "unavailable" as const; // No safe news integration in 43E.
 

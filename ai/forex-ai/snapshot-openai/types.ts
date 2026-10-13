@@ -32,13 +32,26 @@ export interface OpenAiSnapshotAnalysisRequest {
   includeNewsResearch?: boolean;
 }
 
+export interface OpenAiDiscoveredModelPublic {
+  id: string;
+  created: number | null;
+  ownedBy: string | null;
+  eligible: boolean;
+}
+
 export interface OpenAiProviderPublicStatus {
   configured: boolean;
   vaultUnlocked: boolean;
   model: string;
+  /** True when saved model matches chat-eligible policy (not live availability). */
+  modelEligible: boolean;
   updatedAt: string | null;
   lastValidatedAt: string | null;
   lastValidationStatus: "never" | "ok" | "error" | null;
+  /** Last discovery timestamp (null if never refreshed). */
+  modelsDiscoveredAt: string | null;
+  /** Count from last discovery (eligible only). */
+  eligibleModelCount: number | null;
   note: string;
 }
 

@@ -29,6 +29,27 @@ export interface OpenAiChatInput {
   temperature?: number;
 }
 
+export interface OpenAiListedModel {
+  id: string;
+  created: number | null;
+  ownedBy: string | null;
+}
+
+export interface OpenAiListModelsResult {
+  ok: boolean;
+  code:
+    | "OK"
+    | "OPENAI_NOT_CONFIGURED"
+    | "OPENAI_AUTH_ERROR"
+    | "OPENAI_RATE_LIMIT"
+    | "OPENAI_TIMEOUT"
+    | "OPENAI_UNAVAILABLE"
+    | "OPENAI_ERROR";
+  latencyMs: number;
+  models: OpenAiListedModel[];
+  error?: string;
+}
+
 function mapHttpError(status: number, bodyText: string): OpenAiChatResult["code"] {
   if (status === 401 || status === 403) return "OPENAI_AUTH_ERROR";
   if (status === 429) return "OPENAI_RATE_LIMIT";
@@ -155,6 +176,101 @@ export async function openAiChatJson(input: OpenAiChatInput): Promise<OpenAiChat
       error: aborted
         ? `OpenAI timed out after ${latencyMs} ms.`
         : "OpenAI network request failed.",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * List models available to the configured API key (server-side only).
+ * Never exposes the key; returns sanitized metadata only.
+ */
+export async function listOpenAiModels(input: {
+  apiKey: string;
+  timeoutMs?: number;
+}): Promise<OpenAiListModelsResult> {
+  const key = String(input.apiKey ?? "").trim();
+  if (!key) {
+    return {
+      ok: false,
+      code: "OPENAI_NOT_CONFIGURED",
+      latencyMs: 0,
+      models: [],
+      error: "OpenAI API key is not configured.",
+    };
+  }
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timeoutMs = Math.max(2_000, Math.min(30_000, input.timeoutMs ?? 15_000));
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+      signal: controller.signal,
+    });
+    const latencyMs = Date.now() - started;
+    const bodyText = await res.text();
+    let payload: { data?: Array<{ id?: string; created?: number; owned_by?: string }> } = {};
+    try {
+      payload = JSON.parse(bodyText) as typeof payload;
+    } catch {
+      /* ignore */
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        code: "OPENAI_AUTH_ERROR",
+        latencyMs,
+        models: [],
+        error: "OpenAI authentication failed. Check the configured API key.",
+      };
+    }
+    if (res.status === 429) {
+      return {
+        ok: false,
+        code: "OPENAI_RATE_LIMIT",
+        latencyMs,
+        models: [],
+        error: "OpenAI rate limit reached while listing models.",
+      };
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        code: "OPENAI_ERROR",
+        latencyMs,
+        models: [],
+        error: `OpenAI models list failed (HTTP ${res.status}).`,
+      };
+    }
+
+    const models: OpenAiListedModel[] = (payload.data ?? [])
+      .map((m) => ({
+        id: String(m.id ?? "").trim(),
+        created: typeof m.created === "number" ? m.created : null,
+        ownedBy: m.owned_by == null ? null : String(m.owned_by),
+      }))
+      .filter((m) => m.id.length > 0);
+
+    return { ok: true, code: "OK", latencyMs, models };
+  } catch (err) {
+    const latencyMs = Date.now() - started;
+    const aborted = err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      code: aborted ? "OPENAI_TIMEOUT" : "OPENAI_UNAVAILABLE",
+      latencyMs,
+      models: [],
+      error: aborted
+        ? `OpenAI models list timed out after ${latencyMs} ms.`
+        : "OpenAI models list network request failed.",
     };
   } finally {
     clearTimeout(timer);

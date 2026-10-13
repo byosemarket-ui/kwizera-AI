@@ -2029,6 +2029,137 @@ html.reduce-motion .fx-sidebar {
   min-width: 0;
 }
 
+/* Phase 43F — AI provider mode (Local / OpenAI / Compare) */
+.fx-ai-provider-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-elevated);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-provider-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fx-ai-provider-toggle .fx-text-button {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.fx-ai-provider-toggle .fx-text-button[data-active="true"] {
+  font-weight: 650;
+}
+
+.fx-ai-compare-result {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-elevated);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 12px;
+}
+
+.fx-ai-compare-grid p {
+  margin: 2px 0 0;
+  color: var(--fx-muted);
+  line-height: 1.35;
+}
+
+.fx-ai-provider-panels {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .fx-ai-provider-panels[data-compare="true"] {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Phase 43F — AI provider mode selector */
+.fx-ai-provider-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-elevated);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-provider-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fx-ai-provider-toggle .fx-text-button {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.fx-ai-provider-toggle .fx-text-button[data-active="true"] {
+  font-weight: 650;
+}
+
+.fx-ai-compare-result {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-elevated);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 12px;
+}
+
+.fx-ai-compare-grid p {
+  margin: 2px 0 0;
+  color: var(--fx-muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.fx-ai-provider-panels {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .fx-ai-provider-panels[data-ai-compare-layout="true"] {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .fx-ai-local-result {
   display: grid;
   gap: 8px;
