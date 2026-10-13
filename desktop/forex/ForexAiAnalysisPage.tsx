@@ -512,6 +512,15 @@ export function ForexAiAnalysisPage({
   const [localAiError, setLocalAiError] = useState<string | null>(null);
   const [localAi, setLocalAi] = useState<LocalSnapshotAnalysisUi | null>(null);
   const localAiRequestSeq = useRef(0);
+  const [openAiBusy, setOpenAiBusy] = useState(false);
+  const [openAiError, setOpenAiError] = useState<string | null>(null);
+  const [openAi, setOpenAi] = useState<(LocalSnapshotAnalysisUi & {
+    newsResearchStatus?: string;
+    analysisProvider?: string;
+  }) | null>(null);
+  const [openAiConfigured, setOpenAiConfigured] = useState<boolean | null>(null);
+  const [openAiVaultUnlocked, setOpenAiVaultUnlocked] = useState<boolean | null>(null);
+  const openAiRequestSeq = useRef(0);
 
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
@@ -537,6 +546,7 @@ export function ForexAiAnalysisPage({
     setSnapshotStale(true);
     setSnapshotError(null);
     setLocalAiError(null);
+    setOpenAiError(null);
   }, [provider, selectedMarket?.symbol, analysisPeriod, candleTf, customStartUtc, customEndUtc, mode]);
 
   const estimatedCandles = estimateCandlesClient(
@@ -559,6 +569,22 @@ export function ForexAiAnalysisPage({
         if (!cancelled) {
           setHealth(null);
           setHealthError(err instanceof Error ? err.message : "AI health unavailable");
+        }
+      });
+    void fetch("/api/forex/ai-analysis/openai/meta")
+      .then(async (res) => {
+        const body = await res.json() as {
+          status?: { configured?: boolean; vaultUnlocked?: boolean };
+        };
+        if (!cancelled) {
+          setOpenAiConfigured(Boolean(body.status?.configured));
+          setOpenAiVaultUnlocked(Boolean(body.status?.vaultUnlocked));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOpenAiConfigured(null);
+          setOpenAiVaultUnlocked(null);
         }
       });
     return () => { cancelled = true; };
@@ -773,6 +799,83 @@ export function ForexAiAnalysisPage({
     }
   }, [snapshot, snapshotStale, localAiBusy, provider, selectedMarket?.symbol]);
 
+  const runOpenAiSnapshotAi = useCallback(async () => {
+    if (!snapshot || snapshotStale) {
+      setOpenAiError("Prepare a current snapshot before running OpenAI analysis.");
+      return;
+    }
+    if (!snapshot.evidenceReady) {
+      setOpenAiError("Snapshot evidence is not ready for OpenAI analysis.");
+      return;
+    }
+    if (openAiBusy || localAiBusy) return;
+
+    const seq = ++openAiRequestSeq.current;
+    setOpenAiBusy(true);
+    setOpenAiError(null);
+    try {
+      const res = await fetch("/api/forex/ai-analysis/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          snapshotId: snapshot.snapshotId,
+          contentFingerprint: snapshot.contentFingerprint,
+          provider,
+          symbol: selectedMarket?.symbol,
+          candleTimeframe: snapshot.candleTimeframe,
+          analysisPeriod: snapshot.analysisPeriod,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        code?: string;
+        error?: string | null;
+        latencyMs?: number;
+        analysis?: (LocalSnapshotAnalysisUi & {
+          newsResearchStatus?: string;
+          analysisProvider?: string;
+        }) | null;
+      };
+      if (seq !== openAiRequestSeq.current) return;
+      if (!data.analysis) {
+        setOpenAiError(data.error || data.code || "OpenAI analysis unavailable");
+        return;
+      }
+      setOpenAi({
+        analysisId: data.analysis.analysisId,
+        snapshotId: data.analysis.snapshotId,
+        contentFingerprint: data.analysis.contentFingerprint,
+        decision: data.analysis.decision,
+        decisionRationale: data.analysis.decisionRationale,
+        marketBias: data.analysis.marketBias,
+        marketStructureSummary: data.analysis.marketStructureSummary,
+        keyEvidence: Array.isArray(data.analysis.keyEvidence) ? data.analysis.keyEvidence : [],
+        bullishScenario: data.analysis.bullishScenario,
+        bearishScenario: data.analysis.bearishScenario,
+        invalidationConditions: Array.isArray(data.analysis.invalidationConditions)
+          ? data.analysis.invalidationConditions
+          : [],
+        confidence: data.analysis.confidence ?? null,
+        limitations: Array.isArray(data.analysis.limitations) ? data.analysis.limitations : [],
+        dataQuality: data.analysis.dataQuality,
+        status: data.analysis.status,
+        model: data.analysis.model ?? null,
+        inferenceLatencyMs: data.analysis.inferenceLatencyMs ?? data.latencyMs ?? null,
+        warnings: Array.isArray(data.analysis.warnings) ? data.analysis.warnings : [],
+        newsResearchStatus: data.analysis.newsResearchStatus,
+        analysisProvider: data.analysis.analysisProvider ?? "OPENAI",
+      });
+      if (!data.ok) {
+        setOpenAiError(data.error || data.code || "OpenAI completed with issues");
+      }
+    } catch (err) {
+      if (seq !== openAiRequestSeq.current) return;
+      setOpenAiError(err instanceof Error ? err.message : "OpenAI request failed");
+    } finally {
+      if (seq === openAiRequestSeq.current) setOpenAiBusy(false);
+    }
+  }, [snapshot, snapshotStale, openAiBusy, localAiBusy, provider, selectedMarket?.symbol]);
+
   const runAnalysis = useCallback(async () => {
     if (!marketReady || !selectedMarket) {
       setPhase("error");
@@ -856,6 +959,7 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase43b="true"
       data-forex-ai-phase43c="true"
       data-forex-ai-phase43d="true"
+      data-forex-ai-phase43e="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
       data-ai-provider={marketReady ? provider : ""}
@@ -1016,7 +1120,7 @@ export function ForexAiAnalysisPage({
               type="button"
               className="fx-text-button"
               data-ai-local-snapshot-btn="true"
-              disabled={!snapshotUsableForLocalAi || localAiBusy}
+              disabled={!snapshotUsableForLocalAi || localAiBusy || openAiBusy}
               onClick={() => void runLocalSnapshotAi()}
               title={snapshotUsableForLocalAi ? "Analyze the prepared snapshot with Local AI" : "Prepare a usable snapshot first"}
             >
@@ -1024,9 +1128,25 @@ export function ForexAiAnalysisPage({
             </button>
             <button
               type="button"
+              className="fx-text-button"
+              data-ai-openai-snapshot-btn="true"
+              disabled={!snapshotUsableForLocalAi || openAiBusy || localAiBusy || openAiConfigured === false}
+              onClick={() => void runOpenAiSnapshotAi()}
+              title={
+                openAiConfigured === false
+                  ? "Configure OpenAI API key in Forex Admin"
+                  : snapshotUsableForLocalAi
+                    ? "Analyze the prepared snapshot with OpenAI"
+                    : "Prepare a usable snapshot first"
+              }
+            >
+              {openAiBusy ? "OpenAI running…" : "OpenAI (snapshot)"}
+            </button>
+            <button
+              type="button"
               className="fx-text-button fx-ai-analyze-btn"
               data-ai-analyze-btn="true"
-              disabled={phase === "analyzing" || !marketReady || localAiBusy}
+              disabled={phase === "analyzing" || !marketReady || localAiBusy || openAiBusy}
               onClick={() => void runAnalysis()}
             >
               {analyzeLabel}
@@ -1089,6 +1209,20 @@ export function ForexAiAnalysisPage({
           {snapshotError ? (
             <span className="fx-ai-snapshot-warn" role="status">{snapshotError}</span>
           ) : null}
+        </div>
+      ) : null}
+
+      {openAiConfigured != null ? (
+        <div className="fx-ai-openai-status" data-ai-openai-config-status="true">
+          <span className="fx-ai-label">OpenAI</span>
+          <ForexStatusBadge tone={openAiConfigured && openAiVaultUnlocked ? "live" : "future"}>
+            {openAiConfigured ? (openAiVaultUnlocked ? "CONFIGURED" : "VAULT LOCKED") : "NOT CONFIGURED"}
+          </ForexStatusBadge>
+          <span className="fx-ai-muted">
+            {openAiConfigured
+              ? "Key stored server-side (never shown here)."
+              : "Set key in Forex Admin → AI Configuration."}
+          </span>
         </div>
       ) : null}
 
@@ -1170,6 +1304,90 @@ export function ForexAiAnalysisPage({
                 className="fx-text-button"
                 disabled={!snapshotUsableForLocalAi || localAiBusy}
                 onClick={() => void runLocalSnapshotAi()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {openAiBusy || openAi || openAiError ? (
+        <div className="fx-ai-local-result" data-ai-openai-snapshot-result="true" data-ai-openai-busy={openAiBusy ? "true" : "false"}>
+          {openAiBusy ? (
+            <div className="fx-ai-local-pending" role="status">
+              <ForexStatusBadge tone="future">RUNNING</ForexStatusBadge>
+              <span className="fx-ai-muted">
+                OpenAI analyzing snapshot {snapshot?.snapshotId.slice(0, 8)}…
+              </span>
+            </div>
+          ) : null}
+          {openAi ? (
+            <>
+              <div className="fx-ai-local-head">
+                <ForexStatusBadge tone={openAi.decision === "WAIT" || openAi.decision === "NO_TRADE" ? "future" : "live"}>
+                  {openAi.decision}
+                </ForexStatusBadge>
+                <span className="fx-ai-muted">
+                  OpenAI · bias {openAi.marketBias} · dq {openAi.dataQuality} · {openAi.status}
+                  {openAi.model ? ` · ${openAi.model}` : ""}
+                  {openAi.inferenceLatencyMs != null ? ` · ${openAi.inferenceLatencyMs} ms` : ""}
+                  {openAi.newsResearchStatus ? ` · news ${openAi.newsResearchStatus}` : ""}
+                </span>
+                <span className="fx-ai-mono" title={openAi.analysisId}>analysis {openAi.analysisId.slice(0, 8)}</span>
+                <span className="fx-ai-mono" title={openAi.snapshotId}>snap {openAi.snapshotId.slice(0, 8)}</span>
+                <span className="fx-ai-mono" title={openAi.contentFingerprint}>fp {openAi.contentFingerprint.slice(0, 12)}</span>
+              </div>
+              <p className="fx-ai-local-rationale">{openAi.decisionRationale}</p>
+              {openAi.marketStructureSummary ? (
+                <p className="fx-ai-muted"><span className="fx-ai-label">Structure</span> {openAi.marketStructureSummary}</p>
+              ) : null}
+              <div className="fx-ai-local-grid">
+                <div>
+                  <span className="fx-ai-label">Bullish</span>
+                  <p>{openAi.bullishScenario || "—"}</p>
+                </div>
+                <div>
+                  <span className="fx-ai-label">Bearish</span>
+                  <p>{openAi.bearishScenario || "—"}</p>
+                </div>
+              </div>
+              {openAi.keyEvidence.length ? (
+                <ul className="fx-ai-local-list" aria-label="OpenAI key evidence">
+                  {openAi.keyEvidence.map((e, i) => <li key={`oai-ev-${i}`}>{e}</li>)}
+                </ul>
+              ) : null}
+              {openAi.invalidationConditions.length ? (
+                <p className="fx-ai-muted">
+                  <span className="fx-ai-label">Invalidation</span>{" "}
+                  {openAi.invalidationConditions.join(" · ")}
+                </p>
+              ) : null}
+              {openAi.confidence ? (
+                <p className="fx-ai-muted"><span className="fx-ai-label">Confidence</span> {openAi.confidence}</p>
+              ) : null}
+              {openAi.limitations[0] ? (
+                <p className="fx-ai-snapshot-warn">{openAi.limitations[0]}</p>
+              ) : null}
+              <button
+                type="button"
+                className="fx-text-button"
+                data-ai-openai-retry-btn="true"
+                disabled={!snapshotUsableForLocalAi || openAiBusy || openAiConfigured === false}
+                onClick={() => void runOpenAiSnapshotAi()}
+              >
+                Retry OpenAI
+              </button>
+            </>
+          ) : null}
+          {openAiError ? (
+            <div className="fx-ai-local-error" role="alert">
+              <span className="fx-ai-snapshot-warn">{openAiError}</span>
+              <button
+                type="button"
+                className="fx-text-button"
+                disabled={!snapshotUsableForLocalAi || openAiBusy || openAiConfigured === false}
+                onClick={() => void runOpenAiSnapshotAi()}
               >
                 Retry
               </button>

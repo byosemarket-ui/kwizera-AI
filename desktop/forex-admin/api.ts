@@ -746,3 +746,36 @@ export const forexIntelligenceApi = {
       "/api/forex-admin/intelligence/memory-diagnostics",
     ),
 };
+
+/** Phase 43E — OpenAI provider configuration (API key never returned). */
+export const forexOpenAiApi = {
+  status: () =>
+    request<{
+      ok: true;
+      status: {
+        configured: boolean;
+        vaultUnlocked: boolean;
+        model: string;
+        updatedAt: string | null;
+        lastValidatedAt: string | null;
+        lastValidationStatus: string | null;
+        note: string;
+      };
+      defaultModel: string;
+    }>("/api/forex-admin/openai-config"),
+  saveKey: (body: { apiKey: string; model?: string }) =>
+    request<{ ok: true; status: Record<string, unknown>; message: string }>(
+      "/api/forex-admin/openai-config",
+      { method: "PUT", body: JSON.stringify(body) },
+    ),
+  setModel: (model: string) =>
+    request<{ ok: true; status: Record<string, unknown>; message: string }>(
+      "/api/forex-admin/openai-config",
+      { method: "PUT", body: JSON.stringify({ model }) },
+    ),
+  clearKey: () =>
+    request<{ ok: true; status: Record<string, unknown>; message: string }>(
+      "/api/forex-admin/openai-config",
+      { method: "DELETE" },
+    ),
+};
