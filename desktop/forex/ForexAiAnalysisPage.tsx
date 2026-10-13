@@ -85,6 +85,27 @@ type SnapshotSummary = {
   latencyMs: number | null;
 };
 
+type LocalSnapshotAnalysisUi = {
+  analysisId: string;
+  snapshotId: string;
+  contentFingerprint: string;
+  decision: string;
+  decisionRationale: string;
+  marketBias: string;
+  marketStructureSummary: string;
+  keyEvidence: string[];
+  bullishScenario: string;
+  bearishScenario: string;
+  invalidationConditions: string[];
+  confidence: string | null;
+  limitations: string[];
+  dataQuality: string;
+  status: string;
+  model: string | null;
+  inferenceLatencyMs: number | null;
+  warnings: string[];
+};
+
 type ForexAiHealthPublic = {
   state: string;
   ready: boolean;
@@ -487,6 +508,10 @@ export function ForexAiAnalysisPage({
   const [snapshot, setSnapshot] = useState<SnapshotSummary | null>(null);
   const [snapshotStale, setSnapshotStale] = useState(false);
   const snapshotRequestSeq = useRef(0);
+  const [localAiBusy, setLocalAiBusy] = useState(false);
+  const [localAiError, setLocalAiError] = useState<string | null>(null);
+  const [localAi, setLocalAi] = useState<LocalSnapshotAnalysisUi | null>(null);
+  const localAiRequestSeq = useRef(0);
 
   const tf = String(timeframe || "15m");
   const binanceSelected = selectedMarket?.venue === "binance-spot";
@@ -511,6 +536,7 @@ export function ForexAiAnalysisPage({
   useEffect(() => {
     setSnapshotStale(true);
     setSnapshotError(null);
+    setLocalAiError(null);
   }, [provider, selectedMarket?.symbol, analysisPeriod, candleTf, customStartUtc, customEndUtc, mode]);
 
   const estimatedCandles = estimateCandlesClient(
@@ -668,6 +694,85 @@ export function ForexAiAnalysisPage({
     estimatedCandles,
   ]);
 
+  const snapshotUsableForLocalAi = Boolean(
+    snapshot
+    && !snapshotStale
+    && snapshot.evidenceReady
+    && !snapshotBusy,
+  );
+
+  const runLocalSnapshotAi = useCallback(async () => {
+    if (!snapshot || snapshotStale) {
+      setLocalAiError("Prepare a current snapshot before running Local AI.");
+      return;
+    }
+    if (!snapshot.evidenceReady) {
+      setLocalAiError("Snapshot evidence is not ready for Local AI analysis.");
+      return;
+    }
+    if (localAiBusy) return;
+
+    const seq = ++localAiRequestSeq.current;
+    setLocalAiBusy(true);
+    setLocalAiError(null);
+    try {
+      const res = await fetch("/api/forex/ai-analysis/local", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          snapshotId: snapshot.snapshotId,
+          contentFingerprint: snapshot.contentFingerprint,
+          provider,
+          symbol: selectedMarket?.symbol,
+          candleTimeframe: snapshot.candleTimeframe,
+          analysisPeriod: snapshot.analysisPeriod,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        code?: string;
+        error?: string | null;
+        latencyMs?: number;
+        analysis?: LocalSnapshotAnalysisUi | null;
+      };
+      if (seq !== localAiRequestSeq.current) return;
+      if (!data.analysis) {
+        setLocalAiError(data.error || data.code || "Local AI analysis unavailable");
+        return;
+      }
+      setLocalAi({
+        analysisId: data.analysis.analysisId,
+        snapshotId: data.analysis.snapshotId,
+        contentFingerprint: data.analysis.contentFingerprint,
+        decision: data.analysis.decision,
+        decisionRationale: data.analysis.decisionRationale,
+        marketBias: data.analysis.marketBias,
+        marketStructureSummary: data.analysis.marketStructureSummary,
+        keyEvidence: Array.isArray(data.analysis.keyEvidence) ? data.analysis.keyEvidence : [],
+        bullishScenario: data.analysis.bullishScenario,
+        bearishScenario: data.analysis.bearishScenario,
+        invalidationConditions: Array.isArray(data.analysis.invalidationConditions)
+          ? data.analysis.invalidationConditions
+          : [],
+        confidence: data.analysis.confidence ?? null,
+        limitations: Array.isArray(data.analysis.limitations) ? data.analysis.limitations : [],
+        dataQuality: data.analysis.dataQuality,
+        status: data.analysis.status,
+        model: data.analysis.model ?? null,
+        inferenceLatencyMs: data.analysis.inferenceLatencyMs ?? data.latencyMs ?? null,
+        warnings: Array.isArray(data.analysis.warnings) ? data.analysis.warnings : [],
+      });
+      if (!data.ok) {
+        setLocalAiError(data.error || data.code || "Local AI completed with issues");
+      }
+    } catch (err) {
+      if (seq !== localAiRequestSeq.current) return;
+      setLocalAiError(err instanceof Error ? err.message : "Local AI request failed");
+    } finally {
+      if (seq === localAiRequestSeq.current) setLocalAiBusy(false);
+    }
+  }, [snapshot, snapshotStale, localAiBusy, provider, selectedMarket?.symbol]);
+
   const runAnalysis = useCallback(async () => {
     if (!marketReady || !selectedMarket) {
       setPhase("error");
@@ -750,6 +855,7 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase22="true"
       data-forex-ai-phase43b="true"
       data-forex-ai-phase43c="true"
+      data-forex-ai-phase43d="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
       data-ai-provider={marketReady ? provider : ""}
@@ -908,9 +1014,19 @@ export function ForexAiAnalysisPage({
             </button>
             <button
               type="button"
+              className="fx-text-button"
+              data-ai-local-snapshot-btn="true"
+              disabled={!snapshotUsableForLocalAi || localAiBusy}
+              onClick={() => void runLocalSnapshotAi()}
+              title={snapshotUsableForLocalAi ? "Analyze the prepared snapshot with Local AI" : "Prepare a usable snapshot first"}
+            >
+              {localAiBusy ? "Local AI running…" : "Local AI (snapshot)"}
+            </button>
+            <button
+              type="button"
               className="fx-text-button fx-ai-analyze-btn"
               data-ai-analyze-btn="true"
-              disabled={phase === "analyzing" || !marketReady}
+              disabled={phase === "analyzing" || !marketReady || localAiBusy}
               onClick={() => void runAnalysis()}
             >
               {analyzeLabel}
@@ -972,6 +1088,92 @@ export function ForexAiAnalysisPage({
           ) : null}
           {snapshotError ? (
             <span className="fx-ai-snapshot-warn" role="status">{snapshotError}</span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {localAiBusy || localAi || localAiError ? (
+        <div className="fx-ai-local-result" data-ai-local-snapshot-result="true" data-ai-local-busy={localAiBusy ? "true" : "false"}>
+          {localAiBusy ? (
+            <div className="fx-ai-local-pending" role="status">
+              <ForexStatusBadge tone="future">RUNNING</ForexStatusBadge>
+              <span className="fx-ai-muted">
+                Local AI analyzing snapshot {snapshot?.snapshotId.slice(0, 8)}… (may take 1–2 minutes)
+              </span>
+            </div>
+          ) : null}
+          {localAi ? (
+            <>
+              <div className="fx-ai-local-head">
+                <ForexStatusBadge tone={localAi.decision === "WAIT" || localAi.decision === "NO_TRADE" ? "future" : "live"}>
+                  {localAi.decision}
+                </ForexStatusBadge>
+                <span className="fx-ai-muted">
+                  bias {localAi.marketBias} · dq {localAi.dataQuality} · {localAi.status}
+                  {localAi.model ? ` · ${localAi.model}` : ""}
+                  {localAi.inferenceLatencyMs != null ? ` · ${localAi.inferenceLatencyMs} ms` : ""}
+                </span>
+                <span className="fx-ai-mono" title={localAi.analysisId}>analysis {localAi.analysisId.slice(0, 8)}</span>
+                <span className="fx-ai-mono" title={localAi.snapshotId}>snap {localAi.snapshotId.slice(0, 8)}</span>
+                <span className="fx-ai-mono" title={localAi.contentFingerprint}>fp {localAi.contentFingerprint.slice(0, 12)}</span>
+              </div>
+              <p className="fx-ai-local-rationale">{localAi.decisionRationale}</p>
+              {localAi.marketStructureSummary ? (
+                <p className="fx-ai-muted"><span className="fx-ai-label">Structure</span> {localAi.marketStructureSummary}</p>
+              ) : null}
+              <div className="fx-ai-local-grid">
+                <div>
+                  <span className="fx-ai-label">Bullish</span>
+                  <p>{localAi.bullishScenario || "—"}</p>
+                </div>
+                <div>
+                  <span className="fx-ai-label">Bearish</span>
+                  <p>{localAi.bearishScenario || "—"}</p>
+                </div>
+              </div>
+              {localAi.keyEvidence.length ? (
+                <ul className="fx-ai-local-list" aria-label="Key evidence">
+                  {localAi.keyEvidence.map((e, i) => <li key={`ev-${i}`}>{e}</li>)}
+                </ul>
+              ) : null}
+              {localAi.invalidationConditions.length ? (
+                <p className="fx-ai-muted">
+                  <span className="fx-ai-label">Invalidation</span>{" "}
+                  {localAi.invalidationConditions.join(" · ")}
+                </p>
+              ) : null}
+              {localAi.confidence ? (
+                <p className="fx-ai-muted"><span className="fx-ai-label">Confidence</span> {localAi.confidence}</p>
+              ) : null}
+              {localAi.limitations.length ? (
+                <p className="fx-ai-snapshot-warn">{localAi.limitations[0]}</p>
+              ) : null}
+              {localAi.warnings[0] ? (
+                <p className="fx-ai-snapshot-warn">{localAi.warnings[0]}</p>
+              ) : null}
+              <button
+                type="button"
+                className="fx-text-button"
+                data-ai-local-retry-btn="true"
+                disabled={!snapshotUsableForLocalAi || localAiBusy}
+                onClick={() => void runLocalSnapshotAi()}
+              >
+                Retry Local AI
+              </button>
+            </>
+          ) : null}
+          {localAiError ? (
+            <div className="fx-ai-local-error" role="alert">
+              <span className="fx-ai-snapshot-warn">{localAiError}</span>
+              <button
+                type="button"
+                className="fx-text-button"
+                disabled={!snapshotUsableForLocalAi || localAiBusy}
+                onClick={() => void runLocalSnapshotAi()}
+              >
+                Retry
+              </button>
+            </div>
           ) : null}
         </div>
       ) : null}

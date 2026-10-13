@@ -2016,12 +2016,68 @@ html.reduce-motion .fx-sidebar {
   line-height: 1.35;
 }
 
+.fx-ai-local-result {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-surface);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-local-result[data-ai-local-busy="true"] {
+  border-style: dashed;
+}
+
+.fx-ai-local-head,
+.fx-ai-local-pending,
+.fx-ai-local-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.fx-ai-local-rationale {
+  margin: 0;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.fx-ai-local-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.fx-ai-local-grid p {
+  margin: 2px 0 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  color: var(--fx-muted);
+}
+
+.fx-ai-local-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--fx-muted);
+  line-height: 1.35;
+}
+
 @media (max-width: 480px) {
   .fx-ai-snapshot-config {
     grid-template-columns: 1fr 1fr;
   }
 
   .fx-ai-custom-range {
+    grid-template-columns: 1fr;
+  }
+
+  .fx-ai-local-grid {
     grid-template-columns: 1fr;
   }
 }
