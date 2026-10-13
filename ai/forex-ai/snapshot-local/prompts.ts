@@ -15,6 +15,7 @@ export function buildLocalSnapshotAnalysisPrompt(evidence: LocalSnapshotEvidence
     "Use NO_TRADE when the snapshot is unsuitable.",
     "Do not invent prices, volume, news, indicators, or change instrument/time window.",
     "Do not invent entry/SL/TP. confidence must be a short qualitative phrase or null.",
+    "decisionRationale is required and must be a non-empty string explaining the decision.",
     "Schema:",
     '{"dataQuality":"string","marketBias":"BULLISH|BEARISH|NEUTRAL|UNCERTAIN","marketStructureSummary":"string","keyEvidence":["string"],"bullishScenario":"string","bearishScenario":"string","decision":"BUY|SELL|WAIT|NO_TRADE","decisionRationale":"string","invalidationConditions":["string"],"confidence":null,"limitations":["string"]}',
     block,
@@ -24,7 +25,9 @@ export function buildLocalSnapshotAnalysisPrompt(evidence: LocalSnapshotEvidence
 export function buildLocalSnapshotRepairPrompt(evidence: LocalSnapshotEvidencePackage): string {
   return [
     "Repair: return ONLY valid JSON matching the schema.",
+    "Required keys: decision, decisionRationale, marketBias, bullishScenario, bearishScenario, keyEvidence, invalidationConditions, limitations.",
     "decision must be BUY, SELL, WAIT, or NO_TRADE.",
+    "decisionRationale must be a non-empty string.",
     `Instrument=${evidence.instrument.displaySymbol} tf=${evidence.candleTimeframe} period=${evidence.analysisPeriod}.`,
     `validation=${evidence.validationStatus} quote=${evidence.quoteFreshness}.`,
     "If unsure use WAIT or NO_TRADE. No markdown.",

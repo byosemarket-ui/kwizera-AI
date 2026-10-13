@@ -287,19 +287,39 @@ export class LocalSnapshotAnalysisEngine {
       });
       return {
         ...analysis,
-        status: generated.code === "OLLAMA_TIMEOUT" ? "failed" : "failed",
+        status: "failed",
         error: reason,
         decision: generated.code === "OLLAMA_TIMEOUT" ? "WAIT" : "NO_TRADE",
       };
     }
 
-    const normalized = normalizeLocalAnalysisFromModel({
+    let normalized = normalizeLocalAnalysisFromModel({
       raw: generated.data,
       evidence: input.evidence,
       analysisId: input.analysisId,
       model: generated.model,
       inferenceLatencyMs,
     });
+
+    // One bounded schema-repair attempt when JSON parsed but contract fields were incomplete.
+    if (!normalized.ok && generated.model && isSmallReasoningModel(generated.model)) {
+      const repairStarted = Date.now();
+      const repaired = await generate({
+        prompt: buildLocalSnapshotRepairPrompt(input.evidence),
+        timeoutMs: Math.min(60_000, input.timeoutMs),
+        options: { temperature: 0, num_ctx: 1536, num_predict: 220 },
+      });
+      const repairLatency = inferenceLatencyMs + (Date.now() - repairStarted);
+      if (repaired.ok && repaired.data) {
+        normalized = normalizeLocalAnalysisFromModel({
+          raw: repaired.data,
+          evidence: input.evidence,
+          analysisId: input.analysisId,
+          model: repaired.model ?? generated.model,
+          inferenceLatencyMs: repairLatency,
+        });
+      }
+    }
 
     if (!normalized.ok) {
       return {

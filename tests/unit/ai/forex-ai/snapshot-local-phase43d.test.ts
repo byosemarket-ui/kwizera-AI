@@ -228,6 +228,23 @@ describe("Phase 43D local snapshot AI", () => {
       expect(ok.analysis.limitations.some((l) => /calibrated/i.test(l))).toBe(true);
       expect(ok.analysis.snapshotId).toBe(evidence.snapshotId);
     }
+
+    const salvaged = normalizeLocalAnalysisFromModel({
+      raw: {
+        decision: "WAIT",
+        bullishScenario: "Hold range.",
+        bearishScenario: "Lose low.",
+        marketBias: "NEUTRAL",
+      },
+      evidence,
+      analysisId: "a3",
+      model: "llama3.2:1b",
+      inferenceLatencyMs: 5,
+    });
+    expect(salvaged.ok).toBe(true);
+    if (salvaged.ok) {
+      expect(salvaged.analysis.decisionRationale.length).toBeGreaterThan(0);
+    }
   });
 
   it("returns NO_TRADE without inference when evidence is not ready; timeout does not alter snapshot", async () => {

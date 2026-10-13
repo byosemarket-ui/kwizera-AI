@@ -110,10 +110,7 @@ export function normalizeLocalAnalysisFromModel(input: {
     bullishScenario: asString(input.raw.bullishScenario ?? "", 500),
     bearishScenario: asString(input.raw.bearishScenario ?? "", 500),
     decision: finalDecision,
-    decisionRationale: asString(
-      input.raw.decisionRationale ?? input.raw.rationale ?? input.raw.reasoning ?? "",
-      800,
-    ),
+    decisionRationale: "",
     invalidationConditions: asStringList(
       input.raw.invalidationConditions ?? input.raw.invalidation,
       8,
@@ -126,13 +123,30 @@ export function normalizeLocalAnalysisFromModel(input: {
     error: null,
   };
 
-  if (!analysis.decisionRationale) {
+  let rationale = asString(
+    input.raw.decisionRationale
+      ?? input.raw.rationale
+      ?? input.raw.reasoning
+      ?? input.raw.summary
+      ?? input.raw.marketStructureSummary
+      ?? "",
+    800,
+  );
+  if (!rationale) {
+    const bull = asString(input.raw.bullishScenario, 200);
+    const bear = asString(input.raw.bearishScenario, 200);
+    if (bull || bear) {
+      rationale = `Decision ${finalDecision} from model scenarios (rationale field omitted).`;
+    }
+  }
+  if (!rationale) {
     return {
       ok: false,
       code: "AI_ANALYSIS_INVALID",
       error: "Model response missing decision rationale.",
     };
   }
+  analysis.decisionRationale = rationale;
 
   return { ok: true, analysis };
 }
