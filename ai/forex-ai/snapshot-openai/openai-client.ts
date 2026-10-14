@@ -2,6 +2,8 @@
  * Server-side OpenAI Chat Completions client (fetch; no browser exposure).
  * Does not log Authorization headers or API keys.
  */
+import { openAiOmitsCustomTemperature } from "./model-policy.js";
+
 export interface OpenAiChatResult {
   ok: boolean;
   code:
@@ -71,7 +73,37 @@ function safeProviderMessage(status: number, bodyText: string): string {
   }
   if (status === 401 || status === 403) return "OpenAI authentication failed. Check the configured API key.";
   if (status === 429) return "OpenAI rate limit reached. Retry later.";
+  if (/temperature/i.test(snippet) && /unsupported|does not support|not supported/i.test(snippet)) {
+    return "Unsupported request parameter for this model (temperature). Use model-compatible defaults.";
+  }
+  if (/unsupported (value|parameter)/i.test(snippet)) {
+    return `Unsupported request parameter for this model: ${snippet}`;
+  }
   return snippet || `OpenAI request failed (${status}).`;
+}
+
+/**
+ * Build Chat Completions JSON body with model-compatible sampling fields.
+ * Omits `temperature` for GPT-5 / GPT-6 / o-series that reject non-default values.
+ */
+export function buildOpenAiChatJsonBody(input: {
+  model: string;
+  system: string;
+  user: string;
+  temperature?: number;
+}): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model: input.model,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: input.system },
+      { role: "user", content: input.user },
+    ],
+  };
+  if (!openAiOmitsCustomTemperature(input.model)) {
+    body.temperature = input.temperature ?? 0.1;
+  }
+  return body;
 }
 
 export async function openAiChatJson(input: OpenAiChatInput): Promise<OpenAiChatResult> {
@@ -86,15 +118,14 @@ export async function openAiChatJson(input: OpenAiChatInput): Promise<OpenAiChat
         "Content-Type": "application/json",
         Authorization: `Bearer ${input.apiKey}`,
       },
-      body: JSON.stringify({
-        model: input.model,
-        temperature: input.temperature ?? 0.1,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: input.system },
-          { role: "user", content: input.user },
-        ],
-      }),
+      body: JSON.stringify(
+        buildOpenAiChatJsonBody({
+          model: input.model,
+          system: input.system,
+          user: input.user,
+          temperature: input.temperature,
+        }),
+      ),
       signal: controller.signal,
     });
 

@@ -23,6 +23,7 @@ export const OPENAI_CHAT_MODEL_PREFIXES = [
  */
 export const OPENAI_GPT6_CANDIDATE_IDS = [
   "gpt-6-astra",
+  "gpt-6-sol",
   "gpt-6.1-sol",
   "gpt-6-luna",
 ] as const;
@@ -52,6 +53,23 @@ export function isOpenAiChatEligibleModel(modelId: string): boolean {
 export function isOpenAiGpt6FamilyModel(modelId: string): boolean {
   const id = String(modelId ?? "").trim().toLowerCase();
   return id.startsWith("gpt-6");
+}
+
+/**
+ * GPT-5 / GPT-6 / o-series reasoning models reject non-default `temperature`
+ * unless reasoning effort is explicitly `none` (and some models cannot use `none`).
+ * Forex Chat Completions requests do not force effort=`none`, so omit `temperature`
+ * and let the API use the model default. Classical chat models (gpt-4o*, etc.) keep it.
+ *
+ * Official guidance: remove temperature / top_p / logprobs when effort is not `none`.
+ */
+export function openAiOmitsCustomTemperature(modelId: string): boolean {
+  const id = String(modelId ?? "").trim().toLowerCase();
+  if (!id) return false;
+  if (id.startsWith("gpt-5") || id.startsWith("gpt-6")) return true;
+  // o1 / o3 / o4 reasoning families (and dated variants like o1-2024-…)
+  if (/^o[1-9]([.-]|$)/.test(id)) return true;
+  return false;
 }
 
 export function filterEligibleOpenAiModels(
