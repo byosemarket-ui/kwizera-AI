@@ -35,6 +35,7 @@ interface PublicConfigFile {
   updatedAt: string | null;
   lastValidatedAt: string | null;
   lastValidationStatus: "never" | "ok" | "error" | null;
+  lastVerificationNote: string | null;
 }
 
 interface ModelsCacheFile {
@@ -56,6 +57,7 @@ const EMPTY_PUBLIC: PublicConfigFile = {
   updatedAt: null,
   lastValidatedAt: null,
   lastValidationStatus: "never",
+  lastVerificationNote: null,
 };
 
 const EMPTY_MODELS: ModelsCacheFile = {
@@ -173,6 +175,7 @@ export class ForexOpenAiConfigStore {
       updatedAt: value.updatedAt ?? null,
       lastValidatedAt: value.lastValidatedAt ?? null,
       lastValidationStatus: value.lastValidationStatus ?? "never",
+      lastVerificationNote: value.lastVerificationNote ?? null,
     };
   }
 
@@ -194,6 +197,12 @@ export class ForexOpenAiConfigStore {
     const unlocked = this.isVaultUnlocked();
     const configured = Boolean(secrets.blob);
     const modelEligible = isOpenAiChatEligibleModel(pub.model);
+    const verificationDisplay =
+      pub.lastValidationStatus === "ok"
+        ? "VERIFIED" as const
+        : pub.lastValidationStatus === "error"
+          ? "VERIFICATION_FAILED" as const
+          : "NOT_VERIFIED" as const;
     return {
       configured,
       vaultUnlocked: unlocked,
@@ -202,6 +211,8 @@ export class ForexOpenAiConfigStore {
       updatedAt: secrets.updatedAt ?? pub.updatedAt,
       lastValidatedAt: pub.lastValidatedAt,
       lastValidationStatus: pub.lastValidationStatus,
+      verificationDisplay,
+      lastVerificationNote: pub.lastVerificationNote,
       modelsDiscoveredAt: cache.discoveredAt,
       eligibleModelCount: cache.discoveredAt
         ? cache.models.filter((m) => m.eligible).length
@@ -212,7 +223,11 @@ export class ForexOpenAiConfigStore {
           ? "OpenAI API key is not configured."
           : !modelEligible
             ? `Saved model "${pub.model}" is not eligible for chat analysis — update the model.`
-            : "OpenAI API key is configured (value never returned).",
+            : verificationDisplay === "VERIFIED"
+              ? "OpenAI API key is configured and last verification succeeded (value never returned)."
+              : verificationDisplay === "VERIFICATION_FAILED"
+                ? "OpenAI API key is configured but last verification failed."
+                : "OpenAI API key is configured but not verified (value never returned).",
     };
   }
 
@@ -250,8 +265,10 @@ export class ForexOpenAiConfigStore {
         version: 1,
         model: nextModel,
         updatedAt: now,
-        lastValidatedAt: pub.lastValidatedAt,
-        lastValidationStatus: pub.lastValidationStatus,
+        // Saving a new key invalidates prior verification.
+        lastValidatedAt: null,
+        lastValidationStatus: "never",
+        lastVerificationNote: "Key updated — run Verify connection.",
       };
       await writeJsonAtomic(this.secretsPath, secrets);
       await writeJsonAtomic(this.publicPath, nextPublic);
@@ -289,6 +306,10 @@ export class ForexOpenAiConfigStore {
           created: m.created ?? null,
           ownedBy: m.ownedBy ?? null,
           eligible: Boolean(m.eligible),
+          source: m.source ?? null,
+          gpt6Family: Boolean(
+            m.gpt6Family ?? String(m.id).toLowerCase().startsWith("gpt-6"),
+          ),
         })),
       };
       await writeJsonAtomic(this.modelsPath, payload);
@@ -333,6 +354,7 @@ export class ForexOpenAiConfigStore {
         updatedAt: now,
         lastValidatedAt: null,
         lastValidationStatus: "never",
+        lastVerificationNote: "API key cleared — verification reset.",
       });
     });
     this.writeChain = run.then(() => undefined, () => undefined);
@@ -363,14 +385,20 @@ export class ForexOpenAiConfigStore {
     return this.readPublic().model;
   }
 
-  async recordValidation(ok: boolean): Promise<void> {
+  async recordValidation(ok: boolean, note?: string | null): Promise<void> {
     const run = this.writeChain.then(async () => {
       await this.ensureReady();
       const pub = this.readPublic();
+      const safeNote = note
+        ? String(note).replace(/sk-[a-zA-Z0-9_-]+/g, "[redacted]").slice(0, 240)
+        : ok
+          ? "Bounded Chat Completions JSON verification succeeded."
+          : "Bounded verification failed.";
       await writeJsonAtomic(this.publicPath, {
         ...pub,
         lastValidatedAt: new Date().toISOString(),
         lastValidationStatus: ok ? "ok" : "error",
+        lastVerificationNote: safeNote,
       });
     });
     this.writeChain = run.then(() => undefined, () => undefined);

@@ -38,7 +38,14 @@ export interface OpenAiDiscoveredModelPublic {
   created: number | null;
   ownedBy: string | null;
   eligible: boolean;
+  source?: "list" | "probe" | null;
+  gpt6Family?: boolean;
 }
+
+export type OpenAiVerificationDisplay =
+  | "NOT_VERIFIED"
+  | "VERIFIED"
+  | "VERIFICATION_FAILED";
 
 export interface OpenAiProviderPublicStatus {
   configured: boolean;
@@ -49,6 +56,10 @@ export interface OpenAiProviderPublicStatus {
   updatedAt: string | null;
   lastValidatedAt: string | null;
   lastValidationStatus: "never" | "ok" | "error" | null;
+  /** Derived badge — never VERIFIED merely because a key exists. */
+  verificationDisplay: OpenAiVerificationDisplay;
+  /** Safe, redacted last verification note (never contains secrets). */
+  lastVerificationNote: string | null;
   /** Last discovery timestamp (null if never refreshed). */
   modelsDiscoveredAt: string | null;
   /** Count from last discovery (eligible only). */

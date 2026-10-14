@@ -183,6 +183,198 @@ export async function openAiChatJson(input: OpenAiChatInput): Promise<OpenAiChat
 }
 
 /**
+ * Bounded connection / model inference verification (server-side only).
+ * Uses Chat Completions + json_object — same surface as Forex analysis.
+ * Never logs the API key or Authorization header.
+ */
+export async function verifyOpenAiConnection(input: {
+  apiKey: string;
+  model: string;
+  timeoutMs?: number;
+}): Promise<{
+  ok: boolean;
+  code: OpenAiChatResult["code"] | "MODEL_NOT_ELIGIBLE" | "INVALID_MODEL";
+  model: string;
+  latencyMs: number;
+  returnedModel: string | null;
+  error?: string;
+}> {
+  const model = String(input.model ?? "").trim();
+  if (!/^[a-zA-Z0-9._:-]{3,64}$/.test(model)) {
+    return {
+      ok: false,
+      code: "INVALID_MODEL",
+      model,
+      latencyMs: 0,
+      returnedModel: null,
+      error: "Invalid model identifier.",
+    };
+  }
+
+  const result = await openAiChatJson({
+    apiKey: input.apiKey,
+    model,
+    timeoutMs: Math.max(5_000, Math.min(45_000, input.timeoutMs ?? 25_000)),
+    temperature: 0,
+    system:
+      "Return only a compact JSON object. No markdown. No secrets. "
+      + 'Schema: {"ok":true,"ping":"pong","provider":"openai"}.',
+    user: 'Reply with JSON {"ok":true,"ping":"pong","provider":"openai"} exactly.',
+  });
+
+  if (!result.ok || !result.data) {
+    return {
+      ok: false,
+      code: result.code,
+      model,
+      latencyMs: result.latencyMs,
+      returnedModel: result.model,
+      error: result.error || "OpenAI verification failed.",
+    };
+  }
+
+  const ping = String(result.data.ping ?? "");
+  const okFlag = result.data.ok === true || result.data.ok === "true";
+  if (!okFlag || ping.toLowerCase() !== "pong") {
+    return {
+      ok: false,
+      code: "OPENAI_INVALID_RESPONSE",
+      model,
+      latencyMs: result.latencyMs,
+      returnedModel: result.model,
+      error: "OpenAI responded but structured verification JSON was not accepted.",
+    };
+  }
+
+  return {
+    ok: true,
+    code: "OK",
+    model,
+    latencyMs: result.latencyMs,
+    returnedModel: result.model,
+  };
+}
+
+/** GET /v1/models/{id} — confirms account access to a specific model id. */
+export async function getOpenAiModel(input: {
+  apiKey: string;
+  modelId: string;
+  timeoutMs?: number;
+}): Promise<{
+  ok: boolean;
+  code: OpenAiListModelsResult["code"] | "MODEL_NOT_FOUND";
+  latencyMs: number;
+  model: OpenAiListedModel | null;
+  error?: string;
+}> {
+  const key = String(input.apiKey ?? "").trim();
+  const modelId = String(input.modelId ?? "").trim();
+  if (!key) {
+    return {
+      ok: false,
+      code: "OPENAI_NOT_CONFIGURED",
+      latencyMs: 0,
+      model: null,
+      error: "OpenAI API key is not configured.",
+    };
+  }
+  if (!modelId) {
+    return {
+      ok: false,
+      code: "MODEL_NOT_FOUND",
+      latencyMs: 0,
+      model: null,
+      error: "Model id is required.",
+    };
+  }
+
+  const started = Date.now();
+  const controller = new AbortController();
+  const timeoutMs = Math.max(2_000, Math.min(20_000, input.timeoutMs ?? 10_000));
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(
+      `https://api.openai.com/v1/models/${encodeURIComponent(modelId)}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${key}` },
+        signal: controller.signal,
+      },
+    );
+    const latencyMs = Date.now() - started;
+    const bodyText = await res.text();
+    if (res.status === 404) {
+      return {
+        ok: false,
+        code: "MODEL_NOT_FOUND",
+        latencyMs,
+        model: null,
+        error: `Model "${modelId}" was not found for this API key.`,
+      };
+    }
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false,
+        code: "OPENAI_AUTH_ERROR",
+        latencyMs,
+        model: null,
+        error: "OpenAI authentication failed. Check the configured API key.",
+      };
+    }
+    if (res.status === 429) {
+      return {
+        ok: false,
+        code: "OPENAI_RATE_LIMIT",
+        latencyMs,
+        model: null,
+        error: "OpenAI rate limit reached while looking up a model.",
+      };
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        code: "OPENAI_ERROR",
+        latencyMs,
+        model: null,
+        error: `OpenAI model lookup failed (HTTP ${res.status}).`,
+      };
+    }
+    let payload: { id?: string; created?: number; owned_by?: string } = {};
+    try {
+      payload = JSON.parse(bodyText) as typeof payload;
+    } catch {
+      /* ignore */
+    }
+    const id = String(payload.id ?? modelId).trim();
+    return {
+      ok: true,
+      code: "OK",
+      latencyMs,
+      model: {
+        id,
+        created: typeof payload.created === "number" ? payload.created : null,
+        ownedBy: payload.owned_by == null ? null : String(payload.owned_by),
+      },
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - started;
+    const aborted = err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      code: aborted ? "OPENAI_TIMEOUT" : "OPENAI_UNAVAILABLE",
+      latencyMs,
+      model: null,
+      error: aborted
+        ? `OpenAI model lookup timed out after ${latencyMs} ms.`
+        : "OpenAI model lookup network request failed.",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * List models available to the configured API key (server-side only).
  * Never exposes the key; returns sanitized metadata only.
  */

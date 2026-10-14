@@ -795,11 +795,37 @@ export const forexOpenAiApi = {
       ok: true;
       latencyMs: number;
       discoveredAt: string | null;
-      models: Array<{ id: string; created: number | null; ownedBy: string | null; eligible: boolean }>;
+      models: Array<{
+        id: string;
+        created: number | null;
+        ownedBy: string | null;
+        eligible: boolean;
+        source?: string | null;
+        gpt6Family?: boolean;
+      }>;
+      listedCount?: number;
+      gpt6Candidates?: Array<{ id: string; found: boolean; code: string }>;
+      gpt6EligibleCount?: number;
       selectedModel: string;
       selectedModelInDiscovery: boolean;
       selectedModelEligible: boolean;
       status: Record<string, unknown>;
       note?: string;
     }>("/api/forex-admin/openai-config/models/refresh", { method: "POST", body: "{}" }),
+  verify: (body?: { model?: string }) =>
+    request<{
+      ok: boolean;
+      code: string;
+      model: string;
+      returnedModel: string | null;
+      latencyMs: number;
+      verificationDisplay: string;
+      status: Record<string, unknown>;
+      error: { code: string; message: string } | null;
+      note?: string;
+      message?: string;
+    }>("/api/forex-admin/openai-config/verify", {
+      method: "POST",
+      body: JSON.stringify(body ?? {}),
+    }),
 };

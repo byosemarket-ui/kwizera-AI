@@ -444,7 +444,7 @@ describe("Phase 43F wiring + security contracts", () => {
     expect(compareApi).toContain("/api/forex/ai-analysis/compare");
     expect(index).toContain("handleForexAiCompareSnapshotApi");
     expect(openaiApi).toContain("/api/forex-admin/openai-config/models/refresh");
-    expect(openaiApi).toContain("listOpenAiModels");
+    expect(openaiApi).toContain("discoverEligibleOpenAiModels");
     expect(openaiApi).toContain("requireForexAdmin");
     expect(openaiApi).not.toMatch(/apiKey:\s*status/);
     expect(openaiApi).not.toContain("Bearer ${");

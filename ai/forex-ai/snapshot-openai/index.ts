@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./config-store.js";
 export * from "./model-policy.js";
 export * from "./openai-client.js";
+export * from "./discover-models.js";
 export * from "./prompts.js";
 export * from "./concurrency.js";
 export * from "./normalize.js";

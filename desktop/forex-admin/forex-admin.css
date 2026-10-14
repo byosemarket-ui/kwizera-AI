@@ -384,6 +384,13 @@
   color: var(--fxa-muted, #9ca3af);
 }
 
+.fxa-openai-verify-note {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  max-width: 36rem;
+}
+
 .fxa-linkish {
   background: none;
   border: none;

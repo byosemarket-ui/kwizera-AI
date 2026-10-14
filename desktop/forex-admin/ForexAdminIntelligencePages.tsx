@@ -5,7 +5,14 @@ function Badge({ value, tone }: { value: string; tone?: "ok" | "warn" | "danger"
   return <span className="fxa-badge" data-tone={tone}>{value}</span>;
 }
 
-type OpenAiModelRow = { id: string; created: number | null; ownedBy: string | null; eligible: boolean };
+type OpenAiModelRow = {
+  id: string;
+  created: number | null;
+  ownedBy: string | null;
+  eligible: boolean;
+  source?: string | null;
+  gpt6Family?: boolean;
+};
 
 export function ForexAdminAiConfigurationPage() {
   const [readOnly, setReadOnly] = useState<Record<string, unknown> | null>(null);
@@ -31,6 +38,8 @@ export function ForexAdminAiConfigurationPage() {
     updatedAt: string | null;
     lastValidatedAt: string | null;
     lastValidationStatus: string | null;
+    verificationDisplay?: string;
+    lastVerificationNote?: string | null;
     modelsDiscoveredAt?: string | null;
     eligibleModelCount?: number | null;
     note: string;
@@ -134,7 +143,7 @@ export function ForexAdminAiConfigurationPage() {
       </section>
 
       <section className="fxa-card fxa-openai-config" data-forex-admin-openai-config>
-        <h3>OpenAI provider (Phase 43F)</h3>
+        <h3>OpenAI provider (Phase 44A)</h3>
         <p className="fxa-muted fxa-openai-lead">
           Server-side encrypted API key for independent snapshot analysis. The key is never returned by GET,
           never shown after save, and never stored in browser storage.
@@ -156,16 +165,23 @@ export function ForexAdminAiConfigurationPage() {
             }
             tone={openAiStatus?.modelEligible === false ? "warn" : undefined}
           />
-          {openAiStatus?.lastValidationStatus && openAiStatus.lastValidationStatus !== "never" ? (
-            <Badge
-              value={`LAST CHECK ${String(openAiStatus.lastValidationStatus).toUpperCase()}`}
-              tone={openAiStatus.lastValidationStatus === "ok" ? "ok" : "warn"}
-            />
-          ) : (
-            <Badge value="NOT VERIFIED" tone="warn" />
-          )}
+          <Badge
+            value={openAiStatus?.verificationDisplay || "NOT VERIFIED"}
+            tone={
+              openAiStatus?.verificationDisplay === "VERIFIED"
+                ? "ok"
+                : openAiStatus?.verificationDisplay === "VERIFICATION_FAILED"
+                  ? "danger"
+                  : "warn"
+            }
+          />
         </div>
         <p className="fxa-muted">{openAiStatus?.note || "Loading OpenAI status…"}</p>
+        {openAiStatus?.lastVerificationNote ? (
+          <p className="fxa-muted fxa-openai-verify-note" data-openai-verify-note="true">
+            {openAiStatus.lastVerificationNote}
+          </p>
+        ) : null}
 
         <div className="fxa-openai-form">
           <div className="fxa-openai-field">
@@ -203,6 +219,36 @@ export function ForexAdminAiConfigurationPage() {
                 }}
               >
                 {openAiBusy ? "Saving…" : "Save encrypted key"}
+              </button>
+              <button
+                type="button"
+                className="fxa-btn-secondary"
+                data-openai-verify-btn="true"
+                disabled={
+                  openAiBusy
+                  || !openAiStatus?.configured
+                  || openAiStatus?.vaultUnlocked === false
+                }
+                title="Bounded Chat Completions JSON ping using the saved encrypted key"
+                onClick={() => {
+                  setOpenAiBusy(true);
+                  setOpenAiMessage(null);
+                  void forexOpenAiApi.verify({ model: openAiModel.trim() || undefined })
+                    .then((res) => {
+                      setOpenAiStatus(res.status as typeof openAiStatus);
+                      setOpenAiMessage(
+                        `Verified ${res.model}${res.returnedModel ? ` (provider ${res.returnedModel})` : ""} · ${res.latencyMs} ms`,
+                      );
+                    })
+                    .catch((err: Error & { payload?: { status?: typeof openAiStatus; error?: { message?: string }; note?: string } }) => {
+                      if (err.payload?.status) setOpenAiStatus(err.payload.status);
+                      setOpenAiMessage(err.payload?.error?.message || err.message || "Verification failed");
+                      load();
+                    })
+                    .finally(() => setOpenAiBusy(false));
+                }}
+              >
+                Verify connection
               </button>
               <button
                 type="button"
@@ -253,10 +299,15 @@ export function ForexAdminAiConfigurationPage() {
                       setModelsDiscoveredAt(res.discoveredAt);
                       setOpenAiStatus(res.status as typeof openAiStatus);
                       setOpenAiModel(res.selectedModel || openAiModel);
+                      const gpt6Found = (res.gpt6Candidates ?? []).filter((c) => c.found).map((c) => c.id);
+                      const gpt6Msg = gpt6Found.length
+                        ? ` GPT-6 accessible: ${gpt6Found.join(", ")}.`
+                        : " No GPT-6 candidates accessible to this key.";
                       setOpenAiMessage(
-                        res.selectedModelInDiscovery
-                          ? `Refreshed ${res.models.length} eligible model(s). Saved model is in the list.`
-                          : `Refreshed ${res.models.length} eligible model(s). Saved model may be unavailable — selection was not changed.`,
+                        (res.selectedModelInDiscovery
+                          ? `Refreshed ${res.models.length} eligible model(s) (listed ${res.listedCount ?? "?"}). Saved model is in the list.`
+                          : `Refreshed ${res.models.length} eligible model(s) (listed ${res.listedCount ?? "?"}). Saved model was not replaced.`)
+                        + gpt6Msg,
                       );
                     })
                     .catch((err: Error) => setOpenAiMessage(err.message))
@@ -314,7 +365,9 @@ export function ForexAdminAiConfigurationPage() {
                   </option>
                 ) : null}
                 {filteredModels.map((m) => (
-                  <option key={m.id} value={m.id}>{m.id}</option>
+                  <option key={m.id} value={m.id}>
+                    {m.id}{m.gpt6Family ? " · gpt-6" : ""}{m.source === "probe" ? " · probed" : ""}
+                  </option>
                 ))}
               </select>
             )}

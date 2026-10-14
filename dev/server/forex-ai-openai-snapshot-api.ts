@@ -10,6 +10,7 @@
  * GET/PUT/DELETE /api/forex-admin/openai-config
  * GET  /api/forex-admin/openai-config/models
  * POST /api/forex-admin/openai-config/models/refresh
+ * POST /api/forex-admin/openai-config/verify
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
@@ -18,11 +19,12 @@ import {
   OPENAI_MAX_TIMEOUT_MS,
   OPENAI_MIN_TIMEOUT_MS,
   OPENAI_SNAPSHOT_ANALYSIS_SCHEMA,
-  filterEligibleOpenAiModels,
+  discoverEligibleOpenAiModels,
   getForexOpenAiConfigStore,
   getOpenAiInferenceGate,
   getOpenAiSnapshotAnalysisEngine,
-  listOpenAiModels,
+  isOpenAiChatEligibleModel,
+  verifyOpenAiConnection,
 } from "../../ai/forex-ai/snapshot-openai/index.js";
 import { requireForexAdmin } from "./forex-admin-auth.js";
 
@@ -106,7 +108,116 @@ export async function handleForexOpenAiAdminConfigApi(
       return true;
     }
 
-    // POST refresh — server decrypts key and calls OpenAI models list
+    // POST verify — bounded Chat Completions JSON ping (does not claim Forex suitability alone)
+    if (url.pathname === "/api/forex-admin/openai-config/verify") {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const status = await store.getPublicStatus();
+      if (!status.vaultUnlocked) {
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code: "SECRETS_VAULT_LOCKED",
+            message: "Secret vault is locked. Set KWIZERA_SECRETS_PASSPHRASE on the server.",
+          },
+        });
+        return true;
+      }
+      if (!status.configured) {
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code: "OPENAI_NOT_CONFIGURED",
+            message: "OpenAI API key is not configured. Save an encrypted key first.",
+          },
+        });
+        return true;
+      }
+
+      const body = await readJsonBody(req, 4_000) as { model?: string };
+      const modelToTest = String(body.model ?? status.model).trim() || status.model;
+      if (!isOpenAiChatEligibleModel(modelToTest)) {
+        await store.recordValidation(false, `Model "${modelToTest}" is not chat-eligible.`);
+        sendJson(res, 422, {
+          ok: false,
+          error: {
+            code: "MODEL_NOT_ELIGIBLE",
+            message: `Model "${modelToTest}" is not eligible for Forex chat analysis.`,
+          },
+          status: await store.getPublicStatus(),
+        });
+        return true;
+      }
+
+      let apiKey: string | null;
+      try {
+        apiKey = await store.getApiKey();
+      } catch (err) {
+        const code = (err as { code?: string })?.code ?? "SECRET_DECRYPT_FAILED";
+        sendJson(res, 503, {
+          ok: false,
+          error: {
+            code,
+            message: err instanceof Error ? err.message.slice(0, 200) : "Failed to decrypt API key.",
+          },
+        });
+        return true;
+      }
+      if (!apiKey) {
+        sendJson(res, 503, {
+          ok: false,
+          error: { code: "OPENAI_NOT_CONFIGURED", message: "OpenAI API key is not configured." },
+        });
+        return true;
+      }
+
+      const verified = await verifyOpenAiConnection({
+        apiKey,
+        model: modelToTest,
+        timeoutMs: 25_000,
+      });
+      apiKey = null;
+
+      await store.recordValidation(
+        verified.ok,
+        verified.ok
+          ? `Verified model ${modelToTest} via bounded Chat Completions JSON ping.`
+          : (verified.error || verified.code),
+      );
+      const nextStatus = await store.getPublicStatus();
+      const http = verified.ok
+        ? 200
+        : verified.code === "OPENAI_AUTH_ERROR"
+          ? 401
+          : verified.code === "OPENAI_RATE_LIMIT"
+            ? 429
+            : verified.code === "OPENAI_TIMEOUT" || verified.code === "OPENAI_UNAVAILABLE"
+              ? 503
+              : 422;
+      sendJson(res, http, {
+        ok: verified.ok,
+        code: verified.code,
+        model: modelToTest,
+        returnedModel: verified.returnedModel,
+        latencyMs: verified.latencyMs,
+        verificationDisplay: nextStatus.verificationDisplay,
+        status: nextStatus,
+        error: verified.ok
+          ? null
+          : {
+              code: verified.code,
+              message: (verified.error || "Verification failed.").replace(/sk-[a-zA-Z0-9_-]+/g, "[redacted]"),
+            },
+        note: verified.ok
+          ? "Connection verified with a bounded non-trading JSON ping. Forex analysis suitability still depends on structured analysis responses."
+          : "Verification failed. Key presence alone does not imply VERIFIED.",
+      });
+      return true;
+    }
+
+    // POST refresh — server decrypts key, lists models, probes GPT-6 candidates
     if (url.pathname === "/api/forex-admin/openai-config/models/refresh") {
       if (req.method !== "POST") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
@@ -156,48 +267,53 @@ export async function handleForexOpenAiAdminConfigApi(
         return true;
       }
 
-      const listed = await listOpenAiModels({ apiKey, timeoutMs: 15_000 });
-      // Drop key from scope immediately — never include in response.
+      const discovered = await discoverEligibleOpenAiModels({
+        apiKey,
+        timeoutMs: 15_000,
+      });
       apiKey = null;
 
-      if (!listed.ok) {
+      if (!discovered.ok) {
         const http =
-          listed.code === "OPENAI_AUTH_ERROR"
+          discovered.code === "OPENAI_AUTH_ERROR"
             ? 401
-            : listed.code === "OPENAI_RATE_LIMIT"
+            : discovered.code === "OPENAI_RATE_LIMIT"
               ? 429
-              : listed.code === "OPENAI_TIMEOUT" || listed.code === "OPENAI_UNAVAILABLE"
+              : discovered.code === "OPENAI_TIMEOUT" || discovered.code === "OPENAI_UNAVAILABLE"
                 ? 503
                 : 422;
         sendJson(res, http, {
           ok: false,
           error: {
-            code: listed.code,
-            message: listed.error || "Model discovery failed.",
+            code: discovered.code,
+            message: discovered.error || "Model discovery failed.",
           },
-          latencyMs: listed.latencyMs,
+          latencyMs: discovered.latencyMs,
         });
         return true;
       }
 
-      const eligible = filterEligibleOpenAiModels(listed.models);
-      await store.saveDiscoveredModels(eligible);
+      await store.saveDiscoveredModels(discovered.models);
       const nextStatus = await store.getPublicStatus();
-      const selectedInList = eligible.some((m) => m.id === nextStatus.model);
+      const selectedInList = discovered.models.some((m) => m.id === nextStatus.model);
+      const gpt6 = discovered.models.filter((m) => m.gpt6Family);
 
       sendJson(res, 200, {
         ok: true,
-        latencyMs: listed.latencyMs,
+        latencyMs: discovered.latencyMs,
         discoveredAt: nextStatus.modelsDiscoveredAt,
-        models: eligible,
+        models: discovered.models,
+        listedCount: discovered.listedCount,
+        gpt6Candidates: discovered.probed,
+        gpt6EligibleCount: gpt6.length,
         selectedModel: nextStatus.model,
         selectedModelInDiscovery: selectedInList,
         selectedModelEligible: nextStatus.modelEligible,
         status: nextStatus,
         note:
-          "Eligible models pass chat-compatibility policy. "
-          + "Appearance in the list does not alone certify Forex analysis quality. "
-          + "Saved selection is never auto-replaced.",
+          "Eligible models pass chat-compatibility policy (including gpt-6* when accessible). "
+          + "List membership ≠ Forex suitability. Saved selection is never auto-replaced. "
+          + "Use Verify connection for a bounded inference check.",
       });
       return true;
     }
