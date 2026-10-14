@@ -88,9 +88,9 @@ export function sanitizePlanConsistency(plan: SnapshotTradePlan): SnapshotTradeP
     ...plan,
     intent: "UNSUITABLE",
     unsuitableReasons: [...plan.unsuitableReasons, ...issues],
-    lifecycle: plan.lifecycle === "SETUP_CONFIRMED" ? "CONFIRMATION_PENDING" : plan.lifecycle,
+    lifecycle: "PLAN_CREATED",
     lifecycleNote:
-      `${plan.lifecycleNote} Price consistency failed validation — setup cannot be confirmed.`,
+      `Price consistency failed validation — setup cannot be confirmed. ${issues.join(" ")}`,
     confirmationStatus: "BLOCKED",
     riskReward: {
       ratio: null,
