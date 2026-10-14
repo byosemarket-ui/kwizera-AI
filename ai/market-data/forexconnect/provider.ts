@@ -171,6 +171,13 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         tradingStatus: item.tradingStatus ?? null,
         environment: status.environment ?? null,
         environmentLabel: status.environmentLabel ?? null,
+        pointSize: item.pointSize ?? null,
+        pipCost: item.pipCost ?? null,
+        pipCostAccount: item.pipCost ?? null,
+        contractMultiplier: item.contractMultiplier ?? null,
+        digits: item.digits ?? null,
+        quoteAsset: item.quoteAsset ?? null,
+        baseAsset: item.baseAsset ?? null,
       },
     }));
   }

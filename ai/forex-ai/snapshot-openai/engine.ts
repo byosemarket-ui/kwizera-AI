@@ -9,6 +9,7 @@ import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.j
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snapshot.js";
 import { verifySnapshotFingerprint } from "../snapshot-local/engine.js";
+import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
 import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getForexOpenAiConfigStore, type ForexOpenAiConfigStore } from "./config-store.js";
 import { getOpenAiInferenceGate } from "./concurrency.js";
@@ -30,11 +31,12 @@ import type {
   OpenAiSnapshotAnalysisResult,
 } from "./types.js";
 
-function withPlans(
+async function withPlans(
   analysis: OpenAiSnapshotAnalysisResult,
   snapshot: AnalysisMarketSnapshot,
-): OpenAiSnapshotAnalysisResult {
-  return attachPlanBundleToAnalysis(analysis, snapshot, "OPENAI");
+): Promise<OpenAiSnapshotAnalysisResult> {
+  const planned = attachPlanBundleToAnalysis(analysis, snapshot, "OPENAI");
+  return enrichAnalysisWithPositionRisk(planned, snapshot);
 }
 
 export const OPENAI_DEFAULT_TIMEOUT_MS = 90_000;
@@ -178,7 +180,7 @@ export class OpenAiSnapshotAnalysisEngine {
     const newsResearchStatus = "unavailable" as const; // No safe news integration in 43E.
 
     if (!snapshot.evidenceReady) {
-      const analysis = withPlans(buildOpenAiNoTradeResult({
+      const analysis = await withPlans(buildOpenAiNoTradeResult({
         analysisId,
         evidence,
         model,
@@ -202,7 +204,7 @@ export class OpenAiSnapshotAnalysisEngine {
     const chat = this.deps?.chat ?? openAiChatJson;
 
     try {
-      const analysis = withPlans(await gate.runExclusive(snapshotId, async () => {
+      const analysis = await withPlans(await gate.runExclusive(snapshotId, async () => {
         return this.runInference({
           analysisId,
           evidence,
@@ -236,7 +238,7 @@ export class OpenAiSnapshotAnalysisEngine {
         ? "AI_QUEUE_FULL"
         : "AI_ERROR";
       const message = err instanceof Error ? err.message.slice(0, 300) : "OpenAI inference failed.";
-      const failed = withPlans(buildOpenAiNoTradeResult({
+      const failed = await withPlans(buildOpenAiNoTradeResult({
         analysisId,
         evidence,
         model,

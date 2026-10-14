@@ -393,6 +393,20 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
     bid = _finite(_row_get(row, "bid", "Bid"))
     ask = _finite(_row_get(row, "ask", "Ask"))
     trading_status = _row_get(row, "trading_status", "TradingStatus", "tradingStatus")
+    # Phase 45 — surface Offers sizing fields when the SDK row exposes them.
+    # Never invent PointSize / PipCost / ContractMultiplier; omit when absent.
+    point_size = _finite(_row_get(row, "point_size", "PointSize", "pointSize"))
+    pip_cost = _finite(_row_get(row, "pip_cost", "PipCost", "pipCost"))
+    contract_multiplier = _finite(
+        _row_get(row, "contract_multiplier", "ContractMultiplier", "contractMultiplier")
+    )
+    digits = _row_get(row, "digits", "Digits", "digits")
+    digits_n = None
+    try:
+        if digits is not None and str(digits).strip() != "":
+            digits_n = int(float(str(digits)))
+    except Exception:
+        digits_n = None
     return {
         "provider": "FOREXCONNECT",
         "providerSymbol": provider_symbol,
@@ -411,6 +425,10 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
         "bid": bid,
         "ask": ask,
         "tradingStatus": str(trading_status) if trading_status is not None else None,
+        "pointSize": point_size,
+        "pipCost": pip_cost,
+        "contractMultiplier": contract_multiplier,
+        "digits": digits_n,
     }
 
 

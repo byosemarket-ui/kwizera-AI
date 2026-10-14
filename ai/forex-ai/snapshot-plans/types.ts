@@ -106,6 +106,8 @@ export interface SnapshotTradePlan {
   dataQualityLimitations: string[];
   unsuitableReasons: string[];
   createdAt: string;
+  /** Phase 45 — deterministic position risk; null when not enriched. */
+  positionRisk?: import("../position-sizing/types.js").PositionRiskResult | null;
 }
 
 export interface SnapshotPlanBundle {

@@ -16,6 +16,7 @@ import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.js";
 import { parseAnalysisPeriodId } from "../../market-data/analysis-snapshot/periods.js";
+import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
 import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getLocalAiInferenceGate } from "./concurrency.js";
 import { buildEvidenceFromSnapshot } from "./evidence-from-snapshot.js";
@@ -34,11 +35,12 @@ import type {
   LocalSnapshotAnalysisResult,
 } from "./types.js";
 
-function withPlans(
+async function withPlans(
   analysis: LocalSnapshotAnalysisResult,
   snapshot: AnalysisMarketSnapshot,
-): LocalSnapshotAnalysisResult {
-  return attachPlanBundleToAnalysis(analysis, snapshot, "LOCAL");
+): Promise<LocalSnapshotAnalysisResult> {
+  const planned = attachPlanBundleToAnalysis(analysis, snapshot, "LOCAL");
+  return enrichAnalysisWithPositionRisk(planned, snapshot);
 }
 
 export const LOCAL_AI_DEFAULT_TIMEOUT_MS = 120_000;
@@ -179,7 +181,7 @@ export class LocalSnapshotAnalysisEngine {
 
     // Unusable snapshot → structured NO_TRADE without calling the model.
     if (!snapshot.evidenceReady) {
-      const analysis = withPlans(buildNoTradeResult({
+      const analysis = await withPlans(buildNoTradeResult({
         analysisId,
         evidence,
         model: null,
@@ -200,7 +202,7 @@ export class LocalSnapshotAnalysisEngine {
 
     const gate = getLocalAiInferenceGate();
     try {
-      const analysis = withPlans(await gate.runExclusive(snapshotId, async () => {
+      const analysis = await withPlans(await gate.runExclusive(snapshotId, async () => {
         return this.runInference({
           analysisId,
           evidence,
@@ -222,7 +224,7 @@ export class LocalSnapshotAnalysisEngine {
         ? "AI_QUEUE_FULL"
         : "AI_ERROR";
       const message = err instanceof Error ? err.message.slice(0, 300) : "Local AI inference failed.";
-      const failed: LocalSnapshotAnalysisResult = withPlans({
+      const failed: LocalSnapshotAnalysisResult = await withPlans({
         ...buildNoTradeResult({
           analysisId,
           evidence,

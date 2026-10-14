@@ -33,6 +33,7 @@ import { ForexAdminInstrumentsPage } from "./ForexAdminInstrumentsPage";
 import { ForexAdminHistoricalPage } from "./ForexAdminHistoricalPage";
 import { ForexAdminStreamPage } from "./ForexAdminStreamPage";
 import { ForexAdminForexConnectPage } from "./ForexAdminForexConnectPage";
+import { ForexAdminRiskSettingsPanel } from "./ForexAdminRiskSettingsPanel";
 
 const KNOWLEDGE_TYPES = [
   "DEFINITION", "CONCEPT", "RULE", "EXPLANATION", "PROCEDURE", "PATTERN",
@@ -900,21 +901,20 @@ export function ForexAdminStatusPage() {
 
 export function ForexAdminSettingsPage() {
   return (
-    <section className="fxa-card" data-forex-admin-settings>
-      <h2>Forex Admin settings</h2>
-      <p className="fxa-muted">
-        Forex Admin APIs require the same Admin API token as Admin Control Center when
-        <code> KWIZERA_ADMIN_AUTH_MODE=require-admin-token</code>. Enter the token in ForexConnect /
-        session storage (shared key with Admin Control Center → API Access). Development may use
-        open access until the mode is tightened.
-      </p>
-      <p className="fxa-muted">
-        Canonical entry: <code>/admin/forex</code>. This surface is independent from General Admin navigation.
-      </p>
-      <p className="fxa-muted">
-        Ollama remains the shared Phase 17 provider. Market State remains the Phase 18 live-data domain. AI Training (keyword knowledge) is separate.
-      </p>
-    </section>
+    <div data-forex-admin-settings>
+      <section className="fxa-card">
+        <h2>Forex Admin settings</h2>
+        <p className="fxa-muted">
+          Forex Admin APIs require the same Admin API token as Admin Control Center when
+          <code> KWIZERA_ADMIN_AUTH_MODE=require-admin-token</code>. Enter the token in ForexConnect /
+          session storage (shared key with Admin Control Center → API Access).
+        </p>
+        <p className="fxa-muted">
+          Canonical entry: <code>/admin/forex</code>. Decision-support only — no broker order submission.
+        </p>
+      </section>
+      <ForexAdminRiskSettingsPanel />
+    </div>
   );
 }
 

@@ -701,6 +701,40 @@ export const forexProvidersApi = {
   },
 };
 
+/** Phase 45 — Position sizing / risk settings (no secrets, no broker orders). */
+export const forexRiskApi = {
+  settings: () =>
+    request<{
+      ok: true;
+      settings: {
+        riskBudgetMode: "percentage" | "fixed";
+        riskPercent: number;
+        riskFixedAmount: number | null;
+        riskBasis: "manual_balance" | "manual_equity";
+        manualBalance: number | null;
+        manualEquity: number | null;
+        accountCurrency: string;
+        minRewardRiskRatio: number;
+        calculationMode: "risk_budget_first" | "size_first";
+        proposedSize: number | null;
+        conversionMaxAgeMs: number;
+        requireMarginForEligibility: boolean;
+      };
+      audit: Array<Record<string, unknown>>;
+      note: string;
+    }>("/api/forex-admin/risk-settings"),
+  updateSettings: (body: Record<string, unknown>) =>
+    request<{ ok: true; settings: Record<string, unknown>; changed: Array<Record<string, unknown>> }>(
+      "/api/forex-admin/risk-settings",
+      { method: "PATCH", body: JSON.stringify(body) },
+    ),
+  calculate: (body: Record<string, unknown>) =>
+    request<{ ok: true; result: Record<string, unknown>; note: string }>(
+      "/api/forex/risk/calculate",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+};
+
 /** Phase 24 — Intelligence control center (config / diagnostics / health). */
 export const forexIntelligenceApi = {
   health: (probe = true) =>

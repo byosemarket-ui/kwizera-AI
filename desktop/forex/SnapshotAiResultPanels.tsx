@@ -32,6 +32,22 @@ export type SnapshotPlanUi = {
   dataQualityLimitations: string[];
   unsuitableReasons: string[];
   spreadNote: string | null;
+  positionRisk?: {
+    riskEligible: boolean;
+    blockingReasons: string[];
+    calculationMode: string;
+    positionSize: number | null;
+    positionSizeUnit: string;
+    maxPermissibleSize: number | null;
+    netLossAccount: number | null;
+    netProfitAccount: number | null;
+    rewardRiskRatio: number | null;
+    minRewardRiskRatio: number;
+    accountCurrency: string | null;
+    excessRiskAccount: number | null;
+    margin?: { estimatedMarginAccount: number | null; unavailableReason: string | null };
+    contract?: { convention: string; verified: boolean; unavailableReason: string | null };
+  } | null;
 };
 
 export type SnapshotPlanBundleUi = {
@@ -162,6 +178,48 @@ function PlanCard({ plan, collapsedDefault = true }: { plan: SnapshotPlanUi; col
           <p className="fx-ai-snapshot-warn">{plan.unsuitableReasons[0]}</p>
         ) : null}
         {plan.spreadNote ? <p className="fx-ai-muted">{plan.spreadNote}</p> : null}
+        {plan.positionRisk ? (
+          <div className="fx-ai-plan-risk" data-plan-risk="true">
+            <span className="fx-ai-label">Position risk</span>
+            <p>
+              {plan.positionRisk.riskEligible ? "RISK_ELIGIBLE" : "RISK_INELIGIBLE"}
+              {" · "}
+              {plan.positionRisk.calculationMode}
+              {plan.positionRisk.positionSize != null
+                ? ` · size ${plan.positionRisk.positionSize} ${plan.positionRisk.positionSizeUnit}`
+                : ""}
+              {plan.positionRisk.maxPermissibleSize != null
+                ? ` · max ${plan.positionRisk.maxPermissibleSize}`
+                : ""}
+            </p>
+            <p className="fx-ai-muted">
+              Net risk{" "}
+              {plan.positionRisk.netLossAccount != null && plan.positionRisk.accountCurrency
+                ? `${plan.positionRisk.netLossAccount.toFixed(2)} ${plan.positionRisk.accountCurrency}`
+                : "unavailable"}
+              {" · R:R "}
+              {plan.positionRisk.rewardRiskRatio != null
+                ? plan.positionRisk.rewardRiskRatio.toFixed(2)
+                : "n/a"}
+              {" / min "}
+              {plan.positionRisk.minRewardRiskRatio}
+            </p>
+            {plan.positionRisk.excessRiskAccount != null ? (
+              <p className="fx-ai-snapshot-warn">
+                Excess risk {plan.positionRisk.excessRiskAccount.toFixed(2)}
+                {plan.positionRisk.accountCurrency ? ` ${plan.positionRisk.accountCurrency}` : ""}
+              </p>
+            ) : null}
+            {plan.positionRisk.blockingReasons[0] ? (
+              <p className="fx-ai-snapshot-warn">{plan.positionRisk.blockingReasons[0]}</p>
+            ) : null}
+            {plan.positionRisk.contract && !plan.positionRisk.contract.verified ? (
+              <p className="fx-ai-muted">
+                {plan.positionRisk.contract.unavailableReason || "Contract metadata unverified."}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </details>
   );

@@ -629,3 +629,43 @@ section.fxa-card[data-forex-admin-market-providers] {
   word-break: break-word;
   font-size: 0.85rem;
 }
+
+/* Phase 45 — risk settings */
+.fxa-risk-settings {
+  margin-top: 0.75rem;
+}
+
+.fxa-risk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.55rem 0.75rem;
+  margin: 0.65rem 0;
+}
+
+.fxa-risk-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.fxa-risk-grid input,
+.fxa-risk-grid select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.fxa-risk-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.45rem !important;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .fxa-risk-grid {
+    grid-template-columns: 1fr;
+  }
+}

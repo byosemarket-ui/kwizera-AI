@@ -30,6 +30,12 @@ export interface ForexConnectInstrument {
   bid?: number | null;
   ask?: number | null;
   tradingStatus?: string | null;
+  /** Phase 45 — Offers PointSize when SDK exposes it. */
+  pointSize?: number | null;
+  /** Phase 45 — Offers PipCost (account ccy per pip per lot) when available. */
+  pipCost?: number | null;
+  contractMultiplier?: number | null;
+  digits?: number | null;
 }
 
 export interface ForexConnectSafeStatus {

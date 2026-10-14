@@ -2182,6 +2182,18 @@ html.reduce-motion .fx-sidebar {
   overflow-wrap: anywhere;
 }
 
+.fx-ai-plan-risk {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--fx-border);
+}
+
+.fx-ai-plan-risk p {
+  margin: 2px 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .fx-ai-evidence-details {
   border-top: 1px dashed var(--fx-border);
   padding-top: 6px;
