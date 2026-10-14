@@ -2094,6 +2094,120 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
+/* Phase 44 — result cards + trade plans */
+.fx-ai-result-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-ai-radius);
+  background: var(--fx-surface);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.fx-ai-result-card[data-ai-busy="true"] {
+  border-style: dashed;
+}
+
+.fx-ai-result-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.fx-ai-direction-block {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--fx-accent, #2dd4bf);
+  background: color-mix(in srgb, var(--fx-elevated) 80%, transparent);
+}
+
+.fx-ai-plans {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fx-ai-plan-card {
+  border: 1px solid var(--fx-border);
+  border-radius: calc(var(--fx-ai-radius) - 2px);
+  background: var(--fx-elevated);
+  padding: 0;
+  min-width: 0;
+}
+
+.fx-ai-plan-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 8px;
+}
+
+.fx-ai-plan-summary::-webkit-details-marker {
+  display: none;
+}
+
+.fx-ai-plan-title {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.fx-ai-plan-confirm {
+  margin-left: auto;
+}
+
+.fx-ai-plan-body {
+  display: grid;
+  gap: 6px;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--fx-border);
+}
+
+.fx-ai-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 10px;
+}
+
+.fx-ai-plan-grid p {
+  margin: 2px 0 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.fx-ai-evidence-details {
+  border-top: 1px dashed var(--fx-border);
+  padding-top: 6px;
+}
+
+.fx-ai-evidence-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.fx-ai-structure-meta {
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-width: 480px) {
+  .fx-ai-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fx-ai-plan-confirm {
+    margin-left: 0;
+  }
+}
+
 /* Phase 43F — AI provider mode selector */
 .fx-ai-provider-mode {
   display: flex;

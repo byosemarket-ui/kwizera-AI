@@ -3,6 +3,7 @@
  */
 import type { LocalAiDecision, LocalSnapshotAnalysisResult } from "../snapshot-local/types.js";
 import type { OpenAiSnapshotAnalysisResult } from "../snapshot-openai/types.js";
+import type { SnapshotPlanComparison } from "../snapshot-plans/types.js";
 
 export const SNAPSHOT_COMPARE_SCHEMA = "forex-snapshot-ai-compare-v1";
 
@@ -67,6 +68,9 @@ export interface DeterministicComparison {
   localFailed: boolean;
   openaiFailed: boolean;
   note: string;
+  /** Phase 44 — plan-level comparison (AGREEMENT / CONFLICT / …). */
+  planComparison: SnapshotPlanComparison | null;
+  comparisonComplete: boolean;
 }
 
 export interface SnapshotCompareResult {

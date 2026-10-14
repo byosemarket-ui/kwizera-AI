@@ -16,6 +16,7 @@ import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.js";
 import { parseAnalysisPeriodId } from "../../market-data/analysis-snapshot/periods.js";
+import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getLocalAiInferenceGate } from "./concurrency.js";
 import { buildEvidenceFromSnapshot } from "./evidence-from-snapshot.js";
 import {
@@ -32,6 +33,13 @@ import type {
   LocalSnapshotAnalysisRequest,
   LocalSnapshotAnalysisResult,
 } from "./types.js";
+
+function withPlans(
+  analysis: LocalSnapshotAnalysisResult,
+  snapshot: AnalysisMarketSnapshot,
+): LocalSnapshotAnalysisResult {
+  return attachPlanBundleToAnalysis(analysis, snapshot, "LOCAL");
+}
 
 export const LOCAL_AI_DEFAULT_TIMEOUT_MS = 120_000;
 export const LOCAL_AI_MIN_TIMEOUT_MS = 20_000;
@@ -171,14 +179,14 @@ export class LocalSnapshotAnalysisEngine {
 
     // Unusable snapshot → structured NO_TRADE without calling the model.
     if (!snapshot.evidenceReady) {
-      const analysis = buildNoTradeResult({
+      const analysis = withPlans(buildNoTradeResult({
         analysisId,
         evidence,
         model: null,
         reason:
           `Snapshot validation status is ${snapshot.validation.status}; `
           + "evidence is not ready for directional Local AI analysis.",
-      });
+      }), snapshot);
       await store.save(analysis, evidence);
       return {
         ok: true,
@@ -192,13 +200,13 @@ export class LocalSnapshotAnalysisEngine {
 
     const gate = getLocalAiInferenceGate();
     try {
-      const analysis = await gate.runExclusive(snapshotId, async () => {
+      const analysis = withPlans(await gate.runExclusive(snapshotId, async () => {
         return this.runInference({
           analysisId,
           evidence,
           timeoutMs,
         });
-      });
+      }), snapshot);
       await store.save(analysis, evidence);
       const ok = analysis.status === "completed" && !analysis.error;
       return {
@@ -214,7 +222,7 @@ export class LocalSnapshotAnalysisEngine {
         ? "AI_QUEUE_FULL"
         : "AI_ERROR";
       const message = err instanceof Error ? err.message.slice(0, 300) : "Local AI inference failed.";
-      const failed: LocalSnapshotAnalysisResult = {
+      const failed: LocalSnapshotAnalysisResult = withPlans({
         ...buildNoTradeResult({
           analysisId,
           evidence,
@@ -224,7 +232,7 @@ export class LocalSnapshotAnalysisEngine {
         status: "failed",
         decision: "NO_TRADE",
         error: message,
-      };
+      }, snapshot);
       await store.save(failed, evidence);
       return {
         ok: false,

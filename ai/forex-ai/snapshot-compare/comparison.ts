@@ -8,6 +8,10 @@ import type {
   OpenAiProviderOutcome,
 } from "./types.js";
 import type { LocalAiDecision } from "../snapshot-local/types.js";
+import {
+  applyWaitConflictToBundle,
+  compareSnapshotPlanBundles,
+} from "../snapshot-plans/index.js";
 
 function normEvidence(items: string[]): string[] {
   const seen = new Set<string>();
@@ -86,13 +90,32 @@ export function buildDeterministicComparison(
     && localConfidence.trim().length > 0
     && openaiConfidence.trim().length > 0;
 
+  const planComparison = compareSnapshotPlanBundles({
+    local: local.analysis?.planBundle ?? null,
+    openai: openai.analysis?.planBundle ?? null,
+    localFailed,
+    openaiFailed,
+  });
+
+  // Mutate in-memory plan lifecycles for WAIT_CONFLICT (persisted analyses already saved independently).
+  if (!localFailed && local.analysis?.planBundle && planComparison.waitConflict) {
+    local.analysis.planBundle = applyWaitConflictToBundle(local.analysis.planBundle, planComparison);
+  }
+  if (!openaiFailed && openai.analysis?.planBundle && planComparison.waitConflict) {
+    openai.analysis.planBundle = applyWaitConflictToBundle(openai.analysis.planBundle, planComparison);
+  }
+
   let note: string;
   if (localFailed && openaiFailed) {
-    note = "Both providers failed. Original analyses were not created or completed.";
+    note = "Both providers failed. Original analyses were not created or completed. Comparison incomplete.";
   } else if (localFailed) {
-    note = "Partial success: OpenAI completed; Local AI failed. No consensus is inferred.";
+    note = "Partial success: OpenAI completed; Local AI failed. Comparison incomplete — not a full Compare Both success.";
   } else if (openaiFailed) {
-    note = "Partial success: Local AI completed; OpenAI failed. No consensus is inferred.";
+    note = "Partial success: Local AI completed; OpenAI failed. Comparison incomplete — not a full Compare Both success.";
+  } else if (planComparison.verdict === "CONFLICT") {
+    note =
+      `Plan comparison CONFLICT (${planComparison.waitConflictReason ?? "material disagreement"}). `
+      + "No averaged recommendation is produced.";
   } else if (decisionsAgree) {
     note = `Both providers independently decided ${localDecision}. This is agreement, not a merged trade signal.`;
   } else {
@@ -119,5 +142,7 @@ export function buildDeterministicComparison(
     localFailed,
     openaiFailed,
     note,
+    planComparison,
+    comparisonComplete: !localFailed && !openaiFailed,
   };
 }

@@ -9,6 +9,7 @@ import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.j
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snapshot.js";
 import { verifySnapshotFingerprint } from "../snapshot-local/engine.js";
+import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getForexOpenAiConfigStore, type ForexOpenAiConfigStore } from "./config-store.js";
 import { getOpenAiInferenceGate } from "./concurrency.js";
 import { isOpenAiChatEligibleModel } from "./model-policy.js";
@@ -28,6 +29,13 @@ import type {
   OpenAiSnapshotAnalysisRequest,
   OpenAiSnapshotAnalysisResult,
 } from "./types.js";
+
+function withPlans(
+  analysis: OpenAiSnapshotAnalysisResult,
+  snapshot: AnalysisMarketSnapshot,
+): OpenAiSnapshotAnalysisResult {
+  return attachPlanBundleToAnalysis(analysis, snapshot, "OPENAI");
+}
 
 export const OPENAI_DEFAULT_TIMEOUT_MS = 90_000;
 export const OPENAI_MIN_TIMEOUT_MS = 15_000;
@@ -170,7 +178,7 @@ export class OpenAiSnapshotAnalysisEngine {
     const newsResearchStatus = "unavailable" as const; // No safe news integration in 43E.
 
     if (!snapshot.evidenceReady) {
-      const analysis = buildOpenAiNoTradeResult({
+      const analysis = withPlans(buildOpenAiNoTradeResult({
         analysisId,
         evidence,
         model,
@@ -178,7 +186,7 @@ export class OpenAiSnapshotAnalysisEngine {
           `Snapshot validation status is ${snapshot.validation.status}; `
           + "evidence is not ready for directional OpenAI analysis.",
         newsResearchStatus,
-      });
+      }), snapshot);
       await store.save(analysis, evidence);
       return {
         ok: true,
@@ -194,7 +202,7 @@ export class OpenAiSnapshotAnalysisEngine {
     const chat = this.deps?.chat ?? openAiChatJson;
 
     try {
-      const analysis = await gate.runExclusive(snapshotId, async () => {
+      const analysis = withPlans(await gate.runExclusive(snapshotId, async () => {
         return this.runInference({
           analysisId,
           evidence,
@@ -204,7 +212,7 @@ export class OpenAiSnapshotAnalysisEngine {
           chat,
           newsResearchStatus,
         });
-      });
+      }), snapshot);
 
       const authFailed = analysis.error && /authentication|API key/i.test(analysis.error);
       if (!authFailed && analysis.status === "completed") {
@@ -228,7 +236,7 @@ export class OpenAiSnapshotAnalysisEngine {
         ? "AI_QUEUE_FULL"
         : "AI_ERROR";
       const message = err instanceof Error ? err.message.slice(0, 300) : "OpenAI inference failed.";
-      const failed = buildOpenAiNoTradeResult({
+      const failed = withPlans(buildOpenAiNoTradeResult({
         analysisId,
         evidence,
         model,
@@ -236,7 +244,7 @@ export class OpenAiSnapshotAnalysisEngine {
         newsResearchStatus,
         status: "failed",
         error: message,
-      });
+      }), snapshot);
       await store.save(failed, evidence);
       return {
         ok: false,

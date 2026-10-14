@@ -4,6 +4,11 @@ import type { SelectedMarket } from "./market-data/selected-market";
 import type { ChartTimeframeId } from "./chart/types";
 import type { LiveTickerSnapshot } from "../../ai/market-data/binance/types";
 import { LiveTickerPanel } from "./LiveTickerPanel";
+import {
+  SnapshotProviderResultPanel,
+  type SnapshotAnalysisPanelData,
+  type SnapshotPlanBundleUi,
+} from "./SnapshotAiResultPanels";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
 const MTF_OPTIONS = ["4h", "1h", "30m", "15m", "5m", "1d"] as const;
@@ -85,26 +90,7 @@ type SnapshotSummary = {
   latencyMs: number | null;
 };
 
-type LocalSnapshotAnalysisUi = {
-  analysisId: string;
-  snapshotId: string;
-  contentFingerprint: string;
-  decision: string;
-  decisionRationale: string;
-  marketBias: string;
-  marketStructureSummary: string;
-  keyEvidence: string[];
-  bullishScenario: string;
-  bearishScenario: string;
-  invalidationConditions: string[];
-  confidence: string | null;
-  limitations: string[];
-  dataQuality: string;
-  status: string;
-  model: string | null;
-  inferenceLatencyMs: number | null;
-  warnings: string[];
-};
+type LocalSnapshotAnalysisUi = SnapshotAnalysisPanelData;
 
 /** Phase 43F — which engine(s) run against the prepared snapshot. */
 type AiProviderMode = "LOCAL" | "OPENAI" | "COMPARE";
@@ -145,7 +131,18 @@ type CompareUi = {
   note: string;
   warnings: string[];
   latencyMs: number | null;
+  comparisonComplete?: boolean;
+  planVerdict?: string | null;
+  waitConflict?: boolean;
+  waitConflictReason?: string | null;
 };
+
+function mapPlanBundle(raw: unknown): SnapshotPlanBundleUi | null {
+  if (!raw || typeof raw !== "object") return null;
+  const b = raw as SnapshotPlanBundleUi;
+  if (!b.pullback || !b.breakout || !b.marketDirection) return null;
+  return b;
+}
 
 function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | null): LocalSnapshotAnalysisUi {
   return {
@@ -169,6 +166,9 @@ function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | n
     model: analysis.model ?? null,
     inferenceLatencyMs: analysis.inferenceLatencyMs ?? latencyMs ?? null,
     warnings: Array.isArray(analysis.warnings) ? analysis.warnings : [],
+    newsResearchStatus: analysis.newsResearchStatus,
+    analysisProvider: analysis.analysisProvider,
+    planBundle: mapPlanBundle(analysis.planBundle),
   };
 }
 
@@ -1004,6 +1004,12 @@ export function ForexAiAnalysisPage({
             confidenceComparable: boolean;
             note: string;
             warnings: string[];
+            comparisonComplete?: boolean;
+            planComparison?: {
+              verdict?: string;
+              waitConflict?: boolean;
+              waitConflictReason?: string | null;
+            } | null;
           };
         } | null;
       };
@@ -1050,9 +1056,15 @@ export function ForexAiAnalysisPage({
         note: c.comparison.note,
         warnings: c.comparison.warnings ?? [],
         latencyMs: data.latencyMs ?? null,
+        comparisonComplete: Boolean(c.comparison.comparisonComplete),
+        planVerdict: c.comparison.planComparison?.verdict ?? null,
+        waitConflict: Boolean(c.comparison.planComparison?.waitConflict),
+        waitConflictReason: c.comparison.planComparison?.waitConflictReason ?? null,
       });
       if (!data.ok && data.code === "BOTH_FAILED") {
         setCompareError(data.error || "Both providers failed");
+      } else if (data.code === "PARTIAL_SUCCESS") {
+        setCompareError(null);
       }
     } catch (err) {
       if (seq !== compareRequestSeq.current) return;
@@ -1151,6 +1163,7 @@ export function ForexAiAnalysisPage({
       data-forex-ai-phase43d="true"
       data-forex-ai-phase43e="true"
       data-forex-ai-phase43f="true"
+      data-forex-ai-phase44="true"
       data-ai-mode={mode}
       data-ai-phase={phase}
       data-ai-provider={marketReady ? provider : ""}
@@ -1520,7 +1533,20 @@ export function ForexAiAnalysisPage({
                   <span className="fx-ai-label">OpenAI</span>
                   <p>{compareUi.openaiDecision ?? "—"} / {compareUi.openaiBias ?? "—"}</p>
                 </div>
+                <div>
+                  <span className="fx-ai-label">Plan verdict</span>
+                  <p>{compareUi.planVerdict ?? (compareUi.comparisonComplete ? "—" : "INSUFFICIENT_DATA")}</p>
+                </div>
+                <div>
+                  <span className="fx-ai-label">Comparison</span>
+                  <p>{compareUi.comparisonComplete ? "COMPLETE" : "INCOMPLETE (partial)"}</p>
+                </div>
               </div>
+              {compareUi.waitConflict ? (
+                <p className="fx-ai-snapshot-warn" data-ai-wait-conflict="true" role="status">
+                  {compareUi.waitConflictReason || "WAIT / CONFLICT — material provider disagreement."}
+                </p>
+              ) : null}
               {compareUi.sharedEvidence.length ? (
                 <p className="fx-ai-muted">
                   <span className="fx-ai-label">Shared evidence</span>{" "}
@@ -1551,179 +1577,32 @@ export function ForexAiAnalysisPage({
       <div
         className="fx-ai-provider-panels"
         data-compare={aiProviderMode === "COMPARE" ? "true" : "false"}
+        data-forex-ai-phase44="true"
       >
-      {(aiProviderMode === "LOCAL" || aiProviderMode === "COMPARE")
-        && (localAiBusy || localAi || localAiError) ? (
-        <div className="fx-ai-local-result" data-ai-local-snapshot-result="true" data-ai-local-busy={localAiBusy ? "true" : "false"}>
-          {localAiBusy ? (
-            <div className="fx-ai-local-pending" role="status">
-              <ForexStatusBadge tone="future">RUNNING</ForexStatusBadge>
-              <span className="fx-ai-muted">
-                Local AI analyzing snapshot {snapshot?.snapshotId.slice(0, 8)}… (may take 1–2 minutes)
-              </span>
-            </div>
-          ) : null}
-          {localAi ? (
-            <>
-              <div className="fx-ai-local-head">
-                <ForexStatusBadge tone={localAi.decision === "WAIT" || localAi.decision === "NO_TRADE" ? "future" : "live"}>
-                  {localAi.decision}
-                </ForexStatusBadge>
-                <span className="fx-ai-muted">
-                  Local AI · bias {localAi.marketBias} · dq {localAi.dataQuality} · {localAi.status}
-                  {localAi.model ? ` · ${localAi.model}` : ""}
-                  {localAi.inferenceLatencyMs != null ? ` · ${localAi.inferenceLatencyMs} ms` : ""}
-                </span>
-                <span className="fx-ai-mono" title={localAi.analysisId}>analysis {localAi.analysisId.slice(0, 8)}</span>
-                <span className="fx-ai-mono" title={localAi.snapshotId}>snap {localAi.snapshotId.slice(0, 8)}</span>
-                <span className="fx-ai-mono" title={localAi.contentFingerprint}>fp {localAi.contentFingerprint.slice(0, 12)}</span>
-              </div>
-              <p className="fx-ai-local-rationale">{localAi.decisionRationale}</p>
-              {localAi.marketStructureSummary ? (
-                <p className="fx-ai-muted"><span className="fx-ai-label">Structure</span> {localAi.marketStructureSummary}</p>
-              ) : null}
-              <div className="fx-ai-local-grid">
-                <div>
-                  <span className="fx-ai-label">Bullish</span>
-                  <p>{localAi.bullishScenario || "—"}</p>
-                </div>
-                <div>
-                  <span className="fx-ai-label">Bearish</span>
-                  <p>{localAi.bearishScenario || "—"}</p>
-                </div>
-              </div>
-              {localAi.keyEvidence.length ? (
-                <ul className="fx-ai-local-list" aria-label="Key evidence">
-                  {localAi.keyEvidence.map((e, i) => <li key={`ev-${i}`}>{e}</li>)}
-                </ul>
-              ) : null}
-              {localAi.invalidationConditions.length ? (
-                <p className="fx-ai-muted">
-                  <span className="fx-ai-label">Invalidation</span>{" "}
-                  {localAi.invalidationConditions.join(" · ")}
-                </p>
-              ) : null}
-              {localAi.confidence ? (
-                <p className="fx-ai-muted"><span className="fx-ai-label">Confidence</span> {localAi.confidence}</p>
-              ) : null}
-              {localAi.limitations.length ? (
-                <p className="fx-ai-snapshot-warn">{localAi.limitations[0]}</p>
-              ) : null}
-              {localAi.warnings[0] ? (
-                <p className="fx-ai-snapshot-warn">{localAi.warnings[0]}</p>
-              ) : null}
-              <button
-                type="button"
-                className="fx-text-button"
-                data-ai-local-retry-btn="true"
-                disabled={!snapshotUsableForLocalAi || anyProviderBusy}
-                onClick={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runLocalSnapshotAi())}
-              >
-                Retry Local AI
-              </button>
-            </>
-          ) : null}
-          {localAiError ? (
-            <div className="fx-ai-local-error" role="alert">
-              <span className="fx-ai-snapshot-warn">{localAiError}</span>
-              <button
-                type="button"
-                className="fx-text-button"
-                disabled={!snapshotUsableForLocalAi || anyProviderBusy}
-                onClick={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runLocalSnapshotAi())}
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {(aiProviderMode === "OPENAI" || aiProviderMode === "COMPARE")
-        && (openAiBusy || openAi || openAiError) ? (
-        <div className="fx-ai-local-result" data-ai-openai-snapshot-result="true" data-ai-openai-busy={openAiBusy ? "true" : "false"}>
-          {openAiBusy ? (
-            <div className="fx-ai-local-pending" role="status">
-              <ForexStatusBadge tone="future">RUNNING</ForexStatusBadge>
-              <span className="fx-ai-muted">
-                OpenAI analyzing snapshot {snapshot?.snapshotId.slice(0, 8)}
-                {openAiModel ? ` · ${openAiModel}` : ""}…
-              </span>
-            </div>
-          ) : null}
-          {openAi ? (
-            <>
-              <div className="fx-ai-local-head">
-                <ForexStatusBadge tone={openAi.decision === "WAIT" || openAi.decision === "NO_TRADE" ? "future" : "live"}>
-                  {openAi.decision}
-                </ForexStatusBadge>
-                <span className="fx-ai-muted">
-                  OpenAI · bias {openAi.marketBias} · dq {openAi.dataQuality} · {openAi.status}
-                  {openAi.model ? ` · ${openAi.model}` : ""}
-                  {openAi.inferenceLatencyMs != null ? ` · ${openAi.inferenceLatencyMs} ms` : ""}
-                  {openAi.newsResearchStatus ? ` · news ${openAi.newsResearchStatus}` : ""}
-                </span>
-                <span className="fx-ai-mono" title={openAi.analysisId}>analysis {openAi.analysisId.slice(0, 8)}</span>
-                <span className="fx-ai-mono" title={openAi.snapshotId}>snap {openAi.snapshotId.slice(0, 8)}</span>
-                <span className="fx-ai-mono" title={openAi.contentFingerprint}>fp {openAi.contentFingerprint.slice(0, 12)}</span>
-              </div>
-              <p className="fx-ai-local-rationale">{openAi.decisionRationale}</p>
-              {openAi.marketStructureSummary ? (
-                <p className="fx-ai-muted"><span className="fx-ai-label">Structure</span> {openAi.marketStructureSummary}</p>
-              ) : null}
-              <div className="fx-ai-local-grid">
-                <div>
-                  <span className="fx-ai-label">Bullish</span>
-                  <p>{openAi.bullishScenario || "—"}</p>
-                </div>
-                <div>
-                  <span className="fx-ai-label">Bearish</span>
-                  <p>{openAi.bearishScenario || "—"}</p>
-                </div>
-              </div>
-              {openAi.keyEvidence.length ? (
-                <ul className="fx-ai-local-list" aria-label="OpenAI key evidence">
-                  {openAi.keyEvidence.map((e, i) => <li key={`oai-ev-${i}`}>{e}</li>)}
-                </ul>
-              ) : null}
-              {openAi.invalidationConditions.length ? (
-                <p className="fx-ai-muted">
-                  <span className="fx-ai-label">Invalidation</span>{" "}
-                  {openAi.invalidationConditions.join(" · ")}
-                </p>
-              ) : null}
-              {openAi.confidence ? (
-                <p className="fx-ai-muted"><span className="fx-ai-label">Confidence</span> {openAi.confidence}</p>
-              ) : null}
-              {openAi.limitations[0] ? (
-                <p className="fx-ai-snapshot-warn">{openAi.limitations[0]}</p>
-              ) : null}
-              <button
-                type="button"
-                className="fx-text-button"
-                data-ai-openai-retry-btn="true"
-                disabled={!snapshotUsableForLocalAi || anyProviderBusy || openAiConfigured === false}
-                onClick={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runOpenAiSnapshotAi())}
-              >
-                Retry OpenAI
-              </button>
-            </>
-          ) : null}
-          {openAiError ? (
-            <div className="fx-ai-local-error" role="alert">
-              <span className="fx-ai-snapshot-warn">{openAiError}</span>
-              <button
-                type="button"
-                className="fx-text-button"
-                disabled={!snapshotUsableForLocalAi || anyProviderBusy || openAiConfigured === false}
-                onClick={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runOpenAiSnapshotAi())}
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        {(aiProviderMode === "LOCAL" || aiProviderMode === "COMPARE")
+          && (localAiBusy || localAi || localAiError) ? (
+          <SnapshotProviderResultPanel
+            title="Local AI"
+            busy={localAiBusy}
+            error={localAiError}
+            data={localAi}
+            dataAttr="local"
+            retryDisabled={!snapshotUsableForLocalAi || anyProviderBusy}
+            onRetry={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runLocalSnapshotAi())}
+          />
+        ) : null}
+        {(aiProviderMode === "OPENAI" || aiProviderMode === "COMPARE")
+          && (openAiBusy || openAi || openAiError) ? (
+          <SnapshotProviderResultPanel
+            title="OpenAI"
+            busy={openAiBusy}
+            error={openAiError}
+            data={openAi}
+            dataAttr="openai"
+            retryDisabled={!snapshotUsableForLocalAi || anyProviderBusy || openAiConfigured === false}
+            onRetry={() => void (aiProviderMode === "COMPARE" ? runCompareSnapshotAi() : runOpenAiSnapshotAi())}
+          />
+        ) : null}
       </div>
 
       {healthError ? (

@@ -11,6 +11,7 @@ import type {
 import type { AnalysisPeriodId } from "../../market-data/analysis-snapshot/types.js";
 import type { CanonicalTimeframeId } from "../../market-data/providers/contracts.js";
 import type { MarketProviderId } from "../../market-data/providers/types.js";
+import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 
 export const OPENAI_SNAPSHOT_ANALYSIS_SCHEMA = "forex-openai-snapshot-analysis-v1";
 
@@ -92,6 +93,8 @@ export interface OpenAiSnapshotAnalysisResult {
     excerpt: string | null;
   }>;
   error: string | null;
+  /** Phase 44 — Pullback/Breakout plans + direction (null if attach failed). */
+  planBundle?: SnapshotPlanBundle | null;
 }
 
 export interface OpenAiSnapshotAnalysisApiResult {
