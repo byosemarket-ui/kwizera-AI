@@ -450,9 +450,23 @@ function OpenAiAssistantResultBody({
             <span className="fx-ai-label">Decision</span> {data.decision}
             {" · "}
             <span className="fx-ai-label">Bias</span> {data.marketBias}
+            {" · "}
+            <span className="fx-ai-label">Data quality</span> {ms?.dataQuality ?? data.dataQuality}
+          </li>
+          <li data-ai-openai-data-readiness="true">
+            <span className="fx-ai-label">Data readiness</span>{" "}
+            validation {data.status}
+            {" · "}quote/structure from immutable snapshot
+            {data.planBundle?.structureEvidence?.quoteFreshness
+              ? ` · quote ${data.planBundle.structureEvidence.quoteFreshness}`
+              : ""}
+            {data.planBundle?.structureEvidence?.dataUsable === false
+              ? " · structure evidence not usable"
+              : ""}
           </li>
           <li className="fx-ai-muted">
             Snapshot {data.snapshotId.slice(0, 12)}… · fp {data.contentFingerprint.slice(0, 12)}…
+            {" · "}OHLC resolution only — not second-by-second ticks unless provided.
           </li>
         </ul>
       </section>

@@ -76,6 +76,13 @@ export function buildEvidenceFromSnapshot(
   if (!categories.candles) unavailable.push("candles");
   if (!categories.quote) unavailable.push("quote");
 
+  const closedCount = snapshot.freshness.closedCandleCount
+    ?? snapshot.candles.filter((c) => c.isClosed).length;
+  const expectedClosed = snapshot.freshness.expectedClosedCandles
+    ?? snapshot.candlesRequestedEstimate;
+  const formingCount = snapshot.freshness.formingCandleCount
+    ?? snapshot.candles.filter((c) => !c.isClosed).length;
+
   return {
     schemaVersion: "forex-local-snapshot-evidence-v1",
     snapshotId: snapshot.snapshotId,
@@ -104,6 +111,11 @@ export function buildEvidenceFromSnapshot(
     marketStatus: snapshot.marketStatus,
     candleCount: snapshot.candleCount,
     candlesRequestedEstimate: snapshot.candlesRequestedEstimate,
+    closedCandleCount: closedCount,
+    expectedClosedCandles: expectedClosed,
+    formingCandleCount: formingCount,
+    historicalCoverageRatio: snapshot.freshness.historicalCoverageRatio,
+    windowBoundaryPolicy: snapshot.freshness.windowBoundaryPolicy,
     candles: sample.map((c) => ({
       t: c.time,
       o: c.open,
@@ -113,6 +125,7 @@ export function buildEvidenceFromSnapshot(
       v: c.volume,
       closed: c.isClosed,
     })),
+    evidenceCandleSubset: closed.length > sample.length,
     dataGaps: snapshot.dataGaps.map((g) => ({
       startUtc: g.startUtc,
       endUtc: g.endUtc,
@@ -136,7 +149,18 @@ export function formatLocalEvidenceForPrompt(pkg: LocalSnapshotEvidencePackage):
     `provider=${pkg.provider} instrument=${pkg.instrument.displaySymbol}`,
     `tf=${pkg.candleTimeframe} period=${pkg.analysisPeriod} basis=${pkg.priceBasis}`,
     `window=${pkg.requestedRange.startUtc}→${pkg.requestedRange.endUtc}`,
-    `candles=${pkg.candles.length}/${pkg.candleCount} est=${pkg.candlesRequestedEstimate}`,
+    `boundary=${pkg.windowBoundaryPolicy ?? "legacy"} `
+      + `closed=${pkg.closedCandleCount ?? "?"}/${pkg.expectedClosedCandles ?? pkg.candlesRequestedEstimate} `
+      + `forming=${pkg.formingCandleCount ?? "?"} `
+      + `coverage=${
+        pkg.historicalCoverageRatio != null
+          ? `${(pkg.historicalCoverageRatio * 100).toFixed(0)}%`
+          : "n/a"
+      }`,
+    `prompt_candles=${pkg.candles.length}`
+      + (pkg.evidenceCandleSubset
+        ? ` (subset of ${pkg.closedCandleCount ?? pkg.candleCount} closed; not every candle/tick)`
+        : ""),
     `quote=${pkg.quoteFreshness} market=${pkg.marketStatus} validation=${pkg.validationStatus}`,
     first && last
       ? `ohlc_span first=${first.o}/${first.h}/${first.l}/${first.c} last=${last.o}/${last.h}/${last.l}/${last.c}`

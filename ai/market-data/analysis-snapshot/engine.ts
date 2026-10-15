@@ -71,14 +71,23 @@ function dedupeSort(candles: AnalysisSnapshotCandle[]): AnalysisSnapshotCandle[]
   return [...byTime.values()].sort((a, b) => a.time - b.time);
 }
 
+/**
+ * Phase 47 — Keep completed candles with open in [start, end) and at most one
+ * forming tip whose open is in [end, end + interval).
+ */
 function filterToRange(
   candles: AnalysisSnapshotCandle[],
   startMs: number,
   endMs: number,
+  intervalMs: number,
 ): AnalysisSnapshotCandle[] {
   const startSec = Math.floor(startMs / 1000);
   const endSec = Math.floor(endMs / 1000);
-  return candles.filter((c) => c.time >= startSec && c.time <= endSec);
+  const intervalSec = Math.max(1, Math.floor(intervalMs / 1000));
+  return candles.filter((c) => {
+    if (c.isClosed) return c.time >= startSec && c.time < endSec;
+    return c.time >= endSec && c.time < endSec + intervalSec;
+  });
 }
 
 function mapQuote(
@@ -339,6 +348,7 @@ export class AnalysisSnapshotEngine {
         mapped,
         resolved.requestedRange.startMs,
         resolved.requestedRange.endMs,
+        timeframeIntervalMs(resolved.candleTimeframe),
       );
     } catch (err) {
       providerError = err instanceof Error ? err.message.slice(0, 240) : "Historical candle fetch failed.";
@@ -416,6 +426,10 @@ export class AnalysisSnapshotEngine {
         quote: quote?.freshness ?? "UNAVAILABLE",
         historicalCoverageRatio: computeCoverageRatio(candles, resolved.candlesRequestedEstimate),
         formingCandlePresent: candles.some((c) => !c.isClosed),
+        closedCandleCount: candles.filter((c) => c.isClosed).length,
+        expectedClosedCandles: resolved.candlesRequestedEstimate,
+        formingCandleCount: candles.filter((c) => !c.isClosed).length,
+        windowBoundaryPolicy: "candle_aligned_half_open",
       },
       validation,
       dataGaps,

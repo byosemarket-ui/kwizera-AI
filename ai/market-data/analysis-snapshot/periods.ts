@@ -76,6 +76,39 @@ export function resolveAnalysisWindow(
   };
 }
 
+/**
+ * Phase 47 — Align a wall-clock analysis window to candle open boundaries.
+ *
+ * Semantics (UTC):
+ * - `endMs` becomes the open time of the current (possibly forming) candle:
+ *   floor(end / interval) * interval.
+ * - `startMs` becomes end − original span, floored to the same interval grid.
+ * - Completed historical candles are those with open in the half-open interval
+ *   [startMs, endMs). The forming tip (open === endMs) is never counted as complete.
+ *
+ * This removes the systematic off-by-one when an unaligned "now" caused
+ * ceil(span/tf) to expect N candles while only N−1 closed opens fell inside
+ * an inclusive wall-clock window (e.g. 6h @ 1h showing 5/6 mid-hour).
+ */
+export function alignAnalysisWindowToCandleTimeframe(
+  range: AnalysisTimeRange,
+  candleTimeframe: CanonicalTimeframeId,
+): AnalysisTimeRange {
+  const interval = TIMEFRAME_MS[candleTimeframe];
+  const endAligned = Math.floor(range.endMs / interval) * interval;
+  const span = Math.max(interval, range.endMs - range.startMs);
+  let startAligned = Math.floor((endAligned - span) / interval) * interval;
+  if (startAligned >= endAligned) {
+    startAligned = endAligned - interval;
+  }
+  return {
+    startMs: startAligned,
+    endMs: endAligned,
+    startUtc: new Date(startAligned).toISOString(),
+    endUtc: new Date(endAligned).toISOString(),
+  };
+}
+
 export function resolveCustomAnalysisWindow(
   rangeStartUtc: unknown,
   rangeEndUtc: unknown,
@@ -117,14 +150,18 @@ export function resolveCustomAnalysisWindow(
 }
 
 /**
- * Continuous mathematical estimate — does not assume every instrument trades
- * every interval (weekends/sessions may reduce actual returned candles).
+ * Expected complete candle opens for a span.
+ * When the span is an exact multiple of the timeframe (aligned windows),
+ * return span/interval exactly — not ceil — so coverage is not inflated.
+ * Session closures may still reduce actual returned candles.
  */
 export function estimateCandleCount(
   candleTimeframe: CanonicalTimeframeId,
   spanMs: number,
 ): number {
   const interval = TIMEFRAME_MS[candleTimeframe];
+  if (!Number.isFinite(spanMs) || spanMs <= 0) return 1;
+  if (spanMs % interval === 0) return Math.max(1, spanMs / interval);
   return Math.max(1, Math.ceil(spanMs / interval));
 }
 
@@ -210,9 +247,13 @@ export function resolveAndValidateRequestShape(input: {
   if (analysisPeriod === "custom") {
     const custom = resolveCustomAnalysisWindow(input.rangeStartUtc, input.rangeEndUtc);
     if (!custom.ok) return custom;
-    requestedRange = custom.value;
+    // Align custom bounds to the selected candle grid (documented Phase 47 semantics).
+    requestedRange = alignAnalysisWindowToCandleTimeframe(custom.value, candleTimeframe);
   } else {
-    requestedRange = resolveAnalysisWindow(analysisPeriod, input.nowMs ?? Date.now());
+    requestedRange = alignAnalysisWindowToCandleTimeframe(
+      resolveAnalysisWindow(analysisPeriod, input.nowMs ?? Date.now()),
+      candleTimeframe,
+    );
   }
 
   const spanMs = requestedRange.endMs - requestedRange.startMs;

@@ -65,7 +65,13 @@ export interface LocalSnapshotEvidencePackage {
   marketStatus: string;
   candleCount: number;
   candlesRequestedEstimate: number;
-  /** Bounded candle sample for the model (newest last). */
+  /** Phase 47 — completed vs expected vs forming (from snapshot freshness). */
+  closedCandleCount?: number;
+  expectedClosedCandles?: number;
+  formingCandleCount?: number;
+  historicalCoverageRatio?: number;
+  windowBoundaryPolicy?: string;
+  /** Bounded candle sample for the model (newest last). Completeness metadata is separate. */
   candles: Array<{
     t: number;
     o: number;
@@ -75,6 +81,8 @@ export interface LocalSnapshotEvidencePackage {
     v: number | null;
     closed: boolean;
   }>;
+  /** True when the prompt sample is a subset of closed candles in the snapshot. */
+  evidenceCandleSubset?: boolean;
   dataGaps: Array<{ startUtc: string; endUtc: string; missingIntervals: number; reason: string }>;
   warnings: string[];
   validationStatus: string;

@@ -156,6 +156,14 @@ export interface AnalysisMarketSnapshot {
     quote: AnalysisQuoteFreshnessState;
     historicalCoverageRatio: number;
     formingCandlePresent: boolean;
+    /** Phase 47 — completed candles in the aligned window (excludes forming). */
+    closedCandleCount?: number;
+    /** Phase 47 — expected completed opens for the aligned window. */
+    expectedClosedCandles?: number;
+    /** Phase 47 — forming tip count (0 or 1). */
+    formingCandleCount?: number;
+    /** Phase 47 — window uses candle-open half-open [start, end). */
+    windowBoundaryPolicy?: "candle_aligned_half_open";
   };
   validation: AnalysisSnapshotValidation;
   dataGaps: AnalysisDataGap[];

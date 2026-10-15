@@ -78,6 +78,10 @@ type SnapshotSummary = {
   candleCount: number;
   candlesRequestedEstimate: number;
   coverageRatio: number;
+  closedCandleCount: number | null;
+  expectedClosedCandles: number | null;
+  formingCandleCount: number | null;
+  windowBoundaryPolicy: string | null;
   quoteFreshness: string;
   analysisPeriod: string;
   candleTimeframe: string;
@@ -829,7 +833,14 @@ export function ForexAiAnalysisPage({
           dataGaps?: Array<{ reason?: string }>;
           warnings?: string[];
           validation?: { status?: string; warnings?: string[] };
-          freshness?: { quote?: string; historicalCoverageRatio?: number };
+          freshness?: {
+            quote?: string;
+            historicalCoverageRatio?: number;
+            closedCandleCount?: number;
+            expectedClosedCandles?: number;
+            formingCandleCount?: number;
+            windowBoundaryPolicy?: string;
+          };
           sourceMetadata?: { resampled?: boolean };
         } | null;
       };
@@ -848,6 +859,10 @@ export function ForexAiAnalysisPage({
         candleCount: data.snapshot.candleCount,
         candlesRequestedEstimate: data.snapshot.candlesRequestedEstimate ?? 0,
         coverageRatio: data.snapshot.freshness?.historicalCoverageRatio ?? 0,
+        closedCandleCount: data.snapshot.freshness?.closedCandleCount ?? null,
+        expectedClosedCandles: data.snapshot.freshness?.expectedClosedCandles ?? null,
+        formingCandleCount: data.snapshot.freshness?.formingCandleCount ?? null,
+        windowBoundaryPolicy: data.snapshot.freshness?.windowBoundaryPolicy ?? null,
         quoteFreshness: data.snapshot.freshness?.quote || "UNAVAILABLE",
         analysisPeriod: data.snapshot.analysisPeriod,
         candleTimeframe: data.snapshot.candleTimeframe,
@@ -1611,11 +1626,16 @@ export function ForexAiAnalysisPage({
               <ForexStatusBadge tone={snapshot.evidenceReady && !snapshotStale ? "live" : "future"}>
                 {snapshotStale ? "STALE_SELECTION" : snapshot.validationStatus}
               </ForexStatusBadge>
-              <span className="fx-ai-muted">
-                {snapshot.candleCount}/{snapshot.candlesRequestedEstimate || "?"} candles
+              <span className="fx-ai-muted" data-ai-snapshot-coverage="true">
+                closed {snapshot.closedCandleCount ?? "—"}/
+                {(snapshot.expectedClosedCandles ?? snapshot.candlesRequestedEstimate) || "?"}
+                {snapshot.formingCandleCount != null
+                  ? ` · forming ${snapshot.formingCandleCount}`
+                  : ""}
                 {" · "}{snapshot.candleTimeframe}/{snapshot.analysisPeriod}
                 {" · "}cov {(snapshot.coverageRatio * 100).toFixed(0)}%
                 {" · "}quote {snapshot.quoteFreshness}
+                {snapshot.windowBoundaryPolicy ? ` · ${snapshot.windowBoundaryPolicy}` : ""}
                 {snapshot.resampled ? " · resampled" : ""}
                 {snapshot.latencyMs != null ? ` · ${snapshot.latencyMs} ms` : ""}
               </span>
