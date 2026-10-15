@@ -410,7 +410,7 @@ export class ForexConnectLiveCandleService {
           || prevQuote.ask !== match.ask
           || prevQuote.candlePrice !== match.candlePrice;
 
-        // Instrument-specific: genuine Offers event for THIS symbol with a newer receipt.
+        // Instrument-specific LIVE: genuine Offers bid/ask change for THIS symbol with a newer receipt.
         // Peer global updateCount must not promote a seeded AUD/CNH snapshot to LIVE.
         // LIVE requires a recent bid/ask change — same-price heartbeats are not LIVE.
         if (genuineEvent && quoteAdvanced && match.candlePrice != null) {
