@@ -406,8 +406,9 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                     break
                 except Exception:
                     pass
-        # Optional lot/quantity step when provider exposes it (never invent 0.01).
-        for meth in ("get_cond_dist_entry", "getCondDistEntry", "get_min_quantity", "getMinQuantity"):
+        # Optional quantity step — only genuine min-quantity APIs.
+        # Never map CondDistEntry/stop distances (pips) to lotStep.
+        for meth in ("get_min_quantity", "getMinQuantity", "get_base_unit_step", "getBaseUnitStep"):
             if hasattr(tsp, meth):
                 try:
                     step = _finite(getattr(tsp, meth)(instrument, account))

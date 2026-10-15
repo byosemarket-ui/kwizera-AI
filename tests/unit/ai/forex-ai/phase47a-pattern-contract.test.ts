@@ -271,6 +271,8 @@ describe("Phase 47A — XAU/USD contract metadata", () => {
     expect(sidecar).toContain("mmrPerLot");
     expect(sidecar).toContain("trading_settings_provider");
     expect(sidecar).toContain("get_base_unit_size");
+    expect(sidecar).not.toContain("get_cond_dist_entry");
+    expect(sidecar).toMatch(/Never map CondDistEntry/);
     expect(provider).toContain("baseUnitSize");
     expect(provider).toContain("mmrPerLot");
     expect(enrich).toContain("resolveForexConnectMetadata");
