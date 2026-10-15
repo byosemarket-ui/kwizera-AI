@@ -405,6 +405,8 @@ describe("Phase 45 wiring", () => {
     expect(panels).toContain("data-plan-risk");
     expect(sidecar).toContain("pointSize");
     expect(sidecar).toContain("pipCost");
+    expect(sidecar).toContain("baseUnitSize");
+    expect(sidecar).toContain("mmrPerLot");
     expect(openaiEngine).toContain("enrichAnalysisWithPositionRisk");
     expect(api).not.toMatch(/sk-[a-zA-Z0-9]{20,}/);
   });

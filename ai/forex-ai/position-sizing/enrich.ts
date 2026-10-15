@@ -2,6 +2,7 @@
  * Enrich a snapshot analysis planBundle with Phase 45 position-risk results.
  */
 import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot/types.js";
+import { getMarketDataService } from "../../market-data/providers/market-data-service.js";
 import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 import {
   attachPositionRiskToBundle,
@@ -10,6 +11,32 @@ import {
 } from "./attach-risk.js";
 import { getForexRiskSettingsService } from "./settings.js";
 import type { InstrumentContractSpec } from "./types.js";
+
+/** Phase 47A — load Offers-normalized metadata when caller did not supply it. */
+async function resolveForexConnectMetadata(
+  snapshot: AnalysisMarketSnapshot,
+  override?: Record<string, unknown> | null,
+): Promise<Record<string, unknown> | null> {
+  if (override && Object.keys(override).length > 0) return override;
+  const provider = String(snapshot.provider ?? "").toUpperCase();
+  if (provider !== "FOREXCONNECT" && provider !== "FXCM") return null;
+  try {
+    const symbol =
+      snapshot.instrument.providerSymbol
+      || snapshot.instrument.displaySymbol
+      || snapshot.instrument.canonicalSymbol;
+    const inst = await getMarketDataService().getInstrument({
+      provider: snapshot.provider,
+      symbol,
+      marketType: snapshot.instrument.marketType,
+    });
+    const md = inst?.metadata;
+    if (!md || typeof md !== "object") return null;
+    return md as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 export async function enrichPlanBundleWithPositionRisk(input: {
   bundle: SnapshotPlanBundle;
@@ -39,11 +66,15 @@ export async function enrichPlanBundleWithPositionRisk(input: {
     input.snapshot.instrument.displaySymbol
     || input.snapshot.instrument.providerSymbol
     || input.snapshot.instrument.canonicalSymbol;
+  const forexConnectMetadata = await resolveForexConnectMetadata(
+    input.snapshot,
+    input.forexConnectMetadata,
+  );
   const contract = input.contractOverride
     ?? resolveContractForSnapshotInstrument({
       provider: String(input.snapshot.provider),
       instrument: instrumentId,
-      forexConnectMetadata: input.forexConnectMetadata,
+      forexConnectMetadata,
       binanceFilters: input.binanceFilters,
       observedAt: input.snapshot.createdAt,
     });

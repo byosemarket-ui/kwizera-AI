@@ -489,29 +489,40 @@ export function calculatePositionRisk(input: CalculatePositionRiskInput): Positi
     }
   }
 
-  // Margin estimate only when marginRate verified.
-  let margin = emptyMargin("Margin rate not verified for this instrument.");
-  if (isFiniteNumber(input.contract.marginRate) && input.contract.marginRate > 0
-    && positionSize != null && positionSize > 0 && isFiniteNumber(entry)) {
-    let notionalQuote: number | null = null;
-    if (input.contract.convention === "fx_base_unit" && isFiniteNumber(input.contract.baseUnitSize)) {
-      notionalQuote = entry * input.contract.baseUnitSize * positionSize
-        * (input.contract.contractMultiplier ?? 1);
-    } else if (input.contract.convention === "crypto_base_qty"
-      || input.contract.convention === "ounce_contract"
-      || input.contract.convention === "cfd_multiplier") {
-      notionalQuote = entry * positionSize * (input.contract.contractMultiplier ?? 1);
-    }
-    const notionalAccount = notionalQuote != null
-      ? convertAmount(notionalQuote, conv.conversion)
-      : null;
-    if (notionalAccount != null) {
+  // Margin estimate: prefer verified decimal rate; else FXCM absolute MMR × lots.
+  let margin = emptyMargin("Margin parameters not verified for this instrument.");
+  if (positionSize != null && positionSize > 0 && isFiniteNumber(entry)) {
+    if (isFiniteNumber(input.contract.marginPerLotAccount) && input.contract.marginPerLotAccount > 0) {
       margin = {
-        estimatedMarginAccount: notionalAccount * input.contract.marginRate,
+        estimatedMarginAccount: input.contract.marginPerLotAccount * positionSize,
         unavailableReason: null,
         isEstimate: true,
-        note: "Estimated from verified margin rate × notional — not an exact broker quote.",
+        note: "Estimated from verified FXCM MMR (absolute margin per 1 lot) × size — not an exact broker quote.",
       };
+    } else if (isFiniteNumber(input.contract.marginRate) && input.contract.marginRate > 0) {
+      let notionalQuote: number | null = null;
+      if (input.contract.convention === "fx_base_unit" && isFiniteNumber(input.contract.baseUnitSize)) {
+        notionalQuote = entry * input.contract.baseUnitSize * positionSize
+          * (input.contract.contractMultiplier ?? 1);
+      } else if (input.contract.convention === "fx_pip_cost_lot" && isFiniteNumber(input.contract.baseUnitSize)) {
+        notionalQuote = entry * input.contract.baseUnitSize * positionSize
+          * (input.contract.contractMultiplier ?? 1);
+      } else if (input.contract.convention === "crypto_base_qty"
+        || input.contract.convention === "ounce_contract"
+        || input.contract.convention === "cfd_multiplier") {
+        notionalQuote = entry * positionSize * (input.contract.contractMultiplier ?? 1);
+      }
+      const notionalAccount = notionalQuote != null
+        ? convertAmount(notionalQuote, conv.conversion)
+        : null;
+      if (notionalAccount != null) {
+        margin = {
+          estimatedMarginAccount: notionalAccount * input.contract.marginRate,
+          unavailableReason: null,
+          isEstimate: true,
+          note: "Estimated from verified margin rate × notional — not an exact broker quote.",
+        };
+      }
     }
   }
   if (input.settings.requireMarginForEligibility && margin.estimatedMarginAccount == null) {

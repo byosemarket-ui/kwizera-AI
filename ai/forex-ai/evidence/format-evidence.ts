@@ -9,7 +9,17 @@ export function formatEvidenceForPrompt(
 ): string {
   const patterns = pack.patterns.detections.length
     ? pack.patterns.detections
-      .map((p) => `${p.name}(${p.direction}/${p.status})`)
+      .map((p) => {
+        const end = Number.isFinite(p.candleEndTime)
+          ? new Date(p.candleEndTime * 1000).toISOString().replace(".000Z", "Z")
+          : "unknown";
+        const historical =
+          pack.lastClosedTime != null
+          && Number.isFinite(p.candleEndTime)
+          && p.candleEndTime < pack.lastClosedTime;
+        return `${p.name}(${p.direction}/${p.status}/tf=${pack.timeframe}/end=${end}`
+          + `${historical ? "/historical" : "/at-window-end"})`;
+      })
       .join("; ")
     : "none";
 

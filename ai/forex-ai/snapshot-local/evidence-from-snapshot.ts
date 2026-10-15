@@ -38,10 +38,12 @@ export function buildEvidenceFromSnapshot(
           low: c.low,
           close: c.close,
           volume: c.volume,
+          isClosed: c.isClosed,
         })),
         priceBasis: snapshot.priceBasis === "unknown" ? null : snapshot.priceBasis,
       });
-      detectorSummary = formatEvidenceForPrompt(pack, 700);
+      // Phase 47A — allow opposing-pattern provenance warning to fit.
+      detectorSummary = formatEvidenceForPrompt(pack, 900);
       patterns = pack.patterns.detections.length > 0;
       structure = pack.structure.events.length > 0
         || pack.structure.zones.length > 0

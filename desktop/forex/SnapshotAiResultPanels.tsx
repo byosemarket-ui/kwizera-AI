@@ -64,7 +64,14 @@ export type SnapshotPlanBundleUi = {
     lastSwingLow: number | null;
     events: Array<{ type: string; direction: string; status: string; level: number | null }>;
     zones: Array<{ side: string; low: number; high: number; status: string }>;
-    patterns: Array<{ name: string; direction: string; status: string }>;
+    patterns: Array<{
+      name: string;
+      direction: string;
+      status: string;
+      candleEndTime?: number | null;
+      completedAt?: string | null;
+      timeframe?: string | null;
+    }>;
     warnings: string[];
     quoteFreshness: string | null;
     dataUsable: boolean;
@@ -335,7 +342,10 @@ function RiskSummaryBlock({ bundle }: { bundle: SnapshotPlanBundleUi }) {
                   r.margin?.estimatedMarginAccount != null && r.accountCurrency
                     ? `margin ~${r.margin.estimatedMarginAccount.toFixed(2)} ${r.accountCurrency}`
                     : `margin ${r.margin?.unavailableReason ?? "unavailable"}`,
-                ].join(" · ")
+                  !r.contract?.verified && r.contract?.unavailableReason
+                    ? `contract: ${r.contract.unavailableReason}`
+                    : null,
+                ].filter(Boolean).join(" · ")
                 : "position risk not attached"}
             </li>
           );
@@ -531,6 +541,23 @@ function OpenAiAssistantResultBody({
 
       <details className="fx-ai-evidence-details">
         <summary>Technical evidence (expand)</summary>
+        {data.planBundle?.structureEvidence?.patterns?.length ? (
+          <div data-ai-pattern-provenance="true">
+            <p className="fx-ai-label">Pattern provenance (detector)</p>
+            <ul className="fx-ai-local-list">
+              {data.planBundle.structureEvidence.patterns.map((p, i) => (
+                <li key={`pat-${i}`}>
+                  {p.name} {p.direction}/{p.status}
+                  {p.timeframe ? ` · tf=${p.timeframe}` : ""}
+                  {p.completedAt ? ` · end=${p.completedAt}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {data.planBundle?.structureEvidence?.warnings?.[0] ? (
+          <p className="fx-ai-snapshot-warn">{data.planBundle.structureEvidence.warnings[0]}</p>
+        ) : null}
         {data.keyEvidence.length ? (
           <ul className="fx-ai-local-list">
             {data.keyEvidence.map((e, i) => <li key={`kev-${i}`}>{e}</li>)}

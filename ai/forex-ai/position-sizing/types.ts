@@ -43,7 +43,13 @@ export interface InstrumentContractSpec {
   quantityStep: number | null;
   quantityUnit: QuantityUnit;
   tickSize: number | null;
+  /** Decimal margin rate when verified as a rate (not FXCM absolute MMR). */
   marginRate: number | null;
+  /**
+   * Phase 47A — FXCM TradingSettings get_mmr absolute margin for 1 lot
+   * (when available). Used for margin estimate; never treated as a rate.
+   */
+  marginPerLotAccount?: number | null;
   /** True when fields came from provider/admin-verified source. */
   verified: boolean;
   source: string;

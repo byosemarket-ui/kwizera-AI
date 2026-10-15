@@ -227,6 +227,22 @@ export function buildForexAiEvidencePack(
     warnings.push("Structure trendState is UNKNOWN — do not invent bullish/bearish structure.");
   }
 
+  // Phase 47A — opposing CONFIRMED patterns are historical multi-end detections, not
+  // simultaneous current triggers. Disclose timestamps; do not drop valid detector hits.
+  const confirmedPatterns = patternResult.detections.filter((d) => d.status === "CONFIRMED");
+  const newestBull = confirmedPatterns.find((d) => d.direction === "BULLISH");
+  const newestBear = confirmedPatterns.find((d) => d.direction === "BEARISH");
+  if (newestBull && newestBear) {
+    const fmt = (t: number) => new Date(t * 1000).toISOString().replace(".000Z", "Z");
+    warnings.push(
+      `Opposing CONFIRMED patterns in scan window: `
+        + `${newestBull.patternName}@${fmt(newestBull.candleEndTime)} vs `
+        + `${newestBear.patternName}@${fmt(newestBear.candleEndTime)} `
+        + `(tf=${input.timeframe}). Historical evidence at different endings — `
+        + "not simultaneous current triggers; prefer WAIT unless one is clearly current.",
+    );
+  }
+
   const packCore = {
     patterns: detections,
     events,

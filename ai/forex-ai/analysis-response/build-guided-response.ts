@@ -53,7 +53,15 @@ function buildEvidence(src: GuidedAnalysisSource): GuidedEvidenceSection {
     observedFacts.push(`Zone ${z.side} ${z.low}–${z.high} (${z.status})`);
   }
   for (const p of (se?.patterns ?? []).slice(0, 3)) {
-    observedFacts.push(`Pattern ${p.name} ${p.direction} ${p.status}`);
+    const when = p.completedAt
+      ?? (p.candleEndTime != null && Number.isFinite(p.candleEndTime)
+        ? new Date(p.candleEndTime * 1000).toISOString().replace(".000Z", "Z")
+        : null);
+    const tf = p.timeframe ? ` tf=${p.timeframe}` : "";
+    observedFacts.push(
+      `Pattern ${p.name} ${p.direction} ${p.status}`
+        + `${when ? ` @ ${when}` : ""}${tf}`,
+    );
   }
 
   const supporting = [...(src.keyEvidence ?? [])];

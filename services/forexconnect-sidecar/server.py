@@ -327,7 +327,13 @@ def _row_get(row: Any, *names: str) -> Any:
             if hasattr(row, name):
                 value = getattr(row, name)
                 if callable(value):
-                    continue
+                    # Phase 47A — some SDK wrappers expose getters (e.g. getPipCost).
+                    try:
+                        value = value()
+                    except TypeError:
+                        continue
+                    except Exception:
+                        continue
                 if value is not None and value != "":
                     return value
         except Exception:
@@ -341,7 +347,84 @@ def _row_get(row: Any, *names: str) -> Any:
     return None
 
 
-def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
+def _primary_account_row(fx: Any) -> Any:
+    """First Accounts-table row for TradingSettings lookups. Never invents accounts."""
+    try:
+        from forexconnect import ForexConnect
+
+        accounts = fx.get_table(ForexConnect.ACCOUNTS)
+        for row in accounts:
+            if row is not None:
+                return row
+    except Exception:
+        return None
+    return None
+
+
+def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, Any]:
+    """
+    Phase 47A — TradingSettingsProvider fields (BaseUnitSize, absolute MMR).
+    Never invent values; return nulls when SDK/account lookup fails.
+    Note: FXCM get_mmr returns absolute margin for 1 lot (not a decimal rate).
+    """
+    out: dict[str, Any] = {
+        "baseUnitSize": None,
+        "mmrPerLot": None,
+        "lotStep": None,
+    }
+    if not instrument or account is None:
+        return out
+    try:
+        login_rules = getattr(fx, "login_rules", None)
+        if login_rules is None and hasattr(fx, "get_login_rules"):
+            try:
+                login_rules = fx.get_login_rules()
+            except Exception:
+                login_rules = None
+        if login_rules is None:
+            return out
+        tsp = getattr(login_rules, "trading_settings_provider", None)
+        if tsp is None and hasattr(login_rules, "get_trading_settings_provider"):
+            try:
+                tsp = login_rules.get_trading_settings_provider()
+            except Exception:
+                tsp = None
+        if tsp is None:
+            return out
+        for meth in ("get_base_unit_size", "getBaseUnitSize"):
+            if hasattr(tsp, meth):
+                try:
+                    out["baseUnitSize"] = _finite(getattr(tsp, meth)(instrument, account))
+                    break
+                except Exception:
+                    pass
+        for meth in ("get_mmr", "getMMR"):
+            if hasattr(tsp, meth):
+                try:
+                    # Absolute margin amount for 1 lot — not a rate.
+                    out["mmrPerLot"] = _finite(getattr(tsp, meth)(instrument, account))
+                    break
+                except Exception:
+                    pass
+        # Optional lot/quantity step when provider exposes it (never invent 0.01).
+        for meth in ("get_cond_dist_entry", "getCondDistEntry", "get_min_quantity", "getMinQuantity"):
+            if hasattr(tsp, meth):
+                try:
+                    step = _finite(getattr(tsp, meth)(instrument, account))
+                    if step is not None and step > 0:
+                        out["lotStep"] = step
+                        break
+                except Exception:
+                    pass
+    except Exception:
+        return out
+    return out
+
+
+def _normalize_offer(
+    row: Any,
+    trading: Optional[dict[str, Any]] = None,
+) -> Optional[dict[str, Any]]:
     instrument = _row_get(row, "instrument", "Instrument", "symbol", "Symbol")
     if instrument is None:
         return None
@@ -393,20 +476,28 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
     bid = _finite(_row_get(row, "bid", "Bid"))
     ask = _finite(_row_get(row, "ask", "Ask"))
     trading_status = _row_get(row, "trading_status", "TradingStatus", "tradingStatus")
-    # Phase 45 — surface Offers sizing fields when the SDK row exposes them.
-    # Never invent PointSize / PipCost / ContractMultiplier; omit when absent.
-    point_size = _finite(_row_get(row, "point_size", "PointSize", "pointSize"))
-    pip_cost = _finite(_row_get(row, "pip_cost", "PipCost", "pipCost"))
+    # Phase 45/47A — surface Offers + TradingSettings sizing fields when SDK exposes them.
+    # Never invent PointSize / PipCost / BaseUnitSize / ContractMultiplier.
+    point_size = _finite(
+        _row_get(row, "point_size", "PointSize", "pointSize", "get_point_size", "getPointSize")
+    )
+    pip_cost = _finite(
+        _row_get(row, "pip_cost", "PipCost", "pipCost", "get_pip_cost", "getPipCost")
+    )
     contract_multiplier = _finite(
         _row_get(row, "contract_multiplier", "ContractMultiplier", "contractMultiplier")
     )
-    digits = _row_get(row, "digits", "Digits", "digits")
+    digits = _row_get(row, "digits", "Digits", "digits", "get_digits", "getDigits")
     digits_n = None
     try:
         if digits is not None and str(digits).strip() != "":
             digits_n = int(float(str(digits)))
     except Exception:
         digits_n = None
+    ts = trading if isinstance(trading, dict) else {}
+    base_unit_size = _finite(ts.get("baseUnitSize"))
+    mmr_per_lot = _finite(ts.get("mmrPerLot"))
+    lot_step = _finite(ts.get("lotStep"))
     return {
         "provider": "FOREXCONNECT",
         "providerSymbol": provider_symbol,
@@ -429,6 +520,9 @@ def _normalize_offer(row: Any) -> Optional[dict[str, Any]]:
         "pipCost": pip_cost,
         "contractMultiplier": contract_multiplier,
         "digits": digits_n,
+        "baseUnitSize": base_unit_size,
+        "mmrPerLot": mmr_per_lot,
+        "lotStep": lot_step,
     }
 
 
@@ -436,10 +530,17 @@ def _discover_instruments(fx: Any) -> list[dict[str, Any]]:
     from forexconnect import ForexConnect
 
     offers = fx.get_table(ForexConnect.OFFERS)
+    account = _primary_account_row(fx)
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in offers:
-        item = _normalize_offer(row)
+        instrument = _row_get(row, "instrument", "Instrument", "symbol", "Symbol")
+        trading = (
+            _trading_settings_for(fx, str(instrument).strip(), account)
+            if instrument is not None
+            else {}
+        )
+        item = _normalize_offer(row, trading=trading)
         if not item:
             continue
         key = item["canonicalSymbol"]

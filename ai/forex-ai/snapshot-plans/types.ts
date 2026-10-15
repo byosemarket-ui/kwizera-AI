@@ -50,6 +50,11 @@ export interface SnapshotStructureEvidenceSummary {
     name: string;
     direction: string;
     status: string;
+    /** Phase 47A — pattern completion candle end (unix seconds). */
+    candleEndTime?: number | null;
+    /** ISO completion timestamp when available. */
+    completedAt?: string | null;
+    timeframe?: string | null;
   }>;
   warnings: string[];
   insufficientHistory: boolean;

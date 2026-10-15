@@ -47,6 +47,7 @@ export function buildStructureEvidenceFromSnapshot(
         low: c.low,
         close: c.close,
         volume: c.volume,
+        isClosed: c.isClosed,
       })),
       priceBasis: snapshot.priceBasis === "unknown" ? null : snapshot.priceBasis,
     });
@@ -67,11 +68,19 @@ export function buildStructureEvidenceFromSnapshot(
         high: z.high,
         status: z.status,
       })),
-      patterns: pack.patterns.detections.slice(0, 6).map((p) => ({
-        name: p.name,
-        direction: p.direction,
-        status: p.status,
-      })),
+      patterns: pack.patterns.detections.slice(0, 6).map((p) => {
+        const completedAt = Number.isFinite(p.candleEndTime)
+          ? new Date(p.candleEndTime * 1000).toISOString().replace(".000Z", "Z")
+          : null;
+        return {
+          name: p.name,
+          direction: p.direction,
+          status: p.status,
+          candleEndTime: Number.isFinite(p.candleEndTime) ? p.candleEndTime : null,
+          completedAt,
+          timeframe: snapshot.candleTimeframe,
+        };
+      }),
       warnings: [
         ...pack.warnings.slice(0, 4),
         ...(dataUsable ? [] : ["Snapshot validation or evidence readiness limits plan confirmation."]),

@@ -176,6 +176,11 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         pipCostAccount: item.pipCost ?? null,
         contractMultiplier: item.contractMultiplier ?? null,
         digits: item.digits ?? null,
+        baseUnitSize: item.baseUnitSize ?? null,
+        // Absolute FXCM MMR per lot — never treat as decimal marginRate.
+        mmrPerLot: item.mmrPerLot ?? null,
+        lotStep: item.lotStep ?? null,
+        quantityStep: item.lotStep ?? null,
         quoteAsset: item.quoteAsset ?? null,
         baseAsset: item.baseAsset ?? null,
       },

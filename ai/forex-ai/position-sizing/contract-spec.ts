@@ -41,6 +41,7 @@ export function unavailableContractSpec(
     quantityUnit: "unknown",
     tickSize: null,
     marginRate: null,
+    marginPerLotAccount: null,
     verified: false,
     source: "unavailable",
     unavailableReason: reason,
@@ -66,9 +67,13 @@ export function contractSpecFromForexConnectMetadata(input: {
   const contractMultiplier = num(md.contractMultiplier ?? md.ContractMultiplier);
   const quantityMin = num(md.quantityMin ?? md.minQuantity ?? md.MinQuantity);
   const quantityMax = num(md.quantityMax ?? md.maxQuantity);
-  const quantityStep = num(md.quantityStep ?? md.lotStep ?? md.LotStep) ?? (pipCostAccount != null ? 0.01 : null);
+  // Do not invent lot step: only use verified step, else default 0.01 solely when PipCost path is usable.
+  const quantityStep = num(md.quantityStep ?? md.lotStep ?? md.LotStep)
+    ?? (pipCostAccount != null && pointSize != null ? 0.01 : null);
   const tickSize = num(md.tickSize ?? md.TickSize) ?? pointSize;
-  const marginRate = num(md.marginRate ?? md.MMR ?? md.mmr);
+  // Decimal rate only — FXCM absolute MMR must not be mapped here.
+  const marginRate = num(md.marginRate);
+  const marginPerLotAccount = num(md.marginPerLotAccount ?? md.mmrPerLot ?? md.MmrPerLot);
   const quoteCurrency = str(input.quoteCurrency) ?? str(md.quoteCurrency) ?? str(md.quoteAsset);
   const contractCurrency =
     str(input.contractCurrency) ?? str(md.contractCurrency) ?? str(md.ContractCurrency);
@@ -104,11 +109,21 @@ export function contractSpecFromForexConnectMetadata(input: {
     || (convention === "crypto_base_qty" && quantityStep != null);
 
   if (!usable) {
+    const present: string[] = [];
+    if (pointSize != null) present.push("PointSize");
+    if (pipCostAccount != null) present.push("PipCost");
+    if (baseUnitSize != null) present.push("BaseUnitSize");
+    if (contractMultiplier != null) present.push("ContractMultiplier");
+    if (quantityStep != null) present.push("LotStep/quantityStep");
+    if (marginRate != null) present.push("marginRate");
+    if (marginPerLotAccount != null) present.push("mmrPerLot");
     return unavailableContractSpec(
       input.instrumentId,
       "FOREXCONNECT",
       "Verified contract sizing fields are incomplete for this instrument "
-        + "(need PointSize+PipCost, or PointSize+BaseUnitSize, or verified multiplier/step).",
+        + `(have: ${present.length ? present.join(", ") : "none"}; `
+        + "need PointSize+PipCost, or PointSize+BaseUnitSize, or PointSize+ContractMultiplier for bullion). "
+        + "Fields are never invented.",
     );
   }
 
@@ -128,8 +143,11 @@ export function contractSpecFromForexConnectMetadata(input: {
     quantityUnit,
     tickSize,
     marginRate,
+    marginPerLotAccount,
     verified: true,
-    source: "forexconnect-offers",
+    source: baseUnitSize != null || marginPerLotAccount != null
+      ? "forexconnect-offers+trading-settings"
+      : "forexconnect-offers",
     unavailableReason: null,
     observedAt: input.observedAt ?? null,
   };
@@ -171,6 +189,7 @@ export function contractSpecFromCryptoFilters(input: {
     quantityUnit: "base_units",
     tickSize: input.tickSize ?? null,
     marginRate: null,
+    marginPerLotAccount: null,
     verified: true,
     source: input.source ?? "binance-exchangeInfo",
     unavailableReason: null,

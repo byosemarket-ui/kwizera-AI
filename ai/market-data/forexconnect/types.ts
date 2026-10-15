@@ -36,6 +36,15 @@ export interface ForexConnectInstrument {
   pipCost?: number | null;
   contractMultiplier?: number | null;
   digits?: number | null;
+  /** Phase 47A — TradingSettingsProvider BaseUnitSize (units per 1.0 lot). */
+  baseUnitSize?: number | null;
+  /**
+   * Phase 47A — TradingSettingsProvider get_mmr absolute margin for 1 lot
+   * (account/counter currency amount — not a decimal rate).
+   */
+  mmrPerLot?: number | null;
+  /** Phase 47A — quantity/lot step when TradingSettings exposes it. */
+  lotStep?: number | null;
 }
 
 export interface ForexConnectSafeStatus {
