@@ -648,12 +648,31 @@ section.fxa-card[data-forex-admin-market-providers] {
 }
 
 .fxa-risk-account[data-snap-tone="stale"],
-.fxa-risk-account[data-snap-tone="warn"] {
+.fxa-risk-account[data-snap-tone="warn"],
+.fxa-risk-account[data-snap-tone="incomplete"],
+.fxa-risk-account[data-snap-tone="refreshing"] {
   border-color: rgba(210, 160, 60, 0.4);
 }
 
 .fxa-risk-account[data-snap-tone="error"] {
   border-color: rgba(210, 80, 80, 0.45);
+}
+
+.fxa-risk-readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  min-width: 0;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fxa-risk-readonly strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .fxa-risk-account-head {

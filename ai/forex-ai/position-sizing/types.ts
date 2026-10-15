@@ -105,7 +105,8 @@ export const FOREX_RISK_DEFAULT_SETTINGS: ForexRiskSettings = {
   proposedSize: null,
   conversionMaxAgeMs: 5 * 60_000,
   requireMarginForEligibility: false,
-  accountDataSource: "manual",
+  /** Prefer live FXCM Accounts snapshot when available (Phase 47C). */
+  accountDataSource: "forexconnect",
   selectedForexConnectAccountId: null,
 };
 

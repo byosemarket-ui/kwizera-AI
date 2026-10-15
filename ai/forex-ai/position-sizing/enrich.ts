@@ -28,12 +28,12 @@ async function resolveRiskSettingsForEnrich(
     });
     const applied = applyAccountSnapshotToRiskSettings(base, snapshot);
     if (applied.applied) return applied.settings;
-    // Prefer explicit FXCM incompleteness over stale manual numbers when source is forexconnect.
+    // FXCM mode never silently falls back to stale/blank manual numbers.
     return {
       ...base,
-      accountCurrency: snapshot.accountCurrency ?? "",
-      manualBalance: base.riskBasis === "manual_balance" ? null : base.manualBalance,
-      manualEquity: base.riskBasis === "manual_equity" ? null : base.manualEquity,
+      accountCurrency: "",
+      manualBalance: null,
+      manualEquity: null,
     };
   } catch {
     return base;

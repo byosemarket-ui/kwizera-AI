@@ -193,11 +193,12 @@ export async function handleForexRiskApi(
         const applied = applyAccountSnapshotToRiskSettings(stored, snapshot);
         if (applied.applied) settings = applied.settings;
         else {
+          // FXCM mode: never mix with leftover manual values.
           settings = {
             ...stored,
-            accountCurrency: snapshot.accountCurrency ?? "",
-            manualBalance: stored.riskBasis === "manual_balance" ? null : stored.manualBalance,
-            manualEquity: stored.riskBasis === "manual_equity" ? null : stored.manualEquity,
+            accountCurrency: "",
+            manualBalance: null,
+            manualEquity: null,
           };
         }
       }

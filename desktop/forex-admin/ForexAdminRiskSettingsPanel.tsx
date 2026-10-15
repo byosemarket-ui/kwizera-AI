@@ -1,5 +1,5 @@
 /**
- * Phase 45/47B — Compact Forex Admin risk / position-sizing settings.
+ * Phase 45/47B/47C — Compact Forex Admin risk / position-sizing settings.
  * FXCM account snapshot is read-only; provider values are not silently persisted as manual.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -38,6 +38,8 @@ type AccountSnapshot = {
   source: string;
   fetchedAt: string | null;
   isFresh: boolean;
+  ageMs?: number | null;
+  maxAgeMs?: number;
   missingFields: string[];
   accounts: Array<{
     accountId: string;
@@ -55,6 +57,19 @@ function fmtMoney(n: number | null | undefined): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+function fmtAge(ageMs: number | null | undefined): string {
+  if (ageMs == null || !Number.isFinite(ageMs)) return "age n/a";
+  if (ageMs < 1000) return `${Math.round(ageMs)} ms old`;
+  if (ageMs < 60_000) return `${(ageMs / 1000).toFixed(0)}s old`;
+  return `${(ageMs / 60_000).toFixed(1)}m old`;
+}
+
+function isEmptyManual(s: RiskSettings): boolean {
+  return !s.accountCurrency
+    && s.manualBalance == null
+    && s.manualEquity == null;
+}
+
 export function ForexAdminRiskSettingsPanel() {
   const [settings, setSettings] = useState<RiskSettings | null>(null);
   const [draft, setDraft] = useState<RiskSettings | null>(null);
@@ -65,6 +80,7 @@ export function ForexAdminRiskSettingsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [snapError, setSnapError] = useState<string | null>(null);
   const mounted = useRef(true);
+  const migratedRef = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -85,7 +101,7 @@ export function ForexAdminRiskSettingsPanel() {
     } catch (err) {
       if (!mounted.current) return;
       setSnapError(err instanceof Error ? err.message : "Failed to load FXCM account snapshot.");
-      setSnapshot(null);
+      // Keep prior snapshot on failure — never replace with fabricated defaults.
     } finally {
       if (mounted.current) setSnapBusy(false);
     }
@@ -96,7 +112,22 @@ export function ForexAdminRiskSettingsPanel() {
     try {
       const res = await forexRiskApi.settings();
       if (!mounted.current) return;
-      const next = res.settings as RiskSettings;
+      let next = res.settings as RiskSettings;
+      // Phase 47C — empty manual configs prefer FXCM as active source (preference only).
+      if (
+        !migratedRef.current
+        && next.accountDataSource === "manual"
+        && isEmptyManual(next)
+      ) {
+        migratedRef.current = true;
+        try {
+          const updated = await forexRiskApi.updateSettings({ accountDataSource: "forexconnect" });
+          next = updated.settings as RiskSettings;
+          setMessage("Account data source set to FXCM account (live snapshot).");
+        } catch {
+          next = { ...next, accountDataSource: "forexconnect" };
+        }
+      }
       setSettings(next);
       setDraft(next);
       void loadSnapshot(next.selectedForexConnectAccountId);
@@ -110,7 +141,7 @@ export function ForexAdminRiskSettingsPanel() {
     void load();
   }, [load]);
 
-  // Modest refresh while FXCM source is selected — cleaned up on unmount / source change.
+  // Bounded polling while FXCM source is active — not instantaneous; shows age explicitly.
   useEffect(() => {
     if (!draft || draft.accountDataSource !== "forexconnect") return;
     const timer = window.setInterval(() => {
@@ -118,6 +149,12 @@ export function ForexAdminRiskSettingsPanel() {
     }, 45_000);
     return () => window.clearInterval(timer);
   }, [draft?.accountDataSource, draft?.selectedForexConnectAccountId, loadSnapshot]);
+
+  // Invalidate displayed snapshot when environment/account preference changes after save.
+  useEffect(() => {
+    if (!settings) return;
+    void loadSnapshot(settings.selectedForexConnectAccountId);
+  }, [settings?.selectedForexConnectAccountId, settings?.accountDataSource, loadSnapshot]);
 
   const save = async () => {
     if (!draft) return;
@@ -151,15 +188,27 @@ export function ForexAdminRiskSettingsPanel() {
   };
 
   const fxcmMode = draft.accountDataSource === "forexconnect";
-  const snapTone = !snapshot
-    ? "idle"
-    : snapshot.code === "DISCONNECTED"
-      ? "error"
-      : !snapshot.isFresh || snapshot.code === "STALE"
-        ? "stale"
-        : snapshot.code === "OK"
-          ? "ok"
-          : "warn";
+  const fxcmComplete = Boolean(
+    snapshot
+    && snapshot.isFresh
+    && snapshot.code === "OK"
+    && snapshot.accountCurrency
+    && (snapshot.balance != null || snapshot.equity != null),
+  );
+  const snapTone = snapBusy
+    ? "refreshing"
+    : !snapshot
+      ? "idle"
+      : snapshot.code === "DISCONNECTED"
+        ? "error"
+        : !snapshot.isFresh || snapshot.code === "STALE"
+          ? "stale"
+          : snapshot.code === "INCOMPLETE"
+            || snapshot.missingFields?.includes("accountCurrency")
+            ? "incomplete"
+            : snapshot.code === "OK"
+              ? "ok"
+              : "warn";
 
   return (
     <section className="fxa-card fxa-risk-settings" data-forex-admin-risk-settings>
@@ -186,13 +235,18 @@ export function ForexAdminRiskSettingsPanel() {
             <li>
               <span className="fxa-muted">Status</span>{" "}
               {snapshot.connectionStatus ?? "—"} · {snapshot.code}
-              {snapshot.isFresh ? " · fresh" : " · stale/unavailable"}
+              {snapBusy
+                ? " · refreshing"
+                : snapshot.isFresh && snapshot.code === "OK"
+                  ? " · fresh"
+                  : snapshot.code === "INCOMPLETE"
+                    ? " · incomplete"
+                    : " · stale/unavailable"}
             </li>
             <li>
               <span className="fxa-muted">Environment</span>{" "}
               {snapshot.environmentLabel ?? snapshot.environment ?? "—"}
-            </li>
-            <li>
+              {" · "}
               <span className="fxa-muted">Account</span>{" "}
               {snapshot.accountIdMasked ?? snapshot.accountNameMasked ?? "not selected"}
             </li>
@@ -211,10 +265,18 @@ export function ForexAdminRiskSettingsPanel() {
             </li>
             <li>
               <span className="fxa-muted">Source</span> {snapshot.source}
-              {snapshot.fetchedAt ? ` · fetched ${snapshot.fetchedAt}` : ""}
+              {snapshot.fetchedAt ? ` · last update ${snapshot.fetchedAt}` : ""}
+              {" · "}
+              {fmtAge(snapshot.ageMs)}
+              {snapshot.maxAgeMs != null ? ` (fresh ≤ ${(snapshot.maxAgeMs / 1000).toFixed(0)}s)` : ""}
             </li>
             {snapshot.missingFields?.length ? (
-              <li className="fxa-error">Missing: {snapshot.missingFields.join(", ")}</li>
+              <li className="fxa-error" role="alert">
+                Missing: {snapshot.missingFields.join(", ")}
+                {snapshot.missingFields.includes("accountCurrency")
+                  ? " — BASE_CRNCY was not returned by ForexConnect for this session."
+                  : ""}
+              </li>
             ) : null}
             <li className="fxa-muted">{snapshot.message}</li>
           </ul>
@@ -253,26 +315,11 @@ export function ForexAdminRiskSettingsPanel() {
             value={draft.accountDataSource}
             onChange={(e) => set("accountDataSource", e.target.value as RiskSettings["accountDataSource"])}
             aria-label="Account data source"
+            data-account-data-source={draft.accountDataSource}
           >
-            <option value="manual">Manual override</option>
             <option value="forexconnect">FXCM account (live snapshot)</option>
+            <option value="manual">Manual override</option>
           </select>
-        </label>
-        <label>
-          Account currency
-          <input
-            value={
-              fxcmMode && snapshot?.accountCurrency
-                ? snapshot.accountCurrency
-                : draft.accountCurrency
-            }
-            onChange={(e) => set("accountCurrency", e.target.value.toUpperCase())}
-            maxLength={3}
-            placeholder="USD"
-            aria-label="Account currency"
-            disabled={fxcmMode}
-            readOnly={fxcmMode}
-          />
         </label>
         <label>
           Risk basis
@@ -289,40 +336,75 @@ export function ForexAdminRiskSettingsPanel() {
             </option>
           </select>
         </label>
-        <label>
-          {fxcmMode ? "Balance (FXCM live)" : "Manual balance"}
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={
-              fxcmMode
-                ? (snapshot?.balance ?? "")
-                : (draft.manualBalance ?? "")
-            }
-            onChange={(e) => set("manualBalance", e.target.value === "" ? null : Number(e.target.value))}
-            aria-label="Manual balance"
-            disabled={fxcmMode}
-            readOnly={fxcmMode}
-          />
-        </label>
-        <label>
-          {fxcmMode ? "Equity (FXCM live)" : "Manual equity"}
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={
-              fxcmMode
-                ? (snapshot?.equity ?? "")
-                : (draft.manualEquity ?? "")
-            }
-            onChange={(e) => set("manualEquity", e.target.value === "" ? null : Number(e.target.value))}
-            aria-label="Manual equity"
-            disabled={fxcmMode}
-            readOnly={fxcmMode}
-          />
-        </label>
+
+        {fxcmMode ? (
+          <>
+            <div className="fxa-risk-readonly" data-fxcm-readonly-fields="true">
+              <span className="fxa-muted">Account currency (FXCM, read-only)</span>
+              <strong>{snapshot?.accountCurrency ?? "unavailable"}</strong>
+            </div>
+            <div className="fxa-risk-readonly">
+              <span className="fxa-muted">Balance (FXCM, read-only)</span>
+              <strong>{fmtMoney(snapshot?.balance)}</strong>
+            </div>
+            <div className="fxa-risk-readonly">
+              <span className="fxa-muted">Equity (FXCM, read-only)</span>
+              <strong>{fmtMoney(snapshot?.equity)}</strong>
+            </div>
+            {!fxcmComplete ? (
+              <p className="fxa-error" role="alert" style={{ gridColumn: "1 / -1" }}>
+                FXCM source is active but the snapshot is not complete/fresh — risk sizing stays
+                ineligible until currency and balance/equity are verified. Manual values are not used
+                as a fallback.
+              </p>
+            ) : (
+              <p className="fxa-muted" style={{ gridColumn: "1 / -1" }}>
+                FXCM live snapshot is the authoritative risk source for analysis calculations.
+                Saving stores the source preference only — not a frozen balance copy.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <label>
+              Account currency
+              <input
+                value={draft.accountCurrency}
+                onChange={(e) => set("accountCurrency", e.target.value.toUpperCase())}
+                maxLength={3}
+                placeholder="USD"
+                aria-label="Account currency"
+              />
+            </label>
+            <label>
+              Manual balance
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.manualBalance ?? ""}
+                onChange={(e) => set("manualBalance", e.target.value === "" ? null : Number(e.target.value))}
+                aria-label="Manual balance"
+              />
+            </label>
+            <label>
+              Manual equity
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={draft.manualEquity ?? ""}
+                onChange={(e) => set("manualEquity", e.target.value === "" ? null : Number(e.target.value))}
+                aria-label="Manual equity"
+              />
+            </label>
+            <p className="fxa-muted" style={{ gridColumn: "1 / -1" }}>
+              Manual override mode uses only the fields above. The FXCM snapshot card remains for
+              comparison and is not mixed into calculations.
+            </p>
+          </>
+        )}
+
         <label>
           Budget mode
           <select
@@ -391,7 +473,7 @@ export function ForexAdminRiskSettingsPanel() {
           />
         </label>
         <label>
-          Conversion max age (ms)
+          Conversion / snapshot max age (ms)
           <input
             type="number"
             min={1000}
@@ -410,17 +492,6 @@ export function ForexAdminRiskSettingsPanel() {
           Require verified margin for eligibility
         </label>
       </div>
-      {fxcmMode ? (
-        <p className="fxa-muted">
-          FXCM mode uses the live account snapshot at calculation time. Saving stores the data-source
-          preference and selected account id — not a frozen balance copy.
-        </p>
-      ) : (
-        <p className="fxa-muted">
-          Manual mode uses the balance/equity fields below. Provider snapshot remains visible for
-          comparison only.
-        </p>
-      )}
       <div className="fxa-openai-actions">
         <button type="button" className="fxa-btn" disabled={busy} onClick={() => void save()}>
           {busy ? "Saving…" : "Save risk settings"}
@@ -436,7 +507,11 @@ export function ForexAdminRiskSettingsPanel() {
           Active: {settings.calculationMode} · {settings.riskBudgetMode}
           {" · "}
           {settings.accountDataSource === "forexconnect" ? "FXCM account" : "manual"}
-          {settings.accountCurrency ? ` · ${settings.accountCurrency}` : " · currency unset"}
+          {fxcmMode
+            ? (fxcmComplete
+              ? ` · ${snapshot?.accountCurrency ?? ""}`
+              : " · FXCM incomplete/stale")
+            : (settings.accountCurrency ? ` · ${settings.accountCurrency}` : " · currency unset")}
         </p>
       ) : null}
     </section>

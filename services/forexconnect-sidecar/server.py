@@ -696,52 +696,129 @@ def _mask_account_id(raw: Any) -> Optional[str]:
     return "***" + text[-4:]
 
 
+def _parse_currency_token(raw: Any) -> Optional[str]:
+    if raw is None:
+        return None
+    # Some SDK wrappers return property objects with .value / .Value.
+    for attr in ("value", "Value", "property_value", "PropertyValue"):
+        try:
+            if hasattr(raw, attr):
+                nested = getattr(raw, attr)
+                if nested is not None and not callable(nested):
+                    raw = nested
+                    break
+        except Exception:
+            pass
+    text = str(raw).strip().upper()
+    if len(text) == 3 and text.isalpha():
+        return text
+    return None
+
+
 def _account_currency_from_session(fx: Any) -> tuple[Optional[str], Optional[str]]:
     """
-    Phase 47B — try documented system-property currency keys only.
-    Returns (currency, sourceNote). Never invents a currency.
+    Phase 47C — account currency from documented FXCM system property BASE_CRNCY.
+    Path: login_rules.system_properties_response → fx.create_reader → find_property.
+    Never invents a currency from balance/account id/environment.
     """
     try:
         login_rules = getattr(fx, "login_rules", None)
         if login_rules is None and hasattr(fx, "get_login_rules"):
-            login_rules = fx.get_login_rules()
+            try:
+                login_rules = fx.get_login_rules()
+            except Exception:
+                login_rules = None
         if login_rules is None:
             return None, None
-        props = None
-        for attr in ("system_properties", "system_properties_response"):
-            candidate = getattr(login_rules, attr, None)
-            if candidate is not None:
-                props = candidate
-                break
-        if props is None:
-            return None, None
-        # Prefer mapping / get accessors used by FXCM samples.
-        keys = (
-            "BASE_CRNCY",
-            "BASE_CURRENCY",
-            "AccountCurrency",
-            "ACCOUNT_CURRENCY",
-            "base_crncy",
-            "currency",
-        )
-        getter = getattr(props, "get", None) or getattr(props, "get_property", None)
-        if callable(getter):
-            for key in keys:
+
+        response = getattr(login_rules, "system_properties_response", None)
+        if response is None and hasattr(login_rules, "get_system_properties_response"):
+            try:
+                response = login_rules.get_system_properties_response()
+            except Exception:
+                response = None
+
+        keys = ("BASE_CRNCY", "BASE_CURRENCY", "AccountCurrency", "ACCOUNT_CURRENCY")
+
+        # Preferred FXCM path: response reader + find_property("BASE_CRNCY").
+        if response is not None and hasattr(fx, "create_reader"):
+            try:
+                reader = fx.create_reader(response)
+            except Exception:
+                reader = None
+            if reader is not None:
+                # Constants.SystemProperties.BASE_CRNCY when available.
+                const_keys: list[Any] = list(keys)
                 try:
-                    value = getter(key)
+                    from forexconnect import fxcorepy  # type: ignore
+
+                    sp = getattr(getattr(fxcorepy, "Constants", None), "SystemProperties", None)
+                    base_const = getattr(sp, "BASE_CRNCY", None) if sp is not None else None
+                    if base_const is not None:
+                        const_keys.insert(0, base_const)
                 except Exception:
-                    value = None
-                if value is not None and str(value).strip():
-                    ccy = str(value).strip().upper()
-                    if len(ccy) == 3 and ccy.isalpha():
-                        return ccy, f"system_properties:{key}"
-        if isinstance(props, dict):
-            for key in keys:
-                value = props.get(key)
-                if value is not None and str(value).strip():
-                    ccy = str(value).strip().upper()
-                    if len(ccy) == 3 and ccy.isalpha():
-                        return ccy, f"system_properties:{key}"
+                    pass
+
+                finder = getattr(reader, "find_property", None) or getattr(reader, "findProperty", None)
+                if callable(finder):
+                    for key in const_keys:
+                        try:
+                            found = finder(key)
+                        except Exception:
+                            found = None
+                        ccy = _parse_currency_token(found)
+                        if ccy:
+                            return ccy, f"system_properties_reader:find_property:{key}"
+
+                # Iterable reader of name/value pairs.
+                try:
+                    for item in reader:
+                        name = _row_get(item, "name", "Name", "key", "Key", "property", "Property")
+                        value = _row_get(item, "value", "Value", "property_value", "PropertyValue")
+                        if name is None:
+                            continue
+                        if str(name).strip().upper() in {str(k).strip().upper() for k in keys}:
+                            ccy = _parse_currency_token(value if value is not None else item)
+                            if ccy:
+                                return ccy, f"system_properties_reader:iter:{name}"
+                except Exception:
+                    pass
+
+                getter = getattr(reader, "get", None) or getattr(reader, "get_property", None)
+                if callable(getter):
+                    for key in keys:
+                        try:
+                            value = getter(key)
+                        except TypeError:
+                            try:
+                                # Some getters are index-based; skip.
+                                continue
+                            except Exception:
+                                continue
+                        except Exception:
+                            value = None
+                        ccy = _parse_currency_token(value)
+                        if ccy:
+                            return ccy, f"system_properties_reader:get:{key}"
+
+        # Fallback: treat system_properties as a mapping if the wrapper exposes one.
+        props = getattr(login_rules, "system_properties", None)
+        if props is not None:
+            mapper = getattr(props, "get", None) or getattr(props, "get_property", None)
+            if callable(mapper):
+                for key in keys:
+                    try:
+                        value = mapper(key)
+                    except Exception:
+                        value = None
+                    ccy = _parse_currency_token(value)
+                    if ccy:
+                        return ccy, f"system_properties_map:{key}"
+            if isinstance(props, dict):
+                for key in keys:
+                    ccy = _parse_currency_token(props.get(key))
+                    if ccy:
+                        return ccy, f"system_properties_dict:{key}"
     except Exception:
         return None, None
     return None, None
@@ -822,7 +899,7 @@ def _normalize_account_row(
     }
 
 
-def _discover_accounts(fx: Any, environment: str) -> list[dict[str, Any]]:
+def _discover_accounts(fx: Any, environment: str) -> tuple[list[dict[str, Any]], Optional[str]]:
     from forexconnect import ForexConnect
 
     session_currency, currency_source = _account_currency_from_session(fx)
@@ -844,7 +921,7 @@ def _discover_accounts(fx: Any, environment: str) -> list[dict[str, Any]]:
         seen.add(key)
         out.append(item)
     out.sort(key=lambda x: str(x.get("accountId") or ""))
-    return out
+    return out, currency_source
 
 
 def accounts_payload() -> dict[str, Any]:
@@ -885,7 +962,7 @@ def accounts_payload() -> dict[str, Any]:
             "trading": "DISABLED",
         }
     try:
-        accounts = _discover_accounts(fx, environment)
+        accounts, currency_source = _discover_accounts(fx, environment)
     except Exception as exc:
         return {
             "ok": False,
@@ -899,12 +976,16 @@ def accounts_payload() -> dict[str, Any]:
             "fetchedAt": fetched_at,
             "status": status,
             "trading": "DISABLED",
+            "currencySource": None,
         }
     code = "OK"
     if not accounts:
         code = "NO_ACCOUNTS"
     elif len(accounts) > 1:
         code = "MULTIPLE_ACCOUNTS"
+    any_missing_ccy = any(
+        "accountCurrency" in (a.get("missingFields") or []) for a in accounts
+    )
     return {
         "ok": True,
         "code": code,
@@ -913,10 +994,17 @@ def accounts_payload() -> dict[str, Any]:
         "fetchedAt": fetched_at,
         "status": status,
         "trading": "DISABLED",
+        "currencySource": currency_source,
         "note": (
             "Read-only ForexConnect Accounts table snapshot. "
+            "Account currency from system property BASE_CRNCY via create_reader when available. "
             "Equity/usableMargin are SDK calculated fields when available. "
             "Never invents currency/balance. Trading disabled."
+            + (
+                " BASE_CRNCY was not returned by the SDK session."
+                if any_missing_ccy and not currency_source
+                else ""
+            )
         ),
     }
 

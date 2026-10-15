@@ -346,11 +346,20 @@ export function applyAccountSnapshotToRiskSettings(
   if (snapshot.code === "ENVIRONMENT_MISMATCH" || snapshot.code === "DISCONNECTED") {
     return { settings, applied: false, reason: snapshot.message };
   }
+  if (snapshot.code === "INCOMPLETE" || snapshot.code === "STALE" || snapshot.code === "UNAVAILABLE") {
+    return {
+      settings,
+      applied: false,
+      reason: snapshot.message || `FXCM account snapshot status ${snapshot.code} blocks risk application.`,
+    };
+  }
   if (!snapshot.accountCurrency) {
     return {
       settings,
       applied: false,
-      reason: "FXCM account currency is unavailable — cannot apply provider account data.",
+      reason:
+        "FXCM account currency (BASE_CRNCY) is unavailable — cannot apply provider account data. "
+        + "Manual override remains available.",
     };
   }
 
