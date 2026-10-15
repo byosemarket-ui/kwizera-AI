@@ -53,7 +53,8 @@ _subscriptions: set[str] = set()  # provider symbols (e.g. EUR/USD)
 _quotes: dict[str, dict[str, Any]] = {}  # canonical -> quote
 _stream: dict[str, Any] = {
     "updateCount": 0,
-    "lastQuoteAt": None,
+    "lastQuoteAt": None,  # last genuine bid/ask change (not heartbeat)
+    "lastReceiptAt": None,  # last Offers receipt including same-price heartbeat
     "lastStreamError": None,
     "offersListenerActive": False,
     # Phase 36E diagnostics — never include secrets.
@@ -237,6 +238,7 @@ def _set_error(code: str, message: str, status: str) -> None:
 def _reset_stream_diagnostics_locked() -> None:
     _stream["updateCount"] = 0
     _stream["lastQuoteAt"] = None
+    _stream["lastReceiptAt"] = None
     _stream["lastStreamError"] = None
     _stream["callbackRegistered"] = False
     _stream["callbackInvocations"] = 0
@@ -280,6 +282,7 @@ def _stop_offers_listener_locked() -> None:
     _quotes.clear()
     # Drop seeded quote age; next subscribe re-seeds from the Offers table.
     _stream["lastQuoteAt"] = None
+    _stream["lastReceiptAt"] = None
     _stream["updateCount"] = 0
     _stream["lastEventSource"] = None
     _stream["pollCycles"] = 0
@@ -1481,16 +1484,16 @@ def _store_quote(
     event_source: str,
     require_change: bool = True,
 ) -> bool:
-    """Persist a genuine Offers quote. Increments updateCount only on accepted events."""
+    """Persist a genuine Offers quote. Increments updateCount only on bid/ask changes."""
     with _state_lock:
         if not _quote_subscribed_locked(quote):
             return False
         prev = _quotes.get(quote["canonicalSymbol"])
         if require_change and prev is not None:
             if prev.get("bid") == quote.get("bid") and prev.get("ask") == quote.get("ask"):
-                # Same bid/ask: still refresh instrument receipt time so LIVE freshness
-                # is not lost solely because the numeric price is unchanged (Phase 42).
-                # Do not increment updateCount (that tracks price-changing Offers events).
+                # Same bid/ask: refresh receipt time so feed health can distinguish
+                # active Offers reads (NO_RECENT_MARKET_UPDATES) from a dead feed (STALE).
+                # Do not increment updateCount or lastQuoteAt (price-change only).
                 heart = dict(prev)
                 heart["receivedAt"] = quote["receivedAt"]
                 heart["receivedAtMs"] = quote.get("receivedAtMs", prev.get("receivedAtMs"))
@@ -1499,6 +1502,7 @@ def _store_quote(
                 )
                 heart["eventSource"] = event_source
                 _quotes[quote["canonicalSymbol"]] = heart
+                _stream["lastReceiptAt"] = quote["receivedAt"]
                 _stream["lastEventSource"] = event_source
                 _stream["lastStreamError"] = None
                 if event_source == "offers-callback":
@@ -1511,6 +1515,7 @@ def _store_quote(
         _quotes[quote["canonicalSymbol"]] = quote
         _stream["updateCount"] = int(_stream["updateCount"] or 0) + 1
         _stream["lastQuoteAt"] = quote["receivedAt"]
+        _stream["lastReceiptAt"] = quote["receivedAt"]
         _stream["lastEventSource"] = event_source
         _stream["lastStreamError"] = None
         if event_source == "offers-callback":
@@ -1637,13 +1642,14 @@ def _ensure_offers_listener_locked() -> tuple[bool, Optional[str]]:
         )
         _stream["offersListenerActive"] = True
         _stream["callbackRegistered"] = True
-        # Seed current bids for already-subscribed symbols (does NOT increment updateCount).
+        # Seed current bids for already-subscribed symbols (does NOT increment updateCount
+        # and must not set lastQuoteAt — that tracks genuine bid/ask changes only).
         for row in offers:
             quote = _offer_to_quote(row)
             if quote and quote["providerSymbol"] in _subscriptions:
                 _quotes[quote["canonicalSymbol"]] = quote
-                if _stream["lastQuoteAt"] is None:
-                    _stream["lastQuoteAt"] = quote["receivedAt"]
+                if _stream.get("lastReceiptAt") is None:
+                    _stream["lastReceiptAt"] = quote["receivedAt"]
         _ensure_offers_poller_locked()
         return True, None
     except Exception as exc:
@@ -1697,7 +1703,7 @@ def subscribe_symbol(symbol: str) -> dict[str, Any]:
                 },
                 "status": _safe_status(),
             }
-        # Seed current Offers row for this symbol (no updateCount advance).
+        # Seed current Offers row for this symbol (no updateCount / lastQuoteAt advance).
         if instrument["canonicalSymbol"] not in _quotes and _fx is not None:
             try:
                 from forexconnect import ForexConnect
@@ -1709,7 +1715,7 @@ def subscribe_symbol(symbol: str) -> dict[str, Any]:
                     if seeded["providerSymbol"] != provider_symbol:
                         continue
                     _quotes[seeded["canonicalSymbol"]] = seeded
-                    _stream["lastQuoteAt"] = seeded["receivedAt"]
+                    _stream["lastReceiptAt"] = seeded["receivedAt"]
                     break
             except Exception as exc:
                 _stream["lastStreamError"] = _sanitize(str(exc))
@@ -1752,17 +1758,27 @@ def unsubscribe_symbol(symbol: str) -> dict[str, Any]:
     }
 
 
+def _age_ms_from_iso(value: Any) -> Optional[int]:
+    if not value:
+        return None
+    try:
+        last_ms = int(
+            datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp() * 1000
+        )
+        return max(0, int(datetime.now(timezone.utc).timestamp() * 1000) - last_ms)
+    except Exception:
+        return None
+
+
 def stream_status_payload() -> dict[str, Any]:
     status = _safe_status()
     with _state_lock:
-        last_at = _stream["lastQuoteAt"]
-        age_ms = None
-        if last_at:
-            try:
-                last_ms = int(datetime.fromisoformat(str(last_at).replace("Z", "+00:00")).timestamp() * 1000)
-                age_ms = max(0, int(datetime.now(timezone.utc).timestamp() * 1000) - last_ms)
-            except Exception:
-                age_ms = None
+        last_price_at = _stream["lastQuoteAt"]
+        last_receipt_at = _stream.get("lastReceiptAt") or _stream.get("lastPollChangeAt") or _stream.get(
+            "lastCallbackAt"
+        )
+        price_age_ms = _age_ms_from_iso(last_price_at)
+        receipt_age_ms = _age_ms_from_iso(last_receipt_at)
         stream_state = "DISCONNECTED"
         if status["status"] == "DISABLED":
             stream_state = "DISABLED"
@@ -1785,10 +1801,14 @@ def stream_status_payload() -> dict[str, Any]:
                 stream_state = "MARKET_INACTIVE"
             else:
                 stream_state = "SUBSCRIBED_WAITING"
-        elif age_ms is not None and age_ms > 15_000:
-            stream_state = "STALE"
-        else:
+        elif price_age_ms is not None and price_age_ms <= 15_000:
             stream_state = "LIVE"
+        elif receipt_age_ms is not None and receipt_age_ms <= 15_000:
+            # Offers receipts continue but bid/ask have not changed recently.
+            stream_state = "NO_RECENT_MARKET_UPDATES"
+        else:
+            # No recent price change and no recent Offers receipt ⇒ feed unhealthy.
+            stream_state = "STALE"
         return {
             "ok": True,
             "provider": "FOREXCONNECT",
@@ -1800,8 +1820,10 @@ def stream_status_payload() -> dict[str, Any]:
             "subscriptionCount": len(_subscriptions),
             "subscriptions": sorted(_subscriptions),
             "maxSubscriptions": MAX_SUBSCRIPTIONS,
-            "lastQuoteAt": last_at,
-            "lastQuoteAgeMs": age_ms,
+            "lastQuoteAt": last_price_at,
+            "lastQuoteAgeMs": price_age_ms,
+            "lastReceiptAt": last_receipt_at,
+            "lastReceiptAgeMs": receipt_age_ms,
             "lastStreamError": _stream["lastStreamError"],
             "updateCount": int(_stream["updateCount"] or 0),
             "lastEventSource": _stream.get("lastEventSource"),
@@ -1817,20 +1839,25 @@ def stream_status_payload() -> dict[str, Any]:
                 "lastCallbackAt": _stream.get("lastCallbackAt"),
                 "lastPollChangeAt": _stream.get("lastPollChangeAt"),
                 "offersPollerActive": bool(_stream["offersPollerActive"]),
+                "lastReceiptAt": last_receipt_at,
+                "lastReceiptAgeMs": receipt_age_ms,
+                "lastPriceChangeAgeMs": price_age_ms,
             },
             "latency": {
                 "providerEventTimestampAvailable": False,
-                "sidecarReceiptAgeMs": age_ms,
+                "sidecarReceiptAgeMs": receipt_age_ms,
                 "note": (
                     "FXCM Offers rows do not expose a distinct broker event timestamp in this SDK path; "
-                    "sourceTimestampMs equals sidecar receipt time. lastQuoteAgeMs is local receipt age."
+                    "sourceTimestampMs equals sidecar receipt time. lastQuoteAgeMs is last bid/ask "
+                    "change age; lastReceiptAgeMs is last Offers receipt age (includes same-price heartbeats)."
                 ),
             },
             "priceBasis": "bid",
             "trading": "DISABLED",
             "note": (
-                "LIVE only after a genuine Offers bid/ask change "
-                "(SDK callback or Offers table diff). Seeded snapshots do not set LIVE."
+                "LIVE only after a genuine Offers bid/ask change within 15s "
+                "(SDK callback or Offers table diff). Active receipts without a recent price "
+                "change are NO_RECENT_MARKET_UPDATES. Seeded snapshots do not set LIVE."
             ),
             "status": status,
         }

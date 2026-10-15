@@ -165,10 +165,10 @@ describe("Phase 42 instrument-specific freshness", () => {
     expect(aud.streamState).toBe("MARKET_INACTIVE");
   });
 
-  it("keeps LIVE on genuine same-price heartbeats without global updateCount bumps", async () => {
+  it("counts only bid/ask changes; same-price heartbeats do not inflate updateCount", async () => {
     const now = Date.now();
     let recv = now;
-    const bid = 1.1156;
+    let bid = 1.1156;
     const bridge = mockBridge({
       streamUpdateCount: () => 3, // frozen global price-change counter
       quotes: () => [{
@@ -191,14 +191,23 @@ describe("Phase 42 instrument-specific freshness", () => {
     services.push(svc);
     await svc.ensure("EUR/USD", "1m");
     expect(svc.getSeries("EUR/USD", "1m")!.streamState).toBe("LIVE");
+    expect(svc.getSeries("EUR/USD", "1m")!.updateCount).toBe(1);
 
+    // Same-price heartbeats within the price-change window stay LIVE and do not bump updateCount.
     for (let i = 0; i < 5; i += 1) {
       recv += 500;
       const series = await svc.ensure("EUR/USD", "1m");
       expect(series.streamState).toBe("LIVE");
+      expect(series.updateCount).toBe(1);
       expect(series.lastQuoteAgeMs).toBeLessThan(5_000);
     }
-    expect(svc.getSeries("EUR/USD", "1m")!.updateCount).toBeGreaterThan(1);
+
+    // A genuine bid change restores a new LIVE tick and increments instrument updateCount.
+    bid = 1.1157;
+    recv += 200;
+    const moved = await svc.ensure("EUR/USD", "1m");
+    expect(moved.streamState).toBe("LIVE");
+    expect(moved.updateCount).toBe(2);
   });
 
   it("repeated ensure does not leak sessions and awaits shared poll", async () => {
@@ -246,7 +255,8 @@ describe("Phase 42 instrument-specific freshness", () => {
     expect(svc).toContain("updateCount: Number(result.updateCount ?? 0)");
 
     const sidecar = read("services/forexconnect-sidecar/server.py");
-    expect(sidecar).toContain("Same bid/ask: still refresh instrument receipt time");
+    expect(sidecar).toContain("Same bid/ask: refresh receipt time so feed health can distinguish");
+    expect(sidecar).toContain("NO_RECENT_MARKET_UPDATES");
 
     const header = read("desktop/forex/ForexHeader.tsx");
     expect(header).toContain("Binance API health ·");

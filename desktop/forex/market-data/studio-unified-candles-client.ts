@@ -69,7 +69,11 @@ function stateFromSeries(series: {
   if (conn === "STALE") return "stale";
   if (conn === "RECONNECTING") return "reconnecting";
   // Historical available while Offers wait / market idle — not a connecting spinner.
-  if (conn === "MARKET_INACTIVE" || conn === "SUBSCRIBED_WAITING") {
+  if (
+    conn === "MARKET_INACTIVE"
+    || conn === "NO_RECENT_MARKET_UPDATES"
+    || conn === "SUBSCRIBED_WAITING"
+  ) {
     return (series.count ?? 0) > 0 ? "ready" : "connecting";
   }
   if (conn === "CONNECTING") return "connecting";

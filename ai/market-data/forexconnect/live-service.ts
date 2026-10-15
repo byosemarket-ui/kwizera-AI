@@ -26,9 +26,15 @@ import {
   type ForexConnectSupportedTimeframe,
 } from "./timeframes.js";
 import { normalizeCanonicalSymbol } from "../providers/identity.js";
-import { resolveFcWaitingStreamState } from "./stream-state.js";
+import {
+  resolveFcFeedStreamState,
+  resolveFcWaitingStreamState,
+} from "./stream-state.js";
 
-export { resolveFcWaitingStreamState } from "./stream-state.js";
+export {
+  resolveFcFeedStreamState,
+  resolveFcWaitingStreamState,
+} from "./stream-state.js";
 
 const MAX_SERIES = 32;
 const POLL_MS = 500;
@@ -46,7 +52,10 @@ interface Session {
   refCount: number;
   candles: ForexConnectLiveCandle[];
   lastQuote: ForexConnectLiveQuote | null;
+  /** Last Offers receipt time (includes same-price heartbeats). */
   lastQuoteAtMs: number | null;
+  /** Last genuine bid/ask change time — gates LIVE vs NO_RECENT_MARKET_UPDATES. */
+  lastPriceChangeAtMs: number | null;
   /** Last HTTP/API consumer touch — used for idle release (browser close/navigation). */
   lastClientAtMs: number;
   updateCount: number;
@@ -189,6 +198,7 @@ export class ForexConnectLiveCandleService {
       candles,
       lastQuote: null,
       lastQuoteAtMs: null,
+      lastPriceChangeAtMs: null,
       lastClientAtMs: now,
       updateCount: 0,
       streamState: "SUBSCRIBED_WAITING",
@@ -387,6 +397,7 @@ export class ForexConnectLiveCandleService {
           continue;
         }
 
+        const prevQuote = session.lastQuote;
         if (session.lastQuote == null) session.lastQuote = match;
 
         const genuineEvent = isGenuineFcOfferEventSource(match.eventSource);
@@ -394,35 +405,47 @@ export class ForexConnectLiveCandleService {
           || match.receivedAtMs > session.lastQuoteAtMs;
         const quoteFresh = Number.isFinite(match.receivedAtMs)
           && (now - match.receivedAtMs) <= FOREXCONNECT_STALE_MS;
+        const priceChanged = prevQuote == null
+          || prevQuote.bid !== match.bid
+          || prevQuote.ask !== match.ask
+          || prevQuote.candlePrice !== match.candlePrice;
 
-        // Instrument-specific LIVE: genuine Offers event for THIS symbol with a newer receipt.
-        // Peer global updateCount must not promote a seeded AUD/CNH snapshot to LIVE, and must
-        // not consume a bump that leaves EUR/USD unapplied (Phase 42).
+        // Instrument-specific: genuine Offers event for THIS symbol with a newer receipt.
+        // Peer global updateCount must not promote a seeded AUD/CNH snapshot to LIVE.
+        // LIVE requires a recent bid/ask change — same-price heartbeats are not LIVE.
         if (genuineEvent && quoteAdvanced && match.candlePrice != null) {
           const eventTimeMs = match.sourceTimestampMs ?? match.receivedAtMs;
-          const applied = applyFcBidPriceToCandles(
-            session.candles,
-            match.candlePrice,
-            eventTimeMs,
-            {
-              marketType: "FOREX",
-              providerSymbol: session.providerSymbol,
-              canonicalSymbol: session.canonicalSymbol,
-              timeframe: session.timeframe,
-            },
-            now,
-          );
-          session.candles = mergeHistoricalWithFcLiveCandles(
-            session.candles,
-            applied.candles,
-            now,
-            session.timeframe,
-          );
+          if (priceChanged) {
+            const applied = applyFcBidPriceToCandles(
+              session.candles,
+              match.candlePrice,
+              eventTimeMs,
+              {
+                marketType: "FOREX",
+                providerSymbol: session.providerSymbol,
+                canonicalSymbol: session.canonicalSymbol,
+                timeframe: session.timeframe,
+              },
+              now,
+            );
+            session.candles = mergeHistoricalWithFcLiveCandles(
+              session.candles,
+              applied.candles,
+              now,
+              session.timeframe,
+            );
+            session.lastPriceChangeAtMs = match.receivedAtMs;
+            session.updateCount += 1;
+          }
           session.lastQuote = match;
           session.lastQuoteAtMs = match.receivedAtMs;
-          // Count genuine instrument events even when OHLC is unchanged (same-price heartbeat).
-          session.updateCount += 1;
-          session.streamState = "LIVE";
+          session.streamState = resolveFcFeedStreamState({
+            priceChangeAgeMs: session.lastPriceChangeAtMs == null
+              ? null
+              : now - session.lastPriceChangeAtMs,
+            receiptAgeMs: now - match.receivedAtMs,
+            updateCount: session.updateCount,
+          });
           session.errorCode = null;
           session.errorMessage = null;
           continue;
@@ -430,7 +453,13 @@ export class ForexConnectLiveCandleService {
 
         if (genuineEvent && session.lastQuoteAtMs != null && quoteFresh) {
           session.lastQuote = match;
-          session.streamState = "LIVE";
+          session.streamState = resolveFcFeedStreamState({
+            priceChangeAgeMs: session.lastPriceChangeAtMs == null
+              ? null
+              : now - session.lastPriceChangeAtMs,
+            receiptAgeMs: now - match.receivedAtMs,
+            updateCount: session.updateCount,
+          });
           session.errorCode = null;
           session.errorMessage = null;
           continue;
@@ -439,7 +468,12 @@ export class ForexConnectLiveCandleService {
         if (
           session.lastQuoteAtMs != null
           && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS
-          && (session.updateCount > 0 || session.streamState === "LIVE" || session.streamState === "STALE")
+          && (
+            session.updateCount > 0
+            || session.streamState === "LIVE"
+            || session.streamState === "STALE"
+            || session.streamState === "NO_RECENT_MARKET_UPDATES"
+          )
         ) {
           session.streamState = "STALE";
           continue;
@@ -447,7 +481,11 @@ export class ForexConnectLiveCandleService {
 
         if (session.updateCount <= 0) {
           // Peers may be LIVE while this instrument only has a seeded Offers snapshot.
-          if (stream.streamState === "LIVE" && streamUpdates > 0 && !genuineEvent) {
+          if (
+            (stream.streamState === "LIVE" || stream.streamState === "NO_RECENT_MARKET_UPDATES")
+            && streamUpdates > 0
+            && !genuineEvent
+          ) {
             session.streamState = "MARKET_INACTIVE";
           } else {
             session.streamState = resolveFcWaitingStreamState(stream.streamState, session.updateCount);
@@ -474,12 +512,18 @@ export class ForexConnectLiveCandleService {
     if (session.updateCount <= 0 && this.lastStreamStatus && session.streamState !== "MARKET_INACTIVE") {
       streamState = resolveFcWaitingStreamState(this.lastStreamStatus.streamState, session.updateCount);
     }
-    if (
-      session.lastQuoteAtMs != null
-      && now - session.lastQuoteAtMs > FOREXCONNECT_STALE_MS
-      && streamState === "LIVE"
-    ) {
-      streamState = "STALE";
+    const receiptAgeMs = session.lastQuoteAtMs != null
+      ? Math.max(0, now - session.lastQuoteAtMs)
+      : null;
+    const priceChangeAgeMs = session.lastPriceChangeAtMs != null
+      ? Math.max(0, now - session.lastPriceChangeAtMs)
+      : null;
+    if (session.updateCount > 0 || session.lastQuoteAtMs != null) {
+      streamState = resolveFcFeedStreamState({
+        priceChangeAgeMs,
+        receiptAgeMs,
+        updateCount: session.updateCount,
+      });
     }
     const candles = mergeHistoricalWithFcLiveCandles(
       session.candles,
@@ -493,20 +537,25 @@ export class ForexConnectLiveCandleService {
     const diag = this.lastStreamStatus?.diagnostics ?? null;
     const sidecarUpdateCount = Number(this.lastStreamStatus?.updateCount ?? 0);
     // Instrument-specific freshness only — never inherit peer/global sidecar lastQuoteAt.
-    const lastQuoteAt = session.lastQuoteAtMs != null
-      ? new Date(session.lastQuoteAtMs).toISOString()
-      : null;
-    const lastQuoteAgeMs = session.lastQuoteAtMs != null
-      ? Math.max(0, now - session.lastQuoteAtMs)
-      : null;
+    // lastQuoteAt / age reflect last bid/ask change when available; else last receipt.
+    const lastQuoteAt = session.lastPriceChangeAtMs != null
+      ? new Date(session.lastPriceChangeAtMs).toISOString()
+      : session.lastQuoteAtMs != null
+        ? new Date(session.lastQuoteAtMs).toISOString()
+        : null;
+    const lastQuoteAgeMs = priceChangeAgeMs ?? receiptAgeMs;
     const diagNote = diag
       ? ` pollCycles=${diag.pollCycles} pollChanges=${diag.pollChanges} instrumentUpdates=${session.updateCount} sidecarUpdates=${sidecarUpdateCount}`
       : ` instrumentUpdates=${session.updateCount} sidecarUpdates=${sidecarUpdateCount}`;
-    const note = session.updateCount > 0
+    const note = streamState === "LIVE"
       ? `ForexConnect live bid candles (Offers table updates + historical baseline).${diagNote}`
-      : streamState === "MARKET_INACTIVE"
-        ? `ForexConnect Offers subscribed; this instrument has no fresh Offers events (peers may still be live).${diagNote}`
-        : `ForexConnect subscribed; waiting for Offers table price updates for this instrument.${diagNote}`;
+      : streamState === "NO_RECENT_MARKET_UPDATES"
+        ? `ForexConnect Offers active; no recent bid/ask changes for this instrument.${diagNote}`
+        : streamState === "MARKET_INACTIVE"
+          ? `ForexConnect Offers subscribed; this instrument has no fresh Offers events (peers may still be live).${diagNote}`
+          : streamState === "STALE"
+            ? `ForexConnect Offers feed stale for this instrument.${diagNote}`
+            : `ForexConnect subscribed; waiting for Offers table price updates for this instrument.${diagNote}`;
     return {
       ok: true,
       provider: "FOREXCONNECT",

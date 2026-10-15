@@ -685,6 +685,8 @@ export class ForexConnectBridge {
         maxSubscriptions: Number(body.maxSubscriptions ?? 8),
         lastQuoteAt: body.lastQuoteAt ? String(body.lastQuoteAt) : null,
         lastQuoteAgeMs: body.lastQuoteAgeMs == null ? null : Number(body.lastQuoteAgeMs),
+        lastReceiptAt: body.lastReceiptAt ? String(body.lastReceiptAt) : null,
+        lastReceiptAgeMs: body.lastReceiptAgeMs == null ? null : Number(body.lastReceiptAgeMs),
         lastStreamError: body.lastStreamError
           ? sanitize(String(body.lastStreamError))
           : null,

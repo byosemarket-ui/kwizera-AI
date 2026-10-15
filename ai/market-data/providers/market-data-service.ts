@@ -415,10 +415,11 @@ export class MarketDataService {
         || (state.updateCount > 0 && ageMs != null && ageMs > 15_000);
       const connectionState = isLive ? "LIVE"
         : isStale ? "STALE"
-          : streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
-            : streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
-              : streamState === "ERROR" || streamState === "SERVICE_UNAVAILABLE" ? "ERROR"
-                : "CONNECTED";
+          : streamState === "NO_RECENT_MARKET_UPDATES" ? "NO_RECENT_MARKET_UPDATES"
+            : streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
+              : streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
+                : streamState === "ERROR" || streamState === "SERVICE_UNAVAILABLE" ? "ERROR"
+                  : "CONNECTED";
       const dataQuality = isLive ? "LIVE" : isStale ? "STALE" : "VALID";
       // UnifiedQuote.sourceMode is LIVE | SNAPSHOT — never claim LIVE from a seed-only quote.
       const sourceMode = isLive ? "LIVE" as const : "SNAPSHOT" as const;
@@ -681,14 +682,15 @@ function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): Unifie
     : null;
   const connectionState = result.streamState === "LIVE" ? "LIVE"
     : result.streamState === "STALE" ? "STALE"
-      : result.streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
-        : result.streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
-          : result.streamState === "SUBSCRIBING" ? "CONNECTING"
-            : result.streamState === "ERROR" || result.streamState === "SERVICE_UNAVAILABLE"
-              ? "ERROR"
-              : result.streamState === "DISABLED" || result.streamState === "NOT_CONFIGURED"
-                ? "DISABLED"
-                : candles.length ? "CONNECTED" : "NO_DATA";
+      : result.streamState === "NO_RECENT_MARKET_UPDATES" ? "NO_RECENT_MARKET_UPDATES"
+        : result.streamState === "MARKET_INACTIVE" ? "MARKET_INACTIVE"
+          : result.streamState === "SUBSCRIBED_WAITING" ? "SUBSCRIBED_WAITING"
+            : result.streamState === "SUBSCRIBING" ? "CONNECTING"
+              : result.streamState === "ERROR" || result.streamState === "SERVICE_UNAVAILABLE"
+                ? "ERROR"
+                : result.streamState === "DISABLED" || result.streamState === "NOT_CONFIGURED"
+                  ? "DISABLED"
+                  : candles.length ? "CONNECTED" : "NO_DATA";
   const diag = result.streamDiagnostics;
   return {
     identity,
@@ -698,7 +700,8 @@ function unifyForexConnectLiveSeries(result: SafeForexConnectLiveSeries): Unifie
     connectionState,
     dataQuality: result.streamState === "LIVE" ? "LIVE"
       : result.streamState === "STALE" ? "STALE"
-        : candles.length ? "VALID" : "NO_DATA",
+        : result.streamState === "NO_RECENT_MARKET_UPDATES" ? "VALID"
+          : candles.length ? "VALID" : "NO_DATA",
     candles,
     forming,
     count: candles.length,

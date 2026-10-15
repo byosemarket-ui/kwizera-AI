@@ -10,9 +10,11 @@ export type ForexConnectLiveStreamState =
   | "DISABLED"
   | "NOT_CONFIGURED"
   | "DISCONNECTED"
+  | "AUTHENTICATED_IDLE"
   | "SUBSCRIBING"
   | "SUBSCRIBED_WAITING"
   | "MARKET_INACTIVE"
+  | "NO_RECENT_MARKET_UPDATES"
   | "LIVE"
   | "STALE"
   | "ERROR"
@@ -105,8 +107,12 @@ export interface ForexConnectStreamStatus {
   subscriptionCount: number;
   subscriptions: string[];
   maxSubscriptions: number;
+  /** Last genuine bid/ask change (not same-price heartbeat). */
   lastQuoteAt: string | null;
   lastQuoteAgeMs: number | null;
+  /** Last Offers receipt including same-price heartbeats. */
+  lastReceiptAt?: string | null;
+  lastReceiptAgeMs?: number | null;
   lastStreamError: string | null;
   updateCount: number;
   lastEventSource?: string | null;

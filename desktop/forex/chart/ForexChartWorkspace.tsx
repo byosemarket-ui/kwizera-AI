@@ -389,17 +389,19 @@ export function ForexChartWorkspace({
   const fcStatusShort = forexConnectSelected
     ? (unified.live
       ? "LIVE"
-      : fcConn === "MARKET_INACTIVE"
-        ? "MARKET_INACTIVE"
-        : fcConn === "SUBSCRIBED_WAITING"
-          ? "WAITING"
-          : fcConn === "STALE"
-            ? "STALE"
-            : fcConn === "CONNECTING"
-              ? "CONNECTING"
-              : seriesReady
-                ? "HISTORICAL"
-                : (unified.connectionState ?? "historical"))
+      : fcConn === "NO_RECENT_MARKET_UPDATES"
+        ? "NO_RECENT_MARKET_UPDATES"
+        : fcConn === "MARKET_INACTIVE"
+          ? "MARKET_INACTIVE"
+          : fcConn === "SUBSCRIBED_WAITING"
+            ? "WAITING"
+            : fcConn === "STALE"
+              ? "STALE"
+              : fcConn === "CONNECTING"
+                ? "CONNECTING"
+                : seriesReady
+                  ? "HISTORICAL"
+                  : (unified.connectionState ?? "historical"))
     : null;
   const providerMetaLabel = binanceSelected
     ? `${selected.displaySymbol} · ${CHART_TIMEFRAMES.find((item) => item.id === timeframe)?.label} · Binance Spot klines`
@@ -460,7 +462,8 @@ export function ForexChartWorkspace({
         ? "LIVE"
         : unified.connectionState === "STALE"
           ? "STALE"
-          : unified.connectionState === "MARKET_INACTIVE"
+          : unified.connectionState === "NO_RECENT_MARKET_UPDATES"
+            || unified.connectionState === "MARKET_INACTIVE"
             || unified.connectionState === "SUBSCRIBED_WAITING"
             || unified.state === "ready"
             || unified.state === "stale"
@@ -673,16 +676,18 @@ export function ForexChartWorkspace({
                   ? (forexConnectSelected ? "LIVE · ForexConnect Offers" : "LIVE · FXCM stream")
                   : seriesReady
                     ? (unified.connectionState === "STALE"
-                      ? "STALE · last quote aged out"
-                      : unified.connectionState === "MARKET_INACTIVE"
-                        ? "MARKET_INACTIVE · no Offers bid/ask changes"
-                        : unified.connectionState === "SUBSCRIBED_WAITING"
-                          ? "Authenticated · waiting for fresh quotes"
-                          : unified.connectionState === "AUTHENTICATED_IDLE"
-                            || unified.connectionState === "CONNECTED"
-                            || unified.connectionState === "SUBSCRIBED"
+                      ? "STALE · no recent Offers receipts"
+                      : unified.connectionState === "NO_RECENT_MARKET_UPDATES"
+                        ? "NO_RECENT_MARKET_UPDATES · Offers active, bid/ask flat"
+                        : unified.connectionState === "MARKET_INACTIVE"
+                          ? "MARKET_INACTIVE · no Offers bid/ask changes"
+                          : unified.connectionState === "SUBSCRIBED_WAITING"
                             ? "Authenticated · waiting for fresh quotes"
-                            : "Historical candles · market idle")
+                            : unified.connectionState === "AUTHENTICATED_IDLE"
+                              || unified.connectionState === "CONNECTED"
+                              || unified.connectionState === "SUBSCRIBED"
+                              ? "Authenticated · waiting for fresh quotes"
+                              : "Historical candles · market idle")
                     : (unified.message || "Market data unavailable")}
             </ForexStatusBadge>
           ) : (
@@ -692,15 +697,17 @@ export function ForexChartWorkspace({
             <p
               className="fx-panel-meta fx-stream-diagnostics"
               data-fx-stream-diagnostics="true"
+              data-fx-feed-state={unified.connectionState ?? ""}
               aria-label="ForexConnect Offers stream diagnostics"
             >
-              Offers · instrument {unified.streamDiagnostics.updateCount}
+              Feed {fcStatusShort ?? unified.connectionState ?? "UNKNOWN"}
+              {" · "}Offers · instrument {unified.streamDiagnostics.updateCount}
               {" · "}stream {unified.streamDiagnostics.sidecarUpdateCount}
               {" · "}poll {unified.streamDiagnostics.pollChanges}/{unified.streamDiagnostics.pollCycles}
               {unified.streamDiagnostics.lastQuoteAgeMs != null
-                ? ` · quote age ${Math.round(unified.streamDiagnostics.lastQuoteAgeMs / 1000)}s`
-                : " · no instrument quote yet"}
-              {unified.lastQuoteAt ? ` · last ${unified.lastQuoteAt}` : ""}
+                ? ` · price-change age ${Math.round(unified.streamDiagnostics.lastQuoteAgeMs / 1000)}s`
+                : " · no instrument price change yet"}
+              {unified.lastQuoteAt ? ` · last change ${unified.lastQuoteAt}` : ""}
             </p>
           ) : null}
         </div>
