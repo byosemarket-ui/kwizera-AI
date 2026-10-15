@@ -2738,3 +2738,121 @@ html.reduce-motion .fx-sidebar {
   .fx-ai-trade-budget input[type="text"] { width: 100%; }
   .fx-ai-provider-panels[data-compare="true"] { grid-template-columns: 1fr; }
 }
+
+/* Phase 46B — OpenAI nine-item FXCM assistant response */
+.fx-ai-asst { gap: 14px; }
+.fx-ai-asst-header { display: grid; gap: 6px; }
+.fx-ai-asst-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--fx-text);
+}
+.fx-ai-asst-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.fx-ai-asst-context { display: grid; gap: 8px; }
+.fx-ai-asst-user-bubble {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--fx-radius);
+  border: 1px solid var(--fx-border);
+  background: var(--fx-bg);
+  font-size: 13px;
+  color: var(--fx-muted);
+}
+.fx-ai-asst-context-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.fx-ai-asst-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.fx-ai-asst-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-surface);
+  border-left-width: 4px;
+}
+.fx-ai-asst-item[data-asst-tone="direction"] { border-left-color: #3d9a6a; }
+.fx-ai-asst-item[data-asst-tone="contracts"] { border-left-color: #3b82c4; }
+.fx-ai-asst-item[data-asst-tone="units"] { border-left-color: #c47a3b; }
+.fx-ai-asst-item[data-asst-tone="advanced"] { border-left-color: #8b6cc1; }
+.fx-ai-asst-item[data-asst-tone="tif"] { border-left-color: #3b82c4; }
+.fx-ai-asst-item[data-asst-tone="stop"] { border-left-color: #c44b4b; }
+.fx-ai-asst-item[data-asst-tone="takeprofit"] { border-left-color: #3d9a6a; }
+.fx-ai-asst-item[data-asst-tone="risk"] { border-left-color: #c4a03b; }
+.fx-ai-asst-item[data-asst-tone="action"] { border-left-color: #8b6cc1; }
+.fx-ai-asst-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fx-ai-asst-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b1220;
+  background: var(--fx-accent, #5ee0a8);
+}
+.fx-ai-asst-item[data-asst-tone="direction"] .fx-ai-asst-num { background: #3d9a6a; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="contracts"] .fx-ai-asst-num,
+.fx-ai-asst-item[data-asst-tone="tif"] .fx-ai-asst-num { background: #3b82c4; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="units"] .fx-ai-asst-num { background: #c47a3b; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="advanced"] .fx-ai-asst-num,
+.fx-ai-asst-item[data-asst-tone="action"] .fx-ai-asst-num { background: #8b6cc1; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="stop"] .fx-ai-asst-num { background: #c44b4b; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="takeprofit"] .fx-ai-asst-num { background: #3d9a6a; color: #fff; }
+.fx-ai-asst-item[data-asst-tone="risk"] .fx-ai-asst-num { background: #c4a03b; color: #0b1220; }
+.fx-ai-asst-item-title { font-size: 13px; }
+.fx-ai-asst-value { font-weight: 700; font-size: 13px; }
+.fx-ai-asst-map { margin: 0; font-size: 12px; }
+.fx-ai-asst-item[data-asst-support="unavailable"] .fx-ai-asst-value { color: var(--fx-muted); font-weight: 600; }
+.fx-ai-asst-final {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--fx-radius);
+  border: 1px solid var(--fx-border);
+  background: var(--fx-surface);
+}
+.fx-ai-asst-final[data-asst-final-tone="ready"] {
+  border-color: #3d9a6a;
+  box-shadow: inset 3px 0 0 #3d9a6a;
+}
+.fx-ai-asst-final[data-asst-final-tone="wait"] {
+  border-color: #c4a03b;
+  box-shadow: inset 3px 0 0 #c4a03b;
+}
+.fx-ai-asst-final[data-asst-final-tone="blocked"],
+.fx-ai-asst-final[data-asst-final-tone="unsuitable"] {
+  border-color: #c44b4b;
+  box-shadow: inset 3px 0 0 #c44b4b;
+}
+@media (max-width: 640px) {
+  .fx-ai-asst-item-head { align-items: flex-start; }
+  .fx-ai-asst-value { width: 100%; }
+}

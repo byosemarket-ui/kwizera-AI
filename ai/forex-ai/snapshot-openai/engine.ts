@@ -11,6 +11,8 @@ import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snaps
 import { verifySnapshotFingerprint } from "../snapshot-local/engine.js";
 import {
   buildGuidedAnalysisResponse,
+  buildOpenAiAssistantGuidanceItems,
+  selectPrimaryPlanForAssistant,
   validateTradeAllocation,
 } from "../analysis-response/index.js";
 import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
@@ -44,17 +46,32 @@ async function withPlans(
   const enriched = await enrichAnalysisWithPositionRisk(planned, snapshot, {
     tradeAllocation: tradeAllocation ?? null,
   });
+  const guidedResponse = buildGuidedAnalysisResponse({
+    source: {
+      ...enriched,
+      analysisProvider: "OPENAI",
+      instrument: enriched.instrument,
+      provider: String(enriched.provider),
+    },
+    tradeAllocation: tradeAllocation ?? null,
+  });
+  const bundle = enriched.planBundle;
+  const assistantGuidance = bundle
+    ? buildOpenAiAssistantGuidanceItems({
+      plan: selectPrimaryPlanForAssistant({
+        pullback: bundle.pullback as never,
+        breakout: bundle.breakout as never,
+      }),
+      marketDirection: bundle.marketDirection,
+      supportingEvidence: enriched.keyEvidence,
+      contradictingEvidence: guidedResponse.evidence.contradictingEvidence,
+      tradeAllocation: tradeAllocation ?? null,
+    })
+    : null;
   return {
     ...enriched,
-    guidedResponse: buildGuidedAnalysisResponse({
-      source: {
-        ...enriched,
-        analysisProvider: "OPENAI",
-        instrument: enriched.instrument,
-        provider: String(enriched.provider),
-      },
-      tradeAllocation: tradeAllocation ?? null,
-    }),
+    guidedResponse,
+    assistantGuidance,
   };
 }
 

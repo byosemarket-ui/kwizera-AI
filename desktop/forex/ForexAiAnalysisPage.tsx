@@ -9,6 +9,7 @@ import {
   type SnapshotAnalysisPanelData,
   type SnapshotPlanBundleUi,
   type GuidedAnalysisUi,
+  type OpenAiAssistantGuidanceUi,
 } from "./SnapshotAiResultPanels";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
@@ -185,6 +186,16 @@ function mapGuidedResponse(raw: unknown): GuidedAnalysisUi | null | undefined {
   return raw as GuidedAnalysisUi;
 }
 
+function mapAssistantGuidance(raw: unknown): OpenAiAssistantGuidanceUi | null | undefined {
+  if (raw == null) return raw as null | undefined;
+  if (typeof raw !== "object") return undefined;
+  const g = raw as Record<string, unknown>;
+  if (typeof g.schemaVersion !== "string" || !Array.isArray(g.items) || !g.finalSummary) {
+    return undefined;
+  }
+  return raw as OpenAiAssistantGuidanceUi;
+}
+
 function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | null): LocalSnapshotAnalysisUi {
   return {
     analysisId: analysis.analysisId,
@@ -211,6 +222,9 @@ function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | n
     analysisProvider: analysis.analysisProvider,
     planBundle: mapPlanBundle(analysis.planBundle),
     guidedResponse: mapGuidedResponse(analysis.guidedResponse),
+    assistantGuidance: mapAssistantGuidance(
+      (analysis as SnapshotAnalysisPanelData).assistantGuidance,
+    ),
   };
 }
 
@@ -1218,13 +1232,41 @@ export function ForexAiAnalysisPage({
     }
   }, [marketReady, provider, selectedMarket, mode, mtfSelected, tf]);
 
-  const analyzeLabel = phase === "analyzing"
+  const analyzeLabel = anyProviderBusy || phase === "analyzing"
     ? "Analyzing…"
-    : mode === "decision"
-      ? (decision ? "Analyze Decision again" : "Analyze Decision")
-      : mode === "mtf"
-        ? (mtf ? "Analyze Multi-Timeframe again" : "Analyze Multi-Timeframe")
-        : (single ? "Analyze again" : "Analyze Market");
+    : aiProviderMode === "OPENAI"
+      ? (openAi ? "Analyze Decision again" : "Analyze Decision")
+      : aiProviderMode === "LOCAL"
+        ? (localAi ? "Analyze with Local AI again" : "Analyze with Local AI")
+        : aiProviderMode === "COMPARE"
+          ? (compareUi ? "Compare Both again" : "Compare Both")
+          : mode === "decision"
+            ? (decision ? "Analyze Decision again" : "Analyze Decision")
+            : mode === "mtf"
+              ? (mtf ? "Analyze Multi-Timeframe again" : "Analyze Multi-Timeframe")
+              : (single ? "Analyze again" : "Analyze Market");
+
+  const runPrimaryAnalyze = useCallback(() => {
+    if (aiProviderMode === "OPENAI") {
+      void runOpenAiSnapshotAi();
+      return;
+    }
+    if (aiProviderMode === "LOCAL") {
+      void runLocalSnapshotAi();
+      return;
+    }
+    if (aiProviderMode === "COMPARE") {
+      void runCompareSnapshotAi();
+      return;
+    }
+    void runAnalysis();
+  }, [
+    aiProviderMode,
+    runOpenAiSnapshotAi,
+    runLocalSnapshotAi,
+    runCompareSnapshotAi,
+    runAnalysis,
+  ]);
 
   return (
     <section
@@ -1446,8 +1488,19 @@ export function ForexAiAnalysisPage({
               type="button"
               className="fx-text-button fx-ai-analyze-btn"
               data-ai-analyze-btn="true"
-              disabled={phase === "analyzing" || !marketReady || anyProviderBusy}
-              onClick={() => void runAnalysis()}
+              disabled={
+                anyProviderBusy
+                || phase === "analyzing"
+                || !marketReady
+                || ((aiProviderMode === "OPENAI" || aiProviderMode === "LOCAL" || aiProviderMode === "COMPARE")
+                  && !snapshotUsableForLocalAi)
+              }
+              onClick={() => runPrimaryAnalyze()}
+              title={
+                aiProviderMode === "OPENAI"
+                  ? "Run OpenAI snapshot analysis and show FXCM ticket guidance"
+                  : undefined
+              }
             >
               {analyzeLabel}
             </button>
@@ -1907,7 +1960,7 @@ export function ForexAiAnalysisPage({
         </div>
       ) : null}
 
-      {decision && mode === "decision" ? (
+      {decision && mode === "decision" && aiProviderMode !== "OPENAI" ? (
         <div className="fx-ai-result" data-ai-decision-result="true" data-ai-analysis-result="true">
           <AiPanel title="Decision analysis">
             <dl className="fx-ai-kv">

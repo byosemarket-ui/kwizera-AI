@@ -11,6 +11,7 @@ import type {
 import type { AnalysisPeriodId } from "../../market-data/analysis-snapshot/types.js";
 import type { CanonicalTimeframeId } from "../../market-data/providers/contracts.js";
 import type { MarketProviderId } from "../../market-data/providers/types.js";
+import type { OpenAiAssistantGuidanceBundle } from "../analysis-response/openai-assistant-items.js";
 import type { GuidedAnalysisResponse } from "../analysis-response/types.js";
 import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 
@@ -111,6 +112,8 @@ export interface OpenAiSnapshotAnalysisResult {
   planBundle?: SnapshotPlanBundle | null;
   /** Phase 46 — guided sections for UI (deterministic + model provenance). */
   guidedResponse?: GuidedAnalysisResponse | null;
+  /** Phase 46B — nine numbered FXCM ticket guidance items (OpenAI presentation). */
+  assistantGuidance?: OpenAiAssistantGuidanceBundle | null;
 }
 
 export interface OpenAiSnapshotAnalysisApiResult {

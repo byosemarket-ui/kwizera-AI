@@ -129,6 +129,35 @@ export type GuidedAnalysisUi = {
   } | null;
 };
 
+/** Phase 46B — nine numbered OpenAI assistant items (server-built). */
+export type OpenAiAssistantGuidanceUi = {
+  schemaVersion: string;
+  planKind: string;
+  planId: string;
+  readiness: string;
+  readinessNote: string;
+  items: Array<{
+    number: number;
+    tone: string;
+    title: string;
+    value: string;
+    ticketField: string;
+    support: string;
+    why: string;
+    verify: string;
+    unavailableReason: string | null;
+  }>;
+  finalSummary: {
+    directionOrWait: string;
+    confirmationStatus: string;
+    riskEligible: boolean | null;
+    reason: string;
+    verifyNext: string;
+    tone: string;
+  };
+  disclaimer: string;
+};
+
 export type SnapshotAnalysisPanelData = {
   analysisId: string;
   snapshotId: string;
@@ -152,6 +181,7 @@ export type SnapshotAnalysisPanelData = {
   analysisProvider?: string;
   planBundle?: SnapshotPlanBundleUi | null;
   guidedResponse?: GuidedAnalysisUi | null;
+  assistantGuidance?: OpenAiAssistantGuidanceUi | null;
 };
 
 function fmtPrice(n: number | null | undefined): string {
@@ -364,6 +394,147 @@ function OrderTicketBlock({ guided }: { guided: GuidedAnalysisUi }) {
   );
 }
 
+function OpenAiAssistantResultBody({
+  data,
+  onRetry,
+  retryDisabled,
+}: {
+  data: SnapshotAnalysisPanelData;
+  onRetry: () => void;
+  retryDisabled: boolean;
+}) {
+  const guided = data.guidedResponse ?? null;
+  const ms = guided?.marketSummary;
+  const guidance = data.assistantGuidance ?? null;
+  const instrument = ms?.instrument ?? "—";
+  const provider = ms?.provider ?? data.analysisProvider ?? "OPENAI";
+  const summaryTone = guidance?.finalSummary.tone ?? "wait";
+
+  return (
+    <>
+      <header className="fx-ai-asst-header" data-ai-openai-assistant-header="true">
+        <h2 className="fx-ai-asst-title">
+          OPENAI FOREX ANALYSIS ASSISTANT — {instrument}
+        </h2>
+        <p className="fx-ai-asst-status">
+          <ForexStatusBadge tone={data.status === "completed" ? "live" : "future"}>
+            {data.status}
+          </ForexStatusBadge>
+          <span className="fx-ai-muted">
+            {instrument} · {provider}
+            {data.model ? ` · model ${data.model}` : ""}
+            {" · "}dq {data.dataQuality}
+            {data.inferenceLatencyMs != null ? ` · ${data.inferenceLatencyMs} ms` : ""}
+          </span>
+          <span className="fx-ai-mono" title={data.analysisId}>a {data.analysisId.slice(0, 8)}</span>
+          <span className="fx-ai-mono" title={data.snapshotId}>s {data.snapshotId.slice(0, 8)}</span>
+        </p>
+      </header>
+
+      <section className="fx-ai-asst-context" aria-label="User context summary">
+        <p className="fx-ai-asst-user-bubble">
+          Analyze {instrument} for FXCM ticket preparation using the prepared snapshot and risk settings.
+        </p>
+        <ul className="fx-ai-asst-context-list">
+          <li>
+            <span className="fx-ai-label">Instrument</span> {instrument} ({provider})
+          </li>
+          <li>
+            <span className="fx-ai-label">Trade allocation</span>{" "}
+            {guided?.tradeAllocation?.amount != null
+              ? `${guided.tradeAllocation.amount} ${guided.tradeAllocation.currency}`
+              : "not submitted"}
+            {" — capital set aside, not acceptable loss"}
+          </li>
+          <li>
+            <span className="fx-ai-label">Decision</span> {data.decision}
+            {" · "}
+            <span className="fx-ai-label">Bias</span> {data.marketBias}
+          </li>
+          <li className="fx-ai-muted">
+            Snapshot {data.snapshotId.slice(0, 12)}… · fp {data.contentFingerprint.slice(0, 12)}…
+          </li>
+        </ul>
+      </section>
+
+      {guidance ? (
+        <ol className="fx-ai-asst-items" data-ai-openai-assistant-items="true" aria-label="FXCM ticket guidance">
+          {guidance.items.map((it) => (
+            <li
+              key={it.number}
+              className="fx-ai-asst-item"
+              data-asst-tone={it.tone}
+              data-asst-support={it.support}
+            >
+              <div className="fx-ai-asst-item-head">
+                <span className="fx-ai-asst-num" aria-hidden="true">{it.number}</span>
+                <strong className="fx-ai-asst-item-title">{it.title}</strong>
+                <span className="fx-ai-asst-value">{it.value}</span>
+              </div>
+              <p className="fx-ai-asst-map">
+                <span className="fx-ai-label">FXCM field</span> {it.ticketField}
+                {" · "}
+                <span className="fx-ai-ticket-support">{it.support}</span>
+              </p>
+              <p className="fx-ai-muted">{it.why}</p>
+              <p className="fx-ai-muted">Verify: {it.verify}</p>
+              {it.unavailableReason ? (
+                <p className="fx-ai-snapshot-warn">{it.unavailableReason}</p>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="fx-ai-snapshot-warn">
+          Nine-item ticket guidance unavailable for this result (no validated plan bundle).
+        </p>
+      )}
+
+      {guidance ? (
+        <section
+          className="fx-ai-asst-final"
+          data-asst-final-tone={summaryTone}
+          aria-label="Final assistant summary"
+        >
+          <h3 className="fx-ai-guided-title">Final recommendation</h3>
+          <p>
+            <span className="fx-ai-label">Direction</span> {guidance.finalSummary.directionOrWait}
+            {" · "}
+            <span className="fx-ai-label">Confirmation</span> {guidance.finalSummary.confirmationStatus}
+            {" · "}
+            <span className="fx-ai-label">Risk</span>{" "}
+            {guidance.finalSummary.riskEligible == null
+              ? "not calculated"
+              : guidance.finalSummary.riskEligible
+                ? "ELIGIBLE (review only)"
+                : "INELIGIBLE"}
+          </p>
+          <p>{guidance.finalSummary.reason}</p>
+          <p className="fx-ai-muted">{guidance.finalSummary.verifyNext}</p>
+          <p className="fx-ai-muted">{guidance.disclaimer}</p>
+        </section>
+      ) : null}
+
+      <details className="fx-ai-evidence-details">
+        <summary>Technical evidence (expand)</summary>
+        {data.keyEvidence.length ? (
+          <ul className="fx-ai-local-list">
+            {data.keyEvidence.map((e, i) => <li key={`kev-${i}`}>{e}</li>)}
+          </ul>
+        ) : (
+          <p className="fx-ai-muted">No key evidence listed.</p>
+        )}
+        {data.decisionRationale ? <p className="fx-ai-muted">{data.decisionRationale}</p> : null}
+        {data.limitations[0] ? <p className="fx-ai-snapshot-warn">{data.limitations[0]}</p> : null}
+      </details>
+
+      <button type="button" className="fx-text-button" disabled={retryDisabled} onClick={onRetry}>
+        Retry OpenAI
+      </button>
+    </>
+  );
+}
+
 export function SnapshotProviderResultPanel({
   title,
   busy,
@@ -381,16 +552,22 @@ export function SnapshotProviderResultPanel({
   onRetry: () => void;
   retryDisabled: boolean;
 }) {
+  const isOpenAiAssistant = dataAttr === "openai";
   const bundle = data?.planBundle ?? null;
   const guided = data?.guidedResponse ?? null;
   const ms = guided?.marketSummary;
 
   return (
     <div
-      className="fx-ai-result-card fx-ai-guided"
+      className={
+        isOpenAiAssistant
+          ? "fx-ai-result-card fx-ai-guided fx-ai-asst"
+          : "fx-ai-result-card fx-ai-guided"
+      }
       data-ai-provider-result={dataAttr}
       data-ai-busy={busy ? "true" : "false"}
       data-forex-ai-phase46="true"
+      data-forex-ai-phase46b={isOpenAiAssistant ? "true" : undefined}
     >
       <div className="fx-ai-result-card-head">
         <strong>{title}</strong>
@@ -404,7 +581,15 @@ export function SnapshotProviderResultPanel({
         </div>
       ) : null}
 
-      {data ? (
+      {data && isOpenAiAssistant ? (
+        <OpenAiAssistantResultBody
+          data={data}
+          onRetry={onRetry}
+          retryDisabled={retryDisabled}
+        />
+      ) : null}
+
+      {data && !isOpenAiAssistant ? (
         <>
           <div className="fx-ai-local-head">
             <ForexStatusBadge tone={data.decision === "WAIT" || data.decision === "NO_TRADE" ? "future" : "live"}>
