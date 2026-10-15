@@ -113,6 +113,7 @@ export class SnapshotCompareOrchestrator {
         symbol: raw.symbol,
         candleTimeframe: raw.candleTimeframe,
         analysisPeriod: raw.analysisPeriod,
+        tradeAllocation: raw.tradeAllocation ?? null,
       };
 
       // Independent parallel execution — neither receives the other's result.

@@ -2650,3 +2650,91 @@ html.reduce-motion .fx-sidebar {
 @media (max-width: 820px) {
   .fx-monitor-layout { grid-template-columns: 1fr; }
 }
+
+/* Phase 46 — guided analysis response + trade allocation */
+.fx-ai-trade-budget {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-surface);
+}
+.fx-ai-trade-budget input[type="number"] {
+  width: 7.5rem;
+  padding: 6px 8px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-bg);
+  color: var(--fx-text);
+}
+.fx-ai-trade-budget input[type="text"] {
+  width: 3.5rem;
+  padding: 6px 8px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-bg);
+  color: var(--fx-text);
+  text-transform: uppercase;
+}
+.fx-ai-trade-budget .fx-ai-muted { flex: 1 1 220px; }
+.fx-ai-guided { display: grid; gap: 12px; }
+.fx-ai-guided-section { display: grid; gap: 6px; margin: 0; }
+.fx-ai-guided-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fx-text);
+  letter-spacing: 0.01em;
+}
+.fx-ai-budget-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fx-muted);
+}
+.fx-ai-ticket-block {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--fx-border);
+}
+.fx-ai-ticket-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fx-ai-ticket-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 10px;
+}
+.fx-ai-ticket-field { display: grid; gap: 2px; }
+.fx-ai-ticket-field-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
+.fx-ai-ticket-support {
+  font-size: 11px;
+  color: var(--fx-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fx-ai-ticket-field[data-support="unavailable"] strong { color: var(--fx-muted); }
+.fx-ai-risk-summary ul { margin: 4px 0 0; }
+.fx-ai-final-decision {
+  padding-top: 8px;
+  border-top: 1px solid var(--fx-border);
+}
+@media (max-width: 640px) {
+  .fx-ai-trade-budget { flex-direction: column; align-items: stretch; }
+  .fx-ai-trade-budget input[type="number"],
+  .fx-ai-trade-budget input[type="text"] { width: 100%; }
+  .fx-ai-provider-panels[data-compare="true"] { grid-template-columns: 1fr; }
+}

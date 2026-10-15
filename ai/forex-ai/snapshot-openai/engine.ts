@@ -9,6 +9,10 @@ import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.j
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snapshot.js";
 import { verifySnapshotFingerprint } from "../snapshot-local/engine.js";
+import {
+  buildGuidedAnalysisResponse,
+  validateTradeAllocation,
+} from "../analysis-response/index.js";
 import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
 import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getForexOpenAiConfigStore, type ForexOpenAiConfigStore } from "./config-store.js";
@@ -34,9 +38,24 @@ import type {
 async function withPlans(
   analysis: OpenAiSnapshotAnalysisResult,
   snapshot: AnalysisMarketSnapshot,
+  tradeAllocation?: { amount: number; currency: string } | null,
 ): Promise<OpenAiSnapshotAnalysisResult> {
   const planned = attachPlanBundleToAnalysis(analysis, snapshot, "OPENAI");
-  return enrichAnalysisWithPositionRisk(planned, snapshot);
+  const enriched = await enrichAnalysisWithPositionRisk(planned, snapshot, {
+    tradeAllocation: tradeAllocation ?? null,
+  });
+  return {
+    ...enriched,
+    guidedResponse: buildGuidedAnalysisResponse({
+      source: {
+        ...enriched,
+        analysisProvider: "OPENAI",
+        instrument: enriched.instrument,
+        provider: String(enriched.provider),
+      },
+      tradeAllocation: tradeAllocation ?? null,
+    }),
+  };
 }
 
 export const OPENAI_DEFAULT_TIMEOUT_MS = 90_000;
@@ -78,6 +97,11 @@ export class OpenAiSnapshotAnalysisEngine {
 
   async analyze(raw: OpenAiSnapshotAnalysisRequest): Promise<OpenAiSnapshotAnalysisApiResult> {
     const started = Date.now();
+    const tradeAllocation = (() => {
+      if (raw.tradeAllocation == null) return null;
+      const parsed = validateTradeAllocation(raw.tradeAllocation);
+      return parsed.ok ? parsed.value : null;
+    })();
     const snapshotId = String(raw.snapshotId ?? "").trim();
     if (!snapshotId) {
       return fail(started, "INVALID_REQUEST", "snapshotId is required.");
@@ -188,7 +212,7 @@ export class OpenAiSnapshotAnalysisEngine {
           `Snapshot validation status is ${snapshot.validation.status}; `
           + "evidence is not ready for directional OpenAI analysis.",
         newsResearchStatus,
-      }), snapshot);
+      }), snapshot, tradeAllocation);
       await store.save(analysis, evidence);
       return {
         ok: true,
@@ -214,7 +238,7 @@ export class OpenAiSnapshotAnalysisEngine {
           chat,
           newsResearchStatus,
         });
-      }), snapshot);
+      }), snapshot, tradeAllocation);
 
       const authFailed = analysis.error && /authentication|API key/i.test(analysis.error);
       if (!authFailed && analysis.status === "completed") {
@@ -246,7 +270,7 @@ export class OpenAiSnapshotAnalysisEngine {
         newsResearchStatus,
         status: "failed",
         error: message,
-      }), snapshot);
+      }), snapshot, tradeAllocation);
       await store.save(failed, evidence);
       return {
         ok: false,

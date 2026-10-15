@@ -144,4 +144,7 @@ export interface PositionRiskResult {
   blockingReasons: string[];
   notes: string[];
   computedAt: string;
+  /** Phase 46 — user allocated capital for the trade (not an acceptable loss). */
+  tradeAllocationAmount?: number | null;
+  tradeAllocationCurrency?: string | null;
 }

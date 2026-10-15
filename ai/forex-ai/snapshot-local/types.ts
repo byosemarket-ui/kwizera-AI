@@ -4,6 +4,7 @@
 import type { AnalysisPeriodId } from "../../market-data/analysis-snapshot/types.js";
 import type { CanonicalTimeframeId } from "../../market-data/providers/contracts.js";
 import type { MarketProviderId } from "../../market-data/providers/types.js";
+import type { GuidedAnalysisResponse } from "../analysis-response/types.js";
 import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 
 export const LOCAL_SNAPSHOT_ANALYSIS_SCHEMA = "forex-local-snapshot-analysis-v1";
@@ -29,6 +30,8 @@ export interface LocalSnapshotAnalysisRequest {
   candleTimeframe?: string;
   analysisPeriod?: string;
   timeoutMs?: number;
+  /** Phase 46 — allocated trade capital (not acceptable loss). */
+  tradeAllocation?: { amount: number; currency: string } | null;
 }
 
 export interface SnapshotEvidenceCategories {
@@ -109,6 +112,8 @@ export interface LocalSnapshotAnalysisResult {
   error: string | null;
   /** Phase 44 — Pullback/Breakout plans + direction (null if attach failed). */
   planBundle?: SnapshotPlanBundle | null;
+  /** Phase 46 — guided sections for UI (deterministic + model provenance). */
+  guidedResponse?: GuidedAnalysisResponse | null;
 }
 
 export interface LocalSnapshotAnalysisApiResult {

@@ -98,6 +98,40 @@ export function resolveContractForSnapshotInstrument(input: {
   );
 }
 
+function applyTradeAllocationGate(
+  risk: PositionRiskResult,
+  allocation: { amount: number; currency: string } | null | undefined,
+): PositionRiskResult {
+  if (!allocation) return risk;
+  const notes = [
+    ...risk.notes,
+    `Trade allocation ${allocation.amount} ${allocation.currency} is capital set aside — not the risk budget / acceptable loss.`,
+  ];
+  const blocking = [...risk.blockingReasons];
+  const acct = (risk.accountCurrency ?? "").toUpperCase();
+  const allocCcy = allocation.currency.toUpperCase();
+  if (acct && allocCcy && acct !== allocCcy) {
+    blocking.push(
+      `Trade allocation currency ${allocCcy} differs from account currency ${acct}.`,
+    );
+  }
+  const margin = risk.margin.estimatedMarginAccount;
+  if (typeof margin === "number" && Number.isFinite(margin) && margin > allocation.amount) {
+    blocking.push(
+      `Estimated margin ${margin.toFixed(2)} exceeds allocated trade capital ${allocation.amount} ${allocation.currency}.`,
+    );
+  }
+  const unique = [...new Set(blocking)];
+  return {
+    ...risk,
+    tradeAllocationAmount: allocation.amount,
+    tradeAllocationCurrency: allocation.currency,
+    notes,
+    blockingReasons: unique,
+    riskEligible: unique.length === 0 && risk.riskEligible,
+  };
+}
+
 export function attachPositionRiskToPlan(
   plan: SnapshotTradePlan,
   input: {
@@ -114,6 +148,7 @@ export function attachPositionRiskToPlan(
     bid?: number | null;
     ask?: number | null;
     proposedSize?: number | null;
+    tradeAllocation?: { amount: number; currency: string } | null;
   },
 ): SnapshotTradePlanWithRisk {
   const entry = plan.entryZone.reference ?? plan.entryZone.lower ?? plan.entryZone.upper;
@@ -129,7 +164,8 @@ export function attachPositionRiskToPlan(
     ask: input.ask,
     conversionQuotes: input.conversionQuotes,
   });
-  const positionRisk = applyPlanIntentGates(plan, raw);
+  const withIntent = applyPlanIntentGates(plan, raw);
+  const positionRisk = applyTradeAllocationGate(withIntent, input.tradeAllocation);
   return { ...plan, positionRisk };
 }
 
@@ -149,6 +185,7 @@ export function attachPositionRiskToBundle(
     bid?: number | null;
     ask?: number | null;
     proposedSize?: number | null;
+    tradeAllocation?: { amount: number; currency: string } | null;
   },
 ): SnapshotPlanBundleWithRisk {
   return {

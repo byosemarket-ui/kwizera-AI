@@ -1,5 +1,5 @@
 /**
- * Phase 44 — Compact Local/OpenAI result + trade-plan panels.
+ * Phase 44/46 — Guided Local/OpenAI result + trade-plan + FXCM ticket panels.
  */
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 
@@ -47,6 +47,9 @@ export type SnapshotPlanUi = {
     excessRiskAccount: number | null;
     margin?: { estimatedMarginAccount: number | null; unavailableReason: string | null };
     contract?: { convention: string; verified: boolean; unavailableReason: string | null };
+    tradeAllocationAmount?: number | null;
+    tradeAllocationCurrency?: string | null;
+    notes?: string[];
   } | null;
 };
 
@@ -68,6 +71,62 @@ export type SnapshotPlanBundleUi = {
   };
   pullback: SnapshotPlanUi;
   breakout: SnapshotPlanUi;
+};
+
+/** Phase 46 guided response (UI mirror — validated on server). */
+export type GuidedAnalysisUi = {
+  schemaVersion: string;
+  provider: string | null;
+  model: string | null;
+  marketSummary: {
+    instrument: string | null;
+    provider: string | null;
+    snapshotId: string | null;
+    dataQuality: string | null;
+    marketCondition: string | null;
+    conditionMeaning: string | null;
+    conditionExplanation: string | null;
+    decision: string | null;
+    decisionRationale: string | null;
+    confidenceDisplay: string | null;
+  };
+  evidence: {
+    observedFacts: string[];
+    supportingEvidence: string[];
+    contradictingEvidence: string[];
+    confirmationRequired: string[];
+    invalidationConditions: string[];
+    dataLimitations: string[];
+    structureNotes: string[];
+  };
+  orderTicketByPlan: Array<{
+    schemaVersion: string;
+    planKind: string;
+    planId: string;
+    readiness: string;
+    readinessNote: string;
+    fields: Array<{
+      fieldId: string;
+      label: string;
+      proposedValue: string | null;
+      support: string;
+      why: string;
+      verify: string;
+      unavailableReason: string | null;
+    }>;
+    disclaimer: string;
+  }>;
+  finalDecision: {
+    summary: string;
+    nextAction: string;
+    primaryInvalidation: string | null;
+    keyFinancialRisk: string | null;
+  };
+  tradeAllocation: {
+    amount: number | null;
+    currency: string | null;
+    note: string;
+  } | null;
 };
 
 export type SnapshotAnalysisPanelData = {
@@ -92,6 +151,7 @@ export type SnapshotAnalysisPanelData = {
   newsResearchStatus?: string;
   analysisProvider?: string;
   planBundle?: SnapshotPlanBundleUi | null;
+  guidedResponse?: GuidedAnalysisUi | null;
 };
 
 function fmtPrice(n: number | null | undefined): string {
@@ -101,13 +161,25 @@ function fmtPrice(n: number | null | undefined): string {
   return n.toFixed(6);
 }
 
+function fmtMoney(n: number | null | undefined, ccy: string | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "unavailable";
+  return `${n.toFixed(2)}${ccy ? ` ${ccy}` : ""}`;
+}
+
 function lifecycleTone(life: string): "live" | "future" | "offline" {
   if (life === "SETUP_CONFIRMED") return "live";
   if (life === "WAIT_CONFLICT" || life === "INVALIDATED" || life === "EXPIRED") return "offline";
   return "future";
 }
 
+function readinessTone(r: string): "live" | "future" | "offline" {
+  if (r === "READY_FOR_REVIEW") return "live";
+  if (r === "UNSUITABLE" || r === "BLOCKED") return "offline";
+  return "future";
+}
+
 function PlanCard({ plan, collapsedDefault = true }: { plan: SnapshotPlanUi; collapsedDefault?: boolean }) {
+  const risk = plan.positionRisk;
   return (
     <details className="fx-ai-plan-card" data-plan-kind={plan.planKind} open={!collapsedDefault}>
       <summary className="fx-ai-plan-summary">
@@ -155,7 +227,7 @@ function PlanCard({ plan, collapsedDefault = true }: { plan: SnapshotPlanUi; col
                 ? plan.riskReward.unavailableReason
                 : plan.riskReward.ratio != null
                   ? plan.riskReward.ratio.toFixed(2)
-                  : "N/A"}
+                  : "unavailable"}
             </p>
           </div>
         </div>
@@ -169,59 +241,126 @@ function PlanCard({ plan, collapsedDefault = true }: { plan: SnapshotPlanUi; col
             <span className="fx-ai-label">Invalidation</span> {plan.invalidationConditions.slice(0, 2).join(" · ")}
           </p>
         ) : null}
-        {plan.expiryConditions[0] ? (
-          <p className="fx-ai-muted">
-            <span className="fx-ai-label">Expiry</span> {plan.expiryConditions[0]}
-          </p>
-        ) : null}
         {plan.unsuitableReasons[0] ? (
           <p className="fx-ai-snapshot-warn">{plan.unsuitableReasons[0]}</p>
         ) : null}
-        {plan.spreadNote ? <p className="fx-ai-muted">{plan.spreadNote}</p> : null}
-        {plan.positionRisk ? (
+        {risk ? (
           <div className="fx-ai-plan-risk" data-plan-risk="true">
-            <span className="fx-ai-label">Position risk</span>
+            <span className="fx-ai-label">Position risk (Phase 45)</span>
             <p>
-              {plan.positionRisk.riskEligible ? "RISK_ELIGIBLE" : "RISK_INELIGIBLE"}
+              {risk.riskEligible ? "RISK_ELIGIBLE" : "RISK_INELIGIBLE"}
               {" · "}
-              {plan.positionRisk.calculationMode}
-              {plan.positionRisk.positionSize != null
-                ? ` · size ${plan.positionRisk.positionSize} ${plan.positionRisk.positionSizeUnit}`
-                : ""}
-              {plan.positionRisk.maxPermissibleSize != null
-                ? ` · max ${plan.positionRisk.maxPermissibleSize}`
-                : ""}
+              {risk.calculationMode}
+              {risk.positionSize != null
+                ? ` · size ${risk.positionSize} ${risk.positionSizeUnit}`
+                : " · size unavailable"}
             </p>
             <p className="fx-ai-muted">
-              Net risk{" "}
-              {plan.positionRisk.netLossAccount != null && plan.positionRisk.accountCurrency
-                ? `${plan.positionRisk.netLossAccount.toFixed(2)} ${plan.positionRisk.accountCurrency}`
-                : "unavailable"}
+              Est. loss {fmtMoney(risk.netLossAccount, risk.accountCurrency)}
+              {" · Est. profit "}
+              {fmtMoney(risk.netProfitAccount, risk.accountCurrency)}
               {" · R:R "}
-              {plan.positionRisk.rewardRiskRatio != null
-                ? plan.positionRisk.rewardRiskRatio.toFixed(2)
-                : "n/a"}
+              {risk.rewardRiskRatio != null ? risk.rewardRiskRatio.toFixed(2) : "unavailable"}
               {" / min "}
-              {plan.positionRisk.minRewardRiskRatio}
+              {risk.minRewardRiskRatio}
             </p>
-            {plan.positionRisk.excessRiskAccount != null ? (
-              <p className="fx-ai-snapshot-warn">
-                Excess risk {plan.positionRisk.excessRiskAccount.toFixed(2)}
-                {plan.positionRisk.accountCurrency ? ` ${plan.positionRisk.accountCurrency}` : ""}
+            {risk.tradeAllocationAmount != null ? (
+              <p className="fx-ai-budget-note">
+                Allocated capital {risk.tradeAllocationAmount}
+                {risk.tradeAllocationCurrency ? ` ${risk.tradeAllocationCurrency}` : ""}
+                {" — not an acceptable loss."}
               </p>
             ) : null}
-            {plan.positionRisk.blockingReasons[0] ? (
-              <p className="fx-ai-snapshot-warn">{plan.positionRisk.blockingReasons[0]}</p>
-            ) : null}
-            {plan.positionRisk.contract && !plan.positionRisk.contract.verified ? (
-              <p className="fx-ai-muted">
-                {plan.positionRisk.contract.unavailableReason || "Contract metadata unverified."}
-              </p>
+            {risk.blockingReasons[0] ? (
+              <p className="fx-ai-snapshot-warn">{risk.blockingReasons[0]}</p>
             ) : null}
           </div>
         ) : null}
       </div>
     </details>
+  );
+}
+
+function RiskSummaryBlock({ bundle }: { bundle: SnapshotPlanBundleUi }) {
+  const plans = [bundle.pullback, bundle.breakout];
+  return (
+    <section className="fx-ai-guided-section fx-ai-risk-summary" aria-label="Financial risk summary">
+      <h3 className="fx-ai-guided-title">E. Financial risk summary</h3>
+      <p className="fx-ai-budget-note">
+        Allocated trade capital is not the risk budget. Maximum loss uses Admin Phase 45 risk settings.
+      </p>
+      <ul className="fx-ai-local-list">
+        {plans.map((p) => {
+          const r = p.positionRisk;
+          return (
+            <li key={p.planId}>
+              <strong>{p.planKind}</strong>
+              {": "}
+              {r
+                ? [
+                  r.riskEligible ? "eligible" : "ineligible",
+                  r.positionSize != null ? `size ${r.positionSize} ${r.positionSizeUnit}` : "size unavailable",
+                  `loss ${fmtMoney(r.netLossAccount, r.accountCurrency)}`,
+                  `profit ${fmtMoney(r.netProfitAccount, r.accountCurrency)}`,
+                  r.margin?.estimatedMarginAccount != null && r.accountCurrency
+                    ? `margin ~${r.margin.estimatedMarginAccount.toFixed(2)} ${r.accountCurrency}`
+                    : `margin ${r.margin?.unavailableReason ?? "unavailable"}`,
+                ].join(" · ")
+                : "position risk not attached"}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function OrderTicketBlock({ guided }: { guided: GuidedAnalysisUi }) {
+  if (!guided.orderTicketByPlan.length) {
+    return (
+      <section className="fx-ai-guided-section" aria-label="FXCM order ticket guidance">
+        <h3 className="fx-ai-guided-title">D. FXCM order ticket guidance</h3>
+        <p className="fx-ai-muted">No plan ticket mapping available for this result.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="fx-ai-guided-section" aria-label="FXCM order ticket guidance">
+      <h3 className="fx-ai-guided-title">D. FXCM order ticket guidance</h3>
+      <p className="fx-ai-muted">
+        Decision-support only. Does not place, modify, or close FXCM orders.
+      </p>
+      {guided.orderTicketByPlan.map((ticket) => (
+        <div key={ticket.planId} className="fx-ai-ticket-block" data-ticket-plan={ticket.planKind}>
+          <div className="fx-ai-ticket-head">
+            <strong>{ticket.planKind}</strong>
+            <ForexStatusBadge tone={readinessTone(ticket.readiness)}>
+              {ticket.readiness}
+            </ForexStatusBadge>
+            <span className="fx-ai-muted">{ticket.readinessNote}</span>
+          </div>
+          <ol className="fx-ai-ticket-list">
+            {ticket.fields.map((f) => (
+              <li key={f.fieldId} className="fx-ai-ticket-field" data-support={f.support}>
+                <div className="fx-ai-ticket-field-top">
+                  <span className="fx-ai-label">{f.label}</span>
+                  <span className="fx-ai-ticket-support">{f.support}</span>
+                  <strong>
+                    {f.proposedValue ?? (f.unavailableReason ? "unavailable" : "—")}
+                  </strong>
+                </div>
+                <p className="fx-ai-muted">{f.why}</p>
+                <p className="fx-ai-muted">Verify: {f.verify}</p>
+                {f.unavailableReason ? (
+                  <p className="fx-ai-snapshot-warn">{f.unavailableReason}</p>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          <p className="fx-ai-muted">{ticket.disclaimer}</p>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -243,11 +382,15 @@ export function SnapshotProviderResultPanel({
   retryDisabled: boolean;
 }) {
   const bundle = data?.planBundle ?? null;
+  const guided = data?.guidedResponse ?? null;
+  const ms = guided?.marketSummary;
+
   return (
     <div
-      className="fx-ai-result-card"
+      className="fx-ai-result-card fx-ai-guided"
       data-ai-provider-result={dataAttr}
       data-ai-busy={busy ? "true" : "false"}
+      data-forex-ai-phase46="true"
     >
       <div className="fx-ai-result-card-head">
         <strong>{title}</strong>
@@ -267,93 +410,149 @@ export function SnapshotProviderResultPanel({
             <ForexStatusBadge tone={data.decision === "WAIT" || data.decision === "NO_TRADE" ? "future" : "live"}>
               {data.decision}
             </ForexStatusBadge>
-            {bundle ? (
-              <ForexStatusBadge tone="future">{bundle.marketDirection}</ForexStatusBadge>
+            {(ms?.marketCondition || bundle?.marketDirection) ? (
+              <ForexStatusBadge tone="future">
+                {ms?.marketCondition ?? bundle!.marketDirection}
+              </ForexStatusBadge>
             ) : null}
             <span className="fx-ai-muted">
               bias {data.marketBias} · dq {data.dataQuality} · {data.status}
               {data.inferenceLatencyMs != null ? ` · ${data.inferenceLatencyMs} ms` : ""}
-              {data.newsResearchStatus ? ` · news ${data.newsResearchStatus}` : ""}
             </span>
             <span className="fx-ai-mono" title={data.analysisId}>a {data.analysisId.slice(0, 8)}</span>
             <span className="fx-ai-mono" title={data.snapshotId}>s {data.snapshotId.slice(0, 8)}</span>
-            <span className="fx-ai-mono" title={data.contentFingerprint}>fp {data.contentFingerprint.slice(0, 12)}</span>
           </div>
 
-          {bundle ? (
-            <div className="fx-ai-direction-block" data-ai-market-direction={bundle.marketDirection}>
-              <p className="fx-ai-local-rationale">
-                <span className="fx-ai-label">Direction</span> {bundle.marketDirection}
-                {" — "}{bundle.directionMeaning}
+          <section className="fx-ai-guided-section" aria-label="Market summary">
+            <h3 className="fx-ai-guided-title">A. Market summary</h3>
+            <p>
+              <span className="fx-ai-label">Instrument</span>{" "}
+              {ms?.instrument ?? "—"}
+              {" · "}
+              <span className="fx-ai-label">Provider</span>{" "}
+              {ms?.provider ?? data.analysisProvider ?? "—"}
+            </p>
+            <p>
+              <span className="fx-ai-label">Condition</span>{" "}
+              {ms?.marketCondition ?? bundle?.marketDirection ?? data.marketBias}
+              {ms?.conditionMeaning || bundle?.directionMeaning
+                ? ` — ${ms?.conditionMeaning ?? bundle?.directionMeaning}`
+                : ""}
+            </p>
+            <p className="fx-ai-muted">
+              {ms?.conditionExplanation
+                ?? bundle?.directionExplanation
+                ?? data.decisionRationale}
+            </p>
+            {guided?.tradeAllocation ? (
+              <p className="fx-ai-budget-note" data-ai-trade-allocation="true">
+                Trade allocation used: {guided.tradeAllocation.amount}{" "}
+                {guided.tradeAllocation.currency}. {guided.tradeAllocation.note}
               </p>
-              <p className="fx-ai-muted">{bundle.directionExplanation}</p>
-              <p className="fx-ai-muted">
-                <span className="fx-ai-label">Confidence</span> {bundle.confidenceDisplay}
-              </p>
-            </div>
-          ) : null}
+            ) : (
+              <p className="fx-ai-muted">No trade allocation submitted with this run.</p>
+            )}
+          </section>
 
-          <p className="fx-ai-local-rationale">{data.decisionRationale}</p>
-          {data.marketStructureSummary ? (
-            <p className="fx-ai-muted"><span className="fx-ai-label">Structure</span> {data.marketStructureSummary}</p>
-          ) : null}
+          <details className="fx-ai-guided-section fx-ai-evidence-details" open={false}>
+            <summary className="fx-ai-guided-title">B. Evidence and reasoning</summary>
+            {guided?.evidence ? (
+              <>
+                {guided.evidence.observedFacts.length ? (
+                  <>
+                    <span className="fx-ai-label">Observed facts</span>
+                    <ul className="fx-ai-local-list">
+                      {guided.evidence.observedFacts.map((e, i) => <li key={`of-${i}`}>{e}</li>)}
+                    </ul>
+                  </>
+                ) : null}
+                {guided.evidence.supportingEvidence.length ? (
+                  <>
+                    <span className="fx-ai-label">Supporting</span>
+                    <ul className="fx-ai-local-list">
+                      {guided.evidence.supportingEvidence.map((e, i) => <li key={`se-${i}`}>{e}</li>)}
+                    </ul>
+                  </>
+                ) : null}
+                {guided.evidence.contradictingEvidence.length ? (
+                  <>
+                    <span className="fx-ai-label">Contradicting</span>
+                    <ul className="fx-ai-local-list">
+                      {guided.evidence.contradictingEvidence.map((e, i) => <li key={`ce-${i}`}>{e}</li>)}
+                    </ul>
+                  </>
+                ) : null}
+                {guided.evidence.confirmationRequired[0] ? (
+                  <p className="fx-ai-muted">
+                    <span className="fx-ai-label">Confirmation needed</span>{" "}
+                    {guided.evidence.confirmationRequired.join(" · ")}
+                  </p>
+                ) : null}
+                {guided.evidence.dataLimitations[0] ? (
+                  <p className="fx-ai-snapshot-warn">{guided.evidence.dataLimitations[0]}</p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {data.keyEvidence.length ? (
+                  <ul className="fx-ai-local-list">
+                    {data.keyEvidence.map((e, i) => <li key={`ev-${i}`}>{e}</li>)}
+                  </ul>
+                ) : (
+                  <p className="fx-ai-muted">No key evidence listed.</p>
+                )}
+                {data.marketStructureSummary ? (
+                  <p className="fx-ai-muted">{data.marketStructureSummary}</p>
+                ) : null}
+              </>
+            )}
+          </details>
 
-          {bundle ? (
-            <div className="fx-ai-plans" data-ai-trade-plans="true">
-              <PlanCard plan={bundle.pullback} collapsedDefault={false} />
-              <PlanCard plan={bundle.breakout} collapsedDefault={false} />
-            </div>
-          ) : (
-            <p className="fx-ai-snapshot-warn">Trade plans unavailable for this result.</p>
+          <section className="fx-ai-guided-section" aria-label="Trade plan">
+            <h3 className="fx-ai-guided-title">C. Trade plan</h3>
+            {bundle ? (
+              <div className="fx-ai-plans" data-ai-trade-plans="true">
+                <PlanCard plan={bundle.pullback} collapsedDefault={false} />
+                <PlanCard plan={bundle.breakout} collapsedDefault />
+              </div>
+            ) : (
+              <p className="fx-ai-snapshot-warn">Trade plans unavailable for this result.</p>
+            )}
+          </section>
+
+          {guided ? <OrderTicketBlock guided={guided} /> : (
+            <section className="fx-ai-guided-section" aria-label="FXCM order ticket guidance">
+              <h3 className="fx-ai-guided-title">D. FXCM order ticket guidance</h3>
+              <p className="fx-ai-muted">Guided ticket mapping unavailable — plans still shown above.</p>
+            </section>
           )}
 
-          <details className="fx-ai-evidence-details">
-            <summary>Evidence &amp; structure details</summary>
-            {data.keyEvidence.length ? (
-              <ul className="fx-ai-local-list" aria-label="Key evidence">
-                {data.keyEvidence.map((e, i) => <li key={`ev-${i}`}>{e}</li>)}
-              </ul>
-            ) : <p className="fx-ai-muted">No key evidence listed.</p>}
-            {bundle?.structureEvidence ? (
-              <div className="fx-ai-structure-meta">
-                <p className="fx-ai-muted">
-                  trend {bundle.structureEvidence.trendState ?? "—"}
-                  {" · "}H {fmtPrice(bundle.structureEvidence.lastSwingHigh)}
-                  {" · "}L {fmtPrice(bundle.structureEvidence.lastSwingLow)}
-                  {" · "}quote {bundle.structureEvidence.quoteFreshness ?? "—"}
-                  {" · "}usable {bundle.structureEvidence.dataUsable ? "yes" : "no"}
-                </p>
-                {bundle.structureEvidence.events.length ? (
-                  <ul className="fx-ai-local-list">
-                    {bundle.structureEvidence.events.slice(0, 4).map((ev, i) => (
-                      <li key={`sev-${i}`}>{ev.type} {ev.direction} {ev.status} @ {fmtPrice(ev.level)}</li>
-                    ))}
-                  </ul>
-                ) : null}
-                {bundle.structureEvidence.zones.length ? (
-                  <ul className="fx-ai-local-list">
-                    {bundle.structureEvidence.zones.slice(0, 3).map((z, i) => (
-                      <li key={`z-${i}`}>{z.side} {fmtPrice(z.low)}–{fmtPrice(z.high)} ({z.status})</li>
-                    ))}
-                  </ul>
-                ) : null}
-                {bundle.structureEvidence.patterns.length ? (
-                  <ul className="fx-ai-local-list">
-                    {bundle.structureEvidence.patterns.slice(0, 3).map((p, i) => (
-                      <li key={`p-${i}`}>{p.name} {p.direction} {p.status}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            ) : null}
-            {data.invalidationConditions.length ? (
+          {bundle ? <RiskSummaryBlock bundle={bundle} /> : null}
+
+          <section className="fx-ai-guided-section fx-ai-final-decision" aria-label="Final decision">
+            <h3 className="fx-ai-guided-title">F. Final decision and next action</h3>
+            <p>{guided?.finalDecision.summary ?? data.decisionRationale}</p>
+            <p>
+              <span className="fx-ai-label">Next</span>{" "}
+              {guided?.finalDecision.nextAction
+                ?? "WAIT — continue monitoring; do not submit a broker order from this panel."}
+            </p>
+            {guided?.finalDecision.primaryInvalidation || data.invalidationConditions[0] ? (
               <p className="fx-ai-muted">
-                <span className="fx-ai-label">Invalidation</span> {data.invalidationConditions.join(" · ")}
+                <span className="fx-ai-label">Invalidation</span>{" "}
+                {guided?.finalDecision.primaryInvalidation ?? data.invalidationConditions[0]}
               </p>
             ) : null}
-            {data.limitations[0] ? <p className="fx-ai-snapshot-warn">{data.limitations[0]}</p> : null}
-            {data.warnings[0] ? <p className="fx-ai-snapshot-warn">{data.warnings[0]}</p> : null}
-          </details>
+            {guided?.finalDecision.keyFinancialRisk ? (
+              <p className="fx-ai-muted">
+                <span className="fx-ai-label">Key financial risk</span>{" "}
+                {guided.finalDecision.keyFinancialRisk}
+              </p>
+            ) : null}
+            <p className="fx-ai-muted">
+              Analytical decision support only — not a guarantee of direction or profit.
+            </p>
+          </section>
 
           <button type="button" className="fx-text-button" disabled={retryDisabled} onClick={onRetry}>
             Retry {title}

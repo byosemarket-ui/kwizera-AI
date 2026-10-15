@@ -11,6 +11,7 @@ import type {
 import type { AnalysisPeriodId } from "../../market-data/analysis-snapshot/types.js";
 import type { CanonicalTimeframeId } from "../../market-data/providers/contracts.js";
 import type { MarketProviderId } from "../../market-data/providers/types.js";
+import type { GuidedAnalysisResponse } from "../analysis-response/types.js";
 import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 
 export const OPENAI_SNAPSHOT_ANALYSIS_SCHEMA = "forex-openai-snapshot-analysis-v1";
@@ -31,6 +32,8 @@ export interface OpenAiSnapshotAnalysisRequest {
   timeoutMs?: number;
   /** When true, attempt news research if a safe integration exists (43E: unavailable). */
   includeNewsResearch?: boolean;
+  /** Phase 46 — allocated trade capital (not acceptable loss). */
+  tradeAllocation?: { amount: number; currency: string } | null;
 }
 
 export interface OpenAiDiscoveredModelPublic {
@@ -106,6 +109,8 @@ export interface OpenAiSnapshotAnalysisResult {
   error: string | null;
   /** Phase 44 — Pullback/Breakout plans + direction (null if attach failed). */
   planBundle?: SnapshotPlanBundle | null;
+  /** Phase 46 — guided sections for UI (deterministic + model provenance). */
+  guidedResponse?: GuidedAnalysisResponse | null;
 }
 
 export interface OpenAiSnapshotAnalysisApiResult {

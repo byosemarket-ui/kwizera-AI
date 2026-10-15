@@ -24,6 +24,8 @@ export interface SnapshotCompareRequest {
   analysisPeriod?: string;
   localTimeoutMs?: number;
   openaiTimeoutMs?: number;
+  /** Phase 46 — same allocation applied independently to both providers. */
+  tradeAllocation?: { amount: number; currency: string } | null;
 }
 
 export interface ProviderOutcomeSuccess<T> {

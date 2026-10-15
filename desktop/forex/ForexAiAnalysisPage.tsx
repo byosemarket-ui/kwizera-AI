@@ -8,6 +8,7 @@ import {
   SnapshotProviderResultPanel,
   type SnapshotAnalysisPanelData,
   type SnapshotPlanBundleUi,
+  type GuidedAnalysisUi,
 } from "./SnapshotAiResultPanels";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
@@ -114,6 +115,36 @@ function writeAiProviderMode(mode: AiProviderMode): void {
   }
 }
 
+const TRADE_ALLOCATION_KEY = "kwizera.forex.tradeAllocation";
+
+type TradeAllocationStored = { amount: string; currency: string };
+
+function readTradeAllocation(): TradeAllocationStored {
+  try {
+    const raw = localStorage.getItem(TRADE_ALLOCATION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<TradeAllocationStored>;
+      if (parsed && typeof parsed === "object") {
+        return {
+          amount: typeof parsed.amount === "string" ? parsed.amount : "",
+          currency: typeof parsed.currency === "string" && parsed.currency ? parsed.currency : "USD",
+        };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { amount: "", currency: "USD" };
+}
+
+function writeTradeAllocation(value: TradeAllocationStored): void {
+  try {
+    localStorage.setItem(TRADE_ALLOCATION_KEY, JSON.stringify(value));
+  } catch {
+    /* ignore */
+  }
+}
+
 type CompareUi = {
   status: string;
   snapshotId: string;
@@ -144,6 +175,16 @@ function mapPlanBundle(raw: unknown): SnapshotPlanBundleUi | null {
   return b;
 }
 
+function mapGuidedResponse(raw: unknown): GuidedAnalysisUi | null | undefined {
+  if (raw == null) return raw as null | undefined;
+  if (typeof raw !== "object") return undefined;
+  const g = raw as Record<string, unknown>;
+  if (typeof g.schemaVersion !== "string" || !g.marketSummary || typeof g.marketSummary !== "object") {
+    return undefined;
+  }
+  return raw as GuidedAnalysisUi;
+}
+
 function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | null): LocalSnapshotAnalysisUi {
   return {
     analysisId: analysis.analysisId,
@@ -169,6 +210,7 @@ function mapAnalysisUi(analysis: LocalSnapshotAnalysisUi, latencyMs?: number | n
     newsResearchStatus: analysis.newsResearchStatus,
     analysisProvider: analysis.analysisProvider,
     planBundle: mapPlanBundle(analysis.planBundle),
+    guidedResponse: mapGuidedResponse(analysis.guidedResponse),
   };
 }
 
@@ -579,6 +621,28 @@ export function ForexAiAnalysisPage({
     setAiProviderModeState(next);
     writeAiProviderMode(next);
   }, []);
+  const [tradeAllocAmount, setTradeAllocAmount] = useState(() => readTradeAllocation().amount);
+  const [tradeAllocCurrency, setTradeAllocCurrency] = useState(() => readTradeAllocation().currency);
+  const [tradeAllocError, setTradeAllocError] = useState<string | null>(null);
+  const buildTradeAllocationPayload = useCallback((): { amount: number; currency: string } | null => {
+    const trimmedAmount = tradeAllocAmount.trim();
+    if (!trimmedAmount) {
+      setTradeAllocError(null);
+      return null;
+    }
+    const amount = Number(trimmedAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTradeAllocError("Enter a positive trade allocation amount.");
+      return null;
+    }
+    const currency = tradeAllocCurrency.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      setTradeAllocError("Currency must be a 3-letter ISO code (e.g. USD).");
+      return null;
+    }
+    setTradeAllocError(null);
+    return { amount, currency };
+  }, [tradeAllocAmount, tradeAllocCurrency]);
   const [localAiBusy, setLocalAiBusy] = useState(false);
   const [localAiError, setLocalAiError] = useState<string | null>(null);
   const [localAi, setLocalAi] = useState<LocalSnapshotAnalysisUi | null>(null);
@@ -827,6 +891,9 @@ export function ForexAiAnalysisPage({
     }
     if (anyProviderBusy) return;
 
+    const tradeAllocation = buildTradeAllocationPayload();
+    if (tradeAllocAmount.trim() && tradeAllocation === null) return;
+
     const seq = ++localAiRequestSeq.current;
     setLocalAiBusy(true);
     setLocalAiError(null);
@@ -843,6 +910,7 @@ export function ForexAiAnalysisPage({
           symbol: selectedMarket?.symbol,
           candleTimeframe: snapshot.candleTimeframe,
           analysisPeriod: snapshot.analysisPeriod,
+          tradeAllocation,
         }),
       });
       const data = await res.json() as {
@@ -867,7 +935,7 @@ export function ForexAiAnalysisPage({
     } finally {
       if (seq === localAiRequestSeq.current) setLocalAiBusy(false);
     }
-  }, [snapshot, snapshotStale, anyProviderBusy, provider, selectedMarket?.symbol]);
+  }, [snapshot, snapshotStale, anyProviderBusy, provider, selectedMarket?.symbol, buildTradeAllocationPayload, tradeAllocAmount]);
 
   const runOpenAiSnapshotAi = useCallback(async () => {
     if (!snapshot || snapshotStale) {
@@ -883,6 +951,9 @@ export function ForexAiAnalysisPage({
       return;
     }
     if (anyProviderBusy) return;
+
+    const tradeAllocation = buildTradeAllocationPayload();
+    if (tradeAllocAmount.trim() && tradeAllocation === null) return;
 
     const seq = ++openAiRequestSeq.current;
     setOpenAiBusy(true);
@@ -900,6 +971,7 @@ export function ForexAiAnalysisPage({
           symbol: selectedMarket?.symbol,
           candleTimeframe: snapshot.candleTimeframe,
           analysisPeriod: snapshot.analysisPeriod,
+          tradeAllocation,
         }),
       });
       const data = await res.json() as {
@@ -932,7 +1004,7 @@ export function ForexAiAnalysisPage({
     } finally {
       if (seq === openAiRequestSeq.current) setOpenAiBusy(false);
     }
-  }, [snapshot, snapshotStale, anyProviderBusy, openAiConfigured, provider, selectedMarket?.symbol]);
+  }, [snapshot, snapshotStale, anyProviderBusy, openAiConfigured, provider, selectedMarket?.symbol, buildTradeAllocationPayload, tradeAllocAmount]);
 
   const runCompareSnapshotAi = useCallback(async () => {
     if (!snapshot || snapshotStale) {
@@ -944,6 +1016,9 @@ export function ForexAiAnalysisPage({
       return;
     }
     if (anyProviderBusy) return;
+
+    const tradeAllocation = buildTradeAllocationPayload();
+    if (tradeAllocAmount.trim() && tradeAllocation === null) return;
 
     const seq = ++compareRequestSeq.current;
     setCompareBusy(true);
@@ -963,6 +1038,7 @@ export function ForexAiAnalysisPage({
           symbol: selectedMarket?.symbol,
           candleTimeframe: snapshot.candleTimeframe,
           analysisPeriod: snapshot.analysisPeriod,
+          tradeAllocation,
         }),
       });
       const data = await res.json() as {
@@ -1076,7 +1152,7 @@ export function ForexAiAnalysisPage({
         setOpenAiBusy(false);
       }
     }
-  }, [snapshot, snapshotStale, anyProviderBusy, provider, selectedMarket?.symbol]);
+  }, [snapshot, snapshotStale, anyProviderBusy, provider, selectedMarket?.symbol, buildTradeAllocationPayload, tradeAllocAmount]);
 
   const runAnalysis = useCallback(async () => {
     if (!marketReady || !selectedMarket) {
@@ -1429,6 +1505,45 @@ export function ForexAiAnalysisPage({
             OpenAI model: {openAiModel}
             {openAiModelEligible === false ? " (ineligible — update in Admin)" : ""}
           </span>
+        ) : null}
+      </div>
+
+      <div className="fx-ai-trade-budget" data-ai-trade-budget="true">
+        <span className="fx-ai-label">Trade allocation</span>
+        <input
+          type="number"
+          min="0"
+          step="any"
+          aria-label="Trade allocation amount"
+          data-ai-trade-alloc-amount="true"
+          value={tradeAllocAmount}
+          disabled={anyProviderBusy}
+          onChange={(e) => {
+            const amount = e.target.value;
+            setTradeAllocAmount(amount);
+            writeTradeAllocation({ amount, currency: tradeAllocCurrency });
+            if (tradeAllocError) setTradeAllocError(null);
+          }}
+        />
+        <input
+          type="text"
+          maxLength={3}
+          aria-label="Trade allocation currency"
+          data-ai-trade-alloc-currency="true"
+          value={tradeAllocCurrency}
+          disabled={anyProviderBusy}
+          onChange={(e) => {
+            const currency = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+            setTradeAllocCurrency(currency);
+            writeTradeAllocation({ amount: tradeAllocAmount, currency });
+            if (tradeAllocError) setTradeAllocError(null);
+          }}
+        />
+        <span className="fx-ai-muted">
+          Capital set aside for this trade — not an acceptable loss. Risk budget remains Admin Phase 45 settings.
+        </span>
+        {tradeAllocError ? (
+          <span className="fx-ai-snapshot-warn" role="status">{tradeAllocError}</span>
         ) : null}
       </div>
 

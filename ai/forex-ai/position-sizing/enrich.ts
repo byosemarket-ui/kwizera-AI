@@ -31,6 +31,7 @@ export async function enrichPlanBundleWithPositionRisk(input: {
     source: string;
     observedAt: string;
   }>;
+  tradeAllocation?: { amount: number; currency: string } | null;
   storageRoot?: string;
 }): Promise<SnapshotPlanBundleWithRisk> {
   const settings = await getForexRiskSettingsService(input.storageRoot).getSettings();
@@ -55,6 +56,7 @@ export async function enrichPlanBundleWithPositionRisk(input: {
     conversionQuotes: input.conversionQuotes,
     bid: quote?.bid ?? null,
     ask: quote?.ask ?? null,
+    tradeAllocation: input.tradeAllocation,
   });
 }
 
@@ -81,6 +83,7 @@ export async function enrichAnalysisWithPositionRisk<
       source: string;
       observedAt: string;
     }>;
+    tradeAllocation?: { amount: number; currency: string } | null;
     storageRoot?: string;
   },
 ): Promise<T> {

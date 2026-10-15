@@ -97,6 +97,9 @@ export async function handleForexAiLocalSnapshotApi(
         candleTimeframe: body.candleTimeframe == null ? undefined : String(body.candleTimeframe),
         analysisPeriod: body.analysisPeriod == null ? undefined : String(body.analysisPeriod),
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+        tradeAllocation: body.tradeAllocation == null
+          ? null
+          : body.tradeAllocation as { amount: number; currency: string },
       });
 
       const status = result.ok

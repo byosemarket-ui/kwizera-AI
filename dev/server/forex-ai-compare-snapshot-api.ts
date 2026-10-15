@@ -88,6 +88,9 @@ export async function handleForexAiCompareSnapshotApi(
       analysisPeriod: body.analysisPeriod == null ? undefined : String(body.analysisPeriod),
       localTimeoutMs: typeof body.localTimeoutMs === "number" ? body.localTimeoutMs : undefined,
       openaiTimeoutMs: typeof body.openaiTimeoutMs === "number" ? body.openaiTimeoutMs : undefined,
+      tradeAllocation: body.tradeAllocation == null
+        ? null
+        : body.tradeAllocation as { amount: number; currency: string },
     });
 
     const httpStatus = result.ok

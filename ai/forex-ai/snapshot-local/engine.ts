@@ -16,6 +16,10 @@ import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot
 import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import { parseCanonicalTimeframe } from "../../market-data/providers/contracts.js";
 import { parseAnalysisPeriodId } from "../../market-data/analysis-snapshot/periods.js";
+import {
+  buildGuidedAnalysisResponse,
+  validateTradeAllocation,
+} from "../analysis-response/index.js";
 import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
 import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { getLocalAiInferenceGate } from "./concurrency.js";
@@ -38,9 +42,24 @@ import type {
 async function withPlans(
   analysis: LocalSnapshotAnalysisResult,
   snapshot: AnalysisMarketSnapshot,
+  tradeAllocation?: { amount: number; currency: string } | null,
 ): Promise<LocalSnapshotAnalysisResult> {
   const planned = attachPlanBundleToAnalysis(analysis, snapshot, "LOCAL");
-  return enrichAnalysisWithPositionRisk(planned, snapshot);
+  const enriched = await enrichAnalysisWithPositionRisk(planned, snapshot, {
+    tradeAllocation: tradeAllocation ?? null,
+  });
+  return {
+    ...enriched,
+    guidedResponse: buildGuidedAnalysisResponse({
+      source: {
+        ...enriched,
+        analysisProvider: "LOCAL",
+        instrument: enriched.instrument,
+        provider: String(enriched.provider),
+      },
+      tradeAllocation: tradeAllocation ?? null,
+    }),
+  };
 }
 
 export const LOCAL_AI_DEFAULT_TIMEOUT_MS = 120_000;
@@ -118,6 +137,11 @@ export class LocalSnapshotAnalysisEngine {
 
   async analyze(raw: LocalSnapshotAnalysisRequest): Promise<LocalSnapshotAnalysisApiResult> {
     const started = Date.now();
+    const tradeAllocation = (() => {
+      if (raw.tradeAllocation == null) return null;
+      const parsed = validateTradeAllocation(raw.tradeAllocation);
+      return parsed.ok ? parsed.value : null;
+    })();
     const snapshotId = String(raw.snapshotId ?? "").trim();
     if (!snapshotId) {
       return fail(started, "INVALID_REQUEST", "snapshotId is required.");
@@ -188,7 +212,7 @@ export class LocalSnapshotAnalysisEngine {
         reason:
           `Snapshot validation status is ${snapshot.validation.status}; `
           + "evidence is not ready for directional Local AI analysis.",
-      }), snapshot);
+      }), snapshot, tradeAllocation);
       await store.save(analysis, evidence);
       return {
         ok: true,
@@ -208,7 +232,7 @@ export class LocalSnapshotAnalysisEngine {
           evidence,
           timeoutMs,
         });
-      }), snapshot);
+      }), snapshot, tradeAllocation);
       await store.save(analysis, evidence);
       const ok = analysis.status === "completed" && !analysis.error;
       return {
@@ -234,7 +258,7 @@ export class LocalSnapshotAnalysisEngine {
         status: "failed",
         decision: "NO_TRADE",
         error: message,
-      }, snapshot);
+      }, snapshot, tradeAllocation);
       await store.save(failed, evidence);
       return {
         ok: false,

@@ -464,6 +464,9 @@ export async function handleForexAiOpenAiSnapshotApi(
         analysisPeriod: body.analysisPeriod == null ? undefined : String(body.analysisPeriod),
         timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
         includeNewsResearch: Boolean(body.includeNewsResearch),
+        tradeAllocation: body.tradeAllocation == null
+          ? null
+          : body.tradeAllocation as { amount: number; currency: string },
       });
 
       const httpStatus = result.ok
