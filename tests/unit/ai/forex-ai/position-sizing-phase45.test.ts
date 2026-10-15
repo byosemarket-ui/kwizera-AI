@@ -407,7 +407,9 @@ describe("Phase 45 wiring", () => {
     expect(sidecar).toContain("pipCost");
     expect(sidecar).toContain("baseUnitSize");
     expect(sidecar).toContain("mmrPerLot");
+    expect(sidecar).toContain("/accounts");
     expect(openaiEngine).toContain("enrichAnalysisWithPositionRisk");
+    expect(api).toContain("account-snapshot");
     expect(api).not.toMatch(/sk-[a-zA-Z0-9]{20,}/);
   });
 });

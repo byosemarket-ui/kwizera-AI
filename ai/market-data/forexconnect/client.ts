@@ -16,6 +16,7 @@ import {
 import { normalizeFcOfferQuote } from "./live-candle-sync.js";
 import type { ForexConnectLiveQuote, ForexConnectStreamStatus } from "./live-types.js";
 import type {
+  ForexConnectAccountsResult,
   ForexConnectCandlesRequest,
   ForexConnectInstrumentsResult,
   ForexConnectSafeStatus,
@@ -262,6 +263,87 @@ export class ForexConnectBridge {
           error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
         ),
       });
+    }
+  }
+
+  /**
+   * Phase 47B — read-only Accounts table via sidecar.
+   * Never places orders. Returns explicit status when disconnected / empty.
+   */
+  async listAccounts(): Promise<ForexConnectAccountsResult> {
+    const cfg = this.getConfig();
+    const status = await this.getStatus();
+    if (status.status !== "CONNECTED") {
+      return {
+        ok: false,
+        code: "DISCONNECTED",
+        count: 0,
+        accounts: [],
+        fetchedAt: new Date().toISOString(),
+        status,
+        trading: "DISABLED",
+        error: {
+          code: String(status.errorCode ?? `FOREXCONNECT_${status.status}`),
+          message: status.errorMessage
+            ?? "ForexConnect is not connected. Connect before reading accounts.",
+        },
+      };
+    }
+    try {
+      const remote = await sidecarFetch(cfg, "/accounts", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as unknown as ForexConnectAccountsResult;
+      if (!body.ok) {
+        return {
+          ok: false,
+          code: body.code ?? "ACCOUNTS_UNAVAILABLE",
+          count: 0,
+          accounts: [],
+          fetchedAt: body.fetchedAt ?? new Date().toISOString(),
+          status: body.status ?? status,
+          trading: "DISABLED",
+          error: body.error ?? {
+            code: "FOREXCONNECT_ACCOUNTS_UNAVAILABLE",
+            message: "Accounts table read failed.",
+          },
+          note: body.note,
+        };
+      }
+      const accounts = Array.isArray(body.accounts) ? body.accounts : [];
+      return {
+        ok: true,
+        code: body.code ?? (accounts.length > 1 ? "MULTIPLE_ACCOUNTS" : accounts.length === 0 ? "NO_ACCOUNTS" : "OK"),
+        count: accounts.length,
+        accounts,
+        fetchedAt: body.fetchedAt ?? new Date().toISOString(),
+        status: body.status ?? status,
+        trading: "DISABLED",
+        note: body.note
+          ?? "Read-only ForexConnect Accounts snapshot. Trading disabled.",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        code: "SERVICE_UNAVAILABLE",
+        count: 0,
+        accounts: [],
+        fetchedAt: new Date().toISOString(),
+        status: {
+          ...status,
+          status: "SERVICE_UNAVAILABLE",
+          sidecarReachable: false,
+          errorCode: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          errorMessage: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+        trading: "DISABLED",
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+      };
     }
   }
 

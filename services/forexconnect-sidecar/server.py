@@ -687,6 +687,240 @@ def instruments_payload() -> dict[str, Any]:
     }
 
 
+def _mask_account_id(raw: Any) -> Optional[str]:
+    text = str(raw).strip() if raw is not None else ""
+    if not text:
+        return None
+    if len(text) <= 4:
+        return "***" + text
+    return "***" + text[-4:]
+
+
+def _account_currency_from_session(fx: Any) -> tuple[Optional[str], Optional[str]]:
+    """
+    Phase 47B — try documented system-property currency keys only.
+    Returns (currency, sourceNote). Never invents a currency.
+    """
+    try:
+        login_rules = getattr(fx, "login_rules", None)
+        if login_rules is None and hasattr(fx, "get_login_rules"):
+            login_rules = fx.get_login_rules()
+        if login_rules is None:
+            return None, None
+        props = None
+        for attr in ("system_properties", "system_properties_response"):
+            candidate = getattr(login_rules, attr, None)
+            if candidate is not None:
+                props = candidate
+                break
+        if props is None:
+            return None, None
+        # Prefer mapping / get accessors used by FXCM samples.
+        keys = (
+            "BASE_CRNCY",
+            "BASE_CURRENCY",
+            "AccountCurrency",
+            "ACCOUNT_CURRENCY",
+            "base_crncy",
+            "currency",
+        )
+        getter = getattr(props, "get", None) or getattr(props, "get_property", None)
+        if callable(getter):
+            for key in keys:
+                try:
+                    value = getter(key)
+                except Exception:
+                    value = None
+                if value is not None and str(value).strip():
+                    ccy = str(value).strip().upper()
+                    if len(ccy) == 3 and ccy.isalpha():
+                        return ccy, f"system_properties:{key}"
+        if isinstance(props, dict):
+            for key in keys:
+                value = props.get(key)
+                if value is not None and str(value).strip():
+                    ccy = str(value).strip().upper()
+                    if len(ccy) == 3 and ccy.isalpha():
+                        return ccy, f"system_properties:{key}"
+    except Exception:
+        return None, None
+    return None, None
+
+
+def _normalize_account_row(
+    row: Any,
+    *,
+    environment: str,
+    session_currency: Optional[str],
+    currency_source: Optional[str],
+) -> Optional[dict[str, Any]]:
+    account_id = _row_get(row, "account_id", "AccountID", "accountId", "get_account_id", "getAccountID")
+    if account_id is None or str(account_id).strip() == "":
+        return None
+    account_id_s = str(account_id).strip()
+    account_name = _row_get(row, "account_name", "AccountName", "accountName", "get_account_name", "getAccountName")
+    balance = _finite(_row_get(row, "balance", "Balance", "get_balance", "getBalance"))
+    equity = _finite(_row_get(row, "equity", "Equity", "get_equity", "getEquity"))
+    used_margin = _finite(
+        _row_get(row, "used_margin", "UsedMargin", "usedMargin", "get_used_margin", "getUsedMargin")
+    )
+    usable_margin = _finite(
+        _row_get(
+            row,
+            "usable_margin",
+            "UsableMargin",
+            "usableMargin",
+            "get_usable_margin",
+            "getUsableMargin",
+        )
+    )
+    row_currency = _row_get(
+        row,
+        "account_currency",
+        "AccountCurrency",
+        "currency",
+        "Currency",
+        "get_account_currency",
+        "getAccountCurrency",
+    )
+    currency = None
+    currency_src = None
+    if row_currency is not None and str(row_currency).strip():
+        ccy = str(row_currency).strip().upper()
+        if len(ccy) == 3 and ccy.isalpha():
+            currency = ccy
+            currency_src = "accounts-row"
+    if currency is None and session_currency:
+        currency = session_currency
+        currency_src = currency_source
+
+    missing: list[str] = []
+    if balance is None:
+        missing.append("balance")
+    if equity is None:
+        missing.append("equity")
+    if used_margin is None:
+        missing.append("usedMargin")
+    if usable_margin is None:
+        missing.append("usableMargin")
+    if currency is None:
+        missing.append("accountCurrency")
+
+    return {
+        "accountId": account_id_s,
+        "accountIdMasked": _mask_account_id(account_id_s),
+        "accountNameMasked": _mask_account_id(account_name) if account_name is not None else None,
+        "environment": environment,
+        "accountCurrency": currency,
+        "balance": balance,
+        "equity": equity,
+        "usedMargin": used_margin,
+        "usableMargin": usable_margin,
+        "currencySource": currency_src,
+        "missingFields": missing,
+        "source": "forexconnect-accounts",
+    }
+
+
+def _discover_accounts(fx: Any, environment: str) -> list[dict[str, Any]]:
+    from forexconnect import ForexConnect
+
+    session_currency, currency_source = _account_currency_from_session(fx)
+    accounts_table = fx.get_table(ForexConnect.ACCOUNTS)
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in accounts_table:
+        item = _normalize_account_row(
+            row,
+            environment=environment,
+            session_currency=session_currency,
+            currency_source=currency_source,
+        )
+        if not item:
+            continue
+        key = str(item["accountId"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    out.sort(key=lambda x: str(x.get("accountId") or ""))
+    return out
+
+
+def accounts_payload() -> dict[str, Any]:
+    """Phase 47B — read-only Accounts table snapshot. Never places orders."""
+    status = _safe_status()
+    fetched_at = _now_iso()
+    if status["status"] != "CONNECTED":
+        return {
+            "ok": False,
+            "code": "DISCONNECTED",
+            "error": {
+                "code": status.get("errorCode") or f"FOREXCONNECT_{status['status']}",
+                "message": status.get("errorMessage")
+                or "ForexConnect is not connected. Connect before reading accounts.",
+            },
+            "accounts": [],
+            "count": 0,
+            "fetchedAt": fetched_at,
+            "status": status,
+            "trading": "DISABLED",
+            "note": "Read-only Accounts snapshot unavailable while disconnected.",
+        }
+    with _state_lock:
+        fx = _fx
+        environment = str(status.get("environment") or _state.get("environment") or "demo")
+    if fx is None:
+        return {
+            "ok": False,
+            "code": "DISCONNECTED",
+            "error": {
+                "code": "FOREXCONNECT_DISCONNECTED",
+                "message": "ForexConnect session handle is not available.",
+            },
+            "accounts": [],
+            "count": 0,
+            "fetchedAt": fetched_at,
+            "status": status,
+            "trading": "DISABLED",
+        }
+    try:
+        accounts = _discover_accounts(fx, environment)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "code": "ACCOUNTS_UNAVAILABLE",
+            "error": {
+                "code": "FOREXCONNECT_ACCOUNTS_UNAVAILABLE",
+                "message": f"Accounts table read failed: {str(exc)[:200]}",
+            },
+            "accounts": [],
+            "count": 0,
+            "fetchedAt": fetched_at,
+            "status": status,
+            "trading": "DISABLED",
+        }
+    code = "OK"
+    if not accounts:
+        code = "NO_ACCOUNTS"
+    elif len(accounts) > 1:
+        code = "MULTIPLE_ACCOUNTS"
+    return {
+        "ok": True,
+        "code": code,
+        "accounts": accounts,
+        "count": len(accounts),
+        "fetchedAt": fetched_at,
+        "status": status,
+        "trading": "DISABLED",
+        "note": (
+            "Read-only ForexConnect Accounts table snapshot. "
+            "Equity/usableMargin are SDK calculated fields when available. "
+            "Never invents currency/balance. Trading disabled."
+        ),
+    }
+
+
 def _resolve_instrument(symbol: str) -> Optional[dict[str, Any]]:
     compact = re.sub(r"[^A-Za-z0-9]", "", symbol).upper()
     slash = symbol.strip().upper() if "/" in symbol else None
@@ -1601,6 +1835,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/instruments":
             payload = instruments_payload()
+            self._send(200 if payload.get("ok") else 503, payload)
+            return
+        if path == "/accounts":
+            # Phase 47B — read-only account balances. Never triggers orders.
+            payload = accounts_payload()
             self._send(200 if payload.get("ok") else 503, payload)
             return
         if path == "/candles":

@@ -5,12 +5,40 @@ import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot
 import { getMarketDataService } from "../../market-data/providers/market-data-service.js";
 import type { SnapshotPlanBundle } from "../snapshot-plans/types.js";
 import {
+  applyAccountSnapshotToRiskSettings,
+  fetchForexConnectAccountSnapshot,
+} from "./account-snapshot.js";
+import {
   attachPositionRiskToBundle,
   resolveContractForSnapshotInstrument,
   type SnapshotPlanBundleWithRisk,
 } from "./attach-risk.js";
 import { getForexRiskSettingsService } from "./settings.js";
-import type { InstrumentContractSpec } from "./types.js";
+import type { ForexRiskSettings, InstrumentContractSpec } from "./types.js";
+
+async function resolveRiskSettingsForEnrich(
+  base: ForexRiskSettings,
+  storageRoot?: string,
+): Promise<ForexRiskSettings> {
+  if (base.accountDataSource !== "forexconnect") return base;
+  try {
+    const snapshot = await fetchForexConnectAccountSnapshot({
+      selectedAccountId: base.selectedForexConnectAccountId,
+      maxAgeMs: Math.min(base.conversionMaxAgeMs, 120_000),
+    });
+    const applied = applyAccountSnapshotToRiskSettings(base, snapshot);
+    if (applied.applied) return applied.settings;
+    // Prefer explicit FXCM incompleteness over stale manual numbers when source is forexconnect.
+    return {
+      ...base,
+      accountCurrency: snapshot.accountCurrency ?? "",
+      manualBalance: base.riskBasis === "manual_balance" ? null : base.manualBalance,
+      manualEquity: base.riskBasis === "manual_equity" ? null : base.manualEquity,
+    };
+  } catch {
+    return base;
+  }
+}
 
 /** Phase 47A — load Offers-normalized metadata when caller did not supply it. */
 async function resolveForexConnectMetadata(
@@ -61,7 +89,8 @@ export async function enrichPlanBundleWithPositionRisk(input: {
   tradeAllocation?: { amount: number; currency: string } | null;
   storageRoot?: string;
 }): Promise<SnapshotPlanBundleWithRisk> {
-  const settings = await getForexRiskSettingsService(input.storageRoot).getSettings();
+  const stored = await getForexRiskSettingsService(input.storageRoot).getSettings();
+  const settings = await resolveRiskSettingsForEnrich(stored, input.storageRoot);
   const instrumentId =
     input.snapshot.instrument.displaySymbol
     || input.snapshot.instrument.providerSymbol

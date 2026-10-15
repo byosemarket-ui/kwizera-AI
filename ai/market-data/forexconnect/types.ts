@@ -89,6 +89,34 @@ export interface ForexConnectInstrumentsResult {
   error?: { code: string; message: string };
 }
 
+/** Phase 47B — read-only Accounts table row (sidecar-normalized). */
+export interface ForexConnectAccountRow {
+  accountId: string;
+  accountIdMasked: string | null;
+  accountNameMasked?: string | null;
+  environment: string;
+  accountCurrency: string | null;
+  balance: number | null;
+  equity: number | null;
+  usedMargin: number | null;
+  usableMargin: number | null;
+  currencySource?: string | null;
+  missingFields?: string[];
+  source?: string;
+}
+
+export interface ForexConnectAccountsResult {
+  ok: boolean;
+  code?: string;
+  count: number;
+  accounts: ForexConnectAccountRow[];
+  fetchedAt?: string | null;
+  status?: ForexConnectSafeStatus;
+  trading?: "DISABLED";
+  note?: string;
+  error?: { code: string; message: string };
+}
+
 export interface ForexConnectCandlesRequest {
   symbol: string;
   timeframe: string;

@@ -1,10 +1,13 @@
 /**
- * Phase 45 — Forex risk settings + deterministic position-risk calculate API.
- * Admin mutations require requireForexAdmin. Calculate may accept optional verified contract override.
+ * Phase 45/47B — Forex risk settings + account snapshot + position-risk calculate API.
+ * Admin mutations require requireForexAdmin. Account snapshot is read-only.
+ * Calculate may accept optional verified contract override. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
+  applyAccountSnapshotToRiskSettings,
   calculatePositionRisk,
+  fetchForexConnectAccountSnapshot,
   getForexRiskSettingsService,
   validateForexRiskSettingsPatch,
   type ForexRiskSettings,
@@ -41,6 +44,8 @@ const SAFE_KEYS = new Set([
   "proposedSize",
   "conversionMaxAgeMs",
   "requireMarginForEligibility",
+  "accountDataSource",
+  "selectedForexConnectAccountId",
 ]);
 
 export async function handleForexRiskApi(
@@ -61,6 +66,43 @@ export async function handleForexRiskApi(
       if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
       const store = getForexRiskSettingsService();
 
+      if (
+        url.pathname === "/api/forex-admin/risk-settings/account-snapshot"
+        || url.pathname === "/api/forex-admin/risk-settings/account-snapshot/"
+      ) {
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        const settings = await store.getSettings();
+        const accountIdParam = url.searchParams.get("accountId");
+        const selectedAccountId =
+          accountIdParam && accountIdParam.trim()
+            ? accountIdParam.trim()
+            : settings.selectedForexConnectAccountId;
+        const snapshot = await fetchForexConnectAccountSnapshot({
+          selectedAccountId,
+          maxAgeMs: Math.min(settings.conversionMaxAgeMs, 120_000),
+        });
+        const applied = applyAccountSnapshotToRiskSettings(settings, snapshot);
+        sendJson(res, 200, {
+          ok: true,
+          snapshot,
+          settingsPreference: {
+            accountDataSource: settings.accountDataSource,
+            selectedForexConnectAccountId: settings.selectedForexConnectAccountId,
+            riskBasis: settings.riskBasis,
+          },
+          wouldApplyToCalculation: applied.applied,
+          applyReason: applied.reason,
+          note:
+            "Read-only ForexConnect Accounts snapshot. "
+            + "Provider monetary values are not persisted as manual settings. "
+            + "Does not place broker orders.",
+        });
+        return true;
+      }
+
       if (url.pathname === "/api/forex-admin/risk-settings" || url.pathname === "/api/forex-admin/risk-settings/") {
         if (req.method === "GET" || req.method === "HEAD") {
           const settings = await store.getSettings();
@@ -70,8 +112,8 @@ export async function handleForexRiskApi(
             settings,
             audit: audit.slice(0, 40),
             note:
-              "Deterministic risk settings only. No broker execution. "
-              + "Manual balance/equity until ForexConnect Accounts are wired.",
+              "Deterministic risk settings. No broker execution. "
+              + "Use account-snapshot for live FXCM balance/equity/currency when connected.",
           });
           return true;
         }
@@ -141,7 +183,24 @@ export async function handleForexRiskApi(
         return true;
       }
 
-      const settings = await getForexRiskSettingsService().getSettings();
+      const stored = await getForexRiskSettingsService().getSettings();
+      let settings = stored;
+      if (stored.accountDataSource === "forexconnect") {
+        const snapshot = await fetchForexConnectAccountSnapshot({
+          selectedAccountId: stored.selectedForexConnectAccountId,
+          maxAgeMs: Math.min(stored.conversionMaxAgeMs, 120_000),
+        });
+        const applied = applyAccountSnapshotToRiskSettings(stored, snapshot);
+        if (applied.applied) settings = applied.settings;
+        else {
+          settings = {
+            ...stored,
+            accountCurrency: snapshot.accountCurrency ?? "",
+            manualBalance: stored.riskBasis === "manual_balance" ? null : stored.manualBalance,
+            manualEquity: stored.riskBasis === "manual_equity" ? null : stored.manualEquity,
+          };
+        }
+      }
       const side = body.side === "BUY" || body.side === "SELL" ? body.side : null;
       const result = calculatePositionRisk({
         settings,

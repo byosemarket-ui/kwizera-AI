@@ -9,6 +9,8 @@ export const FOREX_RISK_SETTINGS_VERSION = 1 as const;
 export type RiskBudgetMode = "percentage" | "fixed";
 export type RiskBasis = "manual_balance" | "manual_equity";
 export type RiskCalculationMode = "risk_budget_first" | "size_first";
+/** Phase 47B — where balance/equity/currency for sizing come from. */
+export type RiskAccountDataSource = "manual" | "forexconnect";
 export type QuantityUnit =
   | "lots"
   | "contracts"
@@ -81,6 +83,13 @@ export interface ForexRiskSettings {
   conversionMaxAgeMs: number;
   /** When true, missing margin blocks eligibility. Default false until provider margin is verified. */
   requireMarginForEligibility: boolean;
+  /**
+   * Phase 47B — prefer live ForexConnect Accounts snapshot for currency/balance/equity
+   * at calculation time. Does not persist provider monetary values into manual fields.
+   */
+  accountDataSource: RiskAccountDataSource;
+  /** Selected ForexConnect account id when multiple accounts exist (not a secret). */
+  selectedForexConnectAccountId: string | null;
 }
 
 export const FOREX_RISK_DEFAULT_SETTINGS: ForexRiskSettings = {
@@ -96,6 +105,8 @@ export const FOREX_RISK_DEFAULT_SETTINGS: ForexRiskSettings = {
   proposedSize: null,
   conversionMaxAgeMs: 5 * 60_000,
   requireMarginForEligibility: false,
+  accountDataSource: "manual",
+  selectedForexConnectAccountId: null,
 };
 
 export interface PositionRiskCostBreakdown {

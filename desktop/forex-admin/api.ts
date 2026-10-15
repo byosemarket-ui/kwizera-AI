@@ -701,7 +701,7 @@ export const forexProvidersApi = {
   },
 };
 
-/** Phase 45 — Position sizing / risk settings (no secrets, no broker orders). */
+/** Phase 45/47B — Position sizing / risk settings + FXCM account snapshot (no secrets, no orders). */
 export const forexRiskApi = {
   settings: () =>
     request<{
@@ -719,6 +719,8 @@ export const forexRiskApi = {
         proposedSize: number | null;
         conversionMaxAgeMs: number;
         requireMarginForEligibility: boolean;
+        accountDataSource: "manual" | "forexconnect";
+        selectedForexConnectAccountId: string | null;
       };
       audit: Array<Record<string, unknown>>;
       note: string;
@@ -728,6 +730,19 @@ export const forexRiskApi = {
       "/api/forex-admin/risk-settings",
       { method: "PATCH", body: JSON.stringify(body) },
     ),
+  accountSnapshot: (opts?: { accountId?: string }) => {
+    const q = new URLSearchParams();
+    if (opts?.accountId) q.set("accountId", opts.accountId);
+    const qs = q.toString();
+    return request<{
+      ok: true;
+      snapshot: Record<string, unknown>;
+      settingsPreference: Record<string, unknown>;
+      wouldApplyToCalculation: boolean;
+      applyReason: string | null;
+      note: string;
+    }>(`/api/forex-admin/risk-settings/account-snapshot${qs ? `?${qs}` : ""}`);
+  },
   calculate: (body: Record<string, unknown>) =>
     request<{ ok: true; result: Record<string, unknown>; note: string }>(
       "/api/forex/risk/calculate",

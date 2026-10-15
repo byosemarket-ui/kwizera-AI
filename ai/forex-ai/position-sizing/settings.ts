@@ -10,6 +10,7 @@ import {
   FOREX_RISK_DEFAULT_SETTINGS,
   FOREX_RISK_SETTINGS_VERSION,
   type ForexRiskSettings,
+  type RiskAccountDataSource,
   type RiskBasis,
   type RiskBudgetMode,
   type RiskCalculationMode,
@@ -113,6 +114,23 @@ export function validateForexRiskSettingsPatch(
   }
   if (patch.requireMarginForEligibility != null) {
     out.requireMarginForEligibility = Boolean(patch.requireMarginForEligibility);
+  }
+  if (patch.accountDataSource != null) {
+    if (patch.accountDataSource !== "manual" && patch.accountDataSource !== "forexconnect") {
+      return { ok: false, message: "accountDataSource must be manual or forexconnect." };
+    }
+    out.accountDataSource = patch.accountDataSource as RiskAccountDataSource;
+  }
+  if (patch.selectedForexConnectAccountId !== undefined) {
+    if (patch.selectedForexConnectAccountId == null || patch.selectedForexConnectAccountId === "") {
+      out.selectedForexConnectAccountId = null;
+    } else {
+      const id = String(patch.selectedForexConnectAccountId).trim();
+      if (id.length > 64 || !/^[A-Za-z0-9._-]+$/.test(id)) {
+        return { ok: false, message: "selectedForexConnectAccountId format is invalid." };
+      }
+      out.selectedForexConnectAccountId = id;
+    }
   }
   return { ok: true, settings: out };
 }

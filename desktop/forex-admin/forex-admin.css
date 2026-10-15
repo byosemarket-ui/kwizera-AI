@@ -630,9 +630,56 @@ section.fxa-card[data-forex-admin-market-providers] {
   font-size: 0.85rem;
 }
 
-/* Phase 45 — risk settings */
+/* Phase 45/47B — risk settings + FXCM account snapshot */
 .fxa-risk-settings {
   margin-top: 0.75rem;
+}
+
+.fxa-risk-account {
+  margin: 0.65rem 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.fxa-risk-account[data-snap-tone="ok"] {
+  border-color: rgba(70, 180, 120, 0.35);
+}
+
+.fxa-risk-account[data-snap-tone="stale"],
+.fxa-risk-account[data-snap-tone="warn"] {
+  border-color: rgba(210, 160, 60, 0.4);
+}
+
+.fxa-risk-account[data-snap-tone="error"] {
+  border-color: rgba(210, 80, 80, 0.45);
+}
+
+.fxa-risk-account-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.fxa-risk-account-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.28rem;
+  font-size: 0.82rem;
+}
+
+.fxa-risk-account-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
 }
 
 .fxa-risk-grid {
@@ -651,7 +698,8 @@ section.fxa-card[data-forex-admin-market-providers] {
 }
 
 .fxa-risk-grid input,
-.fxa-risk-grid select {
+.fxa-risk-grid select,
+.fxa-risk-account-select select {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -667,5 +715,10 @@ section.fxa-card[data-forex-admin-market-providers] {
 @media (max-width: 640px) {
   .fxa-risk-grid {
     grid-template-columns: 1fr;
+  }
+
+  .fxa-risk-account-head {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
