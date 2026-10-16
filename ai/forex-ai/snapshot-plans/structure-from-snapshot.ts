@@ -3,6 +3,7 @@
  */
 import { buildForexAiEvidencePack } from "../evidence/index.js";
 import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot/types.js";
+import { STRUCTURE_MIN_CLOSED_CANDLES } from "../../market-data/analysis-snapshot/periods.js";
 import type { SnapshotStructureEvidenceSummary } from "./types.js";
 
 const MAX_CANDLES = 48;
@@ -13,13 +14,15 @@ export function buildStructureEvidenceFromSnapshot(
   const quoteFreshness = snapshot.latestQuote?.freshness ?? snapshot.freshness?.quote ?? null;
   const closed = snapshot.candles.filter((c) => c.isClosed);
   const sample = closed.slice(-MAX_CANDLES);
+  const expected = snapshot.freshness.expectedClosedCandles
+    ?? snapshot.candlesRequestedEstimate;
   const dataUsable =
     snapshot.evidenceReady
-    && sample.length >= 5
+    && sample.length >= STRUCTURE_MIN_CLOSED_CANDLES
     && snapshot.validation.status !== "INVALID"
     && snapshot.validation.status !== "ERROR";
 
-  if (sample.length < 5) {
+  if (sample.length < STRUCTURE_MIN_CLOSED_CANDLES) {
     return {
       trendState: null,
       lastSwingHigh: null,
@@ -27,7 +30,12 @@ export function buildStructureEvidenceFromSnapshot(
       events: [],
       zones: [],
       patterns: [],
-      warnings: ["Insufficient closed candles for structure/pattern detectors."],
+      warnings: [
+        `Insufficient closed candles for structure/pattern detectors `
+          + `(have ${sample.length}, need ≥${STRUCTURE_MIN_CLOSED_CANDLES}; `
+          + `window expected ${expected} for ${snapshot.candleTimeframe}/${snapshot.analysisPeriod}). `
+          + "Coverage of a short window can be 100% without being structure-ready.",
+      ],
       insufficientHistory: true,
       quoteFreshness,
       dataUsable: false,

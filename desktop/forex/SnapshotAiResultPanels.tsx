@@ -471,7 +471,11 @@ function OpenAiAssistantResultBody({
               ? ` · quote ${data.planBundle.structureEvidence.quoteFreshness}`
               : ""}
             {data.planBundle?.structureEvidence?.dataUsable === false
-              ? " · structure evidence not usable"
+              ? ` · structure evidence not usable${
+                data.planBundle.structureEvidence.warnings?.[0]
+                  ? ` (${data.planBundle.structureEvidence.warnings[0]})`
+                  : ""
+              }`
               : ""}
           </li>
           <li className="fx-ai-muted">

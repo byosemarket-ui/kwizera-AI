@@ -186,7 +186,10 @@ function buildOnePlan(input: {
   const unsuitableReasons: string[] = [];
   if (analysisFailed) unsuitableReasons.push(input.analysis.error || "Analysis failed.");
   if (!input.structure.dataUsable) {
-    unsuitableReasons.push("Instrument data not fully usable for trade planning.");
+    unsuitableReasons.push(
+      input.structure.warnings[0]
+      ?? "Instrument data not fully usable for trade planning.",
+    );
   }
   if (entryZone.unavailableReason) unsuitableReasons.push(entryZone.unavailableReason);
   if (input.direction === "UNCERTAIN") {

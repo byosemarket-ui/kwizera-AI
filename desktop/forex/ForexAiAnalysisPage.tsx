@@ -82,6 +82,7 @@ type SnapshotSummary = {
   expectedClosedCandles: number | null;
   formingCandleCount: number | null;
   windowBoundaryPolicy: string | null;
+  structureSampleSufficient: boolean | null;
   quoteFreshness: string;
   analysisPeriod: string;
   candleTimeframe: string;
@@ -840,6 +841,7 @@ export function ForexAiAnalysisPage({
             expectedClosedCandles?: number;
             formingCandleCount?: number;
             windowBoundaryPolicy?: string;
+            structureSampleSufficient?: boolean;
           };
           sourceMetadata?: { resampled?: boolean };
         } | null;
@@ -863,6 +865,7 @@ export function ForexAiAnalysisPage({
         expectedClosedCandles: data.snapshot.freshness?.expectedClosedCandles ?? null,
         formingCandleCount: data.snapshot.freshness?.formingCandleCount ?? null,
         windowBoundaryPolicy: data.snapshot.freshness?.windowBoundaryPolicy ?? null,
+        structureSampleSufficient: data.snapshot.freshness?.structureSampleSufficient ?? null,
         quoteFreshness: data.snapshot.freshness?.quote || "UNAVAILABLE",
         analysisPeriod: data.snapshot.analysisPeriod,
         candleTimeframe: data.snapshot.candleTimeframe,
@@ -1634,6 +1637,11 @@ export function ForexAiAnalysisPage({
                   : ""}
                 {" · "}{snapshot.candleTimeframe}/{snapshot.analysisPeriod}
                 {" · "}cov {(snapshot.coverageRatio * 100).toFixed(0)}%
+                {" · "}structure {snapshot.structureSampleSufficient === true
+                  ? "ready"
+                  : snapshot.structureSampleSufficient === false
+                    ? "insufficient"
+                    : "—"}
                 {" · "}quote {snapshot.quoteFreshness}
                 {snapshot.windowBoundaryPolicy ? ` · ${snapshot.windowBoundaryPolicy}` : ""}
                 {snapshot.resampled ? " · resampled" : ""}

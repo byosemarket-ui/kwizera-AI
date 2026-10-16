@@ -17,6 +17,16 @@ export const ANALYSIS_SNAPSHOT_MAX_CANDLES = 300;
 export const ANALYSIS_SNAPSHOT_STALE_QUOTE_MS = 15_000;
 /** Max custom lookback span (inclusive of 7d preset). */
 export const ANALYSIS_SNAPSHOT_MAX_CUSTOM_SPAN_MS = 7 * 24 * 60 * 60_000;
+/**
+ * Phase 48 — Minimum closed candles for fractal structure / pattern detectors
+ * (matches DEFAULT_STRUCTURE_PARAMS swingLeft+swingRight+1 = 5).
+ * Coverage of a short window can be 100% with fewer candles; that is not structure-ready.
+ */
+export const STRUCTURE_MIN_CLOSED_CANDLES = 5;
+
+export function isStructureSampleSufficient(closedCandleCount: number): boolean {
+  return Number.isFinite(closedCandleCount) && closedCandleCount >= STRUCTURE_MIN_CLOSED_CANDLES;
+}
 
 const PERIOD_MS: Record<Exclude<AnalysisPeriodId, "custom">, number> = {
   "5m": 5 * 60_000,
@@ -177,18 +187,25 @@ export function listAffordablePeriodTimeframePairs(): Array<{
   analysisPeriod: Exclude<AnalysisPeriodId, "custom">;
   candleTimeframe: CanonicalTimeframeId;
   estimate: number;
+  structureSampleSufficient: boolean;
 }> {
   const out: Array<{
     analysisPeriod: Exclude<AnalysisPeriodId, "custom">;
     candleTimeframe: CanonicalTimeframeId;
     estimate: number;
+    structureSampleSufficient: boolean;
   }> = [];
   for (const period of ANALYSIS_PERIOD_IDS) {
     if (period === "custom") continue;
     for (const tf of CANONICAL_TIMEFRAMES) {
       const estimate = estimateCandleCountForPeriod(tf, period);
       if (estimate <= ANALYSIS_SNAPSHOT_MAX_CANDLES) {
-        out.push({ analysisPeriod: period, candleTimeframe: tf, estimate });
+        out.push({
+          analysisPeriod: period,
+          candleTimeframe: tf,
+          estimate,
+          structureSampleSufficient: isStructureSampleSufficient(estimate),
+        });
       }
     }
   }

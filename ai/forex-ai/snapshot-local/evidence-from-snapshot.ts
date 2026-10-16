@@ -6,6 +6,7 @@ import {
   formatEvidenceForPrompt,
 } from "../evidence/index.js";
 import type { AnalysisMarketSnapshot } from "../../market-data/analysis-snapshot/types.js";
+import { STRUCTURE_MIN_CLOSED_CANDLES } from "../../market-data/analysis-snapshot/periods.js";
 import type {
   LocalSnapshotEvidencePackage,
   SnapshotEvidenceCategories,
@@ -25,7 +26,7 @@ export function buildEvidenceFromSnapshot(
   let patterns = false;
   let structure = false;
   try {
-    if (sample.length >= 5) {
+    if (sample.length >= STRUCTURE_MIN_CLOSED_CANDLES) {
       const pack = buildForexAiEvidencePack({
         provider: snapshot.provider,
         environment: snapshot.environment,
@@ -53,7 +54,13 @@ export function buildEvidenceFromSnapshot(
     } else {
       unavailable.push("patterns");
       unavailable.push("structure");
-      detectorSummary = "DETECTOR_EVIDENCE: insufficient candles for detectors.";
+      const expected = snapshot.freshness.expectedClosedCandles
+        ?? snapshot.candlesRequestedEstimate;
+      detectorSummary =
+        `DETECTOR_EVIDENCE: insufficient closed candles for structure/patterns `
+        + `(have ${sample.length}, need ≥${STRUCTURE_MIN_CLOSED_CANDLES}; `
+        + `window expected ${expected} for ${snapshot.candleTimeframe}/${snapshot.analysisPeriod}). `
+        + "Do not invent swings, BOS, zones, or patterns. Prefer WAIT.";
     }
   } catch {
     unavailable.push("patterns");
@@ -158,6 +165,9 @@ export function formatLocalEvidenceForPrompt(pkg: LocalSnapshotEvidencePackage):
         pkg.historicalCoverageRatio != null
           ? `${(pkg.historicalCoverageRatio * 100).toFixed(0)}%`
           : "n/a"
+      } `
+      + `structure_ready=${
+        (pkg.closedCandleCount ?? 0) >= STRUCTURE_MIN_CLOSED_CANDLES ? "yes" : "no"
       }`,
     `prompt_candles=${pkg.candles.length}`
       + (pkg.evidenceCandleSubset

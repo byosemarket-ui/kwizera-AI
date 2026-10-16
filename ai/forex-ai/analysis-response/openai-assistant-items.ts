@@ -52,6 +52,28 @@ export interface OpenAiAssistantGuidanceBundle {
 
 type PlanWithRisk = SnapshotTradePlan & { positionRisk?: PositionRiskResult | null };
 
+/** Prefer specific upstream blockers over generic sizing "Side must be BUY/SELL". */
+export function primaryTicketBlocker(plan: PlanWithRisk): string | null {
+  const risk = plan.positionRisk ?? null;
+  const candidates = [
+    ...(plan.unsuitableReasons ?? []),
+    plan.stopLoss.unavailableReason,
+    plan.takeProfit.unavailableReason,
+    plan.entryZone.unavailableReason,
+    ...(risk?.blockingReasons ?? []),
+    risk?.contract?.unavailableReason ?? null,
+  ].filter((s): s is string => Boolean(s && String(s).trim()));
+
+  const prefer = candidates.find((r) =>
+    /structure|closed candle|WAIT|UNSUITABLE|insufficient|unverified|contract|currency|stale|allocation/i
+      .test(r)
+    && !/Side must be BUY or SELL/i.test(r)
+  );
+  if (prefer) return prefer;
+  const nonSide = candidates.find((r) => !/Side must be BUY or SELL/i.test(r));
+  return nonSide ?? candidates[0] ?? null;
+}
+
 function fmtPrice(n: number | null | undefined): string | null {
   if (n == null || !Number.isFinite(n)) return null;
   if (Math.abs(n) >= 100) return n.toFixed(2);
@@ -107,6 +129,7 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   const ccy = risk?.accountCurrency ?? null;
   const directionOk = plan.intent === "BUY" || plan.intent === "SELL";
   const marketDir = input.marketDirection ?? plan.marketDirection;
+  const upstreamBlock = primaryTicketBlocker(plan);
 
   const supportBits = (input.supportingEvidence ?? []).slice(0, 2).join(" · ");
   const contraBits = (input.contradictingEvidence ?? []).slice(0, 1).join(" · ");
@@ -133,12 +156,13 @@ export function buildOpenAiAssistantGuidanceItems(input: {
       directionOk
         ? `Validated plan intent is ${plan.intent} (${plan.planKind}).`
         : `Plan intent is ${plan.intent} — do not enter BUY/SELL on the ticket yet.`,
+      upstreamBlock && !directionOk ? `Upstream blocker: ${upstreamBlock}` : null,
       supportBits ? `Supporting: ${supportBits}` : null,
       contraBits ? `Contradicting: ${contraBits}` : null,
       "A model-generated direction alone does not authorize a trade.",
     ].filter(Boolean).join(" "),
     "Confirm direction against your chart and account permissions before touching BUY/SELL.",
-    directionOk ? null : `Intent ${plan.intent} blocks ticket direction.`,
+    directionOk ? null : (upstreamBlock ?? `Intent ${plan.intent} blocks ticket direction.`),
   ));
 
   const sizeStr = risk?.positionSize != null
@@ -158,9 +182,19 @@ export function buildOpenAiAssistantGuidanceItems(input: {
           ? `Trade allocation ${input.tradeAllocation.amount} ${input.tradeAllocation.currency} is capital set aside — not the acceptable loss.`
           : "No trade allocation was submitted with this run.",
       ].join(" ")
-      : "Contract quantity unavailable until verified specs and risk settings allow calculation.",
+      : [
+        "Contract quantity withheld until a directional plan and verified specs allow calculation.",
+        upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
+        risk?.contract?.verified
+          ? `Contract metadata is verified (${risk.contract.convention}) — sizing waits on direction/SL.`
+          : null,
+      ].filter(Boolean).join(" "),
     "Verify the CONTRACTS field matches the FXCM instrument lot/contract rules.",
-    sizeStr ? null : (risk?.blockingReasons[0] ?? risk?.contract?.unavailableReason ?? "Size not calculated."),
+    sizeStr
+      ? null
+      : (upstreamBlock
+        ?? risk?.contract?.unavailableReason
+        ?? "Size not calculated."),
   ));
 
   const unit = String(
@@ -182,9 +216,15 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     risk?.contract?.verified && risk.positionSize != null ? "estimated" : "unavailable",
     risk?.contract?.verified && risk.positionSize != null
       ? `Unit display follows verified contract convention (${risk.contract.convention}). Not a universal ounce multiplier.`
-      : "Unit conversion unavailable without verified contract multiplier / quantity unit.",
+      : risk?.contract?.verified
+        ? `Verified convention ${risk.contract.convention} / unit ${risk.contract.quantityUnit} — quantity waits on directional sizing.`
+        : "Unit conversion unavailable without verified contract multiplier / quantity unit.",
     "Confirm the unit label on the FXCM ticket matches this instrument (lots, ounces, base units, etc.).",
-    risk?.contract?.verified ? null : (risk?.contract?.unavailableReason ?? "Contract metadata unverified."),
+    risk?.positionSize != null && risk.contract?.verified
+      ? null
+      : (upstreamBlock
+        ?? (risk?.contract?.verified ? null : risk?.contract?.unavailableReason)
+        ?? "Units unavailable until size is calculated."),
   ));
 
   const pending = plan.lifecycle === "PLAN_CREATED"
@@ -204,9 +244,12 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     directionOk ? "guidance_only" : "unavailable",
     directionOk
       ? "Enable Advanced to set Stop and Limit. Order type depends on whether price is already in the entry zone and confirmation status."
-      : "Order type not determined while direction is WAIT/UNSUITABLE.",
+      : [
+        "Order type not determined while direction is WAIT/UNSUITABLE.",
+        upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
+      ].filter(Boolean).join(" "),
     "Verify MARKET vs ENTRY tabs and Advanced toggle against live Bid/Ask.",
-    directionOk ? null : "No actionable direction.",
+    directionOk ? null : (upstreamBlock ?? "No actionable direction."),
   ));
 
   items.push(item(
@@ -319,14 +362,14 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     actionSupport,
     [
       plan.lifecycleNote || `Lifecycle ${plan.lifecycle}.`,
-      risk?.blockingReasons[0] ?? plan.unsuitableReasons[0] ?? null,
+      upstreamBlock,
       plan.invalidationConditions[0]
         ? `Primary invalidation: ${plan.invalidationConditions[0]}`
         : null,
       "Do not press BUY/SELL solely because the AI produced a plan.",
     ].filter(Boolean).join(" "),
     "Verify position size, SL/TP, margin, and confirmation before any manual ticket submit.",
-    risk?.blockingReasons[0] ?? plan.unsuitableReasons[0] ?? null,
+    upstreamBlock,
   ));
 
   let summaryTone: OpenAiAssistantGuidanceBundle["finalSummary"]["tone"] = "wait";
@@ -346,8 +389,7 @@ export function buildOpenAiAssistantGuidanceItems(input: {
       confirmationStatus: plan.confirmationStatus,
       riskEligible: risk ? risk.riskEligible : null,
       reason:
-        risk?.blockingReasons[0]
-        ?? plan.unsuitableReasons[0]
+        upstreamBlock
         ?? plan.confirmationRequired[0]
         ?? plan.lifecycleNote
         ?? "Validated plan and risk state drive this conclusion.",

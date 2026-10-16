@@ -25,6 +25,8 @@ import {
 } from "./types.js";
 import {
   ANALYSIS_SNAPSHOT_STALE_QUOTE_MS,
+  STRUCTURE_MIN_CLOSED_CANDLES,
+  isStructureSampleSufficient,
   resolveAndValidateRequestShape,
   timeframeIntervalMs,
 } from "./periods.js";
@@ -401,6 +403,26 @@ export class AnalysisSnapshotEngine {
       : null;
 
     const warnings = [...validation.warnings];
+    const closedCount = closed.length;
+    const structureSampleSufficient = isStructureSampleSufficient(closedCount);
+    if (!structureSampleSufficient && closedCount > 0) {
+      warnings.push(
+        `Structure sample insufficient: ${closedCount} closed candle(s) in window `
+          + `(need ≥${STRUCTURE_MIN_CLOSED_CANDLES} for fractal swings/patterns). `
+          + `Coverage ${Math.round(computeCoverageRatio(candles, resolved.candlesRequestedEstimate) * 100)}% `
+          + `of the requested ${resolved.candleTimeframe}/${resolved.analysisPeriod} window is not the same as structure-ready. `
+          + "Use a finer candle timeframe or a longer analysis period.",
+      );
+    } else if (
+      isStructureSampleSufficient(resolved.candlesRequestedEstimate) === false
+      && closedCount === 0
+    ) {
+      warnings.push(
+        `Selected ${resolved.candleTimeframe}/${resolved.analysisPeriod} expects only `
+          + `${resolved.candlesRequestedEstimate} closed candle(s); structure detectors need `
+          + `≥${STRUCTURE_MIN_CLOSED_CANDLES}.`,
+      );
+    }
     const marketStatus = quote?.freshness
       ?? (providerError ? "PROVIDER_ERROR" : closed.length ? "HISTORICAL" : "NO_DATA");
 
@@ -426,10 +448,11 @@ export class AnalysisSnapshotEngine {
         quote: quote?.freshness ?? "UNAVAILABLE",
         historicalCoverageRatio: computeCoverageRatio(candles, resolved.candlesRequestedEstimate),
         formingCandlePresent: candles.some((c) => !c.isClosed),
-        closedCandleCount: candles.filter((c) => c.isClosed).length,
+        closedCandleCount: closedCount,
         expectedClosedCandles: resolved.candlesRequestedEstimate,
         formingCandleCount: candles.filter((c) => !c.isClosed).length,
         windowBoundaryPolicy: "candle_aligned_half_open",
+        structureSampleSufficient,
       },
       validation,
       dataGaps,

@@ -164,6 +164,11 @@ export interface AnalysisMarketSnapshot {
     formingCandleCount?: number;
     /** Phase 47 — window uses candle-open half-open [start, end). */
     windowBoundaryPolicy?: "candle_aligned_half_open";
+    /**
+     * Phase 48 — true when closedCandleCount meets STRUCTURE_MIN_CLOSED_CANDLES.
+     * Independent of historicalCoverageRatio (a 2/2 window is not structure-ready).
+     */
+    structureSampleSufficient?: boolean;
   };
   validation: AnalysisSnapshotValidation;
   dataGaps: AnalysisDataGap[];

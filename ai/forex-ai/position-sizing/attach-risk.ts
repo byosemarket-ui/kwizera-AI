@@ -39,16 +39,23 @@ function applyPlanIntentGates(
   plan: SnapshotTradePlan,
   risk: PositionRiskResult,
 ): PositionRiskResult {
-  const blocking = [...risk.blockingReasons];
+  // Phase 48 — put upstream plan/structure blockers first so ticket UI does not
+  // lead with the generic "Side must be BUY or SELL" sizing message.
+  const upstream: string[] = [];
+  for (const reason of plan.unsuitableReasons ?? []) {
+    if (reason && !upstream.includes(reason)) upstream.push(reason);
+  }
   if (plan.intent === "UNSUITABLE") {
-    blocking.push("Plan is UNSUITABLE — risk sizing cannot make it eligible.");
+    upstream.push("Plan is UNSUITABLE — risk sizing cannot make it eligible.");
   } else if (plan.intent === "WAIT") {
-    blocking.push("Plan intent is WAIT — not risk-eligible for execution sizing.");
+    upstream.push("Plan intent is WAIT — not risk-eligible for execution sizing.");
   }
   if (plan.lifecycle === "WAIT_CONFLICT" || plan.lifecycle === "INVALIDATED" || plan.lifecycle === "EXPIRED") {
-    blocking.push(`Plan lifecycle ${plan.lifecycle} blocks risk eligibility.`);
+    upstream.push(`Plan lifecycle ${plan.lifecycle} blocks risk eligibility.`);
   }
-  const unique = [...new Set(blocking)];
+  const sideNoise = "Side must be BUY or SELL for monetary risk sizing.";
+  const rest = risk.blockingReasons.filter((r) => r !== sideNoise || upstream.length === 0);
+  const unique = [...new Set([...upstream, ...rest])];
   return {
     ...risk,
     blockingReasons: unique,
