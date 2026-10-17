@@ -19,6 +19,13 @@ export {
   applyBuyDirectionalPolicy,
   computeBullishDirectionalScore,
 } from "./bullish-score.js";
+export {
+  BINARY_DIRECTION_METHOD,
+  applyBinaryDirectionalClassification,
+  canCompleteDirectionalClassification,
+  computeBearishDirectionalScore,
+} from "./directional-classifier.js";
+export type { BinaryDirection, BinaryDirectionalResult } from "./directional-classifier.js";
 export { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 export {
   BULLISH_PROJECTION_METHOD,

@@ -134,6 +134,25 @@ export interface MultiImageAnalysisResult extends OpenAiSnapshotAnalysisResult {
       modelDecisionBeforePolicy: string;
       finalDecision: string;
     };
+    /** Phase 50B — binary BUY/SELL classification (never WAIT for completed valid runs). */
+    directionalClassification?: {
+      direction: "BUY" | "SELL";
+      directionalConfidencePercent: number;
+      directionalConfidenceLabel: string;
+      scoreMethod: string;
+      bullishScore: number;
+      bearishScore: number;
+      margin: number;
+      confidenceBand: "LOW" | "MODERATE" | "HIGH";
+      supportingEvidence: string[];
+      contradictingEvidence: string[];
+      tieBreakNote: string | null;
+      lowConfidenceNote: string | null;
+      entryReadiness: "NOT_CONFIRMED";
+      imagesSubmittedAsImageUrl: true;
+      modelDecisionBeforePolicy: string;
+      finalDecision: "BUY" | "SELL";
+    };
     /** Phase 50A.1 — bullish price projection + chart series (scenario, not guarantee). */
     priceProjection?: BullishPriceProjection;
   };

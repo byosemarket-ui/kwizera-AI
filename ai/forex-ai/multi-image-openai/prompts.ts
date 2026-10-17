@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C/50A/50A.1 — Multi-image OpenAI prompts with MTF + BUY projection hints.
+ * Phase 49B–50B — Multi-image OpenAI prompts with MTF + binary BUY/SELL classification.
  */
 import type { LocalSnapshotEvidencePackage } from "../snapshot-local/types.js";
 import { formatLocalEvidenceForPrompt } from "../snapshot-local/evidence-from-snapshot.js";
@@ -8,25 +8,25 @@ import type { MultiImageCaptureRef, MultiImageDataProvenance, MultiImageMtfRoste
 
 export function buildMultiImageSystemPrompt(): string {
   return [
-    "You are KWIZERA Forex OpenAI multi-image multi-timeframe chart analyst (Phase 50A BUY-focus).",
+    "You are KWIZERA Forex OpenAI multi-image multi-timeframe chart analyst (Phase 50B binary BUY/SELL).",
     "You receive (1) chart screenshot images with CAPTURE_TIME metadata, (2) a deterministic MTF_ROSTER, and (3) ANALYSIS_TIME structured market evidence when available.",
     "Never invent prices, candles, news, URLs, snapshot IDs, or missing timeframe screenshots.",
     "Never treat ANALYSIS_TIME prices as the exact prices visible at capture time unless capture metadata lists the same snapshotId.",
     "For each observation, label: VISIBLE_IN_IMAGE | CONFIRMED_BY_DATA | INFERENCE | UNKNOWN.",
     "Organize reasoning using only timeframes present in MTF_ROSTER: higher (longer), intermediate, lower (shorter).",
-    "BUY-side rule: if the cumulative bullish evidence supports a directional hypothesis, you MAY return decision=BUY even when a preferred final candle confirmation or breakout has not appeared.",
-    "Do not require every timeframe to be bullish. Weigh relevance, explain material disagreement, and use timeframeAgreement MIXED when appropriate.",
-    "Do NOT return BUY when evidence is weak, materially contradictory (CONFLICTING), or data is unreliable/stale without disclosure.",
-    "Never force BUY merely because several images were supplied or because the user wants a trade.",
-    "SELL workflow is out of scope for this phase — if bearish evidence dominates, prefer WAIT (or SELL only if clearly required by evidence; WAIT is acceptable).",
+    "Phase 50B: compare bullish vs bearish evidence and set decision to exactly BUY or SELL — the direction better supported by available evidence.",
+    "Do not return WAIT, UNCERTAIN, or NO_TRADE as decision for a completed analysis. Entry readiness and data quality are separate fields/disclosures.",
+    "Do not require every timeframe to agree. Explain MIXED/CONFLICTING disagreement in mtfReasoning; still pick the stronger directional lean.",
+    "Do not require one mandatory final candle confirmation when cumulative evidence already supports a lean.",
+    "Never force BUY or SELL merely because images were supplied. Do not invent evidence.",
     "If only one timeframe is present, set timeframeAgreement=SINGLE_TIMEFRAME and do not invent higher/lower confirmation.",
     "Multiple images of the same timeframe are NOT independent multi-timeframe confirmation.",
     "Use structured candle/quote data for exact prices when present; do not invent numeric precision from pixels.",
-    "Include directionalConfidencePercent as an integer 0-100 model estimate of bullish directional conviction — NOT a calibrated probability of a profitable trade, NOT entry readiness, NOT position-sizing eligibility, NOT probability of reaching a price target.",
-    "Optional bullishProjection: only when numeric targets/invalidations are supported by CONFIRMED_BY_DATA or clearly VISIBLE_IN_IMAGE levels — never invent prices. Omit or null fields when unsupported.",
-    "bullishProjection.targetPrice / zone / invalidationPrice must match the analyzed instrument price scale. Do not copy directionalConfidencePercent into a target-hit probability.",
-    "decision must be exactly BUY | SELL | WAIT | NO_TRADE.",
-    "BUY/SELL are analytical scenarios, NOT broker orders.",
+    "Include directionalConfidencePercent as an integer 0-100 model estimate — the server recomputes confidence with a deterministic method; do not treat your percent as a win probability.",
+    "Optional bullishProjection: only when decision leans BUY and numeric targets are supported by CONFIRMED_BY_DATA or clearly VISIBLE_IN_IMAGE levels — never invent prices.",
+    "bullishProjection fields must match the analyzed instrument price scale. Do not copy directionalConfidencePercent into a target-hit probability.",
+    "decision must be exactly BUY | SELL.",
+    "BUY/SELL are analytical directional leans, NOT broker orders.",
     "Return JSON only. Include top-level analysis keys plus mtfReasoning object.",
   ].join(" ");
 }
@@ -100,7 +100,7 @@ export function buildMultiImageUserText(input: {
     + '"dataQuality":"string","marketBias":"BULLISH|BEARISH|NEUTRAL|UNCERTAIN",'
     + '"marketStructureSummary":"string","keyEvidence":["string"],'
     + '"bullishScenario":"string","bearishScenario":"string",'
-    + '"decision":"BUY|SELL|WAIT|NO_TRADE","decisionRationale":"string",'
+    + '"decision":"BUY|SELL","decisionRationale":"string",'
     + '"invalidationConditions":["string"],'
     + '"directionalConfidencePercent":0,'
     + '"confidence":"string|null","limitations":["string"],'

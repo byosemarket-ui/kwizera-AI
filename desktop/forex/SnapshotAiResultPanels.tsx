@@ -209,6 +209,24 @@ export type SnapshotAnalysisPanelData = {
       finalDecision?: string;
       imagesSubmittedAsImageUrl?: boolean;
     };
+    directionalClassification?: {
+      direction: "BUY" | "SELL";
+      directionalConfidencePercent: number;
+      directionalConfidenceLabel: string;
+      scoreMethod: string;
+      bullishScore: number;
+      bearishScore: number;
+      margin: number;
+      confidenceBand: "LOW" | "MODERATE" | "HIGH";
+      supportingEvidence: string[];
+      contradictingEvidence: string[];
+      tieBreakNote: string | null;
+      lowConfidenceNote: string | null;
+      entryReadiness: string;
+      imagesSubmittedAsImageUrl?: boolean;
+      modelDecisionBeforePolicy?: string;
+      finalDecision?: string;
+    };
     priceProjection?: BuyPriceProjectionUi;
     mtfReasoning?: {
       timeframeAgreement: string;
@@ -549,7 +567,73 @@ function OpenAiAssistantResultBody({
         </ul>
       </section>
 
-      {data.multiImage?.buyAssessment ? (
+      {data.multiImage?.directionalClassification ? (
+        <section
+          className="fx-directional-classification"
+          data-fx-directional-classification="true"
+          data-direction={data.multiImage.directionalClassification.direction}
+          aria-label="Directional classification"
+        >
+          <h3 className="fx-ai-guided-title">Directional classification</h3>
+          <p className="fx-directional-headline">
+            <span className="fx-ai-label">Direction</span>{" "}
+            <strong data-fx-direction-value="true">{data.multiImage.directionalClassification.direction}</strong>
+            {" · "}
+            <span className="fx-ai-label">{data.multiImage.directionalClassification.directionalConfidenceLabel}</span>{" "}
+            {data.multiImage.directionalClassification.directionalConfidencePercent}%
+            {" · "}
+            <span className="fx-ai-label">Band</span> {data.multiImage.directionalClassification.confidenceBand}
+          </p>
+          <p className="fx-ai-muted">
+            {instrument} · {provider}
+            {" · "}method {data.multiImage.directionalClassification.scoreMethod}
+            {" · "}bullish {data.multiImage.directionalClassification.bullishScore}
+            {" vs "}bearish {data.multiImage.directionalClassification.bearishScore}
+            {" · "}margin {data.multiImage.directionalClassification.margin}
+          </p>
+          <p className="fx-ai-muted">
+            Entry readiness {data.multiImage.directionalClassification.entryReadiness}
+            {" · "}not a calibrated win probability
+            {data.multiImage.directionalClassification.imagesSubmittedAsImageUrl
+              ? " · screenshots submitted as image_url inputs"
+              : ""}
+            {data.multiImage.provenance?.analysisTime?.quoteFreshness
+              || data.multiImage.provenance?.analysisTime?.feedHealth
+              ? ` · data ${data.multiImage.provenance.analysisTime.feedHealth
+                ?? data.multiImage.provenance.analysisTime.quoteFreshness}`
+              : ""}
+          </p>
+          {data.multiImage.directionalClassification.lowConfidenceNote ? (
+            <p className="fx-ai-snapshot-warn">{data.multiImage.directionalClassification.lowConfidenceNote}</p>
+          ) : null}
+          {data.multiImage.directionalClassification.tieBreakNote ? (
+            <p className="fx-ai-muted">{data.multiImage.directionalClassification.tieBreakNote}</p>
+          ) : null}
+          {data.multiImage.directionalClassification.supportingEvidence.length > 0 ? (
+            <div>
+              <p className="fx-ai-label">Supporting evidence</p>
+              <ul className="fx-ai-local-list">
+                {data.multiImage.directionalClassification.supportingEvidence.map((e, i) => (
+                  <li key={`sup-${i}`}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {data.multiImage.directionalClassification.contradictingEvidence.length > 0 ? (
+            <div>
+              <p className="fx-ai-label">Contradictory evidence</p>
+              <ul className="fx-ai-local-list">
+                {data.multiImage.directionalClassification.contradictingEvidence.map((e, i) => (
+                  <li key={`con-${i}`}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <p className="fx-ai-muted">
+            Directional lean only — FXCM ticket guidance, position sizing, and risk checks remain separate eligibility gates.
+          </p>
+        </section>
+      ) : data.multiImage?.buyAssessment ? (
         <section className="fx-buy-assessment" data-fx-buy-assessment="true" aria-label="BUY directional assessment">
           <h3 className="fx-ai-guided-title">BUY directional assessment</h3>
           <p>
@@ -570,11 +654,6 @@ function OpenAiAssistantResultBody({
           </p>
           {data.multiImage.buyAssessment.buyBlockedReason ? (
             <p className="fx-ai-snapshot-warn">{data.multiImage.buyAssessment.buyBlockedReason}</p>
-          ) : null}
-          {data.decision === "BUY" ? (
-            <p className="fx-ai-muted">
-              BUY is a directional hypothesis only. FXCM ticket guidance and risk checks remain separate eligibility gates.
-            </p>
           ) : null}
         </section>
       ) : null}

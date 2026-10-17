@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C/50A/50A.1 — Multi-image OpenAI analysis with MTF + BUY projection.
+ * Phase 49B–50B — Multi-image OpenAI analysis with binary BUY/SELL classification.
  * Requires explicit confirmed=true; never sends images from review-only calls.
  */
 import { randomUUID } from "node:crypto";
@@ -41,18 +41,21 @@ import {
 } from "./limits.js";
 import {
   DIRECTIONAL_CONFIDENCE_LABEL,
-  applyBuyDirectionalPolicy,
   computeBullishDirectionalScore,
 } from "./bullish-score.js";
 import {
   buildBullishPriceProjection,
   parseModelBullishProjectionHint,
 } from "./bullish-projection.js";
+import {
+  applyBinaryDirectionalClassification,
+  canCompleteDirectionalClassification,
+  computeBearishDirectionalScore,
+} from "./directional-classifier.js";
 import { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 import {
   buildMtfRoster,
   parseMtfReasoningFromModel,
-  shouldForceWaitForMtf,
 } from "./mtf-summary.js";
 import { buildMultiImageSystemPrompt, buildMultiImageUserText } from "./prompts.js";
 import { computeSelectionFingerprint, validateCaptureIdList } from "./selection.js";
@@ -689,17 +692,6 @@ export class MultiImageOpenAiAnalysisEngine {
         let analysis = attachMulti(normalized.analysis, mtfReasoning);
         const modelDecisionBeforePolicy = analysis.decision;
 
-        if (shouldForceWaitForMtf(analysis.decision, mtfReasoning)) {
-          const reason = "Multi-timeframe evidence conflicts — directional decision downgraded to WAIT.";
-          analysis = {
-            ...analysis,
-            decision: "WAIT",
-            decisionRationale: `${reason} ${analysis.decisionRationale}`.trim(),
-            limitations: [...analysis.limitations, reason],
-            warnings: [...analysis.warnings, reason],
-          };
-        }
-
         // Prefer MTF scenario text when the model supplied it.
         if (mtfReasoning.bullishScenario) {
           analysis = { ...analysis, bullishScenario: mtfReasoning.bullishScenario };
@@ -717,7 +709,27 @@ export class MultiImageOpenAiAnalysisEngine {
           };
         }
 
-        const bullishScore = computeBullishDirectionalScore({
+        const classifiable = canCompleteDirectionalClassification({
+          captures: review.captures,
+          imageCount: images.length,
+          analysisStatus: analysis.status,
+          analysisError: analysis.error,
+        });
+        if (!classifiable.ok) {
+          const failed = {
+            ...analysis,
+            status: "failed" as const,
+            error: classifiable.error ?? "Directional classification could not be completed.",
+            decision: analysis.decision,
+            limitations: [
+              ...analysis.limitations,
+              classifiable.error ?? "Directional classification could not be completed.",
+            ],
+          };
+          return failed;
+        }
+
+        const scoreInput = {
           decision: analysis.decision,
           marketBias: analysis.marketBias,
           mtf: mtfReasoning,
@@ -728,30 +740,45 @@ export class MultiImageOpenAiAnalysisEngine {
           keyEvidence: analysis.keyEvidence,
           bullishScenario: analysis.bullishScenario,
           bearishScenario: analysis.bearishScenario,
-        });
-
-        const buyPolicy = applyBuyDirectionalPolicy({
-          decision: analysis.decision,
-          score: bullishScore,
-        });
-        if (buyPolicy.changed && buyPolicy.reason) {
-          analysis = {
-            ...analysis,
-            decision: "WAIT",
-            decisionRationale: `${buyPolicy.reason} ${analysis.decisionRationale}`.trim(),
-            limitations: [...analysis.limitations, buyPolicy.reason],
-            warnings: [...analysis.warnings, buyPolicy.reason],
-          };
-        }
-
-        // Attach directional confidence for BUY (and informative score even when WAIT).
-        const confidenceDisplay = bullishScore.display;
-        const modelHint = parseModelBullishProjectionHint(chat.data);
-        const supportsBuyHypothesis = analysis.decision === "BUY" || bullishScore.supportsBuy;
-        const priceProjection = buildBullishPriceProjection({
-          decision: analysis.decision,
+        };
+        const bullishScore = computeBullishDirectionalScore(scoreInput);
+        const bearishScore = computeBearishDirectionalScore(scoreInput);
+        const binary = applyBinaryDirectionalClassification({
+          modelDecision: modelDecisionBeforePolicy,
           marketBias: analysis.marketBias,
-          directionalConfidencePercent: bullishScore.percent,
+          bullish: bullishScore,
+          bearish: bearishScore,
+          mtf: mtfReasoning,
+          keyEvidence: analysis.keyEvidence,
+          bullishScenario: analysis.bullishScenario,
+          bearishScenario: analysis.bearishScenario,
+          captures: review.captures,
+        });
+
+        // Phase 50B — completed valid classification is always BUY or SELL (never WAIT).
+        const binaryNote =
+          `Binary directional classification (${binary.scoreMethod}): `
+          + `${binary.direction} — bullish ${binary.bullishScore} vs bearish ${binary.bearishScore}`
+          + (binary.tieBreakNote ? ` — ${binary.tieBreakNote}` : "");
+        analysis = {
+          ...analysis,
+          decision: binary.direction,
+          decisionRationale: `${binaryNote}. ${analysis.decisionRationale}`.trim(),
+          warnings: [
+            ...analysis.warnings,
+            ...(mtfReasoning.timeframeAgreement === "CONFLICTING"
+              ? ["MTF CONFLICTING — direction still selected by stronger evidence score; confidence reduced when margin is thin."]
+              : []),
+            ...(binary.lowConfidenceNote ? [binary.lowConfidenceNote] : []),
+          ],
+        };
+
+        const modelHint = parseModelBullishProjectionHint(chat.data);
+        const supportsBuyHypothesis = binary.direction === "BUY";
+        const priceProjection = buildBullishPriceProjection({
+          decision: binary.direction,
+          marketBias: analysis.marketBias,
+          directionalConfidencePercent: binary.directionalConfidencePercent,
           supportsBuyHypothesis,
           mtf: mtfReasoning,
           captures: review.captures,
@@ -767,28 +794,50 @@ export class MultiImageOpenAiAnalysisEngine {
 
         analysis = {
           ...analysis,
-          confidence: confidenceDisplay,
+          confidence: binary.display,
           limitations: analysis.limitations.some((l) => /win probability|calibrated/i.test(l))
             ? analysis.limitations
             : [
               ...analysis.limitations,
               `${DIRECTIONAL_CONFIDENCE_LABEL} is not a calibrated probability of a profitable trade.`,
-              "Entry readiness is separate from directional BUY assessment — not a confirmed entry.",
+              "Entry readiness is separate from directional classification — not a confirmed entry.",
               "Directional confidence is not the probability of reaching a projected price target.",
+              "BUY/SELL is a directional lean only — risk eligibility and broker tickets remain separate gates.",
             ],
           multiImage: {
             ...analysis.multiImage,
             buyAssessment: {
-              directionalConfidencePercent: bullishScore.percent,
+              directionalConfidencePercent: binary.directionalConfidencePercent,
               directionalConfidenceLabel: DIRECTIONAL_CONFIDENCE_LABEL,
-              scoreMethod: bullishScore.method,
-              supportsBuy: analysis.decision === "BUY",
-              buyBlockedReason: analysis.decision === "BUY" ? null : (buyPolicy.reason ?? bullishScore.buyBlockedReason),
+              scoreMethod: binary.scoreMethod,
+              supportsBuy: binary.direction === "BUY",
+              buyBlockedReason: binary.direction === "BUY" ? null : (
+                binary.lowConfidenceNote
+                ?? `Directional lean is ${binary.direction} (bullish ${binary.bullishScore} vs bearish ${binary.bearishScore}).`
+              ),
               entryReadiness: "NOT_CONFIRMED",
-              components: bullishScore.components,
+              components: binary.components,
               imagesSubmittedAsImageUrl: true,
               modelDecisionBeforePolicy,
-              finalDecision: analysis.decision,
+              finalDecision: binary.direction,
+            },
+            directionalClassification: {
+              direction: binary.direction,
+              directionalConfidencePercent: binary.directionalConfidencePercent,
+              directionalConfidenceLabel: binary.directionalConfidenceLabel,
+              scoreMethod: binary.scoreMethod,
+              bullishScore: binary.bullishScore,
+              bearishScore: binary.bearishScore,
+              margin: binary.margin,
+              confidenceBand: binary.confidenceBand,
+              supportingEvidence: binary.supportingEvidence,
+              contradictingEvidence: binary.contradictingEvidence,
+              tieBreakNote: binary.tieBreakNote,
+              lowConfidenceNote: binary.lowConfidenceNote,
+              entryReadiness: "NOT_CONFIRMED",
+              imagesSubmittedAsImageUrl: true,
+              modelDecisionBeforePolicy,
+              finalDecision: binary.direction,
             },
             priceProjection,
           },

@@ -3130,7 +3130,8 @@ html.reduce-motion .fx-sidebar {
 }
 .fx-mtf-reasoning,
 .fx-buy-assessment,
-.fx-buy-projection {
+.fx-buy-projection,
+.fx-directional-classification {
   display: grid;
   gap: 6px;
   padding: 8px 10px;
@@ -3138,6 +3139,16 @@ html.reduce-motion .fx-sidebar {
   border-radius: 6px;
   background: #0a0e14;
   font-size: 12px;
+}
+.fx-directional-headline {
+  font-size: 14px;
+  margin: 0;
+}
+.fx-directional-classification[data-direction="BUY"] .fx-directional-headline strong {
+  color: #4ade80;
+}
+.fx-directional-classification[data-direction="SELL"] .fx-directional-headline strong {
+  color: #f87171;
 }
 .fx-buy-proj-meta {
   margin: 4px 0;

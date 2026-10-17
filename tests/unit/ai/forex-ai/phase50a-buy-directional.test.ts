@@ -176,23 +176,23 @@ describe("Phase 50A request/image wiring contracts", () => {
     const engine = read("ai/forex-ai/multi-image-openai/engine.ts");
     expect(engine).toContain("validateCaptureInstrumentConsistency");
     expect(engine).toContain("computeBullishDirectionalScore");
-    expect(engine).toContain("applyBuyDirectionalPolicy");
+    expect(engine).toContain("applyBinaryDirectionalClassification");
     expect(engine).toContain("imagesSubmittedAsImageUrl: true");
     expect(engine).toContain("CONFIRMATION_REQUIRED");
     expect(engine).toContain("openAiChatMultimodalJson");
 
     const prompts = read("ai/forex-ai/multi-image-openai/prompts.ts");
     expect(prompts).toContain("directionalConfidencePercent");
-    expect(prompts).toContain("MAY return decision=BUY");
+    expect(prompts).toContain("BUY or SELL");
     expect(prompts).toContain("image_url inputs");
 
     const ui = read("desktop/forex/SnapshotAiResultPanels.tsx");
-    expect(ui).toContain("data-fx-buy-assessment");
+    expect(ui).toContain("data-fx-directional-classification");
     expect(ui).toContain("directionalConfidenceLabel");
     expect(ui).toContain("not a calibrated win probability");
     expect(read("ai/forex-ai/multi-image-openai/bullish-score.ts")).toContain(DIRECTIONAL_CONFIDENCE_LABEL);
 
     const api = read("dev/server/forex-ai-openai-snapshot-api.ts");
-    expect(api).toMatch(/phase:\s*"50A(?:\.1)?"/);
+    expect(api).toMatch(/phase:\s*"50[AB](?:\.1)?"/);
   });
 });
