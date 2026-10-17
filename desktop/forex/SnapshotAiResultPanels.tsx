@@ -157,7 +157,17 @@ export type OpenAiAssistantGuidanceUi = {
     why: string;
     verify: string;
     unavailableReason: string | null;
+    blockerCode?: string | null;
   }>;
+  blockers?: Array<{ code: string; reason: string; explanation: string }>;
+  fxcmEligibility?: {
+    eligible: boolean;
+    status: string;
+    message: string | null;
+    blockerCode: string | null;
+    note: string;
+    placesOrders?: false;
+  };
   finalSummary: {
     directionOrWait: string;
     confirmationStatus: string;
@@ -190,6 +200,7 @@ export type SnapshotAnalysisPanelData = {
   warnings: string[];
   newsResearchStatus?: string;
   analysisProvider?: string;
+  candleTimeframe?: string;
   planBundle?: SnapshotPlanBundleUi | null;
   guidedResponse?: GuidedAnalysisUi | null;
   assistantGuidance?: OpenAiAssistantGuidanceUi | null;
@@ -226,6 +237,42 @@ export type SnapshotAnalysisPanelData = {
       imagesSubmittedAsImageUrl?: boolean;
       modelDecisionBeforePolicy?: string;
       finalDecision?: string;
+    };
+    directionalProbability?: {
+      status: string;
+      display: string;
+      evidenceScoreIsNotProbability?: boolean;
+      sampleCount?: number;
+      reason?: string;
+      note?: string;
+    };
+    dualScenarios?: {
+      method: string;
+      dataStatus: string;
+      referencePrice: number | null;
+      referenceSource: string | null;
+      referenceTimestampUtc: string | null;
+      disclaimer: string;
+      bullish: {
+        available: boolean;
+        unavailableReason: string | null;
+        entryZone: { lower: number | null; upper: number | null; reference: number | null; provenance: string; unavailableReason: string | null };
+        target1: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        target2: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        invalidation: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        confirmationEvidence: string[];
+        invalidationEvidence: string[];
+      };
+      bearish: {
+        available: boolean;
+        unavailableReason: string | null;
+        entryZone: { lower: number | null; upper: number | null; reference: number | null; provenance: string; unavailableReason: string | null };
+        target1: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        target2: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        invalidation: { price: number | null; kind: string; provenance: string; unavailableReason: string | null };
+        confirmationEvidence: string[];
+        invalidationEvidence: string[];
+      };
     };
     priceProjection?: BuyPriceProjectionUi;
     mtfReasoning?: {
@@ -585,68 +632,170 @@ function OpenAiAssistantResultBody({
 
       {data.multiImage?.directionalClassification ? (
         <section
-          className="fx-directional-classification"
+          className="fx-directional-classification fx-market-direction-brief"
           data-fx-directional-classification="true"
+          data-fx-market-direction-brief="true"
           data-direction={data.multiImage.directionalClassification.direction}
-          aria-label="Directional classification"
+          aria-label="Market direction brief"
         >
-          <h3 className="fx-ai-guided-title">Directional classification</h3>
-          <p className="fx-directional-headline">
-            <span className="fx-ai-label">Direction</span>{" "}
-            <strong data-fx-direction-value="true">{data.multiImage.directionalClassification.direction}</strong>
-            {" · "}
-            <span className="fx-ai-label">{data.multiImage.directionalClassification.directionalConfidenceLabel}</span>{" "}
-            {data.multiImage.directionalClassification.directionalConfidencePercent}%
-            {" · "}
-            <span className="fx-ai-label">Band</span> {data.multiImage.directionalClassification.confidenceBand}
-          </p>
-          <p className="fx-ai-muted">
-            {instrument} · {provider}
-            {" · "}method {data.multiImage.directionalClassification.scoreMethod}
-            {" · "}bullish {data.multiImage.directionalClassification.bullishScore}
-            {" vs "}bearish {data.multiImage.directionalClassification.bearishScore}
-            {" · "}margin {data.multiImage.directionalClassification.margin}
-          </p>
-          <p className="fx-ai-muted">
-            Entry readiness {data.multiImage.directionalClassification.entryReadiness}
-            {" · "}not a calibrated win probability
-            {data.multiImage.directionalClassification.imagesSubmittedAsImageUrl
-              ? " · screenshots submitted as image_url inputs"
-              : ""}
-            {data.multiImage.provenance?.analysisTime?.quoteFreshness
-              || data.multiImage.provenance?.analysisTime?.feedHealth
-              ? ` · data ${data.multiImage.provenance.analysisTime.feedHealth
-                ?? data.multiImage.provenance.analysisTime.quoteFreshness}`
-              : ""}
-          </p>
+          <h3 className="fx-ai-guided-title">Market direction brief</h3>
+          <div className="fx-mdb-grid">
+            <p className="fx-directional-headline fx-mdb-cell">
+              <span className="fx-ai-label">1. Direction</span>{" "}
+              <strong data-fx-direction-value="true">{data.multiImage.directionalClassification.direction}</strong>
+              {" · "}Bias {data.marketBias}
+            </p>
+            <p className="fx-mdb-cell">
+              <span className="fx-ai-label">2. Evidence score</span>{" "}
+              {data.multiImage.directionalClassification.directionalConfidencePercent}%
+              {" "}({data.multiImage.directionalClassification.confidenceBand})
+              {" · "}bullish {data.multiImage.directionalClassification.bullishScore}
+              {" vs "}bearish {data.multiImage.directionalClassification.bearishScore}
+              <span className="fx-ai-muted"> — not a probability</span>
+            </p>
+            <p className="fx-mdb-cell" data-fx-directional-probability="true">
+              <span className="fx-ai-label">3. Directional probability</span>{" "}
+              <strong>
+                {data.multiImage.directionalProbability?.display
+                  ?? "DIRECTIONAL PROBABILITY: NOT CALIBRATED"}
+              </strong>
+              {data.multiImage.directionalProbability?.sampleCount != null
+                ? ` · n=${data.multiImage.directionalProbability.sampleCount}`
+                : ""}
+            </p>
+            <p className="fx-mdb-cell">
+              <span className="fx-ai-label">4. Data / TF</span>{" "}
+              {data.multiImage.provenance?.analysisTime?.feedHealth
+                ?? data.multiImage.provenance?.analysisTime?.quoteFreshness
+                ?? data.multiImage.dualScenarios?.dataStatus
+                ?? "—"}
+              {" · "}{data.candleTimeframe || "—"}
+              {" · "}{instrument} / {provider}
+            </p>
+          </div>
+          <div className="fx-mdb-evidence">
+            <div>
+              <p className="fx-ai-label">5. Supporting evidence</p>
+              <ul className="fx-ai-local-list">
+                {(data.multiImage.directionalClassification.supportingEvidence.length
+                  ? data.multiImage.directionalClassification.supportingEvidence
+                  : ["No supporting bullets recorded."]).map((e, i) => (
+                  <li key={`sup-${i}`}>{e}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="fx-ai-label">Contradictory evidence</p>
+              <ul className="fx-ai-local-list">
+                {(data.multiImage.directionalClassification.contradictingEvidence.length
+                  ? data.multiImage.directionalClassification.contradictingEvidence
+                  : ["None listed."]).map((e, i) => (
+                  <li key={`con-${i}`}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          {data.multiImage.dualScenarios ? (
+            <div className="fx-mdb-scenarios" data-fx-dual-scenarios="true">
+              <p className="fx-ai-label">6. Bullish / bearish scenarios</p>
+              <p className="fx-ai-muted">
+                Ref {fmtPrice(data.multiImage.dualScenarios.referencePrice)}
+                {data.multiImage.dualScenarios.referenceSource
+                  ? ` via ${data.multiImage.dualScenarios.referenceSource}`
+                  : ""}
+                {data.multiImage.dualScenarios.referenceTimestampUtc
+                  ? ` · ${data.multiImage.dualScenarios.referenceTimestampUtc}`
+                  : ""}
+                {" · "}method {data.multiImage.dualScenarios.method}
+              </p>
+              {(["bullish", "bearish"] as const).map((side) => {
+                const sc = data.multiImage!.dualScenarios![side];
+                return (
+                  <div key={side} className="fx-mdb-scenario" data-scenario-side={side}>
+                    <strong>{side === "bullish" ? "Bullish" : "Bearish"}</strong>
+                    {!sc.available ? (
+                      <p className="fx-ai-snapshot-warn">{sc.unavailableReason ?? "Unavailable"}</p>
+                    ) : (
+                      <ul className="fx-ai-local-list">
+                        <li>
+                          Entry{" "}
+                          {sc.entryZone.reference != null
+                            ? fmtPrice(sc.entryZone.reference)
+                            : `${fmtPrice(sc.entryZone.lower)}–${fmtPrice(sc.entryZone.upper)}`}
+                          {" · "}{sc.entryZone.provenance}
+                        </li>
+                        <li>
+                          T1 {fmtPrice(sc.target1.price)} ({sc.target1.kind}) · {sc.target1.provenance}
+                        </li>
+                        <li>
+                          T2 {fmtPrice(sc.target2.price)}
+                          {sc.target2.unavailableReason ? ` — ${sc.target2.unavailableReason}` : ` · ${sc.target2.provenance}`}
+                        </li>
+                        <li>
+                          Invalidation {fmtPrice(sc.invalidation.price)} · {sc.invalidation.provenance}
+                        </li>
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="fx-ai-muted">{data.multiImage.dualScenarios.disclaimer}</p>
+            </div>
+          ) : (
+            <p className="fx-ai-muted">6. Scenarios — awaiting structure-backed levels from the plan bundle.</p>
+          )}
+          <div className="fx-mdb-gates">
+            <p>
+              <span className="fx-ai-label">7. Entry confirmation</span>{" "}
+              {data.multiImage.directionalClassification.entryReadiness}
+              {guidance?.finalSummary.confirmationStatus
+                ? ` · plan ${guidance.finalSummary.confirmationStatus}`
+                : ""}
+            </p>
+            <p>
+              <span className="fx-ai-label">8. Stop / Take Profit</span>{" "}
+              {(() => {
+                const stopItem = guidance?.items.find((i) => i.tone === "stop");
+                const tpItem = guidance?.items.find((i) => i.tone === "takeprofit");
+                const stopOk = stopItem && stopItem.support !== "unavailable" && stopItem.value !== "unavailable";
+                const tpOk = tpItem && tpItem.support !== "unavailable" && tpItem.value !== "unavailable";
+                return `SL ${stopOk ? stopItem!.value : "unavailable"}${stopItem?.blockerCode ? ` [${stopItem.blockerCode}]` : ""} · TP ${tpOk ? tpItem!.value : "unavailable"}${tpItem?.blockerCode ? ` [${tpItem.blockerCode}]` : ""}`;
+              })()}
+            </p>
+            <p>
+              <span className="fx-ai-label">9. Risk eligibility</span>{" "}
+              {guidance?.fxcmEligibility && !guidance.fxcmEligibility.eligible
+                ? (guidance.fxcmEligibility.message ?? "FXCM ticket ineligible")
+                : guidance?.finalSummary.riskEligible === true
+                  ? "Eligible (human review only)"
+                  : guidance?.finalSummary.riskEligible === false
+                    ? "Blocked"
+                    : "Pending"}
+            </p>
+            {(guidance?.blockers?.length || guidance?.finalSummary.reason) ? (
+              <ul className="fx-ai-local-list fx-mdb-blockers" data-fx-ticket-blockers="true">
+                {(guidance.blockers ?? []).slice(0, 6).map((b, i) => (
+                  <li key={`blk-${i}`}><code>{b.code}</code> — {b.explanation}</li>
+                ))}
+                {!guidance.blockers?.length && guidance.finalSummary.reason ? (
+                  <li>{guidance.finalSummary.reason}</li>
+                ) : null}
+              </ul>
+            ) : null}
+          </div>
           {data.multiImage.directionalClassification.lowConfidenceNote ? (
             <p className="fx-ai-snapshot-warn">{data.multiImage.directionalClassification.lowConfidenceNote}</p>
           ) : null}
           {data.multiImage.directionalClassification.tieBreakNote ? (
             <p className="fx-ai-muted">{data.multiImage.directionalClassification.tieBreakNote}</p>
           ) : null}
-          {data.multiImage.directionalClassification.supportingEvidence.length > 0 ? (
-            <div>
-              <p className="fx-ai-label">Supporting evidence</p>
-              <ul className="fx-ai-local-list">
-                {data.multiImage.directionalClassification.supportingEvidence.map((e, i) => (
-                  <li key={`sup-${i}`}>{e}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {data.multiImage.directionalClassification.contradictingEvidence.length > 0 ? (
-            <div>
-              <p className="fx-ai-label">Contradictory evidence</p>
-              <ul className="fx-ai-local-list">
-                {data.multiImage.directionalClassification.contradictingEvidence.map((e, i) => (
-                  <li key={`con-${i}`}>{e}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
           <p className="fx-ai-muted">
-            Directional lean only — FXCM ticket guidance, position sizing, and risk checks remain separate eligibility gates.
+            Method {data.multiImage.directionalClassification.scoreMethod}
+            {" · "}margin {data.multiImage.directionalClassification.margin}
+            {data.multiImage.directionalClassification.imagesSubmittedAsImageUrl
+              ? " · screenshots as image_url"
+              : ""}
+            {" · "}BUY/SELL is an analytical lean — ticket sizing and broker eligibility stay separate.
           </p>
         </section>
       ) : data.multiImage?.buyAssessment ? (
@@ -775,9 +924,20 @@ function OpenAiAssistantResultBody({
                 <span className="fx-ai-asst-value">{it.value}</span>
               </div>
               <p className="fx-ai-asst-map">
-                <span className="fx-ai-label">FXCM field</span> {it.ticketField}
+                <span className="fx-ai-label">
+                  {guidance.fxcmEligibility && !guidance.fxcmEligibility.eligible
+                    ? "Ticket field"
+                    : "FXCM field"}
+                </span>{" "}
+                {it.ticketField}
                 {" · "}
                 <span className="fx-ai-ticket-support">{it.support}</span>
+                {it.blockerCode ? (
+                  <>
+                    {" · "}
+                    <code className="fx-ai-blocker-code" data-blocker-code={it.blockerCode}>{it.blockerCode}</code>
+                  </>
+                ) : null}
               </p>
               <p className="fx-ai-muted">{it.why}</p>
               <p className="fx-ai-muted">Verify: {it.verify}</p>

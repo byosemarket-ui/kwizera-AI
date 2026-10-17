@@ -47,6 +47,22 @@ export type {
   ModelBullishProjectionHint,
   ProjectionCandle,
 } from "./bullish-projection.js";
+export {
+  DIRECTIONAL_PROBABILITY_METHOD,
+  DIRECTIONAL_PROBABILITY_STATUS,
+  isEmpiricallyCalibrated,
+  resolveDirectionalProbability,
+} from "./directional-probability.js";
+export type { DirectionalProbabilityReport } from "./directional-probability.js";
+export {
+  DUAL_SCENARIO_METHOD,
+  buildDualMarketScenarios,
+} from "./dual-scenarios.js";
+export type {
+  DualMarketScenarios,
+  MarketSideScenario,
+  ScenarioLevel,
+} from "./dual-scenarios.js";
 export { getMultiImageAnalysisStore, MultiImageAnalysisStore } from "./store.js";
 export {
   getMultiImageOpenAiAnalysisEngine,

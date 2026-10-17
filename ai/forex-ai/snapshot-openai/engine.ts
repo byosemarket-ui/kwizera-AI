@@ -68,6 +68,8 @@ async function withPlans(
       supportingEvidence: enriched.keyEvidence,
       contradictingEvidence: guidedResponse.evidence.contradictingEvidence,
       tradeAllocation: tradeAllocation ?? null,
+      provider: String(enriched.provider),
+      instrument: enriched.instrument,
     })
     : null;
   return {

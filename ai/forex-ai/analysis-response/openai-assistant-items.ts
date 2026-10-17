@@ -1,12 +1,25 @@
 /**
- * Phase 46B — Nine numbered OpenAI assistant guidance items (presentation mapping only).
+ * Phase 46B / 50D — Nine numbered OpenAI assistant guidance items (presentation mapping only).
  * Monetary values come from Phase 45 positionRisk — never invented.
+ * Phase 50D adds stable blocker codes + FXCM eligibility isolation.
  */
 import type { SnapshotTradePlan } from "../snapshot-plans/types.js";
 import type { PositionRiskResult } from "../position-sizing/types.js";
+import {
+  classifyTicketBlocker,
+  classifyTicketBlockers,
+  formatBlockerForUi,
+  primaryBlockerCode,
+  type ClassifiedBlocker,
+  type ForexTicketBlockerCode,
+} from "./blocker-codes.js";
+import {
+  evaluateFxcmTicketEligibility,
+  type FxcmTicketEligibility,
+} from "./broker-eligibility.js";
 import type { FieldSupportLevel } from "./types.js";
 
-export const OPENAI_ASSISTANT_ITEMS_SCHEMA = "forex-openai-assistant-items-v1";
+export const OPENAI_ASSISTANT_ITEMS_SCHEMA = "forex-openai-assistant-items-v2";
 
 export type OpenAiAssistantItemTone =
   | "direction"
@@ -30,6 +43,8 @@ export interface OpenAiAssistantGuidanceItem {
   why: string;
   verify: string;
   unavailableReason: string | null;
+  /** Phase 50D — stable code when the value is unavailable. */
+  blockerCode: ForexTicketBlockerCode | null;
 }
 
 export interface OpenAiAssistantGuidanceBundle {
@@ -39,6 +54,9 @@ export interface OpenAiAssistantGuidanceBundle {
   readiness: string;
   readinessNote: string;
   items: OpenAiAssistantGuidanceItem[];
+  /** Phase 50D — distinct blockers for the ticket (not a single generic string). */
+  blockers: ClassifiedBlocker[];
+  fxcmEligibility: FxcmTicketEligibility;
   finalSummary: {
     directionOrWait: string;
     confirmationStatus: string;
@@ -96,8 +114,27 @@ function item(
   why: string,
   verify: string,
   unavailableReason: string | null = null,
+  blockerCode: ForexTicketBlockerCode | null = null,
 ): OpenAiAssistantGuidanceItem {
-  return { number, tone, title, value, ticketField, support, why, verify, unavailableReason };
+  const classified = unavailableReason ? classifyTicketBlocker(unavailableReason) : null;
+  const code = blockerCode ?? classified?.code ?? null;
+  // Prefer the original human reason (e.g. BROKER INSTRUMENT NOT VERIFIED banner)
+  // so the UI keeps precise messaging; code lives in blockerCode.
+  const reasonOut = unavailableReason
+    ? (code ? `${code}: ${unavailableReason}` : unavailableReason)
+    : null;
+  return {
+    number,
+    tone,
+    title,
+    value,
+    ticketField,
+    support,
+    why,
+    verify,
+    unavailableReason: reasonOut,
+    blockerCode: code,
+  };
 }
 
 /** Prefer risk-eligible plan; else actionable intent; else pullback for display. */
@@ -122,6 +159,10 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   supportingEvidence?: string[];
   contradictingEvidence?: string[];
   tradeAllocation?: { amount: number; currency: string } | null;
+  /** Analysis market-data provider (BINANCE / FOREXCONNECT / FXCM). */
+  provider?: string | null;
+  instrument?: string | null;
+  fxcmMappingStatus?: "RESOLVED" | "UNRESOLVED" | "CONFLICT" | null;
 }): OpenAiAssistantGuidanceBundle {
   const plan = input.plan;
   const risk = plan.positionRisk ?? null;
@@ -135,6 +176,12 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   const directionOk = analysisDirectionOk || planDirectionOk;
   const marketDir = input.marketDirection ?? plan.marketDirection;
   const upstreamBlock = primaryTicketBlocker(plan);
+  const fxcmEligibility = evaluateFxcmTicketEligibility({
+    provider: input.provider ?? null,
+    instrument: input.instrument ?? plan.instrument,
+    fxcmMappingStatus: input.fxcmMappingStatus ?? null,
+  });
+  const fxcmBlocksTicket = !fxcmEligibility.eligible;
 
   const supportBits = (input.supportingEvidence ?? []).slice(0, 2).join(" · ");
   const contraBits = (input.contradictingEvidence ?? []).slice(0, 1).join(" · ");
@@ -164,7 +211,7 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     "direction",
     "Market Direction",
     directionValue,
-    "BUY / SELL decision",
+    "BUY / SELL decision (analytical)",
     directionSupport,
     [
       analysisDirectionOk
@@ -172,10 +219,11 @@ export function buildOpenAiAssistantGuidanceItems(input: {
         : null,
       planDirectionOk
         ? `Entry-plan intent is ${plan.intent} (${plan.planKind}).`
-        : `Entry-plan intent is ${plan.intent} — ticket BUY/SELL stays blocked until readiness clears.`,
+        : `Entry-plan intent is ${plan.intent} — entry readiness stays blocked until structure clears.`,
       upstreamBlock && !planDirectionOk ? `Upstream entry/risk blocker: ${upstreamBlock}` : null,
       supportBits ? `Supporting: ${supportBits}` : null,
       contraBits ? `Contradicting: ${contraBits}` : null,
+      fxcmBlocksTicket ? fxcmEligibility.note : null,
       "A model-generated direction alone does not authorize a trade.",
     ].filter(Boolean).join(" "),
     "Confirm direction against your chart and account permissions before touching BUY/SELL.",
@@ -184,15 +232,22 @@ export function buildOpenAiAssistantGuidanceItems(input: {
       : (planDirectionOk ? null : (upstreamBlock ?? `Intent ${plan.intent} blocks ticket direction.`)),
   ));
 
-  const sizeStr = risk?.positionSize != null
+  const sizeStr = !fxcmBlocksTicket && risk?.positionSize != null
     ? `${risk.positionSize} ${risk.positionSizeUnit}`
     : null;
+  const contractsBlockReason = fxcmBlocksTicket
+    ? (fxcmEligibility.message ?? "BROKER INSTRUMENT NOT VERIFIED — FXCM TICKET INELIGIBLE")
+    : (sizeStr
+      ? null
+      : (risk?.contract?.unavailableReason
+        ?? upstreamBlock
+        ?? "Size not calculated."));
   items.push(item(
     2,
     "contracts",
     "Contracts",
     sizeStr ?? "unavailable",
-    "CONTRACTS quantity",
+    fxcmBlocksTicket ? "FXCM CONTRACTS (ineligible)" : "CONTRACTS quantity",
     risk?.contract?.verified && sizeStr ? "estimated" : "unavailable",
     sizeStr
       ? [
@@ -202,18 +257,19 @@ export function buildOpenAiAssistantGuidanceItems(input: {
           : "No trade allocation was submitted with this run.",
       ].join(" ")
       : [
-        "Contract quantity withheld until a directional plan and verified specs allow calculation.",
-        upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
-        risk?.contract?.verified
-          ? `Contract metadata is verified (${risk.contract.convention}) — sizing waits on direction/SL.`
+        fxcmBlocksTicket
+          ? fxcmEligibility.note
+          : "Contract quantity withheld until a directional entry plan and verified FXCM specs allow calculation.",
+        !fxcmBlocksTicket && upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
+        !fxcmBlocksTicket && risk?.contract?.verified
+          ? `Contract metadata is verified (${risk.contract.convention}) — sizing waits on entry/SL.`
           : null,
       ].filter(Boolean).join(" "),
-    "Verify the CONTRACTS field matches the FXCM instrument lot/contract rules.",
-    sizeStr
-      ? null
-      : (upstreamBlock
-        ?? risk?.contract?.unavailableReason
-        ?? "Size not calculated."),
+    fxcmBlocksTicket
+      ? "Do not copy Binance or non-FXCM sizing onto an FXCM ticket."
+      : "Verify the CONTRACTS field matches the FXCM instrument lot/contract rules.",
+    contractsBlockReason,
+    fxcmBlocksTicket ? (fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE") : null,
   ));
 
   const unit = String(
@@ -223,27 +279,39 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   ).toLowerCase();
   const isOunce = unit.includes("ounce");
   const unitLabel = isOunce ? "Ounces" : "Instrument units";
-  const unitValue = risk?.positionSize != null && risk.contract?.verified
+  const unitValue = !fxcmBlocksTicket && risk?.positionSize != null && risk.contract?.verified
     ? `${risk.positionSize} ${risk.positionSizeUnit}`
     : "unavailable";
+  const unitsBlockReason = fxcmBlocksTicket
+    ? (fxcmEligibility.message ?? "BROKER INSTRUMENT NOT VERIFIED — FXCM TICKET INELIGIBLE")
+    : (risk?.positionSize != null && risk.contract?.verified
+      ? null
+      : (risk?.contract?.verified
+        ? (upstreamBlock ?? "Units unavailable until size is calculated.")
+        : (risk?.contract?.unavailableReason
+          ?? upstreamBlock
+          ?? "Units unavailable until size is calculated.")));
   items.push(item(
     3,
     "units",
     unitLabel,
     unitValue,
-    isOunce ? "OUNCES" : "Size / units",
-    risk?.contract?.verified && risk.positionSize != null ? "estimated" : "unavailable",
-    risk?.contract?.verified && risk.positionSize != null
-      ? `Unit display follows verified contract convention (${risk.contract.convention}). Not a universal ounce multiplier.`
-      : risk?.contract?.verified
-        ? `Verified convention ${risk.contract.convention} / unit ${risk.contract.quantityUnit} — quantity waits on directional sizing.`
-        : "Unit conversion unavailable without verified contract multiplier / quantity unit.",
-    "Confirm the unit label on the FXCM ticket matches this instrument (lots, ounces, base units, etc.).",
-    risk?.positionSize != null && risk.contract?.verified
-      ? null
-      : (upstreamBlock
-        ?? (risk?.contract?.verified ? null : risk?.contract?.unavailableReason)
-        ?? "Units unavailable until size is calculated."),
+    fxcmBlocksTicket
+      ? (isOunce ? "FXCM OUNCES (ineligible)" : "FXCM Size / units (ineligible)")
+      : (isOunce ? "OUNCES" : "Size / units"),
+    !fxcmBlocksTicket && risk?.contract?.verified && risk.positionSize != null ? "estimated" : "unavailable",
+    fxcmBlocksTicket
+      ? fxcmEligibility.note
+      : risk?.contract?.verified && risk.positionSize != null
+        ? `Unit display follows verified contract convention (${risk.contract.convention}). Not a universal ounce multiplier.`
+        : risk?.contract?.verified
+          ? `Verified convention ${risk.contract.convention} / unit ${risk.contract.quantityUnit} — quantity waits on directional sizing.`
+          : "Unit conversion unavailable without verified contract multiplier / quantity unit.",
+    fxcmBlocksTicket
+      ? "Never infer FXCM units from another provider's filters."
+      : "Confirm the unit label on the FXCM ticket matches this instrument (lots, ounces, base units, etc.).",
+    unitsBlockReason,
+    fxcmBlocksTicket ? (fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE") : null,
   ));
 
   const pending = plan.lifecycle === "PLAN_CREATED"
@@ -258,108 +326,151 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     4,
     "advanced",
     "Advanced / Order settings",
-    orderValue,
-    "MARKET / ENTRY · ADVANCED",
-    directionOk ? "guidance_only" : "unavailable",
-    directionOk
-      ? "Enable Advanced to set Stop and Limit. Order type depends on whether price is already in the entry zone and confirmation status."
-      : [
-        "Order type not determined while direction is WAIT/UNSUITABLE.",
-        upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
-      ].filter(Boolean).join(" "),
-    "Verify MARKET vs ENTRY tabs and Advanced toggle against live Bid/Ask.",
-    directionOk ? null : (upstreamBlock ?? "No actionable direction."),
+    fxcmBlocksTicket ? "FXCM ticket ineligible" : orderValue,
+    fxcmBlocksTicket ? "FXCM MARKET / ENTRY (ineligible)" : "MARKET / ENTRY · ADVANCED",
+    !fxcmBlocksTicket && directionOk ? "guidance_only" : "unavailable",
+    fxcmBlocksTicket
+      ? fxcmEligibility.note
+      : directionOk
+        ? "Enable Advanced to set Stop and Limit. Order type depends on whether price is already in the entry zone and confirmation status."
+        : [
+          "Order type not determined while entry-plan direction is WAIT/UNSUITABLE.",
+          upstreamBlock ? `Blocker: ${upstreamBlock}` : null,
+        ].filter(Boolean).join(" "),
+    fxcmBlocksTicket
+      ? "No FXCM Advanced settings apply until the instrument is FXCM-verified."
+      : "Verify MARKET vs ENTRY tabs and Advanced toggle against live Bid/Ask.",
+    fxcmBlocksTicket
+      ? (fxcmEligibility.message ?? null)
+      : (directionOk ? null : (upstreamBlock ?? "No actionable entry direction.")),
+    fxcmBlocksTicket ? (fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE") : null,
   ));
 
   items.push(item(
     5,
     "tif",
     "Time in Force",
-    directionOk ? "Not determined — choose GTC or session TIF for pending entries" : "Not determined",
-    "TIME IN FORCE",
-    "guidance_only",
-    "TIF is an operator choice. Prefer GTC for pending structural zones unless your desk requires day-only. No automatic GTC prescription.",
-    "Confirm FXCM TIF options for this instrument and session.",
-    null,
+    fxcmBlocksTicket
+      ? "Not applicable — FXCM ticket ineligible"
+      : directionOk
+        ? "Not determined — choose GTC or session TIF for pending entries"
+        : "Not determined",
+    fxcmBlocksTicket ? "FXCM TIME IN FORCE (ineligible)" : "TIME IN FORCE",
+    fxcmBlocksTicket ? "unavailable" : "guidance_only",
+    fxcmBlocksTicket
+      ? fxcmEligibility.note
+      : "TIF is an operator choice. Prefer GTC for pending structural zones unless your desk requires day-only. No automatic GTC prescription.",
+    fxcmBlocksTicket
+      ? "TIF is irrelevant until an FXCM-verified instrument is selected."
+      : "Confirm FXCM TIF options for this instrument and session.",
+    fxcmBlocksTicket ? (fxcmEligibility.message ?? null) : null,
+    fxcmBlocksTicket ? (fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE") : null,
   ));
 
   const stopDist = entry != null && stop != null ? Math.abs(entry - stop) : null;
-  const stopMoney = money(risk?.netLossAccount, ccy);
+  const stopMoney = !fxcmBlocksTicket ? money(risk?.netLossAccount, ccy) : null;
+  const stopUnavailable = plan.stopLoss.unavailableReason;
   items.push(item(
     6,
     "stop",
     "Stop Loss",
-    plan.stopLoss.unavailableReason ? "unavailable" : (fmtPrice(stop) ?? "unavailable"),
-    "STOP · AT PRICE",
-    stop != null && !plan.stopLoss.unavailableReason ? "guidance_only" : "unavailable",
+    stopUnavailable ? "unavailable" : (fmtPrice(stop) ?? "unavailable"),
+    fxcmBlocksTicket ? "Analytical STOP (not FXCM ticket)" : "STOP · AT PRICE",
+    stop != null && !stopUnavailable ? "guidance_only" : "unavailable",
     [
-      plan.stopLoss.rationale || "Structural invalidation / stop from Phase 44 plan.",
-      stopDist != null ? `Distance from entry ≈ ${fmtPrice(stopDist)} price units.` : null,
+      stopUnavailable
+        ? null
+        : (plan.stopLoss.rationale || "Structural invalidation / stop from Phase 44 plan."),
+      stopUnavailable ? null : (stopDist != null ? `Distance from entry ≈ ${fmtPrice(stopDist)} price units.` : null),
       stopMoney
         ? `Estimated monetary risk ≈ ${stopMoney} (Phase 45).`
-        : "Monetary risk unavailable until Phase 45 inputs are complete.",
+        : (fxcmBlocksTicket
+          ? "FXCM monetary risk withheld — broker instrument not verified."
+          : "Monetary risk unavailable until Phase 45 inputs are complete."),
       plan.confirmationRequired[0] ? `Confirmation still required: ${plan.confirmationRequired[0]}` : null,
+      "Analytical SL may exist without FXCM ticket eligibility.",
     ].filter(Boolean).join(" "),
-    "Confirm STOP side relative to BUY/SELL and minimum stop distance on FXCM.",
-    plan.stopLoss.unavailableReason,
+    fxcmBlocksTicket
+      ? "Treat as analytical invalidation only — not an FXCM STOP field."
+      : "Confirm STOP side relative to BUY/SELL and minimum stop distance on FXCM.",
+    stopUnavailable,
   ));
 
   const tpDist = entry != null && tp != null ? Math.abs(tp - entry) : null;
-  const tpMoney = money(risk?.netProfitAccount, ccy);
+  const tpMoney = !fxcmBlocksTicket ? money(risk?.netProfitAccount, ccy) : null;
+  const tpUnavailable = plan.takeProfit.unavailableReason;
   items.push(item(
     7,
     "takeprofit",
     "Take Profit",
-    plan.takeProfit.unavailableReason ? "unavailable" : (fmtPrice(tp) ?? "unavailable"),
-    "LIMIT · AT PRICE",
-    tp != null && !plan.takeProfit.unavailableReason ? "guidance_only" : "unavailable",
+    tpUnavailable ? "unavailable" : (fmtPrice(tp) ?? "unavailable"),
+    fxcmBlocksTicket ? "Analytical LIMIT (not FXCM ticket)" : "LIMIT · AT PRICE",
+    tp != null && !tpUnavailable ? "guidance_only" : "unavailable",
     [
-      plan.takeProfit.rationale || "Target from Phase 44 plan.",
-      tpDist != null ? `Distance from entry ≈ ${fmtPrice(tpDist)} price units.` : null,
+      tpUnavailable ? null : (plan.takeProfit.rationale || "Target from Phase 44 plan."),
+      tpUnavailable ? null : (tpDist != null ? `Distance from entry ≈ ${fmtPrice(tpDist)} price units.` : null),
       tpMoney
         ? `Estimated monetary reward ≈ ${tpMoney} (Phase 45).`
-        : "Monetary reward unavailable until Phase 45 inputs are complete.",
+        : (fxcmBlocksTicket
+          ? "FXCM monetary reward withheld — broker instrument not verified."
+          : "Monetary reward unavailable until Phase 45 inputs are complete."),
     ].filter(Boolean).join(" "),
-    "Confirm LIMIT / take-profit does not violate tick size or broker limits.",
-    plan.takeProfit.unavailableReason,
+    fxcmBlocksTicket
+      ? "Treat as analytical target only — not an FXCM LIMIT field."
+      : "Confirm LIMIT / take-profit does not violate tick size or broker limits.",
+    tpUnavailable,
   ));
 
-  const rr = risk?.rewardRiskRatio ?? plan.riskReward.ratio;
+  const rr = (!fxcmBlocksTicket ? risk?.rewardRiskRatio : null) ?? plan.riskReward.ratio;
   const allocNote = input.tradeAllocation
     ? `Allocated capital ${input.tradeAllocation.amount} ${input.tradeAllocation.currency}`
     : risk?.tradeAllocationAmount != null
       ? `Allocated capital ${risk.tradeAllocationAmount} ${risk.tradeAllocationCurrency ?? ""}`.trim()
       : "Allocated capital not submitted";
-  const marginStr = risk?.margin?.estimatedMarginAccount != null && ccy
+  const marginStr = !fxcmBlocksTicket && risk?.margin?.estimatedMarginAccount != null && ccy
     ? `${risk.margin.estimatedMarginAccount.toFixed(2)} ${ccy}`
+    : null;
+  const rrUnavailable = rr == null
+    ? (fxcmBlocksTicket && plan.riskReward.ratio == null
+      ? (plan.riskReward.unavailableReason ?? "Risk/reward requires finite entry, stop, and target prices.")
+      : (plan.riskReward.unavailableReason ?? "R:R unavailable."))
     : null;
   items.push(item(
     8,
     "risk",
     "Risk / Reward & financial requirements",
     rr != null ? `R:R ${rr.toFixed(2)}` : "unavailable",
-    "Risk summary · margin · costs",
-    rr != null ? (risk?.rewardRiskRatio != null ? "estimated" : "guidance_only") : "unavailable",
+    fxcmBlocksTicket ? "Analytical R:R · FXCM margin blocked" : "Risk summary · margin · costs",
+    rr != null ? (risk?.rewardRiskRatio != null && !fxcmBlocksTicket ? "estimated" : "guidance_only") : "unavailable",
     [
       risk?.minRewardRiskRatio != null ? `Configured minimum R:R ${risk.minRewardRiskRatio}.` : null,
       allocNote + " (not the acceptable loss).",
       stopMoney ? `Est. SL loss ${stopMoney}.` : "Est. SL loss unavailable.",
       tpMoney ? `Est. TP reward ${tpMoney}.` : "Est. TP reward unavailable.",
-      marginStr ? `Est. margin ~${marginStr}.` : (risk?.margin?.unavailableReason ?? "Margin unavailable."),
-      risk?.costs?.unavailableReason
+      fxcmBlocksTicket
+        ? fxcmEligibility.note
+        : (marginStr ? `Est. margin ~${marginStr}.` : (risk?.margin?.unavailableReason ?? "Margin unavailable.")),
+      !fxcmBlocksTicket && risk?.costs?.unavailableReason
         ? `Costs: ${risk.costs.unavailableReason}`
-        : risk?.costs?.totalCostsAccount != null && ccy
+        : !fxcmBlocksTicket && risk?.costs?.totalCostsAccount != null && ccy
           ? `Known costs ≈ ${risk.costs.totalCostsAccount.toFixed(2)} ${ccy}.`
           : "Transaction costs not fully verified.",
     ].filter(Boolean).join(" "),
-    "Compare monetary R:R against Admin minimum; confirm usable margin on FXCM.",
-    rr == null ? (plan.riskReward.unavailableReason ?? "R:R unavailable.") : null,
+    fxcmBlocksTicket
+      ? "Analytical R:R may still display from structure; FXCM margin/costs stay blocked."
+      : "Compare monetary R:R against Admin minimum; confirm usable margin on FXCM.",
+    rrUnavailable,
   ));
 
   // Entry readiness / risk — separate from directional BUY|SELL.
   let actionValue = "Entry not ready — do not submit";
   let actionSupport: FieldSupportLevel = "guidance_only";
-  if (plan.intent === "UNSUITABLE") {
+  if (fxcmBlocksTicket) {
+    actionValue = analysisDirectionOk
+      ? `Direction ${analysisDir}; FXCM ticket ineligible`
+      : "FXCM ticket ineligible";
+    actionSupport = "unavailable";
+  } else if (plan.intent === "UNSUITABLE") {
     actionValue = "Do not proceed — entry plan UNSUITABLE";
     actionSupport = "unavailable";
   } else if (!planDirectionOk || plan.confirmationStatus === "PENDING" || plan.confirmationStatus === "NOT_STARTED") {
@@ -377,30 +488,58 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     actionValue = "Continue monitoring";
   }
 
+  const actionBlock = fxcmBlocksTicket
+    ? (fxcmEligibility.message ?? upstreamBlock)
+    : upstreamBlock;
+
   items.push(item(
     9,
     "action",
     "Final action & readiness",
     actionValue,
-    "BUY/SELL submit button (manual)",
+    "BUY/SELL submit button (manual — never auto)",
     actionSupport,
     [
       analysisDirectionOk ? `Directional lean remains ${analysisDir}.` : null,
       plan.lifecycleNote || `Lifecycle ${plan.lifecycle}.`,
-      upstreamBlock,
+      fxcmBlocksTicket ? fxcmEligibility.note : null,
+      actionBlock,
       plan.invalidationConditions[0]
         ? `Primary invalidation: ${plan.invalidationConditions[0]}`
         : null,
-      "Do not press BUY/SELL solely because the AI produced a plan.",
+      "Do not press BUY/SELL solely because the AI produced a plan. This system never places broker orders.",
     ].filter(Boolean).join(" "),
     "Verify position size, SL/TP, margin, and confirmation before any manual ticket submit.",
-    upstreamBlock,
+    actionBlock,
+    fxcmBlocksTicket ? (fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE") : null,
   ));
 
   let summaryTone: OpenAiAssistantGuidanceBundle["finalSummary"]["tone"] = "wait";
-  if (plan.intent === "UNSUITABLE") summaryTone = "unsuitable";
-  else if (risk && !risk.riskEligible) summaryTone = "blocked";
+  if (fxcmBlocksTicket || (risk && !risk.riskEligible)) summaryTone = "blocked";
+  else if (plan.intent === "UNSUITABLE") summaryTone = "unsuitable";
   else if (risk?.riskEligible && planDirectionOk && plan.lifecycle === "SETUP_CONFIRMED") summaryTone = "ready";
+
+  const blockers = [
+    ...items.map((i) => i.unavailableReason),
+    fxcmBlocksTicket ? fxcmEligibility.message : null,
+    ...(risk?.blockingReasons ?? []),
+    plan.stopLoss.unavailableReason,
+    plan.takeProfit.unavailableReason,
+    plan.entryZone.unavailableReason,
+    plan.riskReward.unavailableReason,
+    risk?.contract?.unavailableReason ?? null,
+  ];
+  const classifiedBlockers = [
+    ...(fxcmBlocksTicket && fxcmEligibility.blockerCode
+      ? [{
+        code: fxcmEligibility.blockerCode,
+        reason: fxcmEligibility.message ?? fxcmEligibility.note,
+        explanation: fxcmEligibility.note,
+      } satisfies ClassifiedBlocker]
+      : []),
+    ...classifyTicketBlockers(blockers),
+  ];
+  const primary = primaryBlockerCode(blockers);
 
   return {
     schemaVersion: OPENAI_ASSISTANT_ITEMS_SCHEMA,
@@ -409,21 +548,38 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     readiness: items[8]?.value ?? "Entry readiness pending",
     readinessNote: plan.lifecycleNote,
     items,
+    blockers: dedupeBlockers(classifiedBlockers),
+    fxcmEligibility,
     finalSummary: {
       directionOrWait: analysisDirectionOk ? analysisDir : directionValue,
       confirmationStatus: plan.confirmationStatus,
-      riskEligible: risk ? risk.riskEligible : null,
+      riskEligible: fxcmBlocksTicket ? false : (risk ? risk.riskEligible : null),
       reason:
-        upstreamBlock
+        (primary ? formatBlockerForUi(primary) : null)
+        ?? upstreamBlock
         ?? plan.confirmationRequired[0]
         ?? plan.lifecycleNote
         ?? "Validated plan and risk state drive entry readiness; direction stays separate.",
-      verifyNext:
-        "Verify every mapped FXCM field against live quotes, contract specs, and Admin risk settings before any manual order.",
+      verifyNext: fxcmBlocksTicket
+        ? "Use a verified FXCM instrument before treating ticket quantities as actionable."
+        : "Verify every mapped FXCM field against live quotes, contract specs, and Admin risk settings before any manual order.",
       tone: summaryTone,
     },
     disclaimer:
       "Decision-support only. Does not place, modify, or close FXCM orders. "
-      + "Field mappings are instructional — the ticket is not auto-filled.",
+      + "Field mappings are instructional — the ticket is not auto-filled. "
+      + "Directional BUY/SELL is independent of FXCM ticket eligibility.",
   };
+}
+
+function dedupeBlockers(list: ClassifiedBlocker[]): ClassifiedBlocker[] {
+  const seen = new Set<string>();
+  const out: ClassifiedBlocker[] = [];
+  for (const b of list) {
+    const key = `${b.code}:${b.reason}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(b);
+  }
+  return out;
 }

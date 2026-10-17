@@ -15,6 +15,7 @@ import {
   selectPrimaryPlanForAssistant,
   validateTradeAllocation,
 } from "../analysis-response/index.js";
+import { resolveReferencePrice } from "../snapshot-plans/structure-from-snapshot.js";
 import { enrichAnalysisWithPositionRisk } from "../position-sizing/index.js";
 import { attachPlanBundleToAnalysis } from "../snapshot-plans/index.js";
 import { buildEvidenceFromSnapshot } from "../snapshot-local/evidence-from-snapshot.js";
@@ -52,6 +53,8 @@ import {
   canCompleteDirectionalClassification,
   computeBearishDirectionalScore,
 } from "./directional-classifier.js";
+import { resolveDirectionalProbability } from "./directional-probability.js";
+import { buildDualMarketScenarios } from "./dual-scenarios.js";
 import { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 import {
   buildMtfRoster,
@@ -123,7 +126,18 @@ async function withPlans(
       },
       tradeAllocation: tradeAllocation ?? null,
     });
-    return { ...analysis, guidedResponse, assistantGuidance: null, planBundle: null };
+    return {
+      ...analysis,
+      multiImage: {
+        ...analysis.multiImage,
+        directionalProbability: resolveDirectionalProbability({
+          instrument: analysis.instrument,
+        }),
+      },
+      guidedResponse,
+      assistantGuidance: null,
+      planBundle: null,
+    };
   }
   const planned = attachPlanBundleToAnalysis(analysis, snapshot, "OPENAI");
   const enriched = await enrichAnalysisWithPositionRisk(planned, snapshot, {
@@ -150,12 +164,67 @@ async function withPlans(
       supportingEvidence: enriched.keyEvidence,
       contradictingEvidence: guidedResponse.evidence.contradictingEvidence,
       tradeAllocation: tradeAllocation ?? null,
+      provider: String(snapshot.provider),
+      instrument:
+        snapshot.instrument.displaySymbol
+        || snapshot.instrument.providerSymbol
+        || enriched.instrument,
     })
     : null;
+
+  // Phase 50D — calibrated probability honesty + dual scenarios from structure.
+  const directionalProbability = resolveDirectionalProbability({
+    instrument: enriched.instrument,
+    timeframe: snapshot.candleTimeframe,
+  });
+  const refPrice = resolveReferencePrice(snapshot);
+  const quote = snapshot.latestQuote;
+  const refSource = quote?.last != null
+    ? "ANALYSIS_TIME last"
+    : quote?.mid != null
+      ? "ANALYSIS_TIME mid"
+      : quote?.bid != null
+        ? "ANALYSIS_TIME bid"
+        : refPrice != null
+          ? "ANALYSIS_TIME last closed candle close"
+          : null;
+  const dataStatus = String(
+    analysis.multiImage?.provenance?.analysisTime?.feedHealth
+    ?? analysis.multiImage?.provenance?.analysisTime?.quoteFreshness
+    ?? snapshot.latestQuote?.freshness
+    ?? "UNKNOWN",
+  );
+  const dualScenarios = bundle
+    ? buildDualMarketScenarios({
+      instrument: enriched.instrument,
+      timeframe: snapshot.candleTimeframe,
+      dataStatus,
+      referencePrice: refPrice,
+      referenceSource: refSource,
+      referenceTimestampUtc:
+        quote?.providerEventTimestamp
+        ?? quote?.serverReceiptTimestamp
+        ?? analysis.multiImage?.provenance?.analysisTime?.observedAtUtc
+        ?? snapshot.createdAt
+        ?? null,
+      structure: bundle.structureEvidence,
+      pullback: bundle.pullback,
+      breakout: bundle.breakout,
+      keyEvidence: enriched.keyEvidence,
+      invalidationConditions: enriched.invalidationConditions,
+      bullishScenarioText: enriched.bullishScenario,
+      bearishScenarioText: enriched.bearishScenario,
+    })
+    : null;
+
   return {
     ...enriched,
     schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
-    multiImage: analysis.multiImage,
+    multiImage: {
+      ...analysis.multiImage,
+      directionalProbability,
+      dualScenarios: dualScenarios ?? undefined,
+    },
     guidedResponse,
     assistantGuidance,
   } as MultiImageAnalysisResult;

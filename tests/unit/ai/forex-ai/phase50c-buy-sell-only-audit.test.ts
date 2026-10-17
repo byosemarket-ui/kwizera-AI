@@ -253,7 +253,7 @@ describe("Phase 50C binary enforcement", () => {
 
     expect(read("ai/forex-ai/multi-image-openai/bullish-projection.ts")).toContain("phase50a1-scenario-path-v1");
     expect(read("desktop/forex/ForexAiAnalysisPage.tsx")).toMatch(/Local|OpenAI|Compare/);
-    expect(read("dev/server/forex-ai-openai-snapshot-api.ts")).toContain('phase: "50C"');
+    expect(read("dev/server/forex-ai-openai-snapshot-api.ts")).toMatch(/phase: "50[CD]"/);
   });
 });
 
