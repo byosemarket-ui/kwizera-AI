@@ -118,7 +118,13 @@ export async function handleForexChartCaptureApi(
         },
         futureAi: {
           selectionSupported: true,
-          imageSubmissionImplemented: false,
+          /** Phase 49B: selected captures can be reviewed and confirmed for OpenAI vision. */
+          imageSubmissionImplemented: true,
+          multiImageRoute: "/api/forex/ai-analysis/openai/multi-image",
+          requiresExplicitConfirm: true,
+          note:
+            "Images are never auto-sent. Forex AI Analysis loads selected captures server-side "
+            + "and transmits them only after POST …/multi-image with confirmed=true.",
         },
       });
       return true;

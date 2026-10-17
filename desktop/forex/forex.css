@@ -3037,11 +3037,21 @@ html.reduce-motion .fx-sidebar {
   align-items: center;
   gap: 8px;
 }
+.fx-capture-viewer-stage {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  background: #0a0e14;
+  border-radius: 4px;
+}
 .fx-capture-viewer-img {
   width: 100%;
   height: auto;
   border-radius: 4px;
   background: #0a0e14;
+}
+.fx-capture-viewer-img[hidden] {
+  display: none;
 }
 .fx-capture-meta-grid {
   display: grid;

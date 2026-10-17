@@ -81,5 +81,13 @@ describe("Phase 49B wiring contracts", () => {
     const library = read("desktop/forex/capture-library/ForexCaptureLibrary.tsx");
     expect(library).toContain("Delete capture");
     expect(library).toContain("Deselect does not delete");
+    expect(library).toContain("Loading preview image");
+    expect(library).toContain("onLoad");
+    expect(library).toContain("onError");
+    expect(library).toContain("naturalWidth");
+
+    const captureApi = read("dev/server/forex-chart-capture-api.ts");
+    expect(captureApi).toMatch(/imageSubmissionImplemented:\s*true/);
+    expect(captureApi).toContain("requiresExplicitConfirm: true");
   });
 });

@@ -251,6 +251,9 @@ describe("Phase 49A UI and API wiring contracts", () => {
     expect(api).toContain("requiresBrowserOpen");
     expect(api).toContain("capturesActiveChartOnly");
     expect(api).toContain('scope: "studio"');
+    expect(api).toMatch(/imageSubmissionImplemented:\s*true/);
+    expect(api).toContain("requiresExplicitConfirm: true");
+    expect(api).toContain("/api/forex/ai-analysis/openai/multi-image");
 
     const index = read("dev/server/index.ts");
     expect(index).toContain("handleForexChartCaptureApi");

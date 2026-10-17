@@ -33,6 +33,8 @@ export function ForexCaptureLibrary({
   const [filterMode, setFilterMode] = useState("");
   const [filterInstrument, setFilterInstrument] = useState("");
   const [viewer, setViewer] = useState<ChartCaptureListItem | null>(null);
+  const [viewerLoad, setViewerLoad] = useState<"loading" | "ready" | "error">("loading");
+  const [viewerError, setViewerError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -131,7 +133,11 @@ export function ForexCaptureLibrary({
               <button
                 type="button"
                 className="fx-capture-thumb-btn"
-                onClick={() => setViewer(item)}
+                onClick={() => {
+                  setViewerLoad("loading");
+                  setViewerError(null);
+                  setViewer(item);
+                }}
                 aria-label={`Preview ${item.instrument.displaySymbol} ${item.timeframe}`}
               >
                 <img
@@ -182,13 +188,48 @@ export function ForexCaptureLibrary({
               <strong>
                 {viewer.instrument.displaySymbol} · {viewer.timeframe} · {viewer.mode}
               </strong>
-              <button type="button" className="fx-text-button" onClick={() => setViewer(null)}>Close</button>
+              <button
+                type="button"
+                className="fx-text-button"
+                onClick={() => {
+                  setViewer(null);
+                  setViewerLoad("loading");
+                  setViewerError(null);
+                }}
+              >
+                Close
+              </button>
             </header>
-            <img
-              className="fx-capture-viewer-img"
-              src={captureImageUrl(viewer.captureId)}
-              alt={`${viewer.instrument.displaySymbol} chart capture`}
-            />
+            <div className="fx-capture-viewer-stage" data-load={viewerLoad}>
+              {viewerLoad === "loading" ? (
+                <p className="fx-panel-meta" role="status">Loading preview image…</p>
+              ) : null}
+              {viewerLoad === "error" ? (
+                <p className="fx-capture-status is-error" role="alert">
+                  {viewerError ?? "Preview image failed to load."}
+                </p>
+              ) : null}
+              <img
+                className="fx-capture-viewer-img"
+                src={captureImageUrl(viewer.captureId)}
+                alt={`${viewer.instrument.displaySymbol} chart capture`}
+                hidden={viewerLoad !== "ready"}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    setViewerLoad("ready");
+                    setViewerError(null);
+                  } else {
+                    setViewerLoad("error");
+                    setViewerError("Preview image loaded with invalid dimensions.");
+                  }
+                }}
+                onError={() => {
+                  setViewerLoad("error");
+                  setViewerError("Preview image could not be loaded from storage.");
+                }}
+              />
+            </div>
             <dl className="fx-capture-meta-grid">
               <div><dt>Capture ID</dt><dd>{viewer.captureId}</dd></div>
               <div><dt>UTC</dt><dd>{viewer.capturedAtUtc}</dd></div>
