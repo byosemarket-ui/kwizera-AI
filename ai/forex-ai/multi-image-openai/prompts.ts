@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C/50A — Multi-image OpenAI prompts with MTF + BUY-side directional assessment.
+ * Phase 49B/49C/50A/50A.1 — Multi-image OpenAI prompts with MTF + BUY projection hints.
  */
 import type { LocalSnapshotEvidencePackage } from "../snapshot-local/types.js";
 import { formatLocalEvidenceForPrompt } from "../snapshot-local/evidence-from-snapshot.js";
@@ -22,7 +22,9 @@ export function buildMultiImageSystemPrompt(): string {
     "If only one timeframe is present, set timeframeAgreement=SINGLE_TIMEFRAME and do not invent higher/lower confirmation.",
     "Multiple images of the same timeframe are NOT independent multi-timeframe confirmation.",
     "Use structured candle/quote data for exact prices when present; do not invent numeric precision from pixels.",
-    "Include directionalConfidencePercent as an integer 0-100 model estimate of bullish directional conviction — NOT a calibrated probability of a profitable trade, NOT entry readiness, NOT position-sizing eligibility.",
+    "Include directionalConfidencePercent as an integer 0-100 model estimate of bullish directional conviction — NOT a calibrated probability of a profitable trade, NOT entry readiness, NOT position-sizing eligibility, NOT probability of reaching a price target.",
+    "Optional bullishProjection: only when numeric targets/invalidations are supported by CONFIRMED_BY_DATA or clearly VISIBLE_IN_IMAGE levels — never invent prices. Omit or null fields when unsupported.",
+    "bullishProjection.targetPrice / zone / invalidationPrice must match the analyzed instrument price scale. Do not copy directionalConfidencePercent into a target-hit probability.",
     "decision must be exactly BUY | SELL | WAIT | NO_TRADE.",
     "BUY/SELL are analytical scenarios, NOT broker orders.",
     "Return JSON only. Include top-level analysis keys plus mtfReasoning object.",
@@ -81,6 +83,17 @@ export function buildMultiImageUserText(input: {
     "}",
   ].join("");
 
+  const projectionSchema = [
+    '"bullishProjection":{',
+    '"targetPrice":"number|null",',
+    '"targetZoneLow":"number|null",',
+    '"targetZoneHigh":"number|null",',
+    '"invalidationPrice":"number|null",',
+    '"forecastHorizon":"string|null",',
+    '"evidence":["string"]',
+    "}|null",
+  ].join("");
+
   return [
     "Schema:",
     "{"
@@ -91,10 +104,12 @@ export function buildMultiImageUserText(input: {
     + '"invalidationConditions":["string"],'
     + '"directionalConfidencePercent":0,'
     + '"confidence":"string|null","limitations":["string"],'
-    + mtfSchema
+    + mtfSchema + ","
+    + projectionSchema
     + "}",
     "Online web/news research is NOT included — do not fabricate it.",
-    "directionalConfidencePercent is a bullish directional estimate only — never claim it is a verified win probability.",
+    "directionalConfidencePercent is a bullish directional estimate only — never claim it is a verified win probability or target-hit probability.",
+    "Omit bullishProjection or set null fields when numeric targets cannot be supported by actual levels/data.",
     formatMtfRosterForPrompt(input.mtfRoster),
     "CAPTURE_TIME_IMAGES:",
     captureBlocks,

@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C/50A — Multi-image OpenAI analysis with MTF + BUY directional policy.
+ * Phase 49B/49C/50A/50A.1 — Multi-image OpenAI analysis with MTF + BUY projection.
  * Requires explicit confirmed=true; never sends images from review-only calls.
  */
 import { randomUUID } from "node:crypto";
@@ -44,6 +44,10 @@ import {
   applyBuyDirectionalPolicy,
   computeBullishDirectionalScore,
 } from "./bullish-score.js";
+import {
+  buildBullishPriceProjection,
+  parseModelBullishProjectionHint,
+} from "./bullish-projection.js";
 import { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 import {
   buildMtfRoster,
@@ -652,6 +656,25 @@ export class MultiImageOpenAiAnalysisEngine {
 
         // Attach directional confidence for BUY (and informative score even when WAIT).
         const confidenceDisplay = bullishScore.display;
+        const modelHint = parseModelBullishProjectionHint(chat.data);
+        const supportsBuyHypothesis = analysis.decision === "BUY" || bullishScore.supportsBuy;
+        const priceProjection = buildBullishPriceProjection({
+          decision: analysis.decision,
+          marketBias: analysis.marketBias,
+          directionalConfidencePercent: bullishScore.percent,
+          supportsBuyHypothesis,
+          mtf: mtfReasoning,
+          captures: review.captures,
+          provenance,
+          evidence,
+          modelHint,
+          dataQuality: analysis.dataQuality,
+          bullishScenario: analysis.bullishScenario,
+          bearishScenario: analysis.bearishScenario,
+          invalidationConditions: analysis.invalidationConditions,
+          keyEvidence: analysis.keyEvidence,
+        });
+
         analysis = {
           ...analysis,
           confidence: confidenceDisplay,
@@ -661,6 +684,7 @@ export class MultiImageOpenAiAnalysisEngine {
               ...analysis.limitations,
               `${DIRECTIONAL_CONFIDENCE_LABEL} is not a calibrated probability of a profitable trade.`,
               "Entry readiness is separate from directional BUY assessment — not a confirmed entry.",
+              "Directional confidence is not the probability of reaching a projected price target.",
             ],
           multiImage: {
             ...analysis.multiImage,
@@ -676,6 +700,7 @@ export class MultiImageOpenAiAnalysisEngine {
               modelDecisionBeforePolicy,
               finalDecision: analysis.decision,
             },
+            priceProjection,
           },
         };
 

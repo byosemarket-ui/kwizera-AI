@@ -3129,7 +3129,8 @@ html.reduce-motion .fx-sidebar {
   gap: 10px;
 }
 .fx-mtf-reasoning,
-.fx-buy-assessment {
+.fx-buy-assessment,
+.fx-buy-projection {
   display: grid;
   gap: 6px;
   padding: 8px 10px;
@@ -3137,6 +3138,101 @@ html.reduce-motion .fx-sidebar {
   border-radius: 6px;
   background: #0a0e14;
   font-size: 12px;
+}
+.fx-buy-proj-meta {
+  margin: 4px 0;
+}
+.fx-buy-proj-chart-wrap {
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.fx-buy-proj-chart {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  background: #06090e;
+  border: 1px solid var(--fx-border);
+  border-radius: 4px;
+}
+.fx-buy-proj-boundary {
+  stroke: #94a3b8;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.fx-buy-proj-boundary-label {
+  fill: #94a3b8;
+  font-size: 9px;
+}
+.fx-buy-proj-zone {
+  fill: rgba(52, 211, 153, 0.12);
+  stroke: none;
+}
+.fx-buy-proj-target {
+  stroke: #34d399;
+  stroke-width: 1.25;
+  stroke-dasharray: 6 3;
+}
+.fx-buy-proj-invalidation {
+  stroke: #f87171;
+  stroke-width: 1.25;
+  stroke-dasharray: 4 3;
+}
+.fx-buy-proj-wick.up,
+.fx-buy-proj-body.up {
+  stroke: #4ade80;
+  fill: #4ade80;
+}
+.fx-buy-proj-wick.down,
+.fx-buy-proj-body.down {
+  stroke: #f87171;
+  fill: #f87171;
+}
+.fx-buy-proj-wick {
+  stroke-width: 1;
+}
+.fx-buy-proj-path {
+  stroke: #38bdf8;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.fx-buy-proj-axis {
+  fill: #64748b;
+  font-size: 9px;
+}
+.fx-buy-proj-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.fx-buy-proj-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.fx-buy-proj-swatch.hist { background: #4ade80; }
+.fx-buy-proj-swatch.proj { background: #38bdf8; }
+.fx-buy-proj-swatch.tgt { background: #34d399; }
+.fx-buy-proj-swatch.inv { background: #f87171; }
+.fx-buy-proj-disclaimer {
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .fx-buy-proj-chart {
+    max-height: 200px;
+  }
+  .fx-buy-proj-legend {
+    gap: 6px 10px;
+    font-size: 10px;
+  }
 }
 .fx-mtf-scenarios {
   display: grid;

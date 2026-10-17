@@ -1,7 +1,11 @@
 /**
- * Phase 44/46 — Guided Local/OpenAI result + trade-plan + FXCM ticket panels.
+ * Phase 44/46/50A.1 — Guided Local/OpenAI result + trade-plan + FXCM ticket panels.
  */
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
+import {
+  BuyPriceProjectionPanel,
+  type BuyPriceProjectionUi,
+} from "./capture-library/BuyPriceProjectionPanel";
 
 export type SnapshotPlanUi = {
   planId: string;
@@ -205,6 +209,7 @@ export type SnapshotAnalysisPanelData = {
       finalDecision?: string;
       imagesSubmittedAsImageUrl?: boolean;
     };
+    priceProjection?: BuyPriceProjectionUi;
     mtfReasoning?: {
       timeframeAgreement: string;
       higherTimeframeContext: string | null;
@@ -572,6 +577,10 @@ function OpenAiAssistantResultBody({
             </p>
           ) : null}
         </section>
+      ) : null}
+
+      {data.multiImage?.priceProjection ? (
+        <BuyPriceProjectionPanel projection={data.multiImage.priceProjection} />
       ) : null}
 
       {data.multiImage?.mtfReasoning ? (

@@ -20,6 +20,21 @@ export {
   computeBullishDirectionalScore,
 } from "./bullish-score.js";
 export { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
+export {
+  BULLISH_PROJECTION_METHOD,
+  BULLISH_PROJECTION_TITLE,
+  buildBullishPriceProjection,
+  cloneCandles,
+  extractPriceCandidates,
+  parseModelBullishProjectionHint,
+  priceWithinScale,
+} from "./bullish-projection.js";
+export type {
+  BullishPriceProjection,
+  BullishProjectionChartData,
+  ModelBullishProjectionHint,
+  ProjectionCandle,
+} from "./bullish-projection.js";
 export { getMultiImageAnalysisStore, MultiImageAnalysisStore } from "./store.js";
 export {
   getMultiImageOpenAiAnalysisEngine,
