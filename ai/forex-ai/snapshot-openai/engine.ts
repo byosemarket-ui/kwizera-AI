@@ -24,6 +24,7 @@ import {
   buildOpenAiNoTradeResult,
   normalizeOpenAiAnalysisFromModel,
 } from "./normalize.js";
+import { enforceBinaryDecisionOnCompletedAnalysis } from "../multi-image-openai/directional-classifier.js";
 import { openAiChatJson } from "./openai-client.js";
 import {
   buildOpenAiRepairPrompt,
@@ -63,6 +64,7 @@ async function withPlans(
         breakout: bundle.breakout as never,
       }),
       marketDirection: bundle.marketDirection,
+      analysisDecision: enriched.decision,
       supportingEvidence: enriched.keyEvidence,
       contradictingEvidence: guidedResponse.evidence.contradictingEvidence,
       tradeAllocation: tradeAllocation ?? null,
@@ -392,7 +394,49 @@ export class OpenAiSnapshotAnalysisEngine {
       });
     }
 
-    return normalized.analysis;
+    // Phase 50C — completed valid OpenAI snapshot analyses enforce BUY|SELL only.
+    let analysis = normalized.analysis;
+    if (analysis.status === "completed" && !analysis.error) {
+      const binary = enforceBinaryDecisionOnCompletedAnalysis({
+        decision: analysis.decision,
+        marketBias: analysis.marketBias,
+        status: analysis.status,
+        error: analysis.error,
+        keyEvidence: analysis.keyEvidence,
+        bullishScenario: analysis.bullishScenario,
+        bearishScenario: analysis.bearishScenario,
+        marketStructureSummary: analysis.marketStructureSummary,
+        candleTimeframe: analysis.candleTimeframe,
+        hasAnalysisTimeSnapshot: Boolean(input.evidence.snapshotId),
+        quoteFreshness: input.evidence.quoteFreshness,
+        feedHealth: input.evidence.marketStatus,
+        imagesSubmittedAsImageUrl: false,
+      });
+      if (binary) {
+        analysis = {
+          ...analysis,
+          decision: binary.direction,
+          decisionRationale:
+            `Binary directional classification (${binary.scoreMethod}): ${binary.direction} `
+            + `— bullish ${binary.bullishScore} vs bearish ${binary.bearishScore}. `
+            + analysis.decisionRationale,
+          confidence: binary.display,
+          limitations: analysis.limitations.some((l) => /win probability|calibrated/i.test(l))
+            ? analysis.limitations
+            : [
+              ...analysis.limitations,
+              "Directional confidence is not a calibrated probability of a profitable trade.",
+              "BUY/SELL is a directional lean only — entry readiness and risk eligibility remain separate.",
+            ],
+          warnings: [
+            ...analysis.warnings,
+            ...(binary.lowConfidenceNote ? [binary.lowConfidenceNote] : []),
+          ],
+        };
+      }
+    }
+
+    return analysis;
   }
 
   async getAnalysis(analysisId: string) {

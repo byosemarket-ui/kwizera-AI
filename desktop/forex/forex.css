@@ -3144,10 +3144,12 @@ html.reduce-motion .fx-sidebar {
   font-size: 14px;
   margin: 0;
 }
-.fx-directional-classification[data-direction="BUY"] .fx-directional-headline strong {
+.fx-directional-classification[data-direction="BUY"] .fx-directional-headline strong,
+.fx-dir-buy {
   color: #4ade80;
 }
-.fx-directional-classification[data-direction="SELL"] .fx-directional-headline strong {
+.fx-directional-classification[data-direction="SELL"] .fx-directional-headline strong,
+.fx-dir-sell {
   color: #f87171;
 }
 .fx-buy-proj-meta {

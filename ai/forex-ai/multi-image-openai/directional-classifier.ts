@@ -393,3 +393,132 @@ export function canCompleteDirectionalClassification(input: {
 export function buildBinaryScoreInput(partial: BullishScoreInput): BullishScoreInput {
   return partial;
 }
+
+export function isBuyOrSellDecision(decision: string | null | undefined): decision is BinaryDirection {
+  const d = String(decision ?? "").toUpperCase();
+  return d === "BUY" || d === "SELL";
+}
+
+/** Non-directional tokens that must not appear as the final completed directional decision. */
+export const NON_DIRECTIONAL_DECISION_TOKENS = [
+  "WAIT",
+  "WAITING",
+  "UNCERTAIN",
+  "NOT_READY",
+  "NOT READY",
+  "NO_TRADE",
+  "NO TRADE",
+  "HOLD",
+  "BLOCKED",
+  "INELIGIBLE",
+] as const;
+
+export function isNonDirectionalDecisionToken(decision: string | null | undefined): boolean {
+  const d = String(decision ?? "").trim().toUpperCase().replace(/_/g, " ");
+  return (NON_DIRECTIONAL_DECISION_TOKENS as readonly string[]).some((t) => t === d || t.replace(/ /g, "_") === String(decision ?? "").toUpperCase());
+}
+
+/**
+ * Build a minimal MTF shell from single-snapshot analysis text so binary scoring can run
+ * without multi-image captures.
+ */
+export function syntheticMtfFromAnalysisText(input: {
+  timeframe?: string | null;
+  marketStructureSummary?: string | null;
+  bullishScenario?: string | null;
+  bearishScenario?: string | null;
+  keyEvidence?: string[];
+}): MultiImageMtfReasoning {
+  const tf = String(input.timeframe ?? "1h").trim() || "1h";
+  const structure = String(input.marketStructureSummary ?? "");
+  return {
+    roster: {
+      distinctTimeframes: [tf],
+      sameTimeframeDuplicates: false,
+      captureSpanMs: null,
+      roles: [{
+        timeframe: tf,
+        role: "only",
+        captureIds: [],
+        imageCount: 0,
+        earliestCapturedAtUtc: null,
+        latestCapturedAtUtc: null,
+        note: "Synthetic single-snapshot MTF shell for Phase 50C binary classification.",
+      }],
+      note: "Single-snapshot analysis — not multi-image MTF confirmation.",
+    },
+    timeframeAgreement: "SINGLE_TIMEFRAME",
+    higherTimeframeContext: structure || null,
+    intermediateStructure: null,
+    lowerTimeframeSetup: null,
+    agreementSummary: "Single timeframe snapshot analysis.",
+    conflictSummary: null,
+    bullishScenario: input.bullishScenario ?? null,
+    bearishScenario: input.bearishScenario ?? null,
+    keyLevels: [],
+    confirmationConditions: [],
+    invalidationConditions: [],
+    missingEvidence: [],
+  };
+}
+
+/**
+ * Phase 50C — Enforce BUY|SELL on a completed valid analysis using documented binary scoring.
+ * Returns null when the analysis is not classifiable (caller should keep failed/error status).
+ */
+export function enforceBinaryDecisionOnCompletedAnalysis(input: {
+  decision: string;
+  marketBias: string;
+  status: string;
+  error?: string | null;
+  keyEvidence: string[];
+  bullishScenario: string;
+  bearishScenario: string;
+  marketStructureSummary?: string | null;
+  candleTimeframe?: string | null;
+  mtf?: MultiImageMtfReasoning | null;
+  captures?: MultiImageCaptureRef[];
+  hasAnalysisTimeSnapshot: boolean;
+  quoteFreshness?: string | null;
+  feedHealth?: string | null;
+  imagesSubmittedAsImageUrl?: boolean;
+}): BinaryDirectionalResult | null {
+  if (input.status === "failed" || input.error) return null;
+  const mtf = input.mtf ?? syntheticMtfFromAnalysisText({
+    timeframe: input.candleTimeframe,
+    marketStructureSummary: input.marketStructureSummary,
+    bullishScenario: input.bullishScenario,
+    bearishScenario: input.bearishScenario,
+    keyEvidence: input.keyEvidence,
+  });
+  const captures = input.captures ?? [];
+  const scoreInput = {
+    decision: input.decision,
+    marketBias: input.marketBias,
+    mtf,
+    captures,
+    hasAnalysisTimeSnapshot: input.hasAnalysisTimeSnapshot,
+    quoteFreshness: input.quoteFreshness ?? null,
+    feedHealth: input.feedHealth ?? null,
+    keyEvidence: input.keyEvidence,
+    bullishScenario: input.bullishScenario,
+    bearishScenario: input.bearishScenario,
+  };
+  const bullish = computeBullishDirectionalScore(scoreInput);
+  const bearish = computeBearishDirectionalScore(scoreInput);
+  const binary = applyBinaryDirectionalClassification({
+    modelDecision: input.decision,
+    marketBias: input.marketBias,
+    bullish,
+    bearish,
+    mtf,
+    keyEvidence: input.keyEvidence,
+    bullishScenario: input.bullishScenario,
+    bearishScenario: input.bearishScenario,
+    captures,
+  });
+  return {
+    ...binary,
+    imagesSubmittedAsImageUrl: input.imagesSubmittedAsImageUrl === true,
+  };
+}

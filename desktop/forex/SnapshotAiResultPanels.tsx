@@ -538,12 +538,28 @@ function OpenAiAssistantResultBody({
               : "not submitted"}
             {" — capital set aside, not acceptable loss"}
           </li>
-          <li>
-            <span className="fx-ai-label">Decision</span> {data.decision}
+          <li data-fx-openai-decision-row="true">
+            <span className="fx-ai-label">Direction</span>{" "}
+            <strong
+              data-fx-direction-value="true"
+              data-direction={data.decision}
+              className={
+                data.decision === "BUY"
+                  ? "fx-dir-buy"
+                  : data.decision === "SELL"
+                    ? "fx-dir-sell"
+                    : undefined
+              }
+            >
+              {data.decision}
+            </strong>
             {" · "}
             <span className="fx-ai-label">Bias</span> {data.marketBias}
             {" · "}
             <span className="fx-ai-label">Data quality</span> {ms?.dataQuality ?? data.dataQuality}
+            {data.decision === "BUY" || data.decision === "SELL"
+              ? " · entry readiness and risk eligibility stay separate"
+              : ""}
           </li>
           <li data-ai-openai-data-readiness="true">
             <span className="fx-ai-label">Data readiness</span>{" "}
@@ -1024,7 +1040,7 @@ export function SnapshotProviderResultPanel({
             <p>
               <span className="fx-ai-label">Next</span>{" "}
               {guided?.finalDecision.nextAction
-                ?? "WAIT — continue monitoring; do not submit a broker order from this panel."}
+                ?? "Do not submit a broker order from this panel — continue monitoring."}
             </p>
             {guided?.finalDecision.primaryInvalidation || data.invalidationConditions[0] ? (
               <p className="fx-ai-muted">

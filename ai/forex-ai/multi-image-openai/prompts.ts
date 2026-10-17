@@ -64,7 +64,7 @@ export function buildMultiImageUserText(input: {
 
   const evidenceBlock = input.evidence
     ? ["SNAPSHOT_EVIDENCE (ANALYSIS_TIME structured):", formatLocalEvidenceForPrompt(input.evidence)].join("\n")
-    : "SNAPSHOT_EVIDENCE: unavailable — rely on capture metadata and images; do not fabricate OHLC series. Prefer WAIT when bullish evidence is weak.";
+    : "SNAPSHOT_EVIDENCE: unavailable — rely on capture metadata and images; do not fabricate OHLC series. Still choose BUY or SELL as the stronger lean; disclose weak evidence in limitations.";
 
   const mtfSchema = [
     '"mtfReasoning":{',

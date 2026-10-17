@@ -146,6 +146,7 @@ async function withPlans(
         breakout: bundle.breakout as never,
       }),
       marketDirection: bundle.marketDirection,
+      analysisDecision: enriched.decision,
       supportingEvidence: enriched.keyEvidence,
       contradictingEvidence: guidedResponse.evidence.contradictingEvidence,
       tradeAllocation: tradeAllocation ?? null,
@@ -661,7 +662,7 @@ export class MultiImageOpenAiAnalysisEngine {
           }));
           failed.status = "failed";
           failed.error = chat.error ?? "OpenAI multimodal request failed.";
-          failed.decision = "WAIT";
+          // Failed runs are analysis errors — not completed directional classifications.
           return failed;
         }
 

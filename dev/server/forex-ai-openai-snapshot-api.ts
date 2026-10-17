@@ -430,7 +430,7 @@ export async function handleForexAiOpenAiSnapshotApi(
         minTimeoutMs: OPENAI_MIN_TIMEOUT_MS,
         maxTimeoutMs: OPENAI_MAX_TIMEOUT_MS,
         concurrency: getOpenAiInferenceGate().stats(),
-        decisions: ["BUY", "SELL", "WAIT", "NO_TRADE"],
+        decisions: ["BUY", "SELL"],
         newsResearch: "unavailable",
         status,
         note:
@@ -450,7 +450,7 @@ export async function handleForexAiOpenAiSnapshotApi(
       sendJson(res, 200, {
         ok: true,
         schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
-        phase: "50B",
+        phase: "50C",
         maxCaptures: MULTI_IMAGE_MAX_CAPTURES,
         maxTotalBytes: MULTI_IMAGE_MAX_TOTAL_BYTES,
         maxBytesPerImage: MULTI_IMAGE_MAX_BYTES_PER_IMAGE,

@@ -422,7 +422,7 @@ describe("Phase 50A.1 wiring contracts", () => {
     expect(css).toContain("@media (max-width: 640px)");
 
     const api = read("dev/server/forex-ai-openai-snapshot-api.ts");
-    expect(api).toMatch(/phase:\s*"50(?:A\.1|B)"/);
+    expect(api).toMatch(/phase:\s*"50(?:A\.1|[BC])"/);
 
     // Risk / modes intact
     expect(engine).toContain("enrichAnalysisWithPositionRisk");

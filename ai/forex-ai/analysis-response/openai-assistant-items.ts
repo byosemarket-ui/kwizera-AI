@@ -117,6 +117,8 @@ export function selectPrimaryPlanForAssistant(input: {
 export function buildOpenAiAssistantGuidanceItems(input: {
   plan: PlanWithRisk;
   marketDirection?: string | null;
+  /** Phase 50C — completed analysis directional decision (BUY|SELL). Separate from plan entry intent. */
+  analysisDecision?: string | null;
   supportingEvidence?: string[];
   contradictingEvidence?: string[];
   tradeAllocation?: { amount: number; currency: string } | null;
@@ -127,20 +129,32 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   const stop = plan.stopLoss.price;
   const tp = plan.takeProfit.prices[0] ?? null;
   const ccy = risk?.accountCurrency ?? null;
-  const directionOk = plan.intent === "BUY" || plan.intent === "SELL";
+  const planDirectionOk = plan.intent === "BUY" || plan.intent === "SELL";
+  const analysisDir = String(input.analysisDecision ?? "").toUpperCase();
+  const analysisDirectionOk = analysisDir === "BUY" || analysisDir === "SELL";
+  const directionOk = analysisDirectionOk || planDirectionOk;
   const marketDir = input.marketDirection ?? plan.marketDirection;
   const upstreamBlock = primaryTicketBlocker(plan);
 
   const supportBits = (input.supportingEvidence ?? []).slice(0, 2).join(" · ");
   const contraBits = (input.contradictingEvidence ?? []).slice(0, 1).join(" · ");
 
+  // Phase 50C — directional decision is BUY|SELL when the analysis completed validly.
+  // Plan intent WAIT is entry-readiness, not a replacement for the directional decision.
   let directionValue = "WAIT / UNCERTAIN";
   let directionSupport: FieldSupportLevel = "unavailable";
-  if (directionOk) {
+  if (analysisDirectionOk) {
+    directionValue = analysisDir;
+    directionSupport = "guidance_only";
+  } else if (planDirectionOk) {
     directionValue = `${plan.intent} / ${marketDir || plan.intent}`;
     directionSupport = "guidance_only";
-  } else if (plan.intent === "WAIT" || plan.intent === "UNSUITABLE") {
-    directionValue = plan.intent === "UNSUITABLE" ? "WAIT / UNSUITABLE" : "WAIT / UNCERTAIN";
+  } else if (plan.intent === "UNSUITABLE") {
+    directionValue = "UNSUITABLE (entry plan)";
+  } else if (plan.intent === "WAIT") {
+    directionValue = analysisDirectionOk
+      ? analysisDir
+      : "Direction pending analysis — entry plan WAIT";
   }
 
   const items: OpenAiAssistantGuidanceItem[] = [];
@@ -153,16 +167,21 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     "BUY / SELL decision",
     directionSupport,
     [
-      directionOk
-        ? `Validated plan intent is ${plan.intent} (${plan.planKind}).`
-        : `Plan intent is ${plan.intent} — do not enter BUY/SELL on the ticket yet.`,
-      upstreamBlock && !directionOk ? `Upstream blocker: ${upstreamBlock}` : null,
+      analysisDirectionOk
+        ? `Directional classification is ${analysisDir} (analytical lean; not an order).`
+        : null,
+      planDirectionOk
+        ? `Entry-plan intent is ${plan.intent} (${plan.planKind}).`
+        : `Entry-plan intent is ${plan.intent} — ticket BUY/SELL stays blocked until readiness clears.`,
+      upstreamBlock && !planDirectionOk ? `Upstream entry/risk blocker: ${upstreamBlock}` : null,
       supportBits ? `Supporting: ${supportBits}` : null,
       contraBits ? `Contradicting: ${contraBits}` : null,
       "A model-generated direction alone does not authorize a trade.",
     ].filter(Boolean).join(" "),
     "Confirm direction against your chart and account permissions before touching BUY/SELL.",
-    directionOk ? null : (upstreamBlock ?? `Intent ${plan.intent} blocks ticket direction.`),
+    analysisDirectionOk
+      ? null
+      : (planDirectionOk ? null : (upstreamBlock ?? `Intent ${plan.intent} blocks ticket direction.`)),
   ));
 
   const sizeStr = risk?.positionSize != null
@@ -337,15 +356,20 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     rr == null ? (plan.riskReward.unavailableReason ?? "R:R unavailable.") : null,
   ));
 
-  let actionValue = "WAIT — do not submit";
+  // Entry readiness / risk — separate from directional BUY|SELL.
+  let actionValue = "Entry not ready — do not submit";
   let actionSupport: FieldSupportLevel = "guidance_only";
   if (plan.intent === "UNSUITABLE") {
-    actionValue = "Do not proceed — plan UNSUITABLE";
+    actionValue = "Do not proceed — entry plan UNSUITABLE";
     actionSupport = "unavailable";
-  } else if (!directionOk || plan.confirmationStatus === "PENDING" || plan.confirmationStatus === "NOT_STARTED") {
-    actionValue = "WAIT for confirmation";
+  } else if (!planDirectionOk || plan.confirmationStatus === "PENDING" || plan.confirmationStatus === "NOT_STARTED") {
+    actionValue = analysisDirectionOk
+      ? `Direction ${analysisDir}; entry confirmation still required`
+      : "Entry confirmation still required";
   } else if (risk && !risk.riskEligible) {
-    actionValue = "Blocked — risk ineligible";
+    actionValue = analysisDirectionOk
+      ? `Direction ${analysisDir}; risk ineligible — ticket blocked`
+      : "Blocked — risk ineligible";
     actionSupport = "unavailable";
   } else if (risk?.riskEligible && plan.lifecycle === "SETUP_CONFIRMED") {
     actionValue = "READY FOR HUMAN REVIEW only";
@@ -361,6 +385,7 @@ export function buildOpenAiAssistantGuidanceItems(input: {
     "BUY/SELL submit button (manual)",
     actionSupport,
     [
+      analysisDirectionOk ? `Directional lean remains ${analysisDir}.` : null,
       plan.lifecycleNote || `Lifecycle ${plan.lifecycle}.`,
       upstreamBlock,
       plan.invalidationConditions[0]
@@ -375,24 +400,24 @@ export function buildOpenAiAssistantGuidanceItems(input: {
   let summaryTone: OpenAiAssistantGuidanceBundle["finalSummary"]["tone"] = "wait";
   if (plan.intent === "UNSUITABLE") summaryTone = "unsuitable";
   else if (risk && !risk.riskEligible) summaryTone = "blocked";
-  else if (risk?.riskEligible && directionOk && plan.lifecycle === "SETUP_CONFIRMED") summaryTone = "ready";
+  else if (risk?.riskEligible && planDirectionOk && plan.lifecycle === "SETUP_CONFIRMED") summaryTone = "ready";
 
   return {
     schemaVersion: OPENAI_ASSISTANT_ITEMS_SCHEMA,
     planKind: plan.planKind,
     planId: plan.planId,
-    readiness: items[8]?.value ?? "WAIT",
+    readiness: items[8]?.value ?? "Entry readiness pending",
     readinessNote: plan.lifecycleNote,
     items,
     finalSummary: {
-      directionOrWait: directionValue,
+      directionOrWait: analysisDirectionOk ? analysisDir : directionValue,
       confirmationStatus: plan.confirmationStatus,
       riskEligible: risk ? risk.riskEligible : null,
       reason:
         upstreamBlock
         ?? plan.confirmationRequired[0]
         ?? plan.lifecycleNote
-        ?? "Validated plan and risk state drive this conclusion.",
+        ?? "Validated plan and risk state drive entry readiness; direction stays separate.",
       verifyNext:
         "Verify every mapped FXCM field against live quotes, contract specs, and Admin risk settings before any manual order.",
       tone: summaryTone,

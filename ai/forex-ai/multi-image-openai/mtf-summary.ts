@@ -184,16 +184,15 @@ export function parseMtfReasoningFromModel(
 }
 
 /**
- * Soft policy (Phase 50A): only material MTF CONFLICT forces WAIT on BUY/SELL.
- * INSUFFICIENT alone must not automatically block a defensible BUY — bullish-score policy handles weak evidence.
+ * Phase 50C — obsolete for directional decisions (binary classifier never returns WAIT).
+ * Retained for tests/compat: previously CONFLICTING forced WAIT on BUY/SELL.
+ * Now always returns false so callers cannot erase a directional lean.
  */
 export function shouldForceWaitForMtf(
-  decision: string,
-  mtf: MultiImageMtfReasoning,
+  _decision: string,
+  _mtf: MultiImageMtfReasoning,
 ): boolean {
-  const d = String(decision ?? "").toUpperCase();
-  if (d !== "BUY" && d !== "SELL") return false;
-  return mtf.timeframeAgreement === "CONFLICTING";
+  return false;
 }
 
 export function formatMtfRosterForPrompt(roster: MultiImageMtfRoster): string {

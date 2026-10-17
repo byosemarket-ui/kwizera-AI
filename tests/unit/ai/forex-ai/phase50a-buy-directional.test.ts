@@ -193,6 +193,6 @@ describe("Phase 50A request/image wiring contracts", () => {
     expect(read("ai/forex-ai/multi-image-openai/bullish-score.ts")).toContain(DIRECTIONAL_CONFIDENCE_LABEL);
 
     const api = read("dev/server/forex-ai-openai-snapshot-api.ts");
-    expect(api).toMatch(/phase:\s*"50[AB](?:\.1)?"/);
+    expect(api).toMatch(/phase:\s*"50(?:A(?:\.1)?|[BC])"/);
   });
 });

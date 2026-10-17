@@ -320,7 +320,7 @@ describe("Phase 50B wiring contracts", () => {
     expect(ui).toContain("BuyPriceProjectionPanel");
 
     const api = read("dev/server/forex-ai-openai-snapshot-api.ts");
-    expect(api).toContain('phase: "50B"');
+    expect(api).toMatch(/phase:\s*"50[BC]"/);
 
     expect(read("desktop/forex/ForexAiAnalysisPage.tsx")).toMatch(/Local|OpenAI|Compare/);
   });

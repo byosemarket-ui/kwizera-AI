@@ -21,9 +21,14 @@ export {
 } from "./bullish-score.js";
 export {
   BINARY_DIRECTION_METHOD,
+  NON_DIRECTIONAL_DECISION_TOKENS,
   applyBinaryDirectionalClassification,
   canCompleteDirectionalClassification,
   computeBearishDirectionalScore,
+  enforceBinaryDecisionOnCompletedAnalysis,
+  isBuyOrSellDecision,
+  isNonDirectionalDecisionToken,
+  syntheticMtfFromAnalysisText,
 } from "./directional-classifier.js";
 export type { BinaryDirection, BinaryDirectionalResult } from "./directional-classifier.js";
 export { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";

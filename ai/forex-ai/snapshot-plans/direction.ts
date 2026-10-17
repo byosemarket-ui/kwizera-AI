@@ -67,6 +67,25 @@ export function classifyMarketDirection(input: {
     };
   }
 
+  // Phase 50C — completed BUY/SELL analysis decisions seed market-direction lean for plans.
+  // Entry-plan WAIT remains possible when structure/zones are insufficient.
+  if (decision === "BUY") {
+    return {
+      direction: "BULLISH",
+      explanation:
+        "Directional decision is BUY — market-direction lean BULLISH for plan context. "
+        + "Entry readiness still depends on structure zones and confirmation.",
+    };
+  }
+  if (decision === "SELL") {
+    return {
+      direction: "BEARISH",
+      explanation:
+        "Directional decision is SELL — market-direction lean BEARISH for plan context. "
+        + "Entry readiness still depends on structure zones and confirmation.",
+    };
+  }
+
   if (decision === "WAIT" || decision === "NO_TRADE" || trend === "UNKNOWN" || !bias) {
     return {
       direction: "UNCERTAIN",

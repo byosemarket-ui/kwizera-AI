@@ -109,22 +109,26 @@ function buildEvidence(src: GuidedAnalysisSource): GuidedEvidenceSection {
 
 function buildFinalDecision(src: GuidedAnalysisSource): GuidedFinalDecision {
   const bundle = src.planBundle;
-  const decision = src.decision ?? "WAIT";
-  const direction = bundle?.marketDirection ?? src.marketBias ?? "UNCERTAIN";
+  const decision = String(src.decision ?? "").toUpperCase();
+  const directional = decision === "BUY" || decision === "SELL" ? decision : null;
+  const biasOrCondition = bundle?.marketDirection ?? src.marketBias ?? "UNCERTAIN";
   const pullRisk = bundle?.pullback.positionRisk;
   const breakRisk = bundle?.breakout.positionRisk;
   const anyEligible = Boolean(pullRisk?.riskEligible || breakRisk?.riskEligible);
   const block = pullRisk?.blockingReasons[0] || breakRisk?.blockingReasons[0] || null;
 
-  let nextAction = "WAIT and continue monitoring — do not submit a broker order from this panel.";
+  // Phase 50C — nextAction describes entry/risk readiness, not a replacement for BUY|SELL direction.
+  let nextAction = "Do not submit a broker order from this panel — continue monitoring.";
   if (decision === "NO_TRADE" || bundle?.pullback.intent === "UNSUITABLE") {
-    nextAction = "No suitable trade plan — wait for clearer structure or fresher data.";
+    nextAction = "No suitable entry plan — clearer structure or fresher data needed before ticket review.";
   } else if (!anyEligible) {
     nextAction = block
-      ? `Address blockers before considering a ticket: ${block}`
-      : "Complete confirmation and risk prerequisites before any order ticket.";
-  } else if (decision === "WAIT") {
-    nextAction = "Evidence may support a scenario, but confirmation is still required — wait.";
+      ? `${directional ? `Direction ${directional}. ` : ""}Address entry/risk blockers before a ticket: ${block}`
+      : `${directional ? `Direction ${directional}. ` : ""}Complete confirmation and risk prerequisites before any order ticket.`;
+  } else if (!directional) {
+    nextAction = "Analysis did not produce a BUY/SELL directional classification — treat as incomplete.";
+  } else {
+    nextAction = `Directional lean is ${directional}. Entry confirmation and risk eligibility remain separate gates.`;
   }
 
   const keyFinancialRisk = pullRisk?.netLossAccount != null && pullRisk.accountCurrency
@@ -134,9 +138,12 @@ function buildFinalDecision(src: GuidedAnalysisSource): GuidedFinalDecision {
       : "Financial risk unavailable until Phase 45 inputs are complete.";
 
   return {
-    summary:
-      `Evidence currently classified as ${direction}. Provider decision: ${decision}. `
-      + (bundle?.directionMeaning ?? ""),
+    summary: directional
+      ? `Directional decision: ${directional}. Market condition/bias context: ${biasOrCondition}. `
+        + (bundle?.directionMeaning ?? "")
+        + " Entry readiness and risk eligibility are separate from this lean."
+      : `No BUY/SELL directional decision available. Condition/bias: ${biasOrCondition}. `
+        + (bundle?.directionMeaning ?? ""),
     nextAction,
     primaryInvalidation:
       src.invalidationConditions?.[0]
