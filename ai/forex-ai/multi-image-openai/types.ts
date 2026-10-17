@@ -3,6 +3,7 @@
  */
 import type { ChartCaptureRecord } from "../../forex-chart-capture/types.js";
 import type { OpenAiSnapshotAnalysisResult } from "../snapshot-openai/types.js";
+import type { FxcmTicketEligibility } from "../analysis-response/broker-eligibility.js";
 import type { BullishPriceProjection } from "./bullish-projection.js";
 import type { DirectionalProbabilityReport } from "./directional-probability.js";
 import type { DualMarketScenarios } from "./dual-scenarios.js";
@@ -11,6 +12,7 @@ import { MULTI_IMAGE_ANALYSIS_SCHEMA } from "./limits.js";
 export { MULTI_IMAGE_ANALYSIS_SCHEMA };
 export type { BullishPriceProjection };
 export type { DirectionalProbabilityReport, DualMarketScenarios };
+export type { FxcmTicketEligibility };
 
 export interface MultiImageMtfRosterRole {
   timeframe: string;
@@ -162,6 +164,8 @@ export interface MultiImageAnalysisResult extends OpenAiSnapshotAnalysisResult {
     directionalProbability?: DirectionalProbabilityReport;
     /** Phase 50D — evidence-grounded bullish and bearish scenarios. */
     dualScenarios?: DualMarketScenarios;
+    /** Phase 50D — FXCM ticket eligibility (Binance analysis stays isolated). */
+    fxcmEligibility?: FxcmTicketEligibility;
   };
 }
 

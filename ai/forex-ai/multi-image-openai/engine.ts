@@ -12,6 +12,7 @@ import { parseMarketProviderId } from "../../market-data/providers/identity.js";
 import {
   buildGuidedAnalysisResponse,
   buildOpenAiAssistantGuidanceItems,
+  evaluateFxcmTicketEligibility,
   selectPrimaryPlanForAssistant,
   validateTradeAllocation,
 } from "../analysis-response/index.js";
@@ -126,6 +127,10 @@ async function withPlans(
       },
       tradeAllocation: tradeAllocation ?? null,
     });
+    const fxcmEligibility = evaluateFxcmTicketEligibility({
+      provider: String(analysis.provider),
+      instrument: analysis.instrument,
+    });
     return {
       ...analysis,
       multiImage: {
@@ -133,6 +138,7 @@ async function withPlans(
         directionalProbability: resolveDirectionalProbability({
           instrument: analysis.instrument,
         }),
+        fxcmEligibility,
       },
       guidedResponse,
       assistantGuidance: null,
@@ -217,6 +223,14 @@ async function withPlans(
     })
     : null;
 
+  const fxcmEligibility = evaluateFxcmTicketEligibility({
+    provider: String(snapshot.provider),
+    instrument:
+      snapshot.instrument.displaySymbol
+      || snapshot.instrument.providerSymbol
+      || enriched.instrument,
+  });
+
   return {
     ...enriched,
     schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
@@ -224,6 +238,7 @@ async function withPlans(
       ...analysis.multiImage,
       directionalProbability,
       dualScenarios: dualScenarios ?? undefined,
+      fxcmEligibility,
     },
     guidedResponse,
     assistantGuidance,

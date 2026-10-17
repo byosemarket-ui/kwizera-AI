@@ -368,6 +368,7 @@ describe("Phase 50D static contracts", () => {
     const engine = read("ai/forex-ai/multi-image-openai/engine.ts");
     expect(engine).toContain("resolveDirectionalProbability");
     expect(engine).toContain("buildDualMarketScenarios");
+    expect(engine).toContain("evaluateFxcmTicketEligibility");
     expect(engine).toContain("provider: String(snapshot.provider)");
     expect(engine).toContain("applyBinaryDirectionalClassification");
     expect(engine).not.toContain("placeOrder");

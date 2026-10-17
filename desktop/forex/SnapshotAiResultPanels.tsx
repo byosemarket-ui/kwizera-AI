@@ -246,6 +246,14 @@ export type SnapshotAnalysisPanelData = {
       reason?: string;
       note?: string;
     };
+    fxcmEligibility?: {
+      eligible: boolean;
+      status: string;
+      message: string | null;
+      blockerCode: string | null;
+      note: string;
+      placesOrders?: false;
+    };
     dualScenarios?: {
       method: string;
       dataStatus: string;
@@ -764,21 +772,37 @@ function OpenAiAssistantResultBody({
             </p>
             <p>
               <span className="fx-ai-label">9. Risk eligibility</span>{" "}
-              {guidance?.fxcmEligibility && !guidance.fxcmEligibility.eligible
-                ? (guidance.fxcmEligibility.message ?? "FXCM ticket ineligible")
-                : guidance?.finalSummary.riskEligible === true
-                  ? "Eligible (human review only)"
-                  : guidance?.finalSummary.riskEligible === false
-                    ? "Blocked"
-                    : "Pending"}
+              {(() => {
+                const fx =
+                  guidance?.fxcmEligibility
+                  ?? data.multiImage?.fxcmEligibility
+                  ?? null;
+                if (fx && !fx.eligible) {
+                  return fx.message ?? "BROKER INSTRUMENT NOT VERIFIED — FXCM TICKET INELIGIBLE";
+                }
+                if (guidance?.finalSummary.riskEligible === true) return "Eligible (human review only)";
+                if (guidance?.finalSummary.riskEligible === false) return "Blocked";
+                return "Pending";
+              })()}
             </p>
-            {(guidance?.blockers?.length || guidance?.finalSummary.reason) ? (
+            {(guidance?.blockers?.length
+              || guidance?.finalSummary.reason
+              || (data.multiImage?.fxcmEligibility && !data.multiImage.fxcmEligibility.eligible)) ? (
               <ul className="fx-ai-local-list fx-mdb-blockers" data-fx-ticket-blockers="true">
-                {(guidance.blockers ?? []).slice(0, 6).map((b, i) => (
+                {(guidance?.blockers ?? []).slice(0, 6).map((b, i) => (
                   <li key={`blk-${i}`}><code>{b.code}</code> — {b.explanation}</li>
                 ))}
-                {!guidance.blockers?.length && guidance.finalSummary.reason ? (
+                {!guidance?.blockers?.length && guidance?.finalSummary.reason ? (
                   <li>{guidance.finalSummary.reason}</li>
+                ) : null}
+                {!guidance?.blockers?.length
+                  && data.multiImage?.fxcmEligibility
+                  && !data.multiImage.fxcmEligibility.eligible ? (
+                  <li>
+                    <code>{data.multiImage.fxcmEligibility.blockerCode ?? "FXCM_TICKET_INELIGIBLE"}</code>
+                    {" — "}
+                    {data.multiImage.fxcmEligibility.note}
+                  </li>
                 ) : null}
               </ul>
             ) : null}
