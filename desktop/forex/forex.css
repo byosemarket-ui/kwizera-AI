@@ -3072,3 +3072,66 @@ html.reduce-motion .fx-sidebar {
     grid-template-columns: 1fr;
   }
 }
+
+/* Phase 49B — Capture library on AI Analysis */
+.fx-capture-library,
+.fx-multi-image-panel {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-surface);
+  display: grid;
+  gap: 10px;
+}
+.fx-capture-library-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fx-capture-library-head h2,
+.fx-multi-image-panel h2,
+.fx-multi-image-context h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.fx-capture-library .fx-capture-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fx-capture-library .fx-capture-filters input,
+.fx-capture-library .fx-capture-filters select {
+  font-size: 11px;
+  padding: 4px 6px;
+  background: #0a0e14;
+  color: inherit;
+  border: 1px solid var(--fx-border);
+  border-radius: 4px;
+}
+.fx-capture-card[data-selected="true"] {
+  border-color: #3b82c4;
+}
+.fx-multi-image-review {
+  display: grid;
+  gap: 10px;
+}
+.fx-multi-image-warnings {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 12px;
+  color: #e08b8b;
+}
+.fx-multi-image-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+@media (max-width: 720px) {
+  .fx-capture-library-head {
+    flex-direction: column;
+  }
+}

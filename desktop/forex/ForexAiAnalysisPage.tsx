@@ -11,6 +11,9 @@ import {
   type GuidedAnalysisUi,
   type OpenAiAssistantGuidanceUi,
 } from "./SnapshotAiResultPanels";
+import type { ChartCaptureListItem } from "../../ai/forex-chart-capture/types";
+import { ForexCaptureLibrary } from "./capture-library/ForexCaptureLibrary";
+import { MultiImageAnalysisPanel } from "./capture-library/MultiImageAnalysisPanel";
 
 const MTF_DEFAULT = ["4h", "1h", "30m", "15m", "5m"] as const;
 const MTF_OPTIONS = ["4h", "1h", "30m", "15m", "5m", "1d"] as const;
@@ -643,6 +646,10 @@ export function ForexAiAnalysisPage({
   const [tradeAllocAmount, setTradeAllocAmount] = useState(() => readTradeAllocation().amount);
   const [tradeAllocCurrency, setTradeAllocCurrency] = useState(() => readTradeAllocation().currency);
   const [tradeAllocError, setTradeAllocError] = useState<string | null>(null);
+  const [selectedCaptures, setSelectedCaptures] = useState<ChartCaptureListItem[]>([]);
+  const onCaptureSelectionChange = useCallback((items: ChartCaptureListItem[]) => {
+    setSelectedCaptures(items);
+  }, []);
   const buildTradeAllocationPayload = useCallback((): { amount: number; currency: string } | null => {
     const trimmedAmount = tradeAllocAmount.trim();
     if (!trimmedAmount) {
@@ -1578,6 +1585,20 @@ export function ForexAiAnalysisPage({
           </span>
         ) : null}
       </div>
+
+      <ForexCaptureLibrary onSelectionChange={onCaptureSelectionChange} />
+      <MultiImageAnalysisPanel
+        selected={selectedCaptures}
+        snapshotId={snapshot?.snapshotId ?? null}
+        contentFingerprint={snapshot?.contentFingerprint ?? null}
+        tradeAllocation={(() => {
+          const trimmed = tradeAllocAmount.trim();
+          if (!trimmed) return null;
+          const amount = Number(trimmed);
+          if (!Number.isFinite(amount) || amount <= 0) return null;
+          return { amount, currency: tradeAllocCurrency.trim().toUpperCase() || "USD" };
+        })()}
+      />
 
       <div className="fx-ai-trade-budget" data-ai-trade-budget="true">
         <span className="fx-ai-label">Trade allocation</span>

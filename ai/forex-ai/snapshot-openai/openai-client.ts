@@ -106,6 +106,169 @@ export function buildOpenAiChatJsonBody(input: {
   return body;
 }
 
+export type OpenAiImagePart = {
+  mimeType: string;
+  base64: string;
+};
+
+/**
+ * Phase 49B — multimodal Chat Completions body (text + image_url data URLs).
+ * Does not strip images for text-only models; callers must gate vision eligibility first.
+ */
+export function buildOpenAiMultimodalChatJsonBody(input: {
+  model: string;
+  system: string;
+  userText: string;
+  images: OpenAiImagePart[];
+  temperature?: number;
+}): Record<string, unknown> {
+  const userContent: Array<Record<string, unknown>> = [
+    { type: "text", text: input.userText },
+  ];
+  for (const img of input.images) {
+    const mime = String(img.mimeType || "image/png");
+    userContent.push({
+      type: "image_url",
+      image_url: {
+        url: `data:${mime};base64,${img.base64}`,
+      },
+    });
+  }
+  const body: Record<string, unknown> = {
+    model: input.model,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: input.system },
+      { role: "user", content: userContent },
+    ],
+  };
+  if (!openAiOmitsCustomTemperature(input.model)) {
+    body.temperature = input.temperature ?? 0.1;
+  }
+  return body;
+}
+
+export interface OpenAiMultimodalChatInput {
+  apiKey: string;
+  model: string;
+  system: string;
+  userText: string;
+  images: OpenAiImagePart[];
+  timeoutMs: number;
+  temperature?: number;
+}
+
+export async function openAiChatMultimodalJson(
+  input: OpenAiMultimodalChatInput,
+): Promise<OpenAiChatResult> {
+  const started = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.max(5_000, input.timeoutMs));
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${input.apiKey}`,
+      },
+      body: JSON.stringify(
+        buildOpenAiMultimodalChatJsonBody({
+          model: input.model,
+          system: input.system,
+          userText: input.userText,
+          images: input.images,
+          temperature: input.temperature,
+        }),
+      ),
+      signal: controller.signal,
+    });
+
+    const text = await res.text();
+    const latencyMs = Date.now() - started;
+
+    if (!res.ok) {
+      const visionHint = /image|vision|multimodal|content.*not supported/i.test(text)
+        ? " The configured model may not support image inputs."
+        : "";
+      return {
+        ok: false,
+        code: mapHttpError(res.status, text),
+        model: input.model,
+        latencyMs,
+        data: null,
+        error: `${safeProviderMessage(res.status, text)}${visionHint}`.slice(0, 280),
+      };
+    }
+
+    let payload: {
+      model?: string;
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    try {
+      payload = JSON.parse(text) as typeof payload;
+    } catch {
+      return {
+        ok: false,
+        code: "OPENAI_INVALID_RESPONSE",
+        model: input.model,
+        latencyMs,
+        data: null,
+        error: "OpenAI returned non-JSON response.",
+      };
+    }
+
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content || typeof content !== "string") {
+      return {
+        ok: false,
+        code: "OPENAI_INVALID_RESPONSE",
+        model: payload.model ?? input.model,
+        latencyMs,
+        data: null,
+        error: "OpenAI response missing message content.",
+      };
+    }
+
+    try {
+      const data = JSON.parse(content) as Record<string, unknown>;
+      return {
+        ok: true,
+        code: "OK",
+        model: payload.model ?? input.model,
+        latencyMs,
+        data,
+        rawText: content,
+      };
+    } catch {
+      return {
+        ok: false,
+        code: "OPENAI_INVALID_RESPONSE",
+        model: payload.model ?? input.model,
+        latencyMs,
+        data: null,
+        rawText: content.slice(0, 2_000),
+        error: "Model content was not valid JSON.",
+      };
+    }
+  } catch (err) {
+    const latencyMs = Date.now() - started;
+    const aborted = err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      code: aborted ? "OPENAI_TIMEOUT" : "OPENAI_UNAVAILABLE",
+      model: input.model,
+      latencyMs,
+      data: null,
+      error: aborted
+        ? "OpenAI multimodal request timed out."
+        : (err instanceof Error ? err.message.slice(0, 180) : "OpenAI request failed."),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function openAiChatJson(input: OpenAiChatInput): Promise<OpenAiChatResult> {
   const started = Date.now();
   const controller = new AbortController();

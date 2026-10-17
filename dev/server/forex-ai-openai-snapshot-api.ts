@@ -26,6 +26,18 @@ import {
   isOpenAiChatEligibleModel,
   verifyOpenAiConnection,
 } from "../../ai/forex-ai/snapshot-openai/index.js";
+import {
+  MULTI_IMAGE_ANALYSIS_SCHEMA,
+  MULTI_IMAGE_DEFAULT_TIMEOUT_MS,
+  MULTI_IMAGE_MAX_BYTES_PER_IMAGE,
+  MULTI_IMAGE_MAX_CAPTURES,
+  MULTI_IMAGE_MAX_TIMEOUT_MS,
+  MULTI_IMAGE_MAX_TOTAL_BYTES,
+  MULTI_IMAGE_MIN_TIMEOUT_MS,
+  getMultiImageAnalysisStore,
+  getMultiImageOpenAiAnalysisEngine,
+  isOpenAiVisionEligibleModel,
+} from "../../ai/forex-ai/multi-image-openai/index.js";
 import { requireForexAdmin } from "./forex-admin-auth.js";
 
 type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
@@ -425,6 +437,126 @@ export async function handleForexAiOpenAiSnapshotApi(
           "Independent OpenAI analysis of an immutable snapshotId. "
           + "Does not call Local AI. Does not place broker orders. API key never returned.",
       });
+      return true;
+    }
+
+    // Phase 49B — multi-image routes (must be before /:analysisId)
+    if (url.pathname === "/api/forex/ai-analysis/openai/multi-image/meta") {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await config.getPublicStatus();
+      sendJson(res, 200, {
+        ok: true,
+        schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
+        phase: "49B",
+        maxCaptures: MULTI_IMAGE_MAX_CAPTURES,
+        maxTotalBytes: MULTI_IMAGE_MAX_TOTAL_BYTES,
+        maxBytesPerImage: MULTI_IMAGE_MAX_BYTES_PER_IMAGE,
+        defaultTimeoutMs: MULTI_IMAGE_DEFAULT_TIMEOUT_MS,
+        minTimeoutMs: MULTI_IMAGE_MIN_TIMEOUT_MS,
+        maxTimeoutMs: MULTI_IMAGE_MAX_TIMEOUT_MS,
+        requiresExplicitConfirm: true,
+        model: status.model,
+        modelVisionEligible: isOpenAiVisionEligibleModel(status.model),
+        note:
+          "Multi-image analysis loads stored chart captures server-side. "
+          + "Images are sent to OpenAI only after POST …/multi-image with confirmed=true. "
+          + "Review alone does not transmit images.",
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/ai-analysis/openai/multi-image/review") {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = await readJsonBody(req, 64_000) as Record<string, unknown>;
+      const multi = getMultiImageOpenAiAnalysisEngine();
+      const result = await multi.buildReview(
+        body.captureIds,
+        body.snapshotId == null ? null : String(body.snapshotId),
+      );
+      sendJson(res, result.ok ? 200 : 422, {
+        ok: result.ok,
+        code: result.code,
+        error: result.error,
+        review: result.review,
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/ai-analysis/openai/multi-image") {
+      if (req.method === "GET" || req.method === "HEAD") {
+        const items = await getMultiImageAnalysisStore().listRecent(
+          Number(url.searchParams.get("limit") ?? 10) || 10,
+        );
+        sendJson(res, 200, { ok: true, count: items.length, items });
+        return true;
+      }
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = await readJsonBody(req, 64_000) as Record<string, unknown>;
+      const multi = getMultiImageOpenAiAnalysisEngine();
+      const result = await multi.analyze({
+        confirmed: body.confirmed === true,
+        selectionFingerprint: String(body.selectionFingerprint ?? ""),
+        captureIds: Array.isArray(body.captureIds) ? body.captureIds.map(String) : [],
+        snapshotId: body.snapshotId == null ? undefined : String(body.snapshotId),
+        contentFingerprint: body.contentFingerprint == null
+          ? undefined
+          : String(body.contentFingerprint),
+        timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
+        tradeAllocation: body.tradeAllocation == null
+          ? null
+          : body.tradeAllocation as { amount: number; currency: string },
+      });
+      const httpStatus = result.ok
+        ? 200
+        : result.code === "CONFIRMATION_REQUIRED" || result.code === "SELECTION_CHANGED"
+          ? 409
+          : result.code === "MODEL_NOT_VISION_ELIGIBLE" || result.code === "INVALID_SELECTION"
+            ? 422
+            : result.code === "AI_QUEUE_FULL" || result.code === "OPENAI_RATE_LIMIT"
+              ? 429
+              : result.code === "OPENAI_NOT_CONFIGURED" || result.code === "SECRETS_VAULT_LOCKED"
+                ? 503
+                : 422;
+      sendJson(res, httpStatus, {
+        ok: result.ok,
+        code: result.code,
+        error: result.error,
+        latencyMs: result.latencyMs,
+        analysis: result.analysis,
+        review: result.review,
+      });
+      return true;
+    }
+
+    const multiImageGet = url.pathname.match(/^\/api\/forex\/ai-analysis\/openai\/multi-image\/([^/]+)$/);
+    if (multiImageGet) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const id = decodeURIComponent(multiImageGet[1] ?? "");
+      if (id === "meta" || id === "review") {
+        sendJson(res, 404, { ok: false, error: { code: "NOT_FOUND", message: "Unknown route." } });
+        return true;
+      }
+      const row = await getMultiImageAnalysisStore().get(id);
+      if (!row) {
+        sendJson(res, 404, {
+          ok: false,
+          error: { code: "ANALYSIS_NOT_FOUND", message: "Multi-image analysis not found." },
+        });
+        return true;
+      }
+      sendJson(res, 200, { ok: true, analysis: row.analysis });
       return true;
     }
 
