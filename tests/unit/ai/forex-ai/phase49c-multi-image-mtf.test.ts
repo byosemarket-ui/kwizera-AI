@@ -118,9 +118,11 @@ describe("Phase 49C MTF reasoning parse and WAIT policy", () => {
     }, roster);
     expect(shouldForceWaitForMtf("BUY", aligned)).toBe(false);
 
+    // Phase 50A: INSUFFICIENT alone must not auto-force WAIT (bullish-score handles weak BUY).
     const insufficient = parseMtfReasoningFromModel({}, roster);
     expect(insufficient.timeframeAgreement).toBe("INSUFFICIENT");
-    expect(shouldForceWaitForMtf("SELL", insufficient)).toBe(true);
+    expect(shouldForceWaitForMtf("SELL", insufficient)).toBe(false);
+    expect(shouldForceWaitForMtf("BUY", insufficient)).toBe(false);
   });
 
   it("defaults single-timeframe agreement when model omits mtf fields", () => {
@@ -159,7 +161,8 @@ describe("Phase 49C wiring contracts", () => {
     expect(resultUi).toContain("data-ai-openai-assistant-items");
 
     const api = read("dev/server/forex-ai-openai-snapshot-api.ts");
-    expect(api).toContain('phase: "49C"');
+    // Phase 50A supersedes the meta phase label while preserving MTF contracts.
+    expect(api).toMatch(/phase:\s*"(49C|50A)"/);
 
     // Capture-time snapshot remains optional/null-safe (no fabricated IDs).
     const workspace = read("desktop/forex/chart/ForexChartWorkspace.tsx");

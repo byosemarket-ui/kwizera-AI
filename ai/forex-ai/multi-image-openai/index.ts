@@ -12,6 +12,14 @@ export {
   shouldForceWaitForMtf,
   timeframeRank,
 } from "./mtf-summary.js";
+export {
+  BULLISH_BUY_MIN_SCORE,
+  BULLISH_SCORE_METHOD,
+  DIRECTIONAL_CONFIDENCE_LABEL,
+  applyBuyDirectionalPolicy,
+  computeBullishDirectionalScore,
+} from "./bullish-score.js";
+export { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 export { getMultiImageAnalysisStore, MultiImageAnalysisStore } from "./store.js";
 export {
   getMultiImageOpenAiAnalysisEngine,

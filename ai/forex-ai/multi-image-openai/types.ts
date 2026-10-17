@@ -119,6 +119,19 @@ export interface MultiImageAnalysisResult extends OpenAiSnapshotAnalysisResult {
     confirmedAtUtc: string;
     /** Phase 49C — deterministic roster + model MTF reasoning. */
     mtfReasoning?: MultiImageMtfReasoning;
+    /** Phase 50A — BUY-side directional confidence (not a win probability). */
+    buyAssessment?: {
+      directionalConfidencePercent: number | null;
+      directionalConfidenceLabel: string;
+      scoreMethod: string;
+      supportsBuy: boolean;
+      buyBlockedReason: string | null;
+      entryReadiness: "NOT_CONFIRMED" | "REVIEW_ONLY";
+      components: Array<{ id: string; delta: number; reason: string }>;
+      imagesSubmittedAsImageUrl: true;
+      modelDecisionBeforePolicy: string;
+      finalDecision: string;
+    };
   };
 }
 

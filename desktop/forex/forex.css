@@ -3128,7 +3128,8 @@ html.reduce-motion .fx-sidebar {
   display: grid;
   gap: 10px;
 }
-.fx-mtf-reasoning {
+.fx-mtf-reasoning,
+.fx-buy-assessment {
   display: grid;
   gap: 6px;
   padding: 8px 10px;

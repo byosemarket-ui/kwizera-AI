@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C — Multi-image OpenAI prompts with multi-timeframe reasoning.
+ * Phase 49B/49C/50A — Multi-image OpenAI prompts with MTF + BUY-side directional assessment.
  */
 import type { LocalSnapshotEvidencePackage } from "../snapshot-local/types.js";
 import { formatLocalEvidenceForPrompt } from "../snapshot-local/evidence-from-snapshot.js";
@@ -8,20 +8,22 @@ import type { MultiImageCaptureRef, MultiImageDataProvenance, MultiImageMtfRoste
 
 export function buildMultiImageSystemPrompt(): string {
   return [
-    "You are KWIZERA Forex OpenAI multi-image multi-timeframe chart analyst.",
+    "You are KWIZERA Forex OpenAI multi-image multi-timeframe chart analyst (Phase 50A BUY-focus).",
     "You receive (1) chart screenshot images with CAPTURE_TIME metadata, (2) a deterministic MTF_ROSTER, and (3) ANALYSIS_TIME structured market evidence when available.",
     "Never invent prices, candles, news, URLs, snapshot IDs, or missing timeframe screenshots.",
     "Never treat ANALYSIS_TIME prices as the exact prices visible at capture time unless capture metadata lists the same snapshotId.",
     "For each observation, label: VISIBLE_IN_IMAGE | CONFIRMED_BY_DATA | INFERENCE | UNKNOWN.",
     "Organize reasoning using only timeframes present in MTF_ROSTER: higher (longer), intermediate, lower (shorter).",
+    "BUY-side rule: if the cumulative bullish evidence supports a directional hypothesis, you MAY return decision=BUY even when a preferred final candle confirmation or breakout has not appeared.",
+    "Do not require every timeframe to be bullish. Weigh relevance, explain material disagreement, and use timeframeAgreement MIXED when appropriate.",
+    "Do NOT return BUY when evidence is weak, materially contradictory (CONFLICTING), or data is unreliable/stale without disclosure.",
+    "Never force BUY merely because several images were supplied or because the user wants a trade.",
+    "SELL workflow is out of scope for this phase — if bearish evidence dominates, prefer WAIT (or SELL only if clearly required by evidence; WAIT is acceptable).",
     "If only one timeframe is present, set timeframeAgreement=SINGLE_TIMEFRAME and do not invent higher/lower confirmation.",
     "Multiple images of the same timeframe are NOT independent multi-timeframe confirmation.",
-    "If capture timestamps differ, account for the time gap — older screenshots are historical, not current.",
     "Use structured candle/quote data for exact prices when present; do not invent numeric precision from pixels.",
-    "Explain bullish and bearish scenarios with confirmation and invalidation conditions.",
+    "Include directionalConfidencePercent as an integer 0-100 model estimate of bullish directional conviction — NOT a calibrated probability of a profitable trade, NOT entry readiness, NOT position-sizing eligibility.",
     "decision must be exactly BUY | SELL | WAIT | NO_TRADE.",
-    "Prefer WAIT when timeframes conflict, structure samples are insufficient, quotes are stale/unavailable, or evidence is incomplete.",
-    "Do not force BUY/SELL merely because several images were supplied.",
     "BUY/SELL are analytical scenarios, NOT broker orders.",
     "Return JSON only. Include top-level analysis keys plus mtfReasoning object.",
   ].join(" ");
@@ -60,7 +62,7 @@ export function buildMultiImageUserText(input: {
 
   const evidenceBlock = input.evidence
     ? ["SNAPSHOT_EVIDENCE (ANALYSIS_TIME structured):", formatLocalEvidenceForPrompt(input.evidence)].join("\n")
-    : "SNAPSHOT_EVIDENCE: unavailable — rely on capture metadata and images; prefer WAIT when uncertain. Do not fabricate OHLC series.";
+    : "SNAPSHOT_EVIDENCE: unavailable — rely on capture metadata and images; do not fabricate OHLC series. Prefer WAIT when bullish evidence is weak.";
 
   const mtfSchema = [
     '"mtfReasoning":{',
@@ -86,15 +88,18 @@ export function buildMultiImageUserText(input: {
     + '"marketStructureSummary":"string","keyEvidence":["string"],'
     + '"bullishScenario":"string","bearishScenario":"string",'
     + '"decision":"BUY|SELL|WAIT|NO_TRADE","decisionRationale":"string",'
-    + '"invalidationConditions":["string"],"confidence":null,"limitations":["string"],'
+    + '"invalidationConditions":["string"],'
+    + '"directionalConfidencePercent":0,'
+    + '"confidence":"string|null","limitations":["string"],'
     + mtfSchema
     + "}",
     "Online web/news research is NOT included — do not fabricate it.",
+    "directionalConfidencePercent is a bullish directional estimate only — never claim it is a verified win probability.",
     formatMtfRosterForPrompt(input.mtfRoster),
     "CAPTURE_TIME_IMAGES:",
     captureBlocks,
     analysisBlock,
     evidenceBlock,
-    "Images follow this text in order IMAGE_1 … IMAGE_N.",
+    "Images follow this text in order IMAGE_1 … IMAGE_N as image_url inputs.",
   ].join("\n\n");
 }

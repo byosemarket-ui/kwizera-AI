@@ -169,6 +169,7 @@ export function MultiImageAnalysisPanel({
         ...data.analysis,
         analysisProvider: data.analysis.analysisProvider ?? "OPENAI",
         multiImage: data.analysis.multiImage,
+        confidence: data.analysis.confidence ?? null,
       });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Confirm request failed.");

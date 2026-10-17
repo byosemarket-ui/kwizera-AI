@@ -184,7 +184,8 @@ export function parseMtfReasoningFromModel(
 }
 
 /**
- * Soft policy: directional decisions are downgraded when MTF evidence conflicts or is insufficient.
+ * Soft policy (Phase 50A): only material MTF CONFLICT forces WAIT on BUY/SELL.
+ * INSUFFICIENT alone must not automatically block a defensible BUY — bullish-score policy handles weak evidence.
  */
 export function shouldForceWaitForMtf(
   decision: string,
@@ -192,7 +193,7 @@ export function shouldForceWaitForMtf(
 ): boolean {
   const d = String(decision ?? "").toUpperCase();
   if (d !== "BUY" && d !== "SELL") return false;
-  return mtf.timeframeAgreement === "CONFLICTING" || mtf.timeframeAgreement === "INSUFFICIENT";
+  return mtf.timeframeAgreement === "CONFLICTING";
 }
 
 export function formatMtfRosterForPrompt(roster: MultiImageMtfRoster): string {

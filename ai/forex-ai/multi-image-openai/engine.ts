@@ -1,5 +1,5 @@
 /**
- * Phase 49B/49C — Multi-image OpenAI analysis engine with MTF reasoning.
+ * Phase 49B/49C/50A — Multi-image OpenAI analysis with MTF + BUY directional policy.
  * Requires explicit confirmed=true; never sends images from review-only calls.
  */
 import { randomUUID } from "node:crypto";
@@ -39,6 +39,12 @@ import {
   MULTI_IMAGE_MIN_TIMEOUT_MS,
   MULTI_IMAGE_ANALYSIS_SCHEMA,
 } from "./limits.js";
+import {
+  DIRECTIONAL_CONFIDENCE_LABEL,
+  applyBuyDirectionalPolicy,
+  computeBullishDirectionalScore,
+} from "./bullish-score.js";
+import { validateCaptureInstrumentConsistency } from "./instrument-consistency.js";
 import {
   buildMtfRoster,
   parseMtfReasoningFromModel,
@@ -205,6 +211,16 @@ export class MultiImageOpenAiAnalysisEngine {
       captures.push(toCaptureRef(record, true));
     }
 
+    const instrumentCheck = validateCaptureInstrumentConsistency(captures);
+    if (!instrumentCheck.ok) {
+      return {
+        ok: false,
+        code: instrumentCheck.code,
+        error: instrumentCheck.error,
+        review: null,
+      };
+    }
+
     if (totalBytes > MULTI_IMAGE_MAX_TOTAL_BYTES) {
       return {
         ok: false,
@@ -219,7 +235,21 @@ export class MultiImageOpenAiAnalysisEngine {
     }
 
     const analysisTime = await this.resolveAnalysisTimeContext(snapshotId, captures);
-    if (!analysisTime.snapshotId) {
+    if (analysisTime.snapshotId) {
+      const snapMatch = validateCaptureInstrumentConsistency(
+        captures,
+        analysisTime.symbol,
+        analysisTime.provider,
+      );
+      if (!snapMatch.ok) {
+        return {
+          ok: false,
+          code: snapMatch.code,
+          error: snapMatch.error,
+          review: null,
+        };
+      }
+    } else {
       warnings.push(
         "No ANALYSIS_TIME immutable snapshot linked. Prepare a snapshot on this page before confirm, or analysis will rely on capture metadata + images only.",
       );
@@ -563,11 +593,10 @@ export class MultiImageOpenAiAnalysisEngine {
         }
 
         let analysis = attachMulti(normalized.analysis, mtfReasoning);
+        const modelDecisionBeforePolicy = analysis.decision;
+
         if (shouldForceWaitForMtf(analysis.decision, mtfReasoning)) {
-          const reason =
-            mtfReasoning.timeframeAgreement === "CONFLICTING"
-              ? "Multi-timeframe evidence conflicts — directional decision downgraded to WAIT."
-              : "Multi-timeframe evidence is insufficient — directional decision downgraded to WAIT.";
+          const reason = "Multi-timeframe evidence conflicts — directional decision downgraded to WAIT.";
           analysis = {
             ...analysis,
             decision: "WAIT",
@@ -576,6 +605,7 @@ export class MultiImageOpenAiAnalysisEngine {
             warnings: [...analysis.warnings, reason],
           };
         }
+
         // Prefer MTF scenario text when the model supplied it.
         if (mtfReasoning.bullishScenario) {
           analysis = { ...analysis, bullishScenario: mtfReasoning.bullishScenario };
@@ -592,6 +622,63 @@ export class MultiImageOpenAiAnalysisEngine {
             ].slice(0, 16),
           };
         }
+
+        const bullishScore = computeBullishDirectionalScore({
+          decision: analysis.decision,
+          marketBias: analysis.marketBias,
+          mtf: mtfReasoning,
+          captures: review.captures,
+          hasAnalysisTimeSnapshot: Boolean(review.analysisTime.snapshotId),
+          quoteFreshness: review.analysisTime.quoteFreshness,
+          feedHealth: review.analysisTime.feedHealth,
+          keyEvidence: analysis.keyEvidence,
+          bullishScenario: analysis.bullishScenario,
+          bearishScenario: analysis.bearishScenario,
+        });
+
+        const buyPolicy = applyBuyDirectionalPolicy({
+          decision: analysis.decision,
+          score: bullishScore,
+        });
+        if (buyPolicy.changed && buyPolicy.reason) {
+          analysis = {
+            ...analysis,
+            decision: "WAIT",
+            decisionRationale: `${buyPolicy.reason} ${analysis.decisionRationale}`.trim(),
+            limitations: [...analysis.limitations, buyPolicy.reason],
+            warnings: [...analysis.warnings, buyPolicy.reason],
+          };
+        }
+
+        // Attach directional confidence for BUY (and informative score even when WAIT).
+        const confidenceDisplay = bullishScore.display;
+        analysis = {
+          ...analysis,
+          confidence: confidenceDisplay,
+          limitations: analysis.limitations.some((l) => /win probability|calibrated/i.test(l))
+            ? analysis.limitations
+            : [
+              ...analysis.limitations,
+              `${DIRECTIONAL_CONFIDENCE_LABEL} is not a calibrated probability of a profitable trade.`,
+              "Entry readiness is separate from directional BUY assessment — not a confirmed entry.",
+            ],
+          multiImage: {
+            ...analysis.multiImage,
+            buyAssessment: {
+              directionalConfidencePercent: bullishScore.percent,
+              directionalConfidenceLabel: DIRECTIONAL_CONFIDENCE_LABEL,
+              scoreMethod: bullishScore.method,
+              supportsBuy: analysis.decision === "BUY",
+              buyBlockedReason: analysis.decision === "BUY" ? null : (buyPolicy.reason ?? bullishScore.buyBlockedReason),
+              entryReadiness: "NOT_CONFIRMED",
+              components: bullishScore.components,
+              imagesSubmittedAsImageUrl: true,
+              modelDecisionBeforePolicy,
+              finalDecision: analysis.decision,
+            },
+          },
+        };
+
         return analysis;
       }), snapshot, tradeAllocation);
 

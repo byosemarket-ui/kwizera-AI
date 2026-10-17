@@ -189,11 +189,22 @@ export type SnapshotAnalysisPanelData = {
   planBundle?: SnapshotPlanBundleUi | null;
   guidedResponse?: GuidedAnalysisUi | null;
   assistantGuidance?: OpenAiAssistantGuidanceUi | null;
-  /** Phase 49C — multi-image MTF reasoning when present. */
+  /** Phase 49C/50A — multi-image MTF + BUY assessment when present. */
   multiImage?: {
     captureIds: string[];
     imageCount: number;
     selectionFingerprint?: string;
+    buyAssessment?: {
+      directionalConfidencePercent: number | null;
+      directionalConfidenceLabel: string;
+      scoreMethod: string;
+      supportsBuy: boolean;
+      buyBlockedReason: string | null;
+      entryReadiness: string;
+      modelDecisionBeforePolicy?: string;
+      finalDecision?: string;
+      imagesSubmittedAsImageUrl?: boolean;
+    };
     mtfReasoning?: {
       timeframeAgreement: string;
       higherTimeframeContext: string | null;
@@ -532,6 +543,36 @@ function OpenAiAssistantResultBody({
           </li>
         </ul>
       </section>
+
+      {data.multiImage?.buyAssessment ? (
+        <section className="fx-buy-assessment" data-fx-buy-assessment="true" aria-label="BUY directional assessment">
+          <h3 className="fx-ai-guided-title">BUY directional assessment</h3>
+          <p>
+            <span className="fx-ai-label">Decision</span> {data.decision}
+            {" · "}
+            <span className="fx-ai-label">{data.multiImage.buyAssessment.directionalConfidenceLabel}</span>{" "}
+            {data.multiImage.buyAssessment.directionalConfidencePercent != null
+              ? `${data.multiImage.buyAssessment.directionalConfidencePercent}%`
+              : "unavailable"}
+          </p>
+          <p className="fx-ai-muted">
+            Method {data.multiImage.buyAssessment.scoreMethod}
+            {" · "}entry readiness {data.multiImage.buyAssessment.entryReadiness}
+            {" · "}not a calibrated win probability
+            {data.multiImage.buyAssessment.imagesSubmittedAsImageUrl
+              ? " · screenshots submitted as image_url inputs"
+              : ""}
+          </p>
+          {data.multiImage.buyAssessment.buyBlockedReason ? (
+            <p className="fx-ai-snapshot-warn">{data.multiImage.buyAssessment.buyBlockedReason}</p>
+          ) : null}
+          {data.decision === "BUY" ? (
+            <p className="fx-ai-muted">
+              BUY is a directional hypothesis only. FXCM ticket guidance and risk checks remain separate eligibility gates.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {data.multiImage?.mtfReasoning ? (
         <section className="fx-mtf-reasoning" data-fx-mtf-reasoning="true" aria-label="Multi-timeframe reasoning">

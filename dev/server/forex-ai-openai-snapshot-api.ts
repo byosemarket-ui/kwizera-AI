@@ -450,7 +450,7 @@ export async function handleForexAiOpenAiSnapshotApi(
       sendJson(res, 200, {
         ok: true,
         schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
-        phase: "49C",
+        phase: "50A",
         maxCaptures: MULTI_IMAGE_MAX_CAPTURES,
         maxTotalBytes: MULTI_IMAGE_MAX_TOTAL_BYTES,
         maxBytesPerImage: MULTI_IMAGE_MAX_BYTES_PER_IMAGE,
