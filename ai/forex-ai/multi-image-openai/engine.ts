@@ -300,6 +300,91 @@ export class MultiImageOpenAiAnalysisEngine {
     };
   }
 
+  /**
+   * Phase 50A.1 — Load real OHLC for the projection chart when the linked evidence has none.
+   * Order: capture-linked snapshot IDs → newest matching instrument/provider historical snapshot.
+   * Never mixes unrelated instruments. Does not invent candles.
+   */
+  private async enrichEvidenceCandlesFromHistory(
+    evidence: LocalSnapshotEvidencePackage,
+    captures: MultiImageCaptureRef[],
+  ): Promise<LocalSnapshotEvidencePackage> {
+    const snapEngine = getAnalysisSnapshotEngine();
+    const wantSym = String(evidence.instrument.displaySymbol || evidence.instrument.providerSymbol || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "");
+    const wantProv = String(evidence.provider || "").trim().toUpperCase();
+
+    const trySnapshot = async (id: string | null | undefined): Promise<LocalSnapshotEvidencePackage | null> => {
+      const sid = String(id ?? "").trim();
+      if (!sid) return null;
+      const snap = await snapEngine.getSnapshot(sid);
+      if (!snap || !verifySnapshotFingerprint(snap)) return null;
+      if (!snap.candles?.length) return null;
+      const sym = String(snap.instrument.displaySymbol || snap.instrument.canonicalSymbol || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "");
+      const prov = String(snap.provider || "").trim().toUpperCase();
+      if (wantSym && sym && sym !== wantSym) return null;
+      if (wantProv && prov && prov !== wantProv) return null;
+      const built = buildEvidenceFromSnapshot(snap);
+      if (!built.candles.length) return null;
+      return {
+        ...evidence,
+        candles: built.candles,
+        candleCount: built.candleCount,
+        closedCandleCount: built.closedCandleCount ?? built.candles.length,
+        candleTimeframe: built.candleTimeframe || evidence.candleTimeframe,
+        returnedRange: built.returnedRange ?? evidence.returnedRange,
+        categories: {
+          ...evidence.categories,
+          candles: true,
+          unavailable: evidence.categories.unavailable.filter((u) => u !== "candles"),
+        },
+        warnings: [
+          ...evidence.warnings,
+          `Projection chart OHLC loaded from historical snapshot ${sid.slice(0, 12)}… (HISTORICAL_ONLY — not a live feed).`,
+        ],
+        quoteFreshness: evidence.quoteFreshness === "LIVE" ? "HISTORICAL_ONLY" : evidence.quoteFreshness,
+        marketStatus: evidence.marketStatus === "LIVE" ? "HISTORICAL_ONLY" : evidence.marketStatus,
+      };
+    };
+
+    // Prefer capture-time linked snapshots (same selection instrument).
+    const linkedIds = [...new Set(
+      captures
+        .map((c) => c.marketSnapshot.snapshotId)
+        .filter((id): id is string => Boolean(id)),
+    )];
+    for (const id of linkedIds) {
+      const enriched = await trySnapshot(id);
+      if (enriched) return enriched;
+    }
+
+    // Fallback: newest evidence-ready snapshot for the same instrument/provider.
+    try {
+      const metas = await snapEngine.listMeta(40);
+      const match = metas.find((m) => {
+        const sym = String(m.symbol || "").trim().toUpperCase().replace(/\s+/g, "");
+        const prov = String(m.provider || "").trim().toUpperCase();
+        return m.evidenceReady
+          && sym === wantSym
+          && (!wantProv || prov === wantProv)
+          && /VALID/i.test(m.validationStatus);
+      });
+      if (match) {
+        const enriched = await trySnapshot(match.snapshotId);
+        if (enriched) return enriched;
+      }
+    } catch {
+      // listMeta unavailable — leave evidence unchanged
+    }
+
+    return evidence;
+  }
+
   private async resolveAnalysisTimeContext(
     snapshotId: string | null | undefined,
     captures: MultiImageCaptureRef[],
@@ -537,6 +622,11 @@ export class MultiImageOpenAiAnalysisEngine {
           unavailable: ["structure", "patterns", "analysis_snapshot", "candles"],
         },
       };
+    }
+
+    // Phase 50A.1 — Prefer real OHLC for the projection chart. Never mix instruments.
+    if (evidence && evidence.candles.length === 0) {
+      evidence = await this.enrichEvidenceCandlesFromHistory(evidence, review.captures);
     }
 
     const gate = getOpenAiInferenceGate();

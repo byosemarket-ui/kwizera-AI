@@ -162,7 +162,7 @@ describe("Phase 50A.1 bullish projection builder", () => {
           bid: 4168.3,
           ask: null,
           lastPrice: 4168.3,
-          observedAtUtc: "2026-10-17T12:00:00.000Z",
+          observedAtUtc: new Date().toISOString(),
           provider: "FOREXCONNECT",
           symbol: "XAU/USD",
         },
@@ -318,6 +318,78 @@ describe("Phase 50A.1 bullish projection builder", () => {
     expect(proj.dataStatus).toBe("HISTORICAL_ONLY");
     expect(proj.limitations.join(" ")).toMatch(/HISTORICAL_ONLY|not.*live entry/i);
   });
+
+  it("does not label stale capture feeds as LIVE even when snapshot quote says LIVE", () => {
+    const captures = [
+      ref({
+        captureId: "a",
+        timeframe: "15m",
+        quote: {
+          bid: 4162,
+          ask: null,
+          mid: null,
+          lastPrice: 4162,
+          feedHealth: "NO_RECENT_MARKET_UPDATES",
+          lastGenuinePriceChangeAt: null,
+          lastGenuinePriceChangeAgeMs: null,
+        },
+      }),
+    ];
+    const roster = buildMtfRoster(captures);
+    const mtf = parseMtfReasoningFromModel({
+      mtfReasoning: {
+        timeframeAgreement: "ALIGNED",
+        keyLevels: [
+          { level: "4180", provenance: "CONFIRMED_BY_DATA", captureId: "a", timeframe: "15m" },
+          { level: "4150", provenance: "CONFIRMED_BY_DATA", captureId: "a", timeframe: "15m" },
+        ],
+        bullishScenario: "VISIBLE_IN_IMAGE: bullish continuation",
+      },
+    }, roster);
+    const candles = Array.from({ length: 12 }, (_, i) => ({
+      t: 1_700_000_000 + i * 900,
+      o: 4160,
+      h: 4165,
+      l: 4155,
+      c: 4162,
+    }));
+    const proj = buildBullishPriceProjection({
+      decision: "BUY",
+      marketBias: "BULLISH",
+      directionalConfidencePercent: 65,
+      supportsBuyHypothesis: true,
+      mtf,
+      captures,
+      provenance: {
+        captureTime: { note: "cap", captures },
+        analysisTime: {
+          note: "stale snapshot still labeled LIVE at creation",
+          snapshotId: "snap",
+          contentFingerprint: "fp",
+          quoteFreshness: "LIVE",
+          feedHealth: "LIVE",
+          bid: 4162,
+          ask: null,
+          lastPrice: 4162,
+          observedAtUtc: "2026-10-16T15:36:17.000Z",
+          provider: "FOREXCONNECT",
+          symbol: "XAU/USD",
+        },
+        onlineResearch: { included: false, note: "none" },
+      },
+      evidence: makeEvidence(candles),
+      modelHint: parseModelBullishProjectionHint({}),
+      dataQuality: "mixed",
+      bullishScenario: "bullish",
+      bearishScenario: "",
+      invalidationConditions: [],
+      keyEvidence: ["CONFIRMED_BY_DATA: close 4162"],
+    });
+    expect(proj.dataStatus).toBe("NO_RECENT_MARKET_UPDATES");
+    expect(proj.dataStatus).not.toBe("LIVE");
+    expect(proj.chart?.historical.length).toBe(12);
+    expect(proj.chart?.projected).not.toBeNull();
+  });
 });
 
 describe("Phase 50A.1 wiring contracts", () => {
@@ -326,6 +398,7 @@ describe("Phase 50A.1 wiring contracts", () => {
     expect(engine).toContain("buildBullishPriceProjection");
     expect(engine).toContain("parseModelBullishProjectionHint");
     expect(engine).toContain("priceProjection");
+    expect(engine).toContain("enrichEvidenceCandlesFromHistory");
 
     const prompts = read("ai/forex-ai/multi-image-openai/prompts.ts");
     expect(prompts).toContain("bullishProjection");

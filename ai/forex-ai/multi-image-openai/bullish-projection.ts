@@ -144,6 +144,9 @@ function pickPrimaryInstrument(captures: MultiImageCaptureRef[]): {
   };
 }
 
+/** Snapshot quote labels older than this are treated as historical, not live entry. */
+const LIVE_QUOTE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+
 function resolveDataStatus(
   analysisTime: MultiImageDataProvenance["analysisTime"],
   captures: MultiImageCaptureRef[],
@@ -151,17 +154,30 @@ function resolveDataStatus(
 ): string {
   const qf = String(analysisTime.quoteFreshness ?? "").toUpperCase();
   const fh = String(analysisTime.feedHealth ?? "").toUpperCase();
-  if (qf === "LIVE" || fh === "LIVE") return "LIVE";
-  if (qf === "HISTORICAL_ONLY" || fh === "HISTORICAL_ONLY") return "HISTORICAL_ONLY";
-  if (qf === "STALE" || fh === "STALE" || qf === "STALE_DATA") return "STALE";
   const feeds = captures.map((c) => String(c.quote.feedHealth ?? "").toUpperCase());
+
+  // Capture-time feed honesty takes priority over a stored snapshot's freshness label.
   if (feeds.some((f) => f === "NO_RECENT_MARKET_UPDATES" || f === "NO_RECENT")) {
     return "NO_RECENT_MARKET_UPDATES";
   }
   if (feeds.some((f) => f === "MARKET_INACTIVE")) return "MARKET_INACTIVE";
   if (feeds.some((f) => f === "STALE")) return "STALE";
+
+  if (qf === "HISTORICAL_ONLY" || fh === "HISTORICAL_ONLY") return "HISTORICAL_ONLY";
+  if (qf === "STALE" || fh === "STALE" || qf === "STALE_DATA") return "STALE";
+
+  const observedMs = analysisTime.observedAtUtc ? Date.parse(analysisTime.observedAtUtc) : NaN;
+  const ageMs = Number.isFinite(observedMs) ? Date.now() - observedMs : Number.POSITIVE_INFINITY;
+  const snapshotLooksLive = (qf === "LIVE" || fh === "LIVE") && ageMs <= LIVE_QUOTE_MAX_AGE_MS;
+  const captureLooksLive = feeds.some((f) => f === "LIVE");
+  if (snapshotLooksLive && captureLooksLive) return "LIVE";
+  if (snapshotLooksLive && feeds.length === 0) return "LIVE";
+  // Snapshot may still say LIVE from creation time — do not present as a live entry.
+  if ((qf === "LIVE" || fh === "LIVE") && ageMs > LIVE_QUOTE_MAX_AGE_MS) return "HISTORICAL_ONLY";
+
   if (!analysisTime.snapshotId && hasCandles) return "HISTORICAL_ONLY";
   if (!analysisTime.snapshotId) return "HISTORICAL_ONLY";
+  if (hasCandles && !captureLooksLive) return "HISTORICAL_ONLY";
   return qf || fh || "UNAVAILABLE";
 }
 
