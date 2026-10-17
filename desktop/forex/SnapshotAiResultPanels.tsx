@@ -189,6 +189,54 @@ export type SnapshotAnalysisPanelData = {
   planBundle?: SnapshotPlanBundleUi | null;
   guidedResponse?: GuidedAnalysisUi | null;
   assistantGuidance?: OpenAiAssistantGuidanceUi | null;
+  /** Phase 49C — multi-image MTF reasoning when present. */
+  multiImage?: {
+    captureIds: string[];
+    imageCount: number;
+    selectionFingerprint?: string;
+    mtfReasoning?: {
+      timeframeAgreement: string;
+      higherTimeframeContext: string | null;
+      intermediateStructure: string | null;
+      lowerTimeframeSetup: string | null;
+      agreementSummary: string | null;
+      conflictSummary: string | null;
+      bullishScenario: string | null;
+      bearishScenario: string | null;
+      keyLevels: Array<{
+        level: string;
+        provenance: string;
+        captureId: string | null;
+        timeframe: string | null;
+      }>;
+      confirmationConditions: string[];
+      invalidationConditions: string[];
+      missingEvidence: string[];
+      roster: {
+        distinctTimeframes: string[];
+        sameTimeframeDuplicates: boolean;
+        captureSpanMs: number | null;
+        note: string;
+        roles: Array<{
+          timeframe: string;
+          role: string;
+          imageCount: number;
+          captureIds: string[];
+          note: string | null;
+        }>;
+      };
+    };
+    provenance?: {
+      captureTime?: { note?: string };
+      analysisTime?: {
+        snapshotId?: string | null;
+        feedHealth?: string | null;
+        quoteFreshness?: string | null;
+        observedAtUtc?: string | null;
+        note?: string;
+      };
+    };
+  };
 };
 
 function fmtPrice(n: number | null | undefined): string {
@@ -484,6 +532,88 @@ function OpenAiAssistantResultBody({
           </li>
         </ul>
       </section>
+
+      {data.multiImage?.mtfReasoning ? (
+        <section className="fx-mtf-reasoning" data-fx-mtf-reasoning="true" aria-label="Multi-timeframe reasoning">
+          <h3 className="fx-ai-guided-title">Multi-timeframe reasoning</h3>
+          <p className="fx-ai-muted">
+            Agreement <strong>{data.multiImage.mtfReasoning.timeframeAgreement}</strong>
+            {" · "}
+            TFs {data.multiImage.mtfReasoning.roster.distinctTimeframes.join(", ") || "—"}
+            {" · "}
+            {data.multiImage.imageCount} image(s)
+          </p>
+          <p className="fx-ai-muted">{data.multiImage.mtfReasoning.roster.note}</p>
+          <dl className="fx-capture-meta-grid fx-mtf-roles">
+            {data.multiImage.mtfReasoning.roster.roles.map((r) => (
+              <div key={`${r.role}-${r.timeframe}`}>
+                <dt>{r.role} · {r.timeframe}</dt>
+                <dd>{r.imageCount} img · {r.captureIds.map((id) => id.slice(0, 8)).join(", ")}</dd>
+              </div>
+            ))}
+          </dl>
+          {data.multiImage.mtfReasoning.higherTimeframeContext ? (
+            <p><span className="fx-ai-label">Higher TF</span> {data.multiImage.mtfReasoning.higherTimeframeContext}</p>
+          ) : null}
+          {data.multiImage.mtfReasoning.intermediateStructure ? (
+            <p><span className="fx-ai-label">Intermediate</span> {data.multiImage.mtfReasoning.intermediateStructure}</p>
+          ) : null}
+          {data.multiImage.mtfReasoning.lowerTimeframeSetup ? (
+            <p><span className="fx-ai-label">Lower TF</span> {data.multiImage.mtfReasoning.lowerTimeframeSetup}</p>
+          ) : null}
+          {data.multiImage.mtfReasoning.agreementSummary ? (
+            <p><span className="fx-ai-label">Agreement</span> {data.multiImage.mtfReasoning.agreementSummary}</p>
+          ) : null}
+          {data.multiImage.mtfReasoning.conflictSummary ? (
+            <p className="fx-ai-snapshot-warn"><span className="fx-ai-label">Conflict</span> {data.multiImage.mtfReasoning.conflictSummary}</p>
+          ) : null}
+          <div className="fx-mtf-scenarios">
+            <p><span className="fx-ai-label">Bullish</span> {data.multiImage.mtfReasoning.bullishScenario ?? data.bullishScenario}</p>
+            <p><span className="fx-ai-label">Bearish</span> {data.multiImage.mtfReasoning.bearishScenario ?? data.bearishScenario}</p>
+          </div>
+          {data.multiImage.mtfReasoning.keyLevels.length > 0 ? (
+            <ul className="fx-ai-local-list">
+              {data.multiImage.mtfReasoning.keyLevels.map((lvl, i) => (
+                <li key={`lvl-${i}`}>
+                  {lvl.level}
+                  {" · "}
+                  {lvl.provenance}
+                  {lvl.timeframe ? ` · ${lvl.timeframe}` : ""}
+                  {lvl.captureId ? ` · ${lvl.captureId.slice(0, 8)}` : ""}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {data.multiImage.mtfReasoning.confirmationConditions[0] ? (
+            <p className="fx-ai-muted">
+              Confirm: {data.multiImage.mtfReasoning.confirmationConditions.join(" · ")}
+            </p>
+          ) : null}
+          {data.multiImage.mtfReasoning.invalidationConditions[0] ? (
+            <p className="fx-ai-muted">
+              Invalidate: {data.multiImage.mtfReasoning.invalidationConditions.join(" · ")}
+            </p>
+          ) : null}
+          {data.multiImage.mtfReasoning.missingEvidence[0] ? (
+            <p className="fx-ai-snapshot-warn">
+              Missing: {data.multiImage.mtfReasoning.missingEvidence.join(" · ")}
+            </p>
+          ) : null}
+          {data.multiImage.provenance?.analysisTime ? (
+            <p className="fx-ai-muted">
+              ANALYSIS_TIME snapshot {data.multiImage.provenance.analysisTime.snapshotId ?? "none"}
+              {" · "}feed {data.multiImage.provenance.analysisTime.feedHealth ?? "—"}
+              {" · "}freshness {data.multiImage.provenance.analysisTime.quoteFreshness ?? "—"}
+              {data.multiImage.provenance.analysisTime.observedAtUtc
+                ? ` · observed ${data.multiImage.provenance.analysisTime.observedAtUtc}`
+                : ""}
+            </p>
+          ) : null}
+          <p className="fx-ai-muted">
+            Decision {data.decision} · Bias {data.marketBias}. FXCM ticket guidance below remains eligibility-gated.
+          </p>
+        </section>
+      ) : null}
 
       {guidance ? (
         <ol className="fx-ai-asst-items" data-ai-openai-assistant-items="true" aria-label="FXCM ticket guidance">

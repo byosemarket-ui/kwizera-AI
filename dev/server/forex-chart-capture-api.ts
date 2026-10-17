@@ -126,6 +126,15 @@ export async function handleForexChartCaptureApi(
             "Images are never auto-sent. Forex AI Analysis loads selected captures server-side "
             + "and transmits them only after POST …/multi-image with confirmed=true.",
         },
+        captureTimeSnapshotLinkage: {
+          field: "marketSnapshot.snapshotId",
+          currentlyLinkedAtCapture: false,
+          note:
+            "Phase 49C keeps capture-time immutable snapshot linkage optional. "
+            + "Charts currently store null snapshot IDs and preserve CAPTURE_TIME quote/candle-window metadata. "
+            + "Creating a full analysis snapshot on every chart capture would expand the live capture path; "
+            + "ANALYSIS_TIME snapshots remain available from Forex AI Analysis when prepared.",
+        },
       });
       return true;
     }

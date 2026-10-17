@@ -89,5 +89,12 @@ describe("Phase 49B wiring contracts", () => {
     const captureApi = read("dev/server/forex-chart-capture-api.ts");
     expect(captureApi).toMatch(/imageSubmissionImplemented:\s*true/);
     expect(captureApi).toContain("requiresExplicitConfirm: true");
+
+    // Phase 49C additive contracts remain compatible with 49B confirmation gate.
+    const prompts = read("ai/forex-ai/multi-image-openai/prompts.ts");
+    expect(prompts).toContain("mtfReasoning");
+    expect(read("ai/forex-ai/multi-image-openai/limits.ts")).toContain(
+      "forex-openai-multi-image-analysis-v2",
+    );
   });
 });

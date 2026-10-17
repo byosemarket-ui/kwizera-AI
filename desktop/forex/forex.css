@@ -3128,6 +3128,22 @@ html.reduce-motion .fx-sidebar {
   display: grid;
   gap: 10px;
 }
+.fx-mtf-reasoning {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--fx-border);
+  border-radius: 6px;
+  background: #0a0e14;
+  font-size: 12px;
+}
+.fx-mtf-scenarios {
+  display: grid;
+  gap: 4px;
+}
+.fx-mtf-roles {
+  margin: 4px 0;
+}
 .fx-multi-image-warnings {
   margin: 0;
   padding-left: 1.1rem;

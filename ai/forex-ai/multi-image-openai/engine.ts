@@ -1,5 +1,5 @@
 /**
- * Phase 49B — Multi-image OpenAI analysis engine.
+ * Phase 49B/49C — Multi-image OpenAI analysis engine with MTF reasoning.
  * Requires explicit confirmed=true; never sends images from review-only calls.
  */
 import { randomUUID } from "node:crypto";
@@ -39,6 +39,11 @@ import {
   MULTI_IMAGE_MIN_TIMEOUT_MS,
   MULTI_IMAGE_ANALYSIS_SCHEMA,
 } from "./limits.js";
+import {
+  buildMtfRoster,
+  parseMtfReasoningFromModel,
+  shouldForceWaitForMtf,
+} from "./mtf-summary.js";
 import { buildMultiImageSystemPrompt, buildMultiImageUserText } from "./prompts.js";
 import { computeSelectionFingerprint, validateCaptureIdList } from "./selection.js";
 import { getMultiImageAnalysisStore } from "./store.js";
@@ -48,6 +53,7 @@ import type {
   MultiImageAnalysisResult,
   MultiImageCaptureRef,
   MultiImageDataProvenance,
+  MultiImageMtfReasoning,
   MultiImageReviewPayload,
 } from "./types.js";
 import { isOpenAiVisionEligibleModel, visionCapabilityNote } from "./vision-policy.js";
@@ -192,7 +198,8 @@ export class MultiImageOpenAiAnalysisEngine {
       totalBytes += image.buffer.length;
       if (!record.marketSnapshot.snapshotId) {
         warnings.push(
-          `${record.instrument.displaySymbol} ${record.timeframe}: no capture-time market snapshot ID (expected for Phase 49A captures).`,
+          `${record.instrument.displaySymbol} ${record.timeframe}: no capture-time market snapshot ID `
+          + "(Charts capture stores quote/candle-window metadata only; immutable linkage is optional and may be null).",
         );
       }
       captures.push(toCaptureRef(record, true));
@@ -218,9 +225,19 @@ export class MultiImageOpenAiAnalysisEngine {
       );
     }
 
-    const timeframes = [...new Set(captures.map((c) => c.timeframe))];
-    if (timeframes.length > 1) {
-      warnings.push(`Selection spans timeframes: ${timeframes.join(", ")}.`);
+    const mtfRoster = buildMtfRoster(captures);
+    if (mtfRoster.distinctTimeframes.length > 1) {
+      warnings.push(`Selection spans timeframes: ${mtfRoster.distinctTimeframes.join(", ")}.`);
+    }
+    if (mtfRoster.sameTimeframeDuplicates) {
+      warnings.push(
+        "Multiple images share the same timeframe — they are not independent multi-timeframe confirmation.",
+      );
+    }
+    if (mtfRoster.captureSpanMs != null && mtfRoster.captureSpanMs > 5 * 60_000) {
+      warnings.push(
+        `Capture timestamps span ${Math.round(mtfRoster.captureSpanMs / 60_000)} minutes — older screenshots are historical, not current.`,
+      );
     }
 
     return {
@@ -234,6 +251,7 @@ export class MultiImageOpenAiAnalysisEngine {
         modelVisionEligible: visionOk,
         modelVisionNote: visionCapabilityNote(model),
         analysisTime,
+        mtfRoster,
         warnings,
         limits: {
           maxCaptures: MULTI_IMAGE_MAX_CAPTURES,
@@ -278,17 +296,17 @@ export class MultiImageOpenAiAnalysisEngine {
         note: `${base.note} Requested snapshotId was missing or failed integrity checks.`,
       };
     }
-    const quote = snapshot.quote;
+    const quote = snapshot.latestQuote;
     return {
       ...base,
       snapshotId: snapshot.snapshotId,
       contentFingerprint: snapshot.contentFingerprint,
-      quoteFreshness: snapshot.freshness?.quote ?? null,
-      feedHealth: snapshot.freshness?.quote ?? null,
+      quoteFreshness: quote?.freshness ?? snapshot.freshness?.quote ?? null,
+      feedHealth: snapshot.marketStatus ?? quote?.freshness ?? null,
       bid: quote?.bid ?? null,
       ask: quote?.ask ?? null,
       lastPrice: quote?.last ?? quote?.mid ?? quote?.bid ?? null,
-      observedAtUtc: snapshot.createdAt,
+      observedAtUtc: quote?.serverReceiptTimestamp ?? snapshot.createdAt,
       provider: String(snapshot.provider),
       symbol: snapshot.instrument.displaySymbol,
       note:
@@ -412,8 +430,11 @@ export class MultiImageOpenAiAnalysisEngine {
     const confirmedAtUtc = new Date().toISOString();
     const store = getMultiImageAnalysisStore();
 
+    const mtfRoster = review.mtfRoster ?? buildMtfRoster(review.captures);
+
     const attachMulti = (
       base: Awaited<ReturnType<typeof buildOpenAiNoTradeResult>>,
+      mtfReasoning?: MultiImageMtfReasoning,
     ): MultiImageAnalysisResult => ({
       ...base,
       schemaVersion: MULTI_IMAGE_ANALYSIS_SCHEMA,
@@ -424,6 +445,7 @@ export class MultiImageOpenAiAnalysisEngine {
         provenance,
         visionModel: model,
         confirmedAtUtc,
+        mtfReasoning: mtfReasoning ?? parseMtfReasoningFromModel(null, mtfRoster),
       },
     });
 
@@ -496,6 +518,7 @@ export class MultiImageOpenAiAnalysisEngine {
             captures: review.captures,
             provenance,
             evidence,
+            mtfRoster,
           }),
           images,
           timeoutMs,
@@ -515,6 +538,8 @@ export class MultiImageOpenAiAnalysisEngine {
           return failed;
         }
 
+        const mtfReasoning = parseMtfReasoningFromModel(chat.data, mtfRoster);
+
         const normalized = normalizeOpenAiAnalysisFromModel({
           raw: chat.data,
           evidence: evidence!,
@@ -531,13 +556,43 @@ export class MultiImageOpenAiAnalysisEngine {
             model,
             reason: normalized.error,
             newsResearchStatus: "unavailable",
-          }));
+          }), mtfReasoning);
           failed.status = "failed";
           failed.error = normalized.error;
           return failed;
         }
 
-        return attachMulti(normalized.analysis);
+        let analysis = attachMulti(normalized.analysis, mtfReasoning);
+        if (shouldForceWaitForMtf(analysis.decision, mtfReasoning)) {
+          const reason =
+            mtfReasoning.timeframeAgreement === "CONFLICTING"
+              ? "Multi-timeframe evidence conflicts — directional decision downgraded to WAIT."
+              : "Multi-timeframe evidence is insufficient — directional decision downgraded to WAIT.";
+          analysis = {
+            ...analysis,
+            decision: "WAIT",
+            decisionRationale: `${reason} ${analysis.decisionRationale}`.trim(),
+            limitations: [...analysis.limitations, reason],
+            warnings: [...analysis.warnings, reason],
+          };
+        }
+        // Prefer MTF scenario text when the model supplied it.
+        if (mtfReasoning.bullishScenario) {
+          analysis = { ...analysis, bullishScenario: mtfReasoning.bullishScenario };
+        }
+        if (mtfReasoning.bearishScenario) {
+          analysis = { ...analysis, bearishScenario: mtfReasoning.bearishScenario };
+        }
+        if (mtfReasoning.invalidationConditions.length) {
+          analysis = {
+            ...analysis,
+            invalidationConditions: [
+              ...mtfReasoning.invalidationConditions,
+              ...analysis.invalidationConditions,
+            ].slice(0, 16),
+          };
+        }
+        return analysis;
       }), snapshot, tradeAllocation);
 
       await store.save(analysis, evidence);

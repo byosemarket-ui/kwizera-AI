@@ -1,8 +1,10 @@
 /**
- * Phase 49B — Multi-image OpenAI analysis limits.
+ * Phase 49B/49C — Multi-image OpenAI analysis limits.
  */
 
-export const MULTI_IMAGE_ANALYSIS_SCHEMA = "forex-openai-multi-image-analysis-v1";
+/** Phase 49C schema — additive mtfReasoning under multiImage; v1 records remain readable. */
+export const MULTI_IMAGE_ANALYSIS_SCHEMA = "forex-openai-multi-image-analysis-v2";
+export const MULTI_IMAGE_ANALYSIS_SCHEMA_V1 = "forex-openai-multi-image-analysis-v1";
 
 export const MULTI_IMAGE_MAX_CAPTURES = 6;
 export const MULTI_IMAGE_MIN_CAPTURES = 1;

@@ -35,6 +35,19 @@ type ReviewPayload = {
     symbol: string | null;
     note: string;
   };
+  mtfRoster?: {
+    distinctTimeframes: string[];
+    sameTimeframeDuplicates: boolean;
+    captureSpanMs: number | null;
+    note: string;
+    roles: Array<{
+      timeframe: string;
+      role: string;
+      imageCount: number;
+      captureIds: string[];
+      note: string | null;
+    }>;
+  };
   warnings: string[];
   note: string;
 };
@@ -144,7 +157,7 @@ export function MultiImageAnalysisPanel({
         error?: string;
         code?: string;
         analysis?: SnapshotAnalysisPanelData & {
-          multiImage?: { captureIds: string[]; imageCount: number };
+          multiImage?: SnapshotAnalysisPanelData["multiImage"];
           analysisProvider?: string;
         };
       };
@@ -155,6 +168,7 @@ export function MultiImageAnalysisPanel({
       setResult({
         ...data.analysis,
         analysisProvider: data.analysis.analysisProvider ?? "OPENAI",
+        multiImage: data.analysis.multiImage,
       });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Confirm request failed.");
@@ -217,6 +231,29 @@ export function MultiImageAnalysisPanel({
               </li>
             ))}
           </ul>
+
+          {review.mtfRoster ? (
+            <div className="fx-multi-image-context" data-fx-mtf-roster="true">
+              <h3>Multi-timeframe roster</h3>
+              <p className="fx-panel-meta">{review.mtfRoster.note}</p>
+              <dl className="fx-capture-meta-grid">
+                {review.mtfRoster.roles.map((r) => (
+                  <div key={`${r.role}-${r.timeframe}`}>
+                    <dt>{r.role} · {r.timeframe}</dt>
+                    <dd>
+                      {r.imageCount} image(s)
+                      {r.note ? ` — ${r.note}` : ""}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {review.mtfRoster.sameTimeframeDuplicates ? (
+                <p className="fx-capture-status is-error">
+                  Duplicate same-timeframe images are not independent MTF confirmation.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="fx-multi-image-context">
             <h3>ANALYSIS_TIME market context</h3>

@@ -1,11 +1,55 @@
 /**
- * Phase 49B — Multi-image OpenAI analysis types.
+ * Phase 49B/49C — Multi-image OpenAI analysis types.
  */
 import type { ChartCaptureRecord } from "../../forex-chart-capture/types.js";
 import type { OpenAiSnapshotAnalysisResult } from "../snapshot-openai/types.js";
 import { MULTI_IMAGE_ANALYSIS_SCHEMA } from "./limits.js";
 
 export { MULTI_IMAGE_ANALYSIS_SCHEMA };
+
+export interface MultiImageMtfRosterRole {
+  timeframe: string;
+  role: "higher" | "intermediate" | "lower" | "only";
+  captureIds: string[];
+  imageCount: number;
+  earliestCapturedAtUtc: string | null;
+  latestCapturedAtUtc: string | null;
+  note: string | null;
+}
+
+export interface MultiImageMtfRoster {
+  distinctTimeframes: string[];
+  sameTimeframeDuplicates: boolean;
+  captureSpanMs: number | null;
+  roles: MultiImageMtfRosterRole[];
+  note: string;
+}
+
+export interface MultiImageMtfReasoning {
+  roster: MultiImageMtfRoster;
+  timeframeAgreement:
+    | "ALIGNED"
+    | "MIXED"
+    | "CONFLICTING"
+    | "SINGLE_TIMEFRAME"
+    | "INSUFFICIENT";
+  higherTimeframeContext: string | null;
+  intermediateStructure: string | null;
+  lowerTimeframeSetup: string | null;
+  agreementSummary: string | null;
+  conflictSummary: string | null;
+  bullishScenario: string | null;
+  bearishScenario: string | null;
+  keyLevels: Array<{
+    level: string;
+    provenance: "VISIBLE_IN_IMAGE" | "CONFIRMED_BY_DATA" | "INFERENCE" | "UNKNOWN";
+    captureId: string | null;
+    timeframe: string | null;
+  }>;
+  confirmationConditions: string[];
+  invalidationConditions: string[];
+  missingEvidence: string[];
+}
 
 export interface MultiImageCaptureRef {
   captureId: string;
@@ -65,7 +109,7 @@ export interface MultiImageDataProvenance {
 }
 
 export interface MultiImageAnalysisResult extends OpenAiSnapshotAnalysisResult {
-  schemaVersion: typeof MULTI_IMAGE_ANALYSIS_SCHEMA | OpenAiSnapshotAnalysisResult["schemaVersion"];
+  schemaVersion: typeof MULTI_IMAGE_ANALYSIS_SCHEMA | OpenAiSnapshotAnalysisResult["schemaVersion"] | string;
   multiImage: {
     captureIds: string[];
     selectionFingerprint: string;
@@ -73,6 +117,8 @@ export interface MultiImageAnalysisResult extends OpenAiSnapshotAnalysisResult {
     provenance: MultiImageDataProvenance;
     visionModel: string;
     confirmedAtUtc: string;
+    /** Phase 49C — deterministic roster + model MTF reasoning. */
+    mtfReasoning?: MultiImageMtfReasoning;
   };
 }
 
@@ -94,6 +140,8 @@ export interface MultiImageReviewPayload {
   modelVisionEligible: boolean;
   modelVisionNote: string;
   analysisTime: MultiImageDataProvenance["analysisTime"];
+  /** Phase 49C — deterministic timeframe roster for the review panel. */
+  mtfRoster: MultiImageMtfRoster;
   warnings: string[];
   limits: {
     maxCaptures: number;
