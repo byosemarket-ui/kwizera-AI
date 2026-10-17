@@ -2856,3 +2856,219 @@ html.reduce-motion .fx-sidebar {
   .fx-ai-asst-item-head { align-items: flex-start; }
   .fx-ai-asst-value { width: 100%; }
 }
+
+/* Phase 49A — Chart capture & screenshot session */
+.fx-capture-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--fx-border);
+  border-radius: var(--fx-radius);
+  background: var(--fx-surface);
+  display: grid;
+  gap: 10px;
+}
+.fx-capture-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.fx-capture-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #3b82c4;
+  background: #1a2740;
+  color: #d7e6ff;
+  cursor: pointer;
+}
+.fx-capture-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.fx-capture-note { margin: 0; max-width: 42rem; }
+.fx-capture-status {
+  margin: 0;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.fx-capture-status.is-ok {
+  background: rgba(61, 154, 106, 0.12);
+  color: #b9f2cc;
+}
+.fx-capture-status.is-error {
+  background: rgba(196, 75, 75, 0.12);
+  color: #e08b8b;
+}
+.fx-capture-schedule summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.fx-capture-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.fx-capture-schedule-grid label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--fx-muted);
+}
+.fx-capture-schedule-grid select,
+.fx-capture-schedule-grid input {
+  font-size: 12px;
+  padding: 4px 6px;
+  background: #0a0e14;
+  color: inherit;
+  border: 1px solid var(--fx-border);
+  border-radius: 4px;
+}
+.fx-capture-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.fx-capture-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.fx-capture-filters {
+  display: flex;
+  gap: 6px;
+}
+.fx-capture-filters select {
+  font-size: 11px;
+  padding: 3px 6px;
+  background: #0a0e14;
+  color: inherit;
+  border: 1px solid var(--fx-border);
+  border-radius: 4px;
+}
+.fx-capture-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.fx-capture-card {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--fx-border);
+  border-radius: 6px;
+  background: #0a0e14;
+}
+.fx-capture-thumb-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.fx-capture-thumb {
+  display: block;
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #121820;
+}
+.fx-capture-card-meta {
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--fx-muted);
+}
+.fx-capture-card-meta strong {
+  color: inherit;
+  font-size: 12px;
+}
+.fx-capture-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+}
+.fx-capture-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.fx-capture-empty { margin: 8px 0 0; }
+.fx-capture-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.fx-capture-viewer-inner {
+  width: min(960px, 100%);
+  max-height: min(90vh, 900px);
+  overflow: auto;
+  background: var(--fx-surface);
+  border: 1px solid var(--fx-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.fx-capture-viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fx-capture-viewer-img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: #0a0e14;
+}
+.fx-capture-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 11px;
+}
+.fx-capture-meta-grid dt {
+  color: var(--fx-muted);
+}
+.fx-capture-meta-grid dd {
+  margin: 0;
+  word-break: break-all;
+}
+@media (max-width: 720px) {
+  .fx-capture-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+  .fx-capture-card {
+    grid-template-columns: 96px 1fr;
+  }
+  .fx-capture-thumb {
+    width: 96px;
+    height: 54px;
+  }
+  .fx-capture-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}

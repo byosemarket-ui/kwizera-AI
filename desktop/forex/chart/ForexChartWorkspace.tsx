@@ -47,6 +47,8 @@ import {
   type IndicatorKind,
   type PriceLevel,
 } from "./types";
+import { ChartCapturePanel, type ChartCaptureContext } from "./capture/ChartCapturePanel";
+import type { FeedHealthState } from "../../../ai/forex-chart-capture/types";
 
 const OVERLAY_COLORS: Record<string, string> = {
   sma: "#b9f2cc",
@@ -455,6 +457,63 @@ export function ForexChartWorkspace({
       : unified.message || `Waiting for ${candleProvider} candles…`;
   const showChart = historyReady;
 
+  const captureContext = useMemo((): ChartCaptureContext | null => {
+    if (!selected || !candleProvider || !canAnalyze) return null;
+    let feedHealth: FeedHealthState = "UNKNOWN";
+    if (forexConnectSelected || fxcmSelected) {
+      if (chartLive) feedHealth = "LIVE";
+      else if (unified.connectionState === "STALE") feedHealth = "STALE";
+      else if (unified.connectionState === "NO_RECENT_MARKET_UPDATES") feedHealth = "NO_RECENT_MARKET_UPDATES";
+      else if (unified.connectionState === "MARKET_INACTIVE") feedHealth = "MARKET_INACTIVE";
+      else if (unified.connectionState === "CONNECTING") feedHealth = "CONNECTING";
+      else if (seriesReady) feedHealth = "HISTORICAL";
+      else feedHealth = "UNAVAILABLE";
+    } else if (binanceSelected) {
+      if (chartLive) feedHealth = "LIVE";
+      else if (klineStatus === "RECONNECTING") feedHealth = "RECONNECTING";
+      else if (klineStatus === "CONNECTING") feedHealth = "CONNECTING";
+      else if (seriesReady) feedHealth = "HISTORICAL";
+      else feedHealth = "UNAVAILABLE";
+    }
+    const lastPrice = last?.close ?? (liveTicker?.ticker?.price ?? null);
+    const bid = forexConnectSelected ? (lastPrice ?? null) : null;
+    const mid = fxcmSelected ? (lastPrice ?? null) : null;
+    const ask = null;
+    return {
+      symbol: selected.symbol,
+      displaySymbol: selected.displaySymbol,
+      provider: candleProvider,
+      timeframe,
+      candles,
+      feedHealth,
+      bid,
+      ask,
+      mid,
+      lastPrice,
+      lastGenuinePriceChangeAt: unified.lastQuoteAt ?? null,
+      lastGenuinePriceChangeAgeMs: unified.streamDiagnostics?.lastQuoteAgeMs ?? null,
+      marketSnapshotId: null,
+      marketSnapshotFingerprint: null,
+    };
+  }, [
+    selected,
+    candleProvider,
+    canAnalyze,
+    forexConnectSelected,
+    fxcmSelected,
+    binanceSelected,
+    chartLive,
+    unified.connectionState,
+    unified.lastQuoteAt,
+    unified.streamDiagnostics,
+    seriesReady,
+    klineStatus,
+    last,
+    liveTicker,
+    timeframe,
+    candles,
+  ]);
+
   const marketState = useMemo(() => {
     if (!selected || candles.length === 0) return null;
     if (fxcmSelected || forexConnectSelected) {
@@ -640,6 +699,7 @@ export function ForexChartWorkspace({
         ? String(unified.streamDiagnostics.pollChanges)
         : ""}
       data-phase="37f"
+      data-phase-49a="true"
     >
       <header className="fx-trading-header fx-trading-chrome" data-fx-trading-header="true">
         <div className="fx-trading-identity">
@@ -1187,6 +1247,12 @@ export function ForexChartWorkspace({
         {fxcmSelected ? " · Price basis: mid" : ""}
         {forexConnectSelected ? " · Price basis: bid" : ""}
       </p>
+
+      <ChartCapturePanel
+        chartRef={chartRef}
+        enabled={Boolean(showChart && canAnalyze && candleProvider && selected)}
+        context={captureContext}
+      />
     </section>
   );
 }

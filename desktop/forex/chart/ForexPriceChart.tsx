@@ -25,6 +25,15 @@ export interface OverlaySeries {
 export interface ForexPriceChartHandle {
   fitContent: () => void;
   zoom: (direction: 1 | -1) => void;
+  /** Native lightweight-charts export of the main price pane (candles + overlays). */
+  takeScreenshot: () => HTMLCanvasElement | null;
+  /** Visible logical / time range of the main chart, if available. */
+  getVisibleRange: () => {
+    logicalFrom: number | null;
+    logicalTo: number | null;
+    timeFromSec: number | null;
+    timeToSec: number | null;
+  };
 }
 
 interface ForexPriceChartProps {
@@ -108,6 +117,33 @@ export const ForexPriceChart = forwardRef<ForexPriceChartHandle, ForexPriceChart
       if (!scale) return;
       const spacing = scale.options().barSpacing ?? 8;
       scale.applyOptions({ barSpacing: Math.min(36, Math.max(3, spacing + direction * 2)) });
+    },
+    takeScreenshot: () => {
+      try {
+        return mainApi.current?.takeScreenshot() ?? null;
+      } catch {
+        return null;
+      }
+    },
+    getVisibleRange: () => {
+      const scale = mainApi.current?.timeScale();
+      if (!scale) {
+        return { logicalFrom: null, logicalTo: null, timeFromSec: null, timeToSec: null };
+      }
+      try {
+        const logical = scale.getVisibleLogicalRange();
+        const timeRange = scale.getVisibleRange();
+        const timeFrom = timeRange && typeof timeRange.from === "number" ? timeRange.from : null;
+        const timeTo = timeRange && typeof timeRange.to === "number" ? timeRange.to : null;
+        return {
+          logicalFrom: logical && Number.isFinite(logical.from) ? logical.from : null,
+          logicalTo: logical && Number.isFinite(logical.to) ? logical.to : null,
+          timeFromSec: timeFrom,
+          timeToSec: timeTo,
+        };
+      } catch {
+        return { logicalFrom: null, logicalTo: null, timeFromSec: null, timeToSec: null };
+      }
     },
   }));
 
