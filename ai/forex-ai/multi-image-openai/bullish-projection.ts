@@ -382,17 +382,26 @@ export function buildBullishPriceProjection(input: {
     ...partial,
   });
 
-  if (!input.supportsBuyHypothesis && String(input.decision).toUpperCase() !== "BUY") {
-    return empty(
-      "Bullish price projection is shown only when evidence supports a BUY-side directional hypothesis.",
-    );
-  }
-
   const ref = resolveReference({
     analysisTime: input.provenance.analysisTime,
     captures: input.captures,
     candles: historical,
   });
+
+  if (!input.supportsBuyHypothesis && String(input.decision).toUpperCase() !== "BUY") {
+    const gated = empty(
+      "Bullish price projection is shown only when evidence supports a BUY-side directional hypothesis.",
+    );
+    if (ref) {
+      gated.reference = {
+        price: ref.price,
+        source: ref.source,
+        timestampUtc: ref.timestampUtc,
+      };
+    }
+    return gated;
+  }
+
   if (!ref) {
     return empty("No reference price available from analysis-time quote, candles, or capture metadata.");
   }
