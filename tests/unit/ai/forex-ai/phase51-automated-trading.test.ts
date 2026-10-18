@@ -62,7 +62,7 @@ describe("Phase 51 store isolation & controls", () => {
     expect(status.controls.automatedExecutionEnabled).toBe(false);
     expect(status.placesOrders).toBe(false);
     expect(status.banner).toBe(AUTOMATED_EXECUTION_BANNER);
-    expect(status.blockers.some((b) => /PHASE 51/i.test(b))).toBe(true);
+    expect(status.blockers.some((b) => /PHASE 5[12]/i.test(b))).toBe(true);
 
     resetAutomatedTradingServiceForTests();
     resetAutomatedTradingStoreForTests();
@@ -193,7 +193,7 @@ describe("Phase 51.1 UI polish contracts", () => {
     expect(page).toContain("Admin authorization");
     expect(page).toContain('data-fx-at-summary="true"');
     expect(page).toContain(BANNER_FRAGMENT);
-    expect(page).toContain("Configuration only — cannot submit broker orders");
+    expect(page).toContain("cannot submit broker orders");
     expect(page).toContain('data-fx-at-auto-entry="disabled"');
     expect(page).toContain('data-fx-at-pos-mgmt="not-active"');
     // Session-only storage key — no localStorage / URL persistence of the secret.
@@ -215,4 +215,4 @@ describe("Phase 51.1 UI polish contracts", () => {
   });
 });
 
-const BANNER_FRAGMENT = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 51";
+const BANNER_FRAGMENT = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";

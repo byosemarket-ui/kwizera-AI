@@ -1,5 +1,5 @@
 /**
- * Phase 51 — Automated Trading configuration & status API.
+ * Phase 51/52 — Automated Trading configuration, status & verification API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -171,6 +171,76 @@ export async function handleForexAutomatedTradingApi(
         environment: body.environment,
         accountId: body.accountId,
         status: body.status,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+      });
+      if (!result.ok) {
+        sendJson(res, 409, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, { ok: true, status: result.status, placesOrders: false });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/verify")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req)) as Record<string, unknown>;
+      const result = await service.runVerification({
+        environment: body.environment,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        accountId: body.accountId,
+        timeframe: body.timeframe,
+      });
+      if (!result.ok) {
+        sendJson(res, result.code === "STALE_EPOCH" || result.code === "ENVIRONMENT_MISMATCH" ? 409 : 503, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        verification: result.verification,
+        status: result.status,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/verification")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const status = await service.buildStatus();
+      sendJson(res, 200, {
+        ok: true,
+        verification: service.getLatestVerification(),
+        status,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/instrument")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req)) as Record<string, unknown>;
+      const result = await service.setSelectedInstrument({
+        environment: body.environment,
+        instrument: body.instrument,
         expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
       });
       if (!result.ok) {

@@ -1,12 +1,14 @@
 /**
- * Phase 51 — Automated Trading foundation types.
- * DEMO/LIVE isolation. No broker order submission in this phase.
+ * Phase 51/52 — Automated Trading foundation + verification types.
+ * DEMO/LIVE isolation. No broker order submission.
  */
+import type { AutomatedTradingVerificationResult } from "./verification-types.js";
+export type { AutomatedTradingVerificationResult } from "./verification-types.js";
 
 export const AUTOMATED_TRADING_SCHEMA = "forex-automated-trading-v1";
-export const AUTOMATED_TRADING_PHASE = "51";
+export const AUTOMATED_TRADING_PHASE = "52";
 export const AUTOMATED_EXECUTION_BANNER =
-  "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 51";
+  "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";
 
 export type AutomatedTradingEnvironment = "DEMO" | "LIVE";
 
@@ -46,6 +48,10 @@ export interface AutomatedTradingEnvState {
   lastVerificationStatus: string | null;
   credentialsConfigured: boolean;
   usernameHint: string | null;
+  /** Selected ForexConnect instrument for this environment (provider symbol). */
+  selectedInstrument: string | null;
+  /** Last successful verification payload (no secrets). */
+  lastVerification: AutomatedTradingVerificationResult | null;
 }
 
 export interface AutomatedTradingPersistedState {
@@ -103,6 +109,8 @@ export interface AutomatedTradingPublicStatus {
   blockers: string[];
   explanation: string;
   selectedEnvState: AutomatedTradingEnvState;
+  verification: AutomatedTradingVerificationResult | null;
+  readiness: AutomatedTradingVerificationResult["readiness"] | null;
   updatedAtUtc: string;
   placesOrders: false;
 }
@@ -125,6 +133,8 @@ export function defaultEnvState(environment: AutomatedTradingEnvironment): Autom
     lastVerificationStatus: null,
     credentialsConfigured: false,
     usernameHint: null,
+    selectedInstrument: null,
+    lastVerification: null,
   };
 }
 

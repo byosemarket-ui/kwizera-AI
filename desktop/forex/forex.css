@@ -3335,6 +3335,30 @@ html.reduce-motion .fx-sidebar {
   gap: 10px;
   flex-wrap: wrap;
 }
+.fx-auto-trading-header-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fx-auto-gates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 4px 10px;
+  font-size: 11px;
+}
+.fx-auto-gates li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+}
+.fx-auto-gates li[data-ok="true"] { color: color-mix(in srgb, var(--fx-accent, #3d9a6a) 85%, white); }
+.fx-auto-gates li[data-ok="false"] { opacity: 0.78; }
+.fx-auto-verify-grid { margin-top: 2px; }
 .fx-auto-trading-title-block { min-width: 0; }
 .fx-auto-trading-title-row {
   display: flex;

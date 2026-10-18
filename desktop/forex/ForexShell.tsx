@@ -221,7 +221,12 @@ export function ForexShell({
       />
     );
   } else if (route === "automated-trading") {
-    content = <ForexAutomatedTradingPage />;
+    content = (
+      <ForexAutomatedTradingPage
+        selectedMarket={selectedMarket}
+        timeframe={chartTimeframe}
+      />
+    );
   } else {
     content = (
       <ForexModulePage

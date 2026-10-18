@@ -1,11 +1,16 @@
 /**
- * Phase 51 — Automated Trading service (status + safe configuration).
+ * Phase 51/52 — Automated Trading service (status, config, verification).
  * Never places, modifies, or closes broker orders.
  */
 import { getForexConnectProfilesManager } from "../../market-data/forexconnect/profiles.js";
 import { getForexConnectBridge } from "../../market-data/forexconnect/client.js";
-// getForexConnectProfilesManager is async (vault init).
+import { getForexConnectLiveCandleService } from "../../market-data/forexconnect/live-service.js";
 import { getAutomatedTradingStore, type AutomatedTradingStore } from "./store.js";
+import {
+  assembleVerificationResult,
+  uiEnvFromFc,
+} from "./verification-engine.js";
+import type { AutomatedTradingVerificationResult } from "./verification-types.js";
 import {
   AUTOMATED_EXECUTION_BANNER,
   AUTOMATED_TRADING_PHASE,
@@ -18,13 +23,6 @@ import {
   type AutomatedTradingModuleStatus,
   type AutomatedTradingPublicStatus,
 } from "./types.js";
-
-function uiEnvFromFc(raw: string | null | undefined): AutomatedTradingEnvironment | null {
-  const v = String(raw ?? "").trim().toLowerCase();
-  if (v === "demo") return "DEMO";
-  if (v === "live" || v === "real") return "LIVE";
-  return null;
-}
 
 export class AutomatedTradingService {
   constructor(private readonly store: AutomatedTradingStore = getAutomatedTradingStore()) {}
@@ -122,10 +120,10 @@ export class AutomatedTradingService {
       );
     }
 
-    // Phase 51 hard safety blockers
+    // Hard safety blockers — execution never enabled in Phase 52.
     blockers.push(AUTOMATED_EXECUTION_BANNER);
     if (selected === "LIVE") {
-      blockers.push("LIVE execution is disabled throughout Phase 51.");
+      blockers.push("LIVE execution is disabled throughout Phase 52.");
     }
     if (envState.controls.emergencyEntryLock) {
       blockers.push("Emergency entry lock is ON — future automated entries are blocked.");
@@ -134,8 +132,21 @@ export class AutomatedTradingService {
       blockers.push("Master automated-trading switch is OFF.");
     }
 
+    const verification = envState.lastVerification;
+    if (verification) {
+      for (const b of verification.blockers) {
+        if (b.code !== "EXECUTION_NOT_IMPLEMENTED" && b.code !== "RISK_ENGINE_NOT_IMPLEMENTED") {
+          blockers.push(b.message);
+        }
+      }
+      if (verification.account.accountIdMasked) {
+        accountIdMasked = verification.account.accountIdMasked;
+      }
+      accountVerified = verification.identityStatus === "ACCOUNT_VERIFIED";
+    }
+
     let moduleStatus: AutomatedTradingModuleStatus = "READY";
-    if (blockers.some((b) => /unavailable|error/i.test(b) && !/PHASE 51/i.test(b))) {
+    if (blockers.some((b) => /unavailable|error/i.test(b) && !/PHASE 5[12]/i.test(b))) {
       moduleStatus = connectionStatus === "UNAVAILABLE" ? "ERROR" : "BLOCKED";
     }
     if (
@@ -144,10 +155,11 @@ export class AutomatedTradingService {
       || selected === "LIVE"
       || envState.controls.emergencyEntryLock
       || !envState.controls.masterEnable
+      || !verification?.readiness.readyForFutureAnalysis
     ) {
       moduleStatus = moduleStatus === "ERROR" ? "ERROR" : "BLOCKED";
     }
-    // Execution never ready in Phase 51
+    // Execution / trading readiness never READY in Phase 52
     if (moduleStatus === "READY") moduleStatus = "BLOCKED";
 
     const fresh = this.store.getState();
@@ -182,11 +194,13 @@ export class AutomatedTradingService {
       blockers: [...new Set(blockers)],
       explanation:
         moduleStatus === "BLOCKED"
-          ? "Automated Trading is blocked for execution. Configuration and environment isolation remain available."
+          ? "Automated Trading is blocked for execution. Verification and configuration remain available."
           : moduleStatus === "ERROR"
             ? "Automated Trading could not verify broker status."
             : "Status loaded.",
       selectedEnvState: selectedFresh,
+      verification: selectedFresh.lastVerification,
+      readiness: selectedFresh.lastVerification?.readiness ?? null,
       updatedAtUtc: fresh.updatedAtUtc,
       placesOrders: false,
     };
@@ -283,8 +297,14 @@ export class AutomatedTradingService {
       s.environments[target].lastVerifiedAccountId = null;
       s.environments[target].lastVerifiedAtUtc = null;
       s.environments[target].lastVerificationStatus = "PENDING_REVALIDATION";
+      s.environments[target].lastVerification = null;
       return s;
     });
+    try {
+      await getForexConnectLiveCandleService().clearAllSessions();
+    } catch {
+      /* best-effort — env-bound quotes must not leak across DEMO/LIVE */
+    }
 
     await this.store.appendAudit({
       action: "environment_switched",
@@ -454,6 +474,266 @@ export class AutomatedTradingService {
       detail: `Account verification recorded for ${env} (${maskAccountId(accountId)}).`,
     });
     return { ok: true, status: await this.buildStatus() };
+  }
+
+  async setSelectedInstrument(input: {
+    environment: unknown;
+    instrument: unknown;
+    expectedEnvironmentEpoch?: unknown;
+  }): Promise<
+    | { ok: true; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const env = parseAutomatedTradingEnvironment(input.environment);
+    if (!env) {
+      return {
+        ok: false,
+        code: "INVALID_ENVIRONMENT",
+        message: "environment must be DEMO or LIVE",
+        status: await this.buildStatus(),
+      };
+    }
+    const state = this.store.getState();
+    if (env !== state.selectedEnvironment) {
+      return {
+        ok: false,
+        code: "ENVIRONMENT_MISMATCH",
+        message: `Instrument for ${env} rejected while selection is ${state.selectedEnvironment}.`,
+        status: await this.buildStatus(),
+      };
+    }
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        status: await this.buildStatus(),
+      };
+    }
+    const instrument = String(input.instrument ?? "").trim();
+    if (!instrument || instrument.length > 64) {
+      return {
+        ok: false,
+        code: "INVALID_INSTRUMENT",
+        message: "instrument symbol is required",
+        status: await this.buildStatus(),
+      };
+    }
+    await this.store.updateState((s) => {
+      s.environments[env].selectedInstrument = instrument;
+      s.environments[env].lastVerification = null;
+      s.environments[env].lastVerificationStatus = "INSTRUMENT_CHANGED";
+      s.configVersion += 1;
+      return s;
+    });
+    await this.store.appendAudit({
+      action: "instrument_selected",
+      environment: env,
+      ok: true,
+      code: null,
+      detail: `Selected instrument ${instrument} for ${env}.`,
+    });
+    return { ok: true, status: await this.buildStatus() };
+  }
+
+  /**
+   * Phase 52 — run read-only account + instrument + market verification.
+   * Never places orders. Binds result to selected environment + epoch.
+   */
+  async runVerification(input: {
+    environment?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    accountId?: unknown;
+    timeframe?: unknown;
+  }): Promise<
+    | { ok: true; verification: AutomatedTradingVerificationResult; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env =
+      parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    if (env !== state.selectedEnvironment) {
+      return {
+        ok: false,
+        code: "ENVIRONMENT_MISMATCH",
+        message: `Verification for ${env} rejected while selection is ${state.selectedEnvironment}.`,
+        status: await this.buildStatus(),
+      };
+    }
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        status: await this.buildStatus(),
+      };
+    }
+
+    const instrumentOverride = String(input.instrument ?? "").trim();
+    if (instrumentOverride) {
+      await this.store.updateState((s) => {
+        s.environments[env].selectedInstrument = instrumentOverride;
+        return s;
+      });
+    }
+
+    const envState = this.store.getState().environments[env];
+    const instrumentSymbol = envState.selectedInstrument;
+    const expectedAccountId =
+      typeof input.accountId === "string" && input.accountId.trim()
+        ? input.accountId.trim()
+        : envState.lastVerifiedAccountId;
+
+    let credentialsConfigured = envState.credentialsConfigured;
+    let connectionStatus = "UNAVAILABLE";
+    let sessionEnv: AutomatedTradingEnvironment | null = null;
+
+    try {
+      const profilesMgr = await getForexConnectProfilesManager();
+      const profiles = profilesMgr.publicState();
+      const profile = env === "DEMO" ? profiles.profiles.demo : profiles.profiles.live;
+      credentialsConfigured = Boolean(profile.configured);
+
+      const bridge = getForexConnectBridge();
+      const fcStatus = await bridge.getStatus();
+      connectionStatus = String(fcStatus.status ?? "UNKNOWN");
+      sessionEnv = uiEnvFromFc(fcStatus.environmentLabel ?? fcStatus.environment ?? null)
+        ?? uiEnvFromFc(profiles.activeEnvironment);
+
+      const accountsResult = await bridge.listAccounts();
+      let instruments: Awaited<ReturnType<typeof bridge.listInstruments>>["instruments"] = [];
+      try {
+        const instRes = await bridge.listInstruments();
+        instruments = instRes.ok ? instRes.instruments : [];
+      } catch {
+        instruments = [];
+      }
+
+      let marketInput: Parameters<typeof assembleVerificationResult>[0]["marketInput"] = null;
+      if (instrumentSymbol) {
+        try {
+          const live = getForexConnectLiveCandleService();
+          const tf = String(input.timeframe ?? "m1").trim() || "m1";
+          const series = await live.ensure(instrumentSymbol, tf);
+          const latest = live.getLatestQuoteState(instrumentSymbol);
+          const now = Date.now();
+          const receiptAgeMs =
+            latest?.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : series.lastQuoteAgeMs;
+          marketInput = {
+            bid: latest?.quote.bid ?? null,
+            ask: latest?.quote.ask ?? null,
+            streamState: latest?.streamState ?? series.streamState,
+            sourceTimestampMs: latest?.quote.sourceTimestampMs ?? null,
+            receivedAtMs: latest?.quote.receivedAtMs ?? null,
+            // series.lastQuoteAgeMs is honest price-change age used for LIVE gating.
+            priceChangeAgeMs: series.lastQuoteAgeMs,
+            receiptAgeMs,
+            updateCount: latest?.updateCount ?? series.updateCount,
+            nowMs: now,
+          };
+        } catch (err) {
+          marketInput = {
+            bid: null,
+            ask: null,
+            streamState: "ERROR",
+            updateCount: 0,
+            nowMs: Date.now(),
+          };
+          await this.store.appendAudit({
+            action: "market_subscribe_failed",
+            environment: env,
+            ok: false,
+            code: "MARKET_FEED_UNAVAILABLE",
+            detail: err instanceof Error ? err.message.slice(0, 160) : "Market subscribe failed",
+          });
+        }
+      }
+
+      const verification = assembleVerificationResult({
+        selected: env,
+        environmentEpoch: this.store.getState().environmentEpoch,
+        credentialsConfigured,
+        connectionStatus,
+        sessionEnv,
+        accountsResult,
+        selectedAccountId: expectedAccountId,
+        expectedAccountId: envState.lastVerifiedAccountId,
+        instrumentSymbol,
+        instruments,
+        marketInput,
+      });
+
+      await this.store.updateState((s) => {
+        const bucket = s.environments[env];
+        bucket.lastVerification = verification;
+        bucket.lastVerificationStatus = verification.identityStatus;
+        bucket.lastVerifiedAtUtc = verification.verifiedAtUtc;
+        if (verification.identityStatus === "ACCOUNT_VERIFIED" && accountsResult.ok) {
+          const acct =
+            accountsResult.accounts.find((a) => a.accountId === expectedAccountId)
+            ?? (accountsResult.accounts.length === 1 ? accountsResult.accounts[0] : null);
+          if (acct?.accountId) {
+            bucket.lastVerifiedAccountId = acct.accountId;
+          }
+        }
+        if (verification.identityStatus !== "ACCOUNT_VERIFIED") {
+          // Do not keep a verified flag when identity failed.
+          if (
+            verification.identityStatus === "ENVIRONMENT_MISMATCH"
+            || verification.identityStatus === "CONNECTION_FAILED"
+            || verification.identityStatus === "CONFIGURATION_MISSING"
+          ) {
+            bucket.lastVerifiedAccountId = null;
+          }
+        }
+        s.configVersion += 1;
+        return s;
+      });
+
+      await this.store.appendAudit({
+        action: "verification_completed",
+        environment: env,
+        ok: verification.identityStatus === "ACCOUNT_VERIFIED",
+        code: verification.identityStatus,
+        detail:
+          `Verification ${verification.identityStatus}; instrument=${verification.instrument.level}; `
+          + `feed=${verification.market.feedStatus}; readyAnalysis=${verification.readiness.readyForFutureAnalysis}`,
+      });
+
+      return {
+        ok: true,
+        verification,
+        status: await this.buildStatus(),
+      };
+    } catch (err) {
+      await this.store.appendAudit({
+        action: "verification_failed",
+        environment: env,
+        ok: false,
+        code: "PROVIDER_UNAVAILABLE",
+        detail: err instanceof Error ? err.message.slice(0, 160) : "Verification failed",
+      });
+      return {
+        ok: false,
+        code: "PROVIDER_UNAVAILABLE",
+        message: err instanceof Error ? err.message.slice(0, 200) : "Verification failed",
+        status: await this.buildStatus(),
+      };
+    }
+  }
+
+  getLatestVerification(): AutomatedTradingVerificationResult | null {
+    const state = this.store.getState();
+    return state.environments[state.selectedEnvironment].lastVerification;
   }
 
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {

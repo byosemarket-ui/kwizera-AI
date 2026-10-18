@@ -1,14 +1,67 @@
 /**
- * Phase 51 / 51.1 — Automated Trading foundation UI (DEMO/LIVE isolation).
- * Configuration only — does not place, modify, or close broker orders.
+ * Phase 51.1 / 52 — Automated Trading UI (isolation + verification).
+ * Configuration and read-only verification only — never places broker orders.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
+import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 51";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";
 
 type Env = "DEMO" | "LIVE";
+
+type Readiness = {
+  environmentVerified: boolean;
+  accountIdentityVerified: boolean;
+  accountMetadataSufficient: boolean;
+  instrumentMetadataVerified: boolean;
+  marketDataHealthVerified: boolean;
+  riskEngineVerified: false;
+  executionImplemented: false;
+  readyForFutureAnalysis: boolean;
+  readyForTrading: false;
+};
+
+type Verification = {
+  identityStatus: string;
+  environmentSelected: Env;
+  environmentConnected: Env | null;
+  environmentMatches: boolean | null;
+  connectionStatus: string;
+  environmentEpoch: number;
+  account: {
+    accountIdMasked: string | null;
+    accountCurrency: string | null;
+    balance: number | null;
+    equity: number | null;
+    equityDerived: boolean;
+    usedMargin: number | null;
+    usableMargin: number | null;
+    isFresh: boolean;
+    fetchedAtUtc: string | null;
+    fields: Record<string, boolean>;
+  };
+  instrument: {
+    symbol: string | null;
+    displaySymbol: string | null;
+    level: string;
+    contractVerified: boolean;
+    pointSize: number | null;
+    quantityStep: number | null;
+  };
+  market: {
+    bid: number | null;
+    ask: number | null;
+    spread: number | null;
+    feedStatus: string;
+    priceChangeAgeMs: number | null;
+    marketSession: string;
+  };
+  readiness: Readiness;
+  blockers: Array<{ code: string; message: string }>;
+  verifiedAtUtc: string;
+};
 
 type PublicStatus = {
   moduleStatus: "INITIALIZING" | "READY" | "BLOCKED" | "ERROR";
@@ -36,6 +89,9 @@ type PublicStatus = {
   };
   blockers: string[];
   explanation: string;
+  verification: Verification | null;
+  readiness: Readiness | null;
+  selectedEnvState?: { selectedInstrument?: string | null };
   updatedAtUtc: string;
   placesOrders: false;
 };
@@ -77,12 +133,24 @@ function adminHeaders(token: string): HeadersInit {
 }
 
 function statusTone(s: string): "live" | "future" | "offline" {
-  if (s === "READY" || s === "CONNECTED") return "live";
-  if (s === "BLOCKED" || s === "MISMATCH" || s === "ERROR") return "offline";
+  if (s === "READY" || s === "CONNECTED" || s === "LIVE" || s === "ACCOUNT_VERIFIED") return "live";
+  if (
+    s === "BLOCKED"
+    || s === "MISMATCH"
+    || s === "ERROR"
+    || s === "ENVIRONMENT_MISMATCH"
+    || s === "STALE"
+    || s === "CONNECTION_FAILED"
+  ) {
+    return "offline";
+  }
   return "future";
 }
 
-/** Drop blockers already shown as the top banner. */
+function gateLabel(ok: boolean): string {
+  return ok ? "PASS" : "FAIL";
+}
+
 function actionableBlockers(blockers: string[], banner: string): string[] {
   const bannerNorm = banner.trim().toUpperCase();
   return blockers.filter((b) => {
@@ -91,7 +159,23 @@ function actionableBlockers(blockers: string[], banner: string): string[] {
   });
 }
 
-export function ForexAutomatedTradingPage() {
+function fmtNum(n: number | null | undefined, digits = 2): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return n.toFixed(digits);
+}
+
+function fcInstrumentFromMarket(market: SelectedMarket | null): string | null {
+  if (!market) return null;
+  if (market.venue === "forexconnect" || market.provider === "FOREXCONNECT") {
+    return market.symbol;
+  }
+  return null;
+}
+
+export function ForexAutomatedTradingPage(props: {
+  selectedMarket?: SelectedMarket | null;
+  timeframe?: string;
+}) {
   const [token, setToken] = useState(readAdminToken);
   const [tokenDraft, setTokenDraft] = useState(token);
   const [status, setStatus] = useState<PublicStatus | null>(null);
@@ -100,6 +184,8 @@ export function ForexAutomatedTradingPage() {
   const [busy, setBusy] = useState(false);
   const [pendingEnv, setPendingEnv] = useState<Env | null>(null);
   const seq = useRef(0);
+
+  const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
 
   const load = useCallback(async () => {
     const n = ++seq.current;
@@ -115,7 +201,7 @@ export function ForexAutomatedTradingPage() {
         status?: PublicStatus;
         error?: { message?: string; code?: string };
       };
-      const auJson = await auRes.json() as { ok?: boolean; events?: AuditEvent[]; error?: { message?: string } };
+      const auJson = await auRes.json() as { ok?: boolean; events?: AuditEvent[] };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -158,12 +244,14 @@ export function ForexAutomatedTradingPage() {
       if (!res.ok || !data.ok || !data.status) {
         setError(data.error?.message || data.error?.code || `Request failed (${res.status})`);
         if (data.status) setStatus(data.status);
-        return;
+        return data;
       }
       setStatus(data.status);
       await load();
+      return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
+      return null;
     } finally {
       setBusy(false);
       setPendingEnv(null);
@@ -198,12 +286,34 @@ export function ForexAutomatedTradingPage() {
     });
   };
 
+  const runVerify = async () => {
+    if (!status) return;
+    const instrument =
+      shellInstrument
+      ?? status.selectedEnvState?.selectedInstrument
+      ?? status.verification?.instrument.symbol
+      ?? null;
+    await postJson("/api/forex/automated-trading/verify", {
+      environment: status.selectedEnvironment,
+      expectedEnvironmentEpoch: status.environmentEpoch,
+      instrument: instrument || undefined,
+      timeframe: props.timeframe || "m1",
+    });
+  };
+
   const blockers = useMemo(
     () => (status ? actionableBlockers(status.blockers, status.banner || BANNER) : []),
     [status],
   );
 
+  const verification = status?.verification ?? null;
+  const readiness = status?.readiness ?? verification?.readiness ?? null;
   const authState = token ? "Authorized (session)" : "Not authorized";
+  const selectedInstrument =
+    shellInstrument
+    ?? status?.selectedEnvState?.selectedInstrument
+    ?? verification?.instrument.symbol
+    ?? null;
 
   return (
     <section className="fx-auto-trading" data-forex-page="automated-trading" aria-label="Automated Trading">
@@ -219,9 +329,14 @@ export function ForexAutomatedTradingPage() {
           </div>
           <p className="fx-auto-trading-subtitle">FXCM ForexConnect automation</p>
         </div>
-        <button type="button" className="fx-capture-button" onClick={() => void load()} disabled={busy}>
-          {busy ? "Refreshing…" : "Refresh"}
-        </button>
+        <div className="fx-auto-trading-header-actions">
+          <button type="button" className="fx-capture-button" onClick={() => void runVerify()} disabled={busy || !status}>
+            {busy ? "Working…" : "Verify"}
+          </button>
+          <button type="button" className="fx-capture-button" onClick={() => void load()} disabled={busy}>
+            {busy ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
       </header>
 
       <p className="fx-auto-trading-banner" role="status" data-fx-execution-banner="true">
@@ -280,28 +395,25 @@ export function ForexAutomatedTradingPage() {
                   <ForexStatusBadge tone={statusTone(status.broker.connectionStatus)}>
                     {status.broker.connectionStatus}
                   </ForexStatusBadge>
-                  {status.broker.activeSessionEnvironment
-                    ? ` · session ${status.broker.activeSessionEnvironment}`
-                    : ""}
                 </span>
               </div>
               <div className="fx-auto-summary-cell">
                 <span className="fx-ai-label">Account</span>
                 <span className="fx-auto-summary-value" data-fx-at-account-masked="true">
-                  {status.broker.accountIdMasked ?? "—"}
+                  {verification?.account.accountIdMasked
+                    ?? status.broker.accountIdMasked
+                    ?? "—"}
                 </span>
               </div>
               <div className="fx-auto-summary-cell">
                 <span className="fx-ai-label">Verified</span>
-                <span className="fx-auto-summary-value" data-fx-at-account-verified={status.broker.accountVerified ? "yes" : "no"}>
+                <span data-fx-at-account-verified={status.broker.accountVerified ? "yes" : "no"}>
                   {status.broker.accountVerified ? "yes" : "no"}
                 </span>
               </div>
               <div className="fx-auto-summary-cell">
-                <span className="fx-ai-label">Positions</span>
-                <span className="fx-auto-summary-value">
-                  {status.broker.openPositionsCount == null ? "—" : status.broker.openPositionsCount}
-                </span>
+                <span className="fx-ai-label">Instrument</span>
+                <span className="fx-auto-summary-value">{selectedInstrument ?? "—"}</span>
               </div>
             </div>
 
@@ -332,7 +444,7 @@ export function ForexAutomatedTradingPage() {
               <div className="fx-auto-env-confirm" role="dialog" aria-label="Confirm environment switch">
                 <p>
                   Confirm switch to <strong>{pendingEnv}</strong>?
-                  {pendingEnv === "LIVE" ? " LIVE execution remains disabled in Phase 51." : ""}
+                  {pendingEnv === "LIVE" ? " LIVE execution remains disabled." : ""}
                   {" "}Does not change the ForexConnect session by itself.
                 </p>
                 <div className="fx-auto-trading-token-row">
@@ -345,10 +457,125 @@ export function ForexAutomatedTradingPage() {
                 </div>
               </div>
             ) : null}
+          </section>
+
+          <section className="fx-auto-trading-panel" aria-label="Verification" data-fx-at-verification="true">
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Account & market verification</h2>
+              <p className="fx-auto-trading-hint">
+                Read-only. Connected ≠ verified. LIVE quotes require recent Bid/Ask changes.
+              </p>
+            </div>
+
+            {readiness ? (
+              <ul className="fx-auto-gates" data-fx-at-readiness="true">
+                <li data-ok={readiness.environmentVerified}>{gateLabel(readiness.environmentVerified)} Environment</li>
+                <li data-ok={readiness.accountIdentityVerified}>{gateLabel(readiness.accountIdentityVerified)} Account identity</li>
+                <li data-ok={readiness.accountMetadataSufficient}>{gateLabel(readiness.accountMetadataSufficient)} Account metadata</li>
+                <li data-ok={readiness.instrumentMetadataVerified}>{gateLabel(readiness.instrumentMetadataVerified)} Instrument metadata</li>
+                <li data-ok={readiness.marketDataHealthVerified}>{gateLabel(readiness.marketDataHealthVerified)} Market data</li>
+                <li data-ok={false}>FAIL Risk engine (not implemented)</li>
+                <li data-ok={false}>FAIL Execution (not implemented)</li>
+                <li data-ok={readiness.readyForFutureAnalysis}>
+                  {gateLabel(readiness.readyForFutureAnalysis)} Ready for future analysis
+                </li>
+              </ul>
+            ) : (
+              <p className="fx-auto-trading-hint">Run Verify to populate readiness gates.</p>
+            )}
+
+            {verification ? (
+              <>
+                <div className="fx-auto-trading-summary fx-auto-verify-grid">
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Identity</span>
+                    <ForexStatusBadge tone={statusTone(verification.identityStatus)}>
+                      {verification.identityStatus}
+                    </ForexStatusBadge>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Currency</span>
+                    <span>{verification.account.accountCurrency ?? "unavailable"}</span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Balance</span>
+                    <span>{verification.account.fields.balance ? fmtNum(verification.account.balance) : "unavailable"}</span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Equity</span>
+                    <span>
+                      {verification.account.equity != null
+                        ? `${fmtNum(verification.account.equity)}${verification.account.equityDerived ? " (derived)" : ""}`
+                        : "unavailable"}
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Used / usable</span>
+                    <span>
+                      {verification.account.fields.usedMargin ? fmtNum(verification.account.usedMargin) : "—"}
+                      {" / "}
+                      {verification.account.fields.usableMargin ? fmtNum(verification.account.usableMargin) : "—"}
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Instrument</span>
+                    <span>
+                      {verification.instrument.displaySymbol ?? "—"} · {verification.instrument.level}
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Bid / Ask</span>
+                    <span>
+                      {verification.market.bid != null && verification.market.ask != null
+                        ? `${fmtNum(verification.market.bid, 5)} / ${fmtNum(verification.market.ask, 5)}`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Spread</span>
+                    <span>{verification.market.spread != null ? fmtNum(verification.market.spread, 5) : "—"}</span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Feed</span>
+                    <ForexStatusBadge tone={statusTone(verification.market.feedStatus)}>
+                      {verification.market.feedStatus}
+                    </ForexStatusBadge>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Price age</span>
+                    <span>
+                      {verification.market.priceChangeAgeMs != null
+                        ? `${Math.round(verification.market.priceChangeAgeMs / 1000)}s`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="fx-auto-summary-cell">
+                    <span className="fx-ai-label">Last verify</span>
+                    <span>{verification.verifiedAtUtc}</span>
+                  </div>
+                </div>
+                {verification.blockers.length > 0 ? (
+                  <ul className="fx-auto-trading-blockers" aria-label="Verification blockers">
+                    {verification.blockers
+                      .filter((b) => b.code !== "EXECUTION_NOT_IMPLEMENTED" && b.code !== "RISK_ENGINE_NOT_IMPLEMENTED")
+                      .slice(0, 8)
+                      .map((b) => (
+                        <li key={`${b.code}:${b.message}`}>{b.code}: {b.message}</li>
+                      ))}
+                  </ul>
+                ) : null}
+              </>
+            ) : (
+              <p className="fx-auto-trading-hint">
+                {shellInstrument
+                  ? `Shell market ${shellInstrument} will be used on Verify.`
+                  : "Select a ForexConnect instrument in Markets, then Verify."}
+              </p>
+            )}
 
             {blockers.length > 0 ? (
               <ul className="fx-auto-trading-blockers" aria-label="Execution blockers">
-                {blockers.map((b) => (
+                {blockers.slice(0, 6).map((b) => (
                   <li key={b}>{b}</li>
                 ))}
               </ul>
@@ -358,9 +585,7 @@ export function ForexAutomatedTradingPage() {
           <section className="fx-auto-trading-panel" aria-label="Trading controls">
             <div className="fx-auto-trading-panel-head">
               <h2 className="fx-auto-trading-h2">Controls</h2>
-              <p className="fx-auto-trading-hint">
-                Configuration only — cannot submit broker orders.
-              </p>
+              <p className="fx-auto-trading-hint">Configuration only — cannot submit broker orders.</p>
             </div>
             <div className="fx-auto-controls">
               <label className="fx-auto-control-row">
@@ -398,9 +623,6 @@ export function ForexAutomatedTradingPage() {
                 </strong>
               </label>
             </div>
-            <p className="fx-auto-trading-hint">
-              Lock blocks future automated entries only — does not close positions.
-            </p>
           </section>
 
           <section className="fx-auto-trading-panel" aria-label="Configuration and audit">
@@ -426,10 +648,9 @@ export function ForexAutomatedTradingPage() {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 51)</dd>
+                <dd>disabled (Phase 52)</dd>
               </div>
             </dl>
-
             <h3 className="fx-auto-trading-h3">Recent audit</h3>
             {audit.length === 0 ? (
               <p className="fx-auto-trading-hint">No audit events yet.</p>

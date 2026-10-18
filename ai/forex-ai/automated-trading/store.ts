@@ -14,6 +14,7 @@ import {
   type AutomatedTradingAuditEvent,
   type AutomatedTradingEnvControls,
   type AutomatedTradingEnvironment,
+  type AutomatedTradingEnvState,
   type AutomatedTradingPersistedState,
 } from "./types.js";
 
@@ -63,13 +64,18 @@ function normalizeState(raw: unknown): AutomatedTradingPersistedState {
         typeof er.lastVerificationStatus === "string" ? er.lastVerificationStatus : null,
       credentialsConfigured: Boolean(er.credentialsConfigured),
       usernameHint: typeof er.usernameHint === "string" ? er.usernameHint : null,
+      selectedInstrument: typeof er.selectedInstrument === "string" ? er.selectedInstrument : null,
+      lastVerification:
+        er.lastVerification && typeof er.lastVerification === "object"
+          ? (er.lastVerification as AutomatedTradingEnvState["lastVerification"])
+          : null,
     };
   };
   const configVersion = Number(o.configVersion);
   const environmentEpoch = Number(o.environmentEpoch);
   return {
     schemaVersion: AUTOMATED_TRADING_SCHEMA,
-    phase: "51",
+    phase: "52",
     configVersion: Number.isFinite(configVersion) && configVersion >= 1 ? Math.floor(configVersion) : 1,
     selectedEnvironment: selected,
     environmentEpoch:
