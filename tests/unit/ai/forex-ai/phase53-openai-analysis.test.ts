@@ -73,6 +73,8 @@ describe("Phase 53 evidence & validation", () => {
     const { result } = normalizeAtOpenAiAnalysis({
       analysisId: "a1",
       raw: {
+        direction: "BUY",
+        directionalConfidencePct: 61,
         directionalBias: "BULLISH",
         trendState: "UPTREND",
         trendStrength: "MODERATE",
@@ -93,16 +95,19 @@ describe("Phase 53 evidence & validation", () => {
       environment: "DEMO",
       environmentEpoch: 2,
       instrument: "EUR/USD",
-      timeframes: ["H1", "H4"],
+      timeframes: ["1h", "4h"],
+      primaryTimeframe: "1h",
       inputFingerprint: "abc",
       modelRequested: "gpt-4o-mini",
       modelUsed: "gpt-4o-mini",
-      candlesByTf: { H1: candles(30), H4: candles(25) },
+      candlesByTf: { "1h": candles(30), "4h": candles(25) },
       historicalOnly: true,
       createdAtUtc: new Date().toISOString(),
       latencyMs: 12,
     });
     expect(result.confidenceLabel).toBe(AT_CONFIDENCE_LABEL);
+    expect(result.direction).toBe("BUY");
+    expect(result.directionalConfidencePct).toBe(61);
     expect(result.evidenceScoreIsWinProbability).toBe(false);
     expect(result.placesOrders).toBe(false);
     expect(result.liveLabeled).toBe(false);
@@ -115,15 +120,22 @@ describe("Phase 53 evidence & validation", () => {
   it("forces UNKNOWN trend when structure evidence is empty", () => {
     const { result } = normalizeAtOpenAiAnalysis({
       analysisId: "a2",
-      raw: { directionalBias: "BULLISH", trendState: "UPTREND", keyEvidence: [] },
+      raw: {
+        direction: "BUY",
+        directionalConfidencePct: 40,
+        directionalBias: "BULLISH",
+        trendState: "UPTREND",
+        keyEvidence: [],
+      },
       environment: "DEMO",
       environmentEpoch: 1,
       instrument: "EUR/USD",
-      timeframes: ["H1"],
+      timeframes: ["1h"],
+      primaryTimeframe: "1h",
       inputFingerprint: "x",
       modelRequested: "gpt-4o-mini",
       modelUsed: "gpt-4o-mini",
-      candlesByTf: { H1: candles(30) },
+      candlesByTf: { "1h": candles(30) },
       historicalOnly: true,
       createdAtUtc: new Date().toISOString(),
       latencyMs: 1,
@@ -208,11 +220,13 @@ describe("Phase 53 engine configuration & isolation", () => {
         model: "gpt-4o-mini-2024",
         latencyMs: 5,
         data: {
-          directionalBias: "NEUTRAL",
+          direction: "BUY",
+          directionalConfidencePct: 58,
+          directionalBias: "BULLISH",
           trendState: "RANGE",
           trendStrength: "WEAK",
           mtfAgreement: "INSUFFICIENT",
-          keyEvidence: ["Range mid"],
+          keyEvidence: ["Range mid bias up"],
           counterEvidence: [],
           structureNotes: ["No clear BOS"],
           supportLevels: [],
@@ -223,7 +237,7 @@ describe("Phase 53 engine configuration & isolation", () => {
           },
           dataQuality: "PARTIAL",
           limitations: ["Weekend"],
-          explanation: "Neutral lean only.",
+          explanation: "BUY lean within range — not an order.",
         },
       }),
     });
@@ -231,12 +245,15 @@ describe("Phase 53 engine configuration & isolation", () => {
       environment: "DEMO",
       environmentEpoch: 4,
       instrument: "EUR/USD",
+      timeframes: ["1h"],
       verification: null,
     });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.analysis.modelUsed).toBe("gpt-4o-mini-2024");
     expect(res.analysis.environmentEpoch).toBe(4);
+    expect(res.analysis.direction).toBe("BUY");
+    expect(res.analysis.directionalConfidencePct).toBe(58);
     expect(engine.listHistory(5)).toHaveLength(1);
     expect(engine.getLatest()?.analysisId).toBe(res.analysis.analysisId);
   });
@@ -271,7 +288,14 @@ describe("Phase 53 engine configuration & isolation", () => {
           code: "OK" as const,
           model: "gpt-4o-mini",
           latencyMs: 1,
-          data: { directionalBias: "UNKNOWN", trendState: "UNKNOWN", keyEvidence: ["x"], structureNotes: ["y"] },
+          data: {
+            direction: "SELL",
+            directionalConfidencePct: 51,
+            directionalBias: "BEARISH",
+            trendState: "UNKNOWN",
+            keyEvidence: ["x"],
+            structureNotes: ["y"],
+          },
         };
       },
     });
@@ -314,7 +338,7 @@ describe("Phase 53 static contracts", () => {
     const engine = read("ai/forex-ai/automated-trading/analysis/engine.ts");
     expect(engine).toContain("No Local AI fallback");
     expect(engine).not.toMatch(/getLocalAi|from ["'].*ollama/i);
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.1");
+    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.2");
 
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/ai-analysis");
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/charts");

@@ -3360,6 +3360,21 @@ html.reduce-motion .fx-sidebar {
 .fx-auto-gates li[data-ok="false"] { opacity: 0.78; }
 .fx-auto-verify-grid { margin-top: 2px; }
 .fx-auto-ta-result { display: grid; gap: 6px; min-width: 0; }
+.fx-auto-binary-dir {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 0 2px;
+}
+.fx-auto-binary-pct {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 420px) {
+  .fx-auto-binary-dir { grid-template-columns: 1fr; }
+}
 .fx-auto-ta-chart {
   display: block;
   width: 100%;

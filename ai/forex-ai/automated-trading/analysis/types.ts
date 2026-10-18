@@ -1,11 +1,20 @@
 /**
- * Phase 53 — Independent Automated Trading OpenAI technical analysis contracts.
+ * Phase 53 / 53.2 — Independent Automated Trading OpenAI technical analysis contracts.
  * Separate from Forex AI Analysis snapshot history. Read-only — no broker orders.
  */
 import type { AutomatedTradingEnvironment } from "../types.js";
+import {
+  AT_DIRECTIONAL_CONFIDENCE_NOTE,
+  type AtBinaryDirection,
+} from "./direction.js";
+export type { AtBinaryDirection } from "./direction.js";
+export {
+  AT_DIRECTIONAL_CONFIDENCE_NOTE,
+  AT_BINARY_DIRECTION_SCHEMA,
+} from "./direction.js";
 
 export const AT_OPENAI_ANALYSIS_SCHEMA = "at-openai-ta-v1";
-export const AT_OPENAI_ANALYSIS_PHASE = "53.1";
+export const AT_OPENAI_ANALYSIS_PHASE = "53.2";
 export const AT_CONFIDENCE_LABEL = "NOT CALIBRATED";
 
 export type AtAnalysisLifecycle =
@@ -114,6 +123,17 @@ export interface AtOpenAiAnalysisResult {
   trigger: "scheduled" | "manual" | "legacy";
   monitorConfigEpoch: number | null;
   chartImage: AtChartImageMeta | null;
+  /**
+   * Phase 53.2 — binary directional forecast (BUY|SELL) for successful eligible analyses.
+   * Null only when lifecycle is not ANALYSIS_VALID (failed / insufficient / invalid).
+   */
+  direction: AtBinaryDirection | null;
+  /** 0–100 estimated confidence in `direction` — NOT a calibrated win probability. */
+  directionalConfidencePct: number | null;
+  /** Explicit display note required by Phase 53.2. */
+  directionalConfidenceNote: typeof AT_DIRECTIONAL_CONFIDENCE_NOTE;
+  /** Explicit horizon policy string bound to this result. */
+  forecastHorizon: string | null;
   directionalBias: AtDirectionalBias;
   trendState: AtTrendState;
   trendStrength: "STRONG" | "MODERATE" | "WEAK" | "UNKNOWN";

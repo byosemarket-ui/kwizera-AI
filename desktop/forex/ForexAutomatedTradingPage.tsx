@@ -7,7 +7,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.1";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.2";
 
 type Env = "DEMO" | "LIVE";
 
@@ -908,6 +908,10 @@ export function ForexAutomatedTradingPage(props: {
               const latest = (openaiStatus?.latest ?? null) as null | {
                 analysisId?: string;
                 lifecycle?: string;
+                direction?: "BUY" | "SELL" | null;
+                directionalConfidencePct?: number | null;
+                directionalConfidenceNote?: string;
+                forecastHorizon?: string | null;
                 directionalBias?: string;
                 trendState?: string;
                 mtfAgreement?: string;
@@ -953,6 +957,39 @@ export function ForexAutomatedTradingPage(props: {
                   ) : latest.chartImage?.available && chartId ? (
                     <p className="fx-auto-trading-hint">Chart image stored (id {chartId.slice(0, 8)}…) — loading…</p>
                   ) : null}
+                  <div className="fx-auto-binary-dir" data-fx-at-binary-direction="true">
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Direction</span>
+                      <ForexStatusBadge
+                        tone={
+                          latest.direction === "BUY"
+                            ? "online"
+                            : latest.direction === "SELL"
+                              ? "offline"
+                              : "future"
+                        }
+                      >
+                        {latest.direction ?? "—"}
+                      </ForexStatusBadge>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Est. confidence</span>
+                      <span className="fx-auto-binary-pct">
+                        {latest.directionalConfidencePct != null
+                          ? `${latest.directionalConfidencePct}%`
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Label</span>
+                      <span>{latest.confidenceLabel ?? "NOT CALIBRATED"}</span>
+                    </div>
+                  </div>
+                  <p className="fx-auto-trading-hint">
+                    {latest.directionalConfidenceNote
+                      ?? "Estimated directional confidence — NOT CALIBRATED"}
+                    {" · "}Forecast only — not an order.
+                  </p>
                   <div className="fx-auto-trading-summary fx-auto-verify-grid">
                     <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">Status</span>
@@ -967,6 +1004,10 @@ export function ForexAutomatedTradingPage(props: {
                     <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">TF</span>
                       <span>{latest.primaryTimeframe ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Horizon</span>
+                      <span className="fx-auto-summary-value">{latest.forecastHorizon ?? "—"}</span>
                     </div>
                     <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">LIVE label</span>
@@ -1053,7 +1094,14 @@ export function ForexAutomatedTradingPage(props: {
                         {String(h.createdAtUtc ?? "").slice(11, 19)}Z
                       </time>
                       <span>
-                        {String(h.directionalBias ?? "—")} · {String(h.lifecycle ?? "")}
+                        {h.direction ? String(h.direction) : String(h.directionalBias ?? "—")}
+                        {h.directionalConfidencePct != null ? ` ${String(h.directionalConfidencePct)}%` : ""}
+                        {" · "}{String(h.lifecycle ?? "")}
+                        {h.primaryTimeframe ? ` · ${String(h.primaryTimeframe)}` : ""}
+                        {h.inputFingerprint ? ` · fp ${String(h.inputFingerprint).slice(0, 8)}` : ""}
+                        {h.chartImage && typeof h.chartImage === "object" && (h.chartImage as { imageHash?: string | null }).imageHash
+                          ? ` · img ${(h.chartImage as { imageHash: string }).imageHash.slice(0, 8)}`
+                          : ""}
                         {h.modelUsed ? ` · ${String(h.modelUsed)}` : ""}
                       </span>
                     </li>
@@ -1129,7 +1177,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 53.1)</dd>
+                <dd>disabled (Phase 53.2)</dd>
               </div>
             </dl>
             <h3 className="fx-auto-trading-h3">Recent audit</h3>

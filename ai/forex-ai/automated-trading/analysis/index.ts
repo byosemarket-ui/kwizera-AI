@@ -1,4 +1,5 @@
 export * from "./types.js";
+export * from "./direction.js";
 export * from "./evidence.js";
 export * from "./validate.js";
 export * from "./prompts.js";

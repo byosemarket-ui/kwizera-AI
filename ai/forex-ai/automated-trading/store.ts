@@ -75,7 +75,7 @@ function normalizeState(raw: unknown): AutomatedTradingPersistedState {
   const environmentEpoch = Number(o.environmentEpoch);
   return {
     schemaVersion: AUTOMATED_TRADING_SCHEMA,
-    phase: "53.1",
+    phase: "53.2",
     configVersion: Number.isFinite(configVersion) && configVersion >= 1 ? Math.floor(configVersion) : 1,
     selectedEnvironment: selected,
     environmentEpoch:

@@ -1,7 +1,14 @@
 /**
- * Phase 53 — Parse and validate OpenAI structured TA output against input snapshot.
+ * Phase 53 / 53.2 — Parse and validate OpenAI structured TA output against input snapshot.
  */
 import { collectSnapshotPrices, type AtRawCandle } from "./evidence.js";
+import {
+  AT_DIRECTIONAL_CONFIDENCE_NOTE,
+  biasFromDirection,
+  parseAtDirectionalConfidencePct,
+  resolveAtForecastHorizon,
+  resolveBinaryDirectionFromModel,
+} from "./direction.js";
 import {
   AT_CONFIDENCE_LABEL,
   AT_OPENAI_ANALYSIS_PHASE,
@@ -173,7 +180,7 @@ export function normalizeAtOpenAiAnalysis(input: {
 
   const blockers: Array<{ code: string; message: string }> = [
     { code: "EXECUTION_NOT_IMPLEMENTED", message: "Analysis does not authorize broker orders." },
-    {       code: "RISK_NOT_IMPLEMENTED", message: "Risk / position sizing not applied in Phase 53.1." },
+    { code: "RISK_NOT_IMPLEMENTED", message: "Risk / position sizing not applied in Phase 53.2." },
   ];
   if (input.historicalOnly) {
     blockers.push({
@@ -205,19 +212,78 @@ export function normalizeAtOpenAiAnalysis(input: {
     });
   }
 
+  const primaryTf = input.primaryTimeframe ?? input.timeframes[0] ?? null;
+  const horizon = resolveAtForecastHorizon(primaryTf);
+  let forecastHorizon: string | null = horizon.ok ? horizon.forecastHorizon : null;
+
+  let direction: AtOpenAiAnalysisResult["direction"] = null;
+  let directionalConfidencePct: number | null = null;
+  let biasOut: AtDirectionalBias = directionalBias;
+
   let lifecycle: AtAnalysisLifecycle = "ANALYSIS_VALID";
   if (dataQuality === "INSUFFICIENT") lifecycle = "DATA_INSUFFICIENT";
-  if (directionalBias === "UNKNOWN" && trendOut === "UNKNOWN" && asStringArray(raw.keyEvidence).length === 0) {
+
+  if (!horizon.ok) {
+    lifecycle = "ANALYSIS_INVALID";
+    blockers.push({ code: horizon.code, message: horizon.message });
+  }
+
+  const dirParsed = resolveBinaryDirectionFromModel(raw);
+  const confParsed = parseAtDirectionalConfidencePct(
+    raw.directionalConfidencePct ?? raw.directionalConfidencePercent ?? raw.confidencePct,
+  );
+
+  if (lifecycle === "ANALYSIS_VALID") {
+    if (!dirParsed.ok) {
+      lifecycle = dataQuality === "INSUFFICIENT" || dataQuality === "STALE_QUOTE"
+        ? "DATA_INSUFFICIENT"
+        : "ANALYSIS_INVALID";
+      blockers.push({ code: dirParsed.code, message: dirParsed.message });
+    } else if (!confParsed.ok) {
+      lifecycle = "ANALYSIS_INVALID";
+      blockers.push({ code: confParsed.code, message: confParsed.message });
+      // Do not keep a BUY/SELL without a valid confidence.
+    } else {
+      direction = dirParsed.direction;
+      directionalConfidencePct = confParsed.directionalConfidencePct;
+      biasOut = biasFromDirection(dirParsed.direction);
+    }
+  }
+
+  // Successful eligible predictions must bind BUY/SELL + confidence + horizon.
+  if (lifecycle === "ANALYSIS_VALID" && (direction == null || directionalConfidencePct == null || !forecastHorizon)) {
+    lifecycle = "ANALYSIS_INVALID";
+    blockers.push({
+      code: "BINARY_DIRECTION_INCOMPLETE",
+      message: "Successful analysis requires BUY|SELL, confidence 0–100, and forecast horizon.",
+    });
+    direction = null;
+    directionalConfidencePct = null;
+  }
+
+  if (
+    lifecycle === "ANALYSIS_VALID"
+    && dirParsed.ok === false
+    && directionalBias === "UNKNOWN"
+    && trendOut === "UNKNOWN"
+    && asStringArray(raw.keyEvidence).length === 0
+  ) {
     lifecycle = "DATA_INSUFFICIENT";
   }
 
   // Reject fabricated win-probability language if present.
   const explanation = String(raw.explanation ?? raw.rationale ?? "").trim().slice(0, 2000);
-  if (/win\s*rate|win\s*probabilit|guaranteed/i.test(explanation)) {
+  if (/win\s*rate|win\s*probabilit|guaranteed|calibrated\s+probabilit/i.test(explanation)) {
     blockers.push({
       code: "CALIBRATION_CLAIM_REJECTED",
       message: "Model claimed calibrated win probability — stripped; label remains NOT CALIBRATED.",
     });
+  }
+
+  // Never present BUY/SELL on non-valid lifecycles.
+  if (lifecycle !== "ANALYSIS_VALID") {
+    direction = null;
+    directionalConfidencePct = null;
   }
 
   const result: AtOpenAiAnalysisResult = {
@@ -229,7 +295,7 @@ export function normalizeAtOpenAiAnalysis(input: {
     environmentEpoch: input.environmentEpoch,
     instrument: input.instrument,
     timeframes: input.timeframes,
-    primaryTimeframe: input.primaryTimeframe ?? input.timeframes[0] ?? null,
+    primaryTimeframe: primaryTf,
     inputFingerprint: input.inputFingerprint,
     provider: "OPENAI",
     modelRequested: input.modelRequested,
@@ -238,7 +304,11 @@ export function normalizeAtOpenAiAnalysis(input: {
     trigger: input.trigger ?? "legacy",
     monitorConfigEpoch: input.monitorConfigEpoch ?? null,
     chartImage: input.chartImage ?? null,
-    directionalBias,
+    direction,
+    directionalConfidencePct,
+    directionalConfidenceNote: AT_DIRECTIONAL_CONFIDENCE_NOTE,
+    forecastHorizon: lifecycle === "ANALYSIS_VALID" ? forecastHorizon : forecastHorizon,
+    directionalBias: biasOut,
     trendState: trendOut,
     trendStrength,
     mtfAgreement,

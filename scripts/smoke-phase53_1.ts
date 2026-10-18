@@ -18,7 +18,7 @@ function assert(cond: unknown, msg: string) {
   } else console.log("PASS:", msg);
 }
 
-assert(AUTOMATED_EXECUTION_BANNER.includes("PHASE 53.1"), "banner phase 53.1");
+assert(/PHASE 53(\.\d+)?/.test(AUTOMATED_EXECUTION_BANNER), "banner phase 53+");
 assert(AT_MONITOR_TIMEFRAMES.includes("15m"), "15m supported");
 assert(parseAtMonitorTimeframe("H2") === null, "H2 unsupported");
 assert(isOpenAiVisionEligibleModel("gpt-6-luna"), "gpt-6-luna vision eligible");

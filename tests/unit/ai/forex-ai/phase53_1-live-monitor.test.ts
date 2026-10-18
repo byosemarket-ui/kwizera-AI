@@ -242,7 +242,7 @@ describe("Phase 53.1 monitor persistence & duplicate prevention", () => {
 
 describe("Phase 53.1 static safety contracts", () => {
   it("registers monitor APIs, keeps execution forbidden, and does not use Local AI", () => {
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.1");
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 53(\.\d+)?/);
     const api = read("dev/server/forex-automated-trading-api.ts");
     expect(api).toContain("/api/forex/automated-trading/monitor/start");
     expect(api).toContain("/api/forex/automated-trading/monitor/stop");
@@ -254,7 +254,7 @@ describe("Phase 53.1 static safety contracts", () => {
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-monitor");
     expect(page).toContain("Start");
-    expect(page).toContain("PHASE 53.1");
+    expect(page).toMatch(/PHASE 53(\.\d+)?/);
     expect(page).not.toMatch(/localStorage\.setItem\([^)]*openai|sk-/i);
 
     const worker = read("ai/forex-ai/automated-trading/monitoring/worker.ts");

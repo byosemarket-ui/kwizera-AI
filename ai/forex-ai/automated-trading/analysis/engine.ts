@@ -24,6 +24,7 @@ import {
   evidenceForModelPrompt,
   type AtRawCandle,
 } from "./evidence.js";
+import { resolveAtForecastHorizon } from "./direction.js";
 import { buildAtOpenAiSystemPrompt, buildAtOpenAiUserPrompt } from "./prompts.js";
 import { getAtOpenAiAnalysisStore, type AtOpenAiAnalysisStore } from "./store.js";
 import type {
@@ -124,6 +125,10 @@ function baseFailed(input: {
     trigger: input.trigger,
     monitorConfigEpoch: input.monitorConfigEpoch,
     chartImage: input.chartImage,
+    direction: null,
+    directionalConfidencePct: null,
+    directionalConfidenceNote: "Estimated directional confidence — NOT CALIBRATED",
+    forecastHorizon: null,
     directionalBias: "UNKNOWN",
     trendState: "UNKNOWN",
     trendStrength: "UNKNOWN",
@@ -403,9 +408,14 @@ export class AtOpenAiAnalysisEngine {
       const evidence = evidenceBuild.evidence;
       const gate = getOpenAiInferenceGate();
       const timeoutMs = clampTimeout(input.timeoutMs);
+      const horizon = resolveAtForecastHorizon(primaryTimeframe);
       const payload = {
         ...evidenceForModelPrompt(evidence, candlesByTf),
         primaryTimeframe,
+        forecastHorizon: horizon.ok ? horizon.forecastHorizon : null,
+        forecastHorizonPolicy: horizon.ok
+          ? "Next one candle close of the primary timeframe after observation."
+          : horizon.message,
         trigger: input.trigger,
         chartImageMeta: chartMeta
           ? {
@@ -414,8 +424,10 @@ export class AtOpenAiAnalysisEngine {
               capturedAtUtc: chartMeta.capturedAtUtc,
               source: chartMeta.source,
               note: chartMeta.note,
+              includedInOpenAiRequest: false,
             }
           : null,
+        binaryDirectionRequirement: "Successful predictions must set direction to BUY or SELL only.",
       };
 
       const useMultimodal = Boolean(input.chartImage?.base64) && visionEligible;
