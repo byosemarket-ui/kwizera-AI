@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, useState, type ErrorInfo, type Re
 import { ForexDashboard } from "./ForexDashboard";
 import { ForexMarketsPage } from "./ForexMarketsPage";
 import { ForexAiAnalysisPage } from "./ForexAiAnalysisPage";
+import { ForexAutomatedTradingPage } from "./ForexAutomatedTradingPage";
 import { ForexMonitorPage } from "./ForexMonitorPage";
 import { SelectedMarketBar } from "./SelectedMarketBar";
 import { ForexHeader } from "./ForexHeader";
@@ -219,6 +220,8 @@ export function ForexShell({
         timeframe={chartTimeframe}
       />
     );
+  } else if (route === "automated-trading") {
+    content = <ForexAutomatedTradingPage />;
   } else {
     content = (
       <ForexModulePage

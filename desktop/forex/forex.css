@@ -3320,3 +3320,217 @@ html.reduce-motion .fx-sidebar {
     flex-direction: column;
   }
 }
+
+/* Phase 51 ? Automated Trading */
+.fx-auto-trading { display: grid; gap: 14px; max-width: 920px; }
+.fx-auto-trading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fx-auto-trading-banner {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--fx-accent, #3d9a6a) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fx-accent, #3d9a6a) 12%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.fx-auto-trading-token { display: grid; gap: 6px; }
+.fx-auto-trading-token-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fx-auto-trading-token-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, #0b1220 80%, transparent);
+  color: inherit;
+}
+.fx-auto-trading-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #0b1220 55%, transparent);
+}
+.fx-auto-trading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 14px;
+  font-size: 13px;
+}
+.fx-auto-trading-blockers { margin: 0; padding-left: 1.1rem; font-size: 12px; }
+.fx-auto-env-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.fx-auto-env-pill.is-demo {
+  background: color-mix(in srgb, #3b82c4 28%, transparent);
+  color: #9ec5ff;
+}
+.fx-auto-env-pill.is-live {
+  background: color-mix(in srgb, #c44b4b 30%, transparent);
+  color: #ffb4b4;
+  outline: 1px solid color-mix(in srgb, #c44b4b 55%, transparent);
+}
+.fx-auto-env-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fx-auto-env-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+.fx-auto-env-btn.is-demo.is-selected {
+  border-color: #3b82c4;
+  background: color-mix(in srgb, #3b82c4 18%, transparent);
+}
+.fx-auto-env-btn.is-live.is-selected {
+  border-color: #c44b4b;
+  background: color-mix(in srgb, #c44b4b 18%, transparent);
+}
+.fx-auto-env-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+}
+.fx-auto-controls { display: grid; gap: 8px; }
+.fx-auto-control-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+@media (max-width: 420px) {
+  .fx-auto-trading-grid { grid-template-columns: 1fr; }
+  .fx-auto-control-row { grid-template-columns: auto 1fr; }
+  .fx-auto-control-row strong { grid-column: 2; }
+}
+
+/* Phase 51 — Automated Trading */
+.fx-auto-trading { display: grid; gap: 14px; max-width: 920px; }
+.fx-auto-trading-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fx-auto-trading-banner {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--fx-accent, #3d9a6a) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fx-accent, #3d9a6a) 12%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.fx-auto-trading-token { display: grid; gap: 6px; }
+.fx-auto-trading-token-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fx-auto-trading-token-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, #0b1220 80%, transparent);
+  color: inherit;
+}
+.fx-auto-trading-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, #0b1220 55%, transparent);
+}
+.fx-auto-trading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 14px;
+  font-size: 13px;
+}
+.fx-auto-trading-blockers { margin: 0; padding-left: 1.1rem; font-size: 12px; }
+.fx-auto-env-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.fx-auto-env-pill.is-demo {
+  background: color-mix(in srgb, #3b82c4 28%, transparent);
+  color: #9ec5ff;
+}
+.fx-auto-env-pill.is-live {
+  background: color-mix(in srgb, #c44b4b 30%, transparent);
+  color: #ffb4b4;
+  outline: 1px solid color-mix(in srgb, #c44b4b 55%, transparent);
+}
+.fx-auto-env-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fx-auto-env-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+.fx-auto-env-btn.is-demo.is-selected {
+  border-color: #3b82c4;
+  background: color-mix(in srgb, #3b82c4 18%, transparent);
+}
+.fx-auto-env-btn.is-live.is-selected {
+  border-color: #c44b4b;
+  background: color-mix(in srgb, #c44b4b 18%, transparent);
+}
+.fx-auto-env-confirm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+}
+.fx-auto-controls { display: grid; gap: 8px; }
+.fx-auto-control-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+@media (max-width: 420px) {
+  .fx-auto-trading-grid { grid-template-columns: 1fr; }
+  .fx-auto-control-row {
+    grid-template-columns: auto 1fr;
+  }
+  .fx-auto-control-row strong { grid-column: 2; }
+}

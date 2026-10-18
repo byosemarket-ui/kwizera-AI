@@ -8,6 +8,7 @@ export type ForexRouteId =
   | "market-intelligence"
   | "ai-analysis"
   | "signals"
+  | "automated-trading"
   | "strategies"
   | "trade-journal"
   | "risk-management"
@@ -180,6 +181,18 @@ export const FOREX_NAV: ForexNavItem[] = [
     phaseNote: "Phase 38F",
   },
   {
+    id: "automated-trading",
+    label: "Automated Trading",
+    path: "/forex/automated-trading",
+    implemented: true,
+    inSidebar: true,
+    group: "trading",
+    groupLabel: "Trading",
+    icon: "shield",
+    description: "DEMO/LIVE environment isolation and automated-trading controls. Phase 51 does not place broker orders.",
+    phaseNote: "Phase 51",
+  },
+  {
     id: "strategies",
     label: "Strategies",
     path: "/forex/strategies",
@@ -259,6 +272,7 @@ export const FOREX_PATH_ALIASES: Record<string, ForexRouteId> = {
   "/forex/analysis/fundamental": "fundamental-analysis",
   "/forex/analysis/intelligence": "market-intelligence",
   "/forex/ai": "ai-analysis",
+  "/forex/auto-trading": "automated-trading",
   "/forex/journal": "trade-journal",
   "/forex/risk": "risk-management",
 };

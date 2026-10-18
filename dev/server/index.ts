@@ -21,6 +21,7 @@ import { handleForexAiApi } from "./forex-ai-api.js";
 import { handleForexAdminApi } from "./forex-admin-api.js";
 import { handleForexIntelligenceApi } from "./forex-intelligence-api.js";
 import { handleForexRiskApi } from "./forex-risk-api.js";
+import { handleForexAutomatedTradingApi } from "./forex-automated-trading-api.js";
 import { handleForexMemoryApi } from "./forex-memory-api.js";
 import { handleForexMarketStateApi } from "./forex-market-state-api.js";
 import { handleForexMarketDataApi } from "./forex-market-data-api.js";
@@ -1264,6 +1265,11 @@ async function handleApi(req: IncomingMessage, res: ServerResponse, url: URL): P
   if (await handleForexRiskApi(req, res, url, sendJson)) {
     return;
   }
+
+  if (await handleForexAutomatedTradingApi(req, res, url, sendJson)) {
+    return;
+  }
+
   if (await handleForexIntelligenceApi(req, res, url, sendJson)) {
     return;
   }
