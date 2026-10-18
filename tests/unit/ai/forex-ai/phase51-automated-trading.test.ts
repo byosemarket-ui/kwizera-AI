@@ -183,4 +183,36 @@ describe("Phase 51 static contracts", () => {
   });
 });
 
+describe("Phase 51.1 UI polish contracts", () => {
+  it("keeps a compact hierarchy, collapsible admin auth, and masked token input", () => {
+    const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
+    expect(page).toContain("FXCM ForexConnect automation");
+    expect(page).toContain('data-fx-at-admin-auth="true"');
+    expect(page).toContain("<details");
+    expect(page).toContain('type="password"');
+    expect(page).toContain("Admin authorization");
+    expect(page).toContain('data-fx-at-summary="true"');
+    expect(page).toContain(BANNER_FRAGMENT);
+    expect(page).toContain("Configuration only — cannot submit broker orders");
+    expect(page).toContain('data-fx-at-auto-entry="disabled"');
+    expect(page).toContain('data-fx-at-pos-mgmt="not-active"');
+    // Session-only storage key — no localStorage / URL persistence of the secret.
+    expect(page).toContain("sessionStorage");
+    expect(page).not.toMatch(/localStorage\.setItem/);
+    expect(page).not.toMatch(/console\.(log|debug|info|warn|error)\([^)]*token/i);
+    expect(page).not.toMatch(/placeOrder|submitOrder|createOrder|closePosition/);
+  });
+
+  it("scopes Phase 51.1 CSS to Automated Trading without duplicate blocks", () => {
+    const css = read("desktop/forex/forex.css");
+    const marker = "Phase 51.1 - Automated Trading";
+    expect(css).toContain(marker);
+    expect(css.split(marker).length - 1).toBe(1);
+    expect(css).toContain(".fx-auto-trading-auth");
+    expect(css).toContain(".fx-auto-trading-summary");
+    expect(css).toContain("@media (max-width: 420px)");
+    expect(css).toContain(".fx-auto-trading {");
+  });
+});
+
 const BANNER_FRAGMENT = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 51";

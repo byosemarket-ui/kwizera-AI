@@ -3321,26 +3321,78 @@ html.reduce-motion .fx-sidebar {
   }
 }
 
-/* Phase 51 ? Automated Trading */
-.fx-auto-trading { display: grid; gap: 14px; max-width: 920px; }
+/* Phase 51.1 - Automated Trading (scoped) */
+.fx-auto-trading {
+  display: grid;
+  gap: 10px;
+  max-width: 880px;
+  min-width: 0;
+}
 .fx-auto-trading-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+}
+.fx-auto-trading-title-block { min-width: 0; }
+.fx-auto-trading-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fx-auto-trading-title-row .fx-page-title { margin: 0; }
+.fx-auto-trading-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.72;
 }
 .fx-auto-trading-banner {
   margin: 0;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--fx-accent, #3d9a6a) 45%, transparent);
-  border-radius: 8px;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--fx-accent, #3d9a6a) 12%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+.fx-auto-trading-auth {
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #0b1220 45%, transparent);
+  padding: 0;
+}
+.fx-auto-trading-auth-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+  list-style: none;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.02em;
 }
-.fx-auto-trading-token { display: grid; gap: 6px; }
+.fx-auto-trading-auth-summary::-webkit-details-marker { display: none; }
+.fx-auto-trading-auth-state {
+  font-weight: 500;
+  opacity: 0.75;
+  font-size: 11px;
+}
+.fx-auto-trading-auth-state[data-fx-at-auth-state="ready"] {
+  color: color-mix(in srgb, var(--fx-accent, #3d9a6a) 90%, white);
+  opacity: 1;
+}
+.fx-auto-trading-auth-body {
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 10px;
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  padding-top: 8px;
+}
 .fx-auto-trading-token-row {
   display: flex;
   gap: 8px;
@@ -3348,29 +3400,78 @@ html.reduce-motion .fx-sidebar {
   align-items: center;
 }
 .fx-auto-trading-token-row input {
-  flex: 1 1 220px;
+  flex: 1 1 200px;
   min-width: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
   background: color-mix(in srgb, #0b1220 80%, transparent);
   color: inherit;
-}
-.fx-auto-trading-card {
-  display: grid;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, #0b1220 55%, transparent);
-}
-.fx-auto-trading-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px 14px;
   font-size: 13px;
 }
-.fx-auto-trading-blockers { margin: 0; padding-left: 1.1rem; font-size: 12px; }
+.fx-auto-trading-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #0b1220 55%, transparent);
+  min-width: 0;
+}
+.fx-auto-trading-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fx-auto-trading-h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.fx-auto-trading-h3 {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.fx-auto-trading-hint {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.68;
+  line-height: 1.35;
+}
+.fx-auto-trading-meta {
+  font-size: 11px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+.fx-auto-trading-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.fx-auto-summary-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.fx-auto-summary-value {
+  font-size: 13px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.fx-auto-env-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .fx-auto-env-pill {
   display: inline-block;
   padding: 2px 8px;
@@ -3378,6 +3479,7 @@ html.reduce-motion .fx-sidebar {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  width: fit-content;
 }
 .fx-auto-env-pill.is-demo {
   background: color-mix(in srgb, #3b82c4 28%, transparent);
@@ -3388,16 +3490,19 @@ html.reduce-motion .fx-sidebar {
   color: #ffb4b4;
   outline: 1px solid color-mix(in srgb, #c44b4b 55%, transparent);
 }
-.fx-auto-env-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fx-auto-env-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .fx-auto-env-btn {
-  padding: 8px 14px;
-  border-radius: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
   border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
   background: transparent;
   color: inherit;
   cursor: pointer;
   font-weight: 600;
+  font-size: 12px;
 }
+.fx-auto-env-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .fx-auto-env-btn.is-demo.is-selected {
   border-color: #3b82c4;
   background: color-mix(in srgb, #3b82c4 18%, transparent);
@@ -3408,129 +3513,89 @@ html.reduce-motion .fx-sidebar {
 }
 .fx-auto-env-confirm {
   display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 8px;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  font-size: 12px;
 }
-.fx-auto-controls { display: grid; gap: 8px; }
+.fx-auto-env-confirm p { margin: 0; }
+.fx-auto-controls { display: grid; gap: 4px; }
 .fx-auto-control-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
   align-items: center;
   font-size: 13px;
+  min-height: 28px;
 }
-@media (max-width: 420px) {
-  .fx-auto-trading-grid { grid-template-columns: 1fr; }
-  .fx-auto-control-row { grid-template-columns: auto 1fr; }
-  .fx-auto-control-row strong { grid-column: 2; }
+.fx-auto-control-spacer {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
 }
+.fx-auto-control-row strong {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  opacity: 0.9;
+}
+.fx-auto-trading-blockers {
+  margin: 0;
+  padding-left: 1.05rem;
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+.fx-auto-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+}
+.fx-auto-config-grid dt {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  margin: 0;
+}
+.fx-auto-config-grid dd {
+  margin: 1px 0 0;
+  font-size: 13px;
+}
+.fx-auto-audit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 11px;
+}
+.fx-auto-audit-list li {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+.fx-auto-audit-list time { opacity: 0.55; font-variant-numeric: tabular-nums; }
+.fx-auto-audit-list span { overflow-wrap: anywhere; }
 
-/* Phase 51 — Automated Trading */
-.fx-auto-trading { display: grid; gap: 14px; max-width: 920px; }
-.fx-auto-trading-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.fx-auto-trading-banner {
-  margin: 0;
-  padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--fx-accent, #3d9a6a) 45%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--fx-accent, #3d9a6a) 12%, transparent);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-.fx-auto-trading-token { display: grid; gap: 6px; }
-.fx-auto-trading-token-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.fx-auto-trading-token-row input {
-  flex: 1 1 220px;
-  min-width: 0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  background: color-mix(in srgb, #0b1220 80%, transparent);
-  color: inherit;
-}
-.fx-auto-trading-card {
-  display: grid;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, #0b1220 55%, transparent);
-}
-.fx-auto-trading-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px 14px;
-  font-size: 13px;
-}
-.fx-auto-trading-blockers { margin: 0; padding-left: 1.1rem; font-size: 12px; }
-.fx-auto-env-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-.fx-auto-env-pill.is-demo {
-  background: color-mix(in srgb, #3b82c4 28%, transparent);
-  color: #9ec5ff;
-}
-.fx-auto-env-pill.is-live {
-  background: color-mix(in srgb, #c44b4b 30%, transparent);
-  color: #ffb4b4;
-  outline: 1px solid color-mix(in srgb, #c44b4b 55%, transparent);
-}
-.fx-auto-env-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.fx-auto-env-btn {
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-weight: 600;
-}
-.fx-auto-env-btn.is-demo.is-selected {
-  border-color: #3b82c4;
-  background: color-mix(in srgb, #3b82c4 18%, transparent);
-}
-.fx-auto-env-btn.is-live.is-selected {
-  border-color: #c44b4b;
-  background: color-mix(in srgb, #c44b4b 18%, transparent);
-}
-.fx-auto-env-confirm {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
-}
-.fx-auto-controls { display: grid; gap: 8px; }
-.fx-auto-control-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: center;
-  font-size: 13px;
+@media (max-width: 720px) {
+  .fx-auto-trading-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 420px) {
-  .fx-auto-trading-grid { grid-template-columns: 1fr; }
+  .fx-auto-trading { gap: 8px; }
+  .fx-auto-trading-summary { grid-template-columns: 1fr; }
   .fx-auto-control-row {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 18px 1fr;
   }
-  .fx-auto-control-row strong { grid-column: 2; }
+  .fx-auto-control-row strong {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .fx-auto-env-bar { align-items: flex-start; }
+  .fx-auto-audit-list li { grid-template-columns: 1fr; gap: 1px; }
 }
