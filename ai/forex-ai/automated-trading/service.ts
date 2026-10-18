@@ -12,6 +12,11 @@ import {
   type AtOpenAiAnalysisResult,
 } from "./analysis/index.js";
 import {
+  getAtMonitorWorker,
+  type AtMonitorWorker,
+  type AtMonitorPublicStatus,
+} from "./monitoring/index.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -30,10 +35,176 @@ import {
 } from "./types.js";
 
 export class AutomatedTradingService {
+  private readonly monitor: AtMonitorWorker;
+
   constructor(
     private readonly store: AutomatedTradingStore = getAutomatedTradingStore(),
     private readonly analysisEngine: AtOpenAiAnalysisEngine = getAtOpenAiAnalysisEngine(),
-  ) {}
+    monitor?: AtMonitorWorker,
+  ) {
+    this.monitor = monitor ?? getAtMonitorWorker();
+  }
+
+  getMonitorStatus(): AtMonitorPublicStatus {
+    return this.monitor.getPublicStatus();
+  }
+
+  async startMonitoring(input: {
+    environment?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    timeframe?: unknown;
+  }): Promise<
+    | { ok: true; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env = parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    const instrument = String(
+      input.instrument ?? state.environments[env].selectedInstrument ?? "",
+    ).trim();
+    const result = await this.monitor.start({
+      environment: env,
+      instrument,
+      timeframe: input.timeframe,
+      expectedEnvironmentEpoch:
+        typeof input.expectedEnvironmentEpoch === "number"
+          ? input.expectedEnvironmentEpoch
+          : Number(input.expectedEnvironmentEpoch),
+      currentEnvironment: state.selectedEnvironment,
+      currentEnvironmentEpoch: state.environmentEpoch,
+    });
+    await this.store.appendAudit({
+      action: result.ok ? "monitor_started" : "monitor_start_failed",
+      environment: env,
+      ok: result.ok,
+      code: result.ok ? "OK" : result.code,
+      detail: result.ok
+        ? `${instrument} · ${String(input.timeframe)}`
+        : result.message.slice(0, 160),
+    });
+    const status = await this.buildStatus();
+    if (!result.ok) {
+      return {
+        ok: false,
+        code: result.code,
+        message: result.message,
+        status,
+        monitor: result.status,
+      };
+    }
+    return { ok: true, status, monitor: result.status };
+  }
+
+  async stopMonitoring(): Promise<{
+    ok: true;
+    status: AutomatedTradingPublicStatus;
+    monitor: AtMonitorPublicStatus;
+  }> {
+    const monitor = await this.monitor.stop("user_stop");
+    await this.store.appendAudit({
+      action: "monitor_stopped",
+      environment: this.store.getState().selectedEnvironment,
+      ok: true,
+      code: "OK",
+      detail: "Monitoring stopped by admin.",
+    });
+    return { ok: true, status: await this.buildStatus(), monitor };
+  }
+
+  async changeMonitoring(input: {
+    environment?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    timeframe?: unknown;
+  }): Promise<
+    | { ok: true; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env = parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    const instrument = String(
+      input.instrument ?? state.environments[env].selectedInstrument ?? "",
+    ).trim();
+    const result = await this.monitor.changeInstrumentTimeframe({
+      environment: env,
+      instrument,
+      timeframe: input.timeframe,
+      expectedEnvironmentEpoch:
+        typeof input.expectedEnvironmentEpoch === "number"
+          ? input.expectedEnvironmentEpoch
+          : Number(input.expectedEnvironmentEpoch),
+      currentEnvironment: state.selectedEnvironment,
+      currentEnvironmentEpoch: state.environmentEpoch,
+    });
+    await this.store.appendAudit({
+      action: result.ok ? "monitor_config_changed" : "monitor_config_change_failed",
+      environment: env,
+      ok: result.ok,
+      code: result.ok ? "OK" : result.code,
+      detail: result.ok
+        ? `${instrument} · ${String(input.timeframe)}`
+        : result.message.slice(0, 160),
+    });
+    const status = await this.buildStatus();
+    if (!result.ok) {
+      return {
+        ok: false,
+        code: result.code,
+        message: result.message,
+        status,
+        monitor: result.status,
+      };
+    }
+    return { ok: true, status, monitor: result.status };
+  }
+
+  async runMonitorAnalysisNow(input: {
+    environment?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    timeframe?: unknown;
+  }): Promise<
+    | { ok: true; analysisId: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus; monitor: AtMonitorPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env = parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    const result = await this.monitor.runManualNow({
+      environment: env,
+      instrument: input.instrument != null ? String(input.instrument) : undefined,
+      timeframe: input.timeframe,
+      expectedEnvironmentEpoch:
+        typeof input.expectedEnvironmentEpoch === "number"
+          ? input.expectedEnvironmentEpoch
+          : Number(input.expectedEnvironmentEpoch),
+      currentEnvironment: state.selectedEnvironment,
+      currentEnvironmentEpoch: state.environmentEpoch,
+      verification: state.environments[env].lastVerification,
+    });
+    await this.store.appendAudit({
+      action: result.ok ? "monitor_manual_analysis" : "monitor_manual_analysis_failed",
+      environment: env,
+      ok: result.ok,
+      code: result.ok ? "OK" : result.code,
+      detail: result.ok ? result.analysisId : result.message.slice(0, 160),
+    });
+    const status = await this.buildStatus();
+    if (!result.ok) {
+      return {
+        ok: false,
+        code: result.code,
+        message: result.message,
+        status,
+        monitor: result.status,
+      };
+    }
+    return { ok: true, analysisId: result.analysisId, status, monitor: result.status };
+  }
+
+  readMonitorChartImage(analysisId: string): Buffer | null {
+    return this.monitor.readChartImage(analysisId);
+  }
 
   async buildStatus(): Promise<AutomatedTradingPublicStatus> {
     const state = this.store.getState();
@@ -849,12 +1020,22 @@ let serviceSingleton: AutomatedTradingService | null = null;
 
 export function getAutomatedTradingService(storageRoot?: string): AutomatedTradingService {
   if (storageRoot) {
-    return new AutomatedTradingService(
-      getAutomatedTradingStore(storageRoot),
-      getAtOpenAiAnalysisEngine(storageRoot),
-    );
+    const store = getAutomatedTradingStore(storageRoot);
+    const engine = getAtOpenAiAnalysisEngine(storageRoot);
+    const mon = getAtMonitorWorker(storageRoot);
+    return new AutomatedTradingService(store, engine, mon);
   }
-  if (!serviceSingleton) serviceSingleton = new AutomatedTradingService();
+  if (!serviceSingleton) {
+    const store = getAutomatedTradingStore();
+    const engine = getAtOpenAiAnalysisEngine();
+    const mon = getAtMonitorWorker();
+    mon.bindRuntimeHooks({
+      getVerification: (env) => store.getState().environments[env].lastVerification,
+      getEnvironmentEpoch: () => store.getState().environmentEpoch,
+      getSelectedEnvironment: () => store.getState().selectedEnvironment,
+    });
+    serviceSingleton = new AutomatedTradingService(store, engine, mon);
+  }
   return serviceSingleton;
 }
 

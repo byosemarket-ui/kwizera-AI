@@ -7,7 +7,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.1";
 
 type Env = "DEMO" | "LIVE";
 
@@ -193,6 +193,37 @@ export function ForexAutomatedTradingPage(props: {
   } | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<Array<Record<string, unknown>>>([]);
   const [analysisBusy, setAnalysisBusy] = useState(false);
+  const [monitor, setMonitor] = useState<{
+    supportedTimeframes?: string[];
+    unsupportedNote?: string;
+    requiresBrowserOpen?: boolean;
+    persistsAcrossVpsReboot?: string;
+    config?: {
+      enabled?: boolean;
+      instrument?: string;
+      timeframe?: string;
+      environment?: string;
+      configEpoch?: number;
+    } | null;
+    health?: {
+      workerState?: string;
+      workerActive?: boolean;
+      lastQuoteChangeAtUtc?: string | null;
+      lastCandleUpdateAtUtc?: string | null;
+      lastScreenshotAtUtc?: string | null;
+      lastAnalysisAtUtc?: string | null;
+      nextScheduledAnalysisAtUtc?: string | null;
+      lastError?: string | null;
+      lastBlockerCode?: string | null;
+      quoteFresh?: boolean | null;
+      analysisInFlight?: boolean;
+      lastAnalysisId?: string | null;
+      lastScreenshotImageHash?: string | null;
+    };
+  } | null>(null);
+  const [monitorTf, setMonitorTf] = useState("15m");
+  const [monitorBusy, setMonitorBusy] = useState(false);
+  const [chartObjectUrl, setChartObjectUrl] = useState<string | null>(null);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -202,11 +233,12 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/history?limit=6", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/monitor/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -216,6 +248,7 @@ export function ForexAutomatedTradingPage(props: {
       const auJson = await auRes.json() as { ok?: boolean; events?: AuditEvent[] };
       const oaJson = await oaRes.json() as { ok?: boolean; openai?: typeof openaiStatus };
       const histJson = await histRes.json() as { ok?: boolean; history?: Array<Record<string, unknown>> };
+      const monJson = await monRes.json() as { ok?: boolean; monitor?: typeof monitor };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -228,6 +261,10 @@ export function ForexAutomatedTradingPage(props: {
       if (histRes.ok && histJson.ok && Array.isArray(histJson.history)) {
         setAnalysisHistory(histJson.history);
       }
+      if (monRes.ok && monJson.ok && monJson.monitor) {
+        setMonitor(monJson.monitor);
+        if (monJson.monitor.config?.timeframe) setMonitorTf(String(monJson.monitor.config.timeframe));
+      }
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -239,6 +276,42 @@ export function ForexAutomatedTradingPage(props: {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const latest = openaiStatus?.latest as { analysisId?: string; chartImage?: { available?: boolean } } | null;
+    const id = latest?.analysisId;
+    if (!id || !latest?.chartImage?.available || !token.trim()) {
+      setChartObjectUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/forex/automated-trading/monitor/chart-image/${encodeURIComponent(id)}`,
+          { headers: adminHeaders(token) },
+        );
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setChartObjectUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      } catch {
+        /* ignore chart load errors */
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [openaiStatus?.latest, token]);
 
   const saveToken = () => {
     writeAdminToken(tokenDraft);
@@ -320,7 +393,7 @@ export function ForexAutomatedTradingPage(props: {
   };
 
   const runOpenAiAnalysis = async () => {
-    if (!status || analysisBusy) return;
+    if (!status || analysisBusy || monitorBusy) return;
     setAnalysisBusy(true);
     setError(null);
     try {
@@ -328,23 +401,27 @@ export function ForexAutomatedTradingPage(props: {
         shellInstrument
         ?? status.selectedEnvState?.selectedInstrument
         ?? status.verification?.instrument.symbol
+        ?? monitor?.config?.instrument
         ?? null;
-      const res = await fetch("/api/forex/automated-trading/openai/analyze", {
+      const res = await fetch("/api/forex/automated-trading/monitor/analyze-now", {
         method: "POST",
         headers: adminHeaders(token),
         body: JSON.stringify({
           environment: status.selectedEnvironment,
           expectedEnvironmentEpoch: status.environmentEpoch,
           instrument: instrument || undefined,
+          timeframe: monitorTf,
         }),
       });
       const data = await res.json() as {
         ok?: boolean;
-        analysis?: Record<string, unknown>;
+        analysisId?: string;
         status?: PublicStatus;
+        monitor?: typeof monitor;
         error?: { message?: string; code?: string };
       };
       if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
       if (!res.ok || !data.ok) {
         setError(data.error?.message || data.error?.code || `Analysis failed (${res.status})`);
       }
@@ -353,6 +430,74 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "OpenAI analysis failed");
     } finally {
       setAnalysisBusy(false);
+    }
+  };
+
+  const startMonitoring = async () => {
+    if (!status || monitorBusy) return;
+    setMonitorBusy(true);
+    setError(null);
+    try {
+      const instrument =
+        shellInstrument
+        ?? status.selectedEnvState?.selectedInstrument
+        ?? status.verification?.instrument.symbol
+        ?? null;
+      const res = await fetch("/api/forex/automated-trading/monitor/start", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          environment: status.selectedEnvironment,
+          expectedEnvironmentEpoch: status.environmentEpoch,
+          instrument: instrument || undefined,
+          timeframe: monitorTf,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Start failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Start monitoring failed");
+    } finally {
+      setMonitorBusy(false);
+    }
+  };
+
+  const stopMonitoring = async () => {
+    if (!status || monitorBusy) return;
+    setMonitorBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/monitor/stop", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: "{}",
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Stop failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Stop monitoring failed");
+    } finally {
+      setMonitorBusy(false);
     }
   };
 
@@ -637,21 +782,109 @@ export function ForexAutomatedTradingPage(props: {
             ) : null}
           </section>
 
+          <section className="fx-auto-trading-panel" aria-label="Live monitoring" data-fx-at-monitor="true">
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Live FXCM monitoring</h2>
+              <div className="fx-auto-env-actions">
+                <button
+                  type="button"
+                  className="fx-capture-button"
+                  disabled={busy || monitorBusy || !status || Boolean(monitor?.config?.enabled)}
+                  onClick={() => void startMonitoring()}
+                  data-fx-at-monitor-start="true"
+                >
+                  {monitorBusy ? "…" : "Start"}
+                </button>
+                <button
+                  type="button"
+                  className="fx-capture-button"
+                  disabled={busy || monitorBusy || !status || !monitor?.config?.enabled}
+                  onClick={() => void stopMonitoring()}
+                  data-fx-at-monitor-stop="true"
+                >
+                  Stop
+                </button>
+              </div>
+            </div>
+            <p className="fx-auto-trading-hint">
+              Server-side worker — continues after you leave this page. Not a browser screenshot session.
+              {" "}Confidence: NOT CALIBRATED. H2 unsupported on ForexConnect mappings.
+            </p>
+            <div className="fx-auto-monitor-controls">
+              <label className="fx-auto-trading-hint" htmlFor="fx-at-monitor-tf">
+                Timeframe
+                <select
+                  id="fx-at-monitor-tf"
+                  className="fx-auto-monitor-select"
+                  value={monitorTf}
+                  onChange={(e) => setMonitorTf(e.target.value)}
+                  disabled={Boolean(monitor?.config?.enabled)}
+                  data-fx-at-monitor-tf="true"
+                >
+                  {(monitor?.supportedTimeframes ?? ["5m", "15m", "30m", "1h"]).map((tf) => (
+                    <option key={tf} value={tf}>{tf}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <dl className="fx-auto-config-grid">
+              <div>
+                <dt>Worker</dt>
+                <dd>
+                  <ForexStatusBadge tone={statusTone(String(monitor?.health?.workerState ?? "STOPPED"))}>
+                    {monitor?.health?.workerState ?? "STOPPED"}
+                  </ForexStatusBadge>
+                </dd>
+              </div>
+              <div>
+                <dt>Instrument</dt>
+                <dd>{monitor?.config?.instrument ?? shellInstrument ?? status?.selectedEnvState?.selectedInstrument ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last quote change</dt>
+                <dd>{monitor?.health?.lastQuoteChangeAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last candle</dt>
+                <dd>{monitor?.health?.lastCandleUpdateAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last chart</dt>
+                <dd>{monitor?.health?.lastScreenshotAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Last OpenAI</dt>
+                <dd>{monitor?.health?.lastAnalysisAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Next scheduled</dt>
+                <dd>{monitor?.health?.nextScheduledAnalysisAtUtc ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Quote fresh</dt>
+                <dd>{monitor?.health?.quoteFresh == null ? "—" : monitor.health.quoteFresh ? "yes" : "no"}</dd>
+              </div>
+            </dl>
+            {monitor?.health?.lastError ? (
+              <p className="fx-auto-trading-error" role="alert">{monitor.health.lastBlockerCode}: {monitor.health.lastError}</p>
+            ) : null}
+          </section>
+
           <section className="fx-auto-trading-panel" aria-label="Technical analysis" data-fx-at-openai-ta="true">
             <div className="fx-auto-trading-panel-head">
               <h2 className="fx-auto-trading-h2">Technical analysis (OpenAI)</h2>
               <button
                 type="button"
                 className="fx-capture-button"
-                disabled={busy || analysisBusy || !status}
+                disabled={busy || analysisBusy || monitorBusy || !status}
                 onClick={() => void runOpenAiAnalysis()}
                 data-fx-at-run-openai="true"
               >
-                {analysisBusy ? "Analyzing…" : "Run OpenAI Analysis"}
+                {analysisBusy ? "Analyzing…" : "Run Analysis Now"}
               </button>
             </div>
             <p className="fx-auto-trading-hint">
-              Independent AT engine — not Forex AI Analysis history. Deliberate run only. Confidence: NOT CALIBRATED.
+              Independent AT engine with server-rendered chart image when available. Deliberate or candle-close scheduled. Confidence: NOT CALIBRATED.
             </p>
             <dl className="fx-auto-config-grid">
               <div>
@@ -673,6 +906,7 @@ export function ForexAutomatedTradingPage(props: {
             </dl>
             {(() => {
               const latest = (openaiStatus?.latest ?? null) as null | {
+                analysisId?: string;
                 lifecycle?: string;
                 directionalBias?: string;
                 trendState?: string;
@@ -684,6 +918,15 @@ export function ForexAutomatedTradingPage(props: {
                 dataQuality?: string;
                 confidenceLabel?: string;
                 historicalOnly?: boolean;
+                liveLabeled?: boolean;
+                trigger?: string;
+                primaryTimeframe?: string | null;
+                chartImage?: {
+                  available?: boolean;
+                  imageHash?: string | null;
+                  includedInOpenAiRequest?: boolean;
+                  note?: string;
+                } | null;
                 keyEvidence?: string[];
                 counterEvidence?: string[];
                 supportLevels?: Array<{ price: number | null; provenance: string | null; verifiedAgainstSnapshot: boolean }>;
@@ -695,16 +938,39 @@ export function ForexAutomatedTradingPage(props: {
                 environment?: string;
               };
               if (!latest) {
-                return <p className="fx-auto-trading-hint">No AT OpenAI analysis yet. Verify market context, then run analysis.</p>;
+                return <p className="fx-auto-trading-hint">No AT OpenAI analysis yet. Start monitoring or run analysis after Verify.</p>;
               }
+              const chartId = latest.analysisId;
               return (
                 <div className="fx-auto-ta-result" data-fx-at-openai-result="true">
+                  {latest.chartImage?.available && chartObjectUrl ? (
+                    <img
+                      className="fx-auto-ta-chart"
+                      src={chartObjectUrl}
+                      alt={`Server chart ${latest.instrument ?? ""} ${latest.primaryTimeframe ?? ""}`}
+                      data-fx-at-chart-image="true"
+                    />
+                  ) : latest.chartImage?.available && chartId ? (
+                    <p className="fx-auto-trading-hint">Chart image stored (id {chartId.slice(0, 8)}…) — loading…</p>
+                  ) : null}
                   <div className="fx-auto-trading-summary fx-auto-verify-grid">
                     <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">Status</span>
                       <ForexStatusBadge tone={statusTone(String(latest.lifecycle ?? ""))}>
                         {latest.lifecycle ?? "—"}
                       </ForexStatusBadge>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Trigger</span>
+                      <span>{latest.trigger ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">TF</span>
+                      <span>{latest.primaryTimeframe ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">LIVE label</span>
+                      <span>{latest.liveLabeled ? "LIVE" : "not LIVE"}</span>
                     </div>
                     <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">Bias</span>
@@ -863,7 +1129,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 53)</dd>
+                <dd>disabled (Phase 53.1)</dd>
               </div>
             </dl>
             <h3 className="fx-auto-trading-h3">Recent audit</h3>

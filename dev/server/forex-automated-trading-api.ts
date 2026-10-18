@@ -1,5 +1,5 @@
 /**
- * Phase 51–53 — Automated Trading configuration, verification & OpenAI TA API.
+ * Phase 51–53.1 — Automated Trading configuration, verification, OpenAI TA & live monitoring API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -254,6 +254,165 @@ export async function handleForexAutomatedTradingApi(
       }
       sendJson(res, 200, { ok: true, status: result.status, placesOrders: false });
       return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        monitor: service.getMonitorStatus(),
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/start")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.startMonitoring({
+        environment: body.environment,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+      });
+      if (!result.ok) {
+        sendJson(res, result.code === "STALE_EPOCH" || result.code === "ENVIRONMENT_MISMATCH" ? 409 : 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          monitor: result.monitor,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/stop")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const result = await service.stopMonitoring();
+      sendJson(res, 200, {
+        ok: true,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/change")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.changeMonitoring({
+        environment: body.environment,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+      });
+      if (!result.ok) {
+        sendJson(res, result.code === "STALE_EPOCH" || result.code === "ENVIRONMENT_MISMATCH" ? 409 : 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          monitor: result.monitor,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/monitor/analyze-now")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.runMonitorAnalysisNow({
+        environment: body.environment,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        timeframe: body.timeframe,
+      });
+      if (!result.ok) {
+        const statusCode =
+          result.code === "STALE_EPOCH" || result.code === "ENVIRONMENT_MISMATCH"
+            ? 409
+            : result.code === "ANALYSIS_IN_FLIGHT"
+              ? 429
+              : result.code === "MODEL_NOT_VISION_ELIGIBLE" || result.code === "OPENAI_NOT_CONFIGURED"
+                ? 503
+                : 422;
+        sendJson(res, statusCode, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          monitor: result.monitor,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        analysisId: result.analysisId,
+        status: result.status,
+        monitor: result.monitor,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    {
+      const imgMatch = url.pathname.match(
+        /^\/api\/forex\/automated-trading\/monitor\/chart-image\/([A-Za-z0-9_-]+)$/,
+      );
+      if (imgMatch?.[1]) {
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        const buf = service.readMonitorChartImage(imgMatch[1]);
+        if (!buf) {
+          sendJson(res, 404, {
+            ok: false,
+            error: { code: "NOT_FOUND", message: "Chart image not found." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        res.writeHead(200, {
+          "Content-Type": "image/png",
+          "Content-Length": buf.length,
+          "Cache-Control": "private, max-age=60",
+        });
+        if (req.method !== "HEAD") res.end(buf);
+        else res.end();
+        return true;
+      }
     }
 
     if (isAtPath(url.pathname, "/api/forex/automated-trading/openai/status")) {

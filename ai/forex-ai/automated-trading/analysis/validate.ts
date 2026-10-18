@@ -119,9 +119,14 @@ export function normalizeAtOpenAiAnalysis(input: {
   environmentEpoch: number;
   instrument: string;
   timeframes: string[];
+  primaryTimeframe?: string | null;
   inputFingerprint: string;
   modelRequested: string;
   modelUsed: string | null;
+  modelVisionEligible?: boolean;
+  trigger?: "scheduled" | "manual" | "legacy";
+  monitorConfigEpoch?: number | null;
+  chartImage?: AtOpenAiAnalysisResult["chartImage"];
   candlesByTf: Record<string, AtRawCandle[]>;
   historicalOnly: boolean;
   createdAtUtc: string;
@@ -168,7 +173,7 @@ export function normalizeAtOpenAiAnalysis(input: {
 
   const blockers: Array<{ code: string; message: string }> = [
     { code: "EXECUTION_NOT_IMPLEMENTED", message: "Analysis does not authorize broker orders." },
-    { code: "RISK_NOT_IMPLEMENTED", message: "Risk / position sizing not applied in Phase 53." },
+    {       code: "RISK_NOT_IMPLEMENTED", message: "Risk / position sizing not applied in Phase 53.1." },
   ];
   if (input.historicalOnly) {
     blockers.push({
@@ -224,10 +229,15 @@ export function normalizeAtOpenAiAnalysis(input: {
     environmentEpoch: input.environmentEpoch,
     instrument: input.instrument,
     timeframes: input.timeframes,
+    primaryTimeframe: input.primaryTimeframe ?? input.timeframes[0] ?? null,
     inputFingerprint: input.inputFingerprint,
     provider: "OPENAI",
     modelRequested: input.modelRequested,
     modelUsed: input.modelUsed,
+    modelVisionEligible: Boolean(input.modelVisionEligible),
+    trigger: input.trigger ?? "legacy",
+    monitorConfigEpoch: input.monitorConfigEpoch ?? null,
+    chartImage: input.chartImage ?? null,
     directionalBias,
     trendState: trendOut,
     trendStrength,
@@ -247,6 +257,7 @@ export function normalizeAtOpenAiAnalysis(input: {
     evidenceScoreIsWinProbability: false,
     createdAtUtc: input.createdAtUtc,
     latencyMs: input.latencyMs,
+    liveLabeled: false,
     placesOrders: false,
     historicalOnly: input.historicalOnly,
   };

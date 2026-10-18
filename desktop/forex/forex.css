@@ -3360,6 +3360,34 @@ html.reduce-motion .fx-sidebar {
 .fx-auto-gates li[data-ok="false"] { opacity: 0.78; }
 .fx-auto-verify-grid { margin-top: 2px; }
 .fx-auto-ta-result { display: grid; gap: 6px; min-width: 0; }
+.fx-auto-ta-chart {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--fx-border, #262b33);
+  background: #12161d;
+}
+.fx-auto-monitor-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.fx-auto-monitor-select {
+  display: block;
+  margin-top: 4px;
+  max-width: 100%;
+  min-width: 5.5rem;
+  background: var(--fx-elevated, #161c25);
+  color: var(--fx-text, #e7e9ed);
+  border: 1px solid var(--fx-border, #262b33);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font: inherit;
+}
 .fx-auto-ta-scenario {
   display: grid;
   gap: 2px;

@@ -5,7 +5,7 @@
 import type { AutomatedTradingEnvironment } from "../types.js";
 
 export const AT_OPENAI_ANALYSIS_SCHEMA = "at-openai-ta-v1";
-export const AT_OPENAI_ANALYSIS_PHASE = "53";
+export const AT_OPENAI_ANALYSIS_PHASE = "53.1";
 export const AT_CONFIDENCE_LABEL = "NOT CALIBRATED";
 
 export type AtAnalysisLifecycle =
@@ -83,6 +83,19 @@ export interface AtAnalysisEvidenceBundle {
   builtAtUtc: string;
 }
 
+export interface AtChartImageMeta {
+  available: boolean;
+  imageHash: string | null;
+  capturedAtUtc: string | null;
+  source: string;
+  note: string;
+  blocker: string | null;
+  width?: number;
+  height?: number;
+  byteLength?: number;
+  includedInOpenAiRequest: boolean;
+}
+
 export interface AtOpenAiAnalysisResult {
   schemaVersion: typeof AT_OPENAI_ANALYSIS_SCHEMA;
   phase: typeof AT_OPENAI_ANALYSIS_PHASE;
@@ -92,10 +105,15 @@ export interface AtOpenAiAnalysisResult {
   environmentEpoch: number;
   instrument: string;
   timeframes: string[];
+  primaryTimeframe: string | null;
   inputFingerprint: string;
   provider: "OPENAI";
   modelRequested: string;
   modelUsed: string | null;
+  modelVisionEligible: boolean;
+  trigger: "scheduled" | "manual" | "legacy";
+  monitorConfigEpoch: number | null;
+  chartImage: AtChartImageMeta | null;
   directionalBias: AtDirectionalBias;
   trendState: AtTrendState;
   trendStrength: "STRONG" | "MODERATE" | "WEAK" | "UNKNOWN";
@@ -123,12 +141,14 @@ export interface AtOpenAiAnalysisResult {
   latencyMs: number;
   placesOrders: false;
   historicalOnly: boolean;
+  liveLabeled: false;
 }
 
 export interface AtOpenAiAnalysisPublicStatus {
   provider: "OPENAI";
   modelConfigured: string | null;
   apiKeyConfigured: boolean;
+  modelVisionEligible: boolean;
   latest: AtOpenAiAnalysisResult | null;
   historyCount: number;
   inFlight: boolean;

@@ -75,7 +75,7 @@ function normalizeState(raw: unknown): AutomatedTradingPersistedState {
   const environmentEpoch = Number(o.environmentEpoch);
   return {
     schemaVersion: AUTOMATED_TRADING_SCHEMA,
-    phase: "53",
+    phase: "53.1",
     configVersion: Number.isFinite(configVersion) && configVersion >= 1 ? Math.floor(configVersion) : 1,
     selectedEnvironment: selected,
     environmentEpoch:
@@ -105,7 +105,7 @@ export class AutomatedTradingStore {
   private load(): StoreFile {
     if (this.cache) return this.cache;
     try {
-      const raw = readJsonSafeSync(this.file()) as Partial<StoreFile> | null;
+      const raw = readJsonSafeSync<Partial<StoreFile> | null>(this.file(), null).value;
       const state = normalizeState(raw?.state ?? raw);
       const audit = Array.isArray(raw?.audit)
         ? (raw!.audit as AutomatedTradingAuditEvent[]).slice(0, MAX_AUDIT)

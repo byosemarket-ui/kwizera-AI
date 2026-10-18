@@ -105,6 +105,7 @@ describe("Phase 53 evidence & validation", () => {
     expect(result.confidenceLabel).toBe(AT_CONFIDENCE_LABEL);
     expect(result.evidenceScoreIsWinProbability).toBe(false);
     expect(result.placesOrders).toBe(false);
+    expect(result.liveLabeled).toBe(false);
     expect(result.provider).toBe("OPENAI");
     expect(result.dataQuality).toBe("HISTORICAL_ONLY");
     expect(result.resistanceLevels[0]?.verifiedAgainstSnapshot).toBe(false);
@@ -306,14 +307,14 @@ describe("Phase 53 static contracts", () => {
 
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-openai-ta");
-    expect(page).toContain("Run OpenAI Analysis");
+    expect(page).toContain("Run Analysis Now");
     expect(page).toContain("NOT CALIBRATED");
     expect(page).not.toMatch(/localStorage\.setItem\([^)]*openai|sk-/i);
 
     const engine = read("ai/forex-ai/automated-trading/analysis/engine.ts");
     expect(engine).toContain("No Local AI fallback");
     expect(engine).not.toMatch(/getLocalAi|from ["'].*ollama/i);
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53");
+    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.1");
 
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/ai-analysis");
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/charts");

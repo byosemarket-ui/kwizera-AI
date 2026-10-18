@@ -45,7 +45,7 @@ export class AtOpenAiAnalysisStore {
   constructor(storageRoot?: string) {
     this.file = storePath(storageRoot);
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    this.data = normalize(readJsonSafeSync(this.file, null));
+    this.data = normalize(readJsonSafeSync(this.file, null).value);
   }
 
   latest(): AtOpenAiAnalysisResult | null {

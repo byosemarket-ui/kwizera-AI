@@ -1,5 +1,5 @@
 /**
- * Phase 53 — Independent OpenAI technical analysis engine for Automated Trading.
+ * Phase 53 / 53.1 — Independent OpenAI technical analysis engine for Automated Trading.
  * Uses existing Forex OpenAI config + client. Never falls back to Local AI.
  * Never places broker orders.
  */
@@ -11,7 +11,11 @@ import {
 } from "../../snapshot-openai/config-store.js";
 import { getOpenAiInferenceGate } from "../../snapshot-openai/concurrency.js";
 import { isOpenAiChatEligibleModel } from "../../snapshot-openai/model-policy.js";
-import { openAiChatJson } from "../../snapshot-openai/openai-client.js";
+import {
+  openAiChatJson,
+  openAiChatMultimodalJson,
+} from "../../snapshot-openai/openai-client.js";
+import { isOpenAiVisionEligibleModel } from "../../multi-image-openai/vision-policy.js";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
 import {
@@ -23,6 +27,7 @@ import {
 import { buildAtOpenAiSystemPrompt, buildAtOpenAiUserPrompt } from "./prompts.js";
 import { getAtOpenAiAnalysisStore, type AtOpenAiAnalysisStore } from "./store.js";
 import type {
+  AtChartImageMeta,
   AtOpenAiAnalysisPublicStatus,
   AtOpenAiAnalysisResult,
 } from "./types.js";
@@ -42,6 +47,27 @@ function clampTimeout(raw: unknown): number {
   return Math.max(AT_OPENAI_MIN_TIMEOUT_MS, Math.min(AT_OPENAI_MAX_TIMEOUT_MS, Math.floor(n)));
 }
 
+/** Map legacy FC period labels used in Phase 53 defaults to project timeframe IDs. */
+function toProjectTimeframe(tf: string): string {
+  const aliases: Record<string, string> = {
+    m1: "1m",
+    M1: "1m",
+    m5: "5m",
+    M5: "5m",
+    m15: "15m",
+    M15: "15m",
+    m30: "30m",
+    M30: "30m",
+    H1: "1h",
+    h1: "1h",
+    H4: "4h",
+    h4: "4h",
+    D1: "1d",
+    W1: "1w",
+  };
+  return aliases[tf] ?? tf;
+}
+
 function mapCandles(raw: unknown): AtRawCandle[] {
   if (!Array.isArray(raw)) return [];
   const out: AtRawCandle[] = [];
@@ -59,15 +85,83 @@ function mapCandles(raw: unknown): AtRawCandle[] {
   return out;
 }
 
+function baseFailed(input: {
+  analysisId: string;
+  environment: AutomatedTradingEnvironment;
+  environmentEpoch: number;
+  instrument: string;
+  timeframes: string[];
+  primaryTimeframe: string | null;
+  fingerprint: string;
+  model: string;
+  modelUsed: string | null;
+  visionEligible: boolean;
+  trigger: "scheduled" | "manual" | "legacy";
+  monitorConfigEpoch: number | null;
+  chartImage: AtChartImageMeta | null;
+  lifecycle: AtOpenAiAnalysisResult["lifecycle"];
+  message: string;
+  code: string;
+  historicalOnly: boolean;
+  dataQuality: AtOpenAiAnalysisResult["dataQuality"];
+  started: number;
+}): AtOpenAiAnalysisResult {
+  return {
+    schemaVersion: AT_OPENAI_ANALYSIS_SCHEMA,
+    phase: AT_OPENAI_ANALYSIS_PHASE,
+    analysisId: input.analysisId,
+    lifecycle: input.lifecycle,
+    environment: input.environment,
+    environmentEpoch: input.environmentEpoch,
+    instrument: input.instrument,
+    timeframes: input.timeframes,
+    primaryTimeframe: input.primaryTimeframe,
+    inputFingerprint: input.fingerprint,
+    provider: "OPENAI",
+    modelRequested: input.model,
+    modelUsed: input.modelUsed,
+    modelVisionEligible: input.visionEligible,
+    trigger: input.trigger,
+    monitorConfigEpoch: input.monitorConfigEpoch,
+    chartImage: input.chartImage,
+    directionalBias: "UNKNOWN",
+    trendState: "UNKNOWN",
+    trendStrength: "UNKNOWN",
+    mtfAgreement: "UNKNOWN",
+    keyEvidence: [],
+    counterEvidence: [],
+    supportLevels: [],
+    resistanceLevels: [],
+    patterns: [],
+    structureNotes: [],
+    scenarios: [],
+    explanation: input.message,
+    dataQuality: input.dataQuality,
+    limitations: [input.message],
+    blockers: [{ code: input.code, message: input.message }],
+    confidenceLabel: AT_CONFIDENCE_LABEL,
+    evidenceScoreIsWinProbability: false,
+    createdAtUtc: new Date().toISOString(),
+    latencyMs: Date.now() - input.started,
+    placesOrders: false,
+    historicalOnly: input.historicalOnly,
+    liveLabeled: false,
+  };
+}
+
 export class AtOpenAiAnalysisEngine {
   private inFlight = false;
   private readonly boundStore: AtOpenAiAnalysisStore;
+  /** Fingerprint of the newest successful analysis — reject out-of-order overwrites. */
+  private latestSuccessFingerprint: string | null = null;
+  private latestSuccessAtMs = 0;
 
   constructor(
     private readonly deps?: {
       config?: ForexOpenAiConfigStore;
       store?: AtOpenAiAnalysisStore;
       chat?: typeof openAiChatJson;
+      chatMultimodal?: typeof openAiChatMultimodalJson;
       loadCandles?: (
         symbol: string,
         timeframe: string,
@@ -90,14 +184,20 @@ export class AtOpenAiAnalysisEngine {
     return this.deps?.chat ?? openAiChatJson;
   }
 
+  private chatMultimodal(): typeof openAiChatMultimodalJson {
+    return this.deps?.chatMultimodal ?? openAiChatMultimodalJson;
+  }
+
   async providerStatus(): Promise<AtOpenAiAnalysisPublicStatus> {
     const cfg = this.config();
     const pub = await cfg.getPublicStatus();
     const latest = this.store().latest();
+    const model = String(pub.model ?? "").trim();
     return {
       provider: "OPENAI",
       modelConfigured: pub.model ?? null,
       apiKeyConfigured: Boolean(pub.configured),
+      modelVisionEligible: model ? isOpenAiVisionEligibleModel(model) : false,
       latest,
       historyCount: this.store().count(),
       inFlight: this.inFlight,
@@ -120,7 +220,11 @@ export class AtOpenAiAnalysisEngine {
   private async loadCandles(symbol: string, timeframe: string): Promise<AtRawCandle[]> {
     if (this.deps?.loadCandles) return this.deps.loadCandles(symbol, timeframe);
     const bridge = getForexConnectBridge();
-    const res = await bridge.getHistoricalCandles({ symbol, timeframe, limit: 120 });
+    const res = await bridge.getHistoricalCandles({
+      symbol,
+      timeframe: toProjectTimeframe(timeframe),
+      limit: 120,
+    });
     return mapCandles(res.candles);
   }
 
@@ -131,6 +235,36 @@ export class AtOpenAiAnalysisEngine {
     timeframes?: string[];
     verification: AutomatedTradingVerificationResult | null;
     timeoutMs?: unknown;
+  }): Promise<
+    | { ok: true; analysis: AtOpenAiAnalysisResult }
+    | { ok: false; code: string; message: string; analysis: AtOpenAiAnalysisResult | null }
+  > {
+    return this.analyzeWithChart({
+      ...input,
+      primaryTimeframe: input.timeframes?.[0] ?? null,
+      trigger: "manual",
+      monitorConfigEpoch: null,
+      chartImage: null,
+      requireImage: false,
+    });
+  }
+
+  async analyzeWithChart(input: {
+    environment: AutomatedTradingEnvironment;
+    environmentEpoch: number;
+    instrument: string;
+    primaryTimeframe?: string | null;
+    timeframes?: string[];
+    verification: AutomatedTradingVerificationResult | null;
+    timeoutMs?: unknown;
+    trigger: "scheduled" | "manual" | "legacy";
+    monitorConfigEpoch: number | null;
+    chartImage: {
+      mimeType: "image/png";
+      base64: string;
+      meta: Omit<AtChartImageMeta, "includedInOpenAiRequest">;
+    } | null;
+    requireImage: boolean;
   }): Promise<
     | { ok: true; analysis: AtOpenAiAnalysisResult }
     | { ok: false; code: string; message: string; analysis: AtOpenAiAnalysisResult | null }
@@ -150,6 +284,8 @@ export class AtOpenAiAnalysisEngine {
     const cfg = this.config();
     const pub = await cfg.getPublicStatus();
     const model = String(pub.model ?? "").trim();
+    const visionEligible = model ? isOpenAiVisionEligibleModel(model) : false;
+
     if (!pub.configured) {
       return {
         ok: false,
@@ -176,6 +312,18 @@ export class AtOpenAiAnalysisEngine {
       };
     }
 
+    const wantsImage = Boolean(input.chartImage?.base64) || input.requireImage;
+    if (wantsImage && !visionEligible) {
+      return {
+        ok: false,
+        code: "MODEL_NOT_VISION_ELIGIBLE",
+        message:
+          `Configured model "${model}" is not eligible for image inputs. `
+          + "Select a vision-capable model in Forex Admin. Chart was not silently dropped.",
+        analysis: null,
+      };
+    }
+
     if (this.inFlight) {
       return {
         ok: false,
@@ -188,7 +336,10 @@ export class AtOpenAiAnalysisEngine {
     const timeframes = (input.timeframes?.length
       ? input.timeframes
       : [...AT_DEFAULT_TIMEFRAMES]
-    ).map((t) => String(t).trim()).filter(Boolean).slice(0, 6);
+    ).map((t) => toProjectTimeframe(String(t).trim())).filter(Boolean).slice(0, 6);
+    const primaryTimeframe = input.primaryTimeframe
+      ? toProjectTimeframe(input.primaryTimeframe)
+      : timeframes[0] ?? null;
 
     this.inFlight = true;
     try {
@@ -196,10 +347,8 @@ export class AtOpenAiAnalysisEngine {
       for (const tf of timeframes) {
         try {
           candlesByTf[tf] = await this.loadCandles(instrument, tf);
-        } catch (err) {
+        } catch {
           candlesByTf[tf] = [];
-          // Keep going; evidence builder will report insufficiency.
-          void err;
         }
       }
 
@@ -209,42 +358,44 @@ export class AtOpenAiAnalysisEngine {
         candlesByTf,
         verification: input.verification,
       });
+
+      const chartMeta: AtChartImageMeta | null = input.chartImage
+        ? {
+            ...input.chartImage.meta,
+            includedInOpenAiRequest: false,
+          }
+        : {
+            available: false,
+            imageHash: null,
+            capturedAtUtc: null,
+            source: "none",
+            note: "No chart image supplied for this analysis.",
+            blocker: input.requireImage ? "CHART_REQUIRED" : null,
+            includedInOpenAiRequest: false,
+          };
+
       if (!evidenceBuild.ok || !evidenceBuild.evidence) {
-        const failed: AtOpenAiAnalysisResult = {
-          schemaVersion: AT_OPENAI_ANALYSIS_SCHEMA,
-          phase: AT_OPENAI_ANALYSIS_PHASE,
+        const failed = baseFailed({
           analysisId: randomUUID(),
-          lifecycle: "DATA_INSUFFICIENT",
           environment: input.environment,
           environmentEpoch: input.environmentEpoch,
           instrument,
           timeframes,
-          inputFingerprint: evidenceBuild.evidence?.fingerprint ?? "none",
-          provider: "OPENAI",
-          modelRequested: model,
+          primaryTimeframe,
+          fingerprint: evidenceBuild.evidence?.fingerprint ?? "none",
+          model,
           modelUsed: null,
-          directionalBias: "UNKNOWN",
-          trendState: "UNKNOWN",
-          trendStrength: "UNKNOWN",
-          mtfAgreement: "INSUFFICIENT",
-          keyEvidence: [],
-          counterEvidence: [],
-          supportLevels: [],
-          resistanceLevels: [],
-          patterns: [],
-          structureNotes: [],
-          scenarios: [],
-          explanation: evidenceBuild.message,
-          dataQuality: "INSUFFICIENT",
-          limitations: [evidenceBuild.message],
-          blockers: [{ code: evidenceBuild.code, message: evidenceBuild.message }],
-          confidenceLabel: AT_CONFIDENCE_LABEL,
-          evidenceScoreIsWinProbability: false,
-          createdAtUtc: new Date().toISOString(),
-          latencyMs: Date.now() - started,
-          placesOrders: false,
+          visionEligible,
+          trigger: input.trigger,
+          monitorConfigEpoch: input.monitorConfigEpoch,
+          chartImage: chartMeta,
+          lifecycle: "DATA_INSUFFICIENT",
+          message: evidenceBuild.message,
+          code: evidenceBuild.code,
           historicalOnly: true,
-        };
+          dataQuality: "INSUFFICIENT",
+          started,
+        });
         await this.store().save(failed);
         return { ok: false, code: evidenceBuild.code, message: evidenceBuild.message, analysis: failed };
       }
@@ -252,58 +403,68 @@ export class AtOpenAiAnalysisEngine {
       const evidence = evidenceBuild.evidence;
       const gate = getOpenAiInferenceGate();
       const timeoutMs = clampTimeout(input.timeoutMs);
-      const payload = evidenceForModelPrompt(evidence, candlesByTf);
+      const payload = {
+        ...evidenceForModelPrompt(evidence, candlesByTf),
+        primaryTimeframe,
+        trigger: input.trigger,
+        chartImageMeta: chartMeta
+          ? {
+              available: chartMeta.available,
+              imageHash: chartMeta.imageHash,
+              capturedAtUtc: chartMeta.capturedAtUtc,
+              source: chartMeta.source,
+              note: chartMeta.note,
+            }
+          : null,
+      };
 
-      const chatResult = await gate.runExclusive(`at-ta:${evidence.fingerprint}`, () =>
-        this.chat()({
+      const useMultimodal = Boolean(input.chartImage?.base64) && visionEligible;
+      if (chartMeta && useMultimodal) chartMeta.includedInOpenAiRequest = true;
+
+      const chatResult = await gate.runExclusive(`at-ta:${evidence.fingerprint}:${input.trigger}`, () => {
+        if (useMultimodal && input.chartImage) {
+          return this.chatMultimodal()({
+            apiKey,
+            model,
+            system: buildAtOpenAiSystemPrompt({ withChartImage: true }),
+            userText: buildAtOpenAiUserPrompt(payload),
+            images: [{ mimeType: input.chartImage.mimeType, base64: input.chartImage.base64 }],
+            timeoutMs,
+            temperature: 0.1,
+          });
+        }
+        return this.chat()({
           apiKey,
           model,
-          system: buildAtOpenAiSystemPrompt(),
+          system: buildAtOpenAiSystemPrompt({ withChartImage: false }),
           user: buildAtOpenAiUserPrompt(payload),
           timeoutMs,
           temperature: 0.1,
-        }),
-      );
+        });
+      });
 
       if (!chatResult.ok || !chatResult.data) {
-        const failed: AtOpenAiAnalysisResult = {
-          schemaVersion: AT_OPENAI_ANALYSIS_SCHEMA,
-          phase: AT_OPENAI_ANALYSIS_PHASE,
+        const failed = baseFailed({
           analysisId: randomUUID(),
-          lifecycle: "ANALYSIS_FAILED",
           environment: input.environment,
           environmentEpoch: input.environmentEpoch,
           instrument,
           timeframes,
-          inputFingerprint: evidence.fingerprint,
-          provider: "OPENAI",
-          modelRequested: model,
+          primaryTimeframe,
+          fingerprint: evidence.fingerprint,
+          model,
           modelUsed: chatResult.model,
-          directionalBias: "UNKNOWN",
-          trendState: "UNKNOWN",
-          trendStrength: "UNKNOWN",
-          mtfAgreement: "UNKNOWN",
-          keyEvidence: [],
-          counterEvidence: [],
-          supportLevels: [],
-          resistanceLevels: [],
-          patterns: [],
-          structureNotes: [],
-          scenarios: [],
-          explanation: chatResult.error ?? "OpenAI analysis failed.",
-          dataQuality: evidence.historicalOnly ? "HISTORICAL_ONLY" : "PARTIAL",
-          limitations: [chatResult.error ?? "provider error"],
-          blockers: [{
-            code: chatResult.code,
-            message: chatResult.error ?? "OpenAI analysis failed.",
-          }],
-          confidenceLabel: AT_CONFIDENCE_LABEL,
-          evidenceScoreIsWinProbability: false,
-          createdAtUtc: new Date().toISOString(),
-          latencyMs: Date.now() - started,
-          placesOrders: false,
+          visionEligible,
+          trigger: input.trigger,
+          monitorConfigEpoch: input.monitorConfigEpoch,
+          chartImage: chartMeta,
+          lifecycle: "ANALYSIS_FAILED",
+          message: chatResult.error ?? "OpenAI analysis failed.",
+          code: chatResult.code,
           historicalOnly: evidence.historicalOnly,
-        };
+          dataQuality: evidence.historicalOnly ? "HISTORICAL_ONLY" : "PARTIAL",
+          started,
+        });
         await this.store().save(failed);
         return {
           ok: false,
@@ -320,15 +481,46 @@ export class AtOpenAiAnalysisEngine {
         environmentEpoch: input.environmentEpoch,
         instrument,
         timeframes,
+        primaryTimeframe,
         inputFingerprint: evidence.fingerprint,
         modelRequested: model,
         modelUsed: chatResult.model,
+        modelVisionEligible: visionEligible,
+        trigger: input.trigger,
+        monitorConfigEpoch: input.monitorConfigEpoch,
+        chartImage: chartMeta,
         candlesByTf,
         historicalOnly: evidence.historicalOnly,
         createdAtUtc: new Date().toISOString(),
         latencyMs: Date.now() - started,
       });
 
+      // Stale / out-of-order guard: do not let an older fingerprint become "latest"
+      // if a newer successful analysis already landed.
+      if (
+        this.latestSuccessFingerprint
+        && this.latestSuccessAtMs > started
+        && result.inputFingerprint !== this.latestSuccessFingerprint
+      ) {
+        const stale = {
+          ...result,
+          lifecycle: "STALE_RESULT" as const,
+          blockers: [
+            ...result.blockers,
+            {
+              code: "OUT_OF_ORDER_RESULT",
+              message: "Result completed after a newer analysis — marked STALE_RESULT.",
+            },
+          ],
+        };
+        await this.store().save(stale);
+        return { ok: true, analysis: stale };
+      }
+
+      if (result.lifecycle === "ANALYSIS_VALID") {
+        this.latestSuccessFingerprint = result.inputFingerprint;
+        this.latestSuccessAtMs = Date.now();
+      }
       await this.store().save(result);
       return { ok: true, analysis: result };
     } catch (err) {
