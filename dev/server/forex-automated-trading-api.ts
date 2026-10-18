@@ -1,5 +1,5 @@
 /**
- * Phase 51/52 — Automated Trading configuration, status & verification API.
+ * Phase 51–53 — Automated Trading configuration, verification & OpenAI TA API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -254,6 +254,106 @@ export async function handleForexAutomatedTradingApi(
       }
       sendJson(res, 200, { ok: true, status: result.status, placesOrders: false });
       return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/openai/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const openai = await service.getOpenAiAnalysisStatus();
+      sendJson(res, 200, { ok: true, openai, placesOrders: false });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/openai/analyze")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.runOpenAiAnalysis({
+        environment: body.environment,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        timeframes: body.timeframes,
+        timeoutMs: body.timeoutMs,
+      });
+      if (!result.ok) {
+        const statusCode =
+          result.code === "STALE_EPOCH" || result.code === "ENVIRONMENT_MISMATCH"
+            ? 409
+            : result.code === "OPENAI_NOT_CONFIGURED" || result.code === "OPENAI_MODEL_INVALID"
+              ? 503
+              : result.code === "DATA_INSUFFICIENT" || result.code === "INSTRUMENT_NOT_SELECTED"
+                ? 422
+                : result.code === "ANALYSIS_IN_FLIGHT" || result.code === "AI_QUEUE_FULL"
+                  ? 429
+                  : 502;
+        sendJson(res, statusCode, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          analysis: result.analysis,
+          status: result.status,
+          placesOrders: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        analysis: result.analysis,
+        status: result.status,
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/openai/latest")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        analysis: service.getLatestOpenAiAnalysis(),
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/openai/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      sendJson(res, 200, {
+        ok: true,
+        history: service.listOpenAiAnalyses(Number.isFinite(limit) ? limit : 12),
+        placesOrders: false,
+      });
+      return true;
+    }
+
+    {
+      const match = url.pathname.match(/^\/api\/forex\/automated-trading\/openai\/([A-Za-z0-9_-]+)$/);
+      if (match && match[1] && !["status", "analyze", "latest", "history"].includes(match[1])) {
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        const analysis = service.getOpenAiAnalysis(match[1]);
+        if (!analysis) {
+          sendJson(res, 404, {
+            ok: false,
+            error: { code: "NOT_FOUND", message: "Analysis not found." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        sendJson(res, 200, { ok: true, analysis, placesOrders: false });
+        return true;
+      }
     }
 
     sendJson(res, 404, {

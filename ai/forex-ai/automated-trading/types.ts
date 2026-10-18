@@ -6,9 +6,9 @@ import type { AutomatedTradingVerificationResult } from "./verification-types.js
 export type { AutomatedTradingVerificationResult } from "./verification-types.js";
 
 export const AUTOMATED_TRADING_SCHEMA = "forex-automated-trading-v1";
-export const AUTOMATED_TRADING_PHASE = "52";
+export const AUTOMATED_TRADING_PHASE = "53";
 export const AUTOMATED_EXECUTION_BANNER =
-  "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";
+  "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53";
 
 export type AutomatedTradingEnvironment = "DEMO" | "LIVE";
 

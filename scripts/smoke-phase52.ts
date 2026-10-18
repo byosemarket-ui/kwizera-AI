@@ -17,7 +17,7 @@ function assert(cond: unknown, msg: string) {
   } else console.log("PASS:", msg);
 }
 
-assert(AUTOMATED_EXECUTION_BANNER.includes("PHASE 52"), "banner phase 52");
+assert(/PHASE 5[23]/.test(AUTOMATED_EXECUTION_BANNER), "banner phase 52+");
 assert(validateBidAsk(1.1, 1.2).ok === true, "valid bid/ask");
 assert(validateBidAsk(1.2, 1.1).ok === false, "reject inverted bid/ask");
 

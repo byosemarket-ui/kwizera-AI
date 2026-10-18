@@ -62,7 +62,7 @@ describe("Phase 51 store isolation & controls", () => {
     expect(status.controls.automatedExecutionEnabled).toBe(false);
     expect(status.placesOrders).toBe(false);
     expect(status.banner).toBe(AUTOMATED_EXECUTION_BANNER);
-    expect(status.blockers.some((b) => /PHASE 5[12]/i.test(b))).toBe(true);
+    expect(status.blockers.some((b) => /PHASE 5[123]/i.test(b))).toBe(true);
 
     resetAutomatedTradingServiceForTests();
     resetAutomatedTradingStoreForTests();
@@ -215,4 +215,4 @@ describe("Phase 51.1 UI polish contracts", () => {
   });
 });
 
-const BANNER_FRAGMENT = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";
+const BANNER_FRAGMENT = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53";

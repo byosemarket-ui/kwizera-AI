@@ -7,7 +7,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 52";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53";
 
 type Env = "DEMO" | "LIVE";
 
@@ -183,6 +183,16 @@ export function ForexAutomatedTradingPage(props: {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pendingEnv, setPendingEnv] = useState<Env | null>(null);
+  const [openaiStatus, setOpenaiStatus] = useState<{
+    provider: "OPENAI";
+    modelConfigured: string | null;
+    apiKeyConfigured: boolean;
+    latest: Record<string, unknown> | null;
+    historyCount: number;
+    inFlight: boolean;
+  } | null>(null);
+  const [analysisHistory, setAnalysisHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -192,9 +202,11 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/openai/history?limit=6", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -202,6 +214,8 @@ export function ForexAutomatedTradingPage(props: {
         error?: { message?: string; code?: string };
       };
       const auJson = await auRes.json() as { ok?: boolean; events?: AuditEvent[] };
+      const oaJson = await oaRes.json() as { ok?: boolean; openai?: typeof openaiStatus };
+      const histJson = await histRes.json() as { ok?: boolean; history?: Array<Record<string, unknown>> };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -210,6 +224,10 @@ export function ForexAutomatedTradingPage(props: {
       }
       setStatus(stJson.status);
       setAudit(Array.isArray(auJson.events) ? auJson.events : []);
+      if (oaRes.ok && oaJson.ok && oaJson.openai) setOpenaiStatus(oaJson.openai);
+      if (histRes.ok && histJson.ok && Array.isArray(histJson.history)) {
+        setAnalysisHistory(histJson.history);
+      }
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -299,6 +317,43 @@ export function ForexAutomatedTradingPage(props: {
       instrument: instrument || undefined,
       timeframe: props.timeframe || "m1",
     });
+  };
+
+  const runOpenAiAnalysis = async () => {
+    if (!status || analysisBusy) return;
+    setAnalysisBusy(true);
+    setError(null);
+    try {
+      const instrument =
+        shellInstrument
+        ?? status.selectedEnvState?.selectedInstrument
+        ?? status.verification?.instrument.symbol
+        ?? null;
+      const res = await fetch("/api/forex/automated-trading/openai/analyze", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          environment: status.selectedEnvironment,
+          expectedEnvironmentEpoch: status.environmentEpoch,
+          instrument: instrument || undefined,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        analysis?: Record<string, unknown>;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Analysis failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "OpenAI analysis failed");
+    } finally {
+      setAnalysisBusy(false);
+    }
   };
 
   const blockers = useMemo(
@@ -582,6 +637,166 @@ export function ForexAutomatedTradingPage(props: {
             ) : null}
           </section>
 
+          <section className="fx-auto-trading-panel" aria-label="Technical analysis" data-fx-at-openai-ta="true">
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Technical analysis (OpenAI)</h2>
+              <button
+                type="button"
+                className="fx-capture-button"
+                disabled={busy || analysisBusy || !status}
+                onClick={() => void runOpenAiAnalysis()}
+                data-fx-at-run-openai="true"
+              >
+                {analysisBusy ? "Analyzing…" : "Run OpenAI Analysis"}
+              </button>
+            </div>
+            <p className="fx-auto-trading-hint">
+              Independent AT engine — not Forex AI Analysis history. Deliberate run only. Confidence: NOT CALIBRATED.
+            </p>
+            <dl className="fx-auto-config-grid">
+              <div>
+                <dt>Provider</dt>
+                <dd>OpenAI</dd>
+              </div>
+              <div>
+                <dt>Model</dt>
+                <dd>{openaiStatus?.modelConfigured ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>API key</dt>
+                <dd>{openaiStatus?.apiKeyConfigured ? "configured" : "missing"}</dd>
+              </div>
+              <div>
+                <dt>In flight</dt>
+                <dd>{openaiStatus?.inFlight || analysisBusy ? "yes" : "no"}</dd>
+              </div>
+            </dl>
+            {(() => {
+              const latest = (openaiStatus?.latest ?? null) as null | {
+                lifecycle?: string;
+                directionalBias?: string;
+                trendState?: string;
+                mtfAgreement?: string;
+                explanation?: string;
+                inputFingerprint?: string;
+                modelUsed?: string | null;
+                createdAtUtc?: string;
+                dataQuality?: string;
+                confidenceLabel?: string;
+                historicalOnly?: boolean;
+                keyEvidence?: string[];
+                counterEvidence?: string[];
+                supportLevels?: Array<{ price: number | null; provenance: string | null; verifiedAgainstSnapshot: boolean }>;
+                resistanceLevels?: Array<{ price: number | null; provenance: string | null; verifiedAgainstSnapshot: boolean }>;
+                scenarios?: Array<{ id: string; summary: string; confirmationConditions?: string[]; invalidationConditions?: string[] }>;
+                limitations?: string[];
+                blockers?: Array<{ code: string; message: string }>;
+                instrument?: string;
+                environment?: string;
+              };
+              if (!latest) {
+                return <p className="fx-auto-trading-hint">No AT OpenAI analysis yet. Verify market context, then run analysis.</p>;
+              }
+              return (
+                <div className="fx-auto-ta-result" data-fx-at-openai-result="true">
+                  <div className="fx-auto-trading-summary fx-auto-verify-grid">
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Status</span>
+                      <ForexStatusBadge tone={statusTone(String(latest.lifecycle ?? ""))}>
+                        {latest.lifecycle ?? "—"}
+                      </ForexStatusBadge>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Bias</span>
+                      <span>{latest.directionalBias ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Trend</span>
+                      <span>{latest.trendState ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">MTF</span>
+                      <span>{latest.mtfAgreement ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Model used</span>
+                      <span>{latest.modelUsed ?? openaiStatus?.modelConfigured ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Fingerprint</span>
+                      <span className="fx-auto-summary-value">{latest.inputFingerprint ?? "—"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Data quality</span>
+                      <span>{latest.dataQuality ?? "—"}{latest.historicalOnly ? " · historical-only" : ""}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Confidence</span>
+                      <span>{latest.confidenceLabel ?? "NOT CALIBRATED"}</span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">When</span>
+                      <span>{latest.createdAtUtc ?? "—"}</span>
+                    </div>
+                  </div>
+                  {latest.explanation ? <p className="fx-auto-trading-hint">{latest.explanation}</p> : null}
+                  {latest.keyEvidence && latest.keyEvidence.length > 0 ? (
+                    <ul className="fx-auto-trading-blockers" aria-label="Key evidence">
+                      {latest.keyEvidence.slice(0, 5).map((e) => <li key={e}>+ {e}</li>)}
+                    </ul>
+                  ) : null}
+                  {latest.counterEvidence && latest.counterEvidence.length > 0 ? (
+                    <ul className="fx-auto-trading-blockers" aria-label="Counter evidence">
+                      {latest.counterEvidence.slice(0, 4).map((e) => <li key={e}>− {e}</li>)}
+                    </ul>
+                  ) : null}
+                  {(latest.supportLevels?.length || latest.resistanceLevels?.length) ? (
+                    <ul className="fx-auto-trading-blockers" aria-label="Levels">
+                      {(latest.supportLevels ?? []).filter((l) => l.verifiedAgainstSnapshot && l.price != null).slice(0, 3).map((l) => (
+                        <li key={`s-${l.price}`}>S {l.price} · {l.provenance ?? "snapshot"}</li>
+                      ))}
+                      {(latest.resistanceLevels ?? []).filter((l) => l.verifiedAgainstSnapshot && l.price != null).slice(0, 3).map((l) => (
+                        <li key={`r-${l.price}`}>R {l.price} · {l.provenance ?? "snapshot"}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {latest.scenarios?.slice(0, 2).map((sc) => (
+                    <div key={sc.id} className="fx-auto-ta-scenario">
+                      <strong>{sc.id}</strong>
+                      <p className="fx-auto-trading-hint">{sc.summary}</p>
+                    </div>
+                  ))}
+                  {latest.blockers && latest.blockers.length > 0 ? (
+                    <ul className="fx-auto-trading-blockers" aria-label="Analysis blockers">
+                      {latest.blockers
+                        .filter((b) => b.code !== "EXECUTION_NOT_IMPLEMENTED" && b.code !== "RISK_NOT_IMPLEMENTED")
+                        .slice(0, 5)
+                        .map((b) => <li key={`${b.code}:${b.message}`}>{b.code}: {b.message}</li>)}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })()}
+            {analysisHistory.length > 0 ? (
+              <>
+                <h3 className="fx-auto-trading-h3">AT analysis history</h3>
+                <ul className="fx-auto-audit-list">
+                  {analysisHistory.slice(0, 6).map((h) => (
+                    <li key={String(h.analysisId)}>
+                      <time dateTime={String(h.createdAtUtc ?? "")}>
+                        {String(h.createdAtUtc ?? "").slice(11, 19)}Z
+                      </time>
+                      <span>
+                        {String(h.directionalBias ?? "—")} · {String(h.lifecycle ?? "")}
+                        {h.modelUsed ? ` · ${String(h.modelUsed)}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </section>
+
           <section className="fx-auto-trading-panel" aria-label="Trading controls">
             <div className="fx-auto-trading-panel-head">
               <h2 className="fx-auto-trading-h2">Controls</h2>
@@ -648,7 +863,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 52)</dd>
+                <dd>disabled (Phase 53)</dd>
               </div>
             </dl>
             <h3 className="fx-auto-trading-h3">Recent audit</h3>

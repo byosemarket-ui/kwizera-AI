@@ -7,6 +7,11 @@ import { getForexConnectBridge } from "../../market-data/forexconnect/client.js"
 import { getForexConnectLiveCandleService } from "../../market-data/forexconnect/live-service.js";
 import { getAutomatedTradingStore, type AutomatedTradingStore } from "./store.js";
 import {
+  getAtOpenAiAnalysisEngine,
+  type AtOpenAiAnalysisEngine,
+  type AtOpenAiAnalysisResult,
+} from "./analysis/index.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -25,7 +30,10 @@ import {
 } from "./types.js";
 
 export class AutomatedTradingService {
-  constructor(private readonly store: AutomatedTradingStore = getAutomatedTradingStore()) {}
+  constructor(
+    private readonly store: AutomatedTradingStore = getAutomatedTradingStore(),
+    private readonly analysisEngine: AtOpenAiAnalysisEngine = getAtOpenAiAnalysisEngine(),
+  ) {}
 
   async buildStatus(): Promise<AutomatedTradingPublicStatus> {
     const state = this.store.getState();
@@ -123,7 +131,7 @@ export class AutomatedTradingService {
     // Hard safety blockers — execution never enabled in Phase 52.
     blockers.push(AUTOMATED_EXECUTION_BANNER);
     if (selected === "LIVE") {
-      blockers.push("LIVE execution is disabled throughout Phase 52.");
+      blockers.push("LIVE execution is disabled throughout Phase 53.");
     }
     if (envState.controls.emergencyEntryLock) {
       blockers.push("Emergency entry lock is ON — future automated entries are blocked.");
@@ -736,6 +744,102 @@ export class AutomatedTradingService {
     return state.environments[state.selectedEnvironment].lastVerification;
   }
 
+  async getOpenAiAnalysisStatus() {
+    return this.analysisEngine.providerStatus();
+  }
+
+  getLatestOpenAiAnalysis(): AtOpenAiAnalysisResult | null {
+    return this.analysisEngine.getLatest();
+  }
+
+  getOpenAiAnalysis(id: string): AtOpenAiAnalysisResult | null {
+    return this.analysisEngine.getById(id);
+  }
+
+  listOpenAiAnalyses(limit = 12): AtOpenAiAnalysisResult[] {
+    return this.analysisEngine.listHistory(limit);
+  }
+
+  /**
+   * Phase 53 — deliberate OpenAI technical analysis (no auto-poll, no Local AI fallback).
+   */
+  async runOpenAiAnalysis(input: {
+    environment?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    timeframes?: unknown;
+    timeoutMs?: unknown;
+  }): Promise<
+    | { ok: true; analysis: AtOpenAiAnalysisResult; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; analysis: AtOpenAiAnalysisResult | null; status: AutomatedTradingPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env =
+      parseAutomatedTradingEnvironment(input.environment) ?? state.selectedEnvironment;
+    if (env !== state.selectedEnvironment) {
+      return {
+        ok: false,
+        code: "ENVIRONMENT_MISMATCH",
+        message: `Analysis for ${env} rejected while selection is ${state.selectedEnvironment}.`,
+        analysis: null,
+        status: await this.buildStatus(),
+      };
+    }
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        analysis: null,
+        status: await this.buildStatus(),
+      };
+    }
+
+    const envState = state.environments[env];
+    const instrument = String(input.instrument ?? envState.selectedInstrument ?? "").trim();
+    const timeframes = Array.isArray(input.timeframes)
+      ? input.timeframes.map((t) => String(t))
+      : undefined;
+
+    const result = await this.analysisEngine.analyze({
+      environment: env,
+      environmentEpoch: state.environmentEpoch,
+      instrument,
+      timeframes,
+      verification: envState.lastVerification,
+      timeoutMs: input.timeoutMs,
+    });
+
+    await this.store.appendAudit({
+      action: result.ok ? "openai_analysis_completed" : "openai_analysis_failed",
+      environment: env,
+      ok: result.ok,
+      code: result.ok ? result.analysis.lifecycle : result.code,
+      detail: result.ok
+        ? `OpenAI ${result.analysis.modelUsed ?? result.analysis.modelRequested} · ${result.analysis.directionalBias}`
+        : result.message.slice(0, 160),
+    });
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        code: result.code,
+        message: result.message,
+        analysis: result.analysis,
+        status: await this.buildStatus(),
+      };
+    }
+    return {
+      ok: true,
+      analysis: result.analysis,
+      status: await this.buildStatus(),
+    };
+  }
+
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }
@@ -744,7 +848,12 @@ export class AutomatedTradingService {
 let serviceSingleton: AutomatedTradingService | null = null;
 
 export function getAutomatedTradingService(storageRoot?: string): AutomatedTradingService {
-  if (storageRoot) return new AutomatedTradingService(getAutomatedTradingStore(storageRoot));
+  if (storageRoot) {
+    return new AutomatedTradingService(
+      getAutomatedTradingStore(storageRoot),
+      getAtOpenAiAnalysisEngine(storageRoot),
+    );
+  }
   if (!serviceSingleton) serviceSingleton = new AutomatedTradingService();
   return serviceSingleton;
 }
