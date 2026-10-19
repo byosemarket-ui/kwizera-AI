@@ -291,7 +291,9 @@ describe("Phase 52 static contracts", () => {
     expect(read("ai/forex-ai/automated-trading/service.ts")).not.toMatch(
       /placeOrder|submitOrder|createOrder|closePosition/,
     );
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5[23](\.\d+)?/);
+    // Banner tracks the current AT phase (52+). Execution remains unimplemented.
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5[2-9](\.\d+)?/);
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/NOT IMPLEMENTED/i);
     expect(read("desktop/forex/ForexAutomatedTradingPage.tsx")).toContain("data-fx-at-verification");
     expect(read("desktop/forex/ForexAutomatedTradingPage.tsx")).toContain("data-fx-at-readiness");
     expect(read("desktop/forex/ForexShell.tsx")).toContain("ForexAutomatedTradingPage");
