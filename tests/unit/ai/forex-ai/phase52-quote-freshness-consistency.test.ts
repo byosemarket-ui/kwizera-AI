@@ -199,6 +199,24 @@ describe("canonical quote freshness contract", () => {
     expect(ev.reasonCode).toBe("LIVE_FRESH");
   });
 
+  it("does not override a fresh price-change age with an old broker source timestamp", () => {
+    const now = Date.now();
+    const v = sample({
+      verifiedAtUtc: new Date(now).toISOString(),
+      market: {
+        ...sample().market,
+        sourceTimestampMs: now - 120_000,
+        priceChangeAgeMs: 800,
+        receiptAgeMs: 300,
+        updateCount: 11,
+        feedStatus: "LIVE",
+      },
+    });
+    const ev = evaluateVerificationQuoteFreshness(v, { nowMs: now });
+    expect(ev.fresh).toBe(true);
+    expect(ev.reasonCode).toBe("LIVE_FRESH");
+  });
+
   it("withEvaluatedMarketReadiness flips PASS Market data when snapshot ages out", () => {
     const verifiedAt = Date.now() - 30_000;
     const v = sample({

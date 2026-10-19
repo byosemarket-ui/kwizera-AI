@@ -212,10 +212,13 @@ export function evaluateVerificationQuoteFreshness(
       ? common.receiptAgeMsAtSnapshot + verificationAgeMs
       : null;
 
-  // Only apply absolute source-age rejection when the value looks like epoch milliseconds.
-  // Second-based timestamps must not be misread as ancient ms values.
+  // Absolute source-age is a fallback only when genuine price-change age is unknown.
+  // Broker source timestamps may lag Bid/Ask change clocks; do not override a fresh
+  // priceChangeAge with SOURCE_TIMESTAMP_TOO_OLD. Second-based values are ignored
+  // (must look like epoch milliseconds).
   if (
-    common.sourceTimestampMs != null
+    effectivePriceChangeAgeMs == null
+    && common.sourceTimestampMs != null
     && common.sourceTimestampMs > 1e12
     && nowMs - common.sourceTimestampMs > staleMs * 4
   ) {
