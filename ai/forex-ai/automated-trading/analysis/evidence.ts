@@ -192,7 +192,9 @@ export function evidenceForModelPrompt(
     series,
     warnings: evidence.warnings,
     note:
-      "Use only supplied OHLC and quote fields. Do not invent prices, timestamps, swings, or patterns "
-      + "not supported by this evidence. Do not claim news or web research.",
+      "Structured OHLC and quote numbers in this JSON are the authoritative absolute prices. "
+      + "Do not invent prices, timestamps, swings, or patterns not supported by this evidence. "
+      + "Do not infer absolute prices from chart pixel positions or relative candle heights. "
+      + "Do not claim news or web research.",
   };
 }

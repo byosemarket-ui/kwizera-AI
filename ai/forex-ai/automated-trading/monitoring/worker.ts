@@ -558,12 +558,21 @@ export class AtMonitorWorker {
       }
 
       const envEpoch = this.deps.getEnvironmentEpoch?.() ?? 0;
+      // Same candle snapshot for chart PNG and OpenAI evidence — never re-fetch between them.
+      const evidenceCandles = input.candles.map((c) => ({
+        time: c.time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }));
       const result = await this.engine.analyzeWithChart({
         environment: input.config.environment,
         environmentEpoch: envEpoch,
         instrument: input.config.instrument,
         primaryTimeframe: tf,
         timeframes: [tf],
+        candlesByTf: { [tf]: evidenceCandles },
         verification: input.verification,
         timeoutMs: input.timeoutMs,
         trigger: input.trigger,

@@ -18,9 +18,10 @@ export function buildAtOpenAiSystemPrompt(opts?: { withChartImage?: boolean }): 
   ];
   if (opts?.withChartImage) {
     base.push(
-      "A server-rendered candlestick chart image is attached. Use it together with the OHLC/quote JSON.",
+      "A server-rendered candlestick chart image is attached for structure/pattern context only.",
+      "Absolute prices MUST come from the EVIDENCE JSON series and quote fields — never from estimating chart pixel heights.",
       "Identify the selected instrument, timeframe, and observation time from the evidence.",
-      "If the image and numeric evidence conflict, prefer the numeric OHLC and report the conflict in limitations.",
+      "If the image and numeric evidence conflict, prefer the numeric OHLC/quote JSON and report the conflict in limitations.",
     );
   } else {
     base.push(
@@ -49,6 +50,7 @@ export function buildAtOpenAiUserPrompt(evidencePayload: Record<string, unknown>
     "dataQuality (SUFFICIENT|PARTIAL|HISTORICAL_ONLY|INSUFFICIENT|STALE_QUOTE),",
     "limitations (string[]), explanation (string) — include principal evidence for the BUY/SELL choice and confidence drivers.",
     "Price levels MUST reference prices present in the supplied series (or verified quote).",
+    "Do not invent absolute prices from the chart image; the JSON OHLC/quote values are authoritative.",
     "",
     "EVIDENCE:",
     JSON.stringify(evidencePayload),

@@ -196,7 +196,8 @@ export function renderAtMarketChartPng(
 
   const width = Math.max(320, Math.min(960, input.width ?? 640));
   const height = Math.max(200, Math.min(540, input.height ?? 360));
-  const padL = 8;
+  // Left pad reserved for absolute price labels (numeric OHLC scale — not normalized 0–1).
+  const padL = 56;
   const padR = 8;
   const padT = 28;
   const padB = 18;
@@ -214,6 +215,14 @@ export function renderAtMarketChartPng(
   }
   const span = max - min || 1;
   const yFor = (price: number) => padT + (1 - (price - min) / span) * chartH;
+  const formatAxisPrice = (p: number): string => {
+    const a = Math.abs(p);
+    if (a >= 1000) return p.toFixed(1);
+    if (a >= 100) return p.toFixed(2);
+    if (a >= 10) return p.toFixed(3);
+    if (a >= 1) return p.toFixed(4);
+    return p.toFixed(5);
+  };
 
   const rgba = Buffer.alloc(width * height * 4, 0);
   fillRect(rgba, width, 0, 0, width, height, 18, 22, 28);
@@ -246,6 +255,10 @@ export function renderAtMarketChartPng(
 
   const title = `${input.instrument} ${input.timeframeLabel}`.slice(0, 40);
   drawText(rgba, width, padL, 8, title, 200, 210, 220);
+  const mid = (min + max) / 2;
+  drawText(rgba, width, 2, padT - 2, formatAxisPrice(max), 160, 170, 180);
+  drawText(rgba, width, 2, padT + chartH / 2 - 3, formatAxisPrice(mid), 160, 170, 180);
+  drawText(rgba, width, 2, padT + chartH - 8, formatAxisPrice(min), 160, 170, 180);
   const obs = `OBS ${input.observationUtc.slice(0, 19)}Z SERVER-OHLC`.slice(0, 52);
   drawText(rgba, width, padL, height - 12, obs, 140, 150, 160);
 

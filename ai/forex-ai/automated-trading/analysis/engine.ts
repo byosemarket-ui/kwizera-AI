@@ -26,6 +26,10 @@ import {
 } from "./evidence.js";
 import { resolveAtForecastHorizon } from "./direction.js";
 import { buildAtOpenAiSystemPrompt, buildAtOpenAiUserPrompt } from "./prompts.js";
+import {
+  assertQuoteCandlePriceScale,
+  primaryCandlesFromMap,
+} from "./price-consistency.js";
 import { getAtOpenAiAnalysisStore, type AtOpenAiAnalysisStore } from "./store.js";
 import type {
   AtChartImageMeta,
@@ -260,6 +264,12 @@ export class AtOpenAiAnalysisEngine {
     instrument: string;
     primaryTimeframe?: string | null;
     timeframes?: string[];
+    /**
+     * Optional pre-loaded candles keyed by project timeframe.
+     * When provided for a TF, that snapshot is used for evidence (and must match the chart).
+     * Monitor paths pass the same candles used to render the chart image.
+     */
+    candlesByTf?: Record<string, AtRawCandle[]>;
     verification: AutomatedTradingVerificationResult | null;
     timeoutMs?: unknown;
     trigger: "scheduled" | "manual" | "legacy";
@@ -360,7 +370,14 @@ export class AtOpenAiAnalysisEngine {
     this.inFlight = true;
     try {
       const candlesByTf: Record<string, AtRawCandle[]> = {};
+      const supplied = input.candlesByTf ?? {};
       for (const tf of timeframes) {
+        const pre = supplied[tf];
+        if (Array.isArray(pre) && pre.length > 0) {
+          // Same observation snapshot as the chart (monitor path) — do not re-fetch.
+          candlesByTf[tf] = pre;
+          continue;
+        }
         try {
           candlesByTf[tf] = await this.loadCandles(instrument, tf);
         } catch {
@@ -419,8 +436,79 @@ export class AtOpenAiAnalysisEngine {
       }
 
       const evidence = evidenceBuild.evidence;
+      const primaryCandles = primaryCandlesFromMap(candlesByTf, primaryTimeframe);
+      const scaleCheck = assertQuoteCandlePriceScale({
+        bid: evidence.bid,
+        ask: evidence.ask,
+        quoteFresh: evidence.quoteFresh,
+        candles: primaryCandles,
+      });
+      if (!scaleCheck.ok) {
+        const failed = baseFailed({
+          analysisId: randomUUID(),
+          environment: input.environment,
+          environmentEpoch: input.environmentEpoch,
+          instrument,
+          timeframes,
+          primaryTimeframe,
+          fingerprint: evidence.fingerprint,
+          model,
+          modelUsed: null,
+          visionEligible,
+          trigger: input.trigger,
+          monitorConfigEpoch: input.monitorConfigEpoch,
+          chartImage: chartMeta,
+          lifecycle: "DATA_INSUFFICIENT",
+          message: scaleCheck.message,
+          code: scaleCheck.code,
+          historicalOnly: evidence.historicalOnly,
+          dataQuality: "INSUFFICIENT",
+          started,
+        });
+        await this.store().save(failed);
+        return { ok: false, code: scaleCheck.code, message: scaleCheck.message, analysis: failed };
+      }
+
       if (chartMeta) {
-        chartMeta.marketDataFingerprint = chartMeta.marketDataFingerprint ?? evidence.fingerprint;
+        // Bind chart to the evidence fingerprint built from the same candle snapshot.
+        if (
+          chartMeta.marketDataFingerprint
+          && chartMeta.marketDataFingerprint !== evidence.fingerprint
+        ) {
+          const failed = baseFailed({
+            analysisId: randomUUID(),
+            environment: input.environment,
+            environmentEpoch: input.environmentEpoch,
+            instrument,
+            timeframes,
+            primaryTimeframe,
+            fingerprint: evidence.fingerprint,
+            model,
+            modelUsed: null,
+            visionEligible,
+            trigger: input.trigger,
+            monitorConfigEpoch: input.monitorConfigEpoch,
+            chartImage: {
+              ...chartMeta,
+              blocker: "MARKET_EVIDENCE_INCONSISTENT",
+            },
+            lifecycle: "DATA_INSUFFICIENT",
+            message:
+              "Chart marketDataFingerprint does not match the evidence fingerprint for this analysis.",
+            code: "MARKET_EVIDENCE_INCONSISTENT",
+            historicalOnly: evidence.historicalOnly,
+            dataQuality: "INSUFFICIENT",
+            started,
+          });
+          await this.store().save(failed);
+          return {
+            ok: false,
+            code: "MARKET_EVIDENCE_INCONSISTENT",
+            message: failed.explanation,
+            analysis: failed,
+          };
+        }
+        chartMeta.marketDataFingerprint = evidence.fingerprint;
         const primarySummary = evidence.candles.find((c) => c.timeframe === primaryTimeframe)
           ?? evidence.candles[0];
         chartMeta.evidenceWindowStartUtc = primarySummary?.firstTimeUtc ?? null;
