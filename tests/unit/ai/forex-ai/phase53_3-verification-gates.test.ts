@@ -129,4 +129,25 @@ describe("Phase 52 verification gates for monitor/decision", () => {
       ),
     ).toBe(false);
   });
+
+  it("does not treat heartbeat receipt/source as a last quote price change", () => {
+    const heartbeatOnly = sample({
+      market: {
+        ...sample().market,
+        feedStatus: "SUBSCRIBING",
+        priceChangeAgeMs: null,
+        receiptAgeMs: 200,
+        updateCount: 0,
+        sourceTimestampMs: Date.now() - 100,
+        receivedAtMs: Date.now(),
+      },
+      readiness: {
+        ...sample().readiness,
+        marketDataHealthVerified: false,
+        readyForFutureAnalysis: false,
+      },
+    });
+    expect(verificationLastQuoteChangeAtUtc(heartbeatOnly)).toBeNull();
+    expect(isVerificationMarketQuoteFresh(heartbeatOnly)).toBe(false);
+  });
 });

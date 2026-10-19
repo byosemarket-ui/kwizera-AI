@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
 import {
+  evaluateVerificationMarketQuoteFreshness,
   isVerificationAccountIdentityOk,
   isVerificationMarketQuoteFresh,
 } from "../verification-gates.js";
@@ -310,9 +311,13 @@ export function evaluateTradingDecision(input: AtDecisionEvaluateInput): AtDecis
       if (marketOk) {
         pass("QUOTE_FRESH", `Market feed LIVE with Bid/Ask (status=${verification.market.feedStatus}).`);
       } else {
+        const freshness = evaluateVerificationMarketQuoteFreshness(verification, {
+          nowMs,
+          expectedInstrument: input.selectedInstrument,
+        });
         fail(
           "STALE_QUOTES",
-          `Quotes are not LIVE with valid Bid/Ask (feedStatus=${verification.market.feedStatus}).`,
+          `Quotes not fresh (reason=${freshness.reasonCode}, feedStatus=${verification.market.feedStatus}).`,
         );
       }
       if (verification.readiness?.readyForTrading) {

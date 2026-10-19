@@ -45,18 +45,27 @@ export function evaluateVerificationMarketQuoteFreshness(
   return evaluateVerificationQuoteFreshness(verification, options);
 }
 
-/** Best-effort last genuine quote observation time from Phase 52 market fields. */
+/**
+ * Last genuine Bid/Ask *price change* time from Phase 52 market fields.
+ * Heartbeat receipts and seeded Offers snapshots must not appear as quote changes —
+ * that mislabels SUBSCRIBING / FEED_NOT_LIVE as if prices were still moving.
+ */
 export function verificationLastQuoteChangeAtUtc(
   verification: AutomatedTradingVerificationResult | null | undefined,
 ): string | null {
   const market = verification?.market;
   if (!market) return null;
-  // Prefer broker/source timestamp when present — do not substitute receipt for source silently.
-  if (typeof market.sourceTimestampMs === "number" && Number.isFinite(market.sourceTimestampMs)) {
-    return new Date(market.sourceTimestampMs).toISOString();
+  const verifiedAtMs = Date.parse(String(verification?.verifiedAtUtc ?? ""));
+  const priceChangeAgeMs = market.priceChangeAgeMs;
+  if (
+    Number.isFinite(verifiedAtMs)
+    && verifiedAtMs > 0
+    && typeof priceChangeAgeMs === "number"
+    && Number.isFinite(priceChangeAgeMs)
+    && priceChangeAgeMs >= 0
+  ) {
+    return new Date(verifiedAtMs - priceChangeAgeMs).toISOString();
   }
-  if (typeof market.receivedAtMs === "number" && Number.isFinite(market.receivedAtMs)) {
-    return new Date(market.receivedAtMs).toISOString();
-  }
-  return verification?.verifiedAtUtc ?? null;
+  // No genuine price-change clock — do not fall back to receipt/source heartbeats.
+  return null;
 }

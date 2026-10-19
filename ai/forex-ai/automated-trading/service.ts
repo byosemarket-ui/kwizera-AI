@@ -844,16 +844,23 @@ export class AutomatedTradingService {
           const series = await live.ensure(instrumentSymbol, tf);
           const latest = live.getLatestQuoteState(instrumentSymbol);
           const now = Date.now();
+          // Never treat receipt/heartbeat age as priceChangeAge — that conflation
+          // can mislabel SUBSCRIBED_WAITING diagnostics as if Bid/Ask were moving.
+          const priceChangeAgeMs =
+            latest?.lastPriceChangeAtMs != null
+              ? Math.max(0, now - latest.lastPriceChangeAtMs)
+              : null;
           const receiptAgeMs =
-            latest?.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : series.lastQuoteAgeMs;
+            latest?.lastQuoteAtMs != null
+              ? Math.max(0, now - latest.lastQuoteAtMs)
+              : null;
           marketInput = {
             bid: latest?.quote.bid ?? null,
             ask: latest?.quote.ask ?? null,
             streamState: latest?.streamState ?? series.streamState,
             sourceTimestampMs: latest?.quote.sourceTimestampMs ?? null,
             receivedAtMs: latest?.quote.receivedAtMs ?? null,
-            // series.lastQuoteAgeMs is honest price-change age used for LIVE gating.
-            priceChangeAgeMs: series.lastQuoteAgeMs,
+            priceChangeAgeMs,
             receiptAgeMs,
             updateCount: latest?.updateCount ?? series.updateCount,
             nowMs: now,

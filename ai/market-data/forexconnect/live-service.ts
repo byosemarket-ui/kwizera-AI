@@ -301,7 +301,10 @@ export class ForexConnectLiveCandleService {
   getLatestQuoteState(symbol: string): {
     quote: ForexConnectLiveQuote;
     streamState: ForexConnectLiveStreamState;
+    /** Last Offers receipt (includes same-price heartbeats). */
     lastQuoteAtMs: number | null;
+    /** Last genuine bid/ask change — null until a price change is applied. */
+    lastPriceChangeAtMs: number | null;
     updateCount: number;
   } | null {
     const compact = normalizeCanonicalSymbol(symbol);
@@ -316,6 +319,7 @@ export class ForexConnectLiveCandleService {
           quote: session.lastQuote,
           streamState: series.streamState,
           lastQuoteAtMs: session.lastQuoteAtMs,
+          lastPriceChangeAtMs: session.lastPriceChangeAtMs,
           updateCount: session.updateCount,
         };
       }
