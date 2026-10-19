@@ -180,6 +180,25 @@ describe("canonical quote freshness contract", () => {
     );
   });
 
+  it("does not treat unix-second source timestamps as ancient ms values", () => {
+    const now = Date.now();
+    const v = sample({
+      verifiedAtUtc: new Date(now).toISOString(),
+      market: {
+        ...sample().market,
+        // ForexConnect sometimes surfaces seconds; must not trip SOURCE_TIMESTAMP_TOO_OLD.
+        sourceTimestampMs: Math.floor(now / 1000),
+        priceChangeAgeMs: 400,
+        receiptAgeMs: 200,
+        updateCount: 9,
+        feedStatus: "LIVE",
+      },
+    });
+    const ev = evaluateVerificationQuoteFreshness(v, { nowMs: now });
+    expect(ev.fresh).toBe(true);
+    expect(ev.reasonCode).toBe("LIVE_FRESH");
+  });
+
   it("withEvaluatedMarketReadiness flips PASS Market data when snapshot ages out", () => {
     const verifiedAt = Date.now() - 30_000;
     const v = sample({

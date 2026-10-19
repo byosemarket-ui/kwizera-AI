@@ -212,11 +212,13 @@ export function evaluateVerificationQuoteFreshness(
       ? common.receiptAgeMsAtSnapshot + verificationAgeMs
       : null;
 
+  // Only apply absolute source-age rejection when the value looks like epoch milliseconds.
+  // Second-based timestamps must not be misread as ancient ms values.
   if (
     common.sourceTimestampMs != null
+    && common.sourceTimestampMs > 1e12
     && nowMs - common.sourceTimestampMs > staleMs * 4
   ) {
-    // Extremely old broker timestamps are fail-safe rejected even if ages were missing.
     return emptyEval(nowMs, staleMs, "SOURCE_TIMESTAMP_TOO_OLD", {
       ...common,
       verificationAgeMs,
