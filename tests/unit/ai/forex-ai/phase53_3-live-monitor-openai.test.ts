@@ -447,7 +447,7 @@ describe("Phase 53.3 static contracts & safety", () => {
   });
 
   it("registers monitor APIs, Phase 53.3 banner, no broker order paths, no Local AI", () => {
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.3");
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5[34](\.\d+)?/);
     const api = read("dev/server/forex-automated-trading-api.ts");
     expect(api).toContain("/api/forex/automated-trading/monitor/start");
     expect(api).toContain("/api/forex/automated-trading/monitor/stop");
@@ -469,7 +469,7 @@ describe("Phase 53.3 static contracts & safety", () => {
 
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-monitor");
-    expect(page).toContain("PHASE 53.3");
+    expect(page).toMatch(/PHASE 5[34](\.\d+)?/);
     expect(page).toContain("includedInOpenAiRequest");
     expect(page).toContain("data-fx-at-binary-direction");
   });

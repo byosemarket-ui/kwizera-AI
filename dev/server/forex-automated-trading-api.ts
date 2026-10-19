@@ -1,5 +1,6 @@
 /**
- * Phase 51–53.3 — Automated Trading configuration, verification, OpenAI TA & live monitoring API.
+ * Phase 51–54 — Automated Trading configuration, verification, OpenAI TA,
+ * live monitoring & read-only trading decision validation API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -513,6 +514,99 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, 200, { ok: true, analysis, placesOrders: false });
         return true;
       }
+    }
+
+    // Phase 54 — read-only trading decision validation (never places orders).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const decision = await service.getDecisionStatus();
+      sendJson(res, 200, { ok: true, decision, placesOrders: false, acceptsForExecution: false });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/evaluate")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.evaluateTradingDecision({
+        analysisId: body.analysisId,
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+      });
+      if (!result.ok) {
+        sendJson(res, result.code === "STALE_EPOCH" ? 409 : 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          decision: result.decision,
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        decision: result.decision,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      sendJson(res, 200, {
+        ok: true,
+        history: service.listDecisions(Number.isFinite(limit) ? limit : 12),
+        placesOrders: false,
+        acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/decision/policy")) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        sendJson(res, 200, {
+          ok: true,
+          policy: service.getDecisionPolicy(),
+          placesOrders: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET or POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.updateDecisionPolicy(body);
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        policy: result.policy,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+      });
+      return true;
     }
 
     sendJson(res, 404, {

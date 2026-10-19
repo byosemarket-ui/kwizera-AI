@@ -338,7 +338,7 @@ describe("Phase 53 static contracts", () => {
     const engine = read("ai/forex-ai/automated-trading/analysis/engine.ts");
     expect(engine).toContain("No Local AI fallback");
     expect(engine).not.toMatch(/getLocalAi|from ["'].*ollama/i);
-    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 53(\.\d+)?/);
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 5[34](\.\d+)?/);
 
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/ai-analysis");
     expect(read("desktop/forex/forex-routes.ts")).toContain("/forex/charts");

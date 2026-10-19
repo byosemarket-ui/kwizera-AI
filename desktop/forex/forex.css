@@ -3391,6 +3391,7 @@ html.reduce-motion .fx-sidebar {
   align-items: center;
   min-width: 0;
 }
+.fx-auto-gates li[data-ok="skip"] { opacity: 0.62; font-style: italic; }
 .fx-auto-monitor-select {
   display: block;
   margin-top: 4px;

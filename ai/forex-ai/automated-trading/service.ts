@@ -17,6 +17,14 @@ import {
   type AtMonitorPublicStatus,
 } from "./monitoring/index.js";
 import {
+  getAtDecisionEngine,
+  parseDecisionPolicyPatch,
+  type AtDecisionEngine,
+  type AtDecisionPolicy,
+  type AtDecisionPublicStatus,
+  type AtDecisionResult,
+} from "./decision/index.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -36,13 +44,16 @@ import {
 
 export class AutomatedTradingService {
   private readonly monitor: AtMonitorWorker;
+  private readonly decisionEngine: AtDecisionEngine;
 
   constructor(
     private readonly store: AutomatedTradingStore = getAutomatedTradingStore(),
     private readonly analysisEngine: AtOpenAiAnalysisEngine = getAtOpenAiAnalysisEngine(),
     monitor?: AtMonitorWorker,
+    decisionEngine?: AtDecisionEngine,
   ) {
     this.monitor = monitor ?? getAtMonitorWorker();
+    this.decisionEngine = decisionEngine ?? getAtDecisionEngine();
   }
 
   getMonitorStatus(): AtMonitorPublicStatus {
@@ -1014,6 +1025,110 @@ export class AutomatedTradingService {
   getAudit(limit = 40): AutomatedTradingAuditEvent[] {
     return this.store.getAudit(limit);
   }
+
+  /**
+   * Phase 54 — read-only trading decision validation (never places orders).
+   */
+  async getDecisionStatus(): Promise<AtDecisionPublicStatus> {
+    return this.decisionEngine.publicStatus();
+  }
+
+  getLatestDecision(): AtDecisionResult | null {
+    return this.decisionEngine.getLatest();
+  }
+
+  listDecisions(limit = 12): AtDecisionResult[] {
+    return this.decisionEngine.listHistory(limit);
+  }
+
+  getDecisionPolicy(): AtDecisionPolicy {
+    return this.decisionEngine.getPolicy();
+  }
+
+  async updateDecisionPolicy(raw: unknown): Promise<
+    | { ok: true; policy: AtDecisionPolicy; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const parsed = parseDecisionPolicyPatch(raw);
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        code: parsed.code,
+        message: parsed.message,
+        status: await this.buildStatus(),
+      };
+    }
+    const policy = await this.decisionEngine.updatePolicy(parsed.patch);
+    await this.store.appendAudit({
+      action: "decision_policy_updated",
+      environment: this.store.getState().selectedEnvironment,
+      ok: true,
+      code: "OK",
+      detail:
+        `thresholdEnabled=${policy.confidenceThresholdEnabled}`
+        + ` min=${policy.minDirectionalConfidencePct}`,
+    });
+    return { ok: true, policy, status: await this.buildStatus() };
+  }
+
+  async evaluateTradingDecision(input: {
+    analysisId?: unknown;
+    expectedEnvironmentEpoch?: unknown;
+  }): Promise<
+    | { ok: true; decision: AtDecisionResult; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; decision: AtDecisionResult | null; status: AutomatedTradingPublicStatus }
+  > {
+    const state = this.store.getState();
+    const env = state.selectedEnvironment;
+    const envState = state.environments[env];
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        decision: null,
+        status: await this.buildStatus(),
+      };
+    }
+
+    const requestedId = input.analysisId != null ? String(input.analysisId).trim() : "";
+    const analysis = requestedId
+      ? this.analysisEngine.getById(requestedId)
+      : this.analysisEngine.getLatest();
+    const latest = this.analysisEngine.getLatest();
+
+    const decision = await this.decisionEngine.evaluateAndPersist({
+      analysis,
+      latestAnalysis: latest,
+      verification: envState.lastVerification,
+      currentEnvironment: env,
+      currentEnvironmentEpoch: state.environmentEpoch,
+      selectedInstrument: envState.selectedInstrument,
+      expectedEnvironmentEpoch: Number.isFinite(expectedEpoch) ? expectedEpoch : null,
+    });
+
+    await this.store.appendAudit({
+      action: decision.decisionStatus === "ACCEPTED_FOR_REVIEW"
+        ? "decision_accepted_for_review"
+        : "decision_rejected",
+      environment: env,
+      ok: decision.decisionStatus === "ACCEPTED_FOR_REVIEW",
+      code: decision.decisionStatus,
+      detail: decision.sourceAnalysisId
+        ? `${decision.decisionStatus} · ${decision.direction ?? "—"} · ${decision.sourceAnalysisId}`
+        : decision.rejectionReasons[0]?.slice(0, 160) ?? decision.decisionStatus,
+    });
+
+    return {
+      ok: true,
+      decision,
+      status: await this.buildStatus(),
+    };
+  }
 }
 
 let serviceSingleton: AutomatedTradingService | null = null;
@@ -1023,12 +1138,14 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     const store = getAutomatedTradingStore(storageRoot);
     const engine = getAtOpenAiAnalysisEngine(storageRoot);
     const mon = getAtMonitorWorker(storageRoot);
-    return new AutomatedTradingService(store, engine, mon);
+    const decision = getAtDecisionEngine(storageRoot);
+    return new AutomatedTradingService(store, engine, mon, decision);
   }
   if (!serviceSingleton) {
     const store = getAutomatedTradingStore();
     const engine = getAtOpenAiAnalysisEngine();
     const mon = getAtMonitorWorker();
+    const decision = getAtDecisionEngine();
     // Bind verification/env hooks BEFORE resume so restart recovery can validate safely.
     mon.bindRuntimeHooks({
       getVerification: (env) => store.getState().environments[env].lastVerification,
@@ -1036,7 +1153,7 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       getSelectedEnvironment: () => store.getState().selectedEnvironment,
     });
     mon.resumeFromPersistence();
-    serviceSingleton = new AutomatedTradingService(store, engine, mon);
+    serviceSingleton = new AutomatedTradingService(store, engine, mon, decision);
   }
   return serviceSingleton;
 }

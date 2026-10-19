@@ -7,7 +7,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.3";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 54";
 
 type Env = "DEMO" | "LIVE";
 
@@ -224,6 +224,17 @@ export function ForexAutomatedTradingPage(props: {
   const [monitorTf, setMonitorTf] = useState("15m");
   const [monitorBusy, setMonitorBusy] = useState(false);
   const [chartObjectUrl, setChartObjectUrl] = useState<string | null>(null);
+  const [decisionStatus, setDecisionStatus] = useState<{
+    phase?: string;
+    policy?: {
+      confidenceThresholdEnabled?: boolean;
+      minDirectionalConfidencePct?: number;
+    };
+    latest?: Record<string, unknown> | null;
+    historyCount?: number;
+    note?: string;
+  } | null>(null);
+  const [decisionBusy, setDecisionBusy] = useState(false);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -233,12 +244,13 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/history?limit=6", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/monitor/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/decision/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -249,6 +261,7 @@ export function ForexAutomatedTradingPage(props: {
       const oaJson = await oaRes.json() as { ok?: boolean; openai?: typeof openaiStatus };
       const histJson = await histRes.json() as { ok?: boolean; history?: Array<Record<string, unknown>> };
       const monJson = await monRes.json() as { ok?: boolean; monitor?: typeof monitor };
+      const decJson = await decRes.json() as { ok?: boolean; decision?: typeof decisionStatus };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -265,6 +278,7 @@ export function ForexAutomatedTradingPage(props: {
         setMonitor(monJson.monitor);
         if (monJson.monitor.config?.timeframe) setMonitorTf(String(monJson.monitor.config.timeframe));
       }
+      if (decRes.ok && decJson.ok && decJson.decision) setDecisionStatus(decJson.decision);
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -430,6 +444,44 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "OpenAI analysis failed");
     } finally {
       setAnalysisBusy(false);
+    }
+  };
+
+  const evaluateDecision = async () => {
+    if (!status || decisionBusy) return;
+    setDecisionBusy(true);
+    setError(null);
+    try {
+      const latest = openaiStatus?.latest as { analysisId?: string } | null;
+      const res = await fetch("/api/forex/automated-trading/decision/evaluate", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          analysisId: latest?.analysisId,
+          expectedEnvironmentEpoch: status.environmentEpoch,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        decision?: Record<string, unknown>;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.decision) {
+        setDecisionStatus((prev) => ({
+          ...(prev ?? {}),
+          latest: data.decision ?? null,
+        }));
+      }
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Decision failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Decision evaluation failed");
+    } finally {
+      setDecisionBusy(false);
     }
   };
 
@@ -1165,6 +1217,188 @@ export function ForexAutomatedTradingPage(props: {
             ) : null}
           </section>
 
+          <section className="fx-auto-trading-panel" aria-label="Trading decision" data-fx-at-decision="true">
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Trading decision</h2>
+              <button
+                type="button"
+                className="fx-btn fx-btn--secondary"
+                disabled={busy || decisionBusy || !status}
+                onClick={() => void evaluateDecision()}
+                data-fx-at-decision-evaluate="true"
+              >
+                {decisionBusy ? "Evaluating…" : "Validate signal"}
+              </button>
+            </div>
+            <p className="fx-auto-trading-hint">
+              Read-only validation of the latest BUY/SELL analysis. Never places orders.
+              Confidence remains NOT CALIBRATED.
+            </p>
+            <dl className="fx-auto-config-grid">
+              <div>
+                <dt>Threshold policy</dt>
+                <dd data-fx-at-decision-threshold="true">
+                  {decisionStatus?.policy?.confidenceThresholdEnabled
+                    ? `enabled ≥ ${decisionStatus.policy.minDirectionalConfidencePct ?? "—"}%`
+                    : "disabled (default)"}
+                </dd>
+              </div>
+              <div>
+                <dt>History</dt>
+                <dd>{decisionStatus?.historyCount ?? 0}</dd>
+              </div>
+            </dl>
+            {(() => {
+              const d = (decisionStatus?.latest ?? null) as null | {
+                decisionStatus?: string;
+                direction?: "BUY" | "SELL" | null;
+                instrument?: string | null;
+                timeframe?: string | null;
+                forecastHorizon?: string | null;
+                sourceAnalysisId?: string | null;
+                sourceEvidenceFingerprint?: string | null;
+                sourceCreatedAtUtc?: string | null;
+                directionalConfidencePct?: number | null;
+                directionalConfidenceNote?: string;
+                decidedAtUtc?: string;
+                rejectionReasons?: string[];
+                blockers?: Array<{ code?: string; message?: string }>;
+                checks?: Array<{ code?: string; status?: string; message?: string }>;
+                freshness?: {
+                  quoteFresh?: boolean | null;
+                  feedStatus?: string | null;
+                  analysisAgeMs?: number | null;
+                };
+                chartImage?: {
+                  applicable?: boolean;
+                  includedInOpenAiRequest?: boolean | null;
+                };
+                acceptsForExecution?: boolean;
+              };
+              if (!d) {
+                return (
+                  <p className="fx-auto-trading-hint">
+                    No decision yet. Run Validate signal after a BUY/SELL analysis.
+                  </p>
+                );
+              }
+              return (
+                <div className="fx-auto-ta-result" data-fx-at-decision-result="true">
+                  <div className="fx-auto-binary-dir">
+                    <div>
+                      <span className="fx-auto-trading-hint">Decision</span>
+                      <strong
+                        data-fx-at-decision-status={d.decisionStatus ?? "—"}
+                        style={{
+                          color:
+                            d.decisionStatus === "ACCEPTED_FOR_REVIEW"
+                              ? "var(--fx-accent, #3d9a6a)"
+                              : undefined,
+                        }}
+                      >
+                        {d.decisionStatus ?? "—"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="fx-auto-trading-hint">Source direction</span>
+                      <strong data-fx-at-decision-direction={d.direction ?? "none"}>
+                        {d.direction ?? "—"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="fx-auto-trading-hint">Confidence</span>
+                      <strong className="fx-auto-binary-pct">
+                        {d.directionalConfidencePct != null
+                          ? `${d.directionalConfidencePct}%`
+                          : "—"}
+                      </strong>
+                    </div>
+                  </div>
+                  <p className="fx-auto-trading-hint">
+                    {d.directionalConfidenceNote
+                      ?? "Estimated directional confidence — NOT CALIBRATED"}
+                  </p>
+                  <dl className="fx-auto-config-grid">
+                    <div>
+                      <dt>Instrument / TF</dt>
+                      <dd>{d.instrument ?? "—"} · {d.timeframe ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Source analysis</dt>
+                      <dd data-fx-at-decision-source-id="true">
+                        {d.sourceAnalysisId ? d.sourceAnalysisId.slice(0, 12) : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Source time</dt>
+                      <dd>{d.sourceCreatedAtUtc ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Decided</dt>
+                      <dd>{d.decidedAtUtc ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Fingerprint</dt>
+                      <dd>
+                        {d.sourceEvidenceFingerprint
+                          ? d.sourceEvidenceFingerprint.slice(0, 12)
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Quote fresh</dt>
+                      <dd>
+                        {d.freshness?.quoteFresh == null
+                          ? "—"
+                          : d.freshness.quoteFresh
+                            ? "yes"
+                            : "no"}
+                        {d.freshness?.feedStatus ? ` · ${d.freshness.feedStatus}` : ""}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Image in OpenAI</dt>
+                      <dd>
+                        {d.chartImage?.applicable
+                          ? (d.chartImage.includedInOpenAiRequest ? "yes" : "no")
+                          : "n/a"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Accepts execution</dt>
+                      <dd data-fx-at-decision-exec="false">never</dd>
+                    </div>
+                  </dl>
+                  {d.forecastHorizon ? (
+                    <p className="fx-auto-trading-hint">Horizon: {d.forecastHorizon}</p>
+                  ) : null}
+                  {Array.isArray(d.rejectionReasons) && d.rejectionReasons.length > 0 ? (
+                    <ul className="fx-auto-gates" data-fx-at-decision-rejections="true">
+                      {d.rejectionReasons.slice(0, 8).map((r, i) => (
+                        <li key={`rej-${i}`} data-ok="false">{r}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {Array.isArray(d.checks) && d.checks.length > 0 ? (
+                    <>
+                      <h3 className="fx-auto-trading-h3">Validation checks</h3>
+                      <ul className="fx-auto-gates" data-fx-at-decision-checks="true">
+                        {d.checks.slice(0, 16).map((c, i) => (
+                          <li
+                            key={`${c.code ?? "c"}-${i}`}
+                            data-ok={c.status === "PASS" ? "true" : c.status === "FAIL" ? "false" : "skip"}
+                          >
+                            [{c.status}] {c.code}: {c.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })()}
+          </section>
+
           <section className="fx-auto-trading-panel" aria-label="Trading controls">
             <div className="fx-auto-trading-panel-head">
               <h2 className="fx-auto-trading-h2">Controls</h2>
@@ -1231,7 +1465,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 53.3)</dd>
+                <dd>disabled (Phase 54)</dd>
               </div>
             </dl>
             <h3 className="fx-auto-trading-h3">Recent audit</h3>

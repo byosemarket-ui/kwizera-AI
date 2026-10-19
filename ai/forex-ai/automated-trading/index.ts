@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./verification-types.js";
 export * from "./analysis/index.js";
 export * from "./monitoring/index.js";
+export * from "./decision/index.js";
 export {
   assembleVerificationResult,
   buildMarketFromQuote,
