@@ -73,6 +73,37 @@ function normalizeHealth(raw: unknown): AtMonitorHealth {
     lastObservationAtUtc: typeof o.lastObservationAtUtc === "string" ? o.lastObservationAtUtc : null,
     quoteFresh: typeof o.quoteFresh === "boolean" ? o.quoteFresh : null,
     feedStatus: typeof o.feedStatus === "string" ? o.feedStatus : null,
+    freshnessReasonCode: typeof o.freshnessReasonCode === "string" ? o.freshnessReasonCode.slice(0, 80) : null,
+    freshnessThresholdMs:
+      typeof o.freshnessThresholdMs === "number" && Number.isFinite(o.freshnessThresholdMs)
+        ? Math.max(0, Math.floor(o.freshnessThresholdMs))
+        : null,
+    verificationAgeMs:
+      typeof o.verificationAgeMs === "number" && Number.isFinite(o.verificationAgeMs)
+        ? Math.max(0, Math.floor(o.verificationAgeMs))
+        : null,
+    effectivePriceChangeAgeMs:
+      typeof o.effectivePriceChangeAgeMs === "number" && Number.isFinite(o.effectivePriceChangeAgeMs)
+        ? Math.max(0, Math.floor(o.effectivePriceChangeAgeMs))
+        : null,
+    effectiveReceiptAgeMs:
+      typeof o.effectiveReceiptAgeMs === "number" && Number.isFinite(o.effectiveReceiptAgeMs)
+        ? Math.max(0, Math.floor(o.effectiveReceiptAgeMs))
+        : null,
+    verificationSnapshotAtUtc:
+      typeof o.verificationSnapshotAtUtc === "string" ? o.verificationSnapshotAtUtc : null,
+    freshnessEvaluatedAtUtc:
+      typeof o.freshnessEvaluatedAtUtc === "string" ? o.freshnessEvaluatedAtUtc : null,
+    quoteSnapshotFingerprint:
+      typeof o.quoteSnapshotFingerprint === "string" ? o.quoteSnapshotFingerprint.slice(0, 32) : null,
+    quoteSourceTimestampMs:
+      typeof o.quoteSourceTimestampMs === "number" && Number.isFinite(o.quoteSourceTimestampMs)
+        ? Math.floor(o.quoteSourceTimestampMs)
+        : null,
+    quoteReceivedAtMs:
+      typeof o.quoteReceivedAtMs === "number" && Number.isFinite(o.quoteReceivedAtMs)
+        ? Math.floor(o.quoteReceivedAtMs)
+        : null,
     analysisInFlight: false,
     consecutiveFailures:
       typeof o.consecutiveFailures === "number" && Number.isFinite(o.consecutiveFailures)

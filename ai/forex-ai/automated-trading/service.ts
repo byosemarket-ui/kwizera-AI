@@ -30,6 +30,10 @@ import {
 } from "./verification-engine.js";
 import type { AutomatedTradingVerificationResult } from "./verification-types.js";
 import {
+  evaluateVerificationQuoteFreshness,
+  withEvaluatedMarketReadiness,
+} from "./quote-freshness.js";
+import {
   AUTOMATED_EXECUTION_BANNER,
   AUTOMATED_TRADING_PHASE,
   AUTOMATED_TRADING_SCHEMA,
@@ -322,7 +326,14 @@ export class AutomatedTradingService {
       blockers.push("Master automated-trading switch is OFF.");
     }
 
-    const verification = envState.lastVerification;
+    const verificationRaw = envState.lastVerification;
+    // Re-evaluate cached verification with the same freshness contract as the monitor worker.
+    const freshnessEval = evaluateVerificationQuoteFreshness(verificationRaw, {
+      expectedInstrument: envState.selectedInstrument,
+    });
+    const verification = verificationRaw
+      ? withEvaluatedMarketReadiness(verificationRaw, freshnessEval)
+      : null;
     if (verification) {
       for (const b of verification.blockers) {
         if (b.code !== "EXECUTION_NOT_IMPLEMENTED" && b.code !== "RISK_ENGINE_NOT_IMPLEMENTED") {
@@ -333,6 +344,11 @@ export class AutomatedTradingService {
         accountIdMasked = verification.account.accountIdMasked;
       }
       accountVerified = verification.identityStatus === "ACCOUNT_VERIFIED";
+      if (!freshnessEval.fresh && verificationRaw?.readiness.marketDataHealthVerified) {
+        blockers.push(
+          `Market verification snapshot is no longer fresh (${freshnessEval.reasonCode}).`,
+        );
+      }
     }
 
     let moduleStatus: AutomatedTradingModuleStatus = "READY";
@@ -389,8 +405,20 @@ export class AutomatedTradingService {
             ? "Automated Trading could not verify broker status."
             : "Status loaded.",
       selectedEnvState: selectedFresh,
-      verification: selectedFresh.lastVerification,
-      readiness: selectedFresh.lastVerification?.readiness ?? null,
+      verification,
+      readiness: verification?.readiness ?? null,
+      quoteFreshness: {
+        fresh: freshnessEval.fresh,
+        reasonCode: freshnessEval.reasonCode,
+        thresholdMs: freshnessEval.freshnessThresholdMs,
+        verificationAgeMs: freshnessEval.verificationAgeMs,
+        effectivePriceChangeAgeMs: freshnessEval.effectivePriceChangeAgeMs,
+        effectiveReceiptAgeMs: freshnessEval.effectiveReceiptAgeMs,
+        snapshotFingerprint: freshnessEval.snapshotFingerprint,
+        evaluatedAtUtc: freshnessEval.evaluatedAtUtc,
+        sourceTimestampMs: freshnessEval.sourceTimestampMs,
+        receivedAtMs: freshnessEval.receivedAtMs,
+      },
       updatedAtUtc: fresh.updatedAtUtc,
       placesOrders: false,
     };
@@ -864,30 +892,43 @@ export class AutomatedTradingService {
 
       await this.store.updateState((s) => {
         const bucket = s.environments[env];
-        bucket.lastVerification = verification;
-        bucket.lastVerificationStatus = verification.identityStatus;
-        bucket.lastVerifiedAtUtc = verification.verifiedAtUtc;
-        if (verification.identityStatus === "ACCOUNT_VERIFIED" && accountsResult.ok) {
-          const acct =
-            accountsResult.accounts.find((a) => a.accountId === expectedAccountId)
-            ?? (accountsResult.accounts.length === 1 ? accountsResult.accounts[0] : null);
-          if (acct?.accountId) {
-            bucket.lastVerifiedAccountId = acct.accountId;
+        // Never let an older in-flight verification replace a newer snapshot.
+        const existing = bucket.lastVerification;
+        const existingMs = existing ? Date.parse(String(existing.verifiedAtUtc ?? "")) : NaN;
+        const nextMs = Date.parse(String(verification.verifiedAtUtc ?? ""));
+        const keepExisting =
+          Number.isFinite(existingMs)
+          && Number.isFinite(nextMs)
+          && nextMs < existingMs;
+        if (!keepExisting) {
+          bucket.lastVerification = verification;
+          bucket.lastVerificationStatus = verification.identityStatus;
+          bucket.lastVerifiedAtUtc = verification.verifiedAtUtc;
+          if (verification.identityStatus === "ACCOUNT_VERIFIED" && accountsResult.ok) {
+            const acct =
+              accountsResult.accounts.find((a) => a.accountId === expectedAccountId)
+              ?? (accountsResult.accounts.length === 1 ? accountsResult.accounts[0] : null);
+            if (acct?.accountId) {
+              bucket.lastVerifiedAccountId = acct.accountId;
+            }
           }
-        }
-        if (verification.identityStatus !== "ACCOUNT_VERIFIED") {
-          // Do not keep a verified flag when identity failed.
-          if (
-            verification.identityStatus === "ENVIRONMENT_MISMATCH"
-            || verification.identityStatus === "CONNECTION_FAILED"
-            || verification.identityStatus === "CONFIGURATION_MISSING"
-          ) {
-            bucket.lastVerifiedAccountId = null;
+          if (verification.identityStatus !== "ACCOUNT_VERIFIED") {
+            // Do not keep a verified flag when identity failed.
+            if (
+              verification.identityStatus === "ENVIRONMENT_MISMATCH"
+              || verification.identityStatus === "CONNECTION_FAILED"
+              || verification.identityStatus === "CONFIGURATION_MISSING"
+            ) {
+              bucket.lastVerifiedAccountId = null;
+            }
           }
         }
         s.configVersion += 1;
         return s;
       });
+
+      // Converge monitor health immediately with the new verification snapshot.
+      this.monitor.notifyVerificationUpdated();
 
       await this.store.appendAudit({
         action: "verification_completed",

@@ -111,6 +111,19 @@ export interface AutomatedTradingPublicStatus {
   selectedEnvState: AutomatedTradingEnvState;
   verification: AutomatedTradingVerificationResult | null;
   readiness: AutomatedTradingVerificationResult["readiness"] | null;
+  /** Live re-evaluation of cached verification quotes (same contract as monitor). */
+  quoteFreshness: {
+    fresh: boolean;
+    reasonCode: string;
+    thresholdMs: number;
+    verificationAgeMs: number | null;
+    effectivePriceChangeAgeMs: number | null;
+    effectiveReceiptAgeMs: number | null;
+    snapshotFingerprint: string | null;
+    evaluatedAtUtc: string;
+    sourceTimestampMs: number | null;
+    receivedAtMs: number | null;
+  } | null;
   updatedAtUtc: string;
   placesOrders: false;
 }

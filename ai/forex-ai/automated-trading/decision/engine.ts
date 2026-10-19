@@ -43,8 +43,11 @@ function isAccountIdentityVerified(v: AutomatedTradingVerificationResult | null)
   return isVerificationAccountIdentityOk(v);
 }
 
-function isMarketQuoteFresh(v: AutomatedTradingVerificationResult | null): boolean {
-  return isVerificationMarketQuoteFresh(v);
+function isMarketQuoteFresh(
+  v: AutomatedTradingVerificationResult | null,
+  options?: { nowMs?: number; expectedInstrument?: string | null },
+): boolean {
+  return isVerificationMarketQuoteFresh(v, options);
 }
 
 function normalizeSymbol(s: string | null | undefined): string {
@@ -106,7 +109,10 @@ export function evaluateTradingDecision(input: AtDecisionEvaluateInput): AtDecis
 
   const verification = input.verification;
   const accountOk = isAccountIdentityVerified(verification);
-  const marketOk = isMarketQuoteFresh(verification);
+  const marketOk = isMarketQuoteFresh(verification, {
+    nowMs,
+    expectedInstrument: input.selectedInstrument,
+  });
   quoteFresh = verification ? marketOk : null;
   feedStatus = verification?.market?.feedStatus ?? null;
   verificationIdentityStatus = verification?.identityStatus ?? null;

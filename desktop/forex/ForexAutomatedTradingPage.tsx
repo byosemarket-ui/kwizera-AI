@@ -91,6 +91,18 @@ type PublicStatus = {
   explanation: string;
   verification: Verification | null;
   readiness: Readiness | null;
+  quoteFreshness?: {
+    fresh: boolean;
+    reasonCode: string;
+    thresholdMs: number;
+    verificationAgeMs: number | null;
+    effectivePriceChangeAgeMs: number | null;
+    effectiveReceiptAgeMs: number | null;
+    snapshotFingerprint: string | null;
+    evaluatedAtUtc: string;
+    sourceTimestampMs: number | null;
+    receivedAtMs: number | null;
+  } | null;
   selectedEnvState?: { selectedInstrument?: string | null };
   updatedAtUtc: string;
   placesOrders: false;
@@ -216,6 +228,10 @@ export function ForexAutomatedTradingPage(props: {
       lastError?: string | null;
       lastBlockerCode?: string | null;
       quoteFresh?: boolean | null;
+      freshnessReasonCode?: string | null;
+      freshnessThresholdMs?: number | null;
+      verificationAgeMs?: number | null;
+      effectivePriceChangeAgeMs?: number | null;
       analysisInFlight?: boolean;
       lastAnalysisId?: string | null;
       lastScreenshotImageHash?: string | null;
@@ -963,6 +979,30 @@ export function ForexAutomatedTradingPage(props: {
               <div>
                 <dt>Quote fresh</dt>
                 <dd>{monitor?.health?.quoteFresh == null ? "—" : monitor.health.quoteFresh ? "yes" : "no"}</dd>
+              </div>
+              <div>
+                <dt>Freshness reason</dt>
+                <dd>{monitor?.health?.freshnessReasonCode ?? status?.quoteFreshness?.reasonCode ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Verification age</dt>
+                <dd>
+                  {monitor?.health?.verificationAgeMs != null
+                    ? `${monitor.health.verificationAgeMs}ms`
+                    : status?.quoteFreshness?.verificationAgeMs != null
+                      ? `${status.quoteFreshness.verificationAgeMs}ms`
+                      : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Freshness threshold</dt>
+                <dd>
+                  {monitor?.health?.freshnessThresholdMs != null
+                    ? `${monitor.health.freshnessThresholdMs}ms`
+                    : status?.quoteFreshness?.thresholdMs != null
+                      ? `${status.quoteFreshness.thresholdMs}ms`
+                      : "—"}
+                </dd>
               </div>
             </dl>
             {monitor?.health?.lastError ? (

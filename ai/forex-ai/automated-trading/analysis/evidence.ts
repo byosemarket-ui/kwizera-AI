@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
+import { isVerificationMarketQuoteFresh } from "../verification-gates.js";
 import type { AtAnalysisEvidenceBundle, AtCandleSummary } from "./types.js";
 
 /** Project timeframe IDs accepted by ForexConnect bridge. */
@@ -118,12 +119,10 @@ export function buildEvidenceBundle(input: {
   }
 
   const market = input.verification?.market;
-  const quoteFresh = Boolean(
-    market
-    && market.feedStatus === "LIVE"
-    && market.bid != null
-    && market.ask != null,
-  );
+  const quoteFresh = isVerificationMarketQuoteFresh(input.verification, {
+    nowMs: input.nowMs,
+    expectedInstrument: instrument,
+  });
   if (!quoteFresh) {
     warnings.push("Current Bid/Ask not verified fresh — analysis uses historical OHLC only.");
   }

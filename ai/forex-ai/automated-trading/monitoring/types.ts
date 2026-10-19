@@ -51,6 +51,17 @@ export interface AtMonitorHealth {
   lastObservationAtUtc: string | null;
   quoteFresh: boolean | null;
   feedStatus: string | null;
+  /** Canonical freshness reason (bounded diagnostics). */
+  freshnessReasonCode: string | null;
+  freshnessThresholdMs: number | null;
+  verificationAgeMs: number | null;
+  effectivePriceChangeAgeMs: number | null;
+  effectiveReceiptAgeMs: number | null;
+  verificationSnapshotAtUtc: string | null;
+  freshnessEvaluatedAtUtc: string | null;
+  quoteSnapshotFingerprint: string | null;
+  quoteSourceTimestampMs: number | null;
+  quoteReceivedAtMs: number | null;
   analysisInFlight: boolean;
   consecutiveFailures: number;
 }
@@ -96,6 +107,16 @@ export function defaultMonitorHealth(): AtMonitorHealth {
     lastObservationAtUtc: null,
     quoteFresh: null,
     feedStatus: null,
+    freshnessReasonCode: null,
+    freshnessThresholdMs: null,
+    verificationAgeMs: null,
+    effectivePriceChangeAgeMs: null,
+    effectiveReceiptAgeMs: null,
+    verificationSnapshotAtUtc: null,
+    freshnessEvaluatedAtUtc: null,
+    quoteSnapshotFingerprint: null,
+    quoteSourceTimestampMs: null,
+    quoteReceivedAtMs: null,
     analysisInFlight: false,
     consecutiveFailures: 0,
   };

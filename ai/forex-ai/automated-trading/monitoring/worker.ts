@@ -9,7 +9,7 @@ import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
 import {
   isVerificationAccountIdentityOk,
-  isVerificationMarketQuoteFresh,
+  evaluateVerificationMarketQuoteFreshness,
   verificationLastQuoteChangeAtUtc,
 } from "../verification-gates.js";
 import {
@@ -107,6 +107,9 @@ export class AtMonitorWorker {
   private lastAnalysisAttemptMs = 0;
   private runtimeActive = false;
   private runtimeState: AtMonitorWorkerState = "STOPPED";
+  /** When verification updates mid-tick, schedule one immediate follow-up evaluation. */
+  private pendingVerificationNudge = false;
+  private lastFreshnessReasonLogged: string | null = null;
 
   constructor(deps: AtMonitorWorkerDeps = {}) {
     this.deps = { ...deps };
@@ -142,6 +145,18 @@ export class AtMonitorWorker {
     if (this.disposed) return;
     this.ensureTimer();
     void this.bootstrapFromPersistence();
+  }
+
+  /**
+   * Immediately re-evaluate freshness after Phase 52 verification updates the shared snapshot.
+   * Prevents UI PASS Market data vs worker STALE_QUOTES lag across the poll interval.
+   */
+  notifyVerificationUpdated(): void {
+    if (this.disposed) return;
+    this.pendingVerificationNudge = true;
+    if (!this.tickInFlight) {
+      void this.tick();
+    }
   }
 
   private ensureTimer(): void {
@@ -385,9 +400,12 @@ export class AtMonitorWorker {
       if (this.store.getState().config?.configEpoch !== configEpoch) return;
 
       const verification = this.deps.getVerification?.(persisted.config.environment) ?? null;
-      // Use Phase 52 contract fields (identityStatus + LIVE Bid/Ask) — not invented aliases.
-      const quoteFresh = isVerificationMarketQuoteFresh(verification);
-      const feedStatus = verification?.market?.feedStatus ?? null;
+      // Canonical freshness: same contract as Phase 52 status readiness (age-forwarded snapshot).
+      const freshness = evaluateVerificationMarketQuoteFreshness(verification, {
+        expectedInstrument: persisted.config.instrument,
+      });
+      const quoteFresh = freshness.fresh;
+      const feedStatus = freshness.feedStatus;
       const lastQuoteChange = verificationLastQuoteChangeAtUtc(verification);
       const identityOk = isVerificationAccountIdentityOk(verification);
 
@@ -397,6 +415,16 @@ export class AtMonitorWorker {
         lastQuoteChangeAtUtc: lastQuoteChange,
         quoteFresh: verification ? quoteFresh : null,
         feedStatus: feedStatus ? String(feedStatus) : null,
+        freshnessReasonCode: freshness.reasonCode,
+        freshnessThresholdMs: freshness.freshnessThresholdMs,
+        verificationAgeMs: freshness.verificationAgeMs,
+        effectivePriceChangeAgeMs: freshness.effectivePriceChangeAgeMs,
+        effectiveReceiptAgeMs: freshness.effectiveReceiptAgeMs,
+        verificationSnapshotAtUtc: freshness.verifiedAtUtc,
+        freshnessEvaluatedAtUtc: freshness.evaluatedAtUtc,
+        quoteSnapshotFingerprint: freshness.snapshotFingerprint,
+        quoteSourceTimestampMs: freshness.sourceTimestampMs,
+        quoteReceivedAtMs: freshness.receivedAtMs,
         nextScheduledAnalysisAtUtc: nextCandleCloseUtc(persisted.config.timeframe),
       });
 
@@ -422,14 +450,21 @@ export class AtMonitorWorker {
 
       if (!quoteFresh) {
         this.runtimeState = "STALE_QUOTES";
+        const reason = freshness.reasonCode;
+        // Deduplicate identical stale reasons in health.lastError (bounded noise).
+        const staleMsg =
+          reason === this.lastFreshnessReasonLogged
+            ? `Quotes not fresh (${reason}) — monitoring continues; analysis blocked.`
+            : `Quotes not fresh (${reason}) — monitoring continues but LIVE is not claimed and analysis is blocked.`;
+        this.lastFreshnessReasonLogged = reason;
         await this.patchHealth({
           workerState: "STALE_QUOTES",
           lastBlockerCode: "STALE_QUOTES",
-          lastError:
-            "Quotes are not fresh — monitoring continues but LIVE is not claimed and analysis is blocked.",
+          lastError: staleMsg,
         });
         return;
       }
+      this.lastFreshnessReasonLogged = freshness.reasonCode;
 
       if (!this.analysisInFlight) {
         this.runtimeState = "MONITORING_LIVE";
@@ -479,6 +514,10 @@ export class AtMonitorWorker {
       });
     } finally {
       this.tickInFlight = false;
+      if (this.pendingVerificationNudge && !this.disposed) {
+        this.pendingVerificationNudge = false;
+        void this.tick();
+      }
     }
   }
 
@@ -696,11 +735,15 @@ export class AtMonitorWorker {
         status: this.getPublicStatus(),
       };
     }
-    if (!isVerificationMarketQuoteFresh(input.verification)) {
+    const manualFreshness = evaluateVerificationMarketQuoteFreshness(input.verification, {
+      expectedInstrument: instrument,
+    });
+    if (!manualFreshness.fresh) {
       return {
         ok: false,
         code: "STALE_QUOTES",
-        message: "Quotes are not fresh — analysis blocked until LIVE market evidence is available.",
+        message:
+          `Quotes are not fresh (${manualFreshness.reasonCode}) — analysis blocked until LIVE market evidence is available.`,
         status: this.getPublicStatus(),
       };
     }
