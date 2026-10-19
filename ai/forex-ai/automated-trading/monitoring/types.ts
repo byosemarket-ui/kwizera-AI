@@ -1,11 +1,11 @@
 /**
- * Phase 53.1 — Persistent AT live monitoring contracts.
+ * Phase 53.1 / 53.3 — Persistent AT live monitoring contracts.
  */
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AtMonitorTimeframe } from "./timeframes.js";
 
 export const AT_MONITOR_SCHEMA = "at-live-monitor-v1";
-export const AT_MONITOR_PHASE = "53.1";
+export const AT_MONITOR_PHASE = "53.3";
 
 export type AtMonitorWorkerState =
   | "STOPPED"
@@ -17,7 +17,10 @@ export type AtMonitorWorkerState =
   | "ANALYSIS_SUCCESS"
   | "DATA_INSUFFICIENT"
   | "PROVIDER_ERROR"
-  | "PAUSED_SAFETY";
+  | "PAUSED_SAFETY"
+  | "VERIFICATION_REQUIRED"
+  | "DISCONNECTED"
+  | "IMAGE_UNAVAILABLE";
 
 export interface AtMonitorConfig {
   enabled: boolean;

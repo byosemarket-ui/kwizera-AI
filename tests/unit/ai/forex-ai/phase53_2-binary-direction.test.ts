@@ -212,7 +212,7 @@ describe("Phase 53.2 normalize binary contract", () => {
 
 describe("Phase 53.2 static contracts", () => {
   it("UI and API keep execution forbidden and show binary direction", () => {
-    expect(AUTOMATED_EXECUTION_BANNER).toContain("PHASE 53.2");
+    expect(AUTOMATED_EXECUTION_BANNER).toMatch(/PHASE 53(\.\d+)?/);
     const page = read("desktop/forex/ForexAutomatedTradingPage.tsx");
     expect(page).toContain("data-fx-at-binary-direction");
     expect(page).toContain("Estimated directional confidence — NOT CALIBRATED");

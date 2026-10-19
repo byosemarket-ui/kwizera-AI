@@ -1,5 +1,5 @@
 /**
- * Phase 53 / 53.1 / 53.2 — Prompts for Automated Trading OpenAI technical analysis.
+ * Phase 53 / 53.1 / 53.2 / 53.3 — Prompts for Automated Trading OpenAI technical analysis.
  */
 export function buildAtOpenAiSystemPrompt(opts?: { withChartImage?: boolean }): string {
   const base = [

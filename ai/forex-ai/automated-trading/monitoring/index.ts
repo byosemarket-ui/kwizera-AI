@@ -8,6 +8,8 @@ export {
   resetAtMonitorStoreForTests,
   chartImageDir,
   chartImagePath,
+  pruneChartImages,
+  AT_CHART_IMAGE_MAX_FILES,
 } from "./store.js";
 export {
   AtMonitorWorker,

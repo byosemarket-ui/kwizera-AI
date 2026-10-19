@@ -1,5 +1,5 @@
 /**
- * Phase 53.1 — Persist AT monitoring config + health (no secrets).
+ * Phase 53.1 / 53.3 — Persist AT monitoring config + health (no secrets).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -171,4 +171,34 @@ export function chartImageDir(storageRoot?: string): string {
 export function chartImagePath(analysisId: string, storageRoot?: string): string {
   const safe = String(analysisId).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
   return path.join(chartImageDir(storageRoot), `${safe}.png`);
+}
+
+/** Bounded retention — keep newest PNGs only (by mtime). */
+export const AT_CHART_IMAGE_MAX_FILES = 48;
+
+export function pruneChartImages(storageRoot?: string, keep = AT_CHART_IMAGE_MAX_FILES): number {
+  const dir = chartImageDir(storageRoot);
+  if (!fs.existsSync(dir)) return 0;
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".png"))
+    .map((f) => {
+      const full = path.join(dir, f);
+      try {
+        return { full, mtime: fs.statSync(full).mtimeMs };
+      } catch {
+        return { full, mtime: 0 };
+      }
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+  let removed = 0;
+  for (const file of files.slice(Math.max(1, keep))) {
+    try {
+      fs.unlinkSync(file.full);
+      removed += 1;
+    } catch {
+      /* ignore */
+    }
+  }
+  return removed;
 }

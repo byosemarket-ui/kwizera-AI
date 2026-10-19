@@ -1,5 +1,5 @@
 /**
- * Phase 53.1 — Server-rendered candlestick PNG from validated OHLC.
+ * Phase 53.1 / 53.3 — Server-rendered candlestick PNG from validated OHLC.
  * Not a browser screenshot. Uses existing encodeRgbaPng (no canvas/sharp).
  */
 import { createHash } from "node:crypto";

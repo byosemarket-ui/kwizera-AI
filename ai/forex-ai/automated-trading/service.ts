@@ -302,7 +302,7 @@ export class AutomatedTradingService {
     // Hard safety blockers — execution never enabled in Phase 52.
     blockers.push(AUTOMATED_EXECUTION_BANNER);
     if (selected === "LIVE") {
-      blockers.push("LIVE execution is disabled throughout Phase 53.");
+      blockers.push("LIVE execution is disabled throughout Phase 53.3.");
     }
     if (envState.controls.emergencyEntryLock) {
       blockers.push("Emergency entry lock is ON — future automated entries are blocked.");
@@ -1029,11 +1029,13 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     const store = getAutomatedTradingStore();
     const engine = getAtOpenAiAnalysisEngine();
     const mon = getAtMonitorWorker();
+    // Bind verification/env hooks BEFORE resume so restart recovery can validate safely.
     mon.bindRuntimeHooks({
       getVerification: (env) => store.getState().environments[env].lastVerification,
       getEnvironmentEpoch: () => store.getState().environmentEpoch,
       getSelectedEnvironment: () => store.getState().selectedEnvironment,
     });
+    mon.resumeFromPersistence();
     serviceSingleton = new AutomatedTradingService(store, engine, mon);
   }
   return serviceSingleton;

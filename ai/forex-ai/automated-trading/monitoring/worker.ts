@@ -1,9 +1,9 @@
 /**
- * Phase 53.1 — Single-process AT monitoring worker (server-side).
+ * Phase 53.1 / 53.3 — Single-process AT monitoring worker (server-side).
  * Does not depend on browser/React. Never places broker orders.
+ * Analyses require validated FXCM OHLC + server-rendered chart image in OpenAI request.
  */
 import fs from "node:fs";
-import path from "node:path";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
@@ -24,6 +24,7 @@ import {
   chartImageDir,
   chartImagePath,
   getAtMonitorStore,
+  pruneChartImages,
   type AtMonitorStore,
 } from "./store.js";
 import {
@@ -107,7 +108,9 @@ export class AtMonitorWorker {
     this.store = deps.store ?? getAtMonitorStore(deps.storageRoot);
     this.engine = deps.analysisEngine ?? getAtOpenAiAnalysisEngine(deps.storageRoot);
     this.storageRoot = deps.storageRoot;
-    if (deps.autoStart !== false) {
+    // Default: do not resume until runtime hooks are bound (see resumeFromPersistence).
+    // autoStart:true is reserved for tests that inject deps up front.
+    if (deps.autoStart === true) {
       this.ensureTimer();
       void this.bootstrapFromPersistence();
     }
@@ -126,6 +129,16 @@ export class AtMonitorWorker {
     if (hooks.getSelectedEnvironment) this.deps.getSelectedEnvironment = hooks.getSelectedEnvironment;
   }
 
+  /**
+   * Phase 53.3 — After hooks are bound, restore enabled monitoring from disk.
+   * Safe to call repeatedly (idempotent timer + bootstrap).
+   */
+  resumeFromPersistence(): void {
+    if (this.disposed) return;
+    this.ensureTimer();
+    void this.bootstrapFromPersistence();
+  }
+
   private ensureTimer(): void {
     if (this.timer || this.disposed) return;
     const ms = this.deps.pollIntervalMs
@@ -141,19 +154,36 @@ export class AtMonitorWorker {
 
   private async bootstrapFromPersistence(): Promise<void> {
     const state = this.store.getState();
-    if (state.config?.enabled) {
-      this.runtimeActive = true;
-      this.runtimeState = "CONNECTING";
-      await this.patchHealth({
-        workerState: "CONNECTING",
-        workerActive: true,
-        lastError: null,
-        lastBlockerCode: null,
-      });
-    } else {
+    if (!state.config?.enabled) {
       this.runtimeActive = false;
       this.runtimeState = "STOPPED";
+      return;
     }
+
+    // Resume only when environment selection still matches persisted config.
+    const selected = this.deps.getSelectedEnvironment?.();
+    if (selected && selected !== state.config.environment) {
+      this.runtimeActive = false;
+      this.runtimeState = "PAUSED_SAFETY";
+      await this.patchHealth({
+        workerState: "PAUSED_SAFETY",
+        workerActive: false,
+        lastBlockerCode: "ENVIRONMENT_MISMATCH",
+        lastError:
+          "Monitoring not resumed after restart — selected AT environment no longer matches persisted monitor config.",
+      });
+      return;
+    }
+
+    this.runtimeActive = true;
+    this.runtimeState = "CONNECTING";
+    await this.patchHealth({
+      workerState: "CONNECTING",
+      workerActive: true,
+      lastError: null,
+      lastBlockerCode: null,
+      nextScheduledAnalysisAtUtc: nextCandleCloseUtc(state.config.timeframe),
+    });
   }
 
   private async patchHealth(
@@ -241,6 +271,18 @@ export class AtMonitorWorker {
     }
 
     const prev = this.store.getState().config;
+    // Idempotent Start: same enabled config does not spawn a second worker or bump epoch.
+    if (
+      prev?.enabled
+      && prev.instrument === instrument
+      && prev.timeframe === tf
+      && prev.environment === input.environment
+    ) {
+      this.runtimeActive = true;
+      this.ensureTimer();
+      return { ok: true, status: this.getPublicStatus() };
+    }
+
     const nextEpoch = (prev?.configEpoch ?? 0) + 1;
     const now = nowIso();
     const config: AtMonitorConfig = {
@@ -341,15 +383,29 @@ export class AtMonitorWorker {
       const quoteFresh = Boolean(verification?.market?.quoteFresh);
       const feedStatus = verification?.market?.feedStatus ?? null;
       const lastQuoteChange = verification?.market?.lastGenuinePriceChangeAtUtc ?? null;
+      const identityOk = Boolean(
+        verification?.identity
+        && String(verification.identity.status ?? "").toUpperCase() !== "FAILED",
+      );
 
       await this.patchHealth({
         lastCandleUpdateAtUtc: nowIso(),
         lastObservationAtUtc: nowIso(),
         lastQuoteChangeAtUtc: lastQuoteChange,
-        quoteFresh,
+        quoteFresh: verification ? quoteFresh : null,
         feedStatus: feedStatus ? String(feedStatus) : null,
         nextScheduledAnalysisAtUtc: nextCandleCloseUtc(persisted.config.timeframe),
       });
+
+      if (!verification || !identityOk) {
+        this.runtimeState = "VERIFICATION_REQUIRED";
+        await this.patchHealth({
+          workerState: "VERIFICATION_REQUIRED",
+          lastBlockerCode: "VERIFICATION_REQUIRED",
+          lastError: "Fresh Phase 52 verification is required before scheduled OpenAI analysis.",
+        });
+        return;
+      }
 
       if (!candles.length) {
         this.runtimeState = "DATA_INSUFFICIENT";
@@ -361,17 +417,20 @@ export class AtMonitorWorker {
         return;
       }
 
-      if (quoteFresh === false && verification) {
+      if (!quoteFresh) {
         this.runtimeState = "STALE_QUOTES";
         await this.patchHealth({
           workerState: "STALE_QUOTES",
           lastBlockerCode: "STALE_QUOTES",
-          lastError: "Quotes are not fresh — monitoring continues but LIVE is not claimed.",
+          lastError:
+            "Quotes are not fresh — monitoring continues but LIVE is not claimed and analysis is blocked.",
         });
-      } else if (!this.analysisInFlight) {
-        this.runtimeState = "WAITING_CANDLE_CLOSE";
-        await this.patchHealth({ workerState: quoteFresh ? "MONITORING_LIVE" : "WAITING_CANDLE_CLOSE" });
-        if (quoteFresh) this.runtimeState = "MONITORING_LIVE";
+        return;
+      }
+
+      if (!this.analysisInFlight) {
+        this.runtimeState = "MONITORING_LIVE";
+        await this.patchHealth({ workerState: "MONITORING_LIVE" });
       }
 
       const closed = latestClosedCandleOpenSec(
@@ -462,53 +521,34 @@ export class AtMonitorWorker {
         observationUtc: nowIso(),
       });
 
-      let chartMeta: {
-        available: boolean;
-        imageHash: string | null;
-        capturedAtUtc: string | null;
-        source: string;
-        note: string;
-        blocker: string | null;
-        width?: number;
-        height?: number;
-        byteLength?: number;
-      } = {
-        available: false,
-        imageHash: null,
-        capturedAtUtc: null,
-        source: "server-ohlc-render",
-        note: "Chart image unavailable.",
-        blocker: null,
-      };
-      let imageBase64: string | null = null;
-
       if (!rendered.ok) {
-        chartMeta = {
-          available: false,
-          imageHash: null,
-          capturedAtUtc: null,
-          source: "server-ohlc-render",
-          note: rendered.message,
-          blocker: rendered.code,
-        };
-      } else {
-        imageBase64 = rendered.png.toString("base64");
-        chartMeta = {
-          available: true,
-          imageHash: rendered.imageHash,
-          capturedAtUtc: nowIso(),
-          source: rendered.source,
-          note: rendered.note,
-          blocker: null,
-          width: rendered.width,
-          height: rendered.height,
-          byteLength: rendered.byteLength,
-        };
+        this.runtimeState = "IMAGE_UNAVAILABLE";
         await this.patchHealth({
-          lastScreenshotAtUtc: chartMeta.capturedAtUtc,
-          lastScreenshotImageHash: chartMeta.imageHash,
+          workerState: "IMAGE_UNAVAILABLE",
+          lastBlockerCode: "IMAGE_UNAVAILABLE",
+          lastError: rendered.message,
+          consecutiveFailures: (this.store.getState().health.consecutiveFailures ?? 0) + 1,
         });
+        return { ok: false, code: "IMAGE_UNAVAILABLE", message: rendered.message };
       }
+
+      const imageBase64 = rendered.png.toString("base64");
+      const chartMeta = {
+        available: true as const,
+        imageHash: rendered.imageHash,
+        capturedAtUtc: nowIso(),
+        source: rendered.source,
+        note: rendered.note,
+        blocker: null as string | null,
+        width: rendered.width,
+        height: rendered.height,
+        byteLength: rendered.byteLength,
+        observationUtc: nowIso(),
+      };
+      await this.patchHealth({
+        lastScreenshotAtUtc: chartMeta.capturedAtUtc,
+        lastScreenshotImageHash: chartMeta.imageHash,
+      });
 
       if (this.store.getState().config?.configEpoch !== configEpoch) {
         return { ok: false, code: "CONFIG_CHANGED", message: "Monitor configuration changed; analysis aborted." };
@@ -525,10 +565,13 @@ export class AtMonitorWorker {
         timeoutMs: input.timeoutMs,
         trigger: input.trigger,
         monitorConfigEpoch: configEpoch,
-        chartImage: imageBase64 && chartMeta.available
-          ? { mimeType: "image/png" as const, base64: imageBase64, meta: chartMeta }
-          : null,
-        requireImage: false,
+        chartImage: {
+          mimeType: "image/png" as const,
+          base64: imageBase64,
+          meta: chartMeta,
+        },
+        // Phase 53.3 — never silently fall back to text-only for monitor analyses.
+        requireImage: true,
       });
 
       if (this.store.getState().config?.configEpoch !== configEpoch) {
@@ -551,6 +594,7 @@ export class AtMonitorWorker {
         const dir = chartImageDir(this.storageRoot);
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(chartImagePath(result.analysis.analysisId, this.storageRoot), rendered.png);
+        pruneChartImages(this.storageRoot);
       }
 
       if (input.dedupeKey) await this.store.rememberDedupe(input.dedupeKey);
@@ -632,6 +676,22 @@ export class AtMonitorWorker {
         status: this.getPublicStatus(),
       };
     }
+    if (!input.verification) {
+      return {
+        ok: false,
+        code: "VERIFICATION_REQUIRED",
+        message: "Run Phase 52 Verify before OpenAI analysis.",
+        status: this.getPublicStatus(),
+      };
+    }
+    if (!input.verification.market?.quoteFresh) {
+      return {
+        ok: false,
+        code: "STALE_QUOTES",
+        message: "Quotes are not fresh — analysis blocked until LIVE market evidence is available.",
+        status: this.getPublicStatus(),
+      };
+    }
     const config: AtMonitorConfig = useConfig && useConfig.instrument === instrument && useConfig.timeframe === tf
       ? useConfig
       : {
@@ -680,9 +740,13 @@ export class AtMonitorWorker {
 
 let workerSingleton: AtMonitorWorker | null = null;
 
+/**
+ * Process-singleton worker. Does not auto-resume until `resumeFromPersistence()`
+ * (after runtime hooks are bound). Pass storageRoot only for isolated tests.
+ */
 export function getAtMonitorWorker(storageRoot?: string): AtMonitorWorker {
   if (storageRoot) return new AtMonitorWorker({ storageRoot, autoStart: false });
-  if (!workerSingleton) workerSingleton = new AtMonitorWorker();
+  if (!workerSingleton) workerSingleton = new AtMonitorWorker({ autoStart: false });
   return workerSingleton;
 }
 

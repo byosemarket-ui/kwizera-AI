@@ -1,5 +1,5 @@
 /**
- * Phase 51–53.1 — Automated Trading configuration, verification, OpenAI TA & live monitoring API.
+ * Phase 51–53.3 — Automated Trading configuration, verification, OpenAI TA & live monitoring API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";

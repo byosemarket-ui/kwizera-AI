@@ -1,5 +1,5 @@
 /**
- * Phase 53.1 — Candle-close scheduling & analysis job dedupe.
+ * Phase 53.1 / 53.3 — Candle-close scheduling & analysis job dedupe.
  */
 import type { AtMonitorTimeframe } from "./timeframes.js";
 import { candleCloseTimeSec, isCandleClosed } from "./timeframes.js";

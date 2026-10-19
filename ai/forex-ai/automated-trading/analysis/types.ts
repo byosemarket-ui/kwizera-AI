@@ -1,5 +1,5 @@
 /**
- * Phase 53 / 53.2 — Independent Automated Trading OpenAI technical analysis contracts.
+ * Phase 53 / 53.2 / 53.3 — Independent Automated Trading OpenAI technical analysis contracts.
  * Separate from Forex AI Analysis snapshot history. Read-only — no broker orders.
  */
 import type { AutomatedTradingEnvironment } from "../types.js";
@@ -14,7 +14,7 @@ export {
 } from "./direction.js";
 
 export const AT_OPENAI_ANALYSIS_SCHEMA = "at-openai-ta-v1";
-export const AT_OPENAI_ANALYSIS_PHASE = "53.2";
+export const AT_OPENAI_ANALYSIS_PHASE = "53.3";
 export const AT_CONFIDENCE_LABEL = "NOT CALIBRATED";
 
 export type AtAnalysisLifecycle =
@@ -102,7 +102,13 @@ export interface AtChartImageMeta {
   width?: number;
   height?: number;
   byteLength?: number;
+  /** True only when the chart bytes were present in a successful OpenAI multimodal request. */
   includedInOpenAiRequest: boolean;
+  /** Market-data fingerprint this chart was rendered from (same observation window). */
+  marketDataFingerprint?: string | null;
+  evidenceWindowStartUtc?: string | null;
+  evidenceWindowEndUtc?: string | null;
+  observationUtc?: string | null;
 }
 
 export interface AtOpenAiAnalysisResult {

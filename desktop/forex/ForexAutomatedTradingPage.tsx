@@ -7,7 +7,7 @@ import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
-const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.2";
+const BANNER = "AUTOMATED EXECUTION NOT IMPLEMENTED — PHASE 53.3";
 
 type Env = "DEMO" | "LIVE";
 
@@ -501,6 +501,46 @@ export function ForexAutomatedTradingPage(props: {
     }
   };
 
+  const applyMonitorConfig = async () => {
+    if (!status || monitorBusy) return;
+    setMonitorBusy(true);
+    setError(null);
+    try {
+      const instrument =
+        shellInstrument
+        ?? status.selectedEnvState?.selectedInstrument
+        ?? status.verification?.instrument.symbol
+        ?? monitor?.config?.instrument
+        ?? null;
+      const res = await fetch("/api/forex/automated-trading/monitor/change", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          environment: status.selectedEnvironment,
+          expectedEnvironmentEpoch: status.environmentEpoch,
+          instrument: instrument || undefined,
+          timeframe: monitorTf,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        monitor?: typeof monitor;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.monitor) setMonitor(data.monitor);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Change failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Change monitoring config failed");
+    } finally {
+      setMonitorBusy(false);
+    }
+  };
+
   const blockers = useMemo(
     () => (status ? actionableBlockers(status.blockers, status.banner || BANNER) : []),
     [status],
@@ -808,7 +848,7 @@ export function ForexAutomatedTradingPage(props: {
             </div>
             <p className="fx-auto-trading-hint">
               Server-side worker — continues after you leave this page. Not a browser screenshot session.
-              {" "}Confidence: NOT CALIBRATED. H2 unsupported on ForexConnect mappings.
+              {" "}Chart image required for OpenAI. Confidence: NOT CALIBRATED. H2 unsupported on ForexConnect mappings.
             </p>
             <div className="fx-auto-monitor-controls">
               <label className="fx-auto-trading-hint" htmlFor="fx-at-monitor-tf">
@@ -818,7 +858,6 @@ export function ForexAutomatedTradingPage(props: {
                   className="fx-auto-monitor-select"
                   value={monitorTf}
                   onChange={(e) => setMonitorTf(e.target.value)}
-                  disabled={Boolean(monitor?.config?.enabled)}
                   data-fx-at-monitor-tf="true"
                 >
                   {(monitor?.supportedTimeframes ?? ["5m", "15m", "30m", "1h"]).map((tf) => (
@@ -826,6 +865,15 @@ export function ForexAutomatedTradingPage(props: {
                   ))}
                 </select>
               </label>
+              <button
+                type="button"
+                className="fx-capture-button"
+                disabled={busy || monitorBusy || !status || !monitor?.config?.enabled}
+                onClick={() => void applyMonitorConfig()}
+                data-fx-at-monitor-change="true"
+              >
+                Apply change
+              </button>
             </div>
             <dl className="fx-auto-config-grid">
               <div>
@@ -1034,6 +1082,12 @@ export function ForexAutomatedTradingPage(props: {
                       <span className="fx-auto-summary-value">{latest.inputFingerprint ?? "—"}</span>
                     </div>
                     <div className="fx-auto-summary-cell">
+                      <span className="fx-ai-label">Image in OpenAI</span>
+                      <span data-fx-at-image-included="true">
+                        {latest.chartImage?.includedInOpenAiRequest ? "yes" : "no"}
+                      </span>
+                    </div>
+                    <div className="fx-auto-summary-cell">
                       <span className="fx-ai-label">Data quality</span>
                       <span>{latest.dataQuality ?? "—"}{latest.historicalOnly ? " · historical-only" : ""}</span>
                     </div>
@@ -1177,7 +1231,7 @@ export function ForexAutomatedTradingPage(props: {
               </div>
               <div>
                 <dt>Automated execution</dt>
-                <dd>disabled (Phase 53.2)</dd>
+                <dd>disabled (Phase 53.3)</dd>
               </div>
             </dl>
             <h3 className="fx-auto-trading-h3">Recent audit</h3>

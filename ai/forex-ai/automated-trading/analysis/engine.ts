@@ -1,7 +1,7 @@
 /**
- * Phase 53 / 53.1 — Independent OpenAI technical analysis engine for Automated Trading.
+ * Phase 53 / 53.1 / 53.3 — Independent OpenAI technical analysis engine for Automated Trading.
  * Uses existing Forex OpenAI config + client. Never falls back to Local AI.
- * Never places broker orders.
+ * Never places broker orders. Monitor analyses require chart image inclusion.
  */
 import { randomUUID } from "node:crypto";
 import { getForexConnectBridge } from "../../../market-data/forexconnect/client.js";
@@ -317,7 +317,8 @@ export class AtOpenAiAnalysisEngine {
       };
     }
 
-    const wantsImage = Boolean(input.chartImage?.base64) || input.requireImage;
+    const hasImageBytes = Boolean(input.chartImage?.base64?.trim());
+    const wantsImage = hasImageBytes || input.requireImage;
     if (wantsImage && !visionEligible) {
       return {
         ok: false,
@@ -325,6 +326,16 @@ export class AtOpenAiAnalysisEngine {
         message:
           `Configured model "${model}" is not eligible for image inputs. `
           + "Select a vision-capable model in Forex Admin. Chart was not silently dropped.",
+        analysis: null,
+      };
+    }
+    if (input.requireImage && !hasImageBytes) {
+      return {
+        ok: false,
+        code: "IMAGE_UNAVAILABLE",
+        message:
+          input.chartImage?.meta?.note
+          || "Chart image required for monitoring analysis but was unavailable. Text-only OpenAI was not used.",
         analysis: null,
       };
     }
@@ -368,6 +379,7 @@ export class AtOpenAiAnalysisEngine {
         ? {
             ...input.chartImage.meta,
             includedInOpenAiRequest: false,
+            marketDataFingerprint: input.chartImage.meta.marketDataFingerprint ?? null,
           }
         : {
             available: false,
@@ -375,8 +387,9 @@ export class AtOpenAiAnalysisEngine {
             capturedAtUtc: null,
             source: "none",
             note: "No chart image supplied for this analysis.",
-            blocker: input.requireImage ? "CHART_REQUIRED" : null,
+            blocker: input.requireImage ? "IMAGE_UNAVAILABLE" : null,
             includedInOpenAiRequest: false,
+            marketDataFingerprint: null,
           };
 
       if (!evidenceBuild.ok || !evidenceBuild.evidence) {
@@ -406,6 +419,14 @@ export class AtOpenAiAnalysisEngine {
       }
 
       const evidence = evidenceBuild.evidence;
+      if (chartMeta) {
+        chartMeta.marketDataFingerprint = chartMeta.marketDataFingerprint ?? evidence.fingerprint;
+        const primarySummary = evidence.candles.find((c) => c.timeframe === primaryTimeframe)
+          ?? evidence.candles[0];
+        chartMeta.evidenceWindowStartUtc = primarySummary?.firstTimeUtc ?? null;
+        chartMeta.evidenceWindowEndUtc = primarySummary?.lastTimeUtc ?? null;
+      }
+
       const gate = getOpenAiInferenceGate();
       const timeoutMs = clampTimeout(input.timeoutMs);
       const horizon = resolveAtForecastHorizon(primaryTimeframe);
@@ -425,13 +446,49 @@ export class AtOpenAiAnalysisEngine {
               source: chartMeta.source,
               note: chartMeta.note,
               includedInOpenAiRequest: false,
+              marketDataFingerprint: chartMeta.marketDataFingerprint ?? null,
+              evidenceWindowStartUtc: chartMeta.evidenceWindowStartUtc ?? null,
+              evidenceWindowEndUtc: chartMeta.evidenceWindowEndUtc ?? null,
             }
           : null,
         binaryDirectionRequirement: "Successful predictions must set direction to BUY or SELL only.",
       };
 
-      const useMultimodal = Boolean(input.chartImage?.base64) && visionEligible;
-      if (chartMeta && useMultimodal) chartMeta.includedInOpenAiRequest = true;
+      // Multimodal only when real image bytes are present and the model is vision-eligible.
+      // Never claim includedInOpenAiRequest until the multimodal call succeeds.
+      // Phase 53.3 — monitor paths set requireImage: never silently fall back to text-only.
+      const useMultimodal = hasImageBytes && visionEligible && Boolean(input.chartImage);
+      if (input.requireImage && !useMultimodal) {
+        const failed = baseFailed({
+          analysisId: randomUUID(),
+          environment: input.environment,
+          environmentEpoch: input.environmentEpoch,
+          instrument,
+          timeframes,
+          primaryTimeframe,
+          fingerprint: evidence.fingerprint,
+          model,
+          modelUsed: null,
+          visionEligible,
+          trigger: input.trigger,
+          monitorConfigEpoch: input.monitorConfigEpoch,
+          chartImage: chartMeta,
+          lifecycle: "ANALYSIS_FAILED",
+          message:
+            "Chart image required but multimodal request could not be formed. Text-only OpenAI was not used.",
+          code: "IMAGE_UNAVAILABLE",
+          historicalOnly: evidence.historicalOnly,
+          dataQuality: evidence.historicalOnly ? "HISTORICAL_ONLY" : "PARTIAL",
+          started,
+        });
+        await this.store().save(failed);
+        return {
+          ok: false,
+          code: "IMAGE_UNAVAILABLE",
+          message: failed.explanation,
+          analysis: failed,
+        };
+      }
 
       const chatResult = await gate.runExclusive(`at-ta:${evidence.fingerprint}:${input.trigger}`, () => {
         if (useMultimodal && input.chartImage) {
@@ -456,6 +513,7 @@ export class AtOpenAiAnalysisEngine {
       });
 
       if (!chatResult.ok || !chatResult.data) {
+        if (chartMeta) chartMeta.includedInOpenAiRequest = false;
         const failed = baseFailed({
           analysisId: randomUUID(),
           environment: input.environment,
@@ -485,6 +543,9 @@ export class AtOpenAiAnalysisEngine {
           analysis: failed,
         };
       }
+
+      // Image was in the successful multimodal request body only when useMultimodal was true.
+      if (chartMeta) chartMeta.includedInOpenAiRequest = useMultimodal;
 
       const { result } = normalizeAtOpenAiAnalysis({
         analysisId: randomUUID(),
