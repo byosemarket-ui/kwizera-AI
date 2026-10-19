@@ -6,6 +6,10 @@
 import { randomUUID } from "node:crypto";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
+import {
+  isVerificationAccountIdentityOk,
+  isVerificationMarketQuoteFresh,
+} from "../verification-gates.js";
 import type { AtOpenAiAnalysisResult } from "../analysis/types.js";
 import { AT_CONFIDENCE_LABEL } from "../analysis/types.js";
 import {
@@ -36,19 +40,11 @@ function pushCheck(
 }
 
 function isAccountIdentityVerified(v: AutomatedTradingVerificationResult | null): boolean {
-  if (!v) return false;
-  return v.identityStatus === "ACCOUNT_VERIFIED" && v.account.isFresh === true;
+  return isVerificationAccountIdentityOk(v);
 }
 
 function isMarketQuoteFresh(v: AutomatedTradingVerificationResult | null): boolean {
-  if (!v?.market) return false;
-  return (
-    v.market.feedStatus === "LIVE"
-    && v.market.bid != null
-    && Number.isFinite(v.market.bid)
-    && v.market.ask != null
-    && Number.isFinite(v.market.ask)
-  );
+  return isVerificationMarketQuoteFresh(v);
 }
 
 function normalizeSymbol(s: string | null | undefined): string {

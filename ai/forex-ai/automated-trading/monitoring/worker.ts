@@ -8,6 +8,11 @@ import { getForexConnectBridge } from "../../../market-data/forexconnect/client.
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
 import {
+  isVerificationAccountIdentityOk,
+  isVerificationMarketQuoteFresh,
+  verificationLastQuoteChangeAtUtc,
+} from "../verification-gates.js";
+import {
   getAtOpenAiAnalysisEngine,
   type AtOpenAiAnalysisEngine,
 } from "../analysis/index.js";
@@ -380,13 +385,11 @@ export class AtMonitorWorker {
       if (this.store.getState().config?.configEpoch !== configEpoch) return;
 
       const verification = this.deps.getVerification?.(persisted.config.environment) ?? null;
-      const quoteFresh = Boolean(verification?.market?.quoteFresh);
+      // Use Phase 52 contract fields (identityStatus + LIVE Bid/Ask) — not invented aliases.
+      const quoteFresh = isVerificationMarketQuoteFresh(verification);
       const feedStatus = verification?.market?.feedStatus ?? null;
-      const lastQuoteChange = verification?.market?.lastGenuinePriceChangeAtUtc ?? null;
-      const identityOk = Boolean(
-        verification?.identity
-        && String(verification.identity.status ?? "").toUpperCase() !== "FAILED",
-      );
+      const lastQuoteChange = verificationLastQuoteChangeAtUtc(verification);
+      const identityOk = isVerificationAccountIdentityOk(verification);
 
       await this.patchHealth({
         lastCandleUpdateAtUtc: nowIso(),
@@ -684,7 +687,7 @@ export class AtMonitorWorker {
         status: this.getPublicStatus(),
       };
     }
-    if (!input.verification.market?.quoteFresh) {
+    if (!isVerificationMarketQuoteFresh(input.verification)) {
       return {
         ok: false,
         code: "STALE_QUOTES",
