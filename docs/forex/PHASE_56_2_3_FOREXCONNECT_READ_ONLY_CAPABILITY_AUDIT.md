@@ -18,8 +18,8 @@
 | XAU/USD quantity-unit semantics (ounces vs lots vs contracts) | **UNVERIFIED** | **BLOCKING** for monetary risk inventing |
 | Contract size / baseUnitSize / lotStep fields present | **PARTIAL** — fields observed; meaning not proven as ounces | BLOCKING for ounce assumption |
 | Minimum stop distance | **UNVERIFIED / MISSING** in app mapping | **BLOCKING** |
-| Orders table RO | **MISSING prior**; defensive RO reader + routes added this phase **if** installed SDK exposes table constant — runtime must confirm | HIGH until E2E verified |
-| Trades / open positions RO | Same as Orders | HIGH until E2E verified |
+| Orders table RO | **AVAILABLE** on production after import fix (`capabilityStatus=AVAILABLE`, `NO_ORDERS` when empty) | mitigated for RO visibility; exposure still fail-closed in sim until authoritative wiring |
+| Trades / open positions RO | **AVAILABLE** (`NO_TRADES` when empty) | same |
 | ClosedTrades history RO | **MISSING** (not implemented this phase) | MEDIUM |
 | Order create/modify/cancel/close | **ABSENT by design** — PASS | — |
 | DEMO session label | **PASS** (prior + status) | — |
@@ -104,11 +104,11 @@ Defensive read-only readers added that:
 |-------|--------|
 | Unauthenticated `GET …/broker-ro-tables` | **403** (auth enforced) — PASS |
 | First authorized probe after `cdff15b4…` ship | **500** — wrong dynamic import `forexconnect/index.js` (barrel file does not exist). Module resolution failure — **not** an empty success. |
-| Fix | Import corrected to `forexconnect/client.js` (follow-up ship in this phase). |
-| Post-fix authorized probe | Required after redeploy — expect `UNSUPPORTED` / `DISCONNECTED` / rows, never fabricated empty OK. |
+| Fix | Import corrected to `forexconnect/client.js` — shipped as `a8fa93f4…`. |
+| Post-fix authorized probe (`a8fa93f4…`, `verifiedLive=true`) | **200** `ok=true`; accounts `AVAILABLE`; ORDERS `AVAILABLE`/`NO_ORDERS`; TRADES `AVAILABLE`/`NO_TRADES`; `placesOrders=false`; `mutatesBroker=false`; `quantityUnitSemantics=UNVERIFIED`; `minStopDistance=UNVERIFIED`. |
 | ClosedTrades | Explicit `CLOSED_TRADES_NOT_IMPLEMENTED` / `MISSING` |
 
-Simulation drafts still set `exposureDataAuthoritative: false` until ORDERS/TRADES RO is confirmed authoritative end-to-end on the installed SDK.
+ORDERS/TRADES table RO is **route-verified** on DEMO. Simulation drafts may still treat exposure as non-authoritative until the engine is wired to consume these snapshots without inventing quantity units.
 
 ### 5.3 Accounts RO
 
@@ -143,7 +143,7 @@ Login/session label ≠ independent attestation for LIVE.
 
 1. Proven XAU quantity-unit semantics (documentation or broker confirmation).  
 2. Verified minimum stop distance without submitting an order.  
-3. Confirmed ORDERS/TRADES table availability on **installed** SDK (post-deploy probe).  
+3. ~~Confirmed ORDERS/TRADES table availability on installed SDK~~ — **DONE** on DEMO (`AVAILABLE` / empty `NO_*`). Authoritative sim-engine consumption still pending.  
 4. ClosedTrades history if required for strategy accounting.  
 5. LIVE independent identity attestation before any LIVE work.
 
