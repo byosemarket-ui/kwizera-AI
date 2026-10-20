@@ -230,5 +230,8 @@ export function assembleSimDraftInput(params: AssembleSimDraftParams): AtSimDraf
     openPositionsCount: null,
     pendingOrdersCount: null,
     exposureDataAuthoritative: false,
+    allocationPercentage: null,
+    marketEvidenceStrength: null,
+    profitProtection: null,
   };
 }

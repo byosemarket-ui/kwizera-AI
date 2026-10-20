@@ -1,18 +1,27 @@
 /**
- * Phase 56.2 — Simulation-only risk engine & trade draft validation contracts.
+ * Phase 56.2 / 56.2.2 — Simulation-only risk engine & trade draft validation contracts.
  * Shared DEMO/LIVE architecture. Never places broker orders.
+ * 56.2.2 adds margin-allocation (12–25% of equity) and independent 3R analysis.
  */
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AtBinaryDirection } from "../analysis/direction.js";
+import type { MarketEvidenceStrength } from "./allocation-3r.js";
+import type { AtSimProfitProtectionResult } from "./profit-protection.js";
 
 export const AT_SIM_RISK_SCHEMA = "at-simulation-risk-draft-v1";
-export const AT_SIM_RISK_PHASE = "56.2";
+export const AT_SIM_RISK_PHASE = "56.2.2";
 export const AT_SIM_RISK_POLICY_VERSION = "sim-risk-policy-v1";
 export const AT_SIM_RISK_BANNER =
-  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2 — EXECUTION FORBIDDEN";
+  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.2 — EXECUTION FORBIDDEN";
 
-/** Owner risk % remains undecided (OD-04). Never invent a default. */
+/**
+ * Hard max-loss % per trade remains undecided (distinct from 12–25% allocation).
+ * Legacy OD-04 naming kept on riskBudgetMode fields.
+ */
 export type AtSimRiskBudgetMode = "UNDECIDED" | "PERCENTAGE" | "FIXED";
+
+/** Owner-approved margin/position allocation range policy (not loss %). */
+export type AtSimAllocationPolicyMode = "PERCENTAGE_RANGE" | "UNSET";
 
 export type AtSimDraftOverallStatus =
   | "DRAFT"
@@ -32,17 +41,30 @@ export type AtSimCheckCategory =
   | "ACCOUNT"
   | "QUANTITY_CONTRACT"
   | "RISK_BUDGET"
+  | "ALLOCATION"
+  | "REWARD_RISK"
+  | "PROFIT_PROTECTION"
   | "MARGIN"
   | "ENVIRONMENT"
   | "SAFETY";
 
+export type { MarketEvidenceStrength };
+export type { AtSimProfitProtectionResult };
+
 export interface AtSimRiskPolicy {
   schemaVersion: typeof AT_SIM_RISK_POLICY_VERSION;
   mode: "SIMULATION_ONLY";
-  /** Owner-approved risk budget — null until decided. */
+  /**
+   * Hard max-loss / risk-budget mode — still UNDECIDED until owner sets a
+   * separate loss ceiling. Not the 12–25% allocation range.
+   */
   riskBudgetMode: AtSimRiskBudgetMode;
   riskPercent: number | null;
   riskFixedAmount: number | null;
+  /** Owner-approved allocation band (12–25% of equity). */
+  allocationPolicyMode: AtSimAllocationPolicyMode;
+  allocationPercentMin: number;
+  allocationPercentMax: number;
   updatedAtUtc: string;
   updatedBy: "admin" | "system";
   note: string;
@@ -118,6 +140,17 @@ export interface AtSimEnvironmentMetaInput {
   liveExecutionAuthorized: false;
 }
 
+export interface AtSimProfitProtectionInputLite {
+  currentPrice: number | null;
+  favorableMovePrice: number | null;
+  multiTimeframeReversalEvidence: boolean;
+  evidenceContradictory: boolean;
+  evidenceInsufficient: boolean;
+  /** Proposed sim threshold — not live-approved. */
+  proposedMinFavorableR: number;
+  proposedTightenToBreakEven: boolean;
+}
+
 /**
  * Structured draft input for the simulation risk engine.
  * Missing fields produce explicit BLOCKED/FAIL codes — never guessed.
@@ -131,6 +164,15 @@ export interface AtSimDraftInput {
   stopLoss: number | null;
   takeProfit: number | null;
   requestedQuantity: number | null;
+  /**
+   * Owner/AI-selected allocation within 12–25%. Optional — never forced from weak evidence.
+   * This is margin/position sizing input, NOT stop-loss risk %.
+   */
+  allocationPercentage: number | null;
+  /** Deterministic market-evidence gate for allocation forcing. */
+  marketEvidenceStrength: MarketEvidenceStrength | null;
+  /** Optional simulation profit-protection context. */
+  profitProtection: AtSimProfitProtectionInputLite | null;
   quote: AtSimQuoteMetaInput;
   contract: AtSimContractMetaInput | null;
   account: AtSimAccountMetaInput | null;
@@ -139,10 +181,37 @@ export interface AtSimDraftInput {
   sourceEvidenceFingerprint: string | null;
   sourceDecidedAtUtc: string | null;
   policy: AtSimRiskPolicy;
-  /** Optional: open positions / pending exposure when authoritative (usually null in 56.2). */
+  /** Optional: open positions / pending exposure when authoritative (usually false in assemble). */
   openPositionsCount: number | null;
   pendingOrdersCount: number | null;
   exposureDataAuthoritative: boolean;
+}
+
+export interface AtSimAllocationAnalysis {
+  allocationPercentage: number | null;
+  allocationBudget: number | null;
+  equityUsed: number | null;
+  /** Explicit: allocation budget is not stop-loss risk. */
+  isStopLossRisk: false;
+  /** True when percentage is inside the owner-approved 12–25% band. */
+  inApprovedRange: boolean | null;
+  forcedByWeakEvidence: false;
+  status: AtSimCheckStatus;
+  note: string;
+}
+
+export interface AtSimRewardRiskAnalysis {
+  estimatedStopLossRisk: number | null;
+  targetReward3R: number | null;
+  theoreticalTakeProfit3R: number | null;
+  riskRewardRatio: number | null;
+  estimatedGrossTarget: number | null;
+  estimatedNetTarget: number | null;
+  estimatedNetTargetStatus: "COMPUTED" | "NOT_VERIFIED";
+  estimatedRequiredMargin: number | null;
+  estimatedRequiredMarginStatus: "COMPUTED" | "NOT_VERIFIED";
+  status: AtSimCheckStatus;
+  note: string;
 }
 
 export interface AtSimDraftResult {
@@ -178,6 +247,12 @@ export interface AtSimDraftResult {
   riskPolicyVersion: typeof AT_SIM_RISK_POLICY_VERSION;
   riskPolicyMode: "SIMULATION_ONLY";
   riskPercentConfigured: boolean;
+  /** Phase 56.2.2 — allocation vs independent 3R analysis (simulation only). */
+  allocationAnalysis: AtSimAllocationAnalysis;
+  rewardRiskAnalysis: AtSimRewardRiskAnalysis;
+  /** Simulation-only profit-protection evaluation (never broker execution). */
+  profitProtection: AtSimProfitProtectionResult | null;
+  eligibilityStatus: "SIMULATION_ANALYSIS_ONLY" | "BLOCKED" | "REJECTED";
   banner: typeof AT_SIM_RISK_BANNER;
   simulationOnly: true;
   placesOrders: false;
@@ -204,10 +279,14 @@ export function defaultSimRiskPolicy(): AtSimRiskPolicy {
     riskBudgetMode: "UNDECIDED",
     riskPercent: null,
     riskFixedAmount: null,
+    allocationPolicyMode: "PERCENTAGE_RANGE",
+    allocationPercentMin: 12,
+    allocationPercentMax: 25,
     updatedAtUtc: new Date().toISOString(),
     updatedBy: "system",
     note:
-      "Owner risk percentage is undecided (OD-04). "
-      + "Risk-budget sizing remains blocked until an explicit owner decision.",
+      "Owner margin allocation range is 12–25% of verified equity (sizing input, not loss %). "
+      + "Independent hard max-loss % per trade remains undecided — not invented. "
+      + "3R TP is a simulation objective when monetary R is verifiable.",
   };
 }

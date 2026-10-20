@@ -1,8 +1,10 @@
 /**
- * Phase 56.2 — Simulation-only risk engine public exports.
+ * Phase 56.2 / 56.2.2 — Simulation-only risk engine public exports.
  */
 export * from "./types.js";
 export * from "./allowlist.js";
+export * from "./allocation-3r.js";
+export * from "./profit-protection.js";
 export {
   validateSimulationDraft,
   normalizeSimRiskPolicy,
@@ -83,7 +85,7 @@ export class AtSimRiskEngine {
 
   publicStatus(): AtSimRiskPublicStatus {
     return {
-      phase: "56.2",
+      phase: "56.2.2",
       schemaVersion: "at-simulation-risk-draft-v1",
       policy: this.store.getPolicy(),
       allowlist: [...AT_INSTRUMENT_ALLOWLIST],

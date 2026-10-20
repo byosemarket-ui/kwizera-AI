@@ -1,21 +1,33 @@
 /**
- * Phase 56.2 — Deterministic simulation-only draft validation.
- * Shared DEMO/LIVE rules. Never submits broker orders. Never invents risk %, ounces, or min-stop.
+ * Phase 56.2 / 56.2.2 — Deterministic simulation-only draft validation.
+ * Shared DEMO/LIVE rules. Never submits broker orders.
+ * Never invents hard max-loss %, XAU ounces, or min-stop.
+ * 56.2.2: owner-approved 12–25% allocation (not loss %) + independent 3R analysis.
  */
 import { randomUUID } from "node:crypto";
 import { allowlistRejectionMessage, isInstrumentAllowlisted } from "./allowlist.js";
+import {
+  compute3RTarget,
+  computeAllocationBudget,
+  estimateStopLossRisk,
+  shouldForceAllocation,
+  validateAllocationPercentage,
+} from "./allocation-3r.js";
+import { evaluateProfitProtection } from "./profit-protection.js";
 import {
   AT_SIM_RISK_BANNER,
   AT_SIM_RISK_PHASE,
   AT_SIM_RISK_POLICY_VERSION,
   AT_SIM_RISK_SCHEMA,
   defaultSimRiskPolicy,
+  type AtSimAllocationAnalysis,
   type AtSimCheckCategory,
   type AtSimCheckStatus,
   type AtSimDraftInput,
   type AtSimDraftOverallStatus,
   type AtSimDraftResult,
   type AtSimReason,
+  type AtSimRewardRiskAnalysis,
   type AtSimRiskPolicy,
   type AtSimValidationCheck,
 } from "./types.js";
@@ -558,7 +570,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
-  // —— Risk budget (OD-04 undecided) ——
+  // —— Hard max-loss policy (still undecided — NOT the 12–25% allocation) ——
   const riskConfigured =
     policy.riskBudgetMode === "PERCENTAGE"
     && isFinitePositive(policy.riskPercent)
@@ -571,7 +583,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "RISK_MODE_INVALID",
       "RISK_BUDGET",
       "FAIL",
-      "Risk policy mode must be SIMULATION_ONLY in Phase 56.2.",
+      "Risk policy mode must be SIMULATION_ONLY in Phase 56.2.2.",
     );
   }
 
@@ -581,7 +593,15 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "BLOCKED_POLICY_UNDECIDED",
       "RISK_BUDGET",
       "BLOCKED",
-      "Owner risk percentage/budget is undecided — quantity is not owner-approved risk sizing.",
+      "Independent hard max-loss % per trade is undecided — not the 12–25% allocation range. "
+        + "Execution eligibility remains blocked.",
+    );
+    pushCheck(
+      checks,
+      "HARD_MAX_LOSS_POLICY_UNDECIDED",
+      "RISK_BUDGET",
+      "BLOCKED",
+      "Owner has not approved a separate hard maximum-loss percentage per trade.",
     );
   } else {
     pushCheck(
@@ -589,19 +609,239 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "RISK_BUDGET_CONFIGURED",
       "RISK_BUDGET",
       "PASS",
-      "Owner risk budget is configured for simulation (still does not authorize execution).",
+      "Hard max-loss / risk budget is configured for simulation (still does not authorize execution).",
     );
   }
 
+  // —— Margin / position allocation (12–25% of equity) ——
+  let allocationAnalysis: AtSimAllocationAnalysis = {
+    allocationPercentage: null,
+    allocationBudget: null,
+    equityUsed: null,
+    isStopLossRisk: false,
+    inApprovedRange: null,
+    forcedByWeakEvidence: false,
+    status: "SKIPPED",
+    note: "Allocation analysis skipped — no allocationPercentage supplied.",
+  };
+
+  const evidence = input.marketEvidenceStrength;
+  const evidenceAllowsAllocation = shouldForceAllocation(evidence);
+  // Stale/weak/contradictory/insufficient → never force an allocation into 12–25%.
+  if (
+    evidence === "WEAK"
+    || evidence === "CONTRADICTORY"
+    || evidence === "INSUFFICIENT"
+    || evidence === "STALE"
+    || quote.fresh === false
+  ) {
+    pushCheck(
+      checks,
+      "ALLOCATION_NOT_FORCED_WEAK_EVIDENCE",
+      "ALLOCATION",
+      "BLOCKED",
+      "Weak, stale, or contradictory market evidence — allocation in 12–25% is not forced; no trade invented to consume budget.",
+    );
+    allocationAnalysis = {
+      ...allocationAnalysis,
+      status: "BLOCKED",
+      note: "Allocation not forced due to weak/stale/contradictory evidence.",
+    };
+  }
+
+  if (input.allocationPercentage != null) {
+    const pctCheck = validateAllocationPercentage(input.allocationPercentage);
+    if (!pctCheck.ok) {
+      pushCheck(checks, pctCheck.code, "ALLOCATION", "FAIL", pctCheck.message);
+      allocationAnalysis = {
+        allocationPercentage: typeof input.allocationPercentage === "number" ? input.allocationPercentage : null,
+        allocationBudget: null,
+        equityUsed: null,
+        isStopLossRisk: false,
+        inApprovedRange: false,
+        forcedByWeakEvidence: false,
+        status: "FAIL",
+        note: pctCheck.message,
+      };
+    } else if (!evidenceAllowsAllocation && evidence != null) {
+      // Explicit % provided but evidence forbids forcing — report % validity without treating as entry mandate.
+      pushCheck(
+        checks,
+        "ALLOCATION_PCT_IN_RANGE_BUT_EVIDENCE_BLOCKS",
+        "ALLOCATION",
+        "BLOCKED",
+        `Allocation ${pctCheck.allocationPercentage}% is in-range but evidence does not permit forcing an entry.`,
+      );
+      allocationAnalysis = {
+        allocationPercentage: pctCheck.allocationPercentage,
+        allocationBudget: null,
+        equityUsed: null,
+        isStopLossRisk: false,
+        inApprovedRange: true,
+        forcedByWeakEvidence: false,
+        status: "BLOCKED",
+        note: "In-range allocation withheld because evidence does not support forcing entry.",
+      };
+    } else {
+      const equity = account?.verified ? account.equity : null;
+      const budget = computeAllocationBudget(equity, pctCheck.allocationPercentage);
+      if (!budget.ok) {
+        pushCheck(checks, budget.code, "ALLOCATION", "BLOCKED", budget.message);
+        allocationAnalysis = {
+          allocationPercentage: pctCheck.allocationPercentage,
+          allocationBudget: null,
+          equityUsed: null,
+          isStopLossRisk: false,
+          inApprovedRange: true,
+          forcedByWeakEvidence: false,
+          status: "BLOCKED",
+          note: budget.message,
+        };
+      } else {
+        pushCheck(
+          checks,
+          "ALLOCATION_PCT_IN_RANGE",
+          "ALLOCATION",
+          "PASS",
+          `Allocation ${pctCheck.allocationPercentage}% is within owner-approved 12–25% (sizing input, not SL risk).`,
+        );
+        pushCheck(
+          checks,
+          "ALLOCATION_BUDGET_COMPUTED",
+          "ALLOCATION",
+          "PASS",
+          `allocationBudget=${budget.allocationBudget} from verified equity (not stop-loss risk).`,
+        );
+        allocationAnalysis = {
+          allocationPercentage: pctCheck.allocationPercentage,
+          allocationBudget: budget.allocationBudget,
+          equityUsed: budget.equityUsed,
+          isStopLossRisk: false,
+          inApprovedRange: true,
+          forcedByWeakEvidence: false,
+          status: "PASS",
+          note: "Allocation budget is a margin/position sizing input — not estimated SL risk (R).",
+        };
+      }
+    }
+  } else if (allocationAnalysis.status === "SKIPPED") {
+    pushCheck(
+      checks,
+      "ALLOCATION_SKIPPED_NO_INPUT",
+      "ALLOCATION",
+      "SKIPPED",
+      "No allocationPercentage supplied — system must not invent 12–25% solely to fill a draft.",
+    );
+  }
+
+  // —— Independent SL risk + 3R (never invent R) ——
+  const slRisk = estimateStopLossRisk({
+    entryPrice: entry,
+    stopLoss: sl,
+    quantity: input.requestedQuantity,
+    contract,
+  });
+  let rewardRiskAnalysis: AtSimRewardRiskAnalysis = {
+    estimatedStopLossRisk: null,
+    targetReward3R: null,
+    theoreticalTakeProfit3R: null,
+    riskRewardRatio: null,
+    estimatedGrossTarget: null,
+    estimatedNetTarget: null,
+    estimatedNetTargetStatus: "NOT_VERIFIED",
+    estimatedRequiredMargin: null,
+    estimatedRequiredMarginStatus: "NOT_VERIFIED",
+    status: "BLOCKED",
+    note: "Monetary R / 3R unavailable until quantity and contract value-per-move are verified.",
+  };
+
+  if (!slRisk.ok) {
+    pushCheck(checks, slRisk.code, "REWARD_RISK", "BLOCKED", slRisk.message);
+  } else {
+    pushCheck(
+      checks,
+      "ESTIMATED_SL_RISK_COMPUTED",
+      "REWARD_RISK",
+      "PASS",
+      `Estimated SL risk R=${slRisk.estimatedStopLossRisk} (${slRisk.method}) — independent of allocation %.`,
+    );
+    const threeR = compute3RTarget({
+      direction,
+      entryPrice: entry,
+      stopLoss: sl,
+      takeProfit: tp,
+      estimatedStopLossRisk: slRisk.estimatedStopLossRisk,
+      priceMove: slRisk.priceMove,
+      digits: contract?.digits ?? null,
+      costDataVerified: false,
+      estimatedCostsAccount: null,
+    });
+    if (!threeR.ok) {
+      pushCheck(checks, threeR.code, "REWARD_RISK", "BLOCKED", threeR.message);
+      rewardRiskAnalysis = {
+        ...rewardRiskAnalysis,
+        estimatedStopLossRisk: slRisk.estimatedStopLossRisk,
+        status: "BLOCKED",
+        note: threeR.message,
+      };
+    } else {
+      pushCheck(
+        checks,
+        "TARGET_3R_COMPUTED",
+        "REWARD_RISK",
+        "PASS",
+        `targetReward3R=${threeR.targetReward3R}; theoretical TP=${threeR.theoreticalTakeProfit3R}. Net target NOT_VERIFIED (costs).`,
+      );
+      rewardRiskAnalysis = {
+        estimatedStopLossRisk: slRisk.estimatedStopLossRisk,
+        targetReward3R: threeR.targetReward3R,
+        theoreticalTakeProfit3R: threeR.theoreticalTakeProfit3R,
+        riskRewardRatio: threeR.riskRewardRatio,
+        estimatedGrossTarget: threeR.estimatedGrossTarget,
+        estimatedNetTarget: threeR.estimatedNetTarget,
+        estimatedNetTargetStatus: threeR.estimatedNetTargetStatus,
+        estimatedRequiredMargin: null,
+        estimatedRequiredMarginStatus: "NOT_VERIFIED",
+        status: "PASS",
+        note: "Gross 3R computed; net target and required margin remain NOT_VERIFIED without verified cost/margin formulas.",
+      };
+    }
+  }
+
+  // Required-margin estimate only when verified marginPerLot + quantity exist.
+  if (
+    isFinitePositive(input.requestedQuantity)
+    && contract?.verified
+    && isFinitePositive(contract.marginPerLotAccount)
+    && !contract.quantityUnitAmbiguous
+  ) {
+    const req = input.requestedQuantity * contract.marginPerLotAccount;
+    rewardRiskAnalysis = {
+      ...rewardRiskAnalysis,
+      estimatedRequiredMargin: req,
+      estimatedRequiredMarginStatus: "COMPUTED",
+    };
+    if (account?.verified && typeof account.usableMargin === "number" && Number.isFinite(account.usableMargin)) {
+      if (req > account.usableMargin) {
+        pushCheck(
+          checks,
+          "INSUFFICIENT_AVAILABLE_MARGIN",
+          "MARGIN",
+          "BLOCKED",
+          `Estimated required margin ${req} exceeds usable margin ${account.usableMargin}.`,
+        );
+      }
+    }
+  }
+
   // —— Margin estimate ——
-  // Without approved risk budget + verified quantity, margin eligibility stays blocked.
   if (!riskConfigured) {
     pushCheck(
       checks,
       "MARGIN_VALIDATION_SKIPPED_POLICY",
       "MARGIN",
       "BLOCKED",
-      "Margin eligibility cannot complete without an owner-approved risk budget.",
+      "Full margin eligibility cannot complete without an owner-approved hard max-loss policy.",
     );
   } else if (!account?.verified || !isFinitePositive(account.usableMargin) && account.usableMargin !== 0) {
     pushCheck(
@@ -621,11 +861,55 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
-  // Never emit an approved proposed quantity in 56.2 while risk % undecided / units ambiguous.
+  // —— Profit protection (simulation only) ——
+  let profitProtection = null;
+  if (input.profitProtection) {
+    const stopDistancePrice =
+      isFinitePositive(entry) && isFinitePositive(sl) ? Math.abs(entry - sl) : null;
+    profitProtection = evaluateProfitProtection({
+      direction: direction === "BUY" || direction === "SELL" ? direction : null,
+      originalStopLoss: isFinitePositive(sl) ? sl : null,
+      entryPrice: isFinitePositive(entry) ? entry : null,
+      currentPrice: input.profitProtection.currentPrice,
+      favorableMovePrice: input.profitProtection.favorableMovePrice,
+      stopDistancePrice,
+      multiTimeframeReversalEvidence: input.profitProtection.multiTimeframeReversalEvidence,
+      evidenceContradictory: input.profitProtection.evidenceContradictory,
+      evidenceInsufficient: input.profitProtection.evidenceInsufficient,
+      proposedMinFavorableR: input.profitProtection.proposedMinFavorableR,
+      proposedTightenToBreakEven: input.profitProtection.proposedTightenToBreakEven,
+    });
+    pushCheck(
+      checks,
+      "PROFIT_PROTECTION_EVALUATED",
+      "PROFIT_PROTECTION",
+      profitProtection.state === "PROTECTIVE_ACTION_PROPOSED_SIM" ? "PASS" : "PASS",
+      `Profit protection state=${profitProtection.state}; action=${profitProtection.proposedAction}; isBrokerExecution=false.`,
+    );
+    if (profitProtection.evidenceCodes.includes("PROTECTIVE_SL_WIDEN_REJECTED")) {
+      pushCheck(
+        checks,
+        "PROTECTIVE_SL_WIDEN_REJECTED",
+        "PROFIT_PROTECTION",
+        "FAIL",
+        "Protective Stop Loss proposal would widen risk — rejected.",
+      );
+    }
+  } else {
+    pushCheck(
+      checks,
+      "PROFIT_PROTECTION_SKIPPED",
+      "PROFIT_PROTECTION",
+      "SKIPPED",
+      "No profit-protection context supplied for this draft validation.",
+    );
+  }
+
+  // Never emit an approved proposed quantity while hard max-loss undecided / units ambiguous.
   const proposedQuantity: number | null = null;
   const proposedQuantityNote =
-    "Proposed quantity withheld: owner risk budget undecided and/or contract unit/min-stop/exposure incomplete. "
-    + "No ounces or lot sizes were invented.";
+    "Proposed quantity withheld: hard max-loss policy undecided and/or contract unit/min-stop/exposure incomplete. "
+    + "Allocation budget (if any) is not used to invent ounces or lot sizes.";
 
   const structuralOk =
     instrumentOk
@@ -636,7 +920,8 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     && isFinitePositive(tp)
     && !checks.some((c) => c.category === "DIRECTION_PRICE" && c.status === "FAIL")
     && !checks.some((c) => c.category === "INSTRUMENT" && c.status === "FAIL")
-    && !checks.some((c) => c.category === "ENVIRONMENT" && c.status === "FAIL");
+    && !checks.some((c) => c.category === "ENVIRONMENT" && c.status === "FAIL")
+    && !checks.some((c) => c.category === "ALLOCATION" && c.status === "FAIL");
 
   if (structuralOk) {
     pushCheck(
@@ -659,6 +944,13 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
   const overallStatus = resolveOverall(checks, structuralOk);
   const reasons = collectReasons(checks);
   const explanations = reasons.map((r) => r.message);
+
+  const eligibilityStatus: AtSimDraftResult["eligibilityStatus"] =
+    overallStatus === "REJECTED_LOCAL"
+      ? "REJECTED"
+      : overallStatus === "VALIDATION_PASSED"
+        ? "SIMULATION_ANALYSIS_ONLY"
+        : "BLOCKED";
 
   return {
     schemaVersion: AT_SIM_RISK_SCHEMA,
@@ -692,6 +984,10 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     riskPolicyVersion: AT_SIM_RISK_POLICY_VERSION,
     riskPolicyMode: "SIMULATION_ONLY",
     riskPercentConfigured: riskConfigured,
+    allocationAnalysis,
+    rewardRiskAnalysis,
+    profitProtection,
+    eligibilityStatus,
     banner: AT_SIM_RISK_BANNER,
     simulationOnly: true,
     placesOrders: false,
@@ -703,9 +999,7 @@ export function normalizeSimRiskPolicy(raw: unknown): AtSimRiskPolicy {
   const base = defaultSimRiskPolicy();
   if (!raw || typeof raw !== "object") return base;
   const o = raw as Record<string, unknown>;
-  // Phase 56.2: refuse to silently adopt a default percentage as "approved".
-  // Only accept UNDECIDED unless an explicit future owner patch sets mode + value
-  // through a separately authorized policy update (not auto-defaulted here).
+  // Refuse to silently invent a hard max-loss % as "approved".
   const mode = o.riskBudgetMode;
   let riskBudgetMode = base.riskBudgetMode;
   let riskPercent: number | null = null;
@@ -716,7 +1010,6 @@ export function normalizeSimRiskPolicy(raw: unknown): AtSimRiskPolicy {
   if (riskBudgetMode === "PERCENTAGE" && typeof o.riskPercent === "number" && Number.isFinite(o.riskPercent) && o.riskPercent > 0) {
     riskPercent = o.riskPercent;
   } else if (riskBudgetMode === "PERCENTAGE") {
-    // Incomplete percentage config → treat as undecided rather than inventing.
     riskBudgetMode = "UNDECIDED";
     riskPercent = null;
   }
@@ -726,11 +1019,17 @@ export function normalizeSimRiskPolicy(raw: unknown): AtSimRiskPolicy {
     riskBudgetMode = "UNDECIDED";
     riskFixedAmount = null;
   }
+  // Allocation band is owner-approved at 12–25; do not silently widen/narrow.
+  const allocationPolicyMode =
+    o.allocationPolicyMode === "UNSET" ? "UNSET" : "PERCENTAGE_RANGE";
   return {
     ...base,
     riskBudgetMode,
     riskPercent,
     riskFixedAmount,
+    allocationPolicyMode,
+    allocationPercentMin: 12,
+    allocationPercentMax: 25,
     updatedAtUtc: typeof o.updatedAtUtc === "string" ? o.updatedAtUtc : base.updatedAtUtc,
     updatedBy: o.updatedBy === "admin" ? "admin" : "system",
     note: typeof o.note === "string" && o.note.trim()

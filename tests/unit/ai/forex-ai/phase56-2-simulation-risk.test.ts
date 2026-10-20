@@ -94,6 +94,9 @@ function baseInput(over: Partial<AtSimDraftInput> = {}): AtSimDraftInput {
     openPositionsCount: 0,
     pendingOrdersCount: 0,
     exposureDataAuthoritative: true,
+    allocationPercentage: null,
+    marketEvidenceStrength: "SUFFICIENT",
+    profitProtection: null,
     ...over,
   };
 }
@@ -367,12 +370,17 @@ describe("Phase 56.2 environment and safety", () => {
     const r = validateSimulationDraft(
       baseInput({
         policy: basePolicy({ riskBudgetMode: "PERCENTAGE", riskPercent: 0.5 }),
+        // 56.2.2: monetary R/3R requires a quantity — still does not invent proposedQuantity.
+        requestedQuantity: 1,
+        allocationPercentage: 18,
+        marketEvidenceStrength: "SUFFICIENT",
       }),
     );
     expect(r.overallStatus).toBe("VALIDATION_PASSED");
     expect(r.acceptsForExecution).toBe(false);
     expect(r.placesOrders).toBe(false);
     expect(r.proposedQuantity).toBeNull();
+    expect(r.rewardRiskAnalysis.estimatedStopLossRisk).not.toBeNull();
   });
 });
 

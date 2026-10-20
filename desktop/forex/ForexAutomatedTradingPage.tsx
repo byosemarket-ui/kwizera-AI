@@ -1524,8 +1524,8 @@ export function ForexAutomatedTradingPage(props: {
               </button>
             </div>
             <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
-              Phase 56.2 simulation-only. XAU/USD allowlist. Never places orders.
-              Risk % undecided — no owner-approved quantity.
+              Phase 56.2.2 simulation-only. XAU/USD allowlist. Never places orders.
+              Allocation 12–25% of equity is a sizing input (not loss %). Hard max-loss % undecided — no execution eligibility.
             </p>
             <dl className="fx-auto-config-grid">
               <div>
