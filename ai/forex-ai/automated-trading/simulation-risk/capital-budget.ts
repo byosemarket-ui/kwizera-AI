@@ -73,7 +73,9 @@ export function computeCapitalAllocationBudget(
   if (!pct.ok) return { ok: false, code: pct.code, message: pct.message };
   return {
     ok: true,
-    capitalAllocationBudget: verifiedEquity * (capitalAllocationPercent / 100),
+    // Round to 8 dp to remove IEEE float noise (e.g. 19997.65 * 0.1).
+    capitalAllocationBudget:
+      Math.round(verifiedEquity * (capitalAllocationPercent / 100) * 1e8) / 1e8,
     equityUsed: verifiedEquity,
   };
 }

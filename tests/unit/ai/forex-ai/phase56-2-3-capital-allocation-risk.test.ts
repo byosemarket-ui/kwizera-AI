@@ -324,6 +324,9 @@ describe("Phase 56.2.3 ForexConnect RO + safety greps", () => {
     expect(api).toMatch(/placesOrders:\s*false/);
     expect(api).toMatch(/EXECUTION_FORBIDDEN/);
     expect(api).toMatch(/capitalAllocationPercent/);
+    // Production import must target client.js (no forexconnect/index barrel).
+    expect(api).toMatch(/forexconnect\/client\.js/);
+    expect(api).not.toMatch(/forexconnect\/index\.js/);
     // Must not enable execution on controls save
     expect(api).not.toMatch(/acceptsForExecution:\s*true/);
   });

@@ -98,11 +98,21 @@ Defensive read-only readers added that:
 5. Node bridge + **admin-gated** AT routes only.  
 6. ClosedTrades **not** implemented (explicit MISSING).
 
-**Runtime E2E:** After deploy, authorized probes must confirm whether the installed wheel actually exposes ORDERS/TRADES. Until then production exposure may report `UNSUPPORTED` or `DISCONNECTED` — still not “empty OK”.
+**Runtime E2E (production):**
+
+| Check | Result |
+|-------|--------|
+| Unauthenticated `GET …/broker-ro-tables` | **403** (auth enforced) — PASS |
+| First authorized probe after `cdff15b4…` ship | **500** — wrong dynamic import `forexconnect/index.js` (barrel file does not exist). Module resolution failure — **not** an empty success. |
+| Fix | Import corrected to `forexconnect/client.js` (follow-up ship in this phase). |
+| Post-fix authorized probe | Required after redeploy — expect `UNSUPPORTED` / `DISCONNECTED` / rows, never fabricated empty OK. |
+| ClosedTrades | Explicit `CLOSED_TRADES_NOT_IMPLEMENTED` / `MISSING` |
+
+Simulation drafts still set `exposureDataAuthoritative: false` until ORDERS/TRADES RO is confirmed authoritative end-to-end on the installed SDK.
 
 ### 5.3 Accounts RO
 
-Sidecar `GET /accounts` + `ForexConnectBridge.listAccounts()` already exist. This phase exposes an **admin-gated** AT snapshot route so Automated Trading can show equity without a public unauthenticated provider route.
+Sidecar `GET /accounts` + `ForexConnectBridge.listAccounts()` already exist. This phase exposes an **admin-gated** AT snapshot route so Automated Trading can show equity without a public unauthenticated provider route. Verified equity for capital budget is taken from the existing AT verification path (not balance substitution).
 
 ---
 

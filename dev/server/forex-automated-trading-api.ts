@@ -62,7 +62,7 @@ export async function handleForexAutomatedTradingApi(
       }
       // Phase 56.2.3 — admin-gated RO accounts + ORDERS/TRADES capability probe.
       // Path deliberately avoids the substring "order" (blocked by EXECUTION_FORBIDDEN gate).
-      const { getForexConnectBridge } = await import("../../ai/market-data/forexconnect/index.js");
+      const { getForexConnectBridge } = await import("../../ai/market-data/forexconnect/client.js");
       const bridge = getForexConnectBridge();
       const [accounts, openOrders, openTrades] = await Promise.all([
         bridge.listAccounts(),

@@ -1820,7 +1820,7 @@ export function ForexAutomatedTradingPage(props: {
                 <dt>Verified equity</dt>
                 <dd data-fx-at-capital-equity="true">
                   {status.controls.verifiedEquity != null
-                    ? `${status.controls.verifiedEquity}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
+                    ? `${fmtNum(status.controls.verifiedEquity, 2)}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
                     : "Unavailable"}
                 </dd>
               </div>
@@ -1829,7 +1829,7 @@ export function ForexAutomatedTradingPage(props: {
                 <dd data-fx-at-capital-budget="true">
                   {status.controls.capitalAllocationBudgetStatus === "COMPUTED"
                     && status.controls.capitalAllocationBudget != null
-                    ? `${status.controls.capitalAllocationBudget}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
+                    ? `${fmtNum(status.controls.capitalAllocationBudget, 2)}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
                     : status.controls.capitalAllocationBudgetStatus === "UNSET"
                       ? "Unset"
                       : "Unavailable / Unverified"}

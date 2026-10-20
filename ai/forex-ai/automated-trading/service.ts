@@ -416,7 +416,8 @@ export class AutomatedTradingService {
         } else if (equity == null) {
           capitalAllocationBudgetStatus = "UNAVAILABLE";
         } else {
-          capitalAllocationBudget = equity * (pct / 100);
+          // Round to 8 dp to remove IEEE float noise; UI may further format for currency.
+          capitalAllocationBudget = Math.round(equity * (pct / 100) * 1e8) / 1e8;
           capitalAllocationBudgetStatus = "COMPUTED";
         }
         return {
