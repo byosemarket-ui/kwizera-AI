@@ -29,6 +29,14 @@ function storePath(storageRoot?: string): string {
   return path.join(storageRoot ?? resolveStorageRoot(), "forex-automated-trading", "settings.json");
 }
 
+function normalizeCapitalAllocationPercent(raw: unknown): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return null;
+  if (n < 1 || n > 100) return null;
+  return n;
+}
+
 function normalizeControls(raw: unknown): AutomatedTradingEnvControls {
   const base = defaultEnvControls();
   if (!raw || typeof raw !== "object") return base;
@@ -38,6 +46,7 @@ function normalizeControls(raw: unknown): AutomatedTradingEnvControls {
     automaticEntry: Boolean(o.automaticEntry),
     positionManagement: Boolean(o.positionManagement),
     emergencyEntryLock: o.emergencyEntryLock === false ? false : true,
+    capitalAllocationPercent: normalizeCapitalAllocationPercent(o.capitalAllocationPercent),
   };
 }
 

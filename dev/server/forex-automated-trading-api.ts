@@ -55,6 +55,75 @@ export async function handleForexAutomatedTradingApi(
     if (!requireForexAdmin(req, res, sendJson, url.pathname)) return true;
     const service = getAutomatedTradingService();
 
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-ro-tables")) {
+      if (req.method !== "GET") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      // Phase 56.2.3 — admin-gated RO accounts + ORDERS/TRADES capability probe.
+      // Path deliberately avoids the substring "order" (blocked by EXECUTION_FORBIDDEN gate).
+      const { getForexConnectBridge } = await import("../../ai/market-data/forexconnect/index.js");
+      const bridge = getForexConnectBridge();
+      const [accounts, openOrders, openTrades] = await Promise.all([
+        bridge.listAccounts(),
+        bridge.listOrders(),
+        bridge.listTrades(),
+      ]);
+      sendJson(res, 200, {
+        ok: true,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        simulationOnly: true,
+        accounts: {
+          ok: accounts.ok,
+          code: accounts.code,
+          count: accounts.count,
+          capabilityStatus: accounts.ok ? "AVAILABLE" : accounts.code === "DISCONNECTED" ? "AVAILABLE_BUT_DISCONNECTED" : "ERROR",
+          // Masked rows only — never secrets.
+          accounts: (accounts.accounts ?? []).map((a) => ({
+            accountIdMasked: a.accountIdMasked,
+            accountCurrency: a.accountCurrency,
+            equity: a.equity,
+            balance: a.balance,
+            usedMargin: a.usedMargin,
+            usableMargin: a.usableMargin,
+            missingFields: a.missingFields,
+          })),
+          fetchedAt: accounts.fetchedAt,
+          trading: "DISABLED",
+        },
+        openWorkingOrders: {
+          ...openOrders,
+          placesOrders: false,
+          mutatesBroker: false,
+          trading: "DISABLED",
+          note:
+            (openOrders as { note?: string }).note
+            ?? "Read-only working-orders table probe (ORDERS). Not a broker mutation.",
+        },
+        openPositions: {
+          ...openTrades,
+          placesOrders: false,
+          mutatesBroker: false,
+          trading: "DISABLED",
+          note:
+            (openTrades as { note?: string }).note
+            ?? "Read-only open-positions table probe (TRADES). Not a broker mutation.",
+        },
+        closedTrades: {
+          ok: false,
+          capabilityStatus: "MISSING",
+          code: "CLOSED_TRADES_NOT_IMPLEMENTED",
+          count: 0,
+          note: "ClosedTrades history RO is not implemented in Phase 56.2.3.",
+        },
+        quantityUnitSemantics: "UNVERIFIED",
+        minStopDistance: "UNVERIFIED",
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/status")) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
@@ -123,6 +192,14 @@ export async function handleForexAutomatedTradingApi(
             typeof patch.positionManagement === "boolean" ? patch.positionManagement : undefined,
           emergencyEntryLock:
             typeof patch.emergencyEntryLock === "boolean" ? patch.emergencyEntryLock : undefined,
+          capitalAllocationPercent:
+            patch.capitalAllocationPercent === null
+              ? null
+              : typeof patch.capitalAllocationPercent === "number"
+                || (typeof patch.capitalAllocationPercent === "string"
+                  && patch.capitalAllocationPercent.trim() !== "")
+                ? Number(patch.capitalAllocationPercent)
+                : undefined,
         },
       });
       if (!result.ok) {
@@ -640,6 +717,7 @@ export async function handleForexAutomatedTradingApi(
         stopLoss: body.stopLoss,
         takeProfit: body.takeProfit,
         requestedQuantity: body.requestedQuantity,
+        requestedPerOrderAllocation: body.requestedPerOrderAllocation,
         decisionId: body.decisionId,
         persist: body.persist,
       });

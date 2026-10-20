@@ -31,6 +31,12 @@ export interface AssembleSimDraftParams {
   sessionEnvironment: AutomatedTradingEnvironment | null;
   sessionMatchesSelection: boolean | null;
   policy: AtSimRiskPolicy;
+  /** Phase 56.2.3 — strategy capital % from AT controls. */
+  capitalAllocationPercent?: number | null;
+  /** Requested monetary per-order allocation from remaining strategy budget. */
+  requestedPerOrderAllocation?: number | null;
+  /** ACTIVE reservations total for this environment (excluding current draft). */
+  reservedStrategyBudgetActive?: number;
   /** Optional override prices for pure API/tests (still validated). */
   overrides?: {
     instrument?: string;
@@ -233,5 +239,16 @@ export function assembleSimDraftInput(params: AssembleSimDraftParams): AtSimDraf
     allocationPercentage: null,
     marketEvidenceStrength: null,
     profitProtection: null,
+    capitalAllocationPercent:
+      params.capitalAllocationPercent !== undefined ? params.capitalAllocationPercent : null,
+    requestedPerOrderAllocation:
+      params.requestedPerOrderAllocation !== undefined
+        ? params.requestedPerOrderAllocation
+        : null,
+    reservedStrategyBudgetActive:
+      typeof params.reservedStrategyBudgetActive === "number"
+      && Number.isFinite(params.reservedStrategyBudgetActive)
+        ? Math.max(0, params.reservedStrategyBudgetActive)
+        : 0,
   };
 }

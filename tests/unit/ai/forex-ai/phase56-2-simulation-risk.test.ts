@@ -97,6 +97,9 @@ function baseInput(over: Partial<AtSimDraftInput> = {}): AtSimDraftInput {
     allocationPercentage: null,
     marketEvidenceStrength: "SUFFICIENT",
     profitProtection: null,
+    capitalAllocationPercent: null,
+    requestedPerOrderAllocation: null,
+    reservedStrategyBudgetActive: 0,
     ...over,
   };
 }
@@ -200,10 +203,12 @@ describe("Phase 56.2 BUY/SELL geometry", () => {
 describe("Phase 56.2 risk and quantity fail-closed", () => {
   it("blocks when risk percentage undecided", () => {
     const r = validateSimulationDraft(baseInput());
+    // Strategy capital unset and/or legacy risk budget undecided → RISK_BUDGET blocked.
     expect(r.overallStatus).toBe("BLOCKED_POLICY_UNDECIDED");
     expect(r.riskBudgetStatus).toBe("BLOCKED");
     expect(r.proposedQuantity).toBeNull();
     expect(r.riskPercentConfigured).toBe(false);
+    expect(r.reasons.some((x) => x.code === "STRATEGY_ALLOC_PCT_MISSING" || x.code === "BLOCKED_POLICY_UNDECIDED" || x.code === "ACCOUNT_HARD_MAX_LOSS_PCT_UNSET")).toBe(true);
   });
 
   it("blocks missing equity / margin", () => {
@@ -370,10 +375,13 @@ describe("Phase 56.2 environment and safety", () => {
     const r = validateSimulationDraft(
       baseInput({
         policy: basePolicy({ riskBudgetMode: "PERCENTAGE", riskPercent: 0.5 }),
-        // 56.2.2: monetary R/3R requires a quantity — still does not invent proposedQuantity.
         requestedQuantity: 1,
         allocationPercentage: 18,
         marketEvidenceStrength: "SUFFICIENT",
+        // 56.2.3: strategy capital + per-order allocation required for budget gates.
+        capitalAllocationPercent: 50,
+        requestedPerOrderAllocation: 200,
+        reservedStrategyBudgetActive: 0,
       }),
     );
     expect(r.overallStatus).toBe("VALIDATION_PASSED");
@@ -381,6 +389,7 @@ describe("Phase 56.2 environment and safety", () => {
     expect(r.placesOrders).toBe(false);
     expect(r.proposedQuantity).toBeNull();
     expect(r.rewardRiskAnalysis.estimatedStopLossRisk).not.toBeNull();
+    expect(r.capitalBudgetAnalysis.perOrderLossLimitPass).toBe(true);
   });
 });
 

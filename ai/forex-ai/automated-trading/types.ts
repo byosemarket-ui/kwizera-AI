@@ -37,6 +37,11 @@ export interface AutomatedTradingEnvControls {
    * Does not close existing broker positions.
    */
   emergencyEntryLock: boolean;
+  /**
+   * Phase 56.2.3 — overall Automated Trading capital allocation as % of verified equity (1–100).
+   * Null = unset (never auto-filled to 100%). Not stop-loss risk %. Not per-order amount.
+   */
+  capitalAllocationPercent: number | null;
 }
 
 export interface AutomatedTradingEnvState {
@@ -105,6 +110,13 @@ export interface AutomatedTradingPublicStatus {
     positionManagement: "NOT_ACTIVE";
     emergencyEntryLock: boolean;
     automatedExecutionEnabled: false;
+    /** Owner strategy capital % (1–100) or null if unset. */
+    capitalAllocationPercent: number | null;
+    /** equity * pct / 100 when equity verified; otherwise null. */
+    capitalAllocationBudget: number | null;
+    capitalAllocationBudgetStatus: "COMPUTED" | "UNAVAILABLE" | "UNSET";
+    capitalAllocationCurrency: string | null;
+    verifiedEquity: number | null;
   };
   blockers: string[];
   explanation: string;
@@ -134,6 +146,7 @@ export function defaultEnvControls(): AutomatedTradingEnvControls {
     automaticEntry: false,
     positionManagement: false,
     emergencyEntryLock: true,
+    capitalAllocationPercent: null,
   };
 }
 

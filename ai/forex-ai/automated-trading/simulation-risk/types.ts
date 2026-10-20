@@ -9,10 +9,10 @@ import type { MarketEvidenceStrength } from "./allocation-3r.js";
 import type { AtSimProfitProtectionResult } from "./profit-protection.js";
 
 export const AT_SIM_RISK_SCHEMA = "at-simulation-risk-draft-v1";
-export const AT_SIM_RISK_PHASE = "56.2.2";
+export const AT_SIM_RISK_PHASE = "56.2.3";
 export const AT_SIM_RISK_POLICY_VERSION = "sim-risk-policy-v1";
 export const AT_SIM_RISK_BANNER =
-  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.2 — EXECUTION FORBIDDEN";
+  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.3 — EXECUTION FORBIDDEN";
 
 /**
  * Hard max-loss % per trade remains undecided (distinct from 12–25% allocation).
@@ -173,6 +173,12 @@ export interface AtSimDraftInput {
   marketEvidenceStrength: MarketEvidenceStrength | null;
   /** Optional simulation profit-protection context. */
   profitProtection: AtSimProfitProtectionInputLite | null;
+  /** Phase 56.2.3 — strategy capital % from AT controls (1–100) or null if unset. */
+  capitalAllocationPercent: number | null;
+  /** Requested monetary slice of remaining strategy budget for this draft. */
+  requestedPerOrderAllocation: number | null;
+  /** Sum of ACTIVE strategy budget reservations (same environment), excluding this draft. */
+  reservedStrategyBudgetActive: number;
   quote: AtSimQuoteMetaInput;
   contract: AtSimContractMetaInput | null;
   account: AtSimAccountMetaInput | null;
@@ -214,6 +220,18 @@ export interface AtSimRewardRiskAnalysis {
   note: string;
 }
 
+export interface AtSimCapitalBudgetAnalysis {
+  capitalAllocationPercent: number | null;
+  capitalAllocationBudget: number | null;
+  reservedActive: number;
+  remainingBudget: number | null;
+  perOrderAllocation: number | null;
+  perOrderLossLimit: number | null;
+  perOrderLossLimitPass: boolean | null;
+  status: AtSimCheckStatus;
+  note: string;
+}
+
 export interface AtSimDraftResult {
   schemaVersion: typeof AT_SIM_RISK_SCHEMA;
   phase: typeof AT_SIM_RISK_PHASE;
@@ -250,6 +268,8 @@ export interface AtSimDraftResult {
   /** Phase 56.2.2 — allocation vs independent 3R analysis (simulation only). */
   allocationAnalysis: AtSimAllocationAnalysis;
   rewardRiskAnalysis: AtSimRewardRiskAnalysis;
+  /** Phase 56.2.3 — strategy capital + per-order 25% loss limit. */
+  capitalBudgetAnalysis: AtSimCapitalBudgetAnalysis;
   /** Simulation-only profit-protection evaluation (never broker execution). */
   profitProtection: AtSimProfitProtectionResult | null;
   eligibilityStatus: "SIMULATION_ANALYSIS_ONLY" | "BLOCKED" | "REJECTED";

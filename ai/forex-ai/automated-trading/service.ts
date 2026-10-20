@@ -401,13 +401,37 @@ export class AutomatedTradingService {
         usernameHint: selectedFresh.usernameHint ?? usernameHint,
         accountVerified,
       },
-      controls: {
-        masterEnable: selectedFresh.controls.masterEnable,
-        automaticEntry: "DISABLED",
-        positionManagement: "NOT_ACTIVE",
-        emergencyEntryLock: selectedFresh.controls.emergencyEntryLock,
-        automatedExecutionEnabled: false,
-      },
+      controls: (() => {
+        const pct = selectedFresh.controls.capitalAllocationPercent;
+        const equity =
+          verification?.account?.equity != null
+          && Number.isFinite(verification.account.equity)
+          && verification.account.equity > 0
+            ? verification.account.equity
+            : null;
+        let capitalAllocationBudget: number | null = null;
+        let capitalAllocationBudgetStatus: "COMPUTED" | "UNAVAILABLE" | "UNSET" = "UNSET";
+        if (pct == null) {
+          capitalAllocationBudgetStatus = "UNSET";
+        } else if (equity == null) {
+          capitalAllocationBudgetStatus = "UNAVAILABLE";
+        } else {
+          capitalAllocationBudget = equity * (pct / 100);
+          capitalAllocationBudgetStatus = "COMPUTED";
+        }
+        return {
+          masterEnable: selectedFresh.controls.masterEnable,
+          automaticEntry: "DISABLED" as const,
+          positionManagement: "NOT_ACTIVE" as const,
+          emergencyEntryLock: selectedFresh.controls.emergencyEntryLock,
+          automatedExecutionEnabled: false as const,
+          capitalAllocationPercent: pct,
+          capitalAllocationBudget,
+          capitalAllocationBudgetStatus,
+          capitalAllocationCurrency: verification?.account?.accountCurrency ?? null,
+          verifiedEquity: equity,
+        };
+      })(),
       blockers: [...new Set(blockers)],
       explanation:
         moduleStatus === "BLOCKED"
@@ -587,15 +611,39 @@ export class AutomatedTradingService {
     }
 
     const patch = input.patch ?? {};
+    if ("capitalAllocationPercent" in patch) {
+      const raw = patch.capitalAllocationPercent;
+      if (raw !== null && raw !== undefined) {
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!Number.isFinite(n) || n < 1 || n > 100) {
+          return {
+            ok: false,
+            code: "INVALID_CAPITAL_ALLOCATION_PERCENT",
+            message: "capitalAllocationPercent must be a finite number from 1 to 100, or null to clear.",
+            status: await this.buildStatus(),
+          };
+        }
+      }
+    }
     await this.store.updateState((s) => {
       const c = s.environments[env].controls;
       if (typeof patch.masterEnable === "boolean") c.masterEnable = patch.masterEnable;
       if (typeof patch.automaticEntry === "boolean") c.automaticEntry = patch.automaticEntry;
       if (typeof patch.positionManagement === "boolean") c.positionManagement = patch.positionManagement;
       if (typeof patch.emergencyEntryLock === "boolean") c.emergencyEntryLock = patch.emergencyEntryLock;
+      if ("capitalAllocationPercent" in patch) {
+        const raw = patch.capitalAllocationPercent;
+        if (raw === null || raw === undefined) {
+          c.capitalAllocationPercent = null;
+        } else {
+          const n = typeof raw === "number" ? raw : Number(raw);
+          c.capitalAllocationPercent = Number.isFinite(n) ? n : null;
+        }
+      }
       // Phase 51 — automatic entry never becomes an execution permission.
       if (c.automaticEntry) c.automaticEntry = false;
       if (c.positionManagement) c.positionManagement = false;
+      // Saving capital allocation must never enable execution.
       s.configVersion += 1;
       return s;
     });
@@ -605,7 +653,7 @@ export class AutomatedTradingService {
       environment: env,
       ok: true,
       code: null,
-      detail: `Controls updated for ${env} (execution remains unimplemented).`,
+      detail: `Controls updated for ${env} (execution remains unimplemented; placesOrders=false).`,
     });
 
     return { ok: true, status: await this.buildStatus() };
@@ -1216,6 +1264,7 @@ export class AutomatedTradingService {
     stopLoss?: unknown;
     takeProfit?: unknown;
     requestedQuantity?: unknown;
+    requestedPerOrderAllocation?: unknown;
     decisionId?: unknown;
     persist?: unknown;
   }): Promise<
@@ -1266,6 +1315,7 @@ export class AutomatedTradingService {
       return Number.isFinite(n) ? n : null;
     };
 
+    const requestedPerOrderAllocation = numOrUndef(input.requestedPerOrderAllocation);
     const draft = await this.simRiskEngine.validateFromContext({
       environment: env,
       environmentEpoch: state.environmentEpoch,
@@ -1277,6 +1327,10 @@ export class AutomatedTradingService {
       sessionEnvironment: publicStatus.broker.activeSessionEnvironment,
       sessionMatchesSelection: publicStatus.broker.sessionMatchesSelection,
       persist: input.persist !== false,
+      capitalAllocationPercent: envState.controls.capitalAllocationPercent,
+      requestedPerOrderAllocation:
+        requestedPerOrderAllocation === undefined ? null : requestedPerOrderAllocation,
+      reservedStrategyBudgetActive: this.simRiskEngine.sumActiveReserved(env),
       overrides: {
         instrument: input.instrument != null ? String(input.instrument) : undefined,
         direction,

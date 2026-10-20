@@ -47,6 +47,9 @@ function baseInput(over: Partial<AtSimDraftInput> = {}): AtSimDraftInput {
     allocationPercentage: 18,
     marketEvidenceStrength: "SUFFICIENT",
     profitProtection: null,
+    capitalAllocationPercent: 50,
+    requestedPerOrderAllocation: 200,
+    reservedStrategyBudgetActive: 0,
     quote: {
       bid: 4099.9,
       ask: 4100.1,
@@ -475,7 +478,7 @@ describe("Phase 56.2.2 persistence and safety", () => {
     expect(engine.getLatest()?.acceptsForExecution).toBe(false);
     expect(engine.publicStatus().acceptsForExecution).toBe(false);
     expect(engine.publicStatus().placesOrders).toBe(false);
-    expect(engine.publicStatus().phase).toBe("56.2.2");
+    expect(engine.publicStatus().phase).toBe("56.2.3");
   });
 
   it("keeps safety invariants false/locked across scenarios", () => {
@@ -491,7 +494,9 @@ describe("Phase 56.2.2 persistence and safety", () => {
       expect(r.placesOrders).toBe(false);
       expect(r.acceptsForExecution).toBe(false);
       expect(r.simulationOnly).toBe(true);
-      expect(r.checks.some((c) => c.code === "HARD_MAX_LOSS_POLICY_UNDECIDED" && c.status === "BLOCKED")).toBe(true);
+      expect(r.placesOrders).toBe(false);
+      expect(r.acceptsForExecution).toBe(false);
+      // 56.2.3: account-level hard max-loss remains unset (SKIPPED); per-order 25% rule is separate.
     }
   });
 

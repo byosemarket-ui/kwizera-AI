@@ -86,6 +86,11 @@ type PublicStatus = {
     positionManagement: "NOT_ACTIVE";
     emergencyEntryLock: boolean;
     automatedExecutionEnabled: false;
+    capitalAllocationPercent?: number | null;
+    capitalAllocationBudget?: number | null;
+    capitalAllocationBudgetStatus?: "COMPUTED" | "UNAVAILABLE" | "UNSET";
+    capitalAllocationCurrency?: string | null;
+    verifiedEquity?: number | null;
   };
   blockers: string[];
   explanation: string;
@@ -263,6 +268,8 @@ export function ForexAutomatedTradingPage(props: {
   const [simDraftEntry, setSimDraftEntry] = useState("");
   const [simDraftSl, setSimDraftSl] = useState("");
   const [simDraftTp, setSimDraftTp] = useState("");
+  const [simDraftPerOrderAlloc, setSimDraftPerOrderAlloc] = useState("");
+  const [capitalAllocDraft, setCapitalAllocDraft] = useState("");
   const [simRiskBusy, setSimRiskBusy] = useState(false);
   const seq = useRef(0);
 
@@ -300,6 +307,10 @@ export function ForexAutomatedTradingPage(props: {
         return;
       }
       setStatus(stJson.status);
+      {
+        const pct = stJson.status.controls.capitalAllocationPercent;
+        setCapitalAllocDraft(pct == null || pct === undefined ? "" : String(pct));
+      }
       setAudit(Array.isArray(auJson.events) ? auJson.events : []);
       if (oaRes.ok && oaJson.ok && oaJson.openai) setOpenaiStatus(oaJson.openai);
       if (histRes.ok && histJson.ok && Array.isArray(histJson.history)) {
@@ -405,13 +416,28 @@ export function ForexAutomatedTradingPage(props: {
     });
   };
 
-  const patchControls = async (patch: Record<string, boolean>) => {
+  const patchControls = async (patch: Record<string, boolean | number | null>) => {
     if (!status) return;
     await postJson("/api/forex/automated-trading/controls", {
       environment: status.selectedEnvironment,
       expectedEnvironmentEpoch: status.environmentEpoch,
       patch,
     });
+  };
+
+  const saveCapitalAllocationPercent = async () => {
+    if (!status) return;
+    const raw = capitalAllocDraft.trim();
+    if (raw === "") {
+      await patchControls({ capitalAllocationPercent: null });
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1 || n > 100) {
+      setError("Strategy capital allocation % must be a finite number from 1 to 100.");
+      return;
+    }
+    await patchControls({ capitalAllocationPercent: n });
   };
 
   const setLock = async (locked: boolean) => {
@@ -542,6 +568,9 @@ export function ForexAutomatedTradingPage(props: {
           entryPrice: simDraftEntry.trim() ? Number(simDraftEntry) : undefined,
           stopLoss: simDraftSl.trim() ? Number(simDraftSl) : undefined,
           takeProfit: simDraftTp.trim() ? Number(simDraftTp) : undefined,
+          requestedPerOrderAllocation: simDraftPerOrderAlloc.trim()
+            ? Number(simDraftPerOrderAlloc)
+            : undefined,
         }),
       });
       const data = await res.json() as {
@@ -1524,8 +1553,8 @@ export function ForexAutomatedTradingPage(props: {
               </button>
             </div>
             <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
-              Phase 56.2.2 simulation-only. XAU/USD allowlist. Never places orders.
-              Allocation 12–25% of equity is a sizing input (not loss %). Hard max-loss % undecided — no execution eligibility.
+              Phase 56.2.3 simulation-only. XAU/USD allowlist. Never places orders.
+              Strategy capital 1–100% of equity is a budget ceiling. Per-order max estimated SL loss = 25% of that order’s allocation.
             </p>
             <dl className="fx-auto-config-grid">
               <div>
@@ -1586,6 +1615,20 @@ export function ForexAutomatedTradingPage(props: {
                   disabled={busy || simRiskBusy}
                 />
               </label>
+              <label>
+                Per-order allocation
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  value={simDraftPerOrderAlloc}
+                  onChange={(e) => setSimDraftPerOrderAlloc(e.target.value)}
+                  placeholder="from remaining budget"
+                  data-fx-at-sim-per-order-alloc="true"
+                  disabled={busy || simRiskBusy}
+                />
+              </label>
             </div>
             {(() => {
               const d = (simRiskStatus?.latest ?? null) as null | {
@@ -1608,11 +1651,27 @@ export function ForexAutomatedTradingPage(props: {
                 simulationOnly?: boolean;
                 placesOrders?: boolean;
                 acceptsForExecution?: boolean;
+                capitalBudgetAnalysis?: {
+                  capitalAllocationPercent?: number | null;
+                  capitalAllocationBudget?: number | null;
+                  reservedActive?: number;
+                  remainingBudget?: number | null;
+                  perOrderAllocation?: number | null;
+                  perOrderLossLimit?: number | null;
+                  perOrderLossLimitPass?: boolean | null;
+                  status?: string;
+                  note?: string;
+                };
+                rewardRiskAnalysis?: {
+                  estimatedStopLossRisk?: number | null;
+                  targetReward3R?: number | null;
+                  estimatedNetTargetStatus?: string;
+                };
               };
               if (!d) {
                 return (
                   <p className="fx-auto-trading-hint">
-                    Enter SL and TP, then Validate draft. Uses latest decision direction when present.
+                    Enter SL, TP, and per-order allocation, then Validate draft. Uses latest decision direction when present.
                   </p>
                 );
               }
@@ -1665,6 +1724,36 @@ export function ForexAutomatedTradingPage(props: {
                       </dd>
                     </div>
                     <div>
+                      <dt>Per-order allocation / 25% limit</dt>
+                      <dd data-fx-at-sim-capital="true">
+                        {d.capitalBudgetAnalysis?.perOrderAllocation != null
+                          ? d.capitalBudgetAnalysis.perOrderAllocation
+                          : "Blocked / Unverified"}
+                        {" · limit "}
+                        {d.capitalBudgetAnalysis?.perOrderLossLimit != null
+                          ? d.capitalBudgetAnalysis.perOrderLossLimit
+                          : "—"}
+                        {" · "}
+                        {d.capitalBudgetAnalysis?.perOrderLossLimitPass == null
+                          ? (d.capitalBudgetAnalysis?.status ?? "—")
+                          : d.capitalBudgetAnalysis.perOrderLossLimitPass
+                            ? "loss-limit PASS"
+                            : "loss-limit FAIL"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Est. SL risk / 3R</dt>
+                      <dd>
+                        {d.rewardRiskAnalysis?.estimatedStopLossRisk != null
+                          ? d.rewardRiskAnalysis.estimatedStopLossRisk
+                          : "Unavailable"}
+                        {" · 3R "}
+                        {d.rewardRiskAnalysis?.targetReward3R != null
+                          ? d.rewardRiskAnalysis.targetReward3R
+                          : "Unavailable"}
+                      </dd>
+                    </div>
+                    <div>
                       <dt>Execution</dt>
                       <dd data-fx-at-sim-exec="false">
                         simulationOnly={String(d.simulationOnly !== false)} · placesOrders=
@@ -1686,6 +1775,79 @@ export function ForexAutomatedTradingPage(props: {
                 </div>
               );
             })()}
+          </section>
+
+          <section
+            className="fx-auto-trading-panel"
+            aria-label="Capital Allocation and Risk Limits"
+            data-fx-at-capital="true"
+          >
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Capital Allocation &amp; Risk Limits</h2>
+              <p className="fx-auto-trading-hint">
+                Overall strategy budget from verified equity (1–100%). Not margin. Not the amount spent on every order.
+                Per-order max estimated SL loss = 25% of that order’s allocation. Saving never enables execution.
+              </p>
+            </div>
+            <div className="fx-auto-token-row" style={{ flexWrap: "wrap", gap: "0.5rem", alignItems: "end" }}>
+              <label>
+                Strategy allocation %
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={capitalAllocDraft}
+                  onChange={(e) => setCapitalAllocDraft(e.target.value)}
+                  placeholder="unset"
+                  data-fx-at-capital-pct="true"
+                  disabled={busy || !token.trim()}
+                />
+              </label>
+              <button
+                type="button"
+                className="fx-btn fx-btn--secondary"
+                disabled={busy || !token.trim()}
+                onClick={() => void saveCapitalAllocationPercent()}
+                data-fx-at-capital-save="true"
+              >
+                Save allocation %
+              </button>
+            </div>
+            <dl className="fx-auto-config-grid" data-fx-at-capital-summary="true">
+              <div>
+                <dt>Verified equity</dt>
+                <dd data-fx-at-capital-equity="true">
+                  {status.controls.verifiedEquity != null
+                    ? `${status.controls.verifiedEquity}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
+                    : "Unavailable"}
+                </dd>
+              </div>
+              <div>
+                <dt>Strategy capital budget</dt>
+                <dd data-fx-at-capital-budget="true">
+                  {status.controls.capitalAllocationBudgetStatus === "COMPUTED"
+                    && status.controls.capitalAllocationBudget != null
+                    ? `${status.controls.capitalAllocationBudget}${status.controls.capitalAllocationCurrency ? ` ${status.controls.capitalAllocationCurrency}` : ""}`
+                    : status.controls.capitalAllocationBudgetStatus === "UNSET"
+                      ? "Unset"
+                      : "Unavailable / Unverified"}
+                </dd>
+              </div>
+              <div>
+                <dt>Selected %</dt>
+                <dd>
+                  {status.controls.capitalAllocationPercent != null
+                    ? `${status.controls.capitalAllocationPercent}%`
+                    : "Unset"}
+                </dd>
+              </div>
+              <div>
+                <dt>Per-order loss limit rule</dt>
+                <dd>25% of that order’s allocation (estimated SL risk)</dd>
+              </div>
+            </dl>
           </section>
 
           <section className="fx-auto-trading-panel" aria-label="Trading controls">

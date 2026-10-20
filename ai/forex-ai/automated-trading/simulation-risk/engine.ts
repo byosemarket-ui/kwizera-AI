@@ -13,6 +13,11 @@ import {
   shouldForceAllocation,
   validateAllocationPercentage,
 } from "./allocation-3r.js";
+import {
+  allocatePerOrderFromRemaining,
+  computeCapitalAllocationBudget,
+  evaluatePerOrderLossLimit,
+} from "./capital-budget.js";
 import { evaluateProfitProtection } from "./profit-protection.js";
 import {
   AT_SIM_RISK_BANNER,
@@ -21,6 +26,7 @@ import {
   AT_SIM_RISK_SCHEMA,
   defaultSimRiskPolicy,
   type AtSimAllocationAnalysis,
+  type AtSimCapitalBudgetAnalysis,
   type AtSimCheckCategory,
   type AtSimCheckStatus,
   type AtSimDraftInput,
@@ -570,7 +576,9 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
-  // —— Hard max-loss policy (still undecided — NOT the 12–25% allocation) ——
+  // —— Strategy capital + per-order 25% loss limit (Phase 56.2.3) ——
+  // Legacy riskBudgetMode PERCENTAGE remains optional; owner-approved rule is
+  // estimatedStopLossRisk <= 25% of per-order allocation (not % of account).
   const riskConfigured =
     policy.riskBudgetMode === "PERCENTAGE"
     && isFinitePositive(policy.riskPercent)
@@ -583,33 +591,106 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "RISK_MODE_INVALID",
       "RISK_BUDGET",
       "FAIL",
-      "Risk policy mode must be SIMULATION_ONLY in Phase 56.2.2.",
+      "Risk policy mode must be SIMULATION_ONLY in Phase 56.2.3.",
     );
   }
 
-  if (!riskConfigured || policy.riskBudgetMode === "UNDECIDED") {
+  let capitalBudgetAnalysis: AtSimCapitalBudgetAnalysis = {
+    capitalAllocationPercent: input.capitalAllocationPercent ?? null,
+    capitalAllocationBudget: null,
+    reservedActive: Math.max(0, Number(input.reservedStrategyBudgetActive) || 0),
+    remainingBudget: null,
+    perOrderAllocation: null,
+    perOrderLossLimit: null,
+    perOrderLossLimitPass: null,
+    status: "BLOCKED",
+    note: "Strategy capital / per-order allocation not yet resolved.",
+  };
+
+  if (input.capitalAllocationPercent == null) {
     pushCheck(
       checks,
-      "BLOCKED_POLICY_UNDECIDED",
+      "STRATEGY_ALLOC_PCT_MISSING",
       "RISK_BUDGET",
       "BLOCKED",
-      "Independent hard max-loss % per trade is undecided — not the 12–25% allocation range. "
-        + "Execution eligibility remains blocked.",
+      "Strategy capital allocation % unset (1–100). Not auto-filled to 100%.",
     );
-    pushCheck(
-      checks,
-      "HARD_MAX_LOSS_POLICY_UNDECIDED",
-      "RISK_BUDGET",
-      "BLOCKED",
-      "Owner has not approved a separate hard maximum-loss percentage per trade.",
-    );
+    capitalBudgetAnalysis = {
+      ...capitalBudgetAnalysis,
+      status: "BLOCKED",
+      note: "Set strategy capital allocation % in Capital Allocation & Risk Limits.",
+    };
+  } else {
+  const strategyBudget = computeCapitalAllocationBudget(
+    account?.verified ? account.equity : null,
+    input.capitalAllocationPercent,
+  );
+  if (!strategyBudget.ok) {
+    pushCheck(checks, strategyBudget.code, "RISK_BUDGET", "BLOCKED", strategyBudget.message);
+    capitalBudgetAnalysis = {
+      ...capitalBudgetAnalysis,
+      status: "BLOCKED",
+      note: strategyBudget.message,
+    };
   } else {
     pushCheck(
       checks,
-      "RISK_BUDGET_CONFIGURED",
+      "STRATEGY_CAPITAL_BUDGET_COMPUTED",
       "RISK_BUDGET",
       "PASS",
-      "Hard max-loss / risk budget is configured for simulation (still does not authorize execution).",
+      `Strategy capital budget=${strategyBudget.capitalAllocationBudget} `
+        + `(${input.capitalAllocationPercent}% of verified equity; not per-order amount).`,
+    );
+    const reserved = capitalBudgetAnalysis.reservedActive;
+    const perOrder = allocatePerOrderFromRemaining({
+      capitalAllocationBudget: strategyBudget.capitalAllocationBudget,
+      reservedActive: reserved,
+      requestedPerOrderAllocation: input.requestedPerOrderAllocation,
+    });
+    if (!perOrder.ok) {
+      pushCheck(checks, perOrder.code, "RISK_BUDGET", "BLOCKED", perOrder.message);
+      capitalBudgetAnalysis = {
+        capitalAllocationPercent: input.capitalAllocationPercent,
+        capitalAllocationBudget: strategyBudget.capitalAllocationBudget,
+        reservedActive: reserved,
+        remainingBudget: strategyBudget.capitalAllocationBudget - reserved,
+        perOrderAllocation: null,
+        perOrderLossLimit: null,
+        perOrderLossLimitPass: null,
+        status: "BLOCKED",
+        note: perOrder.message,
+      };
+    } else {
+      pushCheck(
+        checks,
+        "PER_ORDER_ALLOCATION_WITHIN_BUDGET",
+        "RISK_BUDGET",
+        "PASS",
+        `Per-order allocation=${perOrder.perOrderAllocation}; remaining after=${perOrder.remainingAfter}.`,
+      );
+      capitalBudgetAnalysis = {
+        capitalAllocationPercent: input.capitalAllocationPercent,
+        capitalAllocationBudget: strategyBudget.capitalAllocationBudget,
+        reservedActive: reserved,
+        remainingBudget: perOrder.remainingAfter,
+        perOrderAllocation: perOrder.perOrderAllocation,
+        perOrderLossLimit: perOrder.perOrderAllocation * 0.25,
+        perOrderLossLimitPass: null,
+        status: "PASS",
+        note: "Per-order allocation is a slice of remaining strategy budget — not broker margin.",
+      };
+    }
+  }
+  }
+
+  // Account-level hard max-loss % remains unset; 25% rule is of per-order allocation only.
+  if (!riskConfigured || policy.riskBudgetMode === "UNDECIDED") {
+    pushCheck(
+      checks,
+      "ACCOUNT_HARD_MAX_LOSS_PCT_UNSET",
+      "RISK_BUDGET",
+      "SKIPPED",
+      "No separate account-level hard max-loss % — per-order 25%-of-allocation rule applies when inputs exist.",
     );
   }
 
@@ -806,6 +887,38 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
         note: "Gross 3R computed; net target and required margin remain NOT_VERIFIED without verified cost/margin formulas.",
       };
     }
+
+    const lossLimit = evaluatePerOrderLossLimit({
+      perOrderAllocation: capitalBudgetAnalysis.perOrderAllocation,
+      estimatedStopLossRisk: slRisk.estimatedStopLossRisk,
+    });
+    if (!lossLimit.ok) {
+      pushCheck(checks, lossLimit.code, "RISK_BUDGET", "BLOCKED", lossLimit.message);
+      capitalBudgetAnalysis = {
+        ...capitalBudgetAnalysis,
+        perOrderLossLimit: lossLimit.perOrderLossLimit,
+        perOrderLossLimitPass: false,
+        status: capitalBudgetAnalysis.perOrderAllocation == null ? capitalBudgetAnalysis.status : "BLOCKED",
+        note: lossLimit.message,
+      };
+    } else if (!lossLimit.pass) {
+      pushCheck(checks, lossLimit.code, "RISK_BUDGET", "FAIL", lossLimit.message);
+      capitalBudgetAnalysis = {
+        ...capitalBudgetAnalysis,
+        perOrderLossLimit: lossLimit.perOrderLossLimit,
+        perOrderLossLimitPass: false,
+        status: "FAIL",
+        note: lossLimit.message,
+      };
+    } else {
+      pushCheck(checks, lossLimit.code, "RISK_BUDGET", "PASS", lossLimit.message);
+      capitalBudgetAnalysis = {
+        ...capitalBudgetAnalysis,
+        perOrderLossLimit: lossLimit.perOrderLossLimit,
+        perOrderLossLimitPass: true,
+        note: lossLimit.message,
+      };
+    }
   }
 
   // Required-margin estimate only when verified marginPerLot + quantity exist.
@@ -835,13 +948,13 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
   }
 
   // —— Margin estimate ——
-  if (!riskConfigured) {
+  if (capitalBudgetAnalysis.perOrderAllocation == null) {
     pushCheck(
       checks,
       "MARGIN_VALIDATION_SKIPPED_POLICY",
       "MARGIN",
       "BLOCKED",
-      "Full margin eligibility cannot complete without an owner-approved hard max-loss policy.",
+      "Full margin eligibility cannot complete without a resolved per-order allocation from strategy capital.",
     );
   } else if (!account?.verified || !isFinitePositive(account.usableMargin) && account.usableMargin !== 0) {
     pushCheck(
@@ -986,6 +1099,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     riskPercentConfigured: riskConfigured,
     allocationAnalysis,
     rewardRiskAnalysis,
+    capitalBudgetAnalysis,
     profitProtection,
     eligibilityStatus,
     banner: AT_SIM_RISK_BANNER,

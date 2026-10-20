@@ -927,6 +927,153 @@ def _discover_accounts(fx: Any, environment: str) -> tuple[list[dict[str, Any]],
     return out, currency_source
 
 
+def _table_capability(table_attr: str) -> tuple[Any, Optional[str]]:
+    """Return (ForexConnect table constant, error) without inventing support."""
+    try:
+        from forexconnect import ForexConnect
+    except Exception as exc:  # pragma: no cover
+        return None, f"forexconnect import failed: {str(exc)[:120]}"
+    const = getattr(ForexConnect, table_attr, None)
+    if const is None:
+        return None, f"ForexConnect.{table_attr} is not available on this installed SDK."
+    return const, None
+
+
+def _normalize_order_row(row: Any) -> Optional[dict[str, Any]]:
+    try:
+        order_id = getattr(row, "order_id", None) or getattr(row, "OrderID", None)
+        offer = getattr(row, "instrument", None) or getattr(row, "OfferID", None) or getattr(row, "Symbol", None)
+        side = getattr(row, "buy_sell", None) or getattr(row, "BuySell", None)
+        amount = getattr(row, "amount", None) or getattr(row, "Amount", None)
+        rate = getattr(row, "rate", None) or getattr(row, "Rate", None)
+        status = getattr(row, "status", None) or getattr(row, "Status", None)
+        return {
+            "orderId": str(order_id) if order_id is not None else None,
+            "instrument": str(offer) if offer is not None else None,
+            "side": str(side) if side is not None else None,
+            "amount": float(amount) if amount is not None and str(amount).strip() != "" else None,
+            "rate": float(rate) if rate is not None and str(rate).strip() != "" else None,
+            "status": str(status) if status is not None else None,
+            "source": "forexconnect-orders",
+        }
+    except Exception:
+        return None
+
+
+def _normalize_trade_row(row: Any) -> Optional[dict[str, Any]]:
+    try:
+        trade_id = getattr(row, "trade_id", None) or getattr(row, "TradeID", None)
+        offer = getattr(row, "instrument", None) or getattr(row, "OfferID", None) or getattr(row, "Symbol", None)
+        side = getattr(row, "buy_sell", None) or getattr(row, "BuySell", None)
+        amount = getattr(row, "amount", None) or getattr(row, "Amount", None)
+        open_rate = getattr(row, "open_rate", None) or getattr(row, "OpenRate", None)
+        sl = getattr(row, "stop", None) or getattr(row, "Stop", None)
+        tp = getattr(row, "limit", None) or getattr(row, "Limit", None)
+        return {
+            "tradeId": str(trade_id) if trade_id is not None else None,
+            "instrument": str(offer) if offer is not None else None,
+            "side": str(side) if side is not None else None,
+            "amount": float(amount) if amount is not None and str(amount).strip() != "" else None,
+            "openRate": float(open_rate) if open_rate is not None and str(open_rate).strip() != "" else None,
+            "stopLoss": float(sl) if sl is not None and str(sl).strip() != "" else None,
+            "takeProfit": float(tp) if tp is not None and str(tp).strip() != "" else None,
+            "source": "forexconnect-trades",
+        }
+    except Exception:
+        return None
+
+
+def _ro_table_payload(table_attr: str, item_key: str, normalizer: Any) -> dict[str, Any]:
+    """Phase 56.2.3 — generic RO table snapshot. Never places/cancels/amends orders."""
+    status = _safe_status()
+    fetched_at = _now_iso()
+    base = {
+        "fetchedAt": fetched_at,
+        "status": status,
+        "trading": "DISABLED",
+        "mutatesBroker": False,
+        "placesOrders": False,
+        item_key: [],
+        "count": 0,
+    }
+    const, err = _table_capability(table_attr)
+    if const is None:
+        return {
+            **base,
+            "ok": False,
+            "capabilityStatus": "UNSUPPORTED",
+            "code": f"{table_attr}_UNSUPPORTED",
+            "error": {
+                "code": f"FOREXCONNECT_{table_attr}_UNSUPPORTED",
+                "message": err or f"{table_attr} table is not available.",
+            },
+            "note": f"Installed SDK does not expose ForexConnect.{table_attr}. Not reported as empty success.",
+        }
+    if status["status"] != "CONNECTED":
+        return {
+            **base,
+            "ok": False,
+            "capabilityStatus": "AVAILABLE_BUT_DISCONNECTED",
+            "code": "DISCONNECTED",
+            "error": {
+                "code": status.get("errorCode") or f"FOREXCONNECT_{status['status']}",
+                "message": status.get("errorMessage")
+                or f"ForexConnect is not connected. Connect before reading {table_attr}.",
+            },
+            "note": f"Read-only {table_attr} unavailable while disconnected.",
+        }
+    with _state_lock:
+        fx = _fx
+    if fx is None:
+        return {
+            **base,
+            "ok": False,
+            "capabilityStatus": "AVAILABLE_BUT_DISCONNECTED",
+            "code": "DISCONNECTED",
+            "error": {
+                "code": "FOREXCONNECT_DISCONNECTED",
+                "message": "ForexConnect session handle is not available.",
+            },
+        }
+    try:
+        table = fx.get_table(const)
+        items: list[dict[str, Any]] = []
+        for row in table:
+            item = normalizer(row)
+            if item:
+                items.append(item)
+        return {
+            **base,
+            "ok": True,
+            "capabilityStatus": "AVAILABLE",
+            "code": "OK" if items else f"NO_{table_attr}",
+            item_key: items,
+            "count": len(items),
+            "note": f"Read-only ForexConnect.{table_attr} snapshot. Trading disabled. Never mutates broker state.",
+        }
+    except Exception as exc:
+        return {
+            **base,
+            "ok": False,
+            "capabilityStatus": "ERROR",
+            "code": f"{table_attr}_UNAVAILABLE",
+            "error": {
+                "code": f"FOREXCONNECT_{table_attr}_UNAVAILABLE",
+                "message": f"{table_attr} table read failed: {str(exc)[:200]}",
+            },
+        }
+
+
+def orders_payload() -> dict[str, Any]:
+    """Phase 56.2.3 — read-only Orders table. Never creates/cancels/amends orders."""
+    return _ro_table_payload("ORDERS", "orders", _normalize_order_row)
+
+
+def trades_payload() -> dict[str, Any]:
+    """Phase 56.2.3 — read-only Trades (open positions) table. Never closes/modifies positions."""
+    return _ro_table_payload("TRADES", "trades", _normalize_trade_row)
+
+
 def accounts_payload() -> dict[str, Any]:
     """Phase 47B — read-only Accounts table snapshot. Never places orders."""
     status = _safe_status()
@@ -1956,6 +2103,16 @@ class Handler(BaseHTTPRequestHandler):
             # Phase 47B — read-only account balances. Never triggers orders.
             payload = accounts_payload()
             self._send(200 if payload.get("ok") else 503, payload)
+            return
+        if path == "/orders":
+            # Phase 56.2.3 — read-only Orders table if SDK exposes it. Never mutates.
+            payload = orders_payload()
+            self._send(200 if payload.get("ok") or payload.get("capabilityStatus") == "UNSUPPORTED" else 503, payload)
+            return
+        if path == "/trades":
+            # Phase 56.2.3 — read-only Trades table if SDK exposes it. Never mutates.
+            payload = trades_payload()
+            self._send(200 if payload.get("ok") or payload.get("capabilityStatus") == "UNSUPPORTED" else 503, payload)
             return
         if path == "/candles":
             qs = parse_qs(parsed.query or "")

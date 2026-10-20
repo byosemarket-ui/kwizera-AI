@@ -4,6 +4,7 @@
 export * from "./types.js";
 export * from "./allowlist.js";
 export * from "./allocation-3r.js";
+export * from "./capital-budget.js";
 export * from "./profit-protection.js";
 export {
   validateSimulationDraft,
@@ -61,6 +62,10 @@ export class AtSimRiskEngine {
     return this.store.listHistory(limit);
   }
 
+  sumActiveReserved(environment: string, excludeDraftId?: string | null): number {
+    return this.store.sumActiveReserved(environment, excludeDraftId);
+  }
+
   /** Pure validate without persistence. */
   validate(input: AtSimDraftInput): AtSimDraftResult {
     return validateSimulationDraft(input);
@@ -85,7 +90,7 @@ export class AtSimRiskEngine {
 
   publicStatus(): AtSimRiskPublicStatus {
     return {
-      phase: "56.2.2",
+      phase: "56.2.3",
       schemaVersion: "at-simulation-risk-draft-v1",
       policy: this.store.getPolicy(),
       allowlist: [...AT_INSTRUMENT_ALLOWLIST],

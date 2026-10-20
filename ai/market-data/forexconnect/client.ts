@@ -267,6 +267,82 @@ export class ForexConnectBridge {
   }
 
   /**
+   * Phase 56.2.3 — read-only Orders table via sidecar (if SDK supports it).
+   * Never creates/cancels/amends orders.
+   */
+  async listOrders(): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const status = await this.getStatus();
+    try {
+      const remote = await sidecarFetch(cfg, "/orders", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as unknown as Record<string, unknown>;
+      return {
+        ...body,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        status: body.status ?? status,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        capabilityStatus: "ERROR",
+        code: "SERVICE_UNAVAILABLE",
+        orders: [],
+        count: 0,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+        status,
+      };
+    }
+  }
+
+  /**
+   * Phase 56.2.3 — read-only Trades table via sidecar (if SDK supports it).
+   * Never closes/modifies positions.
+   */
+  async listTrades(): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const status = await this.getStatus();
+    try {
+      const remote = await sidecarFetch(cfg, "/trades", { method: "GET" }, this.fetchImpl);
+      const body = remote.body as unknown as Record<string, unknown>;
+      return {
+        ...body,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        status: body.status ?? status,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        capabilityStatus: "ERROR",
+        code: "SERVICE_UNAVAILABLE",
+        trades: [],
+        count: 0,
+        trading: "DISABLED",
+        placesOrders: false,
+        mutatesBroker: false,
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+        status,
+      };
+    }
+  }
+
+  /**
    * Phase 47B — read-only Accounts table via sidecar.
    * Never places orders. Returns explicit status when disconnected / empty.
    */
