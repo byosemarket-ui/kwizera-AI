@@ -4,6 +4,7 @@
 **Module:** FXCM ForexConnect Automated Trading  
 **Document type:** Quantity / min-stop evidence record  
 **Starting HEAD:** `b9f3608207f82d49e58d194e0e13c933b7232ced`  
+**Ending HEAD / deployed:** `c48ac4f52b6d27c6d3a0a351d86ee540dbc344f4` (`verifiedLive=true`)  
 **Production baseline at start:** `deployedCommit=b9f36082…`, Phase 56.2.3 `PASS_WITH_KNOWN_BLOCKERS`  
 **Scope:** Evidence + simulation gates only. **No broker mutations. LIVE unauthorized.**
 

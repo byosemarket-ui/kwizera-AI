@@ -4,7 +4,10 @@
 **Module:** FXCM ForexConnect Automated Trading  
 **Document type:** Exposure reconciliation policy + evidence  
 **Starting HEAD:** `b9f3608207f82d49e58d194e0e13c933b7232ced`  
+**Ending HEAD / deployed:** `c48ac4f52b6d27c6d3a0a351d86ee540dbc344f4` (`verifiedLive=true`)  
 **Scope:** Read-only ORDERS/TRADES → simulation exposure. **No broker mutations.**
+
+**Production post-deploy probe:** `exposureReconciliation.authoritative=true`, `confirmedZeroExposure=true`, ORDERS/TRADES `AVAILABLE`.
 
 ---
 
