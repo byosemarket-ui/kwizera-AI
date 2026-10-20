@@ -45,6 +45,13 @@ export interface ForexConnectInstrument {
   mmrPerLot?: number | null;
   /** Phase 47A — quantity/lot step when TradingSettings exposes it. */
   lotStep?: number | null;
+  /** Phase 56.2.4 — TradingSettings CondDist* (RO). Never use as lotStep. */
+  condDistStop?: number | null;
+  condDistLimit?: number | null;
+  condDistEntryStop?: number | null;
+  condDistEntryLimit?: number | null;
+  condDistAvailable?: boolean;
+  condDistUnit?: string | null;
 }
 
 export interface ForexConnectSafeStatus {

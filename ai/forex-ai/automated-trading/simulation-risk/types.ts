@@ -9,10 +9,10 @@ import type { MarketEvidenceStrength } from "./allocation-3r.js";
 import type { AtSimProfitProtectionResult } from "./profit-protection.js";
 
 export const AT_SIM_RISK_SCHEMA = "at-simulation-risk-draft-v1";
-export const AT_SIM_RISK_PHASE = "56.2.3";
+export const AT_SIM_RISK_PHASE = "56.2.4";
 export const AT_SIM_RISK_POLICY_VERSION = "sim-risk-policy-v1";
 export const AT_SIM_RISK_BANNER =
-  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.3 — EXECUTION FORBIDDEN";
+  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.4 — EXECUTION FORBIDDEN";
 
 /**
  * Hard max-loss % per trade remains undecided (distinct from 12–25% allocation).

@@ -26,6 +26,9 @@ import {
 } from "./decision/index.js";
 import {
   getAtSimRiskEngine,
+  reconcileBrokerExposure,
+  resolveXauQuantitySemantics,
+  xauSemanticsPublicSummary,
   type AtSimRiskEngine,
   type AtSimDraftResult,
   type AtSimRiskPolicy,
@@ -382,6 +385,69 @@ export class AutomatedTradingService {
     const fresh = this.store.getState();
     const selectedFresh = fresh.environments[fresh.selectedEnvironment];
 
+    const inst = verification?.instrument;
+    const semantics = resolveXauQuantitySemantics({
+      symbol: inst?.symbol ?? selectedFresh.selectedInstrument,
+      instrumentType: inst?.instrumentType,
+      pointSize: inst?.pointSize,
+      pipCostAccount: inst?.pipCostAccount,
+      baseUnitSize: inst?.baseUnitSize,
+      contractMultiplier: inst?.contractMultiplier,
+      quantityStep: inst?.quantityStep,
+      quantityMin: inst?.quantityMin,
+      legacyQuantityUnitLabel: inst?.quantityUnit,
+      condDistStop: (inst as { condDistStop?: number | null } | null | undefined)?.condDistStop,
+      condDistAvailable: Boolean(
+        (inst as { condDistAvailable?: boolean } | null | undefined)?.condDistAvailable,
+      ),
+      condDistStopUnit:
+        (inst as { condDistUnit?: string | null } | null | undefined)?.condDistUnit ?? undefined,
+    });
+
+    let exposureSummary: AutomatedTradingPublicStatus["exposureReconciliation"] = null;
+    try {
+      if (connectionStatus === "CONNECTED" && sessionMatchesSelection) {
+        const bridge = getForexConnectBridge();
+        const [openOrders, openTrades] = await Promise.all([
+          bridge.listOrders(),
+          bridge.listTrades(),
+        ]);
+        const rec = reconcileBrokerExposure({
+          instrument: String(inst?.symbol ?? selectedFresh.selectedInstrument ?? "XAU/USD"),
+          environment: fresh.selectedEnvironment,
+          openWorkingOrders: openOrders as Record<string, unknown>,
+          openPositions: {
+            ...(openTrades as Record<string, unknown>),
+            trades: (openTrades as { trades?: unknown[] }).trades ?? [],
+          },
+        });
+        exposureSummary = {
+          authoritative: rec.authoritative,
+          status: rec.status,
+          confirmedZeroExposure: rec.confirmedZeroExposure,
+          openPositionsCount: rec.openPositionsCount,
+          pendingOrdersCount: rec.pendingOrdersCount,
+          note: rec.note,
+          ordersCapability: rec.ordersCapability,
+          tradesCapability: rec.tradesCapability,
+        };
+        if (rec.authoritative && typeof rec.openPositionsCount === "number") {
+          openPositionsCount = rec.openPositionsCount;
+        }
+      }
+    } catch {
+      exposureSummary = {
+        authoritative: false,
+        status: "UNAVAILABLE",
+        confirmedZeroExposure: false,
+        openPositionsCount: null,
+        pendingOrdersCount: null,
+        note: "Orders/Trades RO reconciliation failed — not treated as zero.",
+        ordersCapability: null,
+        tradesCapability: null,
+      };
+    }
+
     return {
       schemaVersion: AUTOMATED_TRADING_SCHEMA,
       phase: AUTOMATED_TRADING_PHASE,
@@ -433,6 +499,8 @@ export class AutomatedTradingService {
           verifiedEquity: equity,
         };
       })(),
+      quantitySemantics: xauSemanticsPublicSummary(semantics),
+      exposureReconciliation: exposureSummary,
       blockers: [...new Set(blockers)],
       explanation:
         moduleStatus === "BLOCKED"
@@ -1317,6 +1385,50 @@ export class AutomatedTradingService {
     };
 
     const requestedPerOrderAllocation = numOrUndef(input.requestedPerOrderAllocation);
+
+    // Phase 56.2.4 — authoritative Orders/Trades RO for exposure (never mutates broker).
+    const instrumentForExposure = String(
+      input.instrument
+        ?? decision?.instrument
+        ?? envState.lastVerification?.instrument?.symbol
+        ?? "XAU/USD",
+    ).trim();
+    let exposureReconciliation = null;
+    let condDistStop: number | null = null;
+    let condDistAvailable = false;
+    try {
+      const bridge = getForexConnectBridge();
+      const [openOrders, openTrades] = await Promise.all([
+        bridge.listOrders(),
+        bridge.listTrades(),
+      ]);
+      exposureReconciliation = reconcileBrokerExposure({
+        instrument: instrumentForExposure,
+        environment: env,
+        openWorkingOrders: openOrders as Record<string, unknown>,
+        openPositions: {
+          ...(openTrades as Record<string, unknown>),
+          trades: (openTrades as { trades?: unknown[] }).trades
+            ?? (openTrades as { positions?: unknown[] }).positions
+            ?? [],
+        },
+      });
+      const instMeta = envState.lastVerification?.instrument;
+      // CondDist may appear on latest offer metadata after sidecar enrichment.
+      const rawCond = (instMeta as { condDistStop?: unknown } | null | undefined)?.condDistStop;
+      if (typeof rawCond === "number" && Number.isFinite(rawCond)) {
+        condDistStop = rawCond;
+        condDistAvailable = true;
+      }
+    } catch {
+      exposureReconciliation = reconcileBrokerExposure({
+        instrument: instrumentForExposure,
+        environment: env,
+        openWorkingOrders: null,
+        openPositions: null,
+      });
+    }
+
     const draft = await this.simRiskEngine.validateFromContext({
       environment: env,
       environmentEpoch: state.environmentEpoch,
@@ -1332,6 +1444,10 @@ export class AutomatedTradingService {
       requestedPerOrderAllocation:
         requestedPerOrderAllocation === undefined ? null : requestedPerOrderAllocation,
       reservedStrategyBudgetActive: this.simRiskEngine.sumActiveReserved(env),
+      exposureReconciliation,
+      condDistStop,
+      condDistStopUnit: "pips_or_points_unverified",
+      condDistAvailable,
       overrides: {
         instrument: input.instrument != null ? String(input.instrument) : undefined,
         direction,

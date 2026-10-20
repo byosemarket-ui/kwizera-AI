@@ -118,6 +118,19 @@ export interface AutomatedTradingPublicStatus {
     capitalAllocationCurrency: string | null;
     verifiedEquity: number | null;
   };
+  /** Phase 56.2.4 — XAU quantity / min-stop evidence summary (never invented zeros). */
+  quantitySemantics: Record<string, unknown> | null;
+  /** Phase 56.2.4 — Orders/Trades RO reconciliation summary. */
+  exposureReconciliation: {
+    authoritative: boolean;
+    status: string;
+    confirmedZeroExposure: boolean;
+    openPositionsCount: number | null;
+    pendingOrdersCount: number | null;
+    note: string;
+    ordersCapability: string | null;
+    tradesCapability: string | null;
+  } | null;
   blockers: string[];
   explanation: string;
   selectedEnvState: AutomatedTradingEnvState;

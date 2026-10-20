@@ -278,6 +278,9 @@ export function verifyInstrumentMetadata(
     quoteCurrency: hit.quoteAsset,
     contractCurrency: hit.contractCurrency,
     instrumentTypeLabel: hit.instrumentTypeLabel,
+    condDistStop: hit.condDistStop,
+    condDistAvailable: hit.condDistAvailable,
+    condDistUnit: hit.condDistUnit,
   };
   const spec = contractSpecFromForexConnectMetadata({
     instrumentId: hit.providerSymbol,
@@ -334,6 +337,12 @@ export function verifyInstrumentMetadata(
       contractVerified: spec.verified,
       contractSource: spec.source,
       unavailableReason: spec.unavailableReason,
+      condDistStop:
+        typeof hit.condDistStop === "number" && Number.isFinite(hit.condDistStop)
+          ? hit.condDistStop
+          : null,
+      condDistAvailable: Boolean(hit.condDistAvailable),
+      condDistUnit: hit.condDistUnit ?? null,
     },
     blockers,
   };

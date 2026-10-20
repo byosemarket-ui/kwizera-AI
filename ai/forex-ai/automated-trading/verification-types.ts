@@ -109,6 +109,10 @@ export interface VerifiedInstrumentPublic {
   contractVerified: boolean;
   contractSource: string | null;
   unavailableReason: string | null;
+  /** Phase 56.2.4 — optional CondDist from TradingSettings (RO). */
+  condDistStop?: number | null;
+  condDistAvailable?: boolean;
+  condDistUnit?: string | null;
 }
 
 export interface VerifiedMarketQuotePublic {

@@ -80,11 +80,17 @@ export function contractSpecFromForexConnectMetadata(input: {
 
   const label = String(input.instrumentTypeLabel ?? md.instrumentTypeLabel ?? "").toLowerCase();
   const isBullion = label.includes("bullion") || /^(XAU|XAG)/i.test(input.instrumentId);
+  const isXau = /XAU/i.test(input.instrumentId);
   const isCrypto = label.includes("crypto");
 
   let convention: ContractConvention = "unknown";
   let quantityUnit: QuantityUnit = "unknown";
-  if (pipCostAccount != null && pointSize != null) {
+  // Phase 56.2.4 — XAU/USD: prefer contracts (FXCM published 1 contract = 1 oz).
+  // Do not label XAU as "lots" merely because PipCost exists.
+  if (isXau && isBullion && pointSize != null && (pipCostAccount != null || contractMultiplier != null)) {
+    convention = "ounce_contract";
+    quantityUnit = "contracts";
+  } else if (pipCostAccount != null && pointSize != null) {
     convention = "fx_pip_cost_lot";
     quantityUnit = "lots";
   } else if (baseUnitSize != null && pointSize != null) {

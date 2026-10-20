@@ -116,10 +116,13 @@ export async function handleForexAutomatedTradingApi(
           capabilityStatus: "MISSING",
           code: "CLOSED_TRADES_NOT_IMPLEMENTED",
           count: 0,
-          note: "ClosedTrades history RO is not implemented in Phase 56.2.3.",
+          note: "ClosedTrades history RO is not implemented in Phase 56.2.4 — not required for open exposure reconciliation.",
         },
-        quantityUnitSemantics: "UNVERIFIED",
-        minStopDistance: "UNVERIFIED",
+        phase: "56.2.4",
+        quantityUnitSemantics: "SEE_STATUS_QUANTITY_SEMANTICS",
+        minStopDistance: "SEE_STATUS_QUANTITY_SEMANTICS",
+        note:
+          "Use GET /api/forex/automated-trading/status for XAU quantity/min-stop evidence and exposure reconciliation. This route remains a read-only tables probe.",
       });
       return true;
     }

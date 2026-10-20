@@ -374,6 +374,13 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
         "baseUnitSize": None,
         "mmrPerLot": None,
         "lotStep": None,
+        # Phase 56.2.4 — CondDist* are stop/limit distances, NEVER quantity steps.
+        "condDistStop": None,
+        "condDistLimit": None,
+        "condDistEntryStop": None,
+        "condDistEntryLimit": None,
+        "condDistAvailable": False,
+        "condDistUnit": "pips_or_points_unverified",
     }
     if not instrument or account is None:
         return out
@@ -420,6 +427,29 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                         break
                 except Exception:
                     pass
+        # Phase 56.2.4 — read-only CondDist probes (never invent; never use for lotStep).
+        cond_any = False
+        for key, methods in (
+            ("condDistStop", ("get_cond_dist_stop", "getCondDistStop")),
+            ("condDistLimit", ("get_cond_dist_limit", "getCondDistLimit")),
+            ("condDistEntryStop", ("get_cond_dist_entry_stop", "getCondDistEntryStop")),
+            ("condDistEntryLimit", ("get_cond_dist_entry_limit", "getCondDistEntryLimit")),
+        ):
+            for meth in methods:
+                if hasattr(tsp, meth):
+                    try:
+                        # Most CondDist APIs take instrument only; try account-aware if needed.
+                        try:
+                            val = _finite(getattr(tsp, meth)(instrument))
+                        except TypeError:
+                            val = _finite(getattr(tsp, meth)(instrument, account))
+                        if val is not None:
+                            out[key] = val
+                            cond_any = True
+                        break
+                    except Exception:
+                        pass
+        out["condDistAvailable"] = bool(cond_any)
     except Exception:
         return out
     return out
@@ -527,6 +557,12 @@ def _normalize_offer(
         "baseUnitSize": base_unit_size,
         "mmrPerLot": mmr_per_lot,
         "lotStep": lot_step,
+        "condDistStop": ts.get("condDistStop"),
+        "condDistLimit": ts.get("condDistLimit"),
+        "condDistEntryStop": ts.get("condDistEntryStop"),
+        "condDistEntryLimit": ts.get("condDistEntryLimit"),
+        "condDistAvailable": bool(ts.get("condDistAvailable")),
+        "condDistUnit": ts.get("condDistUnit") or "pips_or_points_unverified",
     }
 
 

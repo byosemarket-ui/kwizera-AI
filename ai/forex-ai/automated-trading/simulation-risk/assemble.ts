@@ -1,5 +1,5 @@
 /**
- * Phase 56.2 — Assemble simulation draft input from AT decision + verification.
+ * Phase 56.2 / 56.2.4 — Assemble simulation draft input from AT decision + verification.
  * Never invents contract ounces, min-stop, equity, or risk %.
  */
 import type { AtBinaryDirection } from "../analysis/direction.js";
@@ -7,6 +7,8 @@ import type { AtDecisionResult } from "../decision/types.js";
 import type { AutomatedTradingEnvironment } from "../types.js";
 import type { AutomatedTradingVerificationResult } from "../verification-types.js";
 import { isInstrumentAllowlisted } from "./allowlist.js";
+import type { ExposureReconciliationResult } from "./exposure-reconciliation.js";
+import { resolveXauQuantitySemantics } from "./quantity-semantics.js";
 import type {
   AtSimAccountMetaInput,
   AtSimContractMetaInput,
@@ -37,6 +39,12 @@ export interface AssembleSimDraftParams {
   requestedPerOrderAllocation?: number | null;
   /** ACTIVE reservations total for this environment (excluding current draft). */
   reservedStrategyBudgetActive?: number;
+  /** Phase 56.2.4 — reconciled Orders/Trades RO exposure (optional). */
+  exposureReconciliation?: ExposureReconciliationResult | null;
+  /** Optional CondDist from TradingSettings RO. */
+  condDistStop?: number | null;
+  condDistStopUnit?: string | null;
+  condDistAvailable?: boolean;
   /** Optional override prices for pure API/tests (still validated). */
   overrides?: {
     instrument?: string;
@@ -51,6 +59,11 @@ export interface AssembleSimDraftParams {
 function buildContract(
   verification: AutomatedTradingVerificationResult | null,
   instrument: string,
+  cond: {
+    condDistStop?: number | null;
+    condDistStopUnit?: string | null;
+    condDistAvailable?: boolean;
+  },
 ): AtSimContractMetaInput | null {
   const inst = verification?.instrument;
   if (!inst) {
@@ -76,33 +89,54 @@ function buildContract(
 
   const pointSize = finiteOrNull(inst.pointSize);
   const quantityStep = finiteOrNull(inst.quantityStep);
-  // Phase 56.1: do not treat bullion contractMultiplier as proven ounces.
-  // Mark unit ambiguous unless we have an explicit non-invented unit from verification.
+  const quantityMin = finiteOrNull(inst.quantityMin);
   const contractVerified = Boolean(inst.contractVerified) && isInstrumentAllowlisted(instrument);
-  // XAU ounce semantics remain unproven (Phase 56.1) — never invent units here.
-  const quantityUnitAmbiguous = true;
+
+  const semantics = resolveXauQuantitySemantics({
+    symbol: instrument || inst.symbol,
+    instrumentType: inst.instrumentType,
+    pointSize,
+    pipCostAccount: finiteOrNull(inst.pipCostAccount),
+    baseUnitSize: finiteOrNull(inst.baseUnitSize),
+    contractMultiplier: finiteOrNull(inst.contractMultiplier),
+    quantityStep,
+    quantityMin,
+    legacyQuantityUnitLabel: inst.quantityUnit,
+    condDistStop: cond.condDistStop,
+    condDistStopUnit: cond.condDistStopUnit,
+    condDistAvailable: cond.condDistAvailable,
+  });
+
+  const verified = contractVerified && pointSize != null;
+  const unavailableReason = !verified
+    ? "Instrument contract not verified for sizing."
+    : semantics.quantityUnitAmbiguous
+      ? `Quantity unit ${semantics.quantityUnit.status}; monetary R blocked until VERIFIED contract binding.`
+      : !semantics.minStopDistanceVerified
+        ? `Quantity unit ${semantics.resolvedQuantityUnit} (${semantics.quantityUnit.status}); min-stop ${semantics.minStopDistance.status} (account Enhanced Execution not attested).`
+        : null;
 
   return {
-    verified: contractVerified && pointSize != null,
+    verified,
     pointSize,
     tickSize: pointSize,
     digits: pointSize != null && pointSize > 0
       ? Math.max(0, Math.round(-Math.log10(pointSize)))
       : null,
-    quantityMin: quantityStep,
+    quantityMin: quantityMin ?? quantityStep,
     quantityStep,
-    quantityUnit: "unknown",
-    quantityUnitAmbiguous,
-    contractMultiplier: null,
-    baseUnitSize: null,
-    pipCostAccount: null,
-    marginPerLotAccount: null,
-    minStopDistance: null,
-    minStopDistanceVerified: false,
-    source: contractVerified ? "at-verification-instrument" : null,
-    unavailableReason: contractVerified
-      ? "Quantity unit / ounce semantics and min-stop remain unverified (Phase 56.1)."
-      : "Instrument contract not verified for sizing.",
+    quantityUnit: semantics.resolvedQuantityUnit,
+    quantityUnitAmbiguous: semantics.quantityUnitAmbiguous,
+    contractMultiplier: finiteOrNull(inst.contractMultiplier),
+    baseUnitSize: finiteOrNull(inst.baseUnitSize),
+    pipCostAccount: finiteOrNull(inst.pipCostAccount),
+    marginPerLotAccount: finiteOrNull(inst.marginPerLotAccount),
+    minStopDistance: semantics.minStopDistanceValue,
+    minStopDistanceVerified: semantics.minStopDistanceVerified,
+    source: contractVerified
+      ? `at-verification+phase-56.2.4-semantics:${semantics.summaryStatus}`
+      : null,
+    unavailableReason,
   };
 }
 
@@ -215,6 +249,7 @@ export function assembleSimDraftInput(params: AssembleSimDraftParams): AtSimDraf
     params.quoteAgeMs,
   );
   const resolvedEntry = entryPrice ?? quote.entryPrice;
+  const exposure = params.exposureReconciliation ?? null;
 
   return {
     environment: params.environment,
@@ -226,16 +261,20 @@ export function assembleSimDraftInput(params: AssembleSimDraftParams): AtSimDraf
     takeProfit,
     requestedQuantity: o.requestedQuantity ?? null,
     quote: { ...quote, entryPrice: resolvedEntry },
-    contract: buildContract(params.verification, instrument),
+    contract: buildContract(params.verification, instrument, {
+      condDistStop: params.condDistStop,
+      condDistStopUnit: params.condDistStopUnit,
+      condDistAvailable: params.condDistAvailable,
+    }),
     account: buildAccount(params.verification, params.environment),
     sourceDecisionId: decision?.decisionId ?? null,
     sourceAnalysisId: decision?.sourceAnalysisId ?? null,
     sourceEvidenceFingerprint: decision?.sourceEvidenceFingerprint ?? null,
     sourceDecidedAtUtc: decision?.decidedAtUtc ?? null,
     policy: params.policy,
-    openPositionsCount: null,
-    pendingOrdersCount: null,
-    exposureDataAuthoritative: false,
+    openPositionsCount: exposure?.openPositionsCount ?? null,
+    pendingOrdersCount: exposure?.pendingOrdersCount ?? null,
+    exposureDataAuthoritative: Boolean(exposure?.authoritative),
     allocationPercentage: null,
     marketEvidenceStrength: null,
     profitProtection: null,

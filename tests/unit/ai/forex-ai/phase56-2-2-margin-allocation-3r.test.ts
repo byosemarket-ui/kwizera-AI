@@ -478,7 +478,7 @@ describe("Phase 56.2.2 persistence and safety", () => {
     expect(engine.getLatest()?.acceptsForExecution).toBe(false);
     expect(engine.publicStatus().acceptsForExecution).toBe(false);
     expect(engine.publicStatus().placesOrders).toBe(false);
-    expect(engine.publicStatus().phase).toBe("56.2.3");
+    expect(engine.publicStatus().phase).toBe("56.2.4");
   });
 
   it("keeps safety invariants false/locked across scenarios", () => {

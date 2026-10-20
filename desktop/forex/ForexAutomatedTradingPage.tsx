@@ -92,6 +92,26 @@ type PublicStatus = {
     capitalAllocationCurrency?: string | null;
     verifiedEquity?: number | null;
   };
+  quantitySemantics?: {
+    summaryStatus?: string;
+    quantityUnit?: string;
+    quantityUnitValue?: string;
+    quantityUnitAmbiguous?: boolean;
+    minStopDistance?: string;
+    minStopDistanceVerified?: boolean;
+    monetaryRiskAllowed?: boolean;
+    notes?: string[];
+  } | null;
+  exposureReconciliation?: {
+    authoritative?: boolean;
+    status?: string;
+    confirmedZeroExposure?: boolean;
+    openPositionsCount?: number | null;
+    pendingOrdersCount?: number | null;
+    note?: string;
+    ordersCapability?: string | null;
+    tradesCapability?: string | null;
+  } | null;
   blockers: string[];
   explanation: string;
   verification: Verification | null;
@@ -1553,7 +1573,7 @@ export function ForexAutomatedTradingPage(props: {
               </button>
             </div>
             <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
-              Phase 56.2.3 simulation-only. XAU/USD allowlist. Never places orders.
+              Phase 56.2.4 simulation-only. XAU/USD allowlist. Never places orders.
               Strategy capital 1–100% of equity is a budget ceiling. Per-order max estimated SL loss = 25% of that order’s allocation.
             </p>
             <dl className="fx-auto-config-grid">
@@ -1846,6 +1866,44 @@ export function ForexAutomatedTradingPage(props: {
               <div>
                 <dt>Per-order loss limit rule</dt>
                 <dd>25% of that order’s allocation (estimated SL risk)</dd>
+              </div>
+              <div>
+                <dt>XAU quantity unit</dt>
+                <dd data-fx-at-qty-unit="true">
+                  {status.quantitySemantics?.quantityUnit
+                    ? `${status.quantitySemantics.quantityUnitValue ?? "—"} (${status.quantitySemantics.quantityUnit})`
+                    : "Unverified"}
+                </dd>
+              </div>
+              <div>
+                <dt>Min-stop verification</dt>
+                <dd data-fx-at-min-stop="true">
+                  {status.quantitySemantics?.minStopDistanceVerified
+                    ? "Verified"
+                    : status.quantitySemantics?.minStopDistance
+                      ? `${status.quantitySemantics.minStopDistance} (not account-attested)`
+                      : "Unverified"}
+                </dd>
+              </div>
+              <div>
+                <dt>Exposure reconciliation</dt>
+                <dd data-fx-at-exposure="true">
+                  {status.exposureReconciliation?.authoritative
+                    ? status.exposureReconciliation.confirmedZeroExposure
+                      ? "Authoritative · confirmed zero (NO_ORDERS + NO_TRADES)"
+                      : `Authoritative · positions=${status.exposureReconciliation.openPositionsCount ?? "—"} pending=${status.exposureReconciliation.pendingOrdersCount ?? "—"}`
+                    : status.exposureReconciliation?.status
+                      ? `Unavailable / ${status.exposureReconciliation.status}`
+                      : "Unavailable"}
+                </dd>
+              </div>
+              <div>
+                <dt>Monetary SL risk calc</dt>
+                <dd data-fx-at-monetary-risk="true">
+                  {status.quantitySemantics?.monetaryRiskAllowed
+                    ? "Allowed when quantity + SL geometry verified"
+                    : "Blocked — units/min-stop incomplete"}
+                </dd>
               </div>
             </dl>
           </section>

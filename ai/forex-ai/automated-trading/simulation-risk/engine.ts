@@ -403,7 +403,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
         "MIN_STOP_DISTANCE_UNVERIFIED",
         "DIRECTION_PRICE",
         "BLOCKED",
-        "Broker minimum stop distance is unverified — not invented (Phase 56.1).",
+        "Broker minimum stop distance is unverified for this account — not invented (Phase 56.2.4). Public Enhanced Execution 'no min stop' claim is not account-attested.",
       );
     }
   }
@@ -557,22 +557,26 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     }
   }
 
-  // Exposure (Orders/Trades RO missing in 56.1) ——
+  // Exposure (Phase 56.2.4 — authoritative ORDERS/TRADES RO when both AVAILABLE) ——
   if (!input.exposureDataAuthoritative) {
     pushCheck(
       checks,
       "EXPOSURE_DATA_UNAVAILABLE",
       "QUANTITY_CONTRACT",
       "BLOCKED",
-      "Open positions / pending orders are not authoritatively available (Orders/Trades RO missing).",
+      "Open positions / pending orders are not authoritatively available (Orders/Trades RO incomplete, stale, or failed — not treated as zero).",
     );
   } else {
+    const pos = input.openPositionsCount ?? 0;
+    const pend = input.pendingOrdersCount ?? 0;
     pushCheck(
       checks,
       "EXPOSURE_DATA",
       "QUANTITY_CONTRACT",
       "PASS",
-      `Authoritative exposure: positions=${input.openPositionsCount ?? "—"} pending=${input.pendingOrdersCount ?? "—"}.`,
+      pos === 0 && pend === 0
+        ? "Authoritative confirmed empty exposure (NO_ORDERS + NO_TRADES)."
+        : `Authoritative exposure (orders≠fills): positions=${pos} pending=${pend}.`,
     );
   }
 
