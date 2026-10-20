@@ -19,6 +19,7 @@ import {
   evaluatePerOrderLossLimit,
 } from "./capital-budget.js";
 import { evaluateProfitProtection } from "./profit-protection.js";
+import { proposeQuantityFromAllocation } from "./propose-levels.js";
 import {
   AT_SIM_RISK_BANNER,
   AT_SIM_RISK_PHASE,
@@ -819,11 +820,35 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
+  // —— Proposed quantity from per-order allocation (25% loss ceiling) ——
+  let proposedQuantity: number | null =
+    isFinitePositive(input.requestedQuantity) ? input.requestedQuantity : null;
+  let proposedQuantityNote: string | null = isFinitePositive(input.requestedQuantity)
+    ? `Using requested quantity ${input.requestedQuantity} (${contract?.quantityUnit ?? "unit unverified"}).`
+    : null;
+  if (proposedQuantity == null) {
+    const sized = proposeQuantityFromAllocation({
+      orderAllocation: capitalBudgetAnalysis.perOrderAllocation,
+      entryPrice: isFinitePositive(entry) ? entry : null,
+      stopLoss: isFinitePositive(sl) ? sl : null,
+      contract,
+    });
+    if (sized.ok) {
+      proposedQuantity = sized.quantity;
+      proposedQuantityNote =
+        `Derived from order allocation risk ceiling (25% = ${sized.maxPermittedLoss}); `
+        + `unit=${sized.quantityUnit}; method=${sized.method}. Not broker margin.`;
+    } else {
+      proposedQuantityNote = sized.message;
+      pushCheck(checks, sized.code, "QUANTITY_CONTRACT", "BLOCKED", sized.message);
+    }
+  }
+
   // —— Independent SL risk + 3R (never invent R) ——
   const slRisk = estimateStopLossRisk({
     entryPrice: entry,
     stopLoss: sl,
-    quantity: input.requestedQuantity,
+    quantity: proposedQuantity,
     contract,
   });
   let rewardRiskAnalysis: AtSimRewardRiskAnalysis = {
@@ -927,12 +952,12 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
 
   // Required-margin estimate only when verified marginPerLot + quantity exist.
   if (
-    isFinitePositive(input.requestedQuantity)
+    isFinitePositive(proposedQuantity)
     && contract?.verified
     && isFinitePositive(contract.marginPerLotAccount)
     && !contract.quantityUnitAmbiguous
   ) {
-    const req = input.requestedQuantity * contract.marginPerLotAccount;
+    const req = proposedQuantity * contract.marginPerLotAccount;
     rewardRiskAnalysis = {
       ...rewardRiskAnalysis,
       estimatedRequiredMargin: req,
@@ -1021,12 +1046,6 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "No profit-protection context supplied for this draft validation.",
     );
   }
-
-  // Never emit an approved proposed quantity while hard max-loss undecided / units ambiguous.
-  const proposedQuantity: number | null = null;
-  const proposedQuantityNote =
-    "Proposed quantity withheld: hard max-loss policy undecided and/or contract unit/min-stop/exposure incomplete. "
-    + "Allocation budget (if any) is not used to invent ounces or lot sizes.";
 
   const structuralOk =
     instrumentOk

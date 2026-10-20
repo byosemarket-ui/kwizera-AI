@@ -111,4 +111,16 @@ Fees/spread/slippage: **not** included — estimated risk only.
 3. Resolve DEMO `quantityMin=0.01` vs `quantityStep=1` inconsistency with broker docs.  
 4. LIVE identity attestation.
 
+---
+
+## 8. Simplified simulation draft UI (same phase continuation)
+
+**User input:** Order Allocation (USD) only.
+
+**Derived (when verified):** Direction (decision/analysis), Entry (ask/bid), Stop Loss (nearest analysis support/resistance with valid geometry), Take Profit (3R price from stop distance), Proposed quantity (sized so estimated SL loss ≤ 25% of order allocation), Required margin (qty × marginPerLot when verified), Estimated SL loss, Remaining strategy budget.
+
+**Blocked without invention:** Missing direction, stale quote, no analysis support/resistance for SL, ambiguous quantity units, incomplete exposure RO.
+
+**UI:** Compact `fx-auto-sim-*` grid in `desktop/forex/forex.css` + `ForexAutomatedTradingPage.tsx`. Capital Allocation & Risk Limits section unchanged in meaning (strategy % ≠ order allocation).
+
 *End of quantity / min-stop verification record.*

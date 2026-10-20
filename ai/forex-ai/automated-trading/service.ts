@@ -26,8 +26,10 @@ import {
 } from "./decision/index.js";
 import {
   getAtSimRiskEngine,
+  proposeSimLevels,
   reconcileBrokerExposure,
   resolveXauQuantitySemantics,
+  validateOrderAllocationAmount,
   xauSemanticsPublicSummary,
   type AtSimRiskEngine,
   type AtSimDraftResult,
@@ -1385,6 +1387,18 @@ export class AutomatedTradingService {
     };
 
     const requestedPerOrderAllocation = numOrUndef(input.requestedPerOrderAllocation);
+    if (requestedPerOrderAllocation !== undefined && requestedPerOrderAllocation !== null) {
+      const allocCheck = validateOrderAllocationAmount(requestedPerOrderAllocation);
+      if (!allocCheck.ok) {
+        return {
+          ok: false,
+          code: allocCheck.code,
+          message: allocCheck.message,
+          draft: null,
+          status: publicStatus,
+        };
+      }
+    }
 
     // Phase 56.2.4 — authoritative Orders/Trades RO for exposure (never mutates broker).
     const instrumentForExposure = String(
@@ -1429,6 +1443,61 @@ export class AutomatedTradingService {
       });
     }
 
+    // Derive Entry/SL/TP from quote + analysis levels when not explicitly supplied.
+    const resolvedDirection: AtBinaryDirection | null =
+      direction === "BUY" || direction === "SELL"
+        ? direction
+        : decision?.direction === "BUY" || decision?.direction === "SELL"
+          ? decision.direction
+          : this.analysisEngine.getLatest()?.direction ?? null;
+    const analysis = this.analysisEngine.getLatest();
+    const market = envState.lastVerification?.market;
+    const bid = market?.bid ?? null;
+    const ask = market?.ask ?? null;
+    const mid =
+      typeof bid === "number" && typeof ask === "number" && Number.isFinite(bid) && Number.isFinite(ask)
+        ? (bid + ask) / 2
+        : bid ?? ask ?? null;
+    const pointSize = envState.lastVerification?.instrument?.pointSize ?? null;
+    const digits =
+      typeof pointSize === "number" && pointSize > 0
+        ? Math.max(0, Math.round(-Math.log10(pointSize)))
+        : null;
+
+    const entryIn = numOrUndef(input.entryPrice);
+    const slIn = numOrUndef(input.stopLoss);
+    const tpIn = numOrUndef(input.takeProfit);
+    const needsPropose =
+      (entryIn === undefined || entryIn === null)
+      || (slIn === undefined || slIn === null)
+      || (tpIn === undefined || tpIn === null);
+
+    let derivedEntry = entryIn === undefined ? undefined : entryIn;
+    let derivedSl = slIn === undefined ? undefined : slIn;
+    let derivedTp = tpIn === undefined ? undefined : tpIn;
+
+    if (needsPropose) {
+      const proposed = proposeSimLevels({
+        direction: resolvedDirection,
+        bid,
+        ask,
+        mid,
+        quoteFresh: publicStatus.quoteFreshness?.fresh ?? null,
+        supportLevels: analysis?.supportLevels ?? [],
+        resistanceLevels: analysis?.resistanceLevels ?? [],
+        digits,
+        entryOverride: entryIn === undefined ? null : entryIn,
+        stopLossOverride: slIn === undefined ? null : slIn,
+        takeProfitOverride: tpIn === undefined ? null : tpIn,
+      });
+      if (proposed.ok) {
+        if (derivedEntry === undefined || derivedEntry === null) derivedEntry = proposed.entryPrice;
+        if (derivedSl === undefined || derivedSl === null) derivedSl = proposed.stopLoss;
+        if (derivedTp === undefined || derivedTp === null) derivedTp = proposed.takeProfit;
+      }
+      // If propose fails, leave nulls — engine will BLOCK with missing SL/TP (no invented levels).
+    }
+
     const draft = await this.simRiskEngine.validateFromContext({
       environment: env,
       environmentEpoch: state.environmentEpoch,
@@ -1450,10 +1519,10 @@ export class AutomatedTradingService {
       condDistAvailable,
       overrides: {
         instrument: input.instrument != null ? String(input.instrument) : undefined,
-        direction,
-        entryPrice: numOrUndef(input.entryPrice),
-        stopLoss: numOrUndef(input.stopLoss),
-        takeProfit: numOrUndef(input.takeProfit),
+        direction: resolvedDirection ?? direction,
+        entryPrice: derivedEntry,
+        stopLoss: derivedSl,
+        takeProfit: derivedTp,
         requestedQuantity: numOrUndef(input.requestedQuantity),
       },
     });

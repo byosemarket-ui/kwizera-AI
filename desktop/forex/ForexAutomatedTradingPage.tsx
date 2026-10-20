@@ -2,7 +2,7 @@
  * Phase 51.1 / 52 — Automated Trading UI (isolation + verification).
  * Configuration and read-only verification only — never places broker orders.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
 import type { SelectedMarket } from "./market-data/selected-market";
 
@@ -285,10 +285,8 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
     simulationOnly?: boolean;
   } | null>(null);
-  const [simDraftEntry, setSimDraftEntry] = useState("");
-  const [simDraftSl, setSimDraftSl] = useState("");
-  const [simDraftTp, setSimDraftTp] = useState("");
-  const [simDraftPerOrderAlloc, setSimDraftPerOrderAlloc] = useState("");
+  /** Phase 56.2.4 — sole manual simulation input: order allocation USD. */
+  const [simOrderAlloc, setSimOrderAlloc] = useState("");
   const [capitalAllocDraft, setCapitalAllocDraft] = useState("");
   const [simRiskBusy, setSimRiskBusy] = useState(false);
   const seq = useRef(0);
@@ -565,6 +563,16 @@ export function ForexAutomatedTradingPage(props: {
 
   const validateSimDraft = async () => {
     if (!status || simRiskBusy) return;
+    const rawAlloc = simOrderAlloc.trim();
+    if (!rawAlloc) {
+      setError("Order Allocation (USD) is required.");
+      return;
+    }
+    const allocN = Number(rawAlloc);
+    if (!Number.isFinite(allocN) || allocN <= 0) {
+      setError("Order Allocation must be a finite amount greater than zero.");
+      return;
+    }
     setSimRiskBusy(true);
     setError(null);
     try {
@@ -577,6 +585,8 @@ export function ForexAutomatedTradingPage(props: {
         latestDecision?.instrument
         || status.selectedEnvState?.selectedInstrument
         || "XAU/USD";
+      // Simplified workflow: only order allocation is user-supplied.
+      // Entry / SL / TP / quantity are derived server-side from quote + analysis levels.
       const res = await fetch("/api/forex/automated-trading/simulation-risk/validate", {
         method: "POST",
         headers: adminHeaders(token),
@@ -585,12 +595,7 @@ export function ForexAutomatedTradingPage(props: {
           decisionId: latestDecision?.decisionId,
           instrument,
           direction: latestDecision?.direction ?? undefined,
-          entryPrice: simDraftEntry.trim() ? Number(simDraftEntry) : undefined,
-          stopLoss: simDraftSl.trim() ? Number(simDraftSl) : undefined,
-          takeProfit: simDraftTp.trim() ? Number(simDraftTp) : undefined,
-          requestedPerOrderAllocation: simDraftPerOrderAlloc.trim()
-            ? Number(simDraftPerOrderAlloc)
-            : undefined,
+          requestedPerOrderAllocation: allocN,
         }),
       });
       const data = await res.json() as {
@@ -1556,7 +1561,7 @@ export function ForexAutomatedTradingPage(props: {
           </section>
 
           <section
-            className="fx-auto-trading-panel"
+            className="fx-auto-trading-panel fx-auto-sim-draft"
             aria-label="Simulation draft validation"
             data-fx-at-sim-risk="true"
           >
@@ -1565,7 +1570,7 @@ export function ForexAutomatedTradingPage(props: {
               <button
                 type="button"
                 className="fx-btn fx-btn--secondary"
-                disabled={busy || simRiskBusy || !status}
+                disabled={busy || simRiskBusy || !status || !simOrderAlloc.trim()}
                 onClick={() => void validateSimDraft()}
                 data-fx-at-sim-validate="true"
               >
@@ -1573,82 +1578,30 @@ export function ForexAutomatedTradingPage(props: {
               </button>
             </div>
             <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
-              Phase 56.2.4 simulation-only. XAU/USD allowlist. Never places orders.
-              Strategy capital 1–100% of equity is a budget ceiling. Per-order max estimated SL loss = 25% of that order’s allocation.
+              Simulation-only. Enter Order Allocation only — Entry, SL, TP (3R), and quantity are derived from
+              verified quote and analysis levels when available. Never places orders. Max estimated SL loss = 25% of this order’s allocation.
             </p>
-            <dl className="fx-auto-config-grid">
-              <div>
-                <dt>Allowlist</dt>
-                <dd data-fx-at-sim-allowlist="true">
-                  {(simRiskStatus?.allowlist ?? ["XAU/USD", "XAUUSD"]).join(" · ")}
-                </dd>
-              </div>
-              <div>
-                <dt>Risk policy</dt>
-                <dd data-fx-at-sim-policy="true">
-                  {simRiskStatus?.policy?.riskBudgetMode ?? "UNDECIDED"}
-                  {simRiskStatus?.policy?.riskPercent != null
-                    ? ` · ${simRiskStatus.policy.riskPercent}%`
-                    : " · no %"}
-                </dd>
-              </div>
-              <div>
-                <dt>History</dt>
-                <dd>{simRiskStatus?.historyCount ?? 0}</dd>
-              </div>
-            </dl>
-            <div className="fx-auto-token-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
-              <label>
-                Entry
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  value={simDraftEntry}
-                  onChange={(e) => setSimDraftEntry(e.target.value)}
-                  placeholder="mid if blank"
-                  data-fx-at-sim-entry="true"
-                  disabled={busy || simRiskBusy}
-                />
+            <div className="fx-auto-sim-alloc-row">
+              <label className="fx-auto-sim-alloc-label" htmlFor="fx-at-sim-order-alloc">
+                Order Allocation (USD)
               </label>
-              <label>
-                SL
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  value={simDraftSl}
-                  onChange={(e) => setSimDraftSl(e.target.value)}
-                  data-fx-at-sim-sl="true"
-                  disabled={busy || simRiskBusy}
-                />
-              </label>
-              <label>
-                TP
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  value={simDraftTp}
-                  onChange={(e) => setSimDraftTp(e.target.value)}
-                  data-fx-at-sim-tp="true"
-                  disabled={busy || simRiskBusy}
-                />
-              </label>
-              <label>
-                Per-order allocation
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  value={simDraftPerOrderAlloc}
-                  onChange={(e) => setSimDraftPerOrderAlloc(e.target.value)}
-                  placeholder="from remaining budget"
-                  data-fx-at-sim-per-order-alloc="true"
-                  disabled={busy || simRiskBusy}
-                />
-              </label>
+              <input
+                id="fx-at-sim-order-alloc"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min="0"
+                value={simOrderAlloc}
+                onChange={(e) => setSimOrderAlloc(e.target.value)}
+                placeholder="e.g. 100"
+                data-fx-at-sim-order-alloc="true"
+                data-fx-at-sim-per-order-alloc="true"
+                disabled={busy || simRiskBusy}
+                className="fx-auto-sim-alloc-input"
+              />
+              <p className="fx-auto-trading-hint fx-auto-sim-alloc-hint">
+                Capital assigned to this proposed order (not broker margin). Strategy % is set separately below.
+              </p>
             </div>
             {(() => {
               const d = (simRiskStatus?.latest ?? null) as null | {
@@ -1667,12 +1620,10 @@ export function ForexAutomatedTradingPage(props: {
                 marginStatus?: string;
                 quoteFreshnessStatus?: string;
                 explanations?: string[];
-                reasons?: Array<{ code?: string; message?: string }>;
                 simulationOnly?: boolean;
                 placesOrders?: boolean;
                 acceptsForExecution?: boolean;
                 capitalBudgetAnalysis?: {
-                  capitalAllocationPercent?: number | null;
                   capitalAllocationBudget?: number | null;
                   reservedActive?: number;
                   remainingBudget?: number | null;
@@ -1685,109 +1636,188 @@ export function ForexAutomatedTradingPage(props: {
                 rewardRiskAnalysis?: {
                   estimatedStopLossRisk?: number | null;
                   targetReward3R?: number | null;
-                  estimatedNetTargetStatus?: string;
+                  estimatedRequiredMargin?: number | null;
+                  estimatedRequiredMarginStatus?: string;
                 };
               };
+              const latestDecision = decisionStatus?.latest as {
+                direction?: "BUY" | "SELL" | null;
+              } | null;
+              const qtyUnit =
+                status?.quantitySemantics?.quantityUnitValue
+                ?? status?.quantitySemantics?.quantityUnit
+                ?? null;
+              const cell = (
+                label: string,
+                value: ReactNode,
+                opts?: { testId?: string; blocked?: boolean },
+              ) => (
+                <div className="fx-auto-sim-cell" key={label}>
+                  <span className="fx-auto-sim-cell-label">{label}</span>
+                  <span
+                    className={`fx-auto-sim-cell-value${opts?.blocked ? " is-blocked" : ""}`}
+                    data-fx-at-sim-cell={opts?.testId ?? label}
+                  >
+                    {value}
+                  </span>
+                </div>
+              );
+              const unavailable = (reason?: string) => (
+                <span className="fx-auto-sim-unavailable">
+                  {reason ? `Unavailable — ${reason}` : "Unavailable"}
+                </span>
+              );
+              const money = (n: number | null | undefined) =>
+                n != null && Number.isFinite(n) ? fmtNum(n, 2) : null;
+
               if (!d) {
                 return (
-                  <p className="fx-auto-trading-hint">
-                    Enter SL, TP, and per-order allocation, then Validate draft. Uses latest decision direction when present.
-                  </p>
+                  <div className="fx-auto-sim-derived" data-fx-at-sim-result="empty">
+                    <dl className="fx-auto-sim-grid">
+                      {cell(
+                        "Direction",
+                        latestDecision?.direction
+                          ?? unavailable("no analysis/decision"),
+                      )}
+                      {cell("Entry", unavailable("validate to derive"))}
+                      {cell("Stop Loss", unavailable("needs analysis support/resistance"))}
+                      {cell("Take Profit (3R)", unavailable("needs verified SL distance"))}
+                      {cell(
+                        "Order Allocation",
+                        simOrderAlloc.trim() ? `${simOrderAlloc.trim()} USD` : unavailable("enter amount"),
+                        { testId: "order-alloc" },
+                      )}
+                      {cell("Proposed Quantity", unavailable("needs units + SL"))}
+                      {cell("Required Margin", unavailable("needs quantity"))}
+                      {cell(
+                        "Free Margin",
+                        status?.verification?.account?.usableMargin != null
+                          ? fmtNum(status.verification.account.usableMargin, 2)
+                          : unavailable("account"),
+                      )}
+                      {cell("Estimated SL Loss", unavailable("needs quantity"))}
+                      {cell(
+                        "Max Allowed SL Loss",
+                        (() => {
+                          const n = Number(simOrderAlloc);
+                          return Number.isFinite(n) && n > 0
+                            ? `${fmtNum(n * 0.25, 2)} (25% of allocation)`
+                            : unavailable("enter allocation");
+                        })(),
+                      )}
+                      {cell(
+                        "Remaining Strategy Budget",
+                        status?.controls.capitalAllocationBudgetStatus === "COMPUTED"
+                          && status.controls.capitalAllocationBudget != null
+                          ? fmtNum(status.controls.capitalAllocationBudget, 2)
+                          : unavailable("strategy % / equity"),
+                      )}
+                      {cell(
+                        "Validation Status",
+                        "Not validated yet",
+                        { testId: "status" },
+                      )}
+                    </dl>
+                    <p className="fx-auto-trading-hint">
+                      Enter Order Allocation and Validate draft. Entry/SL/TP are not typed manually in this workflow.
+                    </p>
+                  </div>
                 );
               }
+
+              const blocked =
+                d.overallStatus === "BLOCKED"
+                || d.overallStatus === "REJECTED_LOCAL"
+                || d.overallStatus === "FAILED";
               return (
-                <div className="fx-auto-ta-result" data-fx-at-sim-result="true">
-                  <div className="fx-auto-binary-dir">
-                    <div>
-                      <span className="fx-auto-trading-hint">Status</span>
+                <div className="fx-auto-sim-derived" data-fx-at-sim-result="true">
+                  <dl className="fx-auto-sim-grid">
+                    {cell(
+                      "Validation Status",
                       <strong data-fx-at-sim-status={d.overallStatus ?? "—"}>
                         {d.overallStatus ?? "—"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="fx-auto-trading-hint">Direction</span>
-                      <strong>{d.direction ?? "—"}</strong>
-                    </div>
-                    <div>
-                      <span className="fx-auto-trading-hint">Structural</span>
-                      <strong>{d.structuralOk ? "ok" : "no"}</strong>
-                    </div>
-                  </div>
-                  <dl className="fx-auto-config-grid">
-                    <div>
-                      <dt>Instrument</dt>
-                      <dd>{d.instrument ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt>Entry / SL / TP</dt>
-                      <dd>
-                        {d.entryPrice ?? "—"} / {d.stopLoss ?? "—"} / {d.takeProfit ?? "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Proposed qty</dt>
-                      <dd data-fx-at-sim-qty="true">
-                        {d.proposedQuantity != null ? d.proposedQuantity : "withheld"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Risk / account / contract</dt>
-                      <dd>
-                        {d.riskBudgetStatus ?? "—"} · {d.accountStatus ?? "—"} ·{" "}
-                        {d.quantityContractStatus ?? "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Quote / margin</dt>
-                      <dd>
-                        {d.quoteFreshnessStatus ?? "—"} · {d.marginStatus ?? "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Per-order allocation / 25% limit</dt>
-                      <dd data-fx-at-sim-capital="true">
-                        {d.capitalBudgetAnalysis?.perOrderAllocation != null
-                          ? d.capitalBudgetAnalysis.perOrderAllocation
-                          : "Blocked / Unverified"}
-                        {" · limit "}
-                        {d.capitalBudgetAnalysis?.perOrderLossLimit != null
-                          ? d.capitalBudgetAnalysis.perOrderLossLimit
-                          : "—"}
-                        {" · "}
-                        {d.capitalBudgetAnalysis?.perOrderLossLimitPass == null
-                          ? (d.capitalBudgetAnalysis?.status ?? "—")
-                          : d.capitalBudgetAnalysis.perOrderLossLimitPass
-                            ? "loss-limit PASS"
-                            : "loss-limit FAIL"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Est. SL risk / 3R</dt>
-                      <dd>
-                        {d.rewardRiskAnalysis?.estimatedStopLossRisk != null
-                          ? d.rewardRiskAnalysis.estimatedStopLossRisk
-                          : "Unavailable"}
-                        {" · 3R "}
-                        {d.rewardRiskAnalysis?.targetReward3R != null
-                          ? d.rewardRiskAnalysis.targetReward3R
-                          : "Unavailable"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Execution</dt>
-                      <dd data-fx-at-sim-exec="false">
-                        simulationOnly={String(d.simulationOnly !== false)} · placesOrders=
-                        {String(d.placesOrders === true)} · acceptsForExecution=
-                        {String(d.acceptsForExecution === true)}
-                      </dd>
-                    </div>
+                      </strong>,
+                      { testId: "status", blocked },
+                    )}
+                    {cell("Direction", d.direction ?? unavailable("missing"))}
+                    {cell(
+                      "Entry",
+                      d.entryPrice != null ? String(d.entryPrice) : unavailable("not derived"),
+                      { testId: "entry" },
+                    )}
+                    {cell(
+                      "Stop Loss",
+                      d.stopLoss != null ? String(d.stopLoss) : unavailable("not derived"),
+                      { testId: "sl" },
+                    )}
+                    {cell(
+                      "Take Profit (3R)",
+                      d.takeProfit != null ? String(d.takeProfit) : unavailable("not derived"),
+                      { testId: "tp" },
+                    )}
+                    {cell(
+                      "Order Allocation",
+                      money(d.capitalBudgetAnalysis?.perOrderAllocation) != null
+                        ? `${money(d.capitalBudgetAnalysis?.perOrderAllocation)} USD`
+                        : unavailable(d.capitalBudgetAnalysis?.note ?? "blocked"),
+                      { testId: "order-alloc" },
+                    )}
+                    {cell(
+                      "Proposed Quantity",
+                      d.proposedQuantity != null
+                        ? `${d.proposedQuantity}${qtyUnit ? ` ${qtyUnit}` : ""}`
+                        : unavailable("withheld"),
+                      { testId: "qty" },
+                    )}
+                    {cell(
+                      "Required Margin",
+                      d.rewardRiskAnalysis?.estimatedRequiredMarginStatus === "COMPUTED"
+                      && d.rewardRiskAnalysis.estimatedRequiredMargin != null
+                        ? fmtNum(d.rewardRiskAnalysis.estimatedRequiredMargin, 2)
+                        : unavailable("not verified"),
+                    )}
+                    {cell(
+                      "Free Margin",
+                      status?.verification?.account?.usableMargin != null
+                        ? fmtNum(status.verification.account.usableMargin, 2)
+                        : unavailable("account"),
+                    )}
+                    {cell(
+                      "Estimated SL Loss",
+                      money(d.rewardRiskAnalysis?.estimatedStopLossRisk) ?? unavailable("units/qty"),
+                    )}
+                    {cell(
+                      "Max Allowed SL Loss",
+                      money(d.capitalBudgetAnalysis?.perOrderLossLimit) != null
+                        ? `${money(d.capitalBudgetAnalysis?.perOrderLossLimit)} (25% of order allocation)`
+                        : unavailable("allocation"),
+                    )}
+                    {cell(
+                      "Remaining Strategy Budget",
+                      money(d.capitalBudgetAnalysis?.remainingBudget)
+                        ?? money(d.capitalBudgetAnalysis?.capitalAllocationBudget)
+                        ?? unavailable("strategy budget"),
+                    )}
+                    {cell(
+                      "Quote / Exposure",
+                      `${d.quoteFreshnessStatus ?? "—"} · ${status?.exposureReconciliation?.authoritative
+                        ? (status.exposureReconciliation.confirmedZeroExposure
+                          ? "exposure empty"
+                          : "exposure present")
+                        : "exposure unavailable"}`,
+                    )}
                   </dl>
+                  <p className="fx-auto-trading-hint" data-fx-at-sim-exec="false">
+                    simulationOnly={String(d.simulationOnly !== false)} · placesOrders=
+                    {String(d.placesOrders === true)} · acceptsForExecution=
+                    {String(d.acceptsForExecution === true)}
+                  </p>
                   {d.proposedQuantityNote ? (
                     <p className="fx-auto-trading-hint">{d.proposedQuantityNote}</p>
                   ) : null}
                   {Array.isArray(d.explanations) && d.explanations.length > 0 ? (
-                    <ul className="fx-auto-gates" data-fx-at-sim-reasons="true">
-                      {d.explanations.slice(0, 10).map((r, i) => (
+                    <ul className="fx-auto-gates fx-auto-sim-reasons" data-fx-at-sim-reasons="true">
+                      {d.explanations.slice(0, 8).map((r, i) => (
                         <li key={`sim-ex-${i}`} data-ok="false">{r}</li>
                       ))}
                     </ul>

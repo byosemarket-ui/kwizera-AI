@@ -8,6 +8,7 @@ export * from "./capital-budget.js";
 export * from "./profit-protection.js";
 export * from "./quantity-semantics.js";
 export * from "./exposure-reconciliation.js";
+export * from "./propose-levels.js";
 export {
   validateSimulationDraft,
   normalizeSimRiskPolicy,

@@ -3664,6 +3664,110 @@ html.reduce-motion .fx-sidebar {
 .fx-auto-audit-list time { opacity: 0.55; font-variant-numeric: tabular-nums; }
 .fx-auto-audit-list span { overflow-wrap: anywhere; }
 
+/* Phase 56.2.4 ? compact simulation draft (single allocation input + derived grid) */
+.fx-auto-sim-draft {
+  gap: 10px;
+}
+.fx-auto-sim-alloc-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) minmax(120px, 200px) 1fr;
+  gap: 8px 12px;
+  align-items: end;
+  min-width: 0;
+}
+.fx-auto-sim-alloc-label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  min-width: 0;
+}
+.fx-auto-sim-alloc-input {
+  height: 34px;
+  width: 100%;
+  max-width: 200px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, #0b1220 80%, transparent);
+  color: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+.fx-auto-sim-alloc-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.fx-auto-sim-derived {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.fx-auto-sim-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 10px;
+  margin: 0;
+  min-width: 0;
+}
+.fx-auto-sim-cell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, #0b1220 35%, transparent);
+}
+.fx-auto-sim-cell-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.62;
+  line-height: 1.2;
+}
+.fx-auto-sim-cell-value {
+  font-size: 13px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.fx-auto-sim-cell-value.is-blocked {
+  color: color-mix(in srgb, #f59e0b 85%, white);
+}
+.fx-auto-sim-unavailable {
+  opacity: 0.72;
+  font-size: 12px;
+}
+.fx-auto-sim-reasons {
+  margin: 0;
+  max-width: 100%;
+}
+.fx-auto-sim-reasons li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1024px) {
+  .fx-auto-sim-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 768px) {
+  .fx-auto-sim-alloc-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fx-auto-sim-alloc-hint {
+    grid-column: 1 / -1;
+  }
+  .fx-auto-sim-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fx-auto-config-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
 @media (max-width: 720px) {
   .fx-auto-trading-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3681,4 +3785,13 @@ html.reduce-motion .fx-sidebar {
   }
   .fx-auto-env-bar { align-items: flex-start; }
   .fx-auto-audit-list li { grid-template-columns: 1fr; gap: 1px; }
+  .fx-auto-sim-alloc-row {
+    grid-template-columns: 1fr;
+  }
+  .fx-auto-sim-alloc-input {
+    max-width: none;
+  }
+  .fx-auto-sim-grid {
+    grid-template-columns: 1fr;
+  }
 }
