@@ -387,7 +387,9 @@ describe("Phase 56.2 environment and safety", () => {
     expect(r.overallStatus).toBe("VALIDATION_PASSED");
     expect(r.acceptsForExecution).toBe(false);
     expect(r.placesOrders).toBe(false);
-    expect(r.proposedQuantity).toBeNull();
+    // 56.2.4: simulation may surface a proposed quantity from request/allocation sizing;
+    // it is never an execution approval.
+    expect(r.proposedQuantity).toBe(1);
     expect(r.rewardRiskAnalysis.estimatedStopLossRisk).not.toBeNull();
     expect(r.capitalBudgetAnalysis.perOrderLossLimitPass).toBe(true);
   });

@@ -121,6 +121,8 @@ Fees/spread/slippage: **not** included — estimated risk only.
 
 **Blocked without invention:** Missing direction, stale quote, no analysis support/resistance for SL, ambiguous quantity units, incomplete exposure RO.
 
+**Quantity sizing gate order:** Unverified contract and ambiguous quantity units block before the order-allocation check, so missing allocation never masks an ambiguous-unit fail-closed reason. Simulation may surface `proposedQuantity` from request/allocation sizing; `acceptsForExecution` / `placesOrders` remain false.
+
 **UI:** Compact `fx-auto-sim-*` grid in `desktop/forex/forex.css` + `ForexAutomatedTradingPage.tsx`. Capital Allocation & Risk Limits section unchanged in meaning (strategy % ≠ order allocation).
 
 *End of quantity / min-stop verification record.*

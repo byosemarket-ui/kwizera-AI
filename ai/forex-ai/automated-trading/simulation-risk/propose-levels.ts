@@ -290,15 +290,8 @@ export function proposeQuantityFromAllocation(input: {
   stopLoss: number | null | undefined;
   contract: AtSimContractMetaInput | null | undefined;
 }): ProposeQuantityResult {
-  const alloc = input.orderAllocation;
-  if (typeof alloc !== "number" || !Number.isFinite(alloc) || alloc <= 0) {
-    return {
-      ok: false,
-      quantity: null,
-      code: "PROPOSE_QTY_ALLOCATION_INVALID",
-      message: "Order allocation must be a finite positive amount.",
-    };
-  }
+  // Fail-closed gates before allocation sizing: unverified/ambiguous units must
+  // surface even when allocation is also missing (do not invent ounces).
   const c = input.contract;
   if (!c?.verified) {
     return {
@@ -314,6 +307,15 @@ export function proposeQuantityFromAllocation(input: {
       quantity: null,
       code: "PROPOSE_QTY_UNIT_AMBIGUOUS",
       message: "Quantity unit ambiguous — quantity and monetary SL risk blocked.",
+    };
+  }
+  const alloc = input.orderAllocation;
+  if (typeof alloc !== "number" || !Number.isFinite(alloc) || alloc <= 0) {
+    return {
+      ok: false,
+      quantity: null,
+      code: "PROPOSE_QTY_ALLOCATION_INVALID",
+      message: "Order allocation must be a finite positive amount.",
     };
   }
   const entry = input.entryPrice;
