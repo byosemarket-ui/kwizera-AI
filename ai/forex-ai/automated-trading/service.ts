@@ -25,6 +25,14 @@ import {
   type AtDecisionResult,
 } from "./decision/index.js";
 import {
+  getAtSimRiskEngine,
+  type AtSimRiskEngine,
+  type AtSimDraftResult,
+  type AtSimRiskPolicy,
+  type AtSimRiskPublicStatus,
+} from "./simulation-risk/index.js";
+import type { AtBinaryDirection } from "./analysis/direction.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -49,15 +57,18 @@ import {
 export class AutomatedTradingService {
   private readonly monitor: AtMonitorWorker;
   private readonly decisionEngine: AtDecisionEngine;
+  private readonly simRiskEngine: AtSimRiskEngine;
 
   constructor(
     private readonly store: AutomatedTradingStore = getAutomatedTradingStore(),
     private readonly analysisEngine: AtOpenAiAnalysisEngine = getAtOpenAiAnalysisEngine(),
     monitor?: AtMonitorWorker,
     decisionEngine?: AtDecisionEngine,
+    simRiskEngine?: AtSimRiskEngine,
   ) {
     this.monitor = monitor ?? getAtMonitorWorker();
     this.decisionEngine = decisionEngine ?? getAtDecisionEngine();
+    this.simRiskEngine = simRiskEngine ?? getAtSimRiskEngine();
   }
 
   getMonitorStatus(): AtMonitorPublicStatus {
@@ -1177,6 +1188,119 @@ export class AutomatedTradingService {
       status: await this.buildStatus(),
     };
   }
+
+  /**
+   * Phase 56.2 — simulation-only draft validation (never places orders).
+   */
+  async getSimRiskStatus(): Promise<AtSimRiskPublicStatus> {
+    return this.simRiskEngine.publicStatus();
+  }
+
+  getSimRiskPolicy(): AtSimRiskPolicy {
+    return this.simRiskEngine.getPolicy();
+  }
+
+  getLatestSimDraft(): AtSimDraftResult | null {
+    return this.simRiskEngine.getLatest();
+  }
+
+  listSimDrafts(limit = 12): AtSimDraftResult[] {
+    return this.simRiskEngine.listHistory(limit);
+  }
+
+  async validateSimulationDraft(input: {
+    expectedEnvironmentEpoch?: unknown;
+    instrument?: unknown;
+    direction?: unknown;
+    entryPrice?: unknown;
+    stopLoss?: unknown;
+    takeProfit?: unknown;
+    requestedQuantity?: unknown;
+    decisionId?: unknown;
+    persist?: unknown;
+  }): Promise<
+    | { ok: true; draft: AtSimDraftResult; status: AutomatedTradingPublicStatus }
+    | {
+      ok: false;
+      code: string;
+      message: string;
+      draft: AtSimDraftResult | null;
+      status: AutomatedTradingPublicStatus;
+    }
+  > {
+    const state = this.store.getState();
+    const env = state.selectedEnvironment;
+    const envState = state.environments[env];
+    const expectedEpoch = Number(input.expectedEnvironmentEpoch);
+    if (
+      Number.isFinite(expectedEpoch)
+      && Math.floor(expectedEpoch) !== state.environmentEpoch
+    ) {
+      return {
+        ok: false,
+        code: "STALE_EPOCH",
+        message: "Stale environment epoch — refresh status and retry.",
+        draft: null,
+        status: await this.buildStatus(),
+      };
+    }
+
+    const publicStatus = await this.buildStatus();
+    const decisionId = input.decisionId != null ? String(input.decisionId).trim() : "";
+    const decision = decisionId
+      ? this.decisionEngine.listHistory(40).find((d) => d.decisionId === decisionId) ?? null
+      : this.decisionEngine.getLatest();
+
+    const dirRaw = input.direction != null ? String(input.direction).trim().toUpperCase() : "";
+    const direction: AtBinaryDirection | null | undefined =
+      dirRaw === "BUY" || dirRaw === "SELL"
+        ? dirRaw
+        : input.direction === undefined
+          ? undefined
+          : null;
+
+    const numOrUndef = (v: unknown): number | null | undefined => {
+      if (v === undefined) return undefined;
+      if (v === null || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const draft = await this.simRiskEngine.validateFromContext({
+      environment: env,
+      environmentEpoch: state.environmentEpoch,
+      decision,
+      verification: envState.lastVerification,
+      quoteFresh: publicStatus.quoteFreshness?.fresh ?? null,
+      freshnessReasonCode: publicStatus.quoteFreshness?.reasonCode ?? null,
+      quoteAgeMs: publicStatus.quoteFreshness?.effectivePriceChangeAgeMs ?? null,
+      sessionEnvironment: publicStatus.broker.activeSessionEnvironment,
+      sessionMatchesSelection: publicStatus.broker.sessionMatchesSelection,
+      persist: input.persist !== false,
+      overrides: {
+        instrument: input.instrument != null ? String(input.instrument) : undefined,
+        direction,
+        entryPrice: numOrUndef(input.entryPrice),
+        stopLoss: numOrUndef(input.stopLoss),
+        takeProfit: numOrUndef(input.takeProfit),
+        requestedQuantity: numOrUndef(input.requestedQuantity),
+      },
+    });
+
+    await this.store.appendAudit({
+      action: "simulation_draft_validated",
+      environment: env,
+      ok: draft.overallStatus === "VALIDATION_PASSED" || draft.structuralOk,
+      code: draft.overallStatus,
+      detail: `${draft.direction ?? "—"} ${draft.instrument} · ${draft.overallStatus}`.slice(0, 160),
+    });
+
+    return {
+      ok: true,
+      draft,
+      status: await this.buildStatus(),
+    };
+  }
 }
 
 let serviceSingleton: AutomatedTradingService | null = null;
@@ -1187,13 +1311,15 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     const engine = getAtOpenAiAnalysisEngine(storageRoot);
     const mon = getAtMonitorWorker(storageRoot);
     const decision = getAtDecisionEngine(storageRoot);
-    return new AutomatedTradingService(store, engine, mon, decision);
+    const simRisk = getAtSimRiskEngine(storageRoot);
+    return new AutomatedTradingService(store, engine, mon, decision, simRisk);
   }
   if (!serviceSingleton) {
     const store = getAutomatedTradingStore();
     const engine = getAtOpenAiAnalysisEngine();
     const mon = getAtMonitorWorker();
     const decision = getAtDecisionEngine();
+    const simRisk = getAtSimRiskEngine();
     // Bind verification/env hooks BEFORE resume so restart recovery can validate safely.
     mon.bindRuntimeHooks({
       getVerification: (env) => store.getState().environments[env].lastVerification,
@@ -1201,7 +1327,7 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
       getSelectedEnvironment: () => store.getState().selectedEnvironment,
     });
     mon.resumeFromPersistence();
-    serviceSingleton = new AutomatedTradingService(store, engine, mon, decision);
+    serviceSingleton = new AutomatedTradingService(store, engine, mon, decision, simRisk);
   }
   return serviceSingleton;
 }

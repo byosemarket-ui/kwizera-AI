@@ -251,6 +251,19 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
   } | null>(null);
   const [decisionBusy, setDecisionBusy] = useState(false);
+  const [simRiskStatus, setSimRiskStatus] = useState<{
+    phase?: string;
+    policy?: { riskBudgetMode?: string; riskPercent?: number | null; note?: string };
+    allowlist?: string[];
+    latest?: Record<string, unknown> | null;
+    historyCount?: number;
+    note?: string;
+    simulationOnly?: boolean;
+  } | null>(null);
+  const [simDraftEntry, setSimDraftEntry] = useState("");
+  const [simDraftSl, setSimDraftSl] = useState("");
+  const [simDraftTp, setSimDraftTp] = useState("");
+  const [simRiskBusy, setSimRiskBusy] = useState(false);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -260,13 +273,14 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/history?limit=6", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/monitor/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/decision/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/simulation-risk/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -278,6 +292,7 @@ export function ForexAutomatedTradingPage(props: {
       const histJson = await histRes.json() as { ok?: boolean; history?: Array<Record<string, unknown>> };
       const monJson = await monRes.json() as { ok?: boolean; monitor?: typeof monitor };
       const decJson = await decRes.json() as { ok?: boolean; decision?: typeof decisionStatus };
+      const simJson = await simRes.json() as { ok?: boolean; simulationRisk?: typeof simRiskStatus };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -295,6 +310,7 @@ export function ForexAutomatedTradingPage(props: {
         if (monJson.monitor.config?.timeframe) setMonitorTf(String(monJson.monitor.config.timeframe));
       }
       if (decRes.ok && decJson.ok && decJson.decision) setDecisionStatus(decJson.decision);
+      if (simRes.ok && simJson.ok && simJson.simulationRisk) setSimRiskStatus(simJson.simulationRisk);
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -498,6 +514,57 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "Decision evaluation failed");
     } finally {
       setDecisionBusy(false);
+    }
+  };
+
+  const validateSimDraft = async () => {
+    if (!status || simRiskBusy) return;
+    setSimRiskBusy(true);
+    setError(null);
+    try {
+      const latestDecision = decisionStatus?.latest as {
+        decisionId?: string;
+        direction?: "BUY" | "SELL" | null;
+        instrument?: string | null;
+      } | null;
+      const instrument =
+        latestDecision?.instrument
+        || status.selectedEnvState?.selectedInstrument
+        || "XAU/USD";
+      const res = await fetch("/api/forex/automated-trading/simulation-risk/validate", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          expectedEnvironmentEpoch: status.environmentEpoch,
+          decisionId: latestDecision?.decisionId,
+          instrument,
+          direction: latestDecision?.direction ?? undefined,
+          entryPrice: simDraftEntry.trim() ? Number(simDraftEntry) : undefined,
+          stopLoss: simDraftSl.trim() ? Number(simDraftSl) : undefined,
+          takeProfit: simDraftTp.trim() ? Number(simDraftTp) : undefined,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        draft?: Record<string, unknown>;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.draft) {
+        setSimRiskStatus((prev) => ({
+          ...(prev ?? {}),
+          latest: data.draft ?? null,
+        }));
+      }
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Simulation draft failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Simulation draft validation failed");
+    } finally {
+      setSimRiskBusy(false);
     }
   };
 
@@ -1433,6 +1500,188 @@ export function ForexAutomatedTradingPage(props: {
                         ))}
                       </ul>
                     </>
+                  ) : null}
+                </div>
+              );
+            })()}
+          </section>
+
+          <section
+            className="fx-auto-trading-panel"
+            aria-label="Simulation draft validation"
+            data-fx-at-sim-risk="true"
+          >
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Simulation draft</h2>
+              <button
+                type="button"
+                className="fx-btn fx-btn--secondary"
+                disabled={busy || simRiskBusy || !status}
+                onClick={() => void validateSimDraft()}
+                data-fx-at-sim-validate="true"
+              >
+                {simRiskBusy ? "Validating…" : "Validate draft"}
+              </button>
+            </div>
+            <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
+              Phase 56.2 simulation-only. XAU/USD allowlist. Never places orders.
+              Risk % undecided — no owner-approved quantity.
+            </p>
+            <dl className="fx-auto-config-grid">
+              <div>
+                <dt>Allowlist</dt>
+                <dd data-fx-at-sim-allowlist="true">
+                  {(simRiskStatus?.allowlist ?? ["XAU/USD", "XAUUSD"]).join(" · ")}
+                </dd>
+              </div>
+              <div>
+                <dt>Risk policy</dt>
+                <dd data-fx-at-sim-policy="true">
+                  {simRiskStatus?.policy?.riskBudgetMode ?? "UNDECIDED"}
+                  {simRiskStatus?.policy?.riskPercent != null
+                    ? ` · ${simRiskStatus.policy.riskPercent}%`
+                    : " · no %"}
+                </dd>
+              </div>
+              <div>
+                <dt>History</dt>
+                <dd>{simRiskStatus?.historyCount ?? 0}</dd>
+              </div>
+            </dl>
+            <div className="fx-auto-token-row" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+              <label>
+                Entry
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  value={simDraftEntry}
+                  onChange={(e) => setSimDraftEntry(e.target.value)}
+                  placeholder="mid if blank"
+                  data-fx-at-sim-entry="true"
+                  disabled={busy || simRiskBusy}
+                />
+              </label>
+              <label>
+                SL
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  value={simDraftSl}
+                  onChange={(e) => setSimDraftSl(e.target.value)}
+                  data-fx-at-sim-sl="true"
+                  disabled={busy || simRiskBusy}
+                />
+              </label>
+              <label>
+                TP
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  value={simDraftTp}
+                  onChange={(e) => setSimDraftTp(e.target.value)}
+                  data-fx-at-sim-tp="true"
+                  disabled={busy || simRiskBusy}
+                />
+              </label>
+            </div>
+            {(() => {
+              const d = (simRiskStatus?.latest ?? null) as null | {
+                overallStatus?: string;
+                structuralOk?: boolean;
+                direction?: "BUY" | "SELL" | null;
+                instrument?: string;
+                entryPrice?: number | null;
+                stopLoss?: number | null;
+                takeProfit?: number | null;
+                proposedQuantity?: number | null;
+                proposedQuantityNote?: string | null;
+                riskBudgetStatus?: string;
+                accountStatus?: string;
+                quantityContractStatus?: string;
+                marginStatus?: string;
+                quoteFreshnessStatus?: string;
+                explanations?: string[];
+                reasons?: Array<{ code?: string; message?: string }>;
+                simulationOnly?: boolean;
+                placesOrders?: boolean;
+                acceptsForExecution?: boolean;
+              };
+              if (!d) {
+                return (
+                  <p className="fx-auto-trading-hint">
+                    Enter SL and TP, then Validate draft. Uses latest decision direction when present.
+                  </p>
+                );
+              }
+              return (
+                <div className="fx-auto-ta-result" data-fx-at-sim-result="true">
+                  <div className="fx-auto-binary-dir">
+                    <div>
+                      <span className="fx-auto-trading-hint">Status</span>
+                      <strong data-fx-at-sim-status={d.overallStatus ?? "—"}>
+                        {d.overallStatus ?? "—"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="fx-auto-trading-hint">Direction</span>
+                      <strong>{d.direction ?? "—"}</strong>
+                    </div>
+                    <div>
+                      <span className="fx-auto-trading-hint">Structural</span>
+                      <strong>{d.structuralOk ? "ok" : "no"}</strong>
+                    </div>
+                  </div>
+                  <dl className="fx-auto-config-grid">
+                    <div>
+                      <dt>Instrument</dt>
+                      <dd>{d.instrument ?? "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Entry / SL / TP</dt>
+                      <dd>
+                        {d.entryPrice ?? "—"} / {d.stopLoss ?? "—"} / {d.takeProfit ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Proposed qty</dt>
+                      <dd data-fx-at-sim-qty="true">
+                        {d.proposedQuantity != null ? d.proposedQuantity : "withheld"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Risk / account / contract</dt>
+                      <dd>
+                        {d.riskBudgetStatus ?? "—"} · {d.accountStatus ?? "—"} ·{" "}
+                        {d.quantityContractStatus ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Quote / margin</dt>
+                      <dd>
+                        {d.quoteFreshnessStatus ?? "—"} · {d.marginStatus ?? "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Execution</dt>
+                      <dd data-fx-at-sim-exec="false">
+                        simulationOnly={String(d.simulationOnly !== false)} · placesOrders=
+                        {String(d.placesOrders === true)} · acceptsForExecution=
+                        {String(d.acceptsForExecution === true)}
+                      </dd>
+                    </div>
+                  </dl>
+                  {d.proposedQuantityNote ? (
+                    <p className="fx-auto-trading-hint">{d.proposedQuantityNote}</p>
+                  ) : null}
+                  {Array.isArray(d.explanations) && d.explanations.length > 0 ? (
+                    <ul className="fx-auto-gates" data-fx-at-sim-reasons="true">
+                      {d.explanations.slice(0, 10).map((r, i) => (
+                        <li key={`sim-ex-${i}`} data-ok="false">{r}</li>
+                      ))}
+                    </ul>
                   ) : null}
                 </div>
               );

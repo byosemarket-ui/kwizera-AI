@@ -1,6 +1,6 @@
 /**
- * Phase 51–54 — Automated Trading configuration, verification, OpenAI TA,
- * live monitoring & read-only trading decision validation API.
+ * Phase 51–54 / 56.2 — Automated Trading configuration, verification, OpenAI TA,
+ * live monitoring, read-only decision validation & simulation-only draft risk API.
  * Admin-gated mutations. Never places broker orders.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -605,6 +605,79 @@ export async function handleForexAutomatedTradingApi(
         status: result.status,
         placesOrders: false,
         acceptsForExecution: false,
+      });
+      return true;
+    }
+
+    // Phase 56.2 — simulation-only draft validation (never places orders).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-risk/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const simulationRisk = await service.getSimRiskStatus();
+      sendJson(res, 200, {
+        ok: true,
+        simulationRisk,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-risk/validate")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.validateSimulationDraft({
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        instrument: body.instrument,
+        direction: body.direction,
+        entryPrice: body.entryPrice,
+        stopLoss: body.stopLoss,
+        takeProfit: body.takeProfit,
+        requestedQuantity: body.requestedQuantity,
+        decisionId: body.decisionId,
+        persist: body.persist,
+      });
+      if (!result.ok) {
+        sendJson(res, result.code === "STALE_EPOCH" ? 409 : 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          draft: result.draft,
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        draft: result.draft,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-risk/history")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      const limit = Number(url.searchParams.get("limit") ?? 12);
+      sendJson(res, 200, {
+        ok: true,
+        history: service.listSimDrafts(Number.isFinite(limit) ? limit : 12),
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
       });
       return true;
     }

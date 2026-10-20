@@ -5,6 +5,7 @@ export * from "./verification-gates.js";
 export * from "./analysis/index.js";
 export * from "./monitoring/index.js";
 export * from "./decision/index.js";
+export * from "./simulation-risk/index.js";
 export {
   assembleVerificationResult,
   buildMarketFromQuote,
