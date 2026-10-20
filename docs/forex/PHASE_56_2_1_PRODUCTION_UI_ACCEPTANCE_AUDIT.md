@@ -3,11 +3,24 @@
 **Project:** KWIZERA AI STUDIO
 **Module:** FXCM ForexConnect Automated Trading — Simulation Risk Engine
 **Document type:** Production acceptance audit (verification only)
-**Overall verdict:** `BLOCKED_PENDING_EVIDENCE`
-**Audit timestamp:** 2026-10-20 12:00–12:10 (Africa/Johannesburg, UTC+2)
+**Overall verdict:** `PASS_WITH_KNOWN_BLOCKERS`
+**Audit timestamp (initial):** 2026-10-20 12:00–12:10 (Africa/Johannesburg, UTC+2)
+**Authorized retest timestamp:** 2026-10-20 13:00–13:15 (Africa/Johannesburg, UTC+2)
 **Production base URL:** `http://162.35.114.19:5173`
 
 **Phase 56.3 was not started. No broker execution was authorized or performed.**
+
+---
+
+## 0. Authorized session retest (this continuation)
+
+| Item | Value |
+|------|--------|
+| Prior verdict | `BLOCKED_PENDING_EVIDENCE` (commit `5977f7b9…`, CI run `39405957991`) |
+| Retest mode | Verification-only; no application code changes |
+| Admin session | Present via approved browser secure session mechanism (`sessionStorage` key only; **never printed**) |
+| Secrets in chat/logs/screenshots/Git | None requested; none written into this report |
+| Auth bypass | Not used |
 
 ---
 
@@ -15,9 +28,9 @@
 
 Acceptance verification of Phase 56.2 simulation-risk engine and Automated Trading UI against the deployed public production host.
 
-In scope: deployment identity, source/test contracts, unauthenticated production UI shell, auth-gate checks, non-execution evidence from source + safe probes.
+In scope: deployment identity, authorized production Scenarios 1–9 (simulation-only APIs + UI Validate draft), safety invariants, responsive authenticated shell.
 
-Out of scope: broker orders, lock changes, LIVE authorization, risk-% policy, XAU ounce invention, Orders/Trades readers, Phase 56.3.
+Out of scope: broker orders, lock changes, LIVE authorization, inventing risk-% / XAU ounces / min-stop, Orders/Trades readers, Phase 56.3.
 
 ---
 
@@ -26,9 +39,9 @@ Out of scope: broker orders, lock changes, LIVE authorization, risk-% policy, XA
 | Item | Value |
 |------|--------|
 | Branch | `main` |
-| Starting / ending HEAD (no code changes this phase) | `9a08c0eb65dec3bf94708430924170306cdcc341` |
+| Deployed commit at retest | `5977f7b96c5092ba834b2604e7ff4233826bc97f` |
 | Dirty files preserved (unrelated) | `ai/creative-planning/commercial.ts`, `ai/typography/drawtext-integration.ts`, `ai/typography/from-plan.ts`, `ai/video-production/plan-to-timeline.ts`, `ai/video-production/render-validation.ts`, `tests/unit/ai/pmv-orchestrator/pmv-masterpiece.test.ts` |
-| Code changes in 56.2.1 | None (docs-only deliverable) |
+| Code changes in 56.2.1 retest | None (docs-only update) |
 
 ---
 
@@ -36,13 +49,13 @@ Out of scope: broker orders, lock changes, LIVE authorization, risk-% policy, XA
 
 | Field | Expected | Actual | Status |
 |-------|----------|--------|--------|
-| Deployed SHA | Phase 56.2 `9a08c0eb…` | `9a08c0eb65dec3bf94708430924170306cdcc341` | PASS |
-| Requested SHA | same | same | PASS |
+| `deployedCommit` | Phase 56.2.1 audit doc `5977f7b9…` | `5977f7b96c5092ba834b2604e7ff4233826bc97f` | PASS |
+| `requestedCommit` | same | same | PASS |
 | `verifiedLive` | true | true | PASS |
-| Result | success | success | PASS |
-| Repo HEAD match | yes | yes | PASS |
+| `result` | success | success | PASS |
+| Health | healthy / runtimeReady | `healthy`, `runtimeReady=true` | PASS |
 
-Evidence: `GET /api/deployment` at audit time.
+Evidence: `GET /api/deployment`, `GET /api/health` during retest.
 
 ---
 
@@ -51,125 +64,109 @@ Evidence: `GET /api/deployment` at audit time.
 | Route / URL | Method | Result |
 |-------------|--------|--------|
 | `/api/deployment` | GET | PASS — SHA match |
-| `/api/health` | GET | PASS — `healthy`, `runtimeReady=true` |
-| `/api/forex/providers/forexconnect/status` | GET | PASS — `CONNECTED`, `environment=demo`, `trading=DISABLED`, `sdkAvailable=true` |
-| `/forex/automated-trading` | GET (browser) | PASS — page loads |
-| `/studio/` | GET | PASS — HTTP 200 |
-| `/api/forex/automated-trading/status` | GET (no admin) | PASS (auth) — HTTP 403 `ADMIN_FORBIDDEN` |
-| `/api/forex/automated-trading/simulation-risk/status` | GET (no admin) | PASS (auth) — HTTP 403 `ADMIN_FORBIDDEN` |
-| `/api/forex/automated-trading/simulation-risk/validate` | POST (no admin) | PASS (auth) — HTTP 403 `ADMIN_FORBIDDEN` |
+| `/api/health` | GET | PASS |
+| `/api/forex/providers/forexconnect/status` | GET | PASS — `CONNECTED`, `environment=demo`, `trading=DISABLED` |
+| `/forex/automated-trading` | GET (browser, authorized) | PASS — sim-draft panel visible |
+| `/api/forex/automated-trading/status` | GET (admin session) | PASS — controls + `placesOrders=false` |
+| `/api/forex/automated-trading/simulation-risk/status` | GET (admin) | PASS — `simulationOnly=true`, allowlist XAU |
+| `/api/forex/automated-trading/simulation-risk/validate` | POST (admin, synthetic) | PASS — Scenarios 1–8 |
+| `/api/forex/automated-trading/simulation-risk/history` | GET (admin) | PASS — persisted drafts after reload |
 
-No connect/disconnect/subscribe mutations were issued for this audit.
+No connect/disconnect/subscribe mutations and no broker order/position/cancel APIs were issued.
 
 ---
 
-## 5. Safety invariants
+## 5. Safety invariants (authorized re-check)
 
 | Invariant | Evidence | Status |
 |-----------|----------|--------|
-| FXCM `trading=DISABLED` | Production FC status | **PASS** (`VERIFIED_INSTALLED_RUNTIME`) |
-| `placesOrders=false` (API type / sim responses) | Source + unit tests; unauth AT responses omit field | **PARTIAL** — source/unit **PASS**; live AT status field **NOT_VERIFIED** without admin |
-| `acceptsForExecution=false` | Source + unit tests | **PARTIAL** — same |
-| `masterEnable=false` default | `types.ts` `defaultEnvControls()` | **PASS** (source); runtime value **NOT_VERIFIED** without admin status |
-| `emergencyEntryLock=true` default | same | **PASS** (source); runtime **NOT_VERIFIED** without admin |
-| `EXECUTION_FORBIDDEN` path guard | Source `forex-automated-trading-api.ts`; prior production probe of order-like path | **PASS** (source); this audit did **not** re-POST order paths (forbidden by 56.2.1 §2) |
-| No broker order/position mutation | No mutate calls issued; FC trading disabled | **PASS** for audit actions; broker-side position inventory **NOT_VERIFIED** (Orders/Trades RO missing) |
-| LIVE unauthorized | Source + FC demo session | **PASS** for observed DEMO session label |
-| Simulation-only ceiling | Source engine + API `simulationOnly: true` | **PASS** (source) |
+| `masterEnable=false` | AT `status.controls.masterEnable`; UI “Master enable OFF” readonly | **PASS** (`VERIFIED_LIVE`) |
+| `emergencyEntryLock=true` | AT `status.controls.emergencyEntryLock`; UI checked readonly | **PASS** (`VERIFIED_LIVE`) |
+| `placesOrders=false` | AT status; every sim validate/history/status response | **PASS** (`VERIFIED_LIVE`) |
+| `acceptsForExecution=false` | Every sim validate/history/status response | **PASS** (`VERIFIED_LIVE`) |
+| Equivalent execution state forbidden | `moduleStatus=BLOCKED`; banner PHASE 54; Start disabled | **PASS** (equivalent to `EXECUTION_FORBIDDEN`) |
+| ForexConnect trading disabled | FC status `trading=DISABLED` | **PASS** |
+| No broker order/position/cancel/protective mutation | Only status/validate/history/deployment/health called | **PASS** for audit actions |
+| Broker open-position inventory | Orders/Trades RO still missing | **NOT_VERIFIED** (capability gap — listed as blocker) |
+| LIVE unauthorized | DEMO selected; LIVE not authorized | **PASS** (observed DEMO) |
+| Simulation-only ceiling | `simulationOnly=true`; qty always null in scenarios | **PASS** |
+
+Locks and permissions were **not** changed to make tests pass.
 
 ---
 
 ## 6. Source audit findings
 
-Inspected: `simulation-risk/*`, `service.ts`, `forex-automated-trading-api.ts`, `ForexAutomatedTradingPage.tsx`, Phase 56.2 doc/tests.
-
-| Requirement | Finding | Status |
-|-------------|---------|--------|
-| XAU/USD-only allowlist | `allowlist.ts` allows only `XAU/USD` / `XAUUSD` | PASS |
-| BUY/SELL SL/TP geometry | Engine enforces BUY SL&lt;entry&lt;TP; SELL TP&lt;entry&lt;SL | PASS |
-| Both SL and TP mandatory | `SL_MISSING` / `TP_MISSING` | PASS |
-| Risk % undecided blocks | Default `UNDECIDED` → `BLOCKED_POLICY_UNDECIDED` | PASS |
-| Missing account/contract/min-stop/exposure | Explicit BLOCKED codes; no invented ounces | PASS |
-| `proposedQuantity` null when unsafe | Always null in current engine path | PASS |
-| Validation cannot set execution true | Literals `placesOrders: false`, `acceptsForExecution: false` | PASS |
-| Admin auth on sim-risk routes | `requireForexAdmin` before handlers | PASS |
-| UI has no execute/submit controls | Validate draft only; no Place/Submit order | PASS |
-| Banner still says PHASE 54 | `AUTOMATED_EXECUTION_BANNER` unchanged | LOW note — still true (execution not implemented); not treated as risk-engine defect |
+Unchanged from initial audit (deployed SHA still Phase 56.2 / 56.2.1 docs). Summary: XAU allowlist, mandatory SL+TP, geometry, undecided risk %, null quantity, `placesOrders`/`acceptsForExecution` literals false, admin gate, Validate-draft-only UI — all still **PASS** at source.
 
 ---
 
 ## 7. Targeted unit tests
 
-```text
-npx vitest run tests/unit/ai/forex-ai/phase56-2-simulation-risk.test.ts --reporter=dot
-```
+Re-run not required for this verification-only retest (no code change). Prior 56.2.1 result remains on record:
 
 | Metric | Result |
 |--------|--------|
 | Exit | 0 |
-| Files | 1 passed |
 | Tests | **19 passed / 19** |
-| Duration | ~29s (this audit re-run) |
-
-Scenarios covered by unit suite (engine contract, not production UI): valid BUY/SELL geometry, missing SL/TP, bad geometry, unsupported instrument, stale quote, undecided risk %, missing account, ambiguous units, min-stop unverified, DEMO/LIVE context flags, persistence flags, source safety greps.
 
 ---
 
-## 8. Desktop / tablet / mobile UI results
+## 8. Desktop / tablet / mobile UI results (authorized)
 
-Facility: Cursor IDE browser against production URL.
-Authorized Admin session: **not available** (`hasToken=false`; UI shows “Not authorized” / “Admin API token required”).
+Facility: Cursor IDE browser against production URL with Admin session already present (secure session mechanism; token not printed).
 
 | Viewport | Evidence | Result |
 |----------|----------|--------|
-| Desktop 1440×900 | Screenshot `page-2026-10-20T10-04-52-429Z.png` | **PASS** — route loads; IDLE; execution banner; admin gate visible; Verify disabled; no sim-draft panel until authorized |
-| Tablet 768×1024 | Screenshot `page-2026-10-20T10-05-45-868Z.png` | **PASS** — shell readable; same auth gate; no clipped critical message observed |
-| Mobile 390×844 | Screenshot `page-2026-10-20T10-06-39-977Z.png` | **PASS** — primary AT header/banner/auth error readable; draft panel **not rendered** (auth-gated) |
+| Desktop 1440×900 | Screenshot `page-2026-10-20T11-09-36-397Z.png`; a11y snapshot | **PASS** — Authorized; DEMO; sim-draft panel; Master OFF / Emergency ON; execution banner |
+| Tablet 768×1024 | Emulation + screenshot via Refresh action; collapsed “Open Forex navigation” | **PASS** — Authorized shell readable; sim panel + Validate draft present |
+| Mobile 390×844 | Emulation + screenshot; hamburger nav | **PASS** — Authorized (session); DEMO; primary AT chrome readable |
 
-Simulation draft panel (`data-fx-at-sim-risk`), validation results, and responsive draft controls: **BLOCKED** (require Admin token; not injected — no secrets requested or used).
+Standalone `browser_take_screenshot` timed out intermittently; viewport evidence also captured via navigate/click screenshot hooks and full accessibility snapshots. **No secrets** included in this document (account identifiers / balances omitted).
 
-Console/network deep capture of authenticated calls: **SKIPPED** (no authorized session).
-
----
-
-## 9. Scenario matrix (1–9)
-
-Legend: production UI/API with admin = intended Stage D. Engine unit suite = supporting contract evidence only.
-
-| # | Scenario | Production UI/API | Engine unit contract | Notes |
-|---|----------|-------------------|----------------------|-------|
-| 1 | Valid-shape BUY | **BLOCKED** | PASS (structural + `BLOCKED_POLICY_UNDECIDED`, qty null) | No admin session |
-| 2 | Valid-shape SELL | **BLOCKED** | PASS | No admin session |
-| 3 | Missing SL | **BLOCKED** | PASS (`SL_MISSING`) | No admin session |
-| 4 | Missing TP | **BLOCKED** | PASS (`TP_MISSING`) | No admin session |
-| 5 | Invalid BUY geometry | **BLOCKED** | PASS | No admin session |
-| 6 | Invalid SELL geometry | **BLOCKED** | PASS | No admin session |
-| 7 | Unsupported instrument | **BLOCKED** | PASS (`INSTRUMENT_NOT_ALLOWLISTED`) | No admin session |
-| 8 | Missing risk/account/contract/stop | **BLOCKED** | PASS (blocked codes) | No admin session |
-| 9 | Draft persistence reload | **BLOCKED** | PASS (store unit) | No admin session; no production reload of draft |
-
-Unauthenticated production validate POST: **PASS** for auth fail-closed (`ADMIN_FORBIDDEN`).
+Console: no auth-token leakage observed in evaluated page text. Network evidence: authenticated `POST …/simulation-risk/validate` and `GET …/history` returned HTTP 200 with sanitized draft fields only.
 
 ---
 
-## 10. Authentication and facility limitations
+## 9. Scenario matrix (1–9) — production authorized
 
-- No approved Admin session was present in the browser facility (`localStorage` key empty).
-- Owner was not asked to paste tokens/passwords into chat.
-- **Owner action required for full Stage C/D:** establish an authorized Admin session in the production browser (session-only token field already on the AT page), then re-run Scenarios 1–9 and capture sanitized results — without committing secrets.
+All validate calls used documented fields: `instrument`, `direction`, `entryPrice`, `stopLoss`, `takeProfit`. Synthetic prices only. Every response: `placesOrders=false`, `acceptsForExecution=false`, `proposedQuantity=null`, `simulationOnly=true`.
 
-Until that is done, production acceptance of interactive simulation-draft behavior remains incomplete.
+| # | Scenario | Input category | Expected | Observed | Status |
+|---|----------|----------------|----------|----------|--------|
+| 1 | Valid-shape BUY | XAU/USD BUY entry 4100 / SL 4080 / TP 4140 | Geometry PASS; overall not execution-ready; qty null; policy/min-stop/exposure blocks | `overallStatus=REJECTED_LOCAL`, `structuralOk=true`, `BUY_GEOMETRY=PASS`, fails include `QUOTE_STALE`, `BLOCKED_POLICY_UNDECIDED`, `MIN_STOP_DISTANCE_UNVERIFIED`, `QUANTITY_UNIT_AMBIGUOUS`, `EXPOSURE_DATA_UNAVAILABLE` | **PASS** |
+| 2 | Valid-shape SELL | XAU/USD SELL 4100 / 4120 / 4060 | Same pattern for SELL | `SELL_GEOMETRY=PASS`, `structuralOk=true`, same non-execution blocks; UI Validate draft showed quantity-withheld + same blocker messages | **PASS** |
+| 3 | Missing SL | BUY without `stopLoss` | `SL_MISSING` FAIL; structural incomplete | `SL_MISSING=FAIL`, `structuralOk=false` | **PASS** |
+| 4 | Missing TP | BUY without `takeProfit` | `TP_MISSING` FAIL | `TP_MISSING=FAIL`, `structuralOk=false` | **PASS** |
+| 5 | Invalid BUY geometry | BUY SL 4120 above entry | Geometry FAIL | `BUY_SL_NOT_BELOW_ENTRY=FAIL`, `structuralOk=false` | **PASS** |
+| 6 | Invalid SELL geometry | SELL SL 4080 below entry | Geometry FAIL | `SELL_SL_NOT_ABOVE_ENTRY=FAIL`, `structuralOk=false` | **PASS** |
+| 7 | Unsupported instrument | EUR/USD BUY synthetic | `INSTRUMENT_NOT_ALLOWLISTED` | `INSTRUMENT_NOT_ALLOWLISTED=FAIL`, `instrumentStatus=FAIL`, `structuralOk=false` | **PASS** |
+| 8 | Missing risk/account/contract/min-stop metadata | Valid-shape BUY on allowlisted XAU | Policy/unit/min-stop/exposure BLOCKED; qty null | `BLOCKED_POLICY_UNDECIDED`, `QUANTITY_UNIT_AMBIGUOUS`, `MIN_STOP_DISTANCE_UNVERIFIED`, `EXPOSURE_DATA_UNAVAILABLE`; qty null | **PASS** |
+| 9 | Draft persistence across reload | Reload AT page; history + latest | Server history retains drafts; UI restores latest simulation result; session auth survives reload | After reload: Authorized; history returned prior draftIds; `simulationRisk.latest` present; UI still showed quantity-withheld / blocker list; form Entry/SL/TP cleared | **PASS** |
+
+Notes:
+
+- `REJECTED_LOCAL` with `structuralOk=true` on Scenarios 1/2/8 is **expected** while quotes are stale (`QUOTE_STALE`) and owner policy remains undecided — not treated as a geometry defect.
+- UI path (Scenario 2): Entry/SL/TP filled → **Validate draft** → same withheld-quantity messaging; Recent audit showed `simulation_draft_validated · DEMO`.
 
 ---
 
-## 11. Non-execution evidence and limitations
+## 10. Authentication and facility notes
+
+- Authorized Admin session was available in the browser facility via the approved secure session mechanism.
+- Token value was never requested in chat, never printed, and is not present in this audit document.
+- Unauthenticated fail-closed behavior remains PASS from the initial audit (`ADMIN_FORBIDDEN`).
+
+---
+
+## 11. Non-execution evidence
 
 | Claim | Evidence | Limitation |
 |-------|----------|------------|
-| UI validate handler calls only sim-risk validate | Source `ForexAutomatedTradingPage.tsx` → `POST …/simulation-risk/validate` | Not observed live (no auth) |
-| No submit/place order UI | Source grep; page snapshot shows Verify/Refresh/Save token only | Authenticated panel not loaded |
-| No broker mutate in this audit | No connect/order/position API calls issued | Broker open-position inventory not read (RO tables missing) |
-| FC trading disabled | Production status | Heartbeat ≠ quote freshness |
+| UI validate → sim-risk validate only | Live UI Validate draft + audit `simulation_draft_validated`; API `POST …/simulation-risk/validate` | — |
+| No submit/place order UI | Snapshot: Validate draft only; Start disabled | — |
+| No broker mutate in retest | Call set limited to status/validate/history/health/deployment/FC status | Position inventory still **NOT_VERIFIED** |
+| FC trading disabled | Production FC status | Quote freshness FAIL (`FEED_NOT_LIVE`) independently observed |
 
 ---
 
@@ -177,41 +174,40 @@ Until that is done, production acceptance of interactive simulation-draft behavi
 
 | Finding | Severity | Action |
 |---------|----------|--------|
-| Authenticated production draft UI not verifiable without Admin session | BLOCKING for full acceptance | No code fix — owner session required |
-| Execution banner still labeled PHASE 54 | LOW | No change in 56.2.1 (message remains factually correct) |
-| Runtime master/emergency lock values not observable without admin status | MEDIUM for ops evidence | No code fix |
+| Prior missing Admin evidence | Was BLOCKING | **Resolved** by authorized retest — no code fix |
+| Execution banner still labeled PHASE 54 | LOW | No change (still factually correct) |
+| Intermittent screenshot timeout on standalone capture | LOW (facility) | Mitigated via click/navigate screenshot hooks + a11y snapshots |
 
-No in-scope code fix shipped. No redeploy required for this audit.
+No in-scope application defect requiring a code fix was proven. No redeploy required for functional correction (docs-only commit follows).
 
 ---
 
-## 13. Outstanding blockers (from 56.1 / 56.2)
+## 13. Outstanding blockers (unchanged product/policy gaps)
 
-1. Owner-approved risk percentage (OD-04) — still undecided.
-2. XAU/USD quantity-unit / ounce semantics — unverified.
-3. Minimum stop distance — unverified.
-4. Orders/Trades read-only capability — missing.
-5. **New for 56.2.1:** authorized production Admin session for interactive UI acceptance.
+These remain **open** and still block any path toward execution / Phase 56.3:
+
+1. Owner-approved risk percentage / budget (OD-04) — undecided → `BLOCKED_POLICY_UNDECIDED`.
+2. XAU/USD quantity-unit / ounce semantics — unverified → `QUANTITY_UNIT_AMBIGUOUS`.
+3. Broker minimum stop distance — unverified → `MIN_STOP_DISTANCE_UNVERIFIED`.
+4. Orders/Trades read-only capability — missing → `EXPOSURE_DATA_UNAVAILABLE` / inventory **NOT_VERIFIED**.
+
+Evidence-gap blocker from the initial audit (“no Admin session”) is **cleared**.
 
 ---
 
 ## 14. Acceptance verdict
 
-**`BLOCKED_PENDING_EVIDENCE`**
+**`PASS_WITH_KNOWN_BLOCKERS`**
 
-Sufficient evidence exists that:
+Sufficient authorized production evidence that:
 
-- Deployed SHA is Phase 56.2 (`9a08c0eb`).
-- Production health and DEMO FC session with `trading=DISABLED` hold.
-- Admin auth gates sim-risk APIs.
-- Unit contracts for simulation risk remain 19/19 green.
-- Unauthenticated AT shell is usable at desktop/tablet/mobile and fails closed without a token.
+- Deployed SHA `5977f7b9…` is live and healthy.
+- Authenticated simulation-risk panel loads on production.
+- Scenarios 1–9 behave as designed on live APIs (and UI Validate draft for SELL path).
+- Safety invariants `masterEnable=false`, `emergencyEntryLock=true`, `placesOrders=false`, `acceptsForExecution=false`, FC `trading=DISABLED`, module `BLOCKED` hold.
+- Responsive authorized shell works at 1440×900, 768×1024, and 390×844.
 
-Insufficient evidence for:
-
-- Live production draft validation Scenarios 1–9 through the UI.
-- Live confirmation of `masterEnable` / `emergencyEntryLock` / AT `placesOrders` fields from authorized status.
-- Draft persistence round-trip on production.
+Not clearance for execution, LIVE trading, or Phase 56.3 — policy/unit/min-stop/Orders-Trades blockers remain.
 
 ---
 
@@ -226,11 +222,12 @@ Insufficient evidence for:
 
 ## Appendix — Evidence references
 
-- Screenshots (Cursor browser facility):
-  - `page-2026-10-20T10-04-52-429Z.png` (1440×900)
-  - `page-2026-10-20T10-05-45-868Z.png` (768×1024)
-  - `page-2026-10-20T10-06-39-977Z.png` (390×844)
-- Unit test command/result: §7
-- Deployment JSON fields: §3
+- Screenshots (Cursor browser facility, authorized retest):
+  - Desktop: `page-2026-10-20T11-09-36-397Z.png`
+  - Tablet 768×1024: captured via Refresh action screenshot (facility temp store)
+  - Mobile 390×844: captured via Admin-auth control click screenshot (facility temp store)
+- Prior unauth shell screenshots (initial audit): still valid for fail-closed shell only
+- Scenario sanitize source: in-page authorized `fetch` to documented sim-risk endpoints (token never returned)
+- Deployment JSON: `deployedCommit=5977f7b9…`, `verifiedLive=true`
 
-*End of Phase 56.2.1 audit.*
+*End of Phase 56.2.1 audit (authorized retest).*
