@@ -47,15 +47,26 @@ Out of scope: broker orders, lock changes, LIVE authorization, inventing risk-% 
 
 ## 3. Deployment identity
 
+### 3.1 At authorized retest (functional evidence)
+
 | Field | Expected | Actual | Status |
 |-------|----------|--------|--------|
-| `deployedCommit` | Phase 56.2.1 audit doc `5977f7b9…` | `5977f7b96c5092ba834b2604e7ff4233826bc97f` | PASS |
+| `deployedCommit` | Prior audit `5977f7b9…` | `5977f7b96c5092ba834b2604e7ff4233826bc97f` | PASS |
 | `requestedCommit` | same | same | PASS |
 | `verifiedLive` | true | true | PASS |
 | `result` | success | success | PASS |
 | Health | healthy / runtimeReady | `healthy`, `runtimeReady=true` | PASS |
 
-Evidence: `GET /api/deployment`, `GET /api/health` during retest.
+Evidence: `GET /api/deployment`, `GET /api/health` during retest. Application code unchanged vs Phase 56.2 (`9a08c0eb` lineage).
+
+### 3.2 After this audit-document push
+
+| Field | Actual | Status |
+|-------|--------|--------|
+| Docs commit | `660288d92690ebf2eb64bc592278765f8a548714` | — |
+| CI | Production deploy #376 completed successfully | PASS |
+| Live `deployedCommit` / `requestedCommit` | `660288d92690ebf2eb64bc592278765f8a548714` | PASS |
+| `verifiedLive` / `result` / health | true / success / healthy | PASS |
 
 ---
 
