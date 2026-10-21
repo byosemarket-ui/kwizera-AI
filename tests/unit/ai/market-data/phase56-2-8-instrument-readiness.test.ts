@@ -170,4 +170,11 @@ describe("Phase 56.2.8 instrument readiness (synthetic)", () => {
     expect(snap.capabilities.liveFeedReady).toBe(false);
     expect(snap.quote?.freshnessStatus).toBe("PARTIALLY_READY");
   });
+
+  it("resolves timeframe aliases used by AT verify (regression for FEED_NOT_LIVE root cause)", () => {
+    // Production Verify previously defaulted to SDK period "m1", which ensure() rejects.
+    expect(resolveForexConnectLiveTimeframe("m1")).toBe("1m");
+    expect(resolveForexConnectLiveTimeframe(undefined)).toBe("1m");
+    expect(resolveForexConnectLiveTimeframe("m15")).toBe("15m");
+  });
 });

@@ -146,34 +146,40 @@ export class MarketDataService {
   }): Promise<InstrumentReadinessCatalogSummary> {
     const provider = this.resolveProvider(options.provider);
     const limit = options.limit ?? 100;
-    const catalog = await this.listInstruments({
+    const requestedSymbols = (options.symbols ?? [])
+      .map((s) => String(s ?? "").trim())
+      .filter(Boolean);
+    // Hydrate a full provider catalog before symbol lookup — never truncate first then miss XAU/USD.
+    await this.listInstruments({
       provider,
       search: options.search,
       refresh: options.refreshCatalog,
-      limit: Math.max(limit, options.symbols?.length ?? 0),
+      limit: requestedSymbols.length > 0 ? 5_000 : Math.max(limit, 500),
     });
-    const providerInfo = this.registry.getProvider(provider)?.getCapabilities();
-    const symbolFilter = (options.symbols ?? [])
-      .map((s) => normalizeCanonicalSymbol(s))
-      .filter(Boolean);
-    let targets = catalog;
-    if (symbolFilter.length > 0) {
-      targets = catalog.filter((row) =>
-        symbolFilter.includes(normalizeCanonicalSymbol(row.canonicalSymbol))
-        || symbolFilter.includes(normalizeCanonicalSymbol(row.providerSymbol))
-      );
-      // Include explicit symbols even when not yet in catalog (report UNAVAILABLE).
-      for (const raw of options.symbols ?? []) {
-        const compact = normalizeCanonicalSymbol(raw);
-        if (!targets.some((t) =>
-          normalizeCanonicalSymbol(t.canonicalSymbol) === compact
-          || normalizeCanonicalSymbol(t.providerSymbol) === compact
-        )) {
+    const providerAdapter = this.registry.getProvider(provider);
+    const providerInfo = providerAdapter?.getCapabilities();
+    let targets: MarketInstrument[] = [];
+    if (requestedSymbols.length > 0) {
+      for (const raw of requestedSymbols) {
+        let hit = this.instruments.findByProviderSymbol(provider, raw)
+          ?? this.instruments.findByCanonical(provider, raw);
+        if (!hit && providerAdapter) {
+          try {
+            hit = await providerAdapter.getInstrument(raw);
+            if (hit) this.instruments.upsert(hit);
+          } catch {
+            hit = null;
+          }
+        }
+        if (hit) {
+          targets.push(hit);
+        } else {
+          const compact = normalizeCanonicalSymbol(raw);
           targets.push({
             provider,
-            providerSymbol: String(raw).trim(),
-            canonicalSymbol: compact || String(raw).trim(),
-            displaySymbol: String(raw).trim(),
+            providerSymbol: raw,
+            canonicalSymbol: compact || raw,
+            displaySymbol: raw,
             marketType: "UNKNOWN",
             baseAsset: null,
             quoteAsset: null,
@@ -191,6 +197,10 @@ export class MarketDataService {
           });
         }
       }
+    } else if (options.search) {
+      targets = this.instruments.search(options.search, { provider, limit });
+    } else {
+      targets = this.instruments.listByProvider(provider).slice(0, limit);
     }
     targets = targets.slice(0, limit);
 
