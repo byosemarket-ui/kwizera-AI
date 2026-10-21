@@ -5,8 +5,8 @@
 **Document type:** Infrastructure hardening (market-data only)  
 **Starting HEAD:** `33a3c5f68522f5ed3eb52474032b98d2513da176` (matched production `verifiedLive=true`)  
 **Phase 56.3.2 baseline:** `PASS_WITH_KNOWN_BLOCKERS`; no auto-resubscribe; MDS `marketType` often `FOREX`  
-**Feature commit:** `bfd2e59662f5b1a06629711189d3faebc5e2ecfe`  
-**Ending HEAD / deployed:** `bfd2e59662f5b1a06629711189d3faebc5e2ecfe` (`verifiedLive=true`, CI **#39689169044** success)  
+**Feature commit:** `bfd2e59662f5b1a06629711189d3faebc5e2ecfe` (CI **#39689169044**)  
+**Docs commit / Ending HEAD / deployed:** `1b96f8ac099120c6b329dfb193ecd32e0d0e28c7` (`verifiedLive=true`, CI **#39690823141** success)  
 **Scope:** Reconnect/resubscribe + metadata integrity. **No execution. Do not start 56.3.4 / 56.4.**
 
 ---
