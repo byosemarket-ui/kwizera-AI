@@ -115,7 +115,7 @@ No broker mutations performed.
 | Suite | Result |
 |-------|--------|
 | `tests/unit/ai/market-data/phase56-2-8-instrument-readiness.test.ts` | **8/8 passed** (local vitest; synthetic) |
-| CI Production deploy #398 | **success** on `8bceb2ea` (see GitHub Actions Production deploy run for SHA) |
+| CI Production deploy #398 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39614343472 — **success** on `8bceb2ea` |
 
 Synthetic fixtures only; not production evidence.
 
