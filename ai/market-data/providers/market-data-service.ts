@@ -213,13 +213,24 @@ export class MarketDataService {
       receiptAgeMs: number | null;
       updateCount: number;
       historicalOnly: boolean;
+      eventSource: string | null;
+      lastPriceChangeAtMs: number | null;
+      lastReceiptAtMs: number | null;
     }>();
 
     if (provider === "FOREXCONNECT") {
       if (options.subscribeLive && targets.length > 0) {
+        // Phase 56.3.1 — match AT verify settle: wait briefly for genuine Offers
+        // bid/ask changes without inventing LIVE when the provider is quiet.
+        const SETTLE_POLLS = 3;
+        const SETTLE_MS = 400;
         for (const row of targets.slice(0, Math.min(8, targets.length))) {
           try {
-            await this.forexConnectLive.ensure(row.providerSymbol, tf);
+            let series = await this.forexConnectLive.ensure(row.providerSymbol, tf);
+            for (let i = 0; i < SETTLE_POLLS && series.streamState !== "LIVE"; i += 1) {
+              await new Promise((r) => setTimeout(r, SETTLE_MS));
+              series = await this.forexConnectLive.ensure(row.providerSymbol, tf);
+            }
           } catch {
             /* leave as undiscovered live — readiness reports honestly */
           }
@@ -234,6 +245,9 @@ export class MarketDataService {
           receiptAgeMs: session.receiptAgeMs,
           updateCount: session.updateCount,
           historicalOnly: session.updateCount <= 0,
+          eventSource: session.eventSource,
+          lastPriceChangeAtMs: session.lastPriceChangeAtMs,
+          lastReceiptAtMs: session.lastReceiptAtMs,
         });
       }
     }
@@ -249,6 +263,7 @@ export class MarketDataService {
         canonicalSymbol: row.canonicalSymbol,
         displaySymbol: row.displaySymbol,
         live,
+        subscriptionRequested: Boolean(options.subscribeLive),
         historicalCapability: Boolean(
           providerInfo?.historicalPrices || providerInfo?.candles || row.capabilities.historicalPrices,
         ),
@@ -260,8 +275,9 @@ export class MarketDataService {
       snapshots,
       notes: [
         options.subscribeLive
-          ? "subscribeLive requested — limited to first 8 symbols to avoid subscription storms."
+          ? "subscribeLive requested — limited to first 8 symbols; settle polls wait for genuine Offers changes without inventing LIVE."
           : "Catalog readiness without forced subscribe; active live sessions included when present.",
+        "Phase 56.3.1 feedDiagnostics expose sessionActive, eventSource, ages, and precise blocker ids.",
       ],
     });
   }

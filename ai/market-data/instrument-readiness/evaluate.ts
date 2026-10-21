@@ -1,10 +1,11 @@
 /**
- * Phase 56.2.8 — evaluate per-instrument readiness independently.
+ * Phase 56.2.8 / 56.3.1 — evaluate per-instrument readiness independently.
  * One instrument's LIVE/STALE state must not imply another instrument's state.
  */
 import { resolveFcFeedStreamState } from "../forexconnect/stream-state.js";
 import type { MarketInstrument, MarketProviderId } from "../providers/types.js";
 import type { UnifiedConnectionState } from "../providers/contracts.js";
+import { buildLiveFeedDiagnostics } from "./feed-diagnostics.js";
 import { resolveInstrumentFreshnessPolicy } from "./freshness-policy.js";
 import type {
   InstrumentCapabilityFlags,
@@ -23,6 +24,10 @@ export interface InstrumentLiveQuoteInput {
   updateCount?: number | null;
   /** True when only historical candles/seed exist — never claim live. */
   historicalOnly?: boolean;
+  /** Sidecar Offers origin — absent on seeded snapshots. */
+  eventSource?: string | null;
+  lastPriceChangeAtMs?: number | null;
+  lastReceiptAtMs?: number | null;
 }
 
 export interface EvaluateInstrumentReadinessInput {
@@ -36,6 +41,8 @@ export interface EvaluateInstrumentReadinessInput {
   historicalCapability?: boolean;
   /** Whether a historical series was successfully fetched recently (optional evidence). */
   historicalFetchedOk?: boolean | null;
+  /** Phase 56.3.1 — caller asked subscribeLive on this evaluation. */
+  subscriptionRequested?: boolean;
   nowMs?: number;
   staleMs?: number | null;
 }
@@ -149,26 +156,54 @@ export function evaluateInstrumentReadiness(
     : "UNAVAILABLE";
   let reasonCode: string | null = feedStatus;
 
+  const feedDiagnostics = buildLiveFeedDiagnostics({
+    sessionActive: live != null,
+    subscriptionRequested: input.subscriptionRequested,
+    feedStatus: live ? String(feedStatus ?? null) : null,
+    hasBidAsk,
+    updateCount,
+    historicalOnly,
+    eventSource: live?.eventSource ?? null,
+    priceChangeAgeMs,
+    receiptAgeMs,
+    lastPriceChangeAtMs: live?.lastPriceChangeAtMs ?? null,
+    lastReceiptAtMs: live?.lastReceiptAtMs
+      ?? (receiptAgeMs != null ? nowMs - receiptAgeMs : null),
+    nowMs,
+  });
+
   if (live && !hasBidAsk) {
     freshnessStatus = "UNAVAILABLE";
     reasonCode = "BID_ASK_MISSING";
     blockers.push({
-      id: "quote_missing",
+      id: feedDiagnostics.blockerId ?? "quote_missing",
       status: "UNAVAILABLE",
-      reason: "Bid/Ask missing or invalid for this instrument.",
+      reason: feedDiagnostics.blockerReason ?? "Bid/Ask missing or invalid for this instrument.",
       blocks: ["live readiness", "simulation monetary risk"],
     });
   } else if (live && freshnessStatus !== "READY") {
     blockers.push({
-      id: "quote_not_live",
+      id: feedDiagnostics.blockerId ?? "quote_not_live",
       status: freshnessStatus,
-      reason: `Feed not LIVE for this instrument (status=${feedStatus ?? "unknown"}). Seeded/historical prices are not live.`,
+      reason: feedDiagnostics.blockerReason
+        ?? `Feed not LIVE for this instrument (status=${feedStatus ?? "unknown"}). Seeded/historical prices are not live.`,
       blocks: ["liveFeedReady", "analysisReady when live required", "simulation draft sizing"],
+    });
+  } else if (!live && discovered) {
+    blockers.push({
+      id: feedDiagnostics.blockerId ?? "no_active_session",
+      status: "UNVERIFIED",
+      reason: feedDiagnostics.blockerReason
+        ?? "No active live session for this instrument.",
+      blocks: ["liveFeedReady", "simulation draft that requires fresh Bid/Ask"],
     });
   }
 
   if (historicalOnly && hasBidAsk) {
     reasonCode = reasonCode ?? "HISTORICAL_OR_SEEDED_QUOTE";
+  }
+  if (feedDiagnostics.blockerId && freshnessStatus !== "READY") {
+    reasonCode = feedDiagnostics.blockerId.toUpperCase();
   }
 
   const historicalCapability = input.historicalCapability
@@ -207,7 +242,7 @@ export function evaluateInstrumentReadiness(
   });
 
   return {
-    phase: "56.2.8",
+    phase: "56.3.1",
     provider: input.provider,
     providerSymbol: instrument?.providerSymbol ?? input.providerSymbol,
     canonicalSymbol: instrument?.canonicalSymbol
@@ -230,8 +265,10 @@ export function evaluateInstrumentReadiness(
           receiptAgeMs,
           updateCount,
           historicalOnly,
+          diagnostics: feedDiagnostics,
         }
       : null,
+    feedDiagnostics,
     overall,
     capabilities: capabilityFlags,
     freshnessPolicy: policy,
@@ -250,7 +287,7 @@ export function summarizeInstrumentReadinessCatalog(input: {
 }): InstrumentReadinessCatalogSummary {
   const snapshots = input.snapshots;
   return {
-    phase: "56.2.8",
+    phase: "56.3.1",
     provider: input.provider,
     discoveredCount: snapshots.filter((s) => s.capabilities.discovered).length,
     liveFeedReadyCount: snapshots.filter((s) => s.capabilities.liveFeedReady).length,

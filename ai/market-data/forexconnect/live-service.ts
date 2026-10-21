@@ -309,6 +309,10 @@ export class ForexConnectLiveCandleService {
     updateCount: number;
     priceChangeAgeMs: number | null;
     receiptAgeMs: number | null;
+    /** Phase 56.3.1 — sidecar Offers origin; null on seeded snapshots. */
+    eventSource: string | null;
+    lastPriceChangeAtMs: number | null;
+    lastReceiptAtMs: number | null;
   }> {
     const out: Array<{
       providerSymbol: string;
@@ -321,6 +325,9 @@ export class ForexConnectLiveCandleService {
       updateCount: number;
       priceChangeAgeMs: number | null;
       receiptAgeMs: number | null;
+      eventSource: string | null;
+      lastPriceChangeAtMs: number | null;
+      lastReceiptAtMs: number | null;
     }> = [];
     for (const session of this.sessions.values()) {
       const series = this.toSeries(session);
@@ -339,6 +346,9 @@ export class ForexConnectLiveCandleService {
         receiptAgeMs: session.lastQuoteAtMs != null
           ? Math.max(0, nowMs - session.lastQuoteAtMs)
           : null,
+        eventSource: session.lastQuote?.eventSource ?? null,
+        lastPriceChangeAtMs: session.lastPriceChangeAtMs,
+        lastReceiptAtMs: session.lastQuoteAtMs,
       });
     }
     return out;

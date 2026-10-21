@@ -1,9 +1,10 @@
 /**
- * Phase 56.2.8 — per-instrument market-data readiness (provider-agnostic).
+ * Phase 56.2.8 / 56.3.1 — per-instrument market-data readiness (provider-agnostic).
  * Discovery / live / analysis / simulation are distinct from execution authorization.
  */
 import type { MarketAssetType, MarketProviderId } from "../providers/types.js";
 import type { UnifiedConnectionState } from "../providers/contracts.js";
+import type { LiveFeedDiagnostics } from "./feed-diagnostics.js";
 
 export const INSTRUMENT_READINESS_STATUSES = [
   "READY",
@@ -40,12 +41,12 @@ export interface InstrumentCapabilityFlags {
   historicalAvailable: boolean;
   analysisReady: boolean;
   simulationReady: boolean;
-  /** Always false in Phase 56.2.8 — market coverage ≠ execution authorization. */
+  /** Always false — market coverage ≠ execution authorization. */
   executionAuthorized: false;
 }
 
 export interface InstrumentReadinessSnapshot {
-  phase: "56.2.8";
+  phase: "56.2.8" | "56.3.1";
   provider: MarketProviderId;
   providerSymbol: string;
   canonicalSymbol: string;
@@ -62,7 +63,11 @@ export interface InstrumentReadinessSnapshot {
     receiptAgeMs: number | null;
     updateCount: number;
     historicalOnly: boolean;
+    /** Phase 56.3.1 — precise subscription / freshness diagnostics. */
+    diagnostics?: LiveFeedDiagnostics;
   } | null;
+  /** Phase 56.3.1 — present even when quote is null (e.g. no_active_session). */
+  feedDiagnostics?: LiveFeedDiagnostics;
   overall: InstrumentReadinessStatus;
   capabilities: InstrumentCapabilityFlags;
   freshnessPolicy: InstrumentReadinessFreshnessPolicy;
@@ -73,7 +78,7 @@ export interface InstrumentReadinessSnapshot {
 }
 
 export interface InstrumentReadinessCatalogSummary {
-  phase: "56.2.8";
+  phase: "56.2.8" | "56.3.1";
   provider: MarketProviderId | null;
   discoveredCount: number;
   liveFeedReadyCount: number;
