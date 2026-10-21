@@ -1866,6 +1866,16 @@ export function ForexAutomatedTradingPage(props: {
                           : unavailable("non-USD conversion rate required"))
                         : unavailable("account currency"),
                     )}
+                    {cell(
+                      "Data Readiness",
+                      status?.simulationDataReadiness?.overall
+                        ? `${status.simulationDataReadiness.overall}`
+                          + (status.simulationDataReadiness.readyForSimulationDraft
+                            ? " — draft sizing gates OK (execution still forbidden)"
+                            : ` — ${(status.simulationDataReadiness.notReady?.length ?? 0)} gate(s) not READY`)
+                        : unavailable("status"),
+                      { testId: "data-readiness" },
+                    )}
                   </dl>
                   <p className="fx-auto-trading-hint" data-fx-at-sim-exec="false">
                     simulationOnly={String(d.simulationOnly !== false)} · placesOrders=
