@@ -180,7 +180,7 @@ describe("Phase 56.2.4 XAU quantity semantics", () => {
     expect(spec.convention).toBe("ounce_contract");
   });
 
-  it("treats CondDist > 0 as verified min-stop when SDK exposes it", () => {
+  it("treats CondDist > 0 as verified min-stop price = pips × PointSize", () => {
     const r = resolveXauQuantitySemantics({
       symbol: "XAU/USD",
       pointSize: 0.01,
@@ -192,7 +192,10 @@ describe("Phase 56.2.4 XAU quantity semantics", () => {
       condDistStopUnit: "pips",
     });
     expect(r.minStopDistanceVerified).toBe(true);
-    expect(r.minStopDistanceValue).toBe(5);
+    // 5 pips × 0.01 PointSize = 0.05 price (never treat raw pips as price).
+    expect(r.minStopDistanceValue).toBeCloseTo(0.05, 10);
+    expect(r.condDistStopPips).toBe(5);
+    expect(r.condDistUnit).toBe("pips");
     expect(r.minStopDistance.status).toBe("VERIFIED");
   });
 });

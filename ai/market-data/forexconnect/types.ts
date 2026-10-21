@@ -59,7 +59,9 @@ export interface ForexConnectInstrument {
   condDistEntryStop?: number | null;
   condDistEntryLimit?: number | null;
   condDistAvailable?: boolean;
+  /** Phase 56.2.6 — "pips" when documented SDK CondDist method returned a value. */
   condDistUnit?: string | null;
+  condDistMethod?: string | null;
 }
 
 export interface ForexConnectSafeStatus {

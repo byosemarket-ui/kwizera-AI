@@ -98,9 +98,17 @@ export interface AtSimContractMetaInput {
   baseUnitSize: number | null;
   pipCostAccount: number | null;
   marginPerLotAccount: number | null;
-  /** Broker min stop distance in price units — null when unverified. */
+  /**
+   * Broker min stop distance in **price** units (CondDist pips × PointSize).
+   * Null when unverified OR when no positive minimum is attested (CondDist=0).
+   */
   minStopDistance: number | null;
   minStopDistanceVerified: boolean;
+  /** True when SDK CondDistStop=0 pips (account-scoped: no positive minimum). */
+  minStopNoPositiveMinimum?: boolean;
+  /** CondDist raw pips when unit verified; null otherwise. */
+  condDistStopPips?: number | null;
+  condDistUnit?: "pips" | "unknown" | null;
   source: string | null;
   unavailableReason: string | null;
 }

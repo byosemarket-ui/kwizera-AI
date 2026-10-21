@@ -382,7 +382,10 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
         "condDistEntryStop": None,
         "condDistEntryLimit": None,
         "condDistAvailable": False,
-        "condDistUnit": "pips_or_points_unverified",
+        # Phase 56.2.6 — official ForexConnect docs: CondDist* values are in pips.
+        # Only set unit to "pips" when a documented SDK method actually returned a value.
+        "condDistUnit": "unknown",
+        "condDistMethod": None,
     }
     if not instrument or account is None:
         return out
@@ -445,18 +448,42 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                             break
                     except Exception:
                         pass
-        # Phase 56.2.4 — read-only CondDist probes (never invent; never use for lotStep).
+        # Phase 56.2.4/56.2.6 — read-only CondDist probes (never invent; never use for lotStep).
+        # Official O2G names: getCondDistStopForTrade / getCondDistLimitForTrade /
+        # getCondDistEntryStop / getCondDistEntryLimit — values expressed in **pips**.
         cond_any = False
+        documented_hit = False
         for key, methods in (
-            ("condDistStop", ("get_cond_dist_stop", "getCondDistStop")),
-            ("condDistLimit", ("get_cond_dist_limit", "getCondDistLimit")),
-            ("condDistEntryStop", ("get_cond_dist_entry_stop", "getCondDistEntryStop")),
-            ("condDistEntryLimit", ("get_cond_dist_entry_limit", "getCondDistEntryLimit")),
+            (
+                "condDistStop",
+                (
+                    "get_cond_dist_stop_for_trade",
+                    "getCondDistStopForTrade",
+                    "get_cond_dist_stop",
+                    "getCondDistStop",
+                ),
+            ),
+            (
+                "condDistLimit",
+                (
+                    "get_cond_dist_limit_for_trade",
+                    "getCondDistLimitForTrade",
+                    "get_cond_dist_limit",
+                    "getCondDistLimit",
+                ),
+            ),
+            (
+                "condDistEntryStop",
+                ("get_cond_dist_entry_stop", "getCondDistEntryStop"),
+            ),
+            (
+                "condDistEntryLimit",
+                ("get_cond_dist_entry_limit", "getCondDistEntryLimit"),
+            ),
         ):
             for meth in methods:
                 if hasattr(tsp, meth):
                     try:
-                        # Most CondDist APIs take instrument only; try account-aware if needed.
                         try:
                             val = _finite(getattr(tsp, meth)(instrument))
                         except TypeError:
@@ -464,10 +491,24 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                         if val is not None:
                             out[key] = val
                             cond_any = True
+                            if key == "condDistStop":
+                                out["condDistMethod"] = meth
+                            if "ForTrade" in meth or "for_trade" in meth or meth in (
+                                "get_cond_dist_entry_stop",
+                                "getCondDistEntryStop",
+                                "get_cond_dist_entry_limit",
+                                "getCondDistEntryLimit",
+                            ):
+                                documented_hit = True
                         break
                     except Exception:
                         pass
         out["condDistAvailable"] = bool(cond_any)
+        # Documented ForexConnect APIs express CondDist in pips.
+        if documented_hit:
+            out["condDistUnit"] = "pips"
+        elif cond_any:
+            out["condDistUnit"] = "unknown"
     except Exception:
         return out
     return out
@@ -582,7 +623,8 @@ def _normalize_offer(
         "condDistEntryStop": ts.get("condDistEntryStop"),
         "condDistEntryLimit": ts.get("condDistEntryLimit"),
         "condDistAvailable": bool(ts.get("condDistAvailable")),
-        "condDistUnit": ts.get("condDistUnit") or "pips_or_points_unverified",
+        "condDistUnit": ts.get("condDistUnit") or "unknown",
+        "condDistMethod": ts.get("condDistMethod"),
     }
 
 

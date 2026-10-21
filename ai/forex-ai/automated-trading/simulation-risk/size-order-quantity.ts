@@ -5,6 +5,10 @@
 
 import { computePerOrderLossLimit } from "./capital-budget.js";
 import {
+  ensureAmountInAccountCurrency,
+  type ConversionRateSnapshot,
+} from "./currency-conversion.js";
+import {
   floorQuantityToStep,
   resolveXauQuantityConstraints,
   type QuantityConstraintsResult,
@@ -64,6 +68,13 @@ export interface SizeOrderQuantityInput {
   /** Distinct SDK min when available (preferred over legacy lotStep). */
   sdkMinQuantity?: number | null;
   legacyLotStep?: number | null;
+  /**
+   * Currency of individualOrderAllocation (UI currently labels USD).
+   * Converted into accountCurrency when they differ — requires rateSnapshot.
+   */
+  allocationCurrency?: string | null;
+  conversionRateSnapshot?: ConversionRateSnapshot | null;
+  nowMs?: number;
 }
 
 /**
@@ -121,19 +132,6 @@ export function sizeOrderQuantityFromAllocation(
       notes,
     };
   }
-  if (ccy !== "USD") {
-    // Quote is XAU/USD; without a verified conversion path, block non-USD accounts.
-    return {
-      ok: false,
-      quantity: null,
-      quantityUnit: "contracts",
-      code: "SIZE_QTY_CURRENCY_CONVERSION_UNVERIFIED",
-      message:
-        `Account currency ${ccy} ≠ USD — monetary conversion path unverified; quantity not invented.`,
-      constraints: null,
-      notes,
-    };
-  }
 
   if (
     !finitePositive(input.strategyAllocationPercent)
@@ -175,13 +173,40 @@ export function sizeOrderQuantityFromAllocation(
     };
   }
 
-  if (input.individualOrderAllocation > input.remainingStrategyBudget + 1e-9) {
+  const allocCcy = String(input.allocationCurrency ?? "USD").trim().toUpperCase() || "USD";
+  const convertedAlloc = ensureAmountInAccountCurrency({
+    amount: input.individualOrderAllocation,
+    amountCurrency: allocCcy,
+    accountCurrency: ccy,
+    rateSnapshot: input.conversionRateSnapshot,
+    nowMs: input.nowMs,
+  });
+  if (!convertedAlloc.ok) {
+    return {
+      ok: false,
+      quantity: null,
+      quantityUnit: "contracts",
+      code: convertedAlloc.code,
+      message: convertedAlloc.message,
+      constraints: null,
+      notes,
+    };
+  }
+  const orderAllocationAccountCcy = convertedAlloc.amount;
+  if (!convertedAlloc.identity) {
+    notes.push(
+      `Order allocation converted ${allocCcy}→${ccy} via ${convertedAlloc.source} `
+        + `(age ${convertedAlloc.ageMs}ms; direction=${convertedAlloc.direction}).`,
+    );
+  }
+
+  if (orderAllocationAccountCcy > input.remainingStrategyBudget + 1e-9) {
     return {
       ok: false,
       quantity: null,
       quantityUnit: "contracts",
       code: "SIZE_QTY_EXCEEDS_REMAINING_BUDGET",
-      message: "Order allocation exceeds remaining strategy budget.",
+      message: "Order allocation (account currency) exceeds remaining strategy budget.",
       constraints: null,
       notes,
     };
@@ -270,7 +295,7 @@ export function sizeOrderQuantityFromAllocation(
     };
   }
 
-  const maxPermittedOrderLoss = computePerOrderLossLimit(input.individualOrderAllocation);
+  const maxPermittedOrderLoss = computePerOrderLossLimit(orderAllocationAccountCcy);
   const rawQty = maxPermittedOrderLoss / riskPerUnit;
   const quantity = floorQuantityToStep(
     rawQty,
@@ -350,7 +375,7 @@ export function sizeOrderQuantityFromAllocation(
               requiredMargin: need,
               freeMargin,
               remainingStrategyBudgetAfter:
-                input.remainingStrategyBudget - input.individualOrderAllocation,
+                input.remainingStrategyBudget - orderAllocationAccountCcy,
               constraints,
               method,
               notes: [
@@ -387,7 +412,7 @@ export function sizeOrderQuantityFromAllocation(
     requiredMargin,
     freeMargin,
     remainingStrategyBudgetAfter:
-      input.remainingStrategyBudget - input.individualOrderAllocation,
+      input.remainingStrategyBudget - orderAllocationAccountCcy,
     constraints,
     method,
     notes,

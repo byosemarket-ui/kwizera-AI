@@ -190,6 +190,7 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         condDistEntryLimit: item.condDistEntryLimit ?? null,
         condDistAvailable: Boolean(item.condDistAvailable),
         condDistUnit: item.condDistUnit ?? null,
+        condDistMethod: item.condDistMethod ?? null,
         quoteAsset: item.quoteAsset ?? null,
         baseAsset: item.baseAsset ?? null,
       },

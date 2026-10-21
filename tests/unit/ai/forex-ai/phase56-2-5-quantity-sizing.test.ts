@@ -160,7 +160,8 @@ describe("Phase 56.2.5 sizeOrderQuantityFromAllocation", () => {
       accountCurrency: "EUR",
     });
     expect(eur.ok).toBe(false);
-    if (!eur.ok) expect(eur.code).toBe("SIZE_QTY_CURRENCY_CONVERSION_UNVERIFIED");
+    // Phase 56.2.6 — explicit FX rate gate (no invented conversion).
+    if (!eur.ok) expect(eur.code).toMatch(/FX_RATE_UNAVAILABLE|CURRENCY_CONVERSION/i);
   });
 
   it("blocks when exposure is not authoritative", () => {

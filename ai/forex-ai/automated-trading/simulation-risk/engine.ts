@@ -377,9 +377,17 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     );
   }
 
-  // —— Min stop distance (only when verified) ——
+  // —— Min stop distance (CondDist pips × PointSize when verified) ——
   if (geometryOk && isFinitePositive(entry) && isFinitePositive(sl)) {
-    if (contract?.minStopDistanceVerified && isFinitePositive(contract.minStopDistance)) {
+    if (contract?.minStopDistanceVerified && contract.minStopNoPositiveMinimum === true) {
+      pushCheck(
+        checks,
+        "MIN_STOP_DISTANCE",
+        "DIRECTION_PRICE",
+        "PASS",
+        "SDK CondDistStop=0 pips — no positive minimum stop attested for this instrument/account.",
+      );
+    } else if (contract?.minStopDistanceVerified && isFinitePositive(contract.minStopDistance)) {
       const dist = Math.abs(entry - sl);
       if (dist < contract.minStopDistance) {
         pushCheck(
@@ -387,7 +395,10 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
           "MIN_STOP_DISTANCE",
           "DIRECTION_PRICE",
           "FAIL",
-          `Stop distance ${dist} is below verified minimum ${contract.minStopDistance}.`,
+          `Stop distance ${dist} (price) is below verified minimum ${contract.minStopDistance} `
+            + `(CondDist pips × PointSize`
+            + (contract.condDistStopPips != null ? `; CondDist=${contract.condDistStopPips} pips` : "")
+            + ").",
         );
         geometryOk = false;
       } else {
@@ -396,7 +407,7 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
           "MIN_STOP_DISTANCE",
           "DIRECTION_PRICE",
           "PASS",
-          "Stop distance meets verified broker minimum.",
+          "Stop distance meets verified broker minimum (CondDist pips × PointSize).",
         );
       }
     } else {
@@ -405,7 +416,8 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
         "MIN_STOP_DISTANCE_UNVERIFIED",
         "DIRECTION_PRICE",
         "BLOCKED",
-        "Broker minimum stop distance is unverified for this account — not invented (Phase 56.2.4). Public Enhanced Execution 'no min stop' claim is not account-attested.",
+        "Broker minimum stop distance is unverified for this account — not invented. "
+          + "Public Enhanced Execution 'no min stop' is not account-attested without CondDist.",
       );
     }
   }

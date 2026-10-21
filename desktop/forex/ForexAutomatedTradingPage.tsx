@@ -1717,6 +1717,26 @@ export function ForexAutomatedTradingPage(props: {
                         "Not validated yet",
                         { testId: "status" },
                       )}
+                      {cell(
+                        "Quote Freshness",
+                        status?.quoteFreshness?.reasonCode
+                          ?? monitor?.health?.freshnessReasonCode
+                          ?? unavailable("no quote"),
+                      )}
+                      {cell(
+                        "Min-Stop / CondDist",
+                        status?.quantitySemantics?.minStopDistanceVerified
+                          ? "Account-attested (validate for detail)"
+                          : unavailable("CondDist / Enhanced Execution"),
+                      )}
+                      {cell(
+                        "Currency Conversion",
+                        status?.verification?.account?.accountCurrency
+                          ? (String(status.verification.account.accountCurrency).toUpperCase() === "USD"
+                            ? "USD account — identity (no FX rate)"
+                            : unavailable("non-USD rate required"))
+                          : unavailable("account currency"),
+                      )}
                     </dl>
                     <p className="fx-auto-trading-hint">
                       Enter Order Allocation and Validate draft. Entry/SL/TP are not typed manually in this workflow.
@@ -1805,6 +1825,27 @@ export function ForexAutomatedTradingPage(props: {
                           ? "exposure empty"
                           : "exposure present")
                         : "exposure unavailable"}`,
+                    )}
+                    {cell(
+                      "Min-Stop / CondDist",
+                      (() => {
+                        const checks = (d as { checks?: Array<{ code?: string; status?: string; message?: string }> })
+                          .checks;
+                        const hit = checks?.find((c) =>
+                          c.code === "MIN_STOP_DISTANCE" || c.code === "MIN_STOP_DISTANCE_UNVERIFIED"
+                        );
+                        if (hit?.status === "PASS") return hit.message ?? "PASS";
+                        if (hit?.status === "FAIL") return hit.message ?? "FAIL";
+                        return unavailable(hit?.message ?? "unverified");
+                      })(),
+                    )}
+                    {cell(
+                      "Currency Conversion",
+                      status?.verification?.account?.accountCurrency
+                        ? (String(status.verification.account.accountCurrency).toUpperCase() === "USD"
+                          ? "USD account — identity"
+                          : unavailable("non-USD conversion rate required"))
+                        : unavailable("account currency"),
                     )}
                   </dl>
                   <p className="fx-auto-trading-hint" data-fx-at-sim-exec="false">

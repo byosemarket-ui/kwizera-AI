@@ -83,6 +83,9 @@ function buildContract(
       marginPerLotAccount: null,
       minStopDistance: null,
       minStopDistanceVerified: false,
+      minStopNoPositiveMinimum: false,
+      condDistStopPips: null,
+      condDistUnit: null,
       source: null,
       unavailableReason: "No verification instrument metadata.",
     };
@@ -148,8 +151,11 @@ function buildContract(
     marginPerLotAccount: finiteOrNull(inst.marginPerLotAccount),
     minStopDistance: semantics.minStopDistanceValue,
     minStopDistanceVerified: semantics.minStopDistanceVerified,
+    minStopNoPositiveMinimum: semantics.minStopNoPositiveMinimum,
+    condDistStopPips: semantics.condDistStopPips,
+    condDistUnit: semantics.condDistUnit,
     source: contractVerified
-      ? `at-verification+phase-56.2.4-semantics:${semantics.summaryStatus}`
+      ? `at-verification+phase-56.2.6-semantics:${semantics.summaryStatus}`
       : null,
     unavailableReason,
   };

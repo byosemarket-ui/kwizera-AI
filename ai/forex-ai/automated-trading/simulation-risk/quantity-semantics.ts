@@ -1,7 +1,10 @@
 /**
- * Phase 56.2.4 — XAU/USD quantity-unit and min-stop evidence.
+ * Phase 56.2.4 / 56.2.6 — XAU/USD quantity-unit and min-stop evidence.
  * Never invents ounces or broker min-stop values.
+ * CondDist unit/conversion delegated to conddist-semantics (pips × PointSize).
  */
+
+import { resolveCondDistMinStop } from "./conddist-semantics.js";
 
 export type EvidenceStatus =
   | "VERIFIED"
@@ -69,9 +72,13 @@ export interface XauQuantitySemanticsResolution {
   quantityStep: EvidenceField<number>;
   quantityMin: EvidenceField<number>;
   minStopDistance: EvidenceField<number | "none_claimed">;
-  /** Engine flag — only true with account-scoped verified numeric distance. */
+  /** Engine flag — true with verified price min OR CondDist=0 (no positive min). */
   minStopDistanceVerified: boolean;
+  /** Price units; null when unverified or no-positive-minimum attested. */
   minStopDistanceValue: number | null;
+  minStopNoPositiveMinimum: boolean;
+  condDistStopPips: number | null;
+  condDistUnit: "pips" | "unknown" | null;
   monetaryRiskAllowed: boolean;
   summaryStatus: EvidenceStatus;
   notes: string[];
@@ -194,6 +201,9 @@ export function resolveXauQuantitySemantics(input: {
       },
       minStopDistanceVerified: false,
       minStopDistanceValue: null,
+      minStopNoPositiveMinimum: false,
+      condDistStopPips: null,
+      condDistUnit: null,
       monetaryRiskAllowed: false,
       summaryStatus: "UNVERIFIED",
       notes: ["Non-XAU instrument — quantity semantics unresolved here."],
@@ -347,48 +357,59 @@ export function resolveXauQuantitySemantics(input: {
       : "Cannot conclusively bind API quantity to ounces without DEMO alignment.",
   };
 
-  // Min-stop: public Enhanced Execution claim is PARTIAL; account mode UNVERIFIED unless CondDist proves a number.
-  let minStop: EvidenceField<number | "none_claimed"> = {
-    status: "PARTIALLY_VERIFIED",
-    value: "none_claimed",
-    unit: null,
-    source: FXCM_XAU_MIN_STOP_PUBLIC_EVIDENCE.source,
-    retrievedAtUtc: now,
-    environmentScope: "PUBLIC_DOCS",
-    limitations: FXCM_XAU_MIN_STOP_PUBLIC_EVIDENCE.limitations,
-  };
-  let minStopDistanceVerified = false;
-  let minStopDistanceValue: number | null = null;
+  // Phase 56.2.6 — CondDist is pips per ForexConnect docs; convert via PointSize.
+  // Public Enhanced Execution marketing alone never attests account min-stop.
+  const attested = resolveCondDistMinStop({
+    condDistStop: input.condDistStop,
+    condDistAvailable: input.condDistAvailable,
+    reportedUnit: input.condDistStopUnit,
+    // Only trust unit=pips when sidecar/docs label says so — never invent from availability alone.
+    fromDocumentedSdkMethod: String(input.condDistStopUnit ?? "").toLowerCase() === "pips",
+    fieldKind: "STOP_FOR_TRADE",
+    pointSize: point.value,
+  });
+  notes.push(...attested.notes);
 
-  if (
-    input.condDistAvailable
-    && typeof input.condDistStop === "number"
-    && Number.isFinite(input.condDistStop)
-    && input.condDistStop >= 0
-  ) {
+  let minStop: EvidenceField<number | "none_claimed">;
+  let minStopDistanceVerified = attested.minStopDistanceVerified;
+  let minStopDistanceValue: number | null = attested.minStopDistancePrice;
+
+  if (attested.noPositiveMinimumAttested) {
     minStop = {
       status: "VERIFIED",
-      value: input.condDistStop,
-      unit: input.condDistStopUnit ?? "CondDist (SDK; confirm pips vs price)",
-      source: "forexconnect TradingSettingsProvider CondDist*",
+      value: "none_claimed",
+      unit: "pips→price (CondDist=0)",
+      source: attested.condDist.source,
       retrievedAtUtc: now,
       environmentScope: "DEMO",
-      limitations:
-        "Value from installed SDK TradingSettings. Unit must be interpreted carefully (often pips).",
+      limitations: attested.condDist.limitations,
     };
-    // Only treat positive distances as enforceable minima; 0 may mean "none" but still account-scoped.
-    if (input.condDistStop > 0) {
-      minStopDistanceVerified = true;
-      minStopDistanceValue = input.condDistStop;
-    } else {
-      notes.push("CondDistStop returned 0 — recorded; not invented as a positive minimum.");
-      minStopDistanceVerified = false;
-      minStopDistanceValue = null;
-    }
+    minStopDistanceValue = null;
+  } else if (attested.minStopDistanceVerified && minStopDistanceValue != null) {
+    minStop = {
+      status: "VERIFIED",
+      value: minStopDistanceValue,
+      unit: "price (CondDist pips × PointSize)",
+      source: attested.condDist.source,
+      retrievedAtUtc: now,
+      environmentScope: "DEMO",
+      limitations: attested.condDist.limitations,
+    };
   } else {
-    notes.push(
-      "Account Enhanced Execution mode UNVERIFIED — public 'no minimum stop' claim not applied as account-scoped VERIFIED min-stop.",
-    );
+    minStop = {
+      status: attested.condDist.status === "NOT_AVAILABLE" ? "PARTIALLY_VERIFIED" : attested.condDist.status,
+      value: "none_claimed",
+      unit: null,
+      source: FXCM_XAU_MIN_STOP_PUBLIC_EVIDENCE.source,
+      retrievedAtUtc: now,
+      environmentScope: "PUBLIC_DOCS",
+      limitations:
+        FXCM_XAU_MIN_STOP_PUBLIC_EVIDENCE.limitations
+        + " "
+        + attested.condDist.limitations,
+    };
+    minStopDistanceVerified = false;
+    minStopDistanceValue = null;
   }
 
   const monetaryRiskAllowed =
@@ -420,6 +441,12 @@ export function resolveXauQuantitySemantics(input: {
     minStopDistance: minStop,
     minStopDistanceVerified,
     minStopDistanceValue,
+    minStopNoPositiveMinimum: attested.noPositiveMinimumAttested,
+    condDistStopPips:
+      attested.condDist.unit === "pips" && typeof attested.condDist.rawValue === "number"
+        ? attested.condDist.rawValue
+        : null,
+    condDistUnit: attested.condDist.unit === "pips" ? "pips" : attested.condDist.rawValue != null ? "unknown" : null,
     monetaryRiskAllowed,
     summaryStatus,
     notes,
@@ -445,12 +472,18 @@ export function xauSemanticsPublicSummary(r: XauQuantitySemanticsResolution): Re
     pipCostAccount: r.pipCostAccount.value,
     minStopDistance: r.minStopDistance.status,
     minStopDistanceVerified: r.minStopDistanceVerified,
+    minStopNoPositiveMinimum: r.minStopNoPositiveMinimum,
+    minStopDistancePrice: r.minStopDistanceValue,
+    condDistStopPips: r.condDistStopPips,
+    condDistUnit: r.condDistUnit,
     monetaryRiskAllowed: r.monetaryRiskAllowed,
     notes: r.notes,
     sources: {
       contractSize: FXCM_XAU_CONTRACT_SIZE_EVIDENCE.source,
       minStopPublic: FXCM_XAU_MIN_STOP_PUBLIC_EVIDENCE.source,
       pipHelp: FXCM_XAU_PIP_HELP_EVIDENCE.source,
+      condDistDocs:
+        "O2GTradingSettingsProvider.getCondDistStopForTrade — value expressed in pips (ForexConnect 1.6.x)",
     },
   };
 }
