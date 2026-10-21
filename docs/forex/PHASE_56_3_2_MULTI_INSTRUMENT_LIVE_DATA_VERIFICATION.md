@@ -5,7 +5,7 @@
 **Document type:** Verification + isolation observability  
 **Starting HEAD:** `3b24a427210ef4956ffe6c24fb0c541ec8e49119` (matched production `verifiedLive=true`)  
 **Phase 56.3.1 baseline:** `PASS_WITH_KNOWN_BLOCKERS`; Offers LIVE after subscribe; catalog-only ≠ LIVE  
-**Ending HEAD / deployed:** _(filled at ship)_  
+**Ending HEAD / deployed:** `a5550311c77228b0d8264d1c161c8f9b749b7f41` (`verifiedLive=true`, CI **#407** success)  
 **Scope:** Multi-instrument live-data verification only. **No execution. Do not start 56.3.3 / 56.4.**
 
 ---
@@ -110,7 +110,14 @@ Freshness 15s policy and execution allowlist **unchanged**.
 
 ## 8. CI/CD / deploy
 
-_(Filled after push.)_
+| Item | Value |
+|------|-------|
+| Feature commit | `a5550311c77228b0d8264d1c161c8f9b749b7f41` |
+| GitHub Actions | Production deploy **#407** — completed successfully (~2m 54s) |
+| Actions index | https://github.com/byosemarket-ui/kwizera-AI/actions?query=branch%3Amain |
+| Production `/api/deployment` | `deployedCommit=a5550311…`, `verifiedLive=true`, `result=success` |
+| Post-deploy probe | `phase=56.3.2`, `liveReadySymbols=XAU/USD,EUR/USD`, `blocked=XAG/USD:seeded_snapshot_no_genuine_event`, `placesOrders=false` |
+| Health | `healthy` |
 
 ---
 
