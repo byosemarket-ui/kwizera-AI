@@ -6,7 +6,7 @@
 **Starting HEAD:** `7494d40975db639b8085be70e97b563f5c0d1920`  
 **Production baseline at start:** `deployedCommit=7494d409…`, `verifiedLive=true`  
 **Feature HEAD:** `7f93255abc5637b91208b819e33d63fef248045f`  
-**Ending HEAD / deployed:** _(symbol-lookup fix + this finalize; filled after verifiedLive)_  
+**Ending HEAD / deployed:** `8bceb2eac1aa058629af26ab77bf79b513d52d93` (`verifiedLive=true`, Production deploy #398 success)  
 **Scope:** Market-data infrastructure + simulation readiness. **No execution. LIVE unauthorized. Do not start 56.2.9 / 56.3.**
 
 ---
@@ -87,8 +87,10 @@ Unsupported capability → `UNSUPPORTED` / `UNAVAILABLE`, never fabricated candl
 | `/api/health` | `ok=true`, `status=healthy` |
 | CI Production deploy #397 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39598672846 — **success** on `7f93255a` |
 | `GET /api/forex/market-data/instruments?provider=FOREXCONNECT&limit=20` | `ok=true`, `count=20` (catalog path works; full catalog larger) |
-| `GET …/instrument-readiness?provider=FOREXCONNECT&symbols=XAU/USD,EUR/USD` (pre-lookup-fix on `7f93255a`) | API **200**; `placesOrders=false`; `acceptsForExecution=false`; symbols reported `discovered=false` due to truncated-catalog lookup bug (fixed in follow-up commit) |
-| Unauthenticated AT status | Admin gate remains (403 without token) |
+| `GET …/instrument-readiness?symbols=XAU/USD,EUR/USD` on `8bceb2ea` | **200**; `discoveredCount=2`, `liveFeedReadyCount=0`, `historicalAvailableCount=2`, `blockedOrUnreadyCount=2`; both symbols `discovered=true`, independent `live=false` (no active Offers session without subscribeLive); `placesOrders=false` |
+| `GET …/instruments?provider=FOREXCONNECT&limit=500` | `count=500` (limit page; catalog path healthy) |
+| AT UI (prod) | Banner PHASE 54; Master OFF; Emergency lock ON; `placesOrders=false`; draft still fail-closed on non-LIVE quote |
+| Unauthenticated AT status | Admin gate remains without token |
 
 No broker mutations performed.
 
@@ -112,7 +114,8 @@ No broker mutations performed.
 
 | Suite | Result |
 |-------|--------|
-| `tests/unit/ai/market-data/phase56-2-8-instrument-readiness.test.ts` | **8/8** expected after lookup-fix commit (was 7/7 on feature) |
+| `tests/unit/ai/market-data/phase56-2-8-instrument-readiness.test.ts` | **8/8 passed** (local vitest; synthetic) |
+| CI Production deploy #398 | **success** on `8bceb2ea` (see GitHub Actions Production deploy run for SHA) |
 
 Synthetic fixtures only; not production evidence.
 
@@ -129,6 +132,6 @@ Synthetic fixtures only; not production evidence.
 
 ## 9. Verdict
 
-**`PASS_WITH_KNOWN_BLOCKERS`** — TF alias root cause fixed and deployed (`7f93255a`); market-agnostic readiness API/admin surface shipped; execution locks unchanged; live READY and full multi-instrument live counts still depend on genuine Offers activity + authorized subscribe probes; catalog symbol-lookup truncation fixed in follow-up.
+**`PASS_WITH_KNOWN_BLOCKERS`** — TF alias root cause fixed (`7f93255a`); catalog symbol lookup fixed and live (`8bceb2ea`); market-agnostic readiness API/admin surface shipped; two instruments independently discovered without inventing LIVE; execution locks unchanged; live READY still requires genuine Offers updates / subscribeLive probe.
 
 *End of Phase 56.2.8 record.*
