@@ -46,7 +46,7 @@ export interface InstrumentCapabilityFlags {
 }
 
 export interface InstrumentReadinessSnapshot {
-  phase: "56.2.8" | "56.3.1";
+  phase: "56.2.8" | "56.3.1" | "56.3.2";
   provider: MarketProviderId;
   providerSymbol: string;
   canonicalSymbol: string;
@@ -78,12 +78,16 @@ export interface InstrumentReadinessSnapshot {
 }
 
 export interface InstrumentReadinessCatalogSummary {
-  phase: "56.2.8" | "56.3.1";
+  phase: "56.2.8" | "56.3.1" | "56.3.2";
   provider: MarketProviderId | null;
   discoveredCount: number;
   liveFeedReadyCount: number;
   historicalAvailableCount: number;
   blockedOrUnreadyCount: number;
+  /** Phase 56.3.2 — explicit per-instrument LIVE list (never a global LIVE claim). */
+  liveReadySymbols: string[];
+  /** Phase 56.3.2 — symbols that are discovered but not live-ready, with blocker id. */
+  blockedSymbols: Array<{ symbol: string; blockerId: string | null }>;
   snapshots: InstrumentReadinessSnapshot[];
   notes: string[];
   placesOrders: false;

@@ -242,7 +242,7 @@ export function evaluateInstrumentReadiness(
   });
 
   return {
-    phase: "56.3.1",
+    phase: "56.3.2",
     provider: input.provider,
     providerSymbol: instrument?.providerSymbol ?? input.providerSymbol,
     canonicalSymbol: instrument?.canonicalSymbol
@@ -286,17 +286,31 @@ export function summarizeInstrumentReadinessCatalog(input: {
   nowMs?: number;
 }): InstrumentReadinessCatalogSummary {
   const snapshots = input.snapshots;
+  const liveReadySymbols = snapshots
+    .filter((s) => s.capabilities.liveFeedReady)
+    .map((s) => s.displaySymbol || s.providerSymbol);
+  const blockedSymbols = snapshots
+    .filter((s) => !s.capabilities.liveFeedReady)
+    .map((s) => ({
+      symbol: s.displaySymbol || s.providerSymbol,
+      blockerId: s.feedDiagnostics?.blockerId
+        ?? s.blockers.find((b) => b.id !== "historical_without_live")?.id
+        ?? null,
+    }));
   return {
-    phase: "56.3.1",
+    phase: "56.3.2",
     provider: input.provider,
     discoveredCount: snapshots.filter((s) => s.capabilities.discovered).length,
-    liveFeedReadyCount: snapshots.filter((s) => s.capabilities.liveFeedReady).length,
+    liveFeedReadyCount: liveReadySymbols.length,
     historicalAvailableCount: snapshots.filter((s) => s.capabilities.historicalAvailable).length,
-    blockedOrUnreadyCount: snapshots.filter((s) => !s.capabilities.liveFeedReady).length,
+    blockedOrUnreadyCount: blockedSymbols.length,
+    liveReadySymbols,
+    blockedSymbols,
     snapshots,
     notes: [
       ...(input.notes ?? []),
       "Per-instrument readiness is independent — one LIVE symbol never marks peers READY.",
+      "liveReadySymbols lists only instruments with verified LIVE freshness; never a global LIVE flag.",
       "executionAuthorized remains false; discovery/live data do not authorize broker trading.",
     ],
     placesOrders: false,
