@@ -6,7 +6,7 @@
 **Starting HEAD:** `83ffaa5195066e4a946f1ca5a0e847fbed1a3554`  
 **Production at start:** `deployedCommit=83ffaa51…`, `verifiedLive=true`, health `healthy`  
 **Phase 56.2.8 baseline:** `PASS_WITH_KNOWN_BLOCKERS`; code deploy `8bceb2ea…`; feature `7f93255a…`  
-**Ending HEAD / deployed:** `534e5229a3cc4e45ace1992b9f53b08c24360d15` (`verifiedLive=true`)  
+**Ending HEAD / deployed:** `483b5eab6c7120038c5f2db32201d69e6350773a` (`verifiedLive=true`; acceptance suite `534e5229…`)  
 **Scope:** Retest + safe remediation only. **No execution. LIVE unauthorized. Do not start 56.2.10 / 56.3.**
 
 ---
@@ -103,10 +103,11 @@ Synthetic fixtures are labeled in the acceptance matrix. Production LIVE draft S
 
 | Item | Value |
 |------|-------|
-| Commit (this phase) | `534e5229a3cc4e45ace1992b9f53b08c24360d15` |
-| GitHub Actions | Production deploy **#401** — completed successfully (~2m 59s) for `534e522` |
+| Acceptance suite commit | `534e5229a3cc4e45ace1992b9f53b08c24360d15` |
+| Docs finalize commit (ending deploy) | `483b5eab6c7120038c5f2db32201d69e6350773a` |
+| GitHub Actions | **#401** success (`534e522`, ~2m 59s); **#402** success (`483b5ea`, ~3m 12s) |
 | Actions index | https://github.com/byosemarket-ui/kwizera-AI/actions?query=branch%3Amain |
-| Production `/api/deployment` after ship | `deployedCommit=534e5229…`, `status=live`, `result=success`, `verifiedLive=true` |
+| Production `/api/deployment` after ship | `deployedCommit=483b5eab…`, `status=live`, `result=success`, `verifiedLive=true` |
 | Health after ship | `ok=true`, `status=healthy` |
 
 ---
