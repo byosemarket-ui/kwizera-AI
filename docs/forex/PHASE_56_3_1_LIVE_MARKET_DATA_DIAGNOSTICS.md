@@ -5,7 +5,7 @@
 **Document type:** Diagnostics + narrowly scoped safe recovery  
 **Starting HEAD:** `5c3a6d6caf23db6049938c58a550ff93e3497fe0` (matched production `verifiedLive=true`)  
 **Phase 56.2.9 baseline:** `PASS_WITH_KNOWN_BLOCKERS`; `liveReady=0`; interactive draft blocked by `FEED_NOT_LIVE`  
-**Ending HEAD / deployed:** _(filled at ship)_  
+**Ending HEAD / deployed:** `154022ce6415f1870f0f975f78f6f14d89255596` (`verifiedLive=true`, CI **#404** success)  
 **Scope:** Diagnostics and data-feed recovery only. **No execution. Do not start 56.3.2 / 56.4.**
 
 ---
@@ -97,24 +97,39 @@ Synthetic fixtures are **not** production Offers evidence.
 
 ## 6. Production observations
 
-Pre-ship RO probes against `5c3a6d6c…` (healthy):
+### 6.1 Pre-ship (against `5c3a6d6c…`)
 
 | Check | Result |
 |-------|--------|
-| Catalog readiness XAU+EUR | `discovered=2`, `liveReady=0`, `connectionState=NO_DATA` — expected without session |
-| `subscribeLive=1&timeframe=1m` (~3.7s) | **`liveReady=2`**: XAU bid/ask `4128.45/4128.75` `feed=LIVE` `upd=1`; EUR `1.12284/1.12298` `feed=LIVE` `upd=1`; `placesOrders` false via notes |
-| Observation | Genuine bid/ask present with `updateCount≥1` when subscribed; catalog-only path does not subscribe |
-| Cause of 56.2.9 `FEED_NOT_LIVE` | Draft/AT freshness evaluated without an active LIVE Offers session (or aged snapshot) — **not** permanent Offers unavailability |
-| Post-deploy | Re-verify `feedDiagnostics` fields + settle polls on `subscribeLive` |
-| Responsive UI | Deferred to post-deploy pass if authorized browser available; AT page previously showed Master OFF / emergency ON |
+| Catalog readiness XAU+EUR | `discovered=2`, `liveReady=0`, `NO_DATA` |
+| `subscribeLive=1` | `liveReady=2` with LIVE bid/ask (Offers publishing when subscribed) |
 
-**Important:** Live recovery requires an explicit subscribe path (AT Verify / `subscribeLive=1` / live candles). Discovery alone must stay non-LIVE.
+### 6.2 Post-deploy (against `154022ce…`, `verifiedLive=true`)
+
+| Check | Result |
+|-------|--------|
+| Catalog readiness | `phase=56.3.1`, `liveReady=0`, both symbols `feedDiagnostics.blockerId=no_active_session`, `sessionActive=false`, `placesOrders=false` |
+| `subscribeLive=1&timeframe=1m` | `liveReady=2`; XAU `LIVE` bid/ask `4133.94/4134.24` `upd=1` `eventSource=offers-callback`; EUR `LIVE` `1.12328/1.12341` `upd=1` `offers-callback`; `executionAuthorized=false` |
+| ~13s later (active sessions) | XAU bid **4133.94→4134.77**, `upd=157`; EUR `upd=71` `eventSource=offers-table-diff` — genuine independent updates |
+| AT UI `/forex/automated-trading` | Loads; banner `AUTOMATED EXECUTION NOT IMPLEMENTED`; admin session **Not authorized** this pass |
+| Responsive | 390 / 768 / 1024 / 1440: `overflowX=false` |
+| AT Verify / draft with admin token | **BLOCKED** (no token stored) |
+
+**Cause of 56.2.9 `FEED_NOT_LIVE`:** AT/draft freshness evaluated without an active LIVE Offers session (catalog discovery alone never LIVE), not permanent Offers failure.
+
+**Important:** Live recovery requires explicit subscribe (AT Verify / `subscribeLive=1` / live candles). Discovery alone must stay non-LIVE.
 
 ---
 
 ## 7. CI/CD / deploy
 
-_(Filled after push.)_
+| Item | Value |
+|------|-------|
+| Feature commit | `154022ce6415f1870f0f975f78f6f14d89255596` |
+| GitHub Actions | Production deploy **#404** — completed successfully (~2m 37s) |
+| Actions index | https://github.com/byosemarket-ui/kwizera-AI/actions?query=branch%3Amain |
+| Production `/api/deployment` | `deployedCommit=154022ce…`, `status=live`, `result=success`, `verifiedLive=true` |
+| Health | `healthy` |
 
 ---
 
@@ -122,13 +137,13 @@ _(Filled after push.)_
 
 | Lock | Required | Observed |
 |------|----------|----------|
-| `masterTradingEnabled` / masterEnable | false | Unchanged / UI OFF |
-| `emergencyEntryLock` | true | Unchanged / UI ON |
-| `placesOrders` | false | Readiness + AT |
-| `acceptsForExecution` | false | Same |
+| `masterTradingEnabled` / masterEnable | false | Code unchanged; AT controls not loaded without admin token this pass |
+| `emergencyEntryLock` | true | Code unchanged |
+| `placesOrders` | false | Readiness API `placesOrders=false` |
+| `acceptsForExecution` | false | Readiness API `acceptsForExecution=false` |
 | ForexConnect trading | DISABLED | Unchanged |
-| LIVE trading | unauthorized | DEMO only |
-| Broker mutations | none | RO health/deployment/readiness only |
+| LIVE trading | unauthorized | Unchanged |
+| Broker mutations | none | RO deployment/health/readiness only |
 
 ---
 
@@ -143,6 +158,6 @@ _(Filled after push.)_
 
 ## 10. Verdict
 
-**`PASS_WITH_KNOWN_BLOCKERS`** — root cause traced; readiness subscribe settle + diagnostics shipped; LIVE still requires real Offers price changes (not fabricated).
+**`PASS_WITH_KNOWN_BLOCKERS`** — root cause proven (no active LIVE session / catalog-only path); diagnostics + `subscribeLive` settle shipped and verified on production (`154022ce`, CI #404); Offers deliver genuine independent XAU/EUR updates when subscribed; admin-gated AT draft retest remains BLOCKED without token; quantity/CondDist/FX gates unchanged.
 
 *End of Phase 56.3.1 record.*
