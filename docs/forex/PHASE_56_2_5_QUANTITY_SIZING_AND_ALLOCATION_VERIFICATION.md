@@ -5,7 +5,8 @@
 **Document type:** Quantity constraint evidence + simulation sizing record  
 **Starting HEAD:** `12cfa7b69734d24e91cef851a69a0d0103d6763e`  
 **Production baseline at start:** `deployedCommit=12cfa7b6…`, `verifiedLive=true` (Phase 56.2.4 UI)  
-**Ending HEAD / deployed:** _(filled at ship)_  
+**Ending HEAD / deployed:** `6c855d7dcd1d638113023ac8aa582ae241a9ab61` (`verifiedLive=true`)  
+**CI run:** https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39531020413 (`success`)  
 **Scope:** Simulation-only. **No broker mutations. LIVE unauthorized. Do not start Phase 56.3.**
 
 ---
@@ -150,6 +151,16 @@ requiredMargin = marginPerUnit × proposedQuantity   // distinct from order allo
 
 ## 9. CI/CD / production verification
 
-_(Filled after push: run URL, deployed SHA, `verifiedLive`, UI checks at 390/768/1024/1440.)_
+| Item | Evidence |
+|------|----------|
+| Commit | `6c855d7dcd1d638113023ac8aa582ae241a9ab61` |
+| CI | Run `39531020413` — **success** (Validate + Deploy to VPS) |
+| `/api/deployment` | `deployedCommit=6c855d7d…`, `verifiedLive=true`, `result=success` |
+| `/api/health` | `healthy` |
+| Production URL | `http://162.35.114.19:5173/forex/automated-trading` |
+| UI | Order Allocation only; derived grid; `placesOrders=false`; `acceptsForExecution=false`; master OFF; emergency lock ON |
+| Responsive | No horizontal overflow at 390 / 768 / 1024 / 1440 |
+
+**Verdict:** `PASS_WITH_KNOWN_BLOCKERS`
 
 *End of Phase 56.2.5 record.*
