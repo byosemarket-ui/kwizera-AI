@@ -5,7 +5,7 @@
 **Document type:** Diagnostics + narrowly scoped safe recovery  
 **Starting HEAD:** `5c3a6d6caf23db6049938c58a550ff93e3497fe0` (matched production `verifiedLive=true`)  
 **Phase 56.2.9 baseline:** `PASS_WITH_KNOWN_BLOCKERS`; `liveReady=0`; interactive draft blocked by `FEED_NOT_LIVE`  
-**Ending HEAD / deployed:** `154022ce6415f1870f0f975f78f6f14d89255596` (`verifiedLive=true`, CI **#404** success)  
+**Ending HEAD / deployed:** `7711d3aa552946ae0b42ccda8109932084ddb82c` (`verifiedLive=true`; feature `154022ce…`, CI **#404**/docs **#405**)  
 **Scope:** Diagnostics and data-feed recovery only. **No execution. Do not start 56.3.2 / 56.4.**
 
 ---
@@ -104,16 +104,17 @@ Synthetic fixtures are **not** production Offers evidence.
 | Catalog readiness XAU+EUR | `discovered=2`, `liveReady=0`, `NO_DATA` |
 | `subscribeLive=1` | `liveReady=2` with LIVE bid/ask (Offers publishing when subscribed) |
 
-### 6.2 Post-deploy (against `154022ce…`, `verifiedLive=true`)
+### 6.2 Post-deploy (against `154022ce…` / docs `7711d3aa…`, `verifiedLive=true`)
 
 | Check | Result |
 |-------|--------|
-| Catalog readiness | `phase=56.3.1`, `liveReady=0`, both symbols `feedDiagnostics.blockerId=no_active_session`, `sessionActive=false`, `placesOrders=false` |
-| `subscribeLive=1&timeframe=1m` | `liveReady=2`; XAU `LIVE` bid/ask `4133.94/4134.24` `upd=1` `eventSource=offers-callback`; EUR `LIVE` `1.12328/1.12341` `upd=1` `offers-callback`; `executionAuthorized=false` |
-| ~13s later (active sessions) | XAU bid **4133.94→4134.77**, `upd=157`; EUR `upd=71` `eventSource=offers-table-diff` — genuine independent updates |
-| AT UI `/forex/automated-trading` | Loads; banner `AUTOMATED EXECUTION NOT IMPLEMENTED`; admin session **Not authorized** this pass |
-| Responsive | 390 / 768 / 1024 / 1440: `overflowX=false` |
-| AT Verify / draft with admin token | **BLOCKED** (no token stored) |
+| Catalog readiness | `phase=56.3.1`, `liveReady=0`, both `blockerId=no_active_session`, `placesOrders=false` |
+| `subscribeLive=1` t0 | **Independent:** XAU `LIVE` `upd=2` `offers-table-diff`; EUR `MARKET_INACTIVE` `upd=0` `blockerId=seeded_snapshot_no_genuine_event` (XAU LIVE did not promote EUR) |
+| ~8s later | `liveReady=2`; XAU bid moved `4133.73→4133.54` `upd=5`; EUR became `LIVE` `upd=3` — genuine Offers changes |
+| AT Verify (authorized session) | Market data **PASS**; Ready for future analysis **PASS**; audit `verification_completed`; Master OFF; emergency ON |
+| Simulation draft UI | May still list prior `FEED_NOT_LIVE` until draft is recalculated against the fresh verification — not an Offers outage |
+| Responsive | 390: `overflowX=false`; Master OFF; `placesOrders=false` |
+| Broker mutations | none |
 
 **Cause of 56.2.9 `FEED_NOT_LIVE`:** AT/draft freshness evaluated without an active LIVE Offers session (catalog discovery alone never LIVE), not permanent Offers failure.
 
@@ -126,9 +127,10 @@ Synthetic fixtures are **not** production Offers evidence.
 | Item | Value |
 |------|-------|
 | Feature commit | `154022ce6415f1870f0f975f78f6f14d89255596` |
-| GitHub Actions | Production deploy **#404** — completed successfully (~2m 37s) |
+| Docs finalize | `7711d3aa552946ae0b42ccda8109932084ddb82c` |
+| GitHub Actions | **#404** success (`154022c`, ~2m 37s); **#405** success (`7711d3a`, ~2m 58s) |
 | Actions index | https://github.com/byosemarket-ui/kwizera-AI/actions?query=branch%3Amain |
-| Production `/api/deployment` | `deployedCommit=154022ce…`, `status=live`, `result=success`, `verifiedLive=true` |
+| Production `/api/deployment` | `deployedCommit=7711d3aa…`, `status=live`, `result=success`, `verifiedLive=true` |
 | Health | `healthy` |
 
 ---
@@ -137,10 +139,10 @@ Synthetic fixtures are **not** production Offers evidence.
 
 | Lock | Required | Observed |
 |------|----------|----------|
-| `masterTradingEnabled` / masterEnable | false | Code unchanged; AT controls not loaded without admin token this pass |
-| `emergencyEntryLock` | true | Code unchanged |
-| `placesOrders` | false | Readiness API `placesOrders=false` |
-| `acceptsForExecution` | false | Readiness API `acceptsForExecution=false` |
+| `masterTradingEnabled` / masterEnable | false | AT UI Master enable OFF |
+| `emergencyEntryLock` | true | AT UI Emergency entry lock ON |
+| `placesOrders` | false | Readiness API + AT draft `placesOrders=false` |
+| `acceptsForExecution` | false | Readiness API + AT draft `acceptsForExecution=false` |
 | ForexConnect trading | DISABLED | Unchanged |
 | LIVE trading | unauthorized | Unchanged |
 | Broker mutations | none | RO deployment/health/readiness only |
@@ -158,6 +160,6 @@ Synthetic fixtures are **not** production Offers evidence.
 
 ## 10. Verdict
 
-**`PASS_WITH_KNOWN_BLOCKERS`** — root cause proven (no active LIVE session / catalog-only path); diagnostics + `subscribeLive` settle shipped and verified on production (`154022ce`, CI #404); Offers deliver genuine independent XAU/EUR updates when subscribed; admin-gated AT draft retest remains BLOCKED without token; quantity/CondDist/FX gates unchanged.
+**`PASS_WITH_KNOWN_BLOCKERS`** — root cause proven (catalog/no-session path; Offers work when subscribed); diagnostics + settle shipped (`154022ce` / deploy `7711d3aa`, CI #404/#405); independent XAU/EUR LIVE confirmed; AT Verify recovers Market data PASS; quantity/CondDist/FX gates and full draft acceptance remain known blockers.
 
 *End of Phase 56.3.1 record.*
