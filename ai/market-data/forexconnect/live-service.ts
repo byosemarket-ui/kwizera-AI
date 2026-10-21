@@ -25,7 +25,9 @@ import {
   isForexConnectSupportedTimeframe,
   type ForexConnectSupportedTimeframe,
 } from "./timeframes.js";
+import { classifyForexConnectInstrument } from "./instrument-classify.js";
 import { normalizeCanonicalSymbol } from "../providers/identity.js";
+import type { MarketAssetType } from "../providers/types.js";
 import {
   resolveFcFeedStreamState,
   resolveFcWaitingStreamState,
@@ -41,6 +43,39 @@ const POLL_MS = 500;
 /** HTTP poll clients do not unsubscribe; release idle live sessions after this quiet period. */
 export const FOREXCONNECT_LIVE_IDLE_MS = 180_000;
 const IDLE_SWEEP_MS = 15_000;
+/** Phase 56.3.3 — bounded restore after reconnect (no unbounded retry storm). */
+export const FOREXCONNECT_RESTORE_MAX_ATTEMPTS = 3;
+const RESTORE_BACKOFF_MS = [400, 1_200, 3_000] as const;
+
+export type ForexConnectProviderLifecycleState =
+  | "DISCONNECTED"
+  | "CONNECTING"
+  | "CONNECTED"
+  | "SUBSCRIBING"
+  | "RESTORING"
+  | "LIVE"
+  | "ERROR";
+
+export interface ForexConnectIntendedSubscription {
+  providerSymbol: string;
+  timeframe: ForexConnectSupportedTimeframe;
+  rememberedAtMs: number;
+}
+
+export interface ForexConnectRestoreResult {
+  ok: boolean;
+  attempted: number;
+  restored: Array<{
+    providerSymbol: string;
+    timeframe: string;
+    streamState: ForexConnectLiveStreamState | null;
+    ok: boolean;
+    error?: string;
+  }>;
+  lifecycleState: ForexConnectProviderLifecycleState;
+  placesOrders: false;
+  acceptsForExecution: false;
+}
 
 interface Session {
   key: string;
@@ -49,6 +84,8 @@ interface Session {
   providerSymbol: string;
   canonicalSymbol: string;
   displaySymbol: string;
+  /** Phase 56.3.3 — classified asset type (never silently hardcoded FOREX). */
+  marketType: MarketAssetType;
   refCount: number;
   candles: ForexConnectLiveCandle[];
   lastQuote: ForexConnectLiveQuote | null;
@@ -79,9 +116,191 @@ export class ForexConnectLiveCandleService {
   /** Sidecar global Offers counter — diagnostics only; never gates instrument LIVE. */
   private lastSeenStreamUpdateCount = 0;
   private lastStreamStatus: ForexConnectStreamStatus | null = null;
+  /**
+   * Phase 56.3.3 — intended Offers subscriptions independent of the active session Map.
+   * Survives same-env disconnect; cleared on DEMO↔LIVE switch or idle release.
+   */
+  private readonly intendedSubscriptions = new Map<string, ForexConnectIntendedSubscription>();
+  private providerLifecycle: ForexConnectProviderLifecycleState = "DISCONNECTED";
+  private lastDisconnectAtMs: number | null = null;
+  private lastRestoreAtMs: number | null = null;
+  private lastRestoreError: string | null = null;
+  private restoreAttemptCount = 0;
+  private restoreInflight: Promise<ForexConnectRestoreResult> | null = null;
 
   constructor(options?: { bridge?: ForexConnectBridge }) {
     this.bridge = options?.bridge ?? getForexConnectBridge();
+  }
+
+  private rememberIntended(
+    providerSymbol: string,
+    timeframe: ForexConnectSupportedTimeframe,
+  ): void {
+    const key = this.sessionKey(providerSymbol, timeframe);
+    this.intendedSubscriptions.set(key, {
+      providerSymbol,
+      timeframe,
+      rememberedAtMs: Date.now(),
+    });
+  }
+
+  private forgetIntended(providerSymbol: string, timeframe: ForexConnectSupportedTimeframe): void {
+    this.intendedSubscriptions.delete(this.sessionKey(providerSymbol, timeframe));
+  }
+
+  /** Diagnostics — intended vs active (never invents LIVE). */
+  getLifecycleDiagnostics(nowMs: number = Date.now()): {
+    lifecycleState: ForexConnectProviderLifecycleState;
+    activeSessionCount: number;
+    intendedCount: number;
+    intended: ForexConnectIntendedSubscription[];
+    lastDisconnectAtMs: number | null;
+    lastDisconnectAgeMs: number | null;
+    lastRestoreAtMs: number | null;
+    lastRestoreError: string | null;
+    restoreAttemptCount: number;
+    restoreInFlight: boolean;
+    placesOrders: false;
+    acceptsForExecution: false;
+  } {
+    return {
+      lifecycleState: this.providerLifecycle,
+      activeSessionCount: this.sessions.size,
+      intendedCount: this.intendedSubscriptions.size,
+      intended: [...this.intendedSubscriptions.values()],
+      lastDisconnectAtMs: this.lastDisconnectAtMs,
+      lastDisconnectAgeMs: this.lastDisconnectAtMs != null
+        ? Math.max(0, nowMs - this.lastDisconnectAtMs)
+        : null,
+      lastRestoreAtMs: this.lastRestoreAtMs,
+      lastRestoreError: this.lastRestoreError,
+      restoreAttemptCount: this.restoreAttemptCount,
+      restoreInFlight: this.restoreInflight != null,
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+  }
+
+  listIntendedSubscriptions(): ForexConnectIntendedSubscription[] {
+    return [...this.intendedSubscriptions.values()];
+  }
+
+  /**
+   * Mark all active sessions non-LIVE after provider loss.
+   * Does not invent quotes; readiness must re-verify genuine updates after restore.
+   */
+  markAllSessionsDisconnected(reason: string = "Provider session disconnected."): void {
+    this.providerLifecycle = "DISCONNECTED";
+    this.lastDisconnectAtMs = Date.now();
+    this.lastRestoreError = null;
+    for (const session of this.sessions.values()) {
+      session.streamState = "DISCONNECTED";
+      session.errorCode = "FOREXCONNECT_DISCONNECTED";
+      session.errorMessage = reason.slice(0, 300);
+      // Invalidate price-change freshness — heartbeats alone must not keep LIVE.
+      session.lastPriceChangeAtMs = null;
+    }
+  }
+
+  /**
+   * Restore previously intended subscriptions after CONNECTED.
+   * Single-flight + bounded attempts. Does not claim LIVE without genuine Offers changes.
+   */
+  async restoreIntendedSubscriptions(options?: {
+    maxAttempts?: number;
+  }): Promise<ForexConnectRestoreResult> {
+    if (this.restoreInflight) return this.restoreInflight;
+    const maxAttempts = Math.max(
+      1,
+      Math.min(
+        options?.maxAttempts ?? FOREXCONNECT_RESTORE_MAX_ATTEMPTS,
+        FOREXCONNECT_RESTORE_MAX_ATTEMPTS,
+      ),
+    );
+    // Assign before awaiting so concurrent callers share one Promise identity.
+    const shared = this.runRestoreIntended(maxAttempts);
+    this.restoreInflight = shared;
+    void shared.finally(() => {
+      if (this.restoreInflight === shared) this.restoreInflight = null;
+    });
+    return shared;
+  }
+
+  private async runRestoreIntended(maxAttempts: number): Promise<ForexConnectRestoreResult> {
+    const targets = [...this.intendedSubscriptions.values()];
+    if (targets.length === 0) {
+      this.providerLifecycle = "CONNECTED";
+      return {
+        ok: true,
+        attempted: 0,
+        restored: [],
+        lifecycleState: this.providerLifecycle,
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+    }
+
+    this.providerLifecycle = "RESTORING";
+    this.restoreAttemptCount = 0;
+    let lastBatch: ForexConnectRestoreResult["restored"] = [];
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      this.restoreAttemptCount = attempt + 1;
+      if (attempt > 0) {
+        const delay = RESTORE_BACKOFF_MS[Math.min(attempt - 1, RESTORE_BACKOFF_MS.length - 1)] ?? 3_000;
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      lastBatch = [];
+      for (const target of targets) {
+        try {
+          this.providerLifecycle = "SUBSCRIBING";
+          const series = await this.ensure(target.providerSymbol, target.timeframe);
+          lastBatch.push({
+            providerSymbol: target.providerSymbol,
+            timeframe: target.timeframe,
+            streamState: series.streamState,
+            ok: true,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Restore ensure failed.";
+          lastBatch.push({
+            providerSymbol: target.providerSymbol,
+            timeframe: target.timeframe,
+            streamState: null,
+            ok: false,
+            error: message.slice(0, 200),
+          });
+        }
+      }
+      const allOk = lastBatch.every((r) => r.ok);
+      if (allOk) break;
+    }
+
+    this.lastRestoreAtMs = Date.now();
+    const failures = lastBatch.filter((r) => !r.ok);
+    this.lastRestoreError = failures[0]?.error ?? null;
+    const anyLive = lastBatch.some((r) => r.streamState === "LIVE");
+    this.providerLifecycle = failures.length === lastBatch.length && lastBatch.length > 0
+      ? "ERROR"
+      : anyLive
+        ? "LIVE"
+        : "CONNECTED";
+
+    return {
+      ok: failures.length === 0,
+      attempted: this.restoreAttemptCount,
+      restored: lastBatch,
+      lifecycleState: this.providerLifecycle,
+      placesOrders: false,
+      acceptsForExecution: false,
+    };
+  }
+
+  /** Notify lifecycle when the provider session is confirmed CONNECTED (before restore). */
+  notifyProviderConnected(): void {
+    if (this.providerLifecycle === "RESTORING" || this.providerLifecycle === "SUBSCRIBING") return;
+    this.providerLifecycle = this.sessions.size > 0 ? "CONNECTED" : "CONNECTED";
+    this.lastRestoreError = null;
   }
 
   private sessionKey(symbol: string, timeframe: string): string {
@@ -178,8 +397,21 @@ export class ForexConnectLiveCandleService {
       limit: 300,
     });
 
+    // Phase 56.3.3 — classify from Offers symbol/type; do not hardcode FOREX.
+    const classified = classifyForexConnectInstrument({
+      provider: "FOREXCONNECT",
+      providerSymbol: hist.providerSymbol,
+      canonicalSymbol: hist.canonicalSymbol,
+      displaySymbol: hist.displaySymbol,
+      marketType: hist.marketType ?? "FOREX",
+      baseAsset: null,
+      quoteAsset: null,
+      status: "available",
+    });
+    const marketType: MarketAssetType = classified.marketType;
+
     const identity = {
-      marketType: "FOREX" as const,
+      marketType,
       providerSymbol: hist.providerSymbol,
       canonicalSymbol: hist.canonicalSymbol,
       timeframe,
@@ -194,6 +426,7 @@ export class ForexConnectLiveCandleService {
       providerSymbol: hist.providerSymbol,
       canonicalSymbol: hist.canonicalSymbol,
       displaySymbol: hist.displaySymbol,
+      marketType,
       refCount: 1,
       candles,
       lastQuote: null,
@@ -207,6 +440,8 @@ export class ForexConnectLiveCandleService {
       bootstrapped: true,
     };
     this.sessions.set(key, session);
+    this.rememberIntended(hist.providerSymbol, timeframe);
+    this.providerLifecycle = "SUBSCRIBING";
     this.ensurePoller();
     this.ensureIdleSweeper();
     await this.pollOnce();
@@ -219,6 +454,7 @@ export class ForexConnectLiveCandleService {
     if (!session) return;
     session.refCount = Math.max(0, session.refCount - 1);
     if (session.refCount > 0) return;
+    this.forgetIntended(session.providerSymbol, session.timeframe);
     await this.releaseSession(session);
   }
 
@@ -244,8 +480,11 @@ export class ForexConnectLiveCandleService {
     return this.toSeries(session);
   }
 
-  private async releaseSession(session: Session): Promise<void> {
+  private async releaseSession(session: Session, options?: { keepIntended?: boolean }): Promise<void> {
     this.sessions.delete(session.key);
+    if (!options?.keepIntended) {
+      this.forgetIntended(session.providerSymbol, session.timeframe);
+    }
     const stillNeeded = [...this.sessions.values()].some(
       (s) => normalizeCanonicalSymbol(s.providerSymbol) === session.canonicalSymbol
         || s.providerSymbol === session.providerSymbol,
@@ -260,6 +499,9 @@ export class ForexConnectLiveCandleService {
     if (this.sessions.size === 0) {
       this.stopPoller();
       this.stopIdleSweeper();
+      if (this.intendedSubscriptions.size === 0) {
+        this.providerLifecycle = "DISCONNECTED";
+      }
     }
   }
 
@@ -391,12 +633,30 @@ export class ForexConnectLiveCandleService {
     return this.bridge.getStreamStatus();
   }
 
-  /** Drop all live sessions (used when switching DEMO ↔ LIVE). */
-  async clearAllSessions(): Promise<void> {
+  /**
+   * Drop all active live sessions.
+   * - Default: preserve intended subscriptions (same-env disconnect → restore later).
+   * - clearIntended=true: DEMO↔LIVE switch — do not restore across environments.
+   */
+  async clearAllSessions(options?: { clearIntended?: boolean }): Promise<void> {
+    this.markAllSessionsDisconnected(
+      options?.clearIntended
+        ? "Environment switch cleared live sessions."
+        : "Provider disconnect cleared live sessions.",
+    );
+    for (const session of this.sessions.values()) {
+      if (!options?.clearIntended) {
+        this.rememberIntended(session.providerSymbol, session.timeframe);
+      }
+    }
     const symbols = [...new Set([...this.sessions.values()].map((s) => s.providerSymbol))];
     this.sessions.clear();
     this.stopPoller();
     this.stopIdleSweeper();
+    if (options?.clearIntended) {
+      this.intendedSubscriptions.clear();
+      this.restoreAttemptCount = 0;
+    }
     for (const symbol of symbols) {
       try {
         await this.bridge.unsubscribeQuotes(symbol);
@@ -439,6 +699,19 @@ export class ForexConnectLiveCandleService {
       ]);
       this.lastStreamStatus = stream;
       const now = Date.now();
+      const sessionStatus = String(stream.sessionStatus ?? "").toUpperCase();
+      const streamStateRaw = String(stream.streamState ?? "").toUpperCase();
+      // Phase 56.3.3 — invalidate LIVE immediately when the provider session is gone.
+      if (
+        sessionStatus === "DISCONNECTED"
+        || sessionStatus === "ERROR"
+        || streamStateRaw === "DISCONNECTED"
+      ) {
+        this.markAllSessionsDisconnected(
+          `Provider stream reported ${sessionStatus || streamStateRaw} during poll.`,
+        );
+        return;
+      }
       const streamUpdates = Number(stream.updateCount ?? 0);
       // Track global Offers activity for diagnostics only — never gate per-instrument LIVE on it.
       if (streamUpdates > this.lastSeenStreamUpdateCount) {
@@ -485,7 +758,7 @@ export class ForexConnectLiveCandleService {
               match.candlePrice,
               eventTimeMs,
               {
-                marketType: "FOREX",
+                marketType: session.marketType,
                 providerSymbol: session.providerSymbol,
                 canonicalSymbol: session.canonicalSymbol,
                 timeframe: session.timeframe,
@@ -623,7 +896,7 @@ export class ForexConnectLiveCandleService {
     return {
       ok: true,
       provider: "FOREXCONNECT",
-      marketType: "FOREX",
+      marketType: session.marketType,
       providerSymbol: session.providerSymbol,
       canonicalSymbol: session.canonicalSymbol,
       displaySymbol: session.displaySymbol,

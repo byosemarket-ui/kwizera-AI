@@ -15,6 +15,7 @@ import {
   getForexConnectBridge,
   type ForexConnectBridge,
 } from "./client.js";
+import { classifyForexConnectInstrument } from "./instrument-classify.js";
 import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "./timeframes.js";
 
 const CAPS: MarketDataCapabilities = {
@@ -148,53 +149,68 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         result.error?.message ?? "Instrument discovery failed.",
       );
     }
-    return result.instruments.map((item) => ({
-      provider: "FOREXCONNECT" as const,
-      providerSymbol: item.providerSymbol,
-      // Preserve dots (AAPL.us / MAG7.24h) — never collapse share suffixes.
-      canonicalSymbol: item.canonicalSymbol
-        || item.providerSymbol.replace(/[^A-Za-z0-9.]/g, "").toUpperCase(),
-      displaySymbol: item.displaySymbol,
-      marketType: "FOREX" as const,
-      baseAsset: item.baseAsset,
-      quoteAsset: item.quoteAsset,
-      status: item.status === "available" ? "available" as const : "unknown" as const,
-      capabilities: { ...CAPS },
-      metadata: {
-        offerId: item.offerId ?? null,
-        source: item.source ?? "forexconnect-offers",
-        venue: "forexconnect",
-        instrumentType: item.instrumentType ?? null,
-        instrumentTypeLabel: item.instrumentTypeLabel ?? null,
-        description: item.description ?? null,
-        contractCurrency: item.contractCurrency ?? null,
-        tradingStatus: item.tradingStatus ?? null,
+    // Phase 56.3.3 — classify Offers rows; never hardcode FOREX for metals/indices/shares.
+    return result.instruments.map((item) => {
+      const classified = classifyForexConnectInstrument(item, {
         environment: status.environment ?? null,
         environmentLabel: status.environmentLabel ?? null,
-        pointSize: item.pointSize ?? null,
-        pipCost: item.pipCost ?? null,
-        pipCostAccount: item.pipCost ?? null,
-        contractMultiplier: item.contractMultiplier ?? null,
-        digits: item.digits ?? null,
-        baseUnitSize: item.baseUnitSize ?? null,
-        // Absolute FXCM MMR per lot — never treat as decimal marginRate.
-        mmrPerLot: item.mmrPerLot ?? null,
-        minQuantity: item.minQuantity ?? null,
-        lotStep: item.lotStep ?? null,
-        // Do not invent quantityStep from MinQuantity; BaseUnitSize is the increment.
-        quantityStep: item.lotStep ?? null,
-        quantityMin: item.minQuantity ?? item.lotStep ?? null,
-        condDistStop: item.condDistStop ?? null,
-        condDistLimit: item.condDistLimit ?? null,
-        condDistEntryStop: item.condDistEntryStop ?? null,
-        condDistEntryLimit: item.condDistEntryLimit ?? null,
-        condDistAvailable: Boolean(item.condDistAvailable),
-        condDistUnit: item.condDistUnit ?? null,
-        condDistMethod: item.condDistMethod ?? null,
-        quoteAsset: item.quoteAsset ?? null,
-        baseAsset: item.baseAsset ?? null,
-      },
-    }));
+      });
+      return {
+        provider: "FOREXCONNECT" as const,
+        providerSymbol: classified.providerSymbol || item.providerSymbol,
+        // Preserve dots (AAPL.us / MAG7.24h) — never collapse share suffixes.
+        canonicalSymbol: classified.canonicalSymbol
+          || item.canonicalSymbol
+          || item.providerSymbol.replace(/[^A-Za-z0-9.]/g, "").toUpperCase(),
+        displaySymbol: classified.displaySymbol || item.displaySymbol,
+        marketType: classified.marketType,
+        baseAsset: classified.baseAsset ?? item.baseAsset,
+        quoteAsset: classified.quoteAsset ?? item.quoteAsset,
+        status: item.status === "available" ? "available" as const : "unknown" as const,
+        capabilities: { ...CAPS },
+        metadata: {
+          offerId: item.offerId ?? null,
+          source: item.source ?? "forexconnect-offers",
+          venue: "forexconnect",
+          instrumentType: classified.instrumentType ?? item.instrumentType ?? null,
+          instrumentTypeLabel: classified.instrumentTypeLabel ?? item.instrumentTypeLabel ?? null,
+          description: classified.description ?? item.description ?? null,
+          contractCurrency: item.contractCurrency ?? null,
+          tradingStatus: classified.tradingStatus ?? item.tradingStatus ?? null,
+          environment: status.environment ?? null,
+          environmentLabel: status.environmentLabel ?? null,
+          pointSize: item.pointSize ?? null,
+          pipCost: item.pipCost ?? null,
+          pipCostAccount: item.pipCost ?? null,
+          contractMultiplier: item.contractMultiplier ?? null,
+          digits: item.digits ?? null,
+          baseUnitSize: item.baseUnitSize ?? null,
+          // Absolute FXCM MMR per lot — never treat as decimal marginRate.
+          mmrPerLot: item.mmrPerLot ?? null,
+          minQuantity: item.minQuantity ?? null,
+          lotStep: item.lotStep ?? null,
+          // Do not invent quantityStep from MinQuantity; BaseUnitSize is the increment.
+          quantityStep: item.lotStep ?? null,
+          quantityMin: item.minQuantity ?? item.lotStep ?? null,
+          condDistStop: item.condDistStop ?? null,
+          condDistLimit: item.condDistLimit ?? null,
+          condDistEntryStop: item.condDistEntryStop ?? null,
+          condDistEntryLimit: item.condDistEntryLimit ?? null,
+          condDistAvailable: Boolean(item.condDistAvailable),
+          condDistUnit: item.condDistUnit ?? null,
+          condDistMethod: item.condDistMethod ?? null,
+          quoteAsset: classified.quoteAsset ?? item.quoteAsset ?? null,
+          baseAsset: classified.baseAsset ?? item.baseAsset ?? null,
+          // Phase 56.3.3 metadata provenance — never invent contract semantics.
+          classificationSource: classified.classificationSource,
+          classificationConfidence: classified.classificationConfidence,
+          categoryId: classified.categoryId,
+          categoryLabel: classified.categoryLabel,
+          providerMarketTypeRaw: item.marketType ?? null,
+          normalizedMarketType: classified.marketType,
+        },
+      };
+    });
   }
 
   async getInstrument(symbol: string): Promise<MarketInstrument | null> {

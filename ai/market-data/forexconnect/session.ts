@@ -113,7 +113,8 @@ export class ForexConnectSessionService {
   }
 
   async disconnect(): Promise<ForexConnectSessionActionResult> {
-    await this.live.clearAllSessions();
+    // Preserve intended subscriptions for same-env reconnect restore (Phase 56.3.3).
+    await this.live.clearAllSessions({ clearIntended: false });
     const status = await this.bridge.disconnect();
     const previous = this.profiles.getActiveEnvironment();
     this.profiles.setActiveSession(null, status.status);
@@ -240,7 +241,8 @@ export class ForexConnectSessionService {
     }
 
     if (currentStatus.status === "CONNECTED") {
-      await this.live.clearAllSessions();
+      // DEMO↔LIVE: clear intended. Same-env re-auth: preserve intended for restore.
+      await this.live.clearAllSessions({ clearIntended: switching });
       await this.bridge.disconnect();
       // Do not publish the new environment as active until auth succeeds.
       this.profiles.setActiveSession(null, "DISCONNECTED");
@@ -266,6 +268,11 @@ export class ForexConnectSessionService {
       if (options.activate) {
         await this.profiles.persistPreferred(env);
       }
+      this.live.notifyProviderConnected();
+      // Best-effort restore of same-env intended Offers (no LIVE claim without genuine ticks).
+      void this.live.restoreIntendedSubscriptions().catch(() => {
+        /* Admin/status remain available; readiness stays fail-closed */
+      });
       return {
         ok: true,
         environment: env,
@@ -363,6 +370,11 @@ export async function maybeRestoreDemoSession(
       const profiles = await getForexConnectProfilesManager();
       profiles.setActiveSession("demo", status.status);
     }
+    // Process restart clears in-memory intended; restore is a no-op unless something re-remembered.
+    getForexConnectLiveCandleService().notifyProviderConnected();
+    void getForexConnectLiveCandleService().restoreIntendedSubscriptions().catch(() => {
+      /* best-effort */
+    });
     return {
       attempted: false,
       ok: true,

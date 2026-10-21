@@ -37,6 +37,7 @@ import {
   getForexConnectSessionService,
   maybeRestoreDemoSession,
 } from "../../ai/market-data/forexconnect/session.js";
+import { getForexConnectLiveCandleService } from "../../ai/market-data/forexconnect/live-service.js";
 import { buildForexConnectCatalog } from "../../ai/market-data/forexconnect/instrument-classify.js";
 import { readForexConnectRuntimeProbe } from "../../ai/market-data/forexconnect/runtime-probe.js";
 
@@ -348,8 +349,16 @@ export async function handleForexConnectApi(
 
     if (url.pathname === "/api/forex/providers/forexconnect/stream/status") {
       const status = await bridge.getStreamStatus();
+      const live = getForexConnectLiveCandleService();
+      const lifecycle = live.getLifecycleDiagnostics();
       assertNoSecretsInForexConnectPayload(status);
-      sendJson(res, status.ok ? 200 : 503, status);
+      assertNoSecretsInForexConnectPayload(lifecycle);
+      sendJson(res, status.ok ? 200 : 503, {
+        ...status,
+        lifecycle,
+        note:
+          "Phase 56.3.3 — lifecycle.intended survives same-env disconnect; LIVE still requires genuine Offers price changes.",
+      });
       return true;
     }
 
