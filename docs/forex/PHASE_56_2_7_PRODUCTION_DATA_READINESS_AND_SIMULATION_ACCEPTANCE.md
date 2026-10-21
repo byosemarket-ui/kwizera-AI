@@ -7,7 +7,7 @@
 **Production baseline at start:** `deployedCommit=436293a3…`, `verifiedLive=true`, health `healthy`  
 **Prior references:** 56.2.6 feature `1a7ce3b3…`; finalize `8e68d14e…`  
 **Feature HEAD:** `0441241d7ff8c282782e488269f617f5b6e7b05e`  
-**Ending HEAD / deployed:** `cb7af45333543f8883d231e7f89b29b3699bdc14` (`verifiedLive=true`) + UI Data Readiness grid fix on this finalize commit  
+**Ending HEAD / deployed:** `c40d1775bf8f39e995fb8f379d646fc44d5b9362` (`verifiedLive=true`, Production deploy #395 success)  
 **Scope:** Read-only broker + simulation-only. **No execution. LIVE unauthorized. Do not start 56.2.8 / 56.3.**
 
 ---
@@ -123,9 +123,11 @@ Unauthenticated probe still returns **403** `ADMIN_FORBIDDEN` (token never commi
 |------|----------|
 | Feature commit | `0441241d7ff8c282782e488269f617f5b6e7b05e` |
 | Docs redeploy commit | `cb7af45333543f8883d231e7f89b29b3699bdc14` |
+| Finalize commit (UI + report) | `c40d1775bf8f39e995fb8f379d646fc44d5b9362` |
 | Production deploy #393 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39584663186 — Validate **success**; Deploy **failure** (lock contention: concurrent `update-from-github.sh`) |
-| Production deploy #394 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39586936500 — **success** |
-| `/api/deployment` (post #394) | `deployedCommit=cb7af453…`, `requestedCommit=cb7af453…`, `status=live`, `result=success`, `verifiedLive=true`, timestamp `2026-10-21T10:49:09.413Z` |
+| Production deploy #394 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39586936500 — **success** (`cb7af453`) |
+| Production deploy #395 | https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39588558146 — **success** (`c40d1775`) |
+| `/api/deployment` (post #395) | `deployedCommit=c40d1775…`, `status=live`, `result=success`, `verifiedLive=true`, timestamp `2026-10-21T11:01:55.443Z` |
 | `/api/health` | `ok=true`, `status=healthy` |
 | Public URLs | `http://162.35.114.19:5173/forex/automated-trading`, `…/forex/ai-analysis` |
 | Responsive overflow | No horizontal overflow at 390×844, 768×1024, 1024×800, 1440×900 (CDP `scrollWidth === clientWidth`) |
