@@ -65,11 +65,12 @@ export function contractSpecFromForexConnectMetadata(input: {
   const pipCostAccount = num(md.pipCost ?? md.PipCost ?? md.pipCostAccount);
   const baseUnitSize = num(md.baseUnitSize ?? md.BaseUnitSize);
   const contractMultiplier = num(md.contractMultiplier ?? md.ContractMultiplier);
-  const quantityMin = num(md.quantityMin ?? md.minQuantity ?? md.MinQuantity);
+  const sdkMinQuantity = num(md.minQuantity ?? md.MinQuantity ?? md.quantityMin);
   const quantityMax = num(md.quantityMax ?? md.maxQuantity);
-  // Do not invent lot step: only use verified step, else default 0.01 solely when PipCost path is usable.
-  const quantityStep = num(md.quantityStep ?? md.lotStep ?? md.LotStep)
-    ?? (pipCostAccount != null && pointSize != null ? 0.01 : null);
+  // Phase 56.2.5 — do not invent 0.01 step. Prefer BaseUnitSize as increment when present
+  // (ForexConnect: amounts must be multiples of BaseUnitSize). Legacy lotStep often equals MinQuantity.
+  const legacyLotStep = num(md.lotStep ?? md.LotStep);
+  const reportedStep = num(md.quantityStep);
   const tickSize = num(md.tickSize ?? md.TickSize) ?? pointSize;
   // Decimal rate only — FXCM absolute MMR must not be mapped here.
   const marginRate = num(md.marginRate);
@@ -99,12 +100,36 @@ export function contractSpecFromForexConnectMetadata(input: {
   } else if (isBullion && contractMultiplier != null && pointSize != null) {
     convention = "ounce_contract";
     quantityUnit = "ounces";
-  } else if (isCrypto && quantityStep != null) {
+  } else if (isCrypto && (reportedStep != null || legacyLotStep != null || baseUnitSize != null)) {
     convention = "crypto_base_qty";
     quantityUnit = "base_units";
   } else if (contractMultiplier != null && contractMultiplier !== 1 && pointSize != null) {
     convention = "cfd_multiplier";
     quantityUnit = "contracts";
+  }
+
+  // Resolve min/step without inventing contradictory 0.01 vs 1 for XAU contracts.
+  let quantityStep: number | null = null;
+  let quantityMin: number | null = null;
+  if (quantityUnit === "contracts" && isXau) {
+    // Increment = BaseUnitSize (SDK rule). Never invent 0.01.
+    quantityStep = baseUnitSize;
+    quantityMin = sdkMinQuantity
+      ?? (legacyLotStep != null && Math.abs(legacyLotStep - 0.01) > 1e-12 ? legacyLotStep : null)
+      ?? (reportedStep != null && Math.abs(reportedStep - 0.01) > 1e-12 ? reportedStep : null)
+      ?? baseUnitSize;
+    // If only invented 0.01 signals exist alongside missing base — leave null (fail closed upstream).
+    if (quantityStep == null) {
+      quantityMin = null;
+    }
+  } else if (quantityUnit === "lots") {
+    quantityStep = reportedStep
+      ?? legacyLotStep
+      ?? (pipCostAccount != null && pointSize != null ? 0.01 : null);
+    quantityMin = sdkMinQuantity ?? (quantityStep != null ? 0.01 : null);
+  } else {
+    quantityStep = reportedStep ?? legacyLotStep ?? baseUnitSize;
+    quantityMin = sdkMinQuantity ?? quantityStep;
   }
 
   const usable =
@@ -121,6 +146,7 @@ export function contractSpecFromForexConnectMetadata(input: {
     if (baseUnitSize != null) present.push("BaseUnitSize");
     if (contractMultiplier != null) present.push("ContractMultiplier");
     if (quantityStep != null) present.push("LotStep/quantityStep");
+    if (sdkMinQuantity != null) present.push("MinQuantity");
     if (marginRate != null) present.push("marginRate");
     if (marginPerLotAccount != null) present.push("mmrPerLot");
     return unavailableContractSpec(
@@ -143,9 +169,9 @@ export function contractSpecFromForexConnectMetadata(input: {
     pipCostAccount,
     baseUnitSize,
     contractMultiplier: contractMultiplier ?? (convention.startsWith("fx_") ? 1 : null),
-    quantityMin: quantityMin ?? (quantityUnit === "lots" ? 0.01 : quantityStep),
+    quantityMin,
     quantityMax,
-    quantityStep: quantityStep ?? 0.01,
+    quantityStep,
     quantityUnit,
     tickSize,
     marginRate,

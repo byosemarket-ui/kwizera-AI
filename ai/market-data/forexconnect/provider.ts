@@ -179,8 +179,11 @@ export class ForexConnectMarketDataProvider implements MarketDataProvider {
         baseUnitSize: item.baseUnitSize ?? null,
         // Absolute FXCM MMR per lot — never treat as decimal marginRate.
         mmrPerLot: item.mmrPerLot ?? null,
+        minQuantity: item.minQuantity ?? null,
         lotStep: item.lotStep ?? null,
+        // Do not invent quantityStep from MinQuantity; BaseUnitSize is the increment.
         quantityStep: item.lotStep ?? null,
+        quantityMin: item.minQuantity ?? item.lotStep ?? null,
         condDistStop: item.condDistStop ?? null,
         condDistLimit: item.condDistLimit ?? null,
         condDistEntryStop: item.condDistEntryStop ?? null,

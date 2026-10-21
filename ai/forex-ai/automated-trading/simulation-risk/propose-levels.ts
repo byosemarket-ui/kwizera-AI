@@ -3,6 +3,10 @@
  * Never invents stop distances, ounces, or prices without evidence.
  */
 import type { AtBinaryDirection } from "../analysis/direction.js";
+import {
+  floorQuantityToStep,
+  resolveXauQuantityConstraints,
+} from "./quantity-constraints.js";
 import type { AtSimContractMetaInput } from "./types.js";
 
 export interface AnalysisPriceLevelLite {
@@ -369,28 +373,36 @@ export function proposeQuantityFromAllocation(input: {
 
   const maxPermittedLoss = alloc * 0.25;
   const rawQty = maxPermittedLoss / riskPerUnit;
-  const step =
-    typeof c.quantityStep === "number" && Number.isFinite(c.quantityStep) && c.quantityStep > 0
-      ? c.quantityStep
-      : 1;
-  const minQ =
-    typeof c.quantityMin === "number" && Number.isFinite(c.quantityMin) && c.quantityMin > 0
-      ? c.quantityMin
-      : step;
-  // Floor to step so estimated risk never exceeds the 25% ceiling due to rounding up.
-  let quantity = Math.floor(rawQty / step) * step;
-  if (quantity + 1e-12 < minQ) {
+
+  // Phase 56.2.5 — never invent step=1 or min; resolve from BaseUnitSize + SDK min.
+  const constraints = resolveXauQuantityConstraints({
+    quantityUnit: c.quantityUnit,
+    quantityUnitAmbiguous: c.quantityUnitAmbiguous,
+    baseUnitSize: c.baseUnitSize,
+    sdkMinQuantity: c.quantityMin,
+    legacyLotStep: c.quantityStep,
+    reportedQuantityStep: c.quantityStep,
+    reportedQuantityMin: c.quantityMin,
+  });
+  if (constraints.sizingBlocked || constraints.quantityMin == null || constraints.quantityStep == null) {
+    return {
+      ok: false,
+      quantity: null,
+      code: constraints.blockCode ?? "PROPOSE_QTY_CONSTRAINTS_BLOCKED",
+      message: constraints.blockMessage ?? "Quantity min/step unverified — not invented.",
+    };
+  }
+  const quantity = floorQuantityToStep(rawQty, constraints.quantityStep, constraints.quantityMin);
+  if (quantity == null) {
     return {
       ok: false,
       quantity: null,
       code: "PROPOSE_QTY_BELOW_MIN",
       message:
-        `Allocation risk ceiling $${maxPermittedLoss} cannot fund minimum quantity ${minQ} `
-        + `(risk/unit=${riskPerUnit}).`,
+        `Allocation risk ceiling $${maxPermittedLoss} cannot fund minimum quantity ${constraints.quantityMin} `
+        + `(risk/unit=${riskPerUnit}; step=${constraints.quantityStep}).`,
     };
   }
-  // Normalize float noise
-  quantity = Math.round(quantity / step) * step;
   const estimatedStopLossRisk = riskPerUnit * quantity;
   if (estimatedStopLossRisk > maxPermittedLoss + 1e-8) {
     return {

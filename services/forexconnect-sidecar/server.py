@@ -373,6 +373,8 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
     out: dict[str, Any] = {
         "baseUnitSize": None,
         "mmrPerLot": None,
+        # Phase 56.2.5 — getMinQuantity is NOT a fractional lot step.
+        "minQuantity": None,
         "lotStep": None,
         # Phase 56.2.4 — CondDist* are stop/limit distances, NEVER quantity steps.
         "condDistStop": None,
@@ -416,17 +418,33 @@ def _trading_settings_for(fx: Any, instrument: str, account: Any) -> dict[str, A
                     break
                 except Exception:
                     pass
-        # Optional quantity step — only genuine min-quantity APIs.
+        # Phase 56.2.5 — MinQuantity is the minimum order amount (CFD → contracts).
+        # Official ForexConnect: amounts must be multiples of BaseUnitSize; there is
+        # no separate fractional "lotStep" on O2GTradingSettingsProvider.
         # Never map CondDistEntry/stop distances (pips) to lotStep.
-        for meth in ("get_min_quantity", "getMinQuantity", "get_base_unit_step", "getBaseUnitStep"):
+        # Never map CondDist* (pips) into minQuantity.
+        for meth in ("get_min_quantity", "getMinQuantity"):
             if hasattr(tsp, meth):
                 try:
-                    step = _finite(getattr(tsp, meth)(instrument, account))
-                    if step is not None and step > 0:
-                        out["lotStep"] = step
+                    mq = _finite(getattr(tsp, meth)(instrument, account))
+                    if mq is not None and mq > 0:
+                        out["minQuantity"] = mq
+                        # Backward-compatible alias only — consumers must treat this as min, not step.
+                        out["lotStep"] = mq
                         break
                 except Exception:
                     pass
+        # Optional genuine step APIs only (rarely present); never invent 0.01.
+        if out["lotStep"] is None:
+            for meth in ("get_base_unit_step", "getBaseUnitStep", "get_quantity_step", "getQuantityStep"):
+                if hasattr(tsp, meth):
+                    try:
+                        step = _finite(getattr(tsp, meth)(instrument, account))
+                        if step is not None and step > 0:
+                            out["lotStep"] = step
+                            break
+                    except Exception:
+                        pass
         # Phase 56.2.4 — read-only CondDist probes (never invent; never use for lotStep).
         cond_any = False
         for key, methods in (
@@ -532,6 +550,7 @@ def _normalize_offer(
     base_unit_size = _finite(ts.get("baseUnitSize"))
     mmr_per_lot = _finite(ts.get("mmrPerLot"))
     lot_step = _finite(ts.get("lotStep"))
+    min_quantity = _finite(ts.get("minQuantity"))
     return {
         "provider": "FOREXCONNECT",
         "providerSymbol": provider_symbol,
@@ -556,6 +575,7 @@ def _normalize_offer(
         "digits": digits_n,
         "baseUnitSize": base_unit_size,
         "mmrPerLot": mmr_per_lot,
+        "minQuantity": min_quantity,
         "lotStep": lot_step,
         "condDistStop": ts.get("condDistStop"),
         "condDistLimit": ts.get("condDistLimit"),

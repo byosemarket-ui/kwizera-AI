@@ -43,7 +43,15 @@ export interface ForexConnectInstrument {
    * (account/counter currency amount — not a decimal rate).
    */
   mmrPerLot?: number | null;
-  /** Phase 47A — quantity/lot step when TradingSettings exposes it. */
+  /**
+   * Phase 56.2.5 — TradingSettings getMinQuantity (CFD → contracts).
+   * Not a fractional step.
+   */
+  minQuantity?: number | null;
+  /**
+   * Phase 47A/56.2.5 — legacy field; often aliased from getMinQuantity.
+   * Prefer minQuantity + BaseUnitSize for authoritative min/increment.
+   */
   lotStep?: number | null;
   /** Phase 56.2.4 — TradingSettings CondDist* (RO). Never use as lotStep. */
   condDistStop?: number | null;

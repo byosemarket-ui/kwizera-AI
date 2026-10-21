@@ -9,6 +9,7 @@ import type { AutomatedTradingVerificationResult } from "../verification-types.j
 import { isInstrumentAllowlisted } from "./allowlist.js";
 import type { ExposureReconciliationResult } from "./exposure-reconciliation.js";
 import { resolveXauQuantitySemantics } from "./quantity-semantics.js";
+import { resolveXauQuantityConstraints } from "./quantity-constraints.js";
 import type {
   AtSimAccountMetaInput,
   AtSimContractMetaInput,
@@ -107,11 +108,24 @@ function buildContract(
     condDistAvailable: cond.condDistAvailable,
   });
 
+  const constraints = resolveXauQuantityConstraints({
+    quantityUnit: semantics.resolvedQuantityUnit,
+    quantityUnitAmbiguous: semantics.quantityUnitAmbiguous,
+    baseUnitSize: finiteOrNull(inst.baseUnitSize),
+    sdkMinQuantity: quantityMin,
+    legacyLotStep: quantityStep,
+    reportedQuantityStep: quantityStep,
+    reportedQuantityMin: quantityMin,
+  });
+
   const verified = contractVerified && pointSize != null;
   const unavailableReason = !verified
     ? "Instrument contract not verified for sizing."
     : semantics.quantityUnitAmbiguous
       ? `Quantity unit ${semantics.quantityUnit.status}; monetary R blocked until VERIFIED contract binding.`
+      : constraints.sizingBlocked
+        ? (constraints.blockMessage
+          ?? "Quantity min/step constraints unverified — sizing blocked.")
       : !semantics.minStopDistanceVerified
         ? `Quantity unit ${semantics.resolvedQuantityUnit} (${semantics.quantityUnit.status}); min-stop ${semantics.minStopDistance.status} (account Enhanced Execution not attested).`
         : null;
@@ -123,10 +137,11 @@ function buildContract(
     digits: pointSize != null && pointSize > 0
       ? Math.max(0, Math.round(-Math.log10(pointSize)))
       : null,
-    quantityMin: quantityMin ?? quantityStep,
-    quantityStep,
+    quantityMin: constraints.sizingBlocked ? null : constraints.quantityMin,
+    quantityStep: constraints.sizingBlocked ? null : constraints.quantityStep,
     quantityUnit: semantics.resolvedQuantityUnit,
-    quantityUnitAmbiguous: semantics.quantityUnitAmbiguous,
+    quantityUnitAmbiguous:
+      semantics.quantityUnitAmbiguous || constraints.sizingBlocked,
     contractMultiplier: finiteOrNull(inst.contractMultiplier),
     baseUnitSize: finiteOrNull(inst.baseUnitSize),
     pipCostAccount: finiteOrNull(inst.pipCostAccount),

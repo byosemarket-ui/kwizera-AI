@@ -271,8 +271,11 @@ export function verifyInstrumentMetadata(
     pipCost: hit.pipCost,
     baseUnitSize: hit.baseUnitSize,
     contractMultiplier: hit.contractMultiplier,
-    quantityStep: hit.lotStep,
-    lotStep: hit.lotStep,
+    // Phase 56.2.5 — distinct MinQuantity; lotStep is legacy alias (often same as min).
+    minQuantity: hit.minQuantity ?? null,
+    quantityMin: hit.minQuantity ?? null,
+    lotStep: hit.lotStep ?? null,
+    quantityStep: null,
     marginPerLotAccount: hit.mmrPerLot,
     mmrPerLot: hit.mmrPerLot,
     quoteCurrency: hit.quoteAsset,

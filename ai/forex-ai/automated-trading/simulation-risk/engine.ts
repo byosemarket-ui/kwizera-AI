@@ -20,6 +20,7 @@ import {
 } from "./capital-budget.js";
 import { evaluateProfitProtection } from "./profit-protection.js";
 import { proposeQuantityFromAllocation } from "./propose-levels.js";
+import { sizeOrderQuantityFromAllocation } from "./size-order-quantity.js";
 import {
   AT_SIM_RISK_BANNER,
   AT_SIM_RISK_PHASE,
@@ -827,20 +828,50 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
     ? `Using requested quantity ${input.requestedQuantity} (${contract?.quantityUnit ?? "unit unverified"}).`
     : null;
   if (proposedQuantity == null) {
-    const sized = proposeQuantityFromAllocation({
-      orderAllocation: capitalBudgetAnalysis.perOrderAllocation,
+    // Phase 56.2.5 — full allocation-aware sizer (fail closed on missing gates).
+    const fullSized = sizeOrderQuantityFromAllocation({
+      verifiedEquity: account?.equity ?? null,
+      accountCurrency: account?.accountCurrency ?? null,
+      strategyAllocationPercent: input.capitalAllocationPercent,
+      remainingStrategyBudget: capitalBudgetAnalysis.remainingBudget,
+      individualOrderAllocation: capitalBudgetAnalysis.perOrderAllocation,
       entryPrice: isFinitePositive(entry) ? entry : null,
       stopLoss: isFinitePositive(sl) ? sl : null,
       contract,
+      freeMargin: account?.usableMargin ?? null,
+      exposureAuthoritative: input.exposureDataAuthoritative === true,
+      marginPerUnitAccount: contract?.marginPerLotAccount ?? null,
+      sdkMinQuantity: contract?.quantityMin ?? null,
+      legacyLotStep: contract?.quantityStep ?? null,
     });
-    if (sized.ok) {
-      proposedQuantity = sized.quantity;
+    if (fullSized.ok) {
+      proposedQuantity = fullSized.quantity;
       proposedQuantityNote =
-        `Derived from order allocation risk ceiling (25% = ${sized.maxPermittedLoss}); `
-        + `unit=${sized.quantityUnit}; method=${sized.method}. Not broker margin.`;
+        `Derived from order allocation (25% SL ceiling=$${fullSized.maxPermittedOrderLoss}); `
+        + `unit=${fullSized.quantityUnit}; method=${fullSized.method}; `
+        + `min=${fullSized.constraints.quantityMin} step=${fullSized.constraints.quantityStep}. `
+        + `Not broker margin.`;
     } else {
-      proposedQuantityNote = sized.message;
-      pushCheck(checks, sized.code, "QUANTITY_CONTRACT", "BLOCKED", sized.message);
+      // Keep lightweight propose helper available for unit tests / partial drafts, but
+      // only accept it when the full sizer failed solely on missing order allocation
+      // and the light path also cannot size — otherwise prefer the full fail-closed reason.
+      const light = proposeQuantityFromAllocation({
+        orderAllocation: capitalBudgetAnalysis.perOrderAllocation,
+        entryPrice: isFinitePositive(entry) ? entry : null,
+        stopLoss: isFinitePositive(sl) ? sl : null,
+        contract,
+      });
+      proposedQuantityNote = fullSized.message;
+      pushCheck(checks, fullSized.code, "QUANTITY_CONTRACT", "BLOCKED", fullSized.message);
+      if (
+        light.ok
+        && fullSized.code === "SIZE_QTY_ORDER_ALLOCATION_INVALID"
+        && capitalBudgetAnalysis.perOrderAllocation == null
+      ) {
+        // No allocation yet — leave quantity null; note already set.
+      } else if (!light.ok && light.message && light.message !== fullSized.message) {
+        pushCheck(checks, light.code, "QUANTITY_CONTRACT", "BLOCKED", light.message);
+      }
     }
   }
 
