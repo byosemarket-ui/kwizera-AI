@@ -186,7 +186,14 @@ export function evaluateVerificationQuoteFreshness(
   }
 
   if (String(market?.feedStatus ?? "") !== "LIVE") {
-    return emptyEval(nowMs, staleMs, "FEED_NOT_LIVE", {
+    // Preserve diagnostic specificity — FEED_NOT_LIVE remains the umbrella for non-LIVE feeds,
+    // but map known Offers states onto existing reason codes when they already exist.
+    const feed = String(market?.feedStatus ?? "");
+    let reason: AtQuoteFreshnessReasonCode = "FEED_NOT_LIVE";
+    if (feed === "STALE") reason = "QUOTE_AGE_EXCEEDED";
+    else if (feed === "NO_RECENT_MARKET_UPDATES") reason = "HEARTBEAT_ONLY_NO_PRICE_CHANGE";
+    else if (feed === "SUBSCRIBING" || feed === "UNKNOWN_SESSION") reason = "NO_QUOTE_UPDATES";
+    return emptyEval(nowMs, staleMs, reason, {
       ...common,
       verificationAgeMs,
     });

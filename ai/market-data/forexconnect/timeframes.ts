@@ -60,3 +60,21 @@ export function fromForexConnectPeriodId(period: string): ForexConnectSupportedT
   );
   return (entry?.[0] as ForexConnectSupportedTimeframe | undefined) ?? null;
 }
+
+/**
+ * Phase 56.2.8 — normalize UI/SDK timeframe aliases into project live timeframes.
+ * Accepts canonical ids (`1m`) and ForexConnect period ids (`m1`). Never invents unsupported TFs.
+ */
+export function resolveForexConnectLiveTimeframe(
+  raw: unknown,
+  fallback: ForexConnectSupportedTimeframe = "1m",
+): ForexConnectSupportedTimeframe {
+  const value = String(raw ?? "").trim();
+  if (!value) return fallback;
+  if (isForexConnectSupportedTimeframe(value)) return value;
+  const fromPeriod = fromForexConnectPeriodId(value);
+  if (fromPeriod) return fromPeriod;
+  const lower = value.toLowerCase();
+  if (isForexConnectSupportedTimeframe(lower)) return lower;
+  return fallback;
+}

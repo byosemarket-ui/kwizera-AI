@@ -295,6 +295,56 @@ export class ForexConnectLiveCandleService {
   }
 
   /**
+   * Phase 56.2.8 — active live sessions only (no catalog invention).
+   * Used for per-instrument readiness without implying peer LIVE status.
+   */
+  listActiveQuoteSessions(nowMs: number = Date.now()): Array<{
+    providerSymbol: string;
+    canonicalSymbol: string;
+    displaySymbol: string;
+    timeframe: ForexConnectSupportedTimeframe;
+    streamState: ForexConnectLiveStreamState;
+    bid: number | null;
+    ask: number | null;
+    updateCount: number;
+    priceChangeAgeMs: number | null;
+    receiptAgeMs: number | null;
+  }> {
+    const out: Array<{
+      providerSymbol: string;
+      canonicalSymbol: string;
+      displaySymbol: string;
+      timeframe: ForexConnectSupportedTimeframe;
+      streamState: ForexConnectLiveStreamState;
+      bid: number | null;
+      ask: number | null;
+      updateCount: number;
+      priceChangeAgeMs: number | null;
+      receiptAgeMs: number | null;
+    }> = [];
+    for (const session of this.sessions.values()) {
+      const series = this.toSeries(session);
+      out.push({
+        providerSymbol: session.providerSymbol,
+        canonicalSymbol: session.canonicalSymbol,
+        displaySymbol: session.displaySymbol,
+        timeframe: session.timeframe,
+        streamState: series.streamState,
+        bid: session.lastQuote?.bid ?? null,
+        ask: session.lastQuote?.ask ?? null,
+        updateCount: session.updateCount,
+        priceChangeAgeMs: session.lastPriceChangeAtMs != null
+          ? Math.max(0, nowMs - session.lastPriceChangeAtMs)
+          : null,
+        receiptAgeMs: session.lastQuoteAtMs != null
+          ? Math.max(0, nowMs - session.lastQuoteAtMs)
+          : null,
+      });
+    }
+    return out;
+  }
+
+  /**
    * Quote + per-session freshness. Seeds may populate quote without LIVE streamState.
    * Callers must not treat a non-null quote as LIVE without checking streamState.
    */

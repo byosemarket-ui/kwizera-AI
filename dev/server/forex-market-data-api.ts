@@ -4,6 +4,7 @@
  *
  * GET  /api/forex/market-data/status
  * GET  /api/forex/market-data/instruments
+ * GET  /api/forex/market-data/instrument-readiness
  * GET  /api/forex/market-data/candles
  * GET  /api/forex/market-data/quote
  * GET  /api/forex/market-data/snapshot
@@ -125,6 +126,40 @@ export async function handleForexMarketDataApi(
         count: instruments.length,
         instruments,
         note: "Unified instrument catalog. Each row retains provider identity.",
+      });
+      return true;
+    }
+
+    if (url.pathname === "/api/forex/market-data/instrument-readiness") {
+      const provider = url.searchParams.get("provider");
+      if (!provider) {
+        sendJson(res, 400, {
+          ok: false,
+          error: {
+            code: "INVALID_QUERY",
+            message: "Require provider. Readiness is never inferred across providers.",
+          },
+        });
+        return true;
+      }
+      const symbolsRaw = url.searchParams.get("symbols");
+      const symbols = symbolsRaw
+        ? symbolsRaw.split(",").map((s) => s.trim()).filter(Boolean)
+        : null;
+      const catalog = await service.getInstrumentReadiness({
+        provider,
+        symbols,
+        search: url.searchParams.get("search"),
+        refreshCatalog: url.searchParams.get("refresh") === "1",
+        subscribeLive: url.searchParams.get("subscribeLive") === "1",
+        timeframe: url.searchParams.get("timeframe"),
+        limit: Number(url.searchParams.get("limit") ?? 50) || 50,
+      });
+      sendJson(res, 200, {
+        ok: true,
+        ...catalog,
+        note:
+          "Per-instrument readiness. Discovery ≠ live ≠ simulation ≠ execution. placesOrders=false.",
       });
       return true;
     }

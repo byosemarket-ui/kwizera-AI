@@ -331,6 +331,39 @@ export const forexProvidersApi = {
       providers: Array<Record<string, unknown>>;
       note?: string;
     }>("/api/forex/market-data/status"),
+  instrumentReadiness: (params: {
+    provider: string;
+    symbols?: string[];
+    search?: string;
+    subscribeLive?: boolean;
+    timeframe?: string;
+    limit?: number;
+    refresh?: boolean;
+  }) => {
+    const q = new URLSearchParams();
+    q.set("provider", params.provider);
+    if (params.symbols?.length) q.set("symbols", params.symbols.join(","));
+    if (params.search) q.set("search", params.search);
+    if (params.subscribeLive) q.set("subscribeLive", "1");
+    if (params.timeframe) q.set("timeframe", params.timeframe);
+    if (params.limit != null) q.set("limit", String(params.limit));
+    if (params.refresh) q.set("refresh", "1");
+    return request<{
+      ok: true;
+      phase: string;
+      provider: string | null;
+      discoveredCount: number;
+      liveFeedReadyCount: number;
+      historicalAvailableCount: number;
+      blockedOrUnreadyCount: number;
+      snapshots: Array<Record<string, unknown>>;
+      notes: string[];
+      placesOrders: false;
+      acceptsForExecution: false;
+      evaluatedAtUtc: string;
+      note?: string;
+    }>(`/api/forex/market-data/instrument-readiness?${q.toString()}`);
+  },
   fxcmStatus: () =>
     request<{
       ok: boolean;

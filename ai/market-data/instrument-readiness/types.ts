@@ -1,0 +1,87 @@
+/**
+ * Phase 56.2.8 — per-instrument market-data readiness (provider-agnostic).
+ * Discovery / live / analysis / simulation are distinct from execution authorization.
+ */
+import type { MarketAssetType, MarketProviderId } from "../providers/types.js";
+import type { UnifiedConnectionState } from "../providers/contracts.js";
+
+export const INSTRUMENT_READINESS_STATUSES = [
+  "READY",
+  "STALE",
+  "DISCONNECTED",
+  "UNAVAILABLE",
+  "UNSUPPORTED",
+  "PARTIALLY_READY",
+  "UNVERIFIED",
+  "BLOCKED",
+] as const;
+
+export type InstrumentReadinessStatus = (typeof INSTRUMENT_READINESS_STATUSES)[number];
+
+export interface InstrumentReadinessFreshnessPolicy {
+  /** Max age of a genuine price change for LIVE/READY quotes. */
+  quoteStaleMs: number;
+  /** Policy source label (never invents broker semantics). */
+  source: string;
+  rationale: string;
+}
+
+export interface InstrumentReadinessBlocker {
+  id: string;
+  status: InstrumentReadinessStatus;
+  reason: string;
+  blocks: string[];
+}
+
+export interface InstrumentCapabilityFlags {
+  discovered: boolean;
+  dataSupported: boolean;
+  liveFeedReady: boolean;
+  historicalAvailable: boolean;
+  analysisReady: boolean;
+  simulationReady: boolean;
+  /** Always false in Phase 56.2.8 — market coverage ≠ execution authorization. */
+  executionAuthorized: false;
+}
+
+export interface InstrumentReadinessSnapshot {
+  phase: "56.2.8";
+  provider: MarketProviderId;
+  providerSymbol: string;
+  canonicalSymbol: string;
+  displaySymbol: string;
+  marketType: MarketAssetType | "UNKNOWN";
+  connectionState: UnifiedConnectionState | string;
+  quote: {
+    bid: number | null;
+    ask: number | null;
+    feedStatus: string | null;
+    freshnessStatus: InstrumentReadinessStatus;
+    reasonCode: string | null;
+    priceChangeAgeMs: number | null;
+    receiptAgeMs: number | null;
+    updateCount: number;
+    historicalOnly: boolean;
+  } | null;
+  overall: InstrumentReadinessStatus;
+  capabilities: InstrumentCapabilityFlags;
+  freshnessPolicy: InstrumentReadinessFreshnessPolicy;
+  blockers: InstrumentReadinessBlocker[];
+  evaluatedAtUtc: string;
+  placesOrders: false;
+  acceptsForExecution: false;
+}
+
+export interface InstrumentReadinessCatalogSummary {
+  phase: "56.2.8";
+  provider: MarketProviderId | null;
+  discoveredCount: number;
+  liveFeedReadyCount: number;
+  historicalAvailableCount: number;
+  blockedOrUnreadyCount: number;
+  snapshots: InstrumentReadinessSnapshot[];
+  notes: string[];
+  placesOrders: false;
+  acceptsForExecution: false;
+  evaluatedAtUtc: string;
+}

@@ -44,6 +44,13 @@ import type {
   MarketProviderHealth,
   MarketProviderId,
 } from "./types.js";
+import {
+  evaluateInstrumentReadiness,
+  summarizeInstrumentReadinessCatalog,
+  type InstrumentReadinessCatalogSummary,
+  type InstrumentReadinessSnapshot,
+} from "../instrument-readiness/index.js";
+import { resolveForexConnectLiveTimeframe } from "../forexconnect/timeframes.js";
 
 export class MarketDataRoutingError extends Error {
   readonly code: string;
@@ -121,6 +128,132 @@ export class MarketDataService {
 
   listProviders(): MarketProviderId[] {
     return this.registry.listProviderIds();
+  }
+
+  /**
+   * Phase 56.2.8 — per-instrument readiness (market-agnostic).
+   * Live sessions are evaluated independently; catalog rows without a live session
+   * report discovered/historical capability without inventing LIVE quotes.
+   */
+  async getInstrumentReadiness(options: {
+    provider: MarketProviderId | string;
+    symbols?: string[] | null;
+    search?: string | null;
+    refreshCatalog?: boolean;
+    subscribeLive?: boolean;
+    timeframe?: string | null;
+    limit?: number;
+  }): Promise<InstrumentReadinessCatalogSummary> {
+    const provider = this.resolveProvider(options.provider);
+    const limit = options.limit ?? 100;
+    const catalog = await this.listInstruments({
+      provider,
+      search: options.search,
+      refresh: options.refreshCatalog,
+      limit: Math.max(limit, options.symbols?.length ?? 0),
+    });
+    const providerInfo = this.registry.getProvider(provider)?.getCapabilities();
+    const symbolFilter = (options.symbols ?? [])
+      .map((s) => normalizeCanonicalSymbol(s))
+      .filter(Boolean);
+    let targets = catalog;
+    if (symbolFilter.length > 0) {
+      targets = catalog.filter((row) =>
+        symbolFilter.includes(normalizeCanonicalSymbol(row.canonicalSymbol))
+        || symbolFilter.includes(normalizeCanonicalSymbol(row.providerSymbol))
+      );
+      // Include explicit symbols even when not yet in catalog (report UNAVAILABLE).
+      for (const raw of options.symbols ?? []) {
+        const compact = normalizeCanonicalSymbol(raw);
+        if (!targets.some((t) =>
+          normalizeCanonicalSymbol(t.canonicalSymbol) === compact
+          || normalizeCanonicalSymbol(t.providerSymbol) === compact
+        )) {
+          targets.push({
+            provider,
+            providerSymbol: String(raw).trim(),
+            canonicalSymbol: compact || String(raw).trim(),
+            displaySymbol: String(raw).trim(),
+            marketType: "UNKNOWN",
+            baseAsset: null,
+            quoteAsset: null,
+            status: "unknown",
+            capabilities: {
+              instruments: false,
+              liveQuotes: false,
+              streamingQuotes: false,
+              historicalPrices: false,
+              candles: false,
+              liveCandles: false,
+              trading: false,
+            },
+            metadata: {},
+          });
+        }
+      }
+    }
+    targets = targets.slice(0, limit);
+
+    const tf = resolveForexConnectLiveTimeframe(options.timeframe ?? "1m");
+    const liveByCanonical = new Map<string, {
+      bid: number | null;
+      ask: number | null;
+      streamState: string;
+      priceChangeAgeMs: number | null;
+      receiptAgeMs: number | null;
+      updateCount: number;
+      historicalOnly: boolean;
+    }>();
+
+    if (provider === "FOREXCONNECT") {
+      if (options.subscribeLive && targets.length > 0) {
+        for (const row of targets.slice(0, Math.min(8, targets.length))) {
+          try {
+            await this.forexConnectLive.ensure(row.providerSymbol, tf);
+          } catch {
+            /* leave as undiscovered live — readiness reports honestly */
+          }
+        }
+      }
+      for (const session of this.forexConnectLive.listActiveQuoteSessions()) {
+        liveByCanonical.set(session.canonicalSymbol, {
+          bid: session.bid,
+          ask: session.ask,
+          streamState: session.streamState,
+          priceChangeAgeMs: session.priceChangeAgeMs,
+          receiptAgeMs: session.receiptAgeMs,
+          updateCount: session.updateCount,
+          historicalOnly: session.updateCount <= 0,
+        });
+      }
+    }
+
+    const snapshots: InstrumentReadinessSnapshot[] = targets.map((row) => {
+      const live = liveByCanonical.get(normalizeCanonicalSymbol(row.canonicalSymbol))
+        ?? liveByCanonical.get(normalizeCanonicalSymbol(row.providerSymbol))
+        ?? null;
+      return evaluateInstrumentReadiness({
+        provider,
+        instrument: row.status === "unknown" && !row.capabilities.instruments ? null : row,
+        providerSymbol: row.providerSymbol,
+        canonicalSymbol: row.canonicalSymbol,
+        displaySymbol: row.displaySymbol,
+        live,
+        historicalCapability: Boolean(
+          providerInfo?.historicalPrices || providerInfo?.candles || row.capabilities.historicalPrices,
+        ),
+      });
+    });
+
+    return summarizeInstrumentReadinessCatalog({
+      provider,
+      snapshots,
+      notes: [
+        options.subscribeLive
+          ? "subscribeLive requested — limited to first 8 symbols to avoid subscription storms."
+          : "Catalog readiness without forced subscribe; active live sessions included when present.",
+      ],
+    });
   }
 
   resolveProvider(provider: MarketProviderId | string): MarketProviderId {

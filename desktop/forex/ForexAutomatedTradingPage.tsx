@@ -487,7 +487,8 @@ export function ForexAutomatedTradingPage(props: {
       environment: status.selectedEnvironment,
       expectedEnvironmentEpoch: status.environmentEpoch,
       instrument: instrument || undefined,
-      timeframe: props.timeframe || "m1",
+      // Phase 56.2.8 — project TF ids only (`1m`), never ForexConnect period aliases (`m1`).
+      timeframe: props.timeframe || monitorTf || "1m",
     });
   };
 

@@ -5,6 +5,7 @@
 import { getForexConnectProfilesManager } from "../../market-data/forexconnect/profiles.js";
 import { getForexConnectBridge } from "../../market-data/forexconnect/client.js";
 import { getForexConnectLiveCandleService } from "../../market-data/forexconnect/live-service.js";
+import { resolveForexConnectLiveTimeframe } from "../../market-data/forexconnect/timeframes.js";
 import { getAutomatedTradingStore, type AutomatedTradingStore } from "./store.js";
 import {
   getAtOpenAiAnalysisEngine,
@@ -1019,8 +1020,14 @@ export class AutomatedTradingService {
       if (instrumentSymbol) {
         try {
           const live = getForexConnectLiveCandleService();
-          const tf = String(input.timeframe ?? "m1").trim() || "m1";
-          const series = await live.ensure(instrumentSymbol, tf);
+          // Phase 56.2.8 — normalize m1/5m aliases; never pass SDK period ids into ensure().
+          const tf = resolveForexConnectLiveTimeframe(input.timeframe, "1m");
+          let series = await live.ensure(instrumentSymbol, tf);
+          // Brief settle polls: wait for a genuine Offers change without inventing LIVE.
+          for (let i = 0; i < 3 && series.streamState !== "LIVE"; i += 1) {
+            await new Promise((r) => setTimeout(r, 400));
+            series = await live.ensure(instrumentSymbol, tf);
+          }
           const latest = live.getLatestQuoteState(instrumentSymbol);
           const now = Date.now();
           // Never treat receipt/heartbeat age as priceChangeAge — that conflation

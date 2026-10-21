@@ -98,6 +98,15 @@ export function ForexAdminForexConnectPage() {
     first?: Record<string, unknown> | null;
     last?: Record<string, unknown> | null;
   } | null>(null);
+  const [readiness, setReadiness] = useState<{
+    discoveredCount: number;
+    liveFeedReadyCount: number;
+    historicalAvailableCount: number;
+    blockedOrUnreadyCount: number;
+    snapshots: Array<Record<string, unknown>>;
+    evaluatedAtUtc?: string;
+  } | null>(null);
+  const [readinessBusy, setReadinessBusy] = useState(false);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [adminTokenDraft, setAdminTokenDraft] = useState("");
   const [adminAuthChecking, setAdminAuthChecking] = useState(true);
@@ -787,6 +796,94 @@ export function ForexAdminForexConnectPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="fxa-card" data-fc-instrument-readiness>
+        <h3>Instrument data readiness (Phase 56.2.8)</h3>
+        <p className="fxa-muted">
+          Per-instrument feed health. Discovery ≠ live ≠ simulation ≠ execution.
+          placesOrders remains false.
+        </p>
+        <div className="fxa-actions">
+          <button
+            type="button"
+            disabled={readinessBusy}
+            onClick={() => {
+              setReadinessBusy(true);
+              void forexProvidersApi.instrumentReadiness({
+                provider: "FOREXCONNECT",
+                symbols: [sampleSymbol, "XAU/USD", "EUR/USD"].filter(
+                  (v, i, a) => a.indexOf(v) === i,
+                ),
+                subscribeLive: true,
+                timeframe: sampleTf,
+                limit: 8,
+              })
+                .then((res) => {
+                  setReadiness({
+                    discoveredCount: res.discoveredCount,
+                    liveFeedReadyCount: res.liveFeedReadyCount,
+                    historicalAvailableCount: res.historicalAvailableCount,
+                    blockedOrUnreadyCount: res.blockedOrUnreadyCount,
+                    snapshots: res.snapshots,
+                    evaluatedAtUtc: res.evaluatedAtUtc,
+                  });
+                  setNote(
+                    `Readiness: discovered=${res.discoveredCount} liveReady=${res.liveFeedReadyCount} blocked=${res.blockedOrUnreadyCount}`,
+                  );
+                })
+                .catch((err: Error) => setNote(err.message))
+                .finally(() => setReadinessBusy(false));
+            }}
+          >
+            {readinessBusy ? "Probing…" : "Probe readiness (sample symbols)"}
+          </button>
+        </div>
+        {readiness ? (
+          <>
+            <ul>
+              <li>Discovered: {readiness.discoveredCount}</li>
+              <li>Live-feed ready: {readiness.liveFeedReadyCount}</li>
+              <li>Historical capable: {readiness.historicalAvailableCount}</li>
+              <li>Not live-ready: {readiness.blockedOrUnreadyCount}</li>
+              <li>Evaluated: {readiness.evaluatedAtUtc ?? "—"}</li>
+            </ul>
+            <div className="fx-markets-table-wrap">
+              <table className="fx-markets-table">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Overall</th>
+                    <th>Live</th>
+                    <th>Hist</th>
+                    <th>Sim</th>
+                    <th>Exec</th>
+                    <th>Feed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {readiness.snapshots.slice(0, 12).map((row) => {
+                    const caps = (row.capabilities ?? {}) as Record<string, unknown>;
+                    const quote = (row.quote ?? {}) as Record<string, unknown>;
+                    return (
+                      <tr key={String(row.canonicalSymbol ?? row.providerSymbol)}>
+                        <td>{String(row.displaySymbol ?? row.providerSymbol)}</td>
+                        <td>{String(row.overall ?? "—")}</td>
+                        <td>{caps.liveFeedReady ? "yes" : "no"}</td>
+                        <td>{caps.historicalAvailable ? "yes" : "no"}</td>
+                        <td>{caps.simulationReady ? "yes" : "no"}</td>
+                        <td>{caps.executionAuthorized ? "yes" : "no"}</td>
+                        <td>{String(quote.feedStatus ?? row.connectionState ?? "—")}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="fxa-muted">No readiness probe yet. Uses sample symbol + XAU/USD + EUR/USD when available.</p>
+        )}
       </section>
 
       <section className="fxa-card">
