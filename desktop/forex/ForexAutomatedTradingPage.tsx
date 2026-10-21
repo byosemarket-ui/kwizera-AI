@@ -112,6 +112,15 @@ type PublicStatus = {
     ordersCapability?: string | null;
     tradesCapability?: string | null;
   } | null;
+  /** Phase 56.2.7 — simulation draft data-readiness summary. */
+  simulationDataReadiness?: {
+    overall?: string;
+    readyForSimulationDraft?: boolean;
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    notReady?: Array<{ id?: string; status?: string; reason?: string | null }>;
+    evaluatedAtUtc?: string;
+  } | null;
   blockers: string[];
   explanation: string;
   verification: Verification | null;
@@ -1736,6 +1745,16 @@ export function ForexAutomatedTradingPage(props: {
                             ? "USD account — identity (no FX rate)"
                             : unavailable("non-USD rate required"))
                           : unavailable("account currency"),
+                      )}
+                      {cell(
+                        "Data Readiness",
+                        status?.simulationDataReadiness?.overall
+                          ? `${status.simulationDataReadiness.overall}`
+                            + (status.simulationDataReadiness.readyForSimulationDraft
+                              ? " — draft sizing gates OK (execution still forbidden)"
+                              : ` — ${(status.simulationDataReadiness.notReady?.length ?? 0)} gate(s) not READY`)
+                          : unavailable("status"),
+                        { testId: "data-readiness" },
                       )}
                     </dl>
                     <p className="fx-auto-trading-hint">

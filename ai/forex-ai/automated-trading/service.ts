@@ -28,7 +28,10 @@ import {
   getAtSimRiskEngine,
   proposeSimLevels,
   reconcileBrokerExposure,
+  resolveXauQuantityConstraints,
   resolveXauQuantitySemantics,
+  evaluateSimulationDataReadiness,
+  simulationDataReadinessPublicSummary,
   validateOrderAllocationAmount,
   xauSemanticsPublicSummary,
   type AtSimRiskEngine,
@@ -450,6 +453,51 @@ export class AutomatedTradingService {
       };
     }
 
+    const qtyConstraints = resolveXauQuantityConstraints({
+      quantityUnit: semantics.resolvedQuantityUnit,
+      quantityUnitAmbiguous: semantics.quantityUnitAmbiguous,
+      baseUnitSize: inst?.baseUnitSize,
+      sdkMinQuantity: inst?.quantityMin,
+      legacyLotStep: inst?.quantityStep,
+      reportedQuantityStep: inst?.quantityStep,
+      reportedQuantityMin: inst?.quantityMin,
+    });
+    const acctCcy = verification?.account?.accountCurrency ?? null;
+    const simReadiness = evaluateSimulationDataReadiness({
+      environment: fresh.selectedEnvironment,
+      environmentMatches: sessionMatchesSelection,
+      quoteFresh: freshnessEval.fresh,
+      quoteReasonCode: freshnessEval.reasonCode,
+      feedStatus: verification?.market?.feedStatus ?? null,
+      bid: verification?.market?.bid ?? null,
+      ask: verification?.market?.ask ?? null,
+      accountVerified,
+      accountCurrency: acctCcy,
+      equity: verification?.account?.equity ?? null,
+      usableMargin: verification?.account?.usableMargin ?? null,
+      accountFresh: verification?.account?.isFresh ?? null,
+      quantityUnit: semantics.resolvedQuantityUnit,
+      quantityUnitAmbiguous: semantics.quantityUnitAmbiguous,
+      quantityMin: qtyConstraints.quantityMin,
+      quantityStep: qtyConstraints.quantityStep,
+      quantityConstraintsVerified: !qtyConstraints.sizingBlocked,
+      minStopDistanceVerified: semantics.minStopDistanceVerified,
+      minStopNoPositiveMinimum: semantics.minStopNoPositiveMinimum,
+      condDistUnit: semantics.condDistUnit,
+      condDistAvailable: Boolean(inst?.condDistAvailable),
+      conversionRequired: Boolean(acctCcy && String(acctCcy).toUpperCase() !== "USD"),
+      conversionReady: !acctCcy || String(acctCcy).toUpperCase() === "USD",
+      conversionReason:
+        acctCcy && String(acctCcy).toUpperCase() !== "USD"
+          ? "Non-USD account — authoritative FX snapshot not wired on this status path."
+          : null,
+      exposureAuthoritative: exposureSummary?.authoritative ?? null,
+      exposureStatus: exposureSummary?.status ?? null,
+      confirmedZeroExposure: exposureSummary?.confirmedZeroExposure ?? null,
+      masterEnable: selectedFresh.controls.masterEnable,
+      emergencyEntryLock: selectedFresh.controls.emergencyEntryLock,
+    });
+
     return {
       schemaVersion: AUTOMATED_TRADING_SCHEMA,
       phase: AUTOMATED_TRADING_PHASE,
@@ -503,6 +551,7 @@ export class AutomatedTradingService {
       })(),
       quantitySemantics: xauSemanticsPublicSummary(semantics),
       exposureReconciliation: exposureSummary,
+      simulationDataReadiness: simulationDataReadinessPublicSummary(simReadiness),
       blockers: [...new Set(blockers)],
       explanation:
         moduleStatus === "BLOCKED"

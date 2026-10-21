@@ -131,6 +131,8 @@ export interface AutomatedTradingPublicStatus {
     ordersCapability: string | null;
     tradesCapability: string | null;
   } | null;
+  /** Phase 56.2.7 — simulation draft data-readiness matrix (never enables execution). */
+  simulationDataReadiness: Record<string, unknown> | null;
   blockers: string[];
   explanation: string;
   selectedEnvState: AutomatedTradingEnvState;
