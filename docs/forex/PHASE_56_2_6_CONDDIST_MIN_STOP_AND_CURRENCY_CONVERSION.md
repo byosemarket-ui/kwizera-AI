@@ -6,7 +6,7 @@
 **Starting HEAD:** `606350b1a289107cab87eeae788cd0bb876b2358`  
 **Production baseline at start:** `deployedCommit=606350b1…`, `verifiedLive=true` (Phase 56.2.5 docs)  
 **Feature baseline:** `6c855d7dcd1d638113023ac8aa582ae241a9ab61`  
-**Ending HEAD / deployed:** `1a7ce3b349faa8715645db6bbe9a00641fb29a04`  
+**Ending HEAD / deployed:** feature `1a7ce3b349faa8715645db6bbe9a00641fb29a04`; docs evidence `bc719fba083a9e17c94e72c8614e086850f317ff`  
 **Installed SDK pin:** ForexConnect pip `1.6.43` (`deploy/provision-forexconnect.sh`)  
 **Scope:** Read-only broker + simulation-only sizing. **No execution. LIVE unauthorized. Do not start 56.2.7 / 56.3.**
 
@@ -125,9 +125,11 @@ UI surfaces Quote / Exposure, Min-Stop / CondDist, and Currency Conversion on th
 | Item | Evidence |
 |------|----------|
 | Feature commit | `1a7ce3b349faa8715645db6bbe9a00641fb29a04` — `feat(forex): Phase 56.2.6 CondDist pips semantics, min-stop attestation, FX conversion` |
-| Docs follow-up | This file (post-deploy evidence fill) |
-| CI/CD | GitHub Actions run `39571010719` — **success** on feature SHA |
-| Production `/api/deployment` | `deployedCommit=1a7ce3b349faa8715645db6bbe9a00641fb29a04`, `verifiedLive=true`, `result=success`, timestamp `2026-10-21T08:43:29.405Z` |
+| Docs follow-up | `bc719fba083a9e17c94e72c8614e086850f317ff` — this evidence fill |
+| CI/CD (feature) | Production deploy #389 / run `39571010719` — **success** on `1a7ce3b3` |
+| CI/CD (docs) | Production deploy #390 / run `39573514461` — **success** on `bc719fba` |
+| Production `/api/deployment` (feature) | `deployedCommit=1a7ce3b349faa8715645db6bbe9a00641fb29a04`, `verifiedLive=true`, timestamp `2026-10-21T08:43:29.405Z` |
+| Production `/api/deployment` (docs) | `deployedCommit=bc719fba083a9e17c94e72c8614e086850f317ff`, `verifiedLive=true`, `result=success`, timestamp `2026-10-21T09:03:07.203Z` |
 | Production `/api/health` | `ok=true`, `status=healthy`, `runtimeReady=true` |
 | Public AT URL | `http://162.35.114.19:5173/forex/automated-trading` |
 | Vite bundle string check | `ForexApp-OR9X-acn.js` contains `Order Allocation (USD)`, `Quote Freshness`, `Min-Stop / CondDist`, `Currency Conversion`, `placesOrders` |
