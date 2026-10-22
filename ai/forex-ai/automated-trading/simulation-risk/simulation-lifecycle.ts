@@ -509,6 +509,121 @@ export function evaluateSimReentryPolicy(): {
   };
 }
 
+/** Phase 56.4.7 — per-position process-restart recovery action (simulation only). */
+export type SimRestartRecoveryAction =
+  | "UNCHANGED_CLOSED"
+  | "UNCHANGED_REJECTED"
+  | "ALREADY_INTERRUPTED"
+  | "MARKED_STALE_AWAITING_FRESH_QUOTE"
+  | "AMBIGUOUS_EXIT_BLOCKED";
+
+export interface SimRestartRecoveryItem {
+  positionId: string;
+  action: SimRestartRecoveryAction;
+  fromState: SimLifecycleState;
+  toState: SimLifecycleState;
+  changed: boolean;
+  placesOrders: false;
+  acceptsForExecution: false;
+}
+
+export const SIM_RESTART_RECOVERY_NOTE =
+  "PROCESS_RESTART_RECOVERY: awaiting fresh LIVE quote (pre-restart quote invalidated).";
+
+/**
+ * Phase 56.4.7 — Fail-closed recovery for one simulated position after process restart.
+ * Never fabricates fills, exit prices, realized P/L, or broker orders.
+ * Closed positions stay closed. Open/monitoring positions become STALE_INTERRUPTED
+ * until a post-restart fresh LIVE quote resumes monitoring via the normal monitor path.
+ * Idempotent for already-interrupted positions.
+ */
+export function recoverSimPositionAfterProcessRestart(pos: SimPosition): {
+  position: SimPosition;
+  action: SimRestartRecoveryAction;
+  changed: boolean;
+} {
+  if (pos.state === "SIMULATED_CLOSED") {
+    return { position: pos, action: "UNCHANGED_CLOSED", changed: false };
+  }
+  if (pos.state === "REJECTED") {
+    return { position: pos, action: "UNCHANGED_REJECTED", changed: false };
+  }
+  if (pos.state === "STALE_INTERRUPTED") {
+    // Already blocked — never invent an exit from recovery.
+    if (pos.exitReason != null || pos.exitPrice != null || pos.exitAtUtc != null) {
+      return {
+        position: {
+          ...pos,
+          exitReason: null,
+          exitPrice: null,
+          exitAtUtc: null,
+        },
+        action: "ALREADY_INTERRUPTED",
+        changed: true,
+      };
+    }
+    return { position: pos, action: "ALREADY_INTERRUPTED", changed: false };
+  }
+
+  const from = pos.state;
+  const action: SimRestartRecoveryAction =
+    from === "EXIT_TRIGGERED" ? "AMBIGUOUS_EXIT_BLOCKED" : "MARKED_STALE_AWAITING_FRESH_QUOTE";
+  // Do not complete EXIT_TRIGGERED → SIMULATED_CLOSED here: that could report a close
+  // without a durable close audit. Fail closed and await a fresh monitor tick.
+  let next = transition(pos, "STALE_INTERRUPTED", SIM_RESTART_RECOVERY_NOTE);
+  next = {
+    ...next,
+    unrealizedPnl: null,
+    exitReason: null,
+    exitPrice: null,
+    exitAtUtc: null,
+    exitQuoteSnapshotId: null,
+  };
+  return { position: next, action, changed: true };
+}
+
+/**
+ * Idempotent batch recovery after process restart. Does not open positions,
+ * does not register broker monitors, and does not call market data.
+ */
+export function recoverSimPositionsAfterProcessRestart(positions: SimPosition[]): {
+  positions: SimPosition[];
+  results: SimRestartRecoveryItem[];
+  changedCount: number;
+  placesOrders: false;
+  acceptsForExecution: false;
+  autoReentryEnabled: false;
+  note: string;
+} {
+  const results: SimRestartRecoveryItem[] = [];
+  const nextPositions: SimPosition[] = [];
+  let changedCount = 0;
+  for (const pos of positions) {
+    const r = recoverSimPositionAfterProcessRestart(pos);
+    nextPositions.push(r.position);
+    if (r.changed) changedCount += 1;
+    results.push({
+      positionId: pos.simulationPositionId,
+      action: r.action,
+      fromState: pos.state,
+      toState: r.position.state,
+      changed: r.changed,
+      placesOrders: false,
+      acceptsForExecution: false,
+    });
+  }
+  return {
+    positions: nextPositions,
+    results,
+    changedCount,
+    placesOrders: false,
+    acceptsForExecution: false,
+    autoReentryEnabled: false,
+    note:
+      "Process-restart recovery is simulation-only. Monitoring resumes only after a fresh LIVE quote.",
+  };
+}
+
 export function simulationLifecyclePublicStatus(positions: SimPosition[]): SimLifecyclePublicStatus {
   const open = positions.filter(
     (p) =>
@@ -518,6 +633,7 @@ export function simulationLifecyclePublicStatus(positions: SimPosition[]): SimLi
       || p.state === "STALE_INTERRUPTED",
   );
   const closed = positions.filter((p) => p.state === "SIMULATED_CLOSED");
+  const awaitingFresh = open.filter((p) => p.state === "STALE_INTERRUPTED").length;
   return {
     openCount: open.length,
     closedCount: closed.length,
@@ -527,6 +643,8 @@ export function simulationLifecyclePublicStatus(positions: SimPosition[]): SimLi
     acceptsForExecution: false,
     simulationOnly: true,
     note:
-      "Simulation lifecycle only — never broker orders. Auto re-entry disabled; new VALIDATION_PASSED draft required.",
+      awaitingFresh > 0
+        ? `Simulation lifecycle only — never broker orders. ${awaitingFresh} position(s) STALE_INTERRUPTED awaiting fresh LIVE quote after interrupt/recovery.`
+        : "Simulation lifecycle only — never broker orders. Auto re-entry disabled; new VALIDATION_PASSED draft required.",
   };
 }

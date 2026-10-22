@@ -47,12 +47,14 @@ import {
   getAtSimLifecycleStore,
   proposeControlledSlCrossingLevels,
   proposeControlledSlApproachLevels,
+  recoverSimPositionsAfterProcessRestart,
   type AtSimRiskEngine,
   type AtSimDraftResult,
   type AtSimRiskPolicy,
   type AtSimRiskPublicStatus,
   type DraftQuoteSnapshot,
   type SimPosition,
+  type SimRestartRecoveryItem,
 } from "./simulation-risk/index.js";
 import type { AtBinaryDirection } from "./analysis/direction.js";
 import {
@@ -1861,6 +1863,62 @@ export class AutomatedTradingService {
     return simulationLifecyclePublicStatus(store.list());
   }
 
+  /**
+   * Phase 56.4.7 — Idempotent simulation-only recovery after process restart.
+   * Persisted open/monitoring positions become STALE_INTERRUPTED (await fresh quote).
+   * Closed positions stay closed. Never fabricates fills or broker orders.
+   */
+  async recoverSimLifecycleFromPersistence(input?: {
+    environment?: string;
+  }): Promise<{
+    ok: true;
+    recovered: true;
+    changedCount: number;
+    results: SimRestartRecoveryItem[];
+    lifecycle: ReturnType<typeof simulationLifecyclePublicStatus>;
+    placesOrders: false;
+    acceptsForExecution: false;
+    autoReentryEnabled: false;
+    simulationOnly: true;
+  }> {
+    const life = getAtSimLifecycleStore();
+    const before = life.list();
+    const batch = recoverSimPositionsAfterProcessRestart(before);
+    for (let i = 0; i < batch.results.length; i++) {
+      if (!batch.results[i]?.changed) continue;
+      const next = batch.positions[i];
+      if (next) await life.upsert(next);
+    }
+    if (batch.changedCount > 0) {
+      const env =
+        input?.environment
+        || before[0]?.environment
+        || this.store.getState().selectedEnvironment
+        || "DEMO";
+      await this.store.appendAudit({
+        action: "simulation_lifecycle_recovered",
+        environment: env,
+        ok: true,
+        code: "PROCESS_RESTART_RECOVERY",
+        detail: `sim recovery: ${batch.changedCount} position(s) STALE_INTERRUPTED; awaiting fresh LIVE quote`.slice(
+          0,
+          160,
+        ),
+      });
+    }
+    return {
+      ok: true,
+      recovered: true,
+      changedCount: batch.changedCount,
+      results: batch.results,
+      lifecycle: simulationLifecyclePublicStatus(life.list()),
+      placesOrders: false,
+      acceptsForExecution: false,
+      autoReentryEnabled: false,
+      simulationOnly: true,
+    };
+  }
+
   async openSimulatedFromLatestDraft(): Promise<
     | { ok: true; position: SimPosition; status: AutomatedTradingPublicStatus }
     | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
@@ -2229,6 +2287,10 @@ export function getAutomatedTradingService(storageRoot?: string): AutomatedTradi
     });
     mon.resumeFromPersistence();
     serviceSingleton = new AutomatedTradingService(store, engine, mon, decision, simRisk);
+    // Phase 56.4.7 — fail-closed sim lifecycle recovery (never broker; never fabricate fills).
+    void serviceSingleton.recoverSimLifecycleFromPersistence().catch(() => {
+      // Recovery errors must not block service construction; positions remain on disk.
+    });
   }
   return serviceSingleton;
 }

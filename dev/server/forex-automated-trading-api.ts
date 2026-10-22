@@ -872,6 +872,28 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 56.4.7 — idempotent simulation-only process-restart recovery (never broker).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/recover")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      await readJsonBody(req, 2_000);
+      const result = await service.recoverSimLifecycleFromPersistence();
+      sendJson(res, 200, {
+        ok: true,
+        recovered: result.recovered,
+        changedCount: result.changedCount,
+        results: result.results,
+        lifecycle: result.lifecycle,
+        placesOrders: false,
+        acceptsForExecution: false,
+        autoReentryEnabled: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
     // Phase 56.4.6 — controlled simulation-only monitor inject (SL acceptance / stale). Never broker.
     if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/controlled-inject")) {
       if (req.method !== "POST") {
