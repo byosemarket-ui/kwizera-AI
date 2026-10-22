@@ -408,7 +408,7 @@ describe("Phase 56.4.0 Scenario 1 synthetic path (gates + draft)", () => {
         direction: "BUY",
         entryPrice: 4100.1,
         stopLoss: 4095,
-        takeProfit: 4115.3,
+        takeProfit: 4115.4, // 3R: |4100.1−4095|×3
       },
     });
 

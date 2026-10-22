@@ -763,6 +763,114 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 56.4.2 — reopen draft with forced quote/budget revalidation (simulation only).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-risk/reopen")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const result = await service.reopenAndRevalidateLatestDraft({
+        expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
+        requestedPerOrderAllocation: body.requestedPerOrderAllocation,
+      });
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          draft: result.draft,
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        draft: result.draft,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        lifecycle: service.getSimLifecycleStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/open")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      await readJsonBody(req, 2_000);
+      const result = await service.openSimulatedFromLatestDraft();
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        position: result.position,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/monitor")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const positionId = String(body.positionId ?? "").trim();
+      const result = await service.monitorSimulatedPosition(positionId);
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        position: result.position,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
     sendJson(res, 404, {
       ok: false,
       error: { code: "NOT_FOUND", message: "Unknown Automated Trading endpoint." },

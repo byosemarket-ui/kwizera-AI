@@ -9,10 +9,10 @@ import type { MarketEvidenceStrength } from "./allocation-3r.js";
 import type { AtSimProfitProtectionResult } from "./profit-protection.js";
 
 export const AT_SIM_RISK_SCHEMA = "at-simulation-risk-draft-v1";
-export const AT_SIM_RISK_PHASE = "56.2.4";
+export const AT_SIM_RISK_PHASE = "56.4.2";
 export const AT_SIM_RISK_POLICY_VERSION = "sim-risk-policy-v1";
 export const AT_SIM_RISK_BANNER =
-  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.2.4 — EXECUTION FORBIDDEN";
+  "SIMULATION-ONLY DRAFT VALIDATION — PHASE 56.4.2 — EXECUTION FORBIDDEN";
 
 /**
  * Hard max-loss % per trade remains undecided (distinct from 12–25% allocation).
@@ -285,6 +285,28 @@ export interface AtSimDraftResult {
   simulationOnly: true;
   placesOrders: false;
   acceptsForExecution: false;
+  /** Phase 56.4.2 — quote snapshot used at draft-boundary validation (not aged Verify). */
+  quoteSnapshot?: {
+    snapshotId: string;
+    observedAtUtc: string;
+    source: string;
+    streamState: string;
+    bid: number | null;
+    ask: number | null;
+    priceChangeAgeMs: number | null;
+    fresh: boolean;
+    reasonCode: string;
+  } | null;
+  /** Phase 56.4.2 — actionable rejection details (no secrets). */
+  actionableRejections?: Array<{
+    code: string;
+    message: string;
+    affected: string;
+    classification: string;
+    correctiveAction: string | null;
+  }>;
+  /** True when draft was revalidated on reopen against current quote/budget. */
+  revalidatedOnLoad?: boolean;
 }
 
 export interface AtSimRiskPublicStatus {

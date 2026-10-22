@@ -19,7 +19,7 @@ import {
   evaluatePerOrderLossLimit,
 } from "./capital-budget.js";
 import { evaluateProfitProtection } from "./profit-protection.js";
-import { proposeQuantityFromAllocation } from "./propose-levels.js";
+import { proposeQuantityFromAllocation, proposeTakeProfit3RPrice } from "./propose-levels.js";
 import { sizeOrderQuantityFromAllocation } from "./size-order-quantity.js";
 import {
   AT_SIM_RISK_BANNER,
@@ -375,6 +375,53 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
       "SKIPPED",
       "Price-increment enforcement skipped — contract metadata not verified.",
     );
+  }
+
+  // —— Phase 56.4.2 — TP must satisfy price-level 3R after tick rounding (never silently adjust) ——
+  if (
+    geometryOk
+    && (direction === "BUY" || direction === "SELL")
+    && isFinitePositive(entry)
+    && isFinitePositive(sl)
+    && isFinitePositive(tp)
+  ) {
+    const expected = proposeTakeProfit3RPrice({
+      direction,
+      entryPrice: entry,
+      stopLoss: sl,
+      digits: contract?.digits ?? null,
+    });
+    if (!expected.ok) {
+      pushCheck(checks, expected.code, "REWARD_RISK", "FAIL", expected.message);
+      geometryOk = false;
+    } else {
+      const tick =
+        (contract?.tickSize != null && contract.tickSize > 0)
+          ? contract.tickSize
+          : (contract?.pointSize != null && contract.pointSize > 0)
+            ? contract.pointSize
+            : 1e-8;
+      const delta = Math.abs(tp - expected.takeProfit);
+      if (delta > tick + 1e-12) {
+        pushCheck(
+          checks,
+          "TP_NOT_3R",
+          "REWARD_RISK",
+          "FAIL",
+          `Take Profit ${tp} does not match required 3R price ${expected.takeProfit} `
+            + `(R=${expected.stopDistance}; tolerance=${tick}). Re-validate or submit a new draft.`,
+        );
+        geometryOk = false;
+      } else {
+        pushCheck(
+          checks,
+          "TP_3R_POLICY",
+          "REWARD_RISK",
+          "PASS",
+          `Take Profit matches 3R policy (expected=${expected.takeProfit}).`,
+        );
+      }
+    }
   }
 
   // —— Min stop distance (CondDist pips × PointSize when verified) ——
@@ -834,12 +881,24 @@ export function validateSimulationDraft(input: AtSimDraftInput): AtSimDraftResul
   }
 
   // —— Proposed quantity from per-order allocation (25% loss ceiling) ——
+  // Never accept a quantity when the contract unit is ambiguous (fail closed).
+  const quantityUnitBlocksSizing =
+    !contract
+    || !contract.verified
+    || contract.quantityUnitAmbiguous
+    || !contract.quantityUnit
+    || contract.quantityUnit === "unknown";
   let proposedQuantity: number | null =
-    isFinitePositive(input.requestedQuantity) ? input.requestedQuantity : null;
-  let proposedQuantityNote: string | null = isFinitePositive(input.requestedQuantity)
-    ? `Using requested quantity ${input.requestedQuantity} (${contract?.quantityUnit ?? "unit unverified"}).`
-    : null;
-  if (proposedQuantity == null) {
+    !quantityUnitBlocksSizing && isFinitePositive(input.requestedQuantity)
+      ? input.requestedQuantity
+      : null;
+  let proposedQuantityNote: string | null =
+    quantityUnitBlocksSizing
+      ? "Quantity blocked — contract unit ambiguous or unverified (not invented)."
+      : isFinitePositive(input.requestedQuantity)
+        ? `Using requested quantity ${input.requestedQuantity} (${contract?.quantityUnit ?? "unit unverified"}).`
+        : null;
+  if (proposedQuantity == null && !quantityUnitBlocksSizing) {
     // Phase 56.2.5 — full allocation-aware sizer (fail closed on missing gates).
     const fullSized = sizeOrderQuantityFromAllocation({
       verifiedEquity: account?.equity ?? null,

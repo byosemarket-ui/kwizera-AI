@@ -44,7 +44,7 @@ function baseInput(over: Partial<AtSimDraftInput> = {}): AtSimDraftInput {
     direction: "BUY",
     entryPrice: 4100,
     stopLoss: 4080,
-    takeProfit: 4140,
+    takeProfit: 4160, // 3R: |4100−4080|×3
     requestedQuantity: null,
     quote: {
       bid: 4099.9,
@@ -133,7 +133,7 @@ describe("Phase 56.2 BUY/SELL geometry", () => {
         direction: "SELL",
         entryPrice: 4100,
         stopLoss: 4120,
-        takeProfit: 4060,
+        takeProfit: 4040, // 3R: |4100−4120|×3
       }),
     );
     expect(r.structuralOk).toBe(true);

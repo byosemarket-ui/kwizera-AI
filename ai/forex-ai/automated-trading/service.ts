@@ -37,10 +37,19 @@ import {
   xauSemanticsPublicSummary,
   isDocumentedCondDistMethod,
   buildOffersConversionRateSnapshot,
+  evaluateDraftBoundaryQuote,
+  enrichDraftRejectionReasons,
+  openSimulatedPosition,
+  monitorSimulatedPosition as applySimMonitorTick,
+  evaluateSimReentryPolicy,
+  simulationLifecyclePublicStatus,
+  getAtSimLifecycleStore,
   type AtSimRiskEngine,
   type AtSimDraftResult,
   type AtSimRiskPolicy,
   type AtSimRiskPublicStatus,
+  type DraftQuoteSnapshot,
+  type SimPosition,
 } from "./simulation-risk/index.js";
 import type { AtBinaryDirection } from "./analysis/direction.js";
 import {
@@ -1593,7 +1602,7 @@ export class AutomatedTradingService {
       });
     }
 
-    // Derive Entry/SL/TP from quote + analysis levels when not explicitly supplied.
+    // Phase 56.4.2 — refresh LIVE Offers quote at draft boundary (do not age lastVerification).
     const resolvedDirection: AtBinaryDirection | null =
       direction === "BUY" || direction === "SELL"
         ? direction
@@ -1601,14 +1610,99 @@ export class AutomatedTradingService {
           ? decision.direction
           : this.analysisEngine.getLatest()?.direction ?? null;
     const analysis = this.analysisEngine.getLatest();
-    const market = envState.lastVerification?.market;
-    const bid = market?.bid ?? null;
-    const ask = market?.ask ?? null;
-    const mid =
-      typeof bid === "number" && typeof ask === "number" && Number.isFinite(bid) && Number.isFinite(ask)
-        ? (bid + ask) / 2
-        : bid ?? ask ?? null;
-    const pointSize = envState.lastVerification?.instrument?.pointSize ?? null;
+    const instrumentSymbol = String(
+      input.instrument
+        ?? decision?.instrument
+        ?? envState.selectedInstrument
+        ?? envState.lastVerification?.instrument?.symbol
+        ?? "XAU/USD",
+    ).trim();
+
+    let draftQuote: DraftQuoteSnapshot | null = null;
+    let quoteFresh: boolean | null = null;
+    let freshnessReasonCode: string | null = null;
+    let quoteAgeMs: number | null = null;
+    let bid: number | null = null;
+    let ask: number | null = null;
+    let mid: number | null = null;
+    let verificationForDraft = envState.lastVerification;
+
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
+      let series = await live.ensure(instrumentSymbol, tf);
+      for (let i = 0; i < 2 && series.streamState !== "LIVE"; i += 1) {
+        await new Promise((r) => setTimeout(r, 350));
+        series = await live.ensure(instrumentSymbol, tf);
+      }
+      const latest = live.getLatestQuoteState(instrumentSymbol);
+      const now = Date.now();
+      const priceChangeAgeMs =
+        latest?.lastPriceChangeAtMs != null
+          ? Math.max(0, now - latest.lastPriceChangeAtMs)
+          : null;
+      const receiptAgeMs =
+        latest?.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : null;
+      const refreshed = evaluateDraftBoundaryQuote({
+        instrument: instrumentSymbol,
+        bid: latest?.quote.bid ?? null,
+        ask: latest?.quote.ask ?? null,
+        streamState: latest?.streamState ?? series.streamState,
+        sourceTimestampMs: latest?.quote.sourceTimestampMs ?? null,
+        receivedAtMs: latest?.quote.receivedAtMs ?? null,
+        priceChangeAgeMs,
+        receiptAgeMs,
+        updateCount: latest?.updateCount ?? series.updateCount,
+        nowMs: now,
+      });
+      draftQuote = refreshed.snapshot;
+      quoteFresh = refreshed.ok ? true : false;
+      freshnessReasonCode = refreshed.ok
+        ? "LIVE_FRESH"
+        : refreshed.code;
+      quoteAgeMs = draftQuote?.priceChangeAgeMs ?? null;
+      bid = draftQuote?.bid ?? null;
+      ask = draftQuote?.ask ?? null;
+      mid = draftQuote?.mid ?? null;
+
+      // Overlay fresh market onto lastVerification for assemble (instrument/account stay authoritative).
+      if (verificationForDraft && draftQuote) {
+        verificationForDraft = {
+          ...verificationForDraft,
+          verifiedAtUtc: draftQuote.observedAtUtc,
+          market: {
+            ...verificationForDraft.market,
+            bid: draftQuote.bid,
+            ask: draftQuote.ask,
+            spread: draftQuote.ask - draftQuote.bid,
+            feedStatus: draftQuote.fresh ? "LIVE" : mapFeedFromDraft(draftQuote.reasonCode),
+            sourceTimestampMs: draftQuote.sourceTimestampMs,
+            receivedAtMs: draftQuote.receivedAtMs,
+            priceChangeAgeMs: draftQuote.priceChangeAgeMs,
+            receiptAgeMs: draftQuote.receiptAgeMs,
+            updateCount: draftQuote.updateCount,
+          },
+        };
+      }
+    } catch {
+      // Fail closed — do not invent a quote from aged verification alone.
+      const fallback = evaluateDraftBoundaryQuote({
+        instrument: instrumentSymbol,
+        bid: null,
+        ask: null,
+        streamState: "ERROR",
+        nowMs: Date.now(),
+      });
+      draftQuote = fallback.snapshot;
+      quoteFresh = false;
+      freshnessReasonCode = "QUOTE_MISSING";
+      quoteAgeMs = null;
+      bid = null;
+      ask = null;
+      mid = null;
+    }
+
+    const pointSize = verificationForDraft?.instrument?.pointSize ?? null;
     const digits =
       typeof pointSize === "number" && pointSize > 0
         ? Math.max(0, Math.round(-Math.log10(pointSize)))
@@ -1632,7 +1726,7 @@ export class AutomatedTradingService {
         bid,
         ask,
         mid,
-        quoteFresh: publicStatus.quoteFreshness?.fresh ?? null,
+        quoteFresh,
         supportLevels: analysis?.supportLevels ?? [],
         resistanceLevels: analysis?.resistanceLevels ?? [],
         digits,
@@ -1648,14 +1742,14 @@ export class AutomatedTradingService {
       // If propose fails, leave nulls — engine will BLOCK with missing SL/TP (no invented levels).
     }
 
-    const draft = await this.simRiskEngine.validateFromContext({
+    let draft = await this.simRiskEngine.validateFromContext({
       environment: env,
       environmentEpoch: state.environmentEpoch,
       decision,
-      verification: envState.lastVerification,
-      quoteFresh: publicStatus.quoteFreshness?.fresh ?? null,
-      freshnessReasonCode: publicStatus.quoteFreshness?.reasonCode ?? null,
-      quoteAgeMs: publicStatus.quoteFreshness?.effectivePriceChangeAgeMs ?? null,
+      verification: verificationForDraft,
+      quoteFresh,
+      freshnessReasonCode,
+      quoteAgeMs,
       sessionEnvironment: publicStatus.broker.activeSessionEnvironment,
       sessionMatchesSelection: publicStatus.broker.sessionMatchesSelection,
       persist: input.persist !== false,
@@ -1670,7 +1764,7 @@ export class AutomatedTradingService {
       condDistMethod,
       fromDocumentedSdkMethod,
       overrides: {
-        instrument: input.instrument != null ? String(input.instrument) : undefined,
+        instrument: input.instrument != null ? String(input.instrument) : instrumentSymbol,
         direction: resolvedDirection ?? direction,
         entryPrice: derivedEntry,
         stopLoss: derivedSl,
@@ -1678,6 +1772,25 @@ export class AutomatedTradingService {
         requestedQuantity: numOrUndef(input.requestedQuantity),
       },
     });
+
+    draft = {
+      ...draft,
+      quoteSnapshot: draftQuote
+        ? {
+          snapshotId: draftQuote.snapshotId,
+          observedAtUtc: draftQuote.observedAtUtc,
+          source: draftQuote.source,
+          streamState: draftQuote.streamState,
+          bid: draftQuote.bid,
+          ask: draftQuote.ask,
+          priceChangeAgeMs: draftQuote.priceChangeAgeMs,
+          fresh: draftQuote.fresh,
+          reasonCode: draftQuote.reasonCode,
+        }
+        : null,
+      actionableRejections: enrichDraftRejectionReasons(draft.checks, draft.reasons),
+      revalidatedOnLoad: false,
+    };
 
     await this.store.appendAudit({
       action: "simulation_draft_validated",
@@ -1693,6 +1806,194 @@ export class AutomatedTradingService {
       status: await this.buildStatus(),
     };
   }
+
+  /** Reopen latest draft and force revalidation against current LIVE quote/budget. */
+  async reopenAndRevalidateLatestDraft(input?: {
+    expectedEnvironmentEpoch?: unknown;
+    requestedPerOrderAllocation?: unknown;
+  }): Promise<
+    | { ok: true; draft: AtSimDraftResult; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; draft: AtSimDraftResult | null; status: AutomatedTradingPublicStatus }
+  > {
+    const latest = this.simRiskEngine.getLatest();
+    if (!latest) {
+      return {
+        ok: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "No persisted simulation draft to reopen.",
+        draft: null,
+        status: await this.buildStatus(),
+      };
+    }
+    const result = await this.validateSimulationDraft({
+      expectedEnvironmentEpoch: input?.expectedEnvironmentEpoch,
+      instrument: latest.instrument,
+      direction: latest.direction,
+      entryPrice: latest.entryPrice,
+      stopLoss: latest.stopLoss,
+      takeProfit: latest.takeProfit,
+      requestedQuantity: latest.proposedQuantity,
+      requestedPerOrderAllocation:
+        input?.requestedPerOrderAllocation
+        ?? latest.capitalBudgetAnalysis?.perOrderAllocation
+        ?? undefined,
+      persist: true,
+    });
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      draft: { ...result.draft, revalidatedOnLoad: true },
+      status: result.status,
+    };
+  }
+
+  getSimLifecycleStatus() {
+    const store = getAtSimLifecycleStore();
+    return simulationLifecyclePublicStatus(store.list());
+  }
+
+  async openSimulatedFromLatestDraft(): Promise<
+    | { ok: true; position: SimPosition; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const draft = this.simRiskEngine.getLatest();
+    const status = await this.buildStatus();
+    if (!draft || draft.overallStatus !== "VALIDATION_PASSED") {
+      return {
+        ok: false,
+        code: "SIM_OPEN_DRAFT_NOT_VALIDATED",
+        message: "Latest draft is not VALIDATION_PASSED — simulation open refused.",
+        status,
+      };
+    }
+    const life = getAtSimLifecycleStore();
+    const dup = life.findOpenByDraft(draft.draftId);
+    if (dup) {
+      return {
+        ok: false,
+        code: "SIM_OPEN_DUPLICATE",
+        message: "An open simulated position already exists for this draft.",
+        status,
+      };
+    }
+    // Re-fetch LIVE Offers at open boundary — never trust an aged draft.quoteSnapshot alone.
+    let quote: DraftQuoteSnapshot | null = null;
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
+      await live.ensure(draft.instrument, tf);
+      const latest = live.getLatestQuoteState(draft.instrument);
+      const now = Date.now();
+      const refreshed = evaluateDraftBoundaryQuote({
+        instrument: draft.instrument,
+        bid: latest?.quote.bid ?? null,
+        ask: latest?.quote.ask ?? null,
+        streamState: latest?.streamState ?? "DISCONNECTED",
+        sourceTimestampMs: latest?.quote.sourceTimestampMs ?? null,
+        receivedAtMs: latest?.quote.receivedAtMs ?? null,
+        priceChangeAgeMs:
+          latest?.lastPriceChangeAtMs != null
+            ? Math.max(0, now - latest.lastPriceChangeAtMs)
+            : null,
+        receiptAgeMs:
+          latest?.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : null,
+        updateCount: latest?.updateCount ?? 0,
+        nowMs: now,
+      });
+      if (!refreshed.ok || !refreshed.snapshot.fresh) {
+        return {
+          ok: false,
+          code: refreshed.ok ? "SIM_OPEN_QUOTE_NOT_FRESH" : refreshed.code,
+          message: refreshed.ok
+            ? "Quote not fresh at simulated open boundary."
+            : refreshed.message,
+          status,
+        };
+      }
+      quote = refreshed.snapshot;
+    } catch (err) {
+      return {
+        ok: false,
+        code: "QUOTE_MISSING",
+        message:
+          err instanceof Error
+            ? err.message.slice(0, 200)
+            : "Failed to refresh quote at simulated open.",
+        status,
+      };
+    }
+    const opened = openSimulatedPosition({ draft, quote });
+    if (!opened.ok) {
+      return { ok: false, code: opened.code, message: opened.message, status };
+    }
+    await life.upsert(opened.position);
+    await this.store.appendAudit({
+      action: "simulation_position_opened",
+      environment: draft.environment,
+      ok: true,
+      code: "SIMULATED_OPEN",
+      detail: `${opened.position.simulationPositionId} ${draft.instrument}`.slice(0, 160),
+    });
+    return { ok: true, position: opened.position, status: await this.buildStatus() };
+  }
+
+  async monitorSimulatedPosition(positionId: string): Promise<
+    | { ok: true; position: SimPosition; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const life = getAtSimLifecycleStore();
+    const existing = life.get(String(positionId));
+    const status = await this.buildStatus();
+    if (!existing) {
+      return { ok: false, code: "SIM_POSITION_NOT_FOUND", message: "Simulated position not found.", status };
+    }
+    const reentry = evaluateSimReentryPolicy();
+    void reentry; // documented: auto re-entry disabled
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
+      await live.ensure(existing.instrument, tf);
+      const latest = live.getLatestQuoteState(existing.instrument);
+      const now = Date.now();
+      const refreshed = evaluateDraftBoundaryQuote({
+        instrument: existing.instrument,
+        bid: latest?.quote.bid ?? null,
+        ask: latest?.quote.ask ?? null,
+        streamState: latest?.streamState ?? "DISCONNECTED",
+        priceChangeAgeMs:
+          latest?.lastPriceChangeAtMs != null ? Math.max(0, now - latest.lastPriceChangeAtMs) : null,
+        receiptAgeMs:
+          latest?.lastQuoteAtMs != null ? Math.max(0, now - latest.lastQuoteAtMs) : null,
+        updateCount: latest?.updateCount ?? 0,
+        nowMs: now,
+      });
+      if (!refreshed.snapshot) {
+        return { ok: false, code: "QUOTE_MISSING", message: "No quote for monitoring.", status };
+      }
+      const next = applySimMonitorTick({
+        position: existing,
+        quote: refreshed.snapshot,
+      });
+      await life.upsert(next);
+      return { ok: true, position: next, status: await this.buildStatus() };
+    } catch (err) {
+      return {
+        ok: false,
+        code: "SIM_MONITOR_FAILED",
+        message: err instanceof Error ? err.message.slice(0, 200) : "Monitor failed.",
+        status,
+      };
+    }
+  }
+}
+
+function mapFeedFromDraft(
+  reason: string,
+): AutomatedTradingVerificationResult["market"]["feedStatus"] {
+  if (reason === "LIVE_FRESH") return "LIVE";
+  if (reason === "QUOTE_AGE_EXCEEDED" || reason === "PRICE_CHANGE_AGE_UNKNOWN") return "STALE";
+  if (reason === "FEED_NOT_LIVE") return "NO_RECENT_MARKET_UPDATES";
+  return "ERROR";
 }
 
 let serviceSingleton: AutomatedTradingService | null = null;
