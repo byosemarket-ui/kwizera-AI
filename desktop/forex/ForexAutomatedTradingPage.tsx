@@ -2167,6 +2167,7 @@ export function ForexAutomatedTradingPage(props: {
                         ? `unrealized ${fmtNum(Number(pnl), 2)}`
                         : "P/L UNKNOWN");
                   const monitoringBlocked = state === "STALE_INTERRUPTED";
+                  const isClosed = state === "SIMULATED_CLOSED";
                   const isOpen =
                     state === "SIMULATED_OPEN"
                     || state === "MONITORING"
@@ -2186,7 +2187,7 @@ export function ForexAutomatedTradingPage(props: {
                           data-fx-at-sim-pos-status={state}
                         >
                           {state}
-                          {monitoringBlocked ? " — monitoring blocked (stale quote)" : ""}
+                          {monitoringBlocked ? " — monitoring blocked (stale/unavailable quote)" : ""}
                         </span>
                       </div>
                       <dl className="fx-auto-sim-grid fx-auto-sim-life-grid">
@@ -2208,12 +2209,20 @@ export function ForexAutomatedTradingPage(props: {
                             {quoteAt} · {pnlLabel}
                           </span>
                         </div>
-                        {p.exitReason ? (
+                        {isClosed && p.exitReason ? (
                           <div className="fx-auto-sim-cell">
                             <span className="fx-auto-sim-cell-label">Exit</span>
-                            <span className="fx-auto-sim-cell-value">
+                            <span className="fx-auto-sim-cell-value" data-fx-at-sim-exit-reason={String(p.exitReason)}>
                               {String(p.exitReason)}
                               {p.exitPrice != null ? ` @ ${String(p.exitPrice)}` : ""}
+                            </span>
+                          </div>
+                        ) : null}
+                        {monitoringBlocked ? (
+                          <div className="fx-auto-sim-cell">
+                            <span className="fx-auto-sim-cell-label">Monitor</span>
+                            <span className="fx-auto-sim-cell-value" data-fx-at-sim-monitor-blocked="true">
+                              BLOCKED — no fill invented; P/L UNKNOWN until LIVE fresh quote
                             </span>
                           </div>
                         ) : null}

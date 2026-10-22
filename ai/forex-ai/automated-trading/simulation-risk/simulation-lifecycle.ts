@@ -212,6 +212,13 @@ export function openSimulatedPosition(input: {
 
 /**
  * Monitor one tick. SL/TP use executable-side marks (BUY exit=bid, SELL exit=ask).
+ *
+ * Gap / jump policy (simulation only): when a fresh quote crosses SL and/or TP,
+ * the exit fill is the executable mark on that quote (bid for BUY, ask for SELL),
+ * not necessarily the exact SL/TP level. If both SL and TP would fire on the same
+ * tick, Stop Loss wins (conservative). Stale/invalid quotes never invent a fill.
+ * Tick-size rounding is not applied here — compare mark to stored SL/TP as provided
+ * by the validated draft (fail closed when quote metadata is missing/non-finite).
  */
 export function monitorSimulatedPosition(input: {
   position: SimPosition;
@@ -223,26 +230,51 @@ export function monitorSimulatedPosition(input: {
   let pos = input.position;
   if (pos.state === "SIMULATED_CLOSED" || pos.state === "REJECTED") return pos;
 
-  if (!input.quote.fresh) {
-    const reason: SimExitReason =
-      input.quote.reasonCode === "FEED_NOT_LIVE" ? "FEED_NOT_LIVE" : "QUOTE_STALE";
-    pos = transition(pos, "STALE_INTERRUPTED", `Monitoring interrupted: ${input.quote.reasonCode}`);
-    // Do not invent an exit fill on stale data — leave open but interrupted.
+  const bidRaw = input.quote.bid;
+  const askRaw = input.quote.ask;
+  const quoteFinite =
+    typeof bidRaw === "number"
+    && Number.isFinite(bidRaw)
+    && bidRaw > 0
+    && typeof askRaw === "number"
+    && Number.isFinite(askRaw)
+    && askRaw > 0
+    && askRaw >= bidRaw;
+
+  if (!input.quote.fresh || !quoteFinite) {
+    const reasonCode = !quoteFinite
+      ? (input.quote.reasonCode === "QUOTE_INVALID" ? "QUOTE_INVALID" : "QUOTE_MISSING")
+      : input.quote.reasonCode;
+    pos = transition(
+      pos,
+      "STALE_INTERRUPTED",
+      `Monitoring interrupted: ${reasonCode} (no fill invented).`,
+    );
+    // Do not set exitReason / exitPrice — position remains open but monitoring blocked.
     return {
       ...pos,
-      latestBid: input.quote.bid || pos.latestBid,
-      latestAsk: input.quote.ask || pos.latestAsk,
+      latestBid: quoteFinite ? bidRaw : pos.latestBid,
+      latestAsk: quoteFinite ? askRaw : pos.latestAsk,
       latestQuoteAtUtc: input.quote.observedAtUtc,
-      exitReason: reason,
+      unrealizedPnl: null,
+      // Preserve a true exit reason only if already closed; otherwise clear interrupt noise.
+      exitReason: pos.state === "SIMULATED_CLOSED" ? pos.exitReason : null,
+      exitPrice: pos.state === "SIMULATED_CLOSED" ? pos.exitPrice : null,
     };
   }
 
   if (pos.state === "STALE_INTERRUPTED") {
     pos = transition(pos, "MONITORING", "Fresh LIVE quote restored — monitoring resumed.");
+    pos = {
+      ...pos,
+      exitReason: null,
+      exitPrice: null,
+      exitAtUtc: null,
+    };
   }
 
-  const bid = input.quote.bid;
-  const ask = input.quote.ask;
+  const bid = bidRaw;
+  const ask = askRaw;
   const mark = markPrice(pos.direction, bid, ask);
   const pnl = unrealized(
     pos.direction,
@@ -262,6 +294,7 @@ export function monitorSimulatedPosition(input: {
     unrealizedPnl: pnl,
   };
 
+  // Conservative: if a gap crosses both levels on one tick, Stop Loss wins.
   const slHit =
     pos.direction === "BUY" ? mark <= pos.stopLoss : mark >= pos.stopLoss;
   const tpHit =
@@ -279,11 +312,14 @@ export function monitorSimulatedPosition(input: {
     return {
       ...pos,
       exitReason,
+      // Gap fill = executable mark on the triggering quote (may differ from exact SL/TP).
       exitPrice: mark,
       exitAtUtc: new Date().toISOString(),
+      // Realized P/L only when pip/point metadata was provided; otherwise UNKNOWN (null).
       realizedPnl: pnl,
+      // R from price distance vs initial stop distance (independent of monetary pip cost).
       achievedR,
-      unrealizedPnl: 0,
+      unrealizedPnl: pnl != null ? 0 : null,
     };
   }
 

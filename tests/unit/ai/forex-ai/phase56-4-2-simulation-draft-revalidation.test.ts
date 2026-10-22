@@ -367,7 +367,8 @@ describe("Phase 56.4.2 simulated lifecycle", () => {
     const next = monitorSimulatedPosition({ position: opened.position, quote: stale.snapshot });
     expect(next.state).toBe("STALE_INTERRUPTED");
     expect(next.exitPrice).toBeNull();
-    expect(next.exitReason).toBe("QUOTE_STALE");
+    // Interrupt is not a simulated exit — do not set exitReason/fill.
+    expect(next.exitReason).toBeNull();
   });
 
   it("disables automatic re-entry", () => {

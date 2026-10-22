@@ -1981,7 +1981,20 @@ export class AutomatedTradingService {
         position: existing,
         quote: refreshed.snapshot,
       });
+      const becameClosed =
+        existing.state !== "SIMULATED_CLOSED" && next.state === "SIMULATED_CLOSED";
       await life.upsert(next);
+      if (becameClosed && next.exitReason) {
+        await this.store.appendAudit({
+          action: "simulation_position_closed",
+          environment: next.environment,
+          ok: true,
+          code: String(next.exitReason).slice(0, 64),
+          detail: `${next.simulationPositionId} ${next.exitReason} @ ${
+            next.exitPrice != null ? next.exitPrice : "UNKNOWN"
+          }`.slice(0, 160),
+        });
+      }
       return { ok: true, position: next, status: await this.buildStatus() };
     } catch (err) {
       return {
