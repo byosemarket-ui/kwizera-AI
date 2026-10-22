@@ -4,7 +4,7 @@
 **Module:** ForexConnect market-data recovery acceptance  
 **Document type:** Controlled acceptance (market-data only)  
 **Starting HEAD / prod:** `d04a7c786121fbc0089dbd949712269ab9d31742` (`verifiedLive=true`)  
-**Ending HEAD / deployed:** _(filled at ship)_  
+**Feature / Ending HEAD / deployed:** `fca6ba46f0cef40f10af0e7b10295fe744dbc0a4` (`verifiedLive=true`, CI **#39768266335** success)  
 **Scope:** Acceptance A–D. **No execution. No unauthorized production disconnect/restart. Do not start 56.3.6 / 56.4.**
 
 ---
@@ -126,7 +126,7 @@ XAU recovers LIVE while EUR remains non-LIVE when EUR quotes are withheld after 
 |-------|----------|--------|
 | `phase56-3-5-controlled-recovery-acceptance.test.ts` | controlled synthetic | **5/5 PASS** |
 | `phase56-3-4-persistence-and-restart.test.ts` | synthetic | **7/7 PASS** |
-| CI / deploy | _(filled)_ | |
+| CI / deploy | [Production deploy #39768266335](https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39768266335) success; prod `fca6ba46…` `verifiedLive=true` | |
 
 ---
 
