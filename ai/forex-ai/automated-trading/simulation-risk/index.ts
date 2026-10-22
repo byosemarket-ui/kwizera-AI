@@ -74,6 +74,10 @@ export class AtSimRiskEngine {
     return this.store.getLatest();
   }
 
+  getById(draftId: string): AtSimDraftResult | null {
+    return this.store.getById(draftId);
+  }
+
   listHistory(limit = 12): AtSimDraftResult[] {
     return this.store.listHistory(limit);
   }

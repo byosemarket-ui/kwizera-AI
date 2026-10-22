@@ -41,6 +41,7 @@ import {
   enrichDraftRejectionReasons,
   openSimulatedPosition,
   monitorSimulatedPosition as applySimMonitorTick,
+  closeSimulatedPositionManual,
   evaluateSimReentryPolicy,
   simulationLifecyclePublicStatus,
   getAtSimLifecycleStore,
@@ -1807,35 +1808,41 @@ export class AutomatedTradingService {
     };
   }
 
-  /** Reopen latest draft and force revalidation against current LIVE quote/budget. */
+  /** Reopen a persisted draft (by id or latest) and force revalidation against current LIVE quote/budget. */
   async reopenAndRevalidateLatestDraft(input?: {
+    draftId?: unknown;
     expectedEnvironmentEpoch?: unknown;
     requestedPerOrderAllocation?: unknown;
   }): Promise<
     | { ok: true; draft: AtSimDraftResult; status: AutomatedTradingPublicStatus }
     | { ok: false; code: string; message: string; draft: AtSimDraftResult | null; status: AutomatedTradingPublicStatus }
   > {
-    const latest = this.simRiskEngine.getLatest();
-    if (!latest) {
+    const draftId = input?.draftId != null ? String(input.draftId).trim() : "";
+    const source = draftId
+      ? this.simRiskEngine.getById(draftId)
+      : this.simRiskEngine.getLatest();
+    if (!source) {
       return {
         ok: false,
         code: "DRAFT_NOT_FOUND",
-        message: "No persisted simulation draft to reopen.",
+        message: draftId
+          ? `No persisted simulation draft with id ${draftId.slice(0, 40)}.`
+          : "No persisted simulation draft to reopen.",
         draft: null,
         status: await this.buildStatus(),
       };
     }
     const result = await this.validateSimulationDraft({
       expectedEnvironmentEpoch: input?.expectedEnvironmentEpoch,
-      instrument: latest.instrument,
-      direction: latest.direction,
-      entryPrice: latest.entryPrice,
-      stopLoss: latest.stopLoss,
-      takeProfit: latest.takeProfit,
-      requestedQuantity: latest.proposedQuantity,
+      instrument: source.instrument,
+      direction: source.direction,
+      entryPrice: source.entryPrice,
+      stopLoss: source.stopLoss,
+      takeProfit: source.takeProfit,
+      requestedQuantity: source.proposedQuantity,
       requestedPerOrderAllocation:
         input?.requestedPerOrderAllocation
-        ?? latest.capitalBudgetAnalysis?.perOrderAllocation
+        ?? source.capitalBudgetAnalysis?.perOrderAllocation
         ?? undefined,
       persist: true,
     });
@@ -1984,6 +1991,55 @@ export class AutomatedTradingService {
         status,
       };
     }
+  }
+
+  /** User-requested simulated close — never a broker close. Idempotent when already closed. */
+  async closeSimulatedPosition(positionId: string): Promise<
+    | { ok: true; position: SimPosition; idempotent: boolean; status: AutomatedTradingPublicStatus }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const life = getAtSimLifecycleStore();
+    const existing = life.get(String(positionId));
+    const status = await this.buildStatus();
+    if (!existing) {
+      return { ok: false, code: "SIM_POSITION_NOT_FOUND", message: "Simulated position not found.", status };
+    }
+    let bid: number | null = existing.latestBid;
+    let ask: number | null = existing.latestAsk;
+    try {
+      const live = getForexConnectLiveCandleService();
+      const tf = resolveForexConnectLiveTimeframe(undefined, "1m");
+      await live.ensure(existing.instrument, tf);
+      const latest = live.getLatestQuoteState(existing.instrument);
+      bid = latest?.quote.bid ?? bid;
+      ask = latest?.quote.ask ?? ask;
+    } catch {
+      // Close may proceed without a fill price when quote unavailable (exitPrice null).
+    }
+    const closed = closeSimulatedPositionManual({
+      position: existing,
+      bid,
+      ask,
+    });
+    if (!closed.ok) {
+      return { ok: false, code: closed.code, message: closed.message, status };
+    }
+    await life.upsert(closed.position);
+    if (!closed.idempotent) {
+      await this.store.appendAudit({
+        action: "simulation_position_closed",
+        environment: closed.position.environment,
+        ok: true,
+        code: "MANUAL_SIM_CLOSE",
+        detail: `${closed.position.simulationPositionId} MANUAL_SIM_CLOSE`.slice(0, 160),
+      });
+    }
+    return {
+      ok: true,
+      position: closed.position,
+      idempotent: closed.idempotent,
+      status: await this.buildStatus(),
+    };
   }
 }
 

@@ -771,6 +771,7 @@ export async function handleForexAutomatedTradingApi(
       }
       const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
       const result = await service.reopenAndRevalidateLatestDraft({
+        draftId: body.draftId,
         expectedEnvironmentEpoch: body.expectedEnvironmentEpoch,
         requestedPerOrderAllocation: body.requestedPerOrderAllocation,
       });
@@ -863,6 +864,38 @@ export async function handleForexAutomatedTradingApi(
       sendJson(res, 200, {
         ok: true,
         position: result.position,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
+    // Phase 56.4.3 — user-requested simulated close (never broker).
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/close")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const positionId = String(body.positionId ?? "").trim();
+      const result = await service.closeSimulatedPosition(positionId);
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        position: result.position,
+        idempotent: result.idempotent,
         status: result.status,
         placesOrders: false,
         acceptsForExecution: false,

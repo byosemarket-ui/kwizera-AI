@@ -347,6 +347,78 @@ export function monitorSimulatedPosition(input: {
 }
 
 /**
+ * Explicit user-requested simulated close (never a broker close).
+ * Idempotent: already-closed positions are returned unchanged.
+ */
+export function closeSimulatedPositionManual(input: {
+  position: SimPosition;
+  bid?: number | null;
+  ask?: number | null;
+  pipCostAccount?: number | null;
+  pointSize?: number | null;
+}):
+  | { ok: true; position: SimPosition; idempotent: boolean }
+  | { ok: false; code: string; message: string } {
+  const pos = input.position;
+  if (pos.state === "SIMULATED_CLOSED") {
+    return { ok: true, position: pos, idempotent: true };
+  }
+  if (pos.state === "REJECTED") {
+    return {
+      ok: false,
+      code: "SIM_CLOSE_INVALID_STATE",
+      message: `Cannot close simulated position in state ${pos.state}.`,
+    };
+  }
+  const bid = input.bid;
+  const ask = input.ask;
+  let exitPrice: number | null = null;
+  let realized: number | null = null;
+  if (
+    typeof bid === "number"
+    && Number.isFinite(bid)
+    && bid > 0
+    && typeof ask === "number"
+    && Number.isFinite(ask)
+    && ask > 0
+  ) {
+    exitPrice = markPrice(pos.direction, bid, ask);
+    realized = unrealized(
+      pos.direction,
+      pos.entryPrice,
+      pos.quantity,
+      bid,
+      ask,
+      input.pipCostAccount ?? null,
+      input.pointSize ?? null,
+    );
+  }
+  const stopDist = Math.abs(pos.entryPrice - pos.stopLoss);
+  const achievedR =
+    exitPrice != null && stopDist > 0
+      ? (pos.direction === "BUY" ? exitPrice - pos.entryPrice : pos.entryPrice - exitPrice)
+        / stopDist
+      : null;
+  let next = transition(pos, "EXIT_TRIGGERED", "MANUAL_SIM_CLOSE");
+  next = transition(next, "SIMULATED_CLOSED", "User-requested simulated close (not a broker close).");
+  return {
+    ok: true,
+    idempotent: false,
+    position: {
+      ...next,
+      exitReason: "MANUAL_SIM_CLOSE",
+      exitPrice,
+      exitAtUtc: new Date().toISOString(),
+      realizedPnl: realized,
+      achievedR,
+      unrealizedPnl: realized != null ? 0 : null,
+      latestBid: typeof bid === "number" ? bid : pos.latestBid,
+      latestAsk: typeof ask === "number" ? ask : pos.latestAsk,
+    },
+  };
+}
+
+/**
  * Re-entry is intentionally disabled: requires a new independently validated draft.
  */
 export function evaluateSimReentryPolicy(): {

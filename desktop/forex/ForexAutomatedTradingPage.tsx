@@ -298,6 +298,19 @@ export function ForexAutomatedTradingPage(props: {
   const [simOrderAlloc, setSimOrderAlloc] = useState("");
   const [capitalAllocDraft, setCapitalAllocDraft] = useState("");
   const [simRiskBusy, setSimRiskBusy] = useState(false);
+  /** Phase 56.4.3 — draft history + simulation lifecycle (never broker positions). */
+  const [simDraftHistory, setSimDraftHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [simLifecycle, setSimLifecycle] = useState<{
+    openCount?: number;
+    closedCount?: number;
+    positions?: Array<Record<string, unknown>>;
+    autoReentryEnabled?: false;
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    simulationOnly?: true;
+    note?: string;
+  } | null>(null);
+  const [simLifeBusy, setSimLifeBusy] = useState(false);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -307,7 +320,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -315,6 +328,8 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/monitor/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/decision/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/simulation-risk/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/simulation-risk/history?limit=8", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -327,6 +342,14 @@ export function ForexAutomatedTradingPage(props: {
       const monJson = await monRes.json() as { ok?: boolean; monitor?: typeof monitor };
       const decJson = await decRes.json() as { ok?: boolean; decision?: typeof decisionStatus };
       const simJson = await simRes.json() as { ok?: boolean; simulationRisk?: typeof simRiskStatus };
+      const draftHistJson = await draftHistRes.json() as {
+        ok?: boolean;
+        history?: Array<Record<string, unknown>>;
+      };
+      const lifeJson = await lifeRes.json() as {
+        ok?: boolean;
+        lifecycle?: typeof simLifecycle;
+      };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
         setStatus(null);
@@ -349,6 +372,10 @@ export function ForexAutomatedTradingPage(props: {
       }
       if (decRes.ok && decJson.ok && decJson.decision) setDecisionStatus(decJson.decision);
       if (simRes.ok && simJson.ok && simJson.simulationRisk) setSimRiskStatus(simJson.simulationRisk);
+      if (draftHistRes.ok && draftHistJson.ok && Array.isArray(draftHistJson.history)) {
+        setSimDraftHistory(draftHistJson.history);
+      }
+      if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -629,6 +656,133 @@ export function ForexAutomatedTradingPage(props: {
       setError(err instanceof Error ? err.message : "Simulation draft validation failed");
     } finally {
       setSimRiskBusy(false);
+    }
+  };
+
+  /** Reopen a saved draft and revalidate against current LIVE quote/budget (never opens a position). */
+  const reopenSimDraft = async (draftId?: string | null) => {
+    if (!status || simRiskBusy) return;
+    setSimRiskBusy(true);
+    setError(null);
+    try {
+      const rawAlloc = simOrderAlloc.trim();
+      const allocN = rawAlloc ? Number(rawAlloc) : NaN;
+      const res = await fetch("/api/forex/automated-trading/simulation-risk/reopen", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({
+          draftId: draftId || undefined,
+          expectedEnvironmentEpoch: status.environmentEpoch,
+          requestedPerOrderAllocation:
+            Number.isFinite(allocN) && allocN > 0 ? allocN : undefined,
+        }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        draft?: Record<string, unknown>;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (data.draft) {
+        setSimRiskStatus((prev) => ({
+          ...(prev ?? {}),
+          latest: data.draft ?? null,
+        }));
+        const alloc = (data.draft as { capitalBudgetAnalysis?: { perOrderAllocation?: number | null } })
+          .capitalBudgetAnalysis?.perOrderAllocation;
+        if (alloc != null && Number.isFinite(alloc)) setSimOrderAlloc(String(alloc));
+      }
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Reopen draft failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reopen draft failed");
+    } finally {
+      setSimRiskBusy(false);
+    }
+  };
+
+  const openSimulatedPositionUi = async () => {
+    if (!status || simLifeBusy) return;
+    setSimLifeBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/simulation-lifecycle/open", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({}),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        position?: Record<string, unknown>;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Simulated open failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Simulated open failed");
+    } finally {
+      setSimLifeBusy(false);
+    }
+  };
+
+  const monitorSimulatedPositionUi = async (positionId: string) => {
+    if (!positionId || simLifeBusy) return;
+    setSimLifeBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/simulation-lifecycle/monitor", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({ positionId }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Simulated monitor failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Simulated monitor failed");
+    } finally {
+      setSimLifeBusy(false);
+    }
+  };
+
+  const closeSimulatedPositionUi = async (positionId: string) => {
+    if (!positionId || simLifeBusy) return;
+    setSimLifeBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/simulation-lifecycle/close", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({ positionId }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Simulated close failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Simulated close failed");
+    } finally {
+      setSimLifeBusy(false);
     }
   };
 
@@ -1575,17 +1729,47 @@ export function ForexAutomatedTradingPage(props: {
             aria-label="Simulation draft validation"
             data-fx-at-sim-risk="true"
           >
-            <div className="fx-auto-trading-panel-head">
+            <div className="fx-auto-trading-panel-head fx-auto-sim-actions">
               <h2 className="fx-auto-trading-h2">Simulation draft</h2>
-              <button
-                type="button"
-                className="fx-btn fx-btn--secondary"
-                disabled={busy || simRiskBusy || !status || !simOrderAlloc.trim()}
-                onClick={() => void validateSimDraft()}
-                data-fx-at-sim-validate="true"
-              >
-                {simRiskBusy ? "Validating…" : "Validate draft"}
-              </button>
+              <div className="fx-auto-sim-action-btns">
+                <button
+                  type="button"
+                  className="fx-btn fx-btn--secondary"
+                  disabled={busy || simRiskBusy || !status || !simOrderAlloc.trim()}
+                  onClick={() => void validateSimDraft()}
+                  data-fx-at-sim-validate="true"
+                >
+                  {simRiskBusy ? "Validating…" : "Validate draft"}
+                </button>
+                <button
+                  type="button"
+                  className="fx-btn fx-btn--ghost"
+                  disabled={busy || simRiskBusy || !status || !simRiskStatus?.latest}
+                  onClick={() => void reopenSimDraft(
+                    String((simRiskStatus?.latest as { draftId?: string } | null)?.draftId ?? "") || null,
+                  )}
+                  data-fx-at-sim-reopen="true"
+                  title="Revalidate saved draft against current LIVE quote and budget"
+                >
+                  Reopen &amp; revalidate
+                </button>
+                <button
+                  type="button"
+                  className="fx-btn fx-btn--secondary"
+                  disabled={
+                    busy
+                    || simLifeBusy
+                    || !status
+                    || (simRiskStatus?.latest as { overallStatus?: string } | null)?.overallStatus
+                      !== "VALIDATION_PASSED"
+                  }
+                  onClick={() => void openSimulatedPositionUi()}
+                  data-fx-at-sim-open="true"
+                  title="Open a simulated position from VALIDATION_PASSED draft — never a broker order"
+                >
+                  {simLifeBusy ? "Working…" : "Open simulated position"}
+                </button>
+              </div>
             </div>
             <p className="fx-auto-trading-hint" data-fx-at-sim-banner="true">
               Simulation-only. Enter Order Allocation only — Entry, SL, TP (3R), and quantity are derived from
@@ -1893,9 +2077,178 @@ export function ForexAutomatedTradingPage(props: {
                       ))}
                     </ul>
                   ) : null}
+                  {(d as { revalidatedOnLoad?: boolean }).revalidatedOnLoad ? (
+                    <p className="fx-auto-trading-hint" data-fx-at-sim-revalidated="true">
+                      Revalidated on load against current quote and budget — prior VALIDATION_PASSED was not trusted.
+                    </p>
+                  ) : null}
                 </div>
               );
             })()}
+            <div className="fx-auto-sim-history" data-fx-at-sim-draft-history="true">
+              <h3 className="fx-auto-trading-h3">Saved simulation drafts</h3>
+              {simDraftHistory.length === 0 ? (
+                <p className="fx-auto-trading-hint" data-fx-at-sim-draft-history-empty="true">
+                  No persisted drafts yet. Validate a draft to save one.
+                </p>
+              ) : (
+                <ul className="fx-auto-sim-history-list">
+                  {simDraftHistory.slice(0, 8).map((h) => {
+                    const id = String(h.draftId ?? "");
+                    const st = String(h.overallStatus ?? "—");
+                    const dir = String(h.direction ?? "—");
+                    const inst = String(h.instrument ?? "—");
+                    const when = String(h.validatedAtUtc ?? h.createdAtUtc ?? "").slice(0, 19);
+                    return (
+                      <li key={id || when} className="fx-auto-sim-history-item">
+                        <span className="fx-auto-sim-history-meta">
+                          <strong data-fx-at-sim-hist-status={st}>{st}</strong>
+                          {" · "}
+                          {dir} {inst}
+                          {when ? ` · ${when}Z` : ""}
+                        </span>
+                        <button
+                          type="button"
+                          className="fx-btn fx-btn--ghost fx-btn--compact"
+                          disabled={busy || simRiskBusy || !id}
+                          onClick={() => void reopenSimDraft(id)}
+                          data-fx-at-sim-hist-reopen={id}
+                        >
+                          Reopen
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section
+            className="fx-auto-trading-panel fx-auto-sim-lifecycle"
+            aria-label="Simulated positions"
+            data-fx-at-sim-lifecycle="true"
+          >
+            <div className="fx-auto-trading-panel-head">
+              <h2 className="fx-auto-trading-h2">Simulated positions</h2>
+              <p className="fx-auto-trading-hint" data-fx-at-sim-life-banner="true">
+                Simulation only — never broker orders. Auto re-entry disabled.
+                {" "}
+                open={simLifecycle?.openCount ?? 0} · closed={simLifecycle?.closedCount ?? 0}
+                {" · "}placesOrders=false · acceptsForExecution=false
+              </p>
+            </div>
+            {!simLifecycle || !Array.isArray(simLifecycle.positions) || simLifecycle.positions.length === 0 ? (
+              <p className="fx-auto-trading-hint" data-fx-at-sim-life-empty="true">
+                No simulated positions. Validate a draft to VALIDATION_PASSED, then Open simulated position.
+              </p>
+            ) : (
+              <ul className="fx-auto-sim-life-list">
+                {simLifecycle.positions.slice(0, 12).map((p) => {
+                  const id = String(p.simulationPositionId ?? "");
+                  const state = String(p.state ?? "—");
+                  const dir = String(p.direction ?? "—");
+                  const inst = String(p.instrument ?? "—");
+                  const entry = p.entryPrice != null ? String(p.entryPrice) : "—";
+                  const sl = p.stopLoss != null ? String(p.stopLoss) : "—";
+                  const tp = p.takeProfit != null ? String(p.takeProfit) : "—";
+                  const qty = p.quantity != null ? String(p.quantity) : "—";
+                  const quoteAt = p.latestQuoteAtUtc
+                    ? String(p.latestQuoteAtUtc).slice(0, 19)
+                    : "UNKNOWN";
+                  const pnl = p.unrealizedPnl;
+                  const realized = p.realizedPnl;
+                  const pnlLabel =
+                    state === "SIMULATED_CLOSED"
+                      ? (realized != null && Number.isFinite(Number(realized))
+                        ? `realized ${fmtNum(Number(realized), 2)}`
+                        : "realized UNKNOWN")
+                      : (pnl != null && Number.isFinite(Number(pnl))
+                        ? `unrealized ${fmtNum(Number(pnl), 2)}`
+                        : "P/L UNKNOWN");
+                  const monitoringBlocked = state === "STALE_INTERRUPTED";
+                  const isOpen =
+                    state === "SIMULATED_OPEN"
+                    || state === "MONITORING"
+                    || state === "STALE_INTERRUPTED"
+                    || state === "EXIT_TRIGGERED";
+                  return (
+                    <li
+                      key={id}
+                      className="fx-auto-sim-life-card"
+                      data-fx-at-sim-pos={id}
+                      data-fx-at-sim-pos-state={state}
+                    >
+                      <div className="fx-auto-sim-life-card-head">
+                        <strong data-fx-at-sim-pos-id={id}>{id || "sim_?"}</strong>
+                        <span
+                          className={`fx-auto-sim-life-state${monitoringBlocked ? " is-blocked" : ""}`}
+                          data-fx-at-sim-pos-status={state}
+                        >
+                          {state}
+                          {monitoringBlocked ? " — monitoring blocked (stale quote)" : ""}
+                        </span>
+                      </div>
+                      <dl className="fx-auto-sim-grid fx-auto-sim-life-grid">
+                        <div className="fx-auto-sim-cell">
+                          <span className="fx-auto-sim-cell-label">Instrument / dir</span>
+                          <span className="fx-auto-sim-cell-value">{inst} {dir}</span>
+                        </div>
+                        <div className="fx-auto-sim-cell">
+                          <span className="fx-auto-sim-cell-label">Entry / qty</span>
+                          <span className="fx-auto-sim-cell-value">{entry} / {qty}</span>
+                        </div>
+                        <div className="fx-auto-sim-cell">
+                          <span className="fx-auto-sim-cell-label">SL / TP</span>
+                          <span className="fx-auto-sim-cell-value">{sl} / {tp}</span>
+                        </div>
+                        <div className="fx-auto-sim-cell">
+                          <span className="fx-auto-sim-cell-label">Quote / P/L</span>
+                          <span className="fx-auto-sim-cell-value">
+                            {quoteAt} · {pnlLabel}
+                          </span>
+                        </div>
+                        {p.exitReason ? (
+                          <div className="fx-auto-sim-cell">
+                            <span className="fx-auto-sim-cell-label">Exit</span>
+                            <span className="fx-auto-sim-cell-value">
+                              {String(p.exitReason)}
+                              {p.exitPrice != null ? ` @ ${String(p.exitPrice)}` : ""}
+                            </span>
+                          </div>
+                        ) : null}
+                      </dl>
+                      <div className="fx-auto-sim-life-actions">
+                        {isOpen ? (
+                          <>
+                            <button
+                              type="button"
+                              className="fx-btn fx-btn--secondary fx-btn--compact"
+                              disabled={busy || simLifeBusy || !id}
+                              onClick={() => void monitorSimulatedPositionUi(id)}
+                              data-fx-at-sim-monitor={id}
+                            >
+                              Refresh monitor
+                            </button>
+                            <button
+                              type="button"
+                              className="fx-btn fx-btn--ghost fx-btn--compact"
+                              disabled={busy || simLifeBusy || !id}
+                              onClick={() => void closeSimulatedPositionUi(id)}
+                              data-fx-at-sim-close={id}
+                            >
+                              Simulated close
+                            </button>
+                          </>
+                        ) : (
+                          <span className="fx-auto-trading-hint">Closed — simulation only (not a broker fill).</span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           <section

@@ -119,6 +119,12 @@ export class AtSimRiskStore {
     return this.data.history.find((h) => h.draftId === id) ?? this.data.history[0] ?? null;
   }
 
+  getById(draftId: string): AtSimDraftResult | null {
+    const id = String(draftId ?? "").trim();
+    if (!id) return null;
+    return this.data.history.find((h) => h.draftId === id) ?? null;
+  }
+
   listHistory(limit = 12): AtSimDraftResult[] {
     return this.data.history.slice(0, Math.max(1, Math.min(MAX_HISTORY, limit)));
   }

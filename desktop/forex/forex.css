@@ -3795,3 +3795,116 @@ html.reduce-motion .fx-sidebar {
     grid-template-columns: 1fr;
   }
 }
+
+/* Phase 56.4.3 ? simulation lifecycle UI (draft history + sim positions) */
+.fx-auto-sim-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+.fx-auto-sim-action-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.fx-btn--ghost {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+.fx-btn--compact {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.fx-auto-sim-history {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 4px;
+}
+.fx-auto-sim-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.fx-auto-sim-history-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  min-width: 0;
+}
+.fx-auto-sim-history-meta {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.fx-auto-sim-lifecycle {
+  gap: 10px;
+}
+.fx-auto-sim-life-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.fx-auto-sim-life-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, #0b1220 28%, transparent);
+  min-width: 0;
+}
+.fx-auto-sim-life-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.fx-auto-sim-life-state {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+.fx-auto-sim-life-state.is-blocked {
+  color: color-mix(in srgb, #f59e0b 85%, white);
+}
+.fx-auto-sim-life-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.fx-auto-sim-life-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .fx-auto-sim-life-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fx-auto-sim-history-item {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .fx-auto-sim-action-btns {
+    width: 100%;
+  }
+  .fx-auto-sim-action-btns .fx-btn {
+    flex: 1 1 auto;
+  }
+  .fx-auto-sim-life-grid {
+    grid-template-columns: 1fr;
+  }
+}
