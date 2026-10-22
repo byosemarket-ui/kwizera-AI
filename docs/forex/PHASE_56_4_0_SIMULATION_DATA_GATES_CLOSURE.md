@@ -82,11 +82,24 @@ Heavy suites deferred to remote CI/CD per phase workflow.
 
 | Step | Result |
 |------|--------|
-| Scoped commit | *(filled after commit)* |
-| GitHub push | *(filled after push)* |
-| CI/CD | *(filled after Actions)* |
-| Deployed SHA / VPS | *(filled after `/api/deployment`)* |
+| Scoped commit | `713cfcec` — `feat(forex): Phase 56.4.0 close simulation quantity, CondDist, and FX gates` |
+| Audit commit also pushed | `f2e0f801` — master audit (was local-only) |
+| GitHub push | `fd7f00e1..713cfcec` → `origin/main` |
+| CI/CD | [Production deploy #39775132165](https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39775132165) — **success** |
+| Deployed SHA / VPS | `713cfceccc0938326a3b4b07c0b6b0bf120d02c2` — `verifiedLive=true`, `result=success`, `status=live` |
+| Health | `healthy` / `runtimeReady=true` |
 | Public prod URL | `http://162.35.114.19:5173` |
+
+### Production RO evidence (post-deploy)
+
+| Probe | Result |
+|-------|--------|
+| FC status | `CONNECTED`, `trading=DISABLED`, `environment=demo` |
+| XAU instruments RO | `baseUnitSize=1`, `contractMultiplier=1`, `pointSize=0.01`, `pipCost=0.01`, `minQuantity=1`, `lotStep=1`, `condDistStop=0`, `condDistUnit=pips`, `condDistMethod=get_cond_dist_stop_for_trade` |
+| MDS XAU search | Same CondDist/BaseUnitSize attestation |
+| Stream status | `AUTHENTICATED_IDLE`, `subscriptionCount=0`, `lastQuoteAt=null` — **no LIVE quote** |
+| Quotes | `count=0` |
+| AT `/api/forex/automated-trading/status` | **403** without Admin — locks **UNVERIFIED** |
 
 ---
 
@@ -96,10 +109,10 @@ Heavy suites deferred to remote CI/CD per phase workflow.
 
 | Environment | Result |
 |-------------|--------|
-| Synthetic unit (attested XAU + CondDist=0 + USD) | Gates **READY**; draft path exercises attested CondDist (not legacy unverified label) |
-| Production interactive Scenario 1 | *(filled after deploy + RO verification)* |
+| Synthetic unit (attested XAU + CondDist=0 + USD) | Gates **READY**; draft path uses attested CondDist (legacy `pips_or_points_unverified` removed) |
+| Production interactive Scenario 1 | **BLOCKED** — quantity/CondDist/FX metadata attested on DEMO Offers, but **no LIVE subscribed quote** (`AUTHENTICATED_IDLE`, zero subscriptions) and AT status Admin-gated (locks/exposure/draft path **UNVERIFIED** without token). Gates not weakened. |
 
-If production quote is STALE, exposure UNAVAILABLE, Admin locks UNVERIFIED, or Offers metadata incomplete → Scenario 1 reported **BLOCKED** without weakening gates.
+Interactive LIVE-quote Scenario 1 acceptance remains the next owner-approved step (**Phase 56.4.1**), after intentional market-data subscription under existing safety locks.
 
 ---
 
@@ -128,8 +141,8 @@ If production quote is STALE, exposure UNAVAILABLE, Admin locks UNVERIFIED, or O
 
 ## 9. Final verdict
 
-**`PASS_WITH_KNOWN_BLOCKERS`** *(provisional until post-deploy production Scenario 1 fill-in)*
+**`PASS_WITH_KNOWN_BLOCKERS`**
 
-Gates closed in code against attested provider semantics. Production Scenario 1 and Admin lock re-read remain environment-dependent; do not weaken gates for a green result.
+Quantity, CondDist/min-stop, and FX conversion gates are closed in code and match attested DEMO Offers/TradingSettings on production. Interactive production Scenario 1 remains **BLOCKED** on missing LIVE quote subscription and Admin-gated AT status (locks UNVERIFIED) — fail-closed, not greenwashed.
 
 **STOP.** Do not start Phase 56.4.1, Phase 57, DEMO order execution, or LIVE execution without explicit owner approval.
