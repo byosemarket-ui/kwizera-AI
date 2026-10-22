@@ -6,6 +6,7 @@ export * from "./analysis/index.js";
 export * from "./monitoring/index.js";
 export * from "./decision/index.js";
 export * from "./simulation-risk/index.js";
+export * from "./broker-intent/index.js";
 export {
   assembleVerificationResult,
   buildMarketFromQuote,

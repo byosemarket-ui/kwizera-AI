@@ -58,6 +58,15 @@ import {
 } from "./simulation-risk/index.js";
 import type { AtBinaryDirection } from "./analysis/direction.js";
 import {
+  getAtBrokerIntentEngine,
+  getAtBrokerIntentStore,
+  getDisabledBrokerMutationAdapter,
+  reconcileBrokerIntentWithRoObservation,
+  dedupeObservedIds,
+  type BrokerIntentPreflightInput,
+  type BrokerRoObservation,
+} from "./broker-intent/index.js";
+import {
   assembleVerificationResult,
   uiEnvFromFc,
 } from "./verification-engine.js";
@@ -1861,6 +1870,102 @@ export class AutomatedTradingService {
   getSimLifecycleStatus() {
     const store = getAtSimLifecycleStore();
     return simulationLifecyclePublicStatus(store.list());
+  }
+
+  /** Phase 57.0 — broker-intent status (never execution). */
+  getBrokerIntentStatus() {
+    return getAtBrokerIntentEngine().getPublicStatus();
+  }
+
+  /**
+   * Phase 57.0 — validate/persist a broker intent. Never submits.
+   * Disabled mutation adapter is probed only to prove EXECUTION_FORBIDDEN.
+   */
+  async validateBrokerIntent(input: BrokerIntentPreflightInput) {
+    const engine = getAtBrokerIntentEngine();
+    const result = await engine.validateAndPersist({
+      ...input,
+      ownerExecutionAuthorized: false,
+    });
+    const mutationProbe = getDisabledBrokerMutationAdapter().submit(result.intent);
+    await this.store.appendAudit({
+      action: "broker_intent_validated",
+      environment: result.intent.environment,
+      ok: true,
+      code: result.intent.state,
+      detail: `${result.intent.intentId} ${result.intent.state} maySubmit=false`.slice(0, 160),
+    });
+    return {
+      ok: true as const,
+      preflightPassed: result.preflightPassed,
+      maySubmitToBroker: false as const,
+      intent: result.intent,
+      duplicated: result.duplicated,
+      mutationProbe,
+      placesOrders: false as const,
+      acceptsForExecution: false as const,
+      mutatesBroker: false as const,
+      status: await this.buildStatus(),
+    };
+  }
+
+  /**
+   * Phase 57.0 — RO reconcile only. Never mutates broker.
+   */
+  async reconcileBrokerIntent(intentId: string | null) {
+    const store = getAtBrokerIntentStore();
+    const record = intentId
+      ? store.get(intentId)
+      : getAtBrokerIntentEngine().getPublicStatus().latest;
+
+    let observation: BrokerRoObservation = {
+      observedAtUtc: new Date().toISOString(),
+      openOrdersCount: null,
+      openPositionsCount: null,
+      ordersCapability: "UNKNOWN",
+      tradesCapability: "UNKNOWN",
+      observedOrderIds: [],
+      observedPositionIds: [],
+      placesOrders: false,
+      mutatesBroker: false,
+    };
+    try {
+      const bridge = getForexConnectBridge();
+      const [orders, trades] = await Promise.all([bridge.listOrders(), bridge.listTrades()]);
+      const ordersOk = orders.ok === true;
+      const tradesOk = trades.ok === true;
+      const orderRows = Array.isArray(orders.orders) ? (orders.orders as Array<Record<string, unknown>>) : [];
+      const tradeRows = Array.isArray(trades.trades) ? (trades.trades as Array<Record<string, unknown>>) : [];
+      observation = {
+        observedAtUtc: new Date().toISOString(),
+        openOrdersCount: ordersOk ? orderRows.length : null,
+        openPositionsCount: tradesOk ? tradeRows.length : null,
+        ordersCapability: ordersOk ? "AVAILABLE" : "UNAVAILABLE",
+        tradesCapability: tradesOk ? "AVAILABLE" : "UNAVAILABLE",
+        observedOrderIds: dedupeObservedIds(
+          orderRows.map((o) => String(o.orderId ?? o.id ?? "") || null),
+        ),
+        observedPositionIds: dedupeObservedIds(
+          tradeRows.map((t) => String(t.tradeId ?? t.id ?? "") || null),
+        ),
+        placesOrders: false,
+        mutatesBroker: false,
+      };
+    } catch {
+      // Keep UNKNOWN capabilities — fail closed, never invent.
+    }
+
+    const reconcile = reconcileBrokerIntentWithRoObservation({
+      intent: record,
+      observation,
+    });
+    return {
+      ok: true as const,
+      reconcile,
+      placesOrders: false as const,
+      mutatesBroker: false as const,
+      status: await this.buildStatus(),
+    };
   }
 
   /**

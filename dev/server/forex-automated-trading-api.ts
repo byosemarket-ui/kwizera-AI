@@ -813,6 +813,103 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 57.0 — broker-intent architecture (never submit). Path avoids order/submit/execute.
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-intent/status")) {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        brokerIntent: service.getBrokerIntentStatus(),
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionDisabled: true,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-intent/validate")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+      const result = await service.validateBrokerIntent({
+        idempotencyKey: String(body.idempotencyKey ?? "").trim(),
+        environment: body.environment === "LIVE" ? "LIVE" : "DEMO",
+        environmentVerified: body.environmentVerified === true,
+        accountIdMasked: body.accountIdMasked != null ? String(body.accountIdMasked).slice(0, 32) : null,
+        accountStateVerified: body.accountStateVerified === true,
+        instrument: String(body.instrument ?? "XAU/USD"),
+        direction: body.direction === "SELL" ? "SELL" : body.direction === "BUY" ? "BUY" : null,
+        quantity: typeof body.quantity === "number" ? body.quantity : null,
+        quantityUnit: body.quantityUnit != null ? String(body.quantityUnit) : null,
+        quantityUnitAmbiguous: body.quantityUnitAmbiguous === true,
+        contractSizeVerified: body.contractSizeVerified === true,
+        pointSize: typeof body.pointSize === "number" ? body.pointSize : null,
+        entryPrice: typeof body.entryPrice === "number" ? body.entryPrice : null,
+        stopLoss: typeof body.stopLoss === "number" ? body.stopLoss : null,
+        takeProfit: typeof body.takeProfit === "number" ? body.takeProfit : null,
+        quoteFresh: body.quoteFresh === true,
+        quotePresent: body.quotePresent !== false,
+        strategyAllocationPercent:
+          typeof body.strategyAllocationPercent === "number" ? body.strategyAllocationPercent : null,
+        perOrderAllocation: typeof body.perOrderAllocation === "number" ? body.perOrderAllocation : null,
+        estimatedSlLossAccount:
+          typeof body.estimatedSlLossAccount === "number" ? body.estimatedSlLossAccount : null,
+        sourceDraftId: body.sourceDraftId != null ? String(body.sourceDraftId) : null,
+        sourceDecisionId: body.sourceDecisionId != null ? String(body.sourceDecisionId) : null,
+        masterEnable: body.masterEnable === true,
+        emergencyEntryLock: body.emergencyEntryLock !== false,
+        placesOrders: body.placesOrders === true,
+        acceptsForExecution: body.acceptsForExecution === true,
+        forexConnectTradingEnabled: body.forexConnectTradingEnabled === true,
+        automaticEntryEnabled: body.automaticEntryEnabled === true,
+        automaticReentryEnabled: body.automaticReentryEnabled === true,
+        duplicateIdempotencyKey: false,
+        exposureReconciliationRequired: body.exposureReconciliationRequired === true,
+        protectionCapabilityVerified: body.protectionCapabilityVerified === true,
+        ownerExecutionAuthorized: false,
+        requireProtective: body.requireProtective !== false,
+        requireThreeR: body.requireThreeR !== false,
+      });
+      sendJson(res, 200, {
+        ok: true,
+        preflightPassed: result.preflightPassed,
+        maySubmitToBroker: false,
+        intent: result.intent,
+        duplicated: result.duplicated,
+        mutationProbe: result.mutationProbe,
+        placesOrders: false,
+        acceptsForExecution: false,
+        mutatesBroker: false,
+        executionDisabled: true,
+        status: result.status,
+      });
+      return true;
+    }
+
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/broker-intent/reconcile")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const intentId = body.intentId != null ? String(body.intentId).trim() : null;
+      const result = await service.reconcileBrokerIntent(intentId || null);
+      sendJson(res, 200, {
+        ok: true,
+        reconcile: result.reconcile,
+        placesOrders: false,
+        mutatesBroker: false,
+        executionDisabled: true,
+        status: result.status,
+      });
+      return true;
+    }
+
     if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/open")) {
       if (req.method !== "POST") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });

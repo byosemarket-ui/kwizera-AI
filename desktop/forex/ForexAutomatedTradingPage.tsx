@@ -311,6 +311,28 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
   } | null>(null);
   const [simLifeBusy, setSimLifeBusy] = useState(false);
+  /** Phase 57.0 — broker-intent architecture status (never execution). */
+  const [brokerIntent, setBrokerIntent] = useState<{
+    phase?: string;
+    banner?: string;
+    intentCount?: number;
+    latest?: {
+      intentId?: string;
+      state?: string;
+      instrument?: string;
+      protectiveStatus?: string;
+      placesOrders?: false;
+      acceptsForExecution?: false;
+      executionDisabled?: true;
+      rejections?: Array<{ code?: string; message?: string }>;
+    } | null;
+    capabilities?: { tradingEnabled?: false; placesOrders?: false; mutatesBroker?: false };
+    placesOrders?: false;
+    acceptsForExecution?: false;
+    mutatesBroker?: false;
+    executionDisabled?: true;
+    note?: string;
+  } | null>(null);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -320,7 +342,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -330,6 +352,7 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-risk/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/simulation-risk/history?limit=8", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -349,6 +372,10 @@ export function ForexAutomatedTradingPage(props: {
       const lifeJson = await lifeRes.json() as {
         ok?: boolean;
         lifecycle?: typeof simLifecycle;
+      };
+      const biJson = await biRes.json() as {
+        ok?: boolean;
+        brokerIntent?: typeof brokerIntent;
       };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
@@ -376,6 +403,7 @@ export function ForexAutomatedTradingPage(props: {
         setSimDraftHistory(draftHistJson.history);
       }
       if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
+      if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -966,6 +994,34 @@ export function ForexAutomatedTradingPage(props: {
       <p className="fx-auto-trading-banner" role="status" data-fx-execution-banner="true">
         {status?.banner ?? BANNER}
       </p>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-broker-intent="true"
+        aria-label="Broker intent architecture status"
+      >
+        <h2 className="fx-auto-trading-panel-title">Broker intent (Phase 57.0)</h2>
+        <p className="fx-auto-trading-hint" data-fx-at-broker-intent-banner="true">
+          {brokerIntent?.banner
+            ?? "BROKER INTENT ARCHITECTURE ONLY — EXECUTION REMAINS FORBIDDEN"}
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
+          <li>Simulation ≠ DEMO broker execution ≠ LIVE</li>
+          <li>
+            placesOrders={String(brokerIntent?.placesOrders ?? false)} · acceptsForExecution=
+            {String(brokerIntent?.acceptsForExecution ?? false)} · mutatesBroker=
+            {String(brokerIntent?.mutatesBroker ?? false)} · executionDisabled=
+            {String(brokerIntent?.executionDisabled ?? true)}
+          </li>
+          <li>
+            Intents: {brokerIntent?.intentCount ?? 0}
+            {brokerIntent?.latest?.state
+              ? ` · latest state=${brokerIntent.latest.state} · protection=${brokerIntent.latest.protectiveStatus ?? "UNVERIFIED"}`
+              : " · no prepared intent"}
+          </li>
+          <li>No one-click execution. Authorization required for any future DEMO phase.</li>
+        </ul>
+      </section>
 
       <details className="fx-auto-trading-auth" data-fx-at-admin-auth="true">
         <summary className="fx-auto-trading-auth-summary">
