@@ -256,3 +256,211 @@ export function ensureAmountInAccountCurrency(input: {
     nowMs: input.nowMs,
   });
 }
+
+export type OffersConversionQuoteInput = {
+  baseAsset?: string | null;
+  quoteAsset?: string | null;
+  providerSymbol?: string | null;
+  bid?: number | null;
+  ask?: number | null;
+  /** ISO timestamp when this offer row was observed; required for freshness. */
+  observedAtUtc?: string | null;
+};
+
+/**
+ * Phase 56.4.0 — Build a ConversionRateSnapshot from ForexConnect Offers bid/ask.
+ * Supports direct, inverse, and one-hop USD cross. Never invents rates or directions.
+ * Synthetic rates must not be passed here — unit tests use explicitly labeled fixtures.
+ */
+export function buildOffersConversionRateSnapshot(input: {
+  fromCurrency: string;
+  toCurrency: string;
+  offers: OffersConversionQuoteInput[];
+  observedAtUtc: string;
+  maxAgeMs?: number;
+  nowMs?: number;
+}):
+  | { ok: true; snapshot: ConversionRateSnapshot; path: "IDENTITY" | "DIRECT" | "INVERSE" | "CROSS_USD" }
+  | { ok: false; code: string; message: string } {
+  const from = normCcy(input.fromCurrency);
+  const to = normCcy(input.toCurrency);
+  if (!from || !to) {
+    return {
+      ok: false,
+      code: "FX_CURRENCY_MISSING",
+      message: "fromCurrency and toCurrency are required.",
+    };
+  }
+  const maxAgeMs = input.maxAgeMs ?? 30_000;
+  if (!finitePositive(maxAgeMs)) {
+    return {
+      ok: false,
+      code: "FX_RATE_MAX_AGE_INVALID",
+      message: "maxAgeMs must be a finite positive number.",
+    };
+  }
+  const observedAtUtc = String(input.observedAtUtc ?? "").trim();
+  if (!observedAtUtc || parseObservedAtMs(observedAtUtc) == null) {
+    return {
+      ok: false,
+      code: "FX_RATE_TIMESTAMP_INVALID",
+      message: "observedAtUtc is missing or not a valid ISO timestamp.",
+    };
+  }
+  if (from === to) {
+    return {
+      ok: true,
+      path: "IDENTITY",
+      snapshot: {
+        fromCurrency: from,
+        toCurrency: to,
+        rate: 1,
+        direction: "MULTIPLY",
+        source: "IDENTITY",
+        observedAtUtc,
+        maxAgeMs,
+      },
+    };
+  }
+
+  const mid = (bid: number | null | undefined, ask: number | null | undefined): number | null => {
+    if (finitePositive(bid) && finitePositive(ask)) return (bid + ask) / 2;
+    if (finitePositive(bid)) return bid;
+    if (finitePositive(ask)) return ask;
+    return null;
+  };
+
+  type Leg = { base: string; quote: string; mid: number; source: string; observedAtUtc: string };
+  const legs: Leg[] = [];
+  for (const o of input.offers) {
+    let base = normCcy(o.baseAsset);
+    let quote = normCcy(o.quoteAsset);
+    if ((!base || !quote) && o.providerSymbol) {
+      const parts = String(o.providerSymbol).split(/[/\s_-]+/).filter(Boolean);
+      if (parts.length >= 2) {
+        base = normCcy(parts[0]);
+        quote = normCcy(parts[1]);
+      }
+    }
+    const m = mid(o.bid, o.ask);
+    if (!base || !quote || m == null) continue;
+    const rowObs = o.observedAtUtc && parseObservedAtMs(o.observedAtUtc) != null
+      ? String(o.observedAtUtc)
+      : observedAtUtc;
+    legs.push({
+      base,
+      quote,
+      mid: m,
+      source: `FOREXCONNECT_OFFERS ${base}/${quote} mid`,
+      observedAtUtc: rowObs,
+    });
+  }
+
+  const nowMs = input.nowMs ?? Date.now();
+  const freshLegs = legs.filter((leg) => {
+    const t = parseObservedAtMs(leg.observedAtUtc);
+    if (t == null) return false;
+    return nowMs - t <= maxAgeMs;
+  });
+  if (!freshLegs.length) {
+    return {
+      ok: false,
+      code: "FX_RATE_STALE",
+      message: `No fresh Offers mid within maxAgeMs=${maxAgeMs} for ${from}→${to}.`,
+    };
+  }
+
+  const find = (b: string, q: string): Leg | null =>
+    freshLegs.find((l) => l.base === b && l.quote === q) ?? null;
+
+  const direct = find(from, to);
+  if (direct) {
+    return {
+      ok: true,
+      path: "DIRECT",
+      snapshot: {
+        fromCurrency: from,
+        toCurrency: to,
+        rate: direct.mid,
+        direction: "MULTIPLY",
+        source: direct.source,
+        observedAtUtc: direct.observedAtUtc,
+        maxAgeMs,
+      },
+    };
+  }
+
+  const inverse = find(to, from);
+  if (inverse) {
+    // Explicit DIVIDE by the inverse-pair mid — do not silently invent an inverse MULTIPLY without stating it.
+    return {
+      ok: true,
+      path: "INVERSE",
+      snapshot: {
+        fromCurrency: from,
+        toCurrency: to,
+        rate: inverse.mid,
+        direction: "DIVIDE",
+        source: `${inverse.source} (inverse DIVIDE)`,
+        observedAtUtc: inverse.observedAtUtc,
+        maxAgeMs,
+      },
+    };
+  }
+
+  // One-hop cross via USD only when both legs are fresh.
+  if (from !== "USD" && to !== "USD") {
+    const a = buildOffersConversionRateSnapshot({
+      fromCurrency: from,
+      toCurrency: "USD",
+      offers: input.offers,
+      observedAtUtc,
+      maxAgeMs,
+      nowMs,
+    });
+    const b = buildOffersConversionRateSnapshot({
+      fromCurrency: "USD",
+      toCurrency: to,
+      offers: input.offers,
+      observedAtUtc,
+      maxAgeMs,
+      nowMs,
+    });
+    if (a.ok && b.ok && a.path !== "IDENTITY" && b.path !== "IDENTITY") {
+      // Normalize both legs to MULTIPLY rates then compose.
+      const rateA = a.snapshot.direction === "MULTIPLY" ? a.snapshot.rate : 1 / a.snapshot.rate;
+      const rateB = b.snapshot.direction === "MULTIPLY" ? b.snapshot.rate : 1 / b.snapshot.rate;
+      const composed = rateA * rateB;
+      if (!finitePositive(composed)) {
+        return {
+          ok: false,
+          code: "FX_CONVERSION_NON_FINITE",
+          message: "USD cross composition produced a non-finite rate.",
+        };
+      }
+      const older =
+        parseObservedAtMs(a.snapshot.observedAtUtc)! <= parseObservedAtMs(b.snapshot.observedAtUtc)!
+          ? a.snapshot.observedAtUtc
+          : b.snapshot.observedAtUtc;
+      return {
+        ok: true,
+        path: "CROSS_USD",
+        snapshot: {
+          fromCurrency: from,
+          toCurrency: to,
+          rate: composed,
+          direction: "MULTIPLY",
+          source: `cross:${a.snapshot.source}+${b.snapshot.source}`,
+          observedAtUtc: older,
+          maxAgeMs,
+        },
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    code: "FX_RATE_UNAVAILABLE",
+    message: `No verified Offers conversion path for ${from}→${to}.`,
+  };
+}

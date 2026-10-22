@@ -539,6 +539,11 @@ export function evaluateSimulationDataReadiness(
 /** Summarize for public status API (no secrets). */
 export function simulationDataReadinessPublicSummary(
   r: SimulationDataReadinessResult,
+  extras?: {
+    quantityEvidence?: Record<string, unknown> | null;
+    condDistEvidence?: Record<string, unknown> | null;
+    conversionEvidence?: Record<string, unknown> | null;
+  },
 ): Record<string, unknown> {
   return {
     overall: r.overall,
@@ -549,6 +554,17 @@ export function simulationDataReadinessPublicSummary(
     notReady: r.gates
       .filter((g) => g.status !== "READY")
       .map((g) => ({ id: g.id, status: g.status, reason: g.reason, blocks: g.blocks })),
+    gates: r.gates.map((g) => ({
+      id: g.id,
+      status: g.status,
+      reason: g.reason,
+      safeForRiskCalc: g.safeForRiskCalc,
+    })),
+    evidence: {
+      quantity: extras?.quantityEvidence ?? null,
+      condDist: extras?.condDistEvidence ?? null,
+      conversion: extras?.conversionEvidence ?? null,
+    },
     evaluatedAtUtc: r.evaluatedAtUtc,
     notes: r.notes,
   };

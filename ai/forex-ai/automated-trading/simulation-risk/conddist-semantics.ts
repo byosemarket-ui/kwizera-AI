@@ -57,6 +57,22 @@ function finiteNumber(n: unknown): n is number {
 }
 
 /**
+ * Phase 56.4.0 — True when sidecar/bridge reported a documented O2G CondDist getter.
+ * Accepts Python snake_case and JS/camelCase aliases used by ForexConnect 1.6.x docs.
+ * Never treats a bare numeric CondDist as documented without method provenance.
+ */
+export function isDocumentedCondDistMethod(method: string | null | undefined): boolean {
+  const m = String(method ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!m) return false;
+  return (
+    m === "getconddiststopfortrade"
+    || m === "getconddistlimitfortrade"
+    || m === "getconddistentrystop"
+    || m === "getconddistentrylimit"
+  );
+}
+
+/**
  * Resolve CondDist unit from documented SDK method provenance.
  * Do not infer from the numeric value alone.
  */
@@ -65,10 +81,13 @@ export function resolveCondDistUnit(input: {
   reportedUnit?: string | null;
   /** True when value came from getCondDist*ForTrade / Entry* SDK methods. */
   fromDocumentedSdkMethod?: boolean;
+  /** Sidecar condDistMethod string when present. */
+  condDistMethod?: string | null;
 }): CondDistUnit {
   const reported = String(input.reportedUnit ?? "").trim().toLowerCase();
   if (reported === "pips" || reported === "pip") return "pips";
   if (input.fromDocumentedSdkMethod === true) return "pips";
+  if (isDocumentedCondDistMethod(input.condDistMethod)) return "pips";
   // Legacy sidecar default "pips_or_points_unverified" is NOT sufficient alone.
   return "unknown";
 }
@@ -106,16 +125,20 @@ export function resolveCondDistMinStop(input: {
   reportedUnit?: string | null;
   /** Prefer true when sidecar used getCondDistStopForTrade (or documented alias). */
   fromDocumentedSdkMethod?: boolean;
+  /** Sidecar condDistMethod string (Phase 56.4.0). */
+  condDistMethod?: string | null;
   fieldKind?: CondDistFieldKind;
   pointSize?: number | null;
 }): MinStopAttestation {
   const notes: string[] = [];
   const fieldKind = input.fieldKind ?? "STOP_FOR_TRADE";
   const fromDoc = input.fromDocumentedSdkMethod === true
+    || isDocumentedCondDistMethod(input.condDistMethod)
     || String(input.reportedUnit ?? "").toLowerCase() === "pips";
   const unit = resolveCondDistUnit({
     reportedUnit: input.reportedUnit,
     fromDocumentedSdkMethod: fromDoc,
+    condDistMethod: input.condDistMethod,
   });
 
   if (!input.condDistAvailable || !finiteNumber(input.condDistStop)) {

@@ -271,11 +271,12 @@ export function verifyInstrumentMetadata(
     pipCost: hit.pipCost,
     baseUnitSize: hit.baseUnitSize,
     contractMultiplier: hit.contractMultiplier,
-    // Phase 56.2.5 — distinct MinQuantity; lotStep is legacy alias (often same as min).
+    // Phase 56.2.5 / 56.4.0 — distinct MinQuantity; lotStep is legacy alias (often same as min).
+    // Do not force quantityStep=null — BaseUnitSize remains the authoritative increment in contract-spec.
     minQuantity: hit.minQuantity ?? null,
     quantityMin: hit.minQuantity ?? null,
     lotStep: hit.lotStep ?? null,
-    quantityStep: null,
+    quantityStep: hit.lotStep ?? hit.baseUnitSize ?? null,
     marginPerLotAccount: hit.mmrPerLot,
     mmrPerLot: hit.mmrPerLot,
     quoteCurrency: hit.quoteAsset,
@@ -284,6 +285,7 @@ export function verifyInstrumentMetadata(
     condDistStop: hit.condDistStop,
     condDistAvailable: hit.condDistAvailable,
     condDistUnit: hit.condDistUnit,
+    condDistMethod: hit.condDistMethod ?? null,
   };
   const spec = contractSpecFromForexConnectMetadata({
     instrumentId: hit.providerSymbol,
@@ -346,6 +348,7 @@ export function verifyInstrumentMetadata(
           : null,
       condDistAvailable: Boolean(hit.condDistAvailable),
       condDistUnit: hit.condDistUnit ?? null,
+      condDistMethod: hit.condDistMethod ?? null,
     },
     blockers,
   };

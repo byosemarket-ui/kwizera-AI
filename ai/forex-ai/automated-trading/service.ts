@@ -35,6 +35,8 @@ import {
   simulationDataReadinessPublicSummary,
   validateOrderAllocationAmount,
   xauSemanticsPublicSummary,
+  isDocumentedCondDistMethod,
+  buildOffersConversionRateSnapshot,
   type AtSimRiskEngine,
   type AtSimDraftResult,
   type AtSimRiskPolicy,
@@ -402,12 +404,11 @@ export class AutomatedTradingService {
       quantityStep: inst?.quantityStep,
       quantityMin: inst?.quantityMin,
       legacyQuantityUnitLabel: inst?.quantityUnit,
-      condDistStop: (inst as { condDistStop?: number | null } | null | undefined)?.condDistStop,
-      condDistAvailable: Boolean(
-        (inst as { condDistAvailable?: boolean } | null | undefined)?.condDistAvailable,
-      ),
-      condDistStopUnit:
-        (inst as { condDistUnit?: string | null } | null | undefined)?.condDistUnit ?? undefined,
+      condDistStop: inst?.condDistStop,
+      condDistAvailable: Boolean(inst?.condDistAvailable),
+      condDistStopUnit: inst?.condDistUnit ?? undefined,
+      condDistMethod: inst?.condDistMethod ?? undefined,
+      fromDocumentedSdkMethod: isDocumentedCondDistMethod(inst?.condDistMethod),
     });
 
     let exposureSummary: AutomatedTradingPublicStatus["exposureReconciliation"] = null;
@@ -464,6 +465,75 @@ export class AutomatedTradingService {
       reportedQuantityMin: inst?.quantityMin,
     });
     const acctCcy = verification?.account?.accountCurrency ?? null;
+    const acctCcyNorm = acctCcy ? String(acctCcy).trim().toUpperCase() : "";
+    // Phase 56.4.0 — USD identity is READY; non-USD requires a fresh Offers ConversionRateSnapshot.
+    let conversionRequired = Boolean(acctCcyNorm && acctCcyNorm !== "USD");
+    let conversionReady = !conversionRequired;
+    let conversionReason: string | null = null;
+    let conversionEvidence: Record<string, unknown> = conversionRequired
+      ? { required: true, ready: false }
+      : { required: false, ready: true, path: "IDENTITY", accountCurrency: acctCcyNorm || null };
+    if (conversionRequired && connectionStatus === "CONNECTED" && sessionMatchesSelection) {
+      try {
+        const bridgeFx = getForexConnectBridge();
+        const instResFx = await bridgeFx.listInstruments();
+        const offers = (instResFx.instruments ?? []).map((row) => ({
+          baseAsset: row.baseAsset,
+          quoteAsset: row.quoteAsset,
+          providerSymbol: row.providerSymbol,
+          bid: row.bid ?? null,
+          ask: row.ask ?? null,
+          observedAtUtc: verification?.verifiedAtUtc ?? new Date().toISOString(),
+        }));
+        const built = buildOffersConversionRateSnapshot({
+          fromCurrency: "USD",
+          toCurrency: acctCcyNorm,
+          offers,
+          observedAtUtc: verification?.verifiedAtUtc ?? new Date().toISOString(),
+          maxAgeMs: 30_000,
+        });
+        if (built.ok) {
+          conversionReady = true;
+          conversionReason = null;
+          conversionEvidence = {
+            required: true,
+            ready: true,
+            path: built.path,
+            source: built.snapshot.source,
+            direction: built.snapshot.direction,
+            observedAtUtc: built.snapshot.observedAtUtc,
+            maxAgeMs: built.snapshot.maxAgeMs,
+            fromCurrency: built.snapshot.fromCurrency,
+            toCurrency: built.snapshot.toCurrency,
+            // Rate value omitted from public status — presence + provenance only.
+            rateAttested: true,
+          };
+        } else {
+          conversionReady = false;
+          conversionReason = built.message;
+          conversionEvidence = {
+            required: true,
+            ready: false,
+            code: built.code,
+            message: built.message,
+          };
+        }
+      } catch {
+        conversionReady = false;
+        conversionReason =
+          "Non-USD account — Offers FX snapshot unavailable (listInstruments failed).";
+        conversionEvidence = { required: true, ready: false, code: "FX_OFFERS_UNAVAILABLE" };
+      }
+    } else if (conversionRequired) {
+      conversionReason =
+        "Non-USD account — authoritative FX snapshot requires a matching Connected session.";
+      conversionEvidence = {
+        required: true,
+        ready: false,
+        code: "FX_SESSION_REQUIRED",
+        message: conversionReason,
+      };
+    }
     const simReadiness = evaluateSimulationDataReadiness({
       environment: fresh.selectedEnvironment,
       environmentMatches: sessionMatchesSelection,
@@ -486,12 +556,9 @@ export class AutomatedTradingService {
       minStopNoPositiveMinimum: semantics.minStopNoPositiveMinimum,
       condDistUnit: semantics.condDistUnit,
       condDistAvailable: Boolean(inst?.condDistAvailable),
-      conversionRequired: Boolean(acctCcy && String(acctCcy).toUpperCase() !== "USD"),
-      conversionReady: !acctCcy || String(acctCcy).toUpperCase() === "USD",
-      conversionReason:
-        acctCcy && String(acctCcy).toUpperCase() !== "USD"
-          ? "Non-USD account — authoritative FX snapshot not wired on this status path."
-          : null,
+      conversionRequired,
+      conversionReady,
+      conversionReason,
       exposureAuthoritative: exposureSummary?.authoritative ?? null,
       exposureStatus: exposureSummary?.status ?? null,
       confirmedZeroExposure: exposureSummary?.confirmedZeroExposure ?? null,
@@ -552,7 +619,32 @@ export class AutomatedTradingService {
       })(),
       quantitySemantics: xauSemanticsPublicSummary(semantics),
       exposureReconciliation: exposureSummary,
-      simulationDataReadiness: simulationDataReadinessPublicSummary(simReadiness),
+      simulationDataReadiness: simulationDataReadinessPublicSummary(simReadiness, {
+        quantityEvidence: {
+          unit: semantics.resolvedQuantityUnit,
+          ambiguous: semantics.quantityUnitAmbiguous,
+          baseUnitSize: inst?.baseUnitSize ?? null,
+          contractMultiplier: inst?.contractMultiplier ?? null,
+          pointSize: inst?.pointSize ?? null,
+          pipCostAccount: inst?.pipCostAccount ?? null,
+          quantityMin: qtyConstraints.quantityMin,
+          quantityStep: qtyConstraints.quantityStep,
+          constraintsStatus: qtyConstraints.status,
+          sizingBlocked: qtyConstraints.sizingBlocked,
+          blockCode: qtyConstraints.blockCode,
+        },
+        condDistEvidence: {
+          available: Boolean(inst?.condDistAvailable),
+          rawStop: inst?.condDistStop ?? null,
+          unit: semantics.condDistUnit,
+          method: inst?.condDistMethod ?? null,
+          documentedMethod: isDocumentedCondDistMethod(inst?.condDistMethod),
+          minStopDistanceVerified: semantics.minStopDistanceVerified,
+          noPositiveMinimum: semantics.minStopNoPositiveMinimum,
+          minStopPrice: semantics.minStopDistanceValue,
+        },
+        conversionEvidence,
+      }),
       blockers: [...new Set(blockers)],
       explanation:
         moduleStatus === "BLOCKED"
@@ -1464,8 +1556,17 @@ export class AutomatedTradingService {
         ?? "XAU/USD",
     ).trim();
     let exposureReconciliation = null;
-    let condDistStop: number | null = null;
-    let condDistAvailable = false;
+    // Phase 56.4.0 — CondDist from verification instrument (never hardcode unverified unit).
+    const instMeta = envState.lastVerification?.instrument;
+    const rawCond = instMeta?.condDistStop;
+    const condDistStop =
+      typeof rawCond === "number" && Number.isFinite(rawCond) ? rawCond : null;
+    const condDistAvailable = Boolean(instMeta?.condDistAvailable) && condDistStop != null;
+    const condDistStopUnit = instMeta?.condDistUnit ?? null;
+    const condDistMethod = instMeta?.condDistMethod ?? null;
+    const fromDocumentedSdkMethod =
+      isDocumentedCondDistMethod(condDistMethod)
+      || String(condDistStopUnit ?? "").toLowerCase() === "pips";
     try {
       const bridge = getForexConnectBridge();
       const [openOrders, openTrades] = await Promise.all([
@@ -1483,13 +1584,6 @@ export class AutomatedTradingService {
             ?? [],
         },
       });
-      const instMeta = envState.lastVerification?.instrument;
-      // CondDist may appear on latest offer metadata after sidecar enrichment.
-      const rawCond = (instMeta as { condDistStop?: unknown } | null | undefined)?.condDistStop;
-      if (typeof rawCond === "number" && Number.isFinite(rawCond)) {
-        condDistStop = rawCond;
-        condDistAvailable = true;
-      }
     } catch {
       exposureReconciliation = reconcileBrokerExposure({
         instrument: instrumentForExposure,
@@ -1571,8 +1665,10 @@ export class AutomatedTradingService {
       reservedStrategyBudgetActive: this.simRiskEngine.sumActiveReserved(env),
       exposureReconciliation,
       condDistStop,
-      condDistStopUnit: "pips_or_points_unverified",
+      condDistStopUnit,
       condDistAvailable,
+      condDistMethod,
+      fromDocumentedSdkMethod,
       overrides: {
         instrument: input.instrument != null ? String(input.instrument) : undefined,
         direction: resolvedDirection ?? direction,

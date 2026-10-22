@@ -84,11 +84,29 @@ export function contractSpecFromForexConnectMetadata(input: {
   const isXau = /XAU/i.test(input.instrumentId);
   const isCrypto = label.includes("crypto");
 
+  // Phase 56.4.0 — XAU ContractMultiplier: when Offers omit it but BaseUnitSize===1 and
+  // PointSize+PipCost are attested, treat multiplier as 1 (FXCM 1 contract = 1 oz). Never invent for non-XAU.
+  let resolvedContractMultiplier = contractMultiplier;
+  if (
+    resolvedContractMultiplier == null
+    && isXau
+    && baseUnitSize === 1
+    && pointSize != null
+    && pipCostAccount != null
+  ) {
+    resolvedContractMultiplier = 1;
+  }
+
   let convention: ContractConvention = "unknown";
   let quantityUnit: QuantityUnit = "unknown";
   // Phase 56.2.4 — XAU/USD: prefer contracts (FXCM published 1 contract = 1 oz).
   // Do not label XAU as "lots" merely because PipCost exists.
-  if (isXau && isBullion && pointSize != null && (pipCostAccount != null || contractMultiplier != null)) {
+  if (
+    isXau
+    && isBullion
+    && pointSize != null
+    && (pipCostAccount != null || resolvedContractMultiplier != null)
+  ) {
     convention = "ounce_contract";
     quantityUnit = "contracts";
   } else if (pipCostAccount != null && pointSize != null) {
@@ -97,13 +115,17 @@ export function contractSpecFromForexConnectMetadata(input: {
   } else if (baseUnitSize != null && pointSize != null) {
     convention = "fx_base_unit";
     quantityUnit = "lots";
-  } else if (isBullion && contractMultiplier != null && pointSize != null) {
+  } else if (isBullion && resolvedContractMultiplier != null && pointSize != null) {
     convention = "ounce_contract";
     quantityUnit = "ounces";
   } else if (isCrypto && (reportedStep != null || legacyLotStep != null || baseUnitSize != null)) {
     convention = "crypto_base_qty";
     quantityUnit = "base_units";
-  } else if (contractMultiplier != null && contractMultiplier !== 1 && pointSize != null) {
+  } else if (
+    resolvedContractMultiplier != null
+    && resolvedContractMultiplier !== 1
+    && pointSize != null
+  ) {
     convention = "cfd_multiplier";
     quantityUnit = "contracts";
   }
@@ -135,8 +157,8 @@ export function contractSpecFromForexConnectMetadata(input: {
   const usable =
     (convention === "fx_pip_cost_lot" && pointSize != null && pipCostAccount != null)
     || (convention === "fx_base_unit" && pointSize != null && baseUnitSize != null)
-    || (convention === "ounce_contract" && contractMultiplier != null && pointSize != null)
-    || (convention === "cfd_multiplier" && contractMultiplier != null && pointSize != null)
+    || (convention === "ounce_contract" && resolvedContractMultiplier != null && pointSize != null)
+    || (convention === "cfd_multiplier" && resolvedContractMultiplier != null && pointSize != null)
     || (convention === "crypto_base_qty" && quantityStep != null);
 
   if (!usable) {
@@ -168,7 +190,8 @@ export function contractSpecFromForexConnectMetadata(input: {
     pointSize,
     pipCostAccount,
     baseUnitSize,
-    contractMultiplier: contractMultiplier ?? (convention.startsWith("fx_") ? 1 : null),
+    contractMultiplier:
+      resolvedContractMultiplier ?? (convention.startsWith("fx_") ? 1 : null),
     quantityMin,
     quantityMax,
     quantityStep,

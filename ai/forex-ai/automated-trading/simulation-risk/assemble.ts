@@ -46,6 +46,9 @@ export interface AssembleSimDraftParams {
   condDistStop?: number | null;
   condDistStopUnit?: string | null;
   condDistAvailable?: boolean;
+  /** Phase 56.4.0 — documented SDK CondDist method name when attested. */
+  condDistMethod?: string | null;
+  fromDocumentedSdkMethod?: boolean;
   /** Optional override prices for pure API/tests (still validated). */
   overrides?: {
     instrument?: string;
@@ -64,6 +67,8 @@ function buildContract(
     condDistStop?: number | null;
     condDistStopUnit?: string | null;
     condDistAvailable?: boolean;
+    condDistMethod?: string | null;
+    fromDocumentedSdkMethod?: boolean;
   },
 ): AtSimContractMetaInput | null {
   const inst = verification?.instrument;
@@ -106,9 +111,13 @@ function buildContract(
     quantityStep,
     quantityMin,
     legacyQuantityUnitLabel: inst.quantityUnit,
-    condDistStop: cond.condDistStop,
-    condDistStopUnit: cond.condDistStopUnit,
-    condDistAvailable: cond.condDistAvailable,
+    condDistStop: cond.condDistStop ?? finiteOrNull(inst.condDistStop),
+    condDistStopUnit: cond.condDistStopUnit ?? inst.condDistUnit ?? undefined,
+    condDistAvailable:
+      cond.condDistAvailable
+      ?? Boolean(inst.condDistAvailable),
+    condDistMethod: cond.condDistMethod ?? inst.condDistMethod ?? undefined,
+    fromDocumentedSdkMethod: cond.fromDocumentedSdkMethod,
   });
 
   const constraints = resolveXauQuantityConstraints({
@@ -286,6 +295,8 @@ export function assembleSimDraftInput(params: AssembleSimDraftParams): AtSimDraf
       condDistStop: params.condDistStop,
       condDistStopUnit: params.condDistStopUnit,
       condDistAvailable: params.condDistAvailable,
+      condDistMethod: params.condDistMethod,
+      fromDocumentedSdkMethod: params.fromDocumentedSdkMethod,
     }),
     account: buildAccount(params.verification, params.environment),
     sourceDecisionId: decision?.decisionId ?? null,

@@ -113,6 +113,8 @@ export interface VerifiedInstrumentPublic {
   condDistStop?: number | null;
   condDistAvailable?: boolean;
   condDistUnit?: string | null;
+  /** Phase 56.4.0 — documented SDK method name when sidecar attested it. */
+  condDistMethod?: string | null;
 }
 
 export interface VerifiedMarketQuotePublic {

@@ -108,6 +108,10 @@ export function resolveXauQuantitySemantics(input: {
   condDistStop?: number | null;
   condDistStopUnit?: string | null;
   condDistAvailable?: boolean;
+  /** Phase 56.4.0 — documented SDK method name when sidecar attested it. */
+  condDistMethod?: string | null;
+  /** Explicit provenance flag when caller already verified the method. */
+  fromDocumentedSdkMethod?: boolean;
 }): XauQuantitySemanticsResolution {
   const now = "2026-10-20T00:00:00.000Z";
   const notes: string[] = [];
@@ -357,14 +361,17 @@ export function resolveXauQuantitySemantics(input: {
       : "Cannot conclusively bind API quantity to ounces without DEMO alignment.",
   };
 
-  // Phase 56.2.6 — CondDist is pips per ForexConnect docs; convert via PointSize.
+  // Phase 56.2.6 / 56.4.0 — CondDist is pips per ForexConnect docs; convert via PointSize.
   // Public Enhanced Execution marketing alone never attests account min-stop.
   const attested = resolveCondDistMinStop({
     condDistStop: input.condDistStop,
     condDistAvailable: input.condDistAvailable,
     reportedUnit: input.condDistStopUnit,
-    // Only trust unit=pips when sidecar/docs label says so — never invent from availability alone.
-    fromDocumentedSdkMethod: String(input.condDistStopUnit ?? "").toLowerCase() === "pips",
+    condDistMethod: input.condDistMethod,
+    // Trust unit=pips or documented getCondDist* method — never invent from availability alone.
+    fromDocumentedSdkMethod:
+      input.fromDocumentedSdkMethod === true
+      || String(input.condDistStopUnit ?? "").toLowerCase() === "pips",
     fieldKind: "STOP_FOR_TRADE",
     pointSize: point.value,
   });
