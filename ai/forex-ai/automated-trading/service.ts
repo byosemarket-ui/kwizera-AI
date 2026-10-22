@@ -45,6 +45,8 @@ import {
   evaluateSimReentryPolicy,
   simulationLifecyclePublicStatus,
   getAtSimLifecycleStore,
+  proposeControlledSlCrossingLevels,
+  proposeControlledSlApproachLevels,
   type AtSimRiskEngine,
   type AtSimDraftResult,
   type AtSimRiskPolicy,
@@ -2011,6 +2013,136 @@ export class AutomatedTradingService {
         status,
       };
     }
+  }
+
+  /**
+   * Phase 56.4.6 — Admin-gated controlled monitor tick for simulation acceptance.
+   * Injects a synthetic LIVE-fresh Offers snapshot (never broker quotes / never orders).
+   * mode=sl_cross crosses SL; mode=sl_approach approaches without closing; mode=stale
+   * forces STALE_INTERRUPTED without a fill.
+   */
+  async injectControlledSimMonitorTick(input: {
+    positionId: string;
+    mode: "sl_cross" | "sl_approach" | "stale";
+  }): Promise<
+    | {
+      ok: true;
+      position: SimPosition;
+      controlled: true;
+      placesOrders: false;
+      acceptsForExecution: false;
+      status: AutomatedTradingPublicStatus;
+    }
+    | { ok: false; code: string; message: string; status: AutomatedTradingPublicStatus }
+  > {
+    const life = getAtSimLifecycleStore();
+    const existing = life.get(String(input.positionId));
+    const status = await this.buildStatus();
+    if (!existing) {
+      return { ok: false, code: "SIM_POSITION_NOT_FOUND", message: "Simulated position not found.", status };
+    }
+    if (existing.state === "SIMULATED_CLOSED" || existing.state === "REJECTED") {
+      return {
+        ok: false,
+        code: "SIM_INJECT_INVALID_STATE",
+        message: `Cannot inject controlled tick into state ${existing.state}.`,
+        status,
+      };
+    }
+    const now = Date.now();
+    let bid: number;
+    let ask: number;
+    let fresh = true;
+    let streamState = "LIVE";
+    let priceChangeAgeMs: number | null = 50;
+    if (input.mode === "sl_cross") {
+      const lv = proposeControlledSlCrossingLevels(existing);
+      bid = lv.bid;
+      ask = lv.ask;
+    } else if (input.mode === "sl_approach") {
+      const lv = proposeControlledSlApproachLevels(existing);
+      bid = lv.bid;
+      ask = lv.ask;
+    } else {
+      const lv = proposeControlledSlApproachLevels(existing);
+      bid = lv.bid;
+      ask = lv.ask;
+      fresh = false;
+      streamState = "LIVE";
+      priceChangeAgeMs = 90_000;
+    }
+    const evaluated = evaluateDraftBoundaryQuote({
+      instrument: existing.instrument,
+      bid,
+      ask,
+      streamState,
+      priceChangeAgeMs,
+      receiptAgeMs: 40,
+      updateCount: 99,
+      sourceTimestampMs: now,
+      receivedAtMs: now,
+      nowMs: now,
+    });
+    // For sl_cross / sl_approach we require a fresh snapshot; for stale mode we require !fresh.
+    if (input.mode === "stale") {
+      if (!evaluated.snapshot || evaluated.snapshot.fresh) {
+        return {
+          ok: false,
+          code: "SIM_INJECT_STALE_FIXTURE_FAILED",
+          message: "Failed to build a non-fresh controlled stale snapshot.",
+          status,
+        };
+      }
+    } else if (!evaluated.ok || !evaluated.snapshot.fresh) {
+      return {
+        ok: false,
+        code: evaluated.ok ? "SIM_INJECT_QUOTE_NOT_FRESH" : evaluated.code,
+        message: evaluated.ok
+          ? "Controlled inject quote was not fresh."
+          : evaluated.message,
+        status,
+      };
+    }
+    void fresh;
+    const next = applySimMonitorTick({
+      position: existing,
+      quote: evaluated.snapshot!,
+    });
+    const becameClosed =
+      existing.state !== "SIMULATED_CLOSED" && next.state === "SIMULATED_CLOSED";
+    if (becameClosed && next.exitReason) {
+      const rLabel =
+        next.achievedR != null && Number.isFinite(next.achievedR)
+          ? ` R=${Number(next.achievedR).toFixed(3)}`
+          : "";
+      const qRef = next.exitQuoteSnapshotId ? ` q=${next.exitQuoteSnapshotId}` : "";
+      await this.store.appendAudit({
+        action: "simulation_position_closed",
+        environment: next.environment,
+        ok: true,
+        code: String(next.exitReason).slice(0, 64),
+        detail: `CONTROLLED_INJECT ${next.simulationPositionId} ${next.exitReason} @ ${
+          next.exitPrice != null ? next.exitPrice : "UNKNOWN"
+        }${rLabel}${qRef}`.slice(0, 160),
+      });
+    } else if (input.mode === "stale" || input.mode === "sl_approach") {
+      await this.store.appendAudit({
+        action: "simulation_controlled_inject",
+        environment: existing.environment,
+        ok: true,
+        code: `CONTROLLED_${input.mode.toUpperCase()}`,
+        detail: `${existing.simulationPositionId} mode=${input.mode} state=${next.state}`.slice(0, 160),
+      });
+    }
+    await life.upsert(next);
+    return {
+      ok: true,
+      position: next,
+      controlled: true,
+      placesOrders: false,
+      acceptsForExecution: false,
+      status: await this.buildStatus(),
+    };
   }
 
   /** User-requested simulated close — never a broker close. Idempotent when already closed. */

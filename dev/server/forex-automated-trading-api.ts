@@ -872,6 +872,56 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 56.4.6 — controlled simulation-only monitor inject (SL acceptance / stale). Never broker.
+    if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/controlled-inject")) {
+      if (req.method !== "POST") {
+        sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+        return true;
+      }
+      const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+      const positionId = String(body.positionId ?? "").trim();
+      const modeRaw = String(body.mode ?? "").trim();
+      const mode =
+        modeRaw === "sl_cross" || modeRaw === "sl_approach" || modeRaw === "stale"
+          ? modeRaw
+          : null;
+      if (!mode) {
+        sendJson(res, 422, {
+          ok: false,
+          error: {
+            code: "SIM_INJECT_MODE_INVALID",
+            message: "mode must be sl_cross | sl_approach | stale.",
+          },
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      const result = await service.injectControlledSimMonitorTick({ positionId, mode });
+      if (!result.ok) {
+        sendJson(res, 422, {
+          ok: false,
+          error: { code: result.code, message: result.message },
+          status: result.status,
+          placesOrders: false,
+          acceptsForExecution: false,
+          simulationOnly: true,
+        });
+        return true;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        position: result.position,
+        controlled: true,
+        status: result.status,
+        placesOrders: false,
+        acceptsForExecution: false,
+        simulationOnly: true,
+      });
+      return true;
+    }
+
     // Phase 56.4.3 — user-requested simulated close (never broker).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/close")) {
       if (req.method !== "POST") {

@@ -462,6 +462,36 @@ export function closeSimulatedPositionManual(input: {
 }
 
 /**
+ * Phase 56.4.6 — Controlled simulation-only quote levels that cross Stop Loss
+ * using the documented executable-side convention (BUY=bid, SELL=ask).
+ * Never used for broker execution. Gap fill = these marks, not exact SL.
+ */
+export function proposeControlledSlCrossingLevels(pos: SimPosition): {
+  bid: number;
+  ask: number;
+  expectedExitReason: "STOP_LOSS_HIT";
+} {
+  const spread = 0.3;
+  if (pos.direction === "BUY") {
+    const bid = pos.stopLoss - 0.05;
+    return { bid, ask: bid + spread, expectedExitReason: "STOP_LOSS_HIT" };
+  }
+  const ask = pos.stopLoss + 0.05;
+  return { bid: Math.max(0.01, ask - spread), ask, expectedExitReason: "STOP_LOSS_HIT" };
+}
+
+/** Levels that approach SL without triggering (simulation fixtures). */
+export function proposeControlledSlApproachLevels(pos: SimPosition): { bid: number; ask: number } {
+  const spread = 0.3;
+  if (pos.direction === "BUY") {
+    const bid = pos.stopLoss + 0.05;
+    return { bid, ask: bid + spread };
+  }
+  const ask = pos.stopLoss - 0.05;
+  return { bid: Math.max(0.01, ask - spread), ask };
+}
+
+/**
  * Re-entry is intentionally disabled: requires a new independently validated draft.
  */
 export function evaluateSimReentryPolicy(): {

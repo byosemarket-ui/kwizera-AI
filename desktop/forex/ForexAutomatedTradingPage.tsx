@@ -786,6 +786,37 @@ export function ForexAutomatedTradingPage(props: {
     }
   };
 
+  /** Phase 56.4.6 — Admin controlled sim inject (never broker). */
+  const controlledSimInjectUi = async (
+    positionId: string,
+    mode: "sl_cross" | "sl_approach" | "stale",
+  ) => {
+    if (!positionId || simLifeBusy) return;
+    setSimLifeBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/forex/automated-trading/simulation-lifecycle/controlled-inject", {
+        method: "POST",
+        headers: adminHeaders(token),
+        body: JSON.stringify({ positionId, mode }),
+      });
+      const data = await res.json() as {
+        ok?: boolean;
+        status?: PublicStatus;
+        error?: { message?: string; code?: string };
+      };
+      if (data.status) setStatus(data.status);
+      if (!res.ok || !data.ok) {
+        setError(data.error?.message || data.error?.code || `Controlled inject failed (${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Controlled inject failed");
+    } finally {
+      setSimLifeBusy(false);
+    }
+  };
+
   const startMonitoring = async () => {
     if (!status || monitorBusy) return;
     setMonitorBusy(true);
@@ -2253,6 +2284,26 @@ export function ForexAutomatedTradingPage(props: {
                               data-fx-at-sim-close={id}
                             >
                               Simulated close
+                            </button>
+                            <button
+                              type="button"
+                              className="fx-btn fx-btn--ghost fx-btn--compact"
+                              disabled={busy || simLifeBusy || !id}
+                              onClick={() => void controlledSimInjectUi(id, "sl_cross")}
+                              data-fx-at-sim-controlled-sl={id}
+                              title="Simulation-only: inject a fresh quote that crosses Stop Loss. Never a broker order."
+                            >
+                              Controlled SL (sim)
+                            </button>
+                            <button
+                              type="button"
+                              className="fx-btn fx-btn--ghost fx-btn--compact"
+                              disabled={busy || simLifeBusy || !id}
+                              onClick={() => void controlledSimInjectUi(id, "stale")}
+                              data-fx-at-sim-controlled-stale={id}
+                              title="Simulation-only: inject a stale quote (no fill)."
+                            >
+                              Controlled stale
                             </button>
                           </>
                         ) : (
