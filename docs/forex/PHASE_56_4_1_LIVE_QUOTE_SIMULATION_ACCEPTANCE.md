@@ -137,9 +137,10 @@ Synthetic unit tests cover fresh/stale/future timestamps, readiness LIVE vs idle
 | Step | Result |
 |------|--------|
 | Starting commit | `97e2663c` |
-| Ending commit | *(filled after ship)* |
-| CI run | *(filled after Actions)* |
-| Deployed SHA | *(filled after `/api/deployment`)* |
+| Feature commit | `dca07592` — durable subscribe + tests + report |
+| CI run | [Production deploy #39781838114](https://github.com/byosemarket-ui/kwizera-AI/actions/runs/39781838114) — **success** |
+| Deployed SHA | `dca07592fe05ed23db7d6de36a22ad8924986526` — `verifiedLive=true` |
+| Post-deploy subscribe | `intendedRegistered=true`, `streamState=LIVE`, `intendedCount=1` |
 | Public URL | `http://162.35.114.19:5173` |
 
 ---
