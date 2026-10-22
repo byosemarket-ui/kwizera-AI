@@ -267,12 +267,16 @@ describe("Phase 56.3.5 controlled recovery acceptance (synthetic)", () => {
     // Controlled disconnect (in-process — not production admin API).
     state.disconnected = true;
     await live.ensure("XAU/USD", "1m");
-    expect(live.getSeries("XAU/USD", "1m")?.streamState).toBe("DISCONNECTED");
+    const xauDisc = live.getSeries("XAU/USD", "1m")?.streamState;
+    expect(xauDisc).toBe("DISCONNECTED");
+    expect(xauDisc).not.toBe("LIVE");
     expect(live.getLifecycleDiagnostics().lifecycleState).toBe("DISCONNECTED");
     expect(live.listIntendedSubscriptions().length).toBe(2);
 
-    // Reconnect + single-flight restore
+    // Reconnect + single-flight restore (quotes held empty — subscribe ≠ LIVE)
     state.disconnected = false;
+    const held = state.quotes;
+    state.quotes = () => [];
     live.notifyProviderConnected();
     const p1 = live.restoreIntendedSubscriptions();
     const p2 = live.restoreIntendedSubscriptions();
@@ -281,6 +285,7 @@ describe("Phase 56.3.5 controlled recovery acceptance (synthetic)", () => {
     expect(r1.attempted).toBeLessThanOrEqual(FOREXCONNECT_RESTORE_MAX_ATTEMPTS);
     expect(r1.restored.every((row) => row.streamState !== "LIVE")).toBe(true);
     expect(bridge.subscribeQuotes).toHaveBeenCalled();
+    state.quotes = held;
 
     // Fresh genuine events required for LIVE again
     for (let i = 0; i < 3; i += 1) {
@@ -418,7 +423,7 @@ describe("Phase 56.3.5 controlled recovery acceptance (synthetic)", () => {
     expect(h2.loaded.every((r) => r.providerSymbol !== "FAKE/XYZ")).toBe(true);
     expect(h2.skipped.some((s) => s.reason === "not_in_provider_catalog")).toBe(true);
 
-    // Freeze quotes during restore — connection alone must not invent LIVE.
+    // Hold quotes empty during restore — connection/subscribe alone must not invent LIVE.
     state.quotes = () => [];
     liveC.notifyProviderConnected();
     const restored = await liveC.restoreIntendedSubscriptions();

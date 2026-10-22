@@ -351,8 +351,10 @@ export class ForexConnectLiveCandleService {
       session.streamState = "DISCONNECTED";
       session.errorCode = "FOREXCONNECT_DISCONNECTED";
       session.errorMessage = reason.slice(0, 300);
-      // Invalidate price-change freshness — heartbeats alone must not keep LIVE.
+      // Phase 56.3.5 — invalidate all freshness so residual receipts cannot re-promote LIVE.
       session.lastPriceChangeAtMs = null;
+      session.lastQuoteAtMs = null;
+      session.updateCount = 0;
     }
   }
 
