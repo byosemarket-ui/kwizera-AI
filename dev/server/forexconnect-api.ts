@@ -32,7 +32,10 @@ import {
   type ForexConnectBridge,
 } from "../../ai/market-data/forexconnect/client.js";
 import { ForexConnectMarketDataError } from "../../ai/market-data/forexconnect/errors.js";
-import { FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES } from "../../ai/market-data/forexconnect/timeframes.js";
+import {
+  FOREXCONNECT_SUPPORTED_PROJECT_TIMEFRAMES,
+  resolveForexConnectLiveTimeframe,
+} from "../../ai/market-data/forexconnect/timeframes.js";
 import {
   getForexConnectSessionService,
   maybeRestoreDemoSession,
@@ -391,17 +394,63 @@ export async function handleForexConnectApi(
     if (url.pathname === "/api/forex/providers/forexconnect/subscribe" && req.method === "POST") {
       const body = await readJsonBody(req);
       const symbol = String(body.symbol ?? "").trim();
-      const result = await bridge.subscribeQuotes(symbol);
-      assertNoSecretsInForexConnectPayload(result);
-      sendJson(res, result.ok ? 200 : 503, result);
+      // Phase 56.4.1 — route through live-service so intended subscriptions are durable
+      // (bridge-only subscribe left intendedCount=0 → AUTHENTICATED_IDLE after idle/restart).
+      // LIVE still requires genuine Offers Bid/Ask changes; this never places orders.
+      const live = getForexConnectLiveCandleService();
+      const timeframe = resolveForexConnectLiveTimeframe(
+        typeof body.timeframe === "string" ? body.timeframe : null,
+        "1m",
+      );
+      try {
+        const series = await live.ensure(symbol, timeframe);
+        const result = {
+          ok: true as const,
+          provider: "FOREXCONNECT" as const,
+          providerSymbol: series.providerSymbol,
+          canonicalSymbol: series.canonicalSymbol,
+          displaySymbol: series.displaySymbol,
+          timeframe: series.timeframe,
+          streamState: series.streamState,
+          intendedRegistered: true,
+          placesOrders: false as const,
+          note:
+            "Subscribed via live-service (durable intended). LIVE only after genuine Offers price changes.",
+        };
+        assertNoSecretsInForexConnectPayload(result);
+        sendJson(res, 200, result);
+      } catch (error) {
+        if (error instanceof ForexConnectMarketDataError) {
+          sendJson(res, 503, {
+            ok: false,
+            error: { code: error.code, message: error.message },
+            placesOrders: false,
+          });
+          return true;
+        }
+        throw error;
+      }
       return true;
     }
 
     if (url.pathname === "/api/forex/providers/forexconnect/unsubscribe" && req.method === "POST") {
       const body = await readJsonBody(req);
       const symbol = String(body.symbol ?? "").trim();
-      await bridge.unsubscribeQuotes(symbol);
-      sendJson(res, 200, { ok: true, provider: "FOREXCONNECT", subscribed: false, symbol });
+      const live = getForexConnectLiveCandleService();
+      const timeframe = resolveForexConnectLiveTimeframe(
+        typeof body.timeframe === "string" ? body.timeframe : null,
+        "1m",
+      );
+      await live.unsubscribe(symbol, timeframe);
+      sendJson(res, 200, {
+        ok: true,
+        provider: "FOREXCONNECT",
+        subscribed: false,
+        symbol,
+        timeframe,
+        intendedCleared: true,
+        placesOrders: false,
+      });
       return true;
     }
 
