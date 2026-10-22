@@ -382,6 +382,7 @@ describe("Phase 56.4.4 wiring", () => {
     const service = read("ai/forex-ai/automated-trading/service.ts");
     expect(service).toContain("becameClosed");
     expect(service).toContain("simulation_position_closed");
+    expect(service).toContain("Audit before upsert");
     const life = read("ai/forex-ai/automated-trading/simulation-risk/simulation-lifecycle.ts");
     expect(life).toContain("Gap / jump policy");
     expect(life).toContain("Stop Loss wins");

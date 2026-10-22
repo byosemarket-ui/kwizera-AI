@@ -50,6 +50,8 @@ export interface SimPosition {
   exitReason: SimExitReason | null;
   exitPrice: number | null;
   exitAtUtc: string | null;
+  /** Triggering Offers quote snapshot id when exit is determined from a monitored tick. */
+  exitQuoteSnapshotId: string | null;
   realizedPnl: number | null;
   achievedR: number | null;
   transitions: Array<{ atUtc: string; from: SimLifecycleState; to: SimLifecycleState; note: string }>;
@@ -198,6 +200,7 @@ export function openSimulatedPosition(input: {
     exitReason: null,
     exitPrice: null,
     exitAtUtc: null,
+    exitQuoteSnapshotId: null,
     realizedPnl: null,
     achievedR: null,
     transitions: [],
@@ -301,12 +304,13 @@ export function monitorSimulatedPosition(input: {
     pos.direction === "BUY" ? mark >= pos.takeProfit : mark <= pos.takeProfit;
 
   if (slHit || tpHit) {
+    // Deterministic same-tick order: Stop Loss wins over Take Profit (never prefer the
+    // more profitable outcome). Achieved R = signed price move / initial stop distance.
     const exitReason: SimExitReason = slHit ? "STOP_LOSS_HIT" : "TAKE_PROFIT_HIT";
     const stopDist = Math.abs(pos.entryPrice - pos.stopLoss);
-    const achievedR =
-      stopDist > 0
-        ? (pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark) / stopDist
-        : null;
+    const signedMove =
+      pos.direction === "BUY" ? mark - pos.entryPrice : pos.entryPrice - mark;
+    const achievedR = stopDist > 0 && Number.isFinite(signedMove) ? signedMove / stopDist : null;
     pos = transition(pos, "EXIT_TRIGGERED", exitReason);
     pos = transition(pos, "SIMULATED_CLOSED", `Simulated close: ${exitReason}`);
     return {
@@ -315,9 +319,10 @@ export function monitorSimulatedPosition(input: {
       // Gap fill = executable mark on the triggering quote (may differ from exact SL/TP).
       exitPrice: mark,
       exitAtUtc: new Date().toISOString(),
+      exitQuoteSnapshotId: input.quote.snapshotId || null,
       // Realized P/L only when pip/point metadata was provided; otherwise UNKNOWN (null).
       realizedPnl: pnl,
-      // R from price distance vs initial stop distance (independent of monetary pip cost).
+      // Price-based R (independent of account-currency pip cost). SL exits are typically < 0.
       achievedR,
       unrealizedPnl: pnl != null ? 0 : null,
     };
@@ -374,8 +379,9 @@ export function monitorSimulatedPosition(input: {
       exitReason: "PROTECTIVE_EARLY_EXIT_SIM",
       exitPrice: mark,
       exitAtUtc: new Date().toISOString(),
+      exitQuoteSnapshotId: input.quote.snapshotId || null,
       realizedPnl: pnl,
-      unrealizedPnl: 0,
+      unrealizedPnl: pnl != null ? 0 : null,
     };
   }
 
@@ -445,6 +451,7 @@ export function closeSimulatedPositionManual(input: {
       exitReason: "MANUAL_SIM_CLOSE",
       exitPrice,
       exitAtUtc: new Date().toISOString(),
+      exitQuoteSnapshotId: pos.exitQuoteSnapshotId,
       realizedPnl: realized,
       achievedR,
       unrealizedPnl: realized != null ? 0 : null,

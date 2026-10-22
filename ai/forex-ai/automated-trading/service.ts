@@ -1983,8 +1983,14 @@ export class AutomatedTradingService {
       });
       const becameClosed =
         existing.state !== "SIMULATED_CLOSED" && next.state === "SIMULATED_CLOSED";
-      await life.upsert(next);
+      // Audit before upsert so a failed audit cannot leave a closed position without
+      // a durable automatic-close record (fail closed — position remains open).
       if (becameClosed && next.exitReason) {
+        const rLabel =
+          next.achievedR != null && Number.isFinite(next.achievedR)
+            ? ` R=${Number(next.achievedR).toFixed(3)}`
+            : "";
+        const qRef = next.exitQuoteSnapshotId ? ` q=${next.exitQuoteSnapshotId}` : "";
         await this.store.appendAudit({
           action: "simulation_position_closed",
           environment: next.environment,
@@ -1992,9 +1998,10 @@ export class AutomatedTradingService {
           code: String(next.exitReason).slice(0, 64),
           detail: `${next.simulationPositionId} ${next.exitReason} @ ${
             next.exitPrice != null ? next.exitPrice : "UNKNOWN"
-          }`.slice(0, 160),
+          }${rLabel}${qRef}`.slice(0, 160),
         });
       }
+      await life.upsert(next);
       return { ok: true, position: next, status: await this.buildStatus() };
     } catch (err) {
       return {

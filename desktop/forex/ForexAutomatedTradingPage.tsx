@@ -2215,6 +2215,12 @@ export function ForexAutomatedTradingPage(props: {
                             <span className="fx-auto-sim-cell-value" data-fx-at-sim-exit-reason={String(p.exitReason)}>
                               {String(p.exitReason)}
                               {p.exitPrice != null ? ` @ ${String(p.exitPrice)}` : ""}
+                              {p.achievedR != null && Number.isFinite(Number(p.achievedR))
+                                ? ` · R ${fmtNum(Number(p.achievedR), 2)}`
+                                : ""}
+                              {p.exitQuoteSnapshotId
+                                ? ` · q ${String(p.exitQuoteSnapshotId).slice(0, 12)}…`
+                                : ""}
                             </span>
                           </div>
                         ) : null}
