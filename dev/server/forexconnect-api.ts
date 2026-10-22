@@ -357,7 +357,7 @@ export async function handleForexConnectApi(
         ...status,
         lifecycle,
         note:
-          "Phase 56.3.3 — lifecycle.intended survives same-env disconnect; LIVE still requires genuine Offers price changes.",
+          "Phase 56.3.4 — lifecycle.intended is durable across process restart; LIVE still requires genuine Offers price changes.",
       });
       return true;
     }

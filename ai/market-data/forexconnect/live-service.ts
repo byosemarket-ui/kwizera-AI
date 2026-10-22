@@ -32,6 +32,13 @@ import {
   resolveFcFeedStreamState,
   resolveFcWaitingStreamState,
 } from "./stream-state.js";
+import {
+  ForexConnectIntendedSubscriptionsStore,
+  normalizeForexConnectPersistedEnvironment,
+  type ForexConnectIntendedHydrateResult,
+  type ForexConnectPersistedEnvironment,
+  type ForexConnectPersistedIntendedEntry,
+} from "./intended-subscriptions-store.js";
 
 export {
   resolveFcFeedStreamState,
@@ -121,31 +128,151 @@ export class ForexConnectLiveCandleService {
    * Survives same-env disconnect; cleared on DEMO↔LIVE switch or idle release.
    */
   private readonly intendedSubscriptions = new Map<string, ForexConnectIntendedSubscription>();
+  private readonly persistence: ForexConnectIntendedSubscriptionsStore | null;
   private providerLifecycle: ForexConnectProviderLifecycleState = "DISCONNECTED";
   private lastDisconnectAtMs: number | null = null;
   private lastRestoreAtMs: number | null = null;
   private lastRestoreError: string | null = null;
   private restoreAttemptCount = 0;
   private restoreInflight: Promise<ForexConnectRestoreResult> | null = null;
+  private lastHydrateResult: ForexConnectIntendedHydrateResult | null = null;
+  private hydrateInflight: Promise<ForexConnectIntendedHydrateResult> | null = null;
+  private persistedEnvironment: ForexConnectPersistedEnvironment | null = null;
 
-  constructor(options?: { bridge?: ForexConnectBridge }) {
+  constructor(options?: {
+    bridge?: ForexConnectBridge;
+    /**
+     * Durable intended-subscription store. Default null (unit tests stay disk-free).
+     * Production singleton enables the store under data/forexconnect/.
+     */
+    persistence?: ForexConnectIntendedSubscriptionsStore | null;
+  }) {
     this.bridge = options?.bridge ?? getForexConnectBridge();
+    this.persistence = options?.persistence ?? null;
+  }
+
+  private resolveActiveEnvironment(): ForexConnectPersistedEnvironment | null {
+    try {
+      const cfg = this.bridge.getConfig();
+      const fromCfg = normalizeForexConnectPersistedEnvironment(cfg?.environment);
+      if (fromCfg) return fromCfg;
+    } catch {
+      /* best-effort */
+    }
+    return this.persistedEnvironment;
   }
 
   private rememberIntended(
     providerSymbol: string,
     timeframe: ForexConnectSupportedTimeframe,
-  ): void {
+  ): Promise<void> {
     const key = this.sessionKey(providerSymbol, timeframe);
     this.intendedSubscriptions.set(key, {
       providerSymbol,
       timeframe,
       rememberedAtMs: Date.now(),
     });
+    return this.persistIntendedSafe();
   }
 
-  private forgetIntended(providerSymbol: string, timeframe: ForexConnectSupportedTimeframe): void {
+  private forgetIntended(
+    providerSymbol: string,
+    timeframe: ForexConnectSupportedTimeframe,
+  ): Promise<void> {
     this.intendedSubscriptions.delete(this.sessionKey(providerSymbol, timeframe));
+    return this.persistIntendedSafe();
+  }
+
+  private async persistIntendedSafe(): Promise<void> {
+    if (!this.persistence) return;
+    const env = this.resolveActiveEnvironment();
+    this.persistedEnvironment = env;
+    const rows: ForexConnectPersistedIntendedEntry[] = [...this.intendedSubscriptions.values()].map(
+      (row) => ({
+        providerSymbol: row.providerSymbol,
+        timeframe: row.timeframe,
+        rememberedAtMs: row.rememberedAtMs,
+        canonicalSymbol: normalizeCanonicalSymbol(row.providerSymbol),
+      }),
+    );
+    try {
+      await this.persistence.save(env, rows);
+    } catch {
+      /* fail-safe: in-memory intent remains; diagnostics expose persistence error */
+    }
+  }
+
+  /**
+   * Phase 56.3.4 — load durable intent after process restart.
+   * Does not create sessions or claim LIVE; pair with restoreIntendedSubscriptions.
+   */
+  async hydratePersistedIntended(options?: {
+    environment?: string | null;
+    validateCatalog?: boolean;
+  }): Promise<ForexConnectIntendedHydrateResult> {
+    if (this.hydrateInflight) return this.hydrateInflight;
+    const run = this.runHydratePersistedIntended(options);
+    this.hydrateInflight = run;
+    void run.finally(() => {
+      if (this.hydrateInflight === run) this.hydrateInflight = null;
+    });
+    return run;
+  }
+
+  private async runHydratePersistedIntended(options?: {
+    environment?: string | null;
+    validateCatalog?: boolean;
+  }): Promise<ForexConnectIntendedHydrateResult> {
+    if (!this.persistence) {
+      const empty: ForexConnectIntendedHydrateResult = {
+        ok: true,
+        loaded: [],
+        skipped: [{ reason: "persistence_disabled" }],
+        environment: null,
+        recoveredCorrupt: false,
+        error: null,
+        storePath: "(disabled)",
+        placesOrders: false,
+        acceptsForExecution: false,
+      };
+      this.lastHydrateResult = empty;
+      return empty;
+    }
+
+    let catalogSymbols: Set<string> | null = null;
+    if (options?.validateCatalog !== false) {
+      try {
+        const listed = await this.bridge.listInstruments();
+        if (listed?.ok && Array.isArray(listed.instruments)) {
+          catalogSymbols = new Set(
+            listed.instruments
+              .map((i) => String(i.providerSymbol ?? "").trim())
+              .filter(Boolean),
+          );
+        }
+      } catch {
+        catalogSymbols = null;
+      }
+    }
+
+    const env = options?.environment ?? this.resolveActiveEnvironment();
+    const result = await this.persistence.hydrate({
+      environment: env,
+      catalogSymbols,
+    });
+    this.lastHydrateResult = result;
+    if (result.environment) this.persistedEnvironment = result.environment;
+
+    for (const entry of result.loaded) {
+      const key = this.sessionKey(entry.providerSymbol, entry.timeframe);
+      if (this.intendedSubscriptions.has(key)) continue;
+      this.intendedSubscriptions.set(key, {
+        providerSymbol: entry.providerSymbol,
+        timeframe: entry.timeframe,
+        rememberedAtMs: entry.rememberedAtMs,
+      });
+    }
+    return result;
   }
 
   /** Diagnostics — intended vs active (never invents LIVE). */
@@ -160,9 +287,21 @@ export class ForexConnectLiveCandleService {
     lastRestoreError: string | null;
     restoreAttemptCount: number;
     restoreInFlight: boolean;
+    persistence: {
+      enabled: boolean;
+      storePath: string | null;
+      lastError: string | null;
+      lastWriteAtMs: number | null;
+      lastHydrateAtMs: number | null;
+      lastRecoveredCorrupt: boolean;
+      lastHydrateLoaded: number;
+      lastHydrateSkipped: number;
+      environment: ForexConnectPersistedEnvironment | null;
+    };
     placesOrders: false;
     acceptsForExecution: false;
   } {
+    const persistDiag = this.persistence?.getDiagnostics() ?? null;
     return {
       lifecycleState: this.providerLifecycle,
       activeSessionCount: this.sessions.size,
@@ -176,6 +315,21 @@ export class ForexConnectLiveCandleService {
       lastRestoreError: this.lastRestoreError,
       restoreAttemptCount: this.restoreAttemptCount,
       restoreInFlight: this.restoreInflight != null,
+      persistence: {
+        enabled: this.persistence != null,
+        storePath: persistDiag?.storePath ?? null,
+        lastError: persistDiag?.lastError
+          ?? this.lastHydrateResult?.error
+          ?? null,
+        lastWriteAtMs: persistDiag?.lastWriteAtMs ?? null,
+        lastHydrateAtMs: persistDiag?.lastHydrateAtMs ?? null,
+        lastRecoveredCorrupt: Boolean(
+          persistDiag?.lastRecoveredCorrupt || this.lastHydrateResult?.recoveredCorrupt,
+        ),
+        lastHydrateLoaded: this.lastHydrateResult?.loaded.length ?? 0,
+        lastHydrateSkipped: this.lastHydrateResult?.skipped.length ?? 0,
+        environment: this.persistedEnvironment ?? this.resolveActiveEnvironment(),
+      },
       placesOrders: false,
       acceptsForExecution: false,
     };
@@ -227,6 +381,35 @@ export class ForexConnectLiveCandleService {
   }
 
   private async runRestoreIntended(maxAttempts: number): Promise<ForexConnectRestoreResult> {
+    // Drop intents that are no longer in the provider catalog (do not blind-subscribe).
+    let catalogSymbols: Set<string> | null = null;
+    try {
+      const listed = await this.bridge.listInstruments();
+      if (listed?.ok && Array.isArray(listed.instruments)) {
+        catalogSymbols = new Set(
+          listed.instruments
+            .map((i) => String(i.providerSymbol ?? "").trim())
+            .filter(Boolean),
+        );
+      }
+    } catch {
+      catalogSymbols = null;
+    }
+    if (catalogSymbols && catalogSymbols.size > 0) {
+      for (const [key, target] of [...this.intendedSubscriptions.entries()]) {
+        const upper = target.providerSymbol.toUpperCase();
+        const canon = normalizeCanonicalSymbol(target.providerSymbol);
+        const hit = [...catalogSymbols].some((c) => {
+          const u = String(c).toUpperCase();
+          return u === upper || normalizeCanonicalSymbol(String(c)) === canon;
+        });
+        if (!hit) {
+          this.intendedSubscriptions.delete(key);
+        }
+      }
+      await this.persistIntendedSafe();
+    }
+
     const targets = [...this.intendedSubscriptions.values()];
     if (targets.length === 0) {
       this.providerLifecycle = "CONNECTED";
@@ -440,7 +623,7 @@ export class ForexConnectLiveCandleService {
       bootstrapped: true,
     };
     this.sessions.set(key, session);
-    this.rememberIntended(hist.providerSymbol, timeframe);
+    await this.rememberIntended(hist.providerSymbol, timeframe);
     this.providerLifecycle = "SUBSCRIBING";
     this.ensurePoller();
     this.ensureIdleSweeper();
@@ -454,7 +637,7 @@ export class ForexConnectLiveCandleService {
     if (!session) return;
     session.refCount = Math.max(0, session.refCount - 1);
     if (session.refCount > 0) return;
-    this.forgetIntended(session.providerSymbol, session.timeframe);
+    await this.forgetIntended(session.providerSymbol, session.timeframe);
     await this.releaseSession(session);
   }
 
@@ -483,7 +666,7 @@ export class ForexConnectLiveCandleService {
   private async releaseSession(session: Session, options?: { keepIntended?: boolean }): Promise<void> {
     this.sessions.delete(session.key);
     if (!options?.keepIntended) {
-      this.forgetIntended(session.providerSymbol, session.timeframe);
+      await this.forgetIntended(session.providerSymbol, session.timeframe);
     }
     const stillNeeded = [...this.sessions.values()].some(
       (s) => normalizeCanonicalSymbol(s.providerSymbol) === session.canonicalSymbol
@@ -646,7 +829,7 @@ export class ForexConnectLiveCandleService {
     );
     for (const session of this.sessions.values()) {
       if (!options?.clearIntended) {
-        this.rememberIntended(session.providerSymbol, session.timeframe);
+        await this.rememberIntended(session.providerSymbol, session.timeframe);
       }
     }
     const symbols = [...new Set([...this.sessions.values()].map((s) => s.providerSymbol))];
@@ -656,6 +839,15 @@ export class ForexConnectLiveCandleService {
     if (options?.clearIntended) {
       this.intendedSubscriptions.clear();
       this.restoreAttemptCount = 0;
+      if (this.persistence) {
+        try {
+          await this.persistence.clear();
+        } catch {
+          /* fail-safe */
+        }
+      }
+    } else {
+      await this.persistIntendedSafe();
     }
     for (const symbol of symbols) {
       try {
@@ -924,12 +1116,16 @@ export class ForexConnectLiveCandleService {
 let singleton: ForexConnectLiveCandleService | null = null;
 
 export function getForexConnectLiveCandleService(): ForexConnectLiveCandleService {
-  singleton ??= new ForexConnectLiveCandleService();
+  // Production path — durable intended subscriptions under data/forexconnect/.
+  singleton ??= new ForexConnectLiveCandleService({
+    persistence: new ForexConnectIntendedSubscriptionsStore(),
+  });
   return singleton;
 }
 
 export function createForexConnectLiveCandleService(options?: {
   bridge?: ForexConnectBridge;
+  persistence?: ForexConnectIntendedSubscriptionsStore | null;
 }): ForexConnectLiveCandleService {
   return new ForexConnectLiveCandleService(options);
 }

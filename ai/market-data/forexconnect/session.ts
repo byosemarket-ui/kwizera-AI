@@ -269,10 +269,12 @@ export class ForexConnectSessionService {
         await this.profiles.persistPreferred(env);
       }
       this.live.notifyProviderConnected();
-      // Best-effort restore of same-env intended Offers (no LIVE claim without genuine ticks).
-      void this.live.restoreIntendedSubscriptions().catch(() => {
-        /* Admin/status remain available; readiness stays fail-closed */
-      });
+      // Phase 56.3.4 — hydrate durable intent then restore (no LIVE without genuine ticks).
+      void this.live.hydratePersistedIntended({ environment: env })
+        .then(() => this.live.restoreIntendedSubscriptions())
+        .catch(() => {
+          /* Admin/status remain available; readiness stays fail-closed */
+        });
       return {
         ok: true,
         environment: env,
@@ -370,11 +372,14 @@ export async function maybeRestoreDemoSession(
       const profiles = await getForexConnectProfilesManager();
       profiles.setActiveSession("demo", status.status);
     }
-    // Process restart clears in-memory intended; restore is a no-op unless something re-remembered.
-    getForexConnectLiveCandleService().notifyProviderConnected();
-    void getForexConnectLiveCandleService().restoreIntendedSubscriptions().catch(() => {
-      /* best-effort */
-    });
+    // Phase 56.3.4 — hydrate durable intended list, then restore (never invent LIVE).
+    const live = getForexConnectLiveCandleService();
+    live.notifyProviderConnected();
+    void live.hydratePersistedIntended({ environment: "demo" })
+      .then(() => live.restoreIntendedSubscriptions())
+      .catch(() => {
+        /* best-effort */
+      });
     return {
       attempted: false,
       ok: true,
