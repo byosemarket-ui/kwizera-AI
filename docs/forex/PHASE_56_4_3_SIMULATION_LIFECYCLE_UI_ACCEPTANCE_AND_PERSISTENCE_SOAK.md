@@ -1,4 +1,4 @@
-# Phase 56.4.3 — Simulation Lifecycle UI Acceptance & Persistence Soak
+﻿# Phase 56.4.3 — Simulation Lifecycle UI Acceptance & Persistence Soak
 
 **Project:** KWIZERA AI STUDIO  
 **Module:** FXCM ForexConnect Automated Trading (simulation / verification only)  
@@ -17,7 +17,7 @@
 | Phase 56.4.2 docs | `081edbe4` |
 | Pre-edit production | `081edbe4…` (`verifiedLive=true`) |
 | Feature commit (this phase) | `3536341d25e814bdbc51db1555d96c03cc23c946` |
-| Documentation commit | _(this document finalize)_ |
+| Documentation commit | `2dc83456` (+ follow-up evidence correction) |
 | Deployed production | `3536341d25e814bdbc51db1555d96c03cc23c946` |
 
 Production `/api/deployment` (post-deploy): `status=live`, `result=success`, `verifiedLive=true`, `deployedCommit=3536341d…`, timestamp `2026-10-22T15:17:31.865Z`.
@@ -107,7 +107,7 @@ Emulated **390×844**: Simulated positions, draft history, Controls (Master OFF 
 | Automatic entry | `automaticEntry=DISABLED` | **VERIFIED** |
 | Automated execution | `automatedExecutionEnabled=false`; “AUTOMATED EXECUTION disabled (Phase 54)” | **VERIFIED** |
 | `EXECUTION_FORBIDDEN` / Admin gate | Unauth AT status → `403 ADMIN_FORBIDDEN` | **VERIFIED** |
-| ForexConnect trading DISABLED | No dedicated FC trading-status route exercised this session; AT **Automatic entry DISABLED** + execution disabled verified | **PARTIAL / AT_TRADING_FLAG_UNVERIFIED** |
+| ForexConnect trading DISABLED | `GET /api/forex/providers/forexconnect/status` → `trading:"DISABLED"` (CONNECTED, demo) | **VERIFIED** |
 | LIVE unauthorized | LIVE toggle present; session remained DEMO; no LIVE execution | **VERIFIED (DEMO only)** |
 | Auto re-entry disabled | UI + no re-open after close | **VERIFIED** |
 
@@ -132,7 +132,6 @@ Simulation-only permission was not treated as broker-order permission.
 |------|--------|
 | Production process restart recovery | Not authorized — report **NOT_VERIFIED** |
 | Prod SL/TP auto-exit timing | Would require waiting on live price path; unit coverage only |
-| Dedicated ForexConnect trading-disabled probe | Endpoint not found via AT session; flag **UNVERIFIED** as distinct probe |
 | Local heavy build / local browser | Forbidden by phase workflow |
 | `gh` Actions re-list | Wrong npm `gh` on PATH |
 | Uncontrolled long soak / mass records | Avoided by design |
@@ -141,7 +140,7 @@ Simulation-only permission was not treated as broker-order permission.
 
 ## 8. Recommended next (owner decision only)
 
-Phase **56.4.4** proposal candidates (not started): longer authorized monitoring soak under stable LIVE quotes; optional SL/TP production timing evidence; dedicated FC trading-status probe — **not** broker execution, Master ON, Emergency OFF, or auto re-entry.
+Phase **56.4.4** proposal candidates (not started): longer authorized monitoring soak under stable LIVE quotes; optional SL/TP production timing evidence — **not** broker execution, Master ON, Emergency OFF, or auto re-entry.
 
 Enabling automated re-entry requires explicit future strategy rules + owner authorization in a separate phase.
 
