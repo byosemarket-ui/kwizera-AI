@@ -1036,9 +1036,21 @@ export class ForexConnectLiveCandleService {
   private toSeries(session: Session): SafeForexConnectLiveSeries {
     const now = Date.now();
     let streamState = session.streamState;
+    // Phase 56.3.5 — provider-loss / hard-error states are sticky until reconnect restore.
+    // Do not re-promote DISCONNECTED → NO_RECENT_MARKET_UPDATES via residual receipt age.
+    const hardState =
+      session.streamState === "DISCONNECTED"
+      || session.streamState === "ERROR"
+      || session.streamState === "SERVICE_UNAVAILABLE"
+      || session.streamState === "DISABLED";
     // Preserve instrument MARKET_INACTIVE (seeded while peers LIVE). Do not collapse to
     // SUBSCRIBED_WAITING via resolveFcWaitingStreamState("LIVE", 0).
-    if (session.updateCount <= 0 && this.lastStreamStatus && session.streamState !== "MARKET_INACTIVE") {
+    if (
+      !hardState
+      && session.updateCount <= 0
+      && this.lastStreamStatus
+      && session.streamState !== "MARKET_INACTIVE"
+    ) {
       streamState = resolveFcWaitingStreamState(this.lastStreamStatus.streamState, session.updateCount);
     }
     const receiptAgeMs = session.lastQuoteAtMs != null
@@ -1047,7 +1059,7 @@ export class ForexConnectLiveCandleService {
     const priceChangeAgeMs = session.lastPriceChangeAtMs != null
       ? Math.max(0, now - session.lastPriceChangeAtMs)
       : null;
-    if (session.updateCount > 0 || session.lastQuoteAtMs != null) {
+    if (!hardState && (session.updateCount > 0 || session.lastQuoteAtMs != null)) {
       streamState = resolveFcFeedStreamState({
         priceChangeAgeMs,
         receiptAgeMs,
