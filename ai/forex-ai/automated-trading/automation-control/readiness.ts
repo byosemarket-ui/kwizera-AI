@@ -1,5 +1,5 @@
 /**
- * Phase 57.1 — Activation readiness for MONITORING (never authorizes broker execution).
+ * Phase 57.1/57.3 — Activation readiness for MONITORING (never authorizes broker execution).
  */
 import type { AutomationBlockReasonCode } from "./types.js";
 
@@ -13,6 +13,8 @@ export interface AutomationReadinessInput {
   automaticReentryEnabled: boolean;
   instrumentConfigured: boolean;
   quoteFresh: boolean | null;
+  /** Canonical freshness reason from evaluateVerificationQuoteFreshness (diagnostics). */
+  quoteFreshnessReasonCode?: string | null;
   /** Optional: if false, block start. null = not evaluated (allow with caution → still can start monitor). */
   monitorCanStart: boolean;
 }
@@ -25,6 +27,40 @@ export interface AutomationReadinessResult {
   acceptsForExecution: false;
   brokerExecution: "DISABLED";
   entryGenerationEnabled: false;
+}
+
+/**
+ * Map quote-freshness diagnostics onto stable automation block codes.
+ * Never invents freshness — only remaps already-failed evaluations.
+ */
+export function mapQuoteFreshnessReasonToAutomationCode(
+  reason: string | null | undefined,
+): AutomationBlockReasonCode {
+  const r = String(reason ?? "");
+  switch (r) {
+    case "VERIFICATION_MISSING":
+    case "BID_ASK_MISSING":
+    case "NO_QUOTE_UPDATES":
+      return "QUOTE_MISSING";
+    case "VERIFICATION_TIMESTAMP_INVALID":
+    case "PRICE_CHANGE_AGE_UNKNOWN":
+      return "QUOTE_TIMESTAMP_INVALID";
+    case "VERIFICATION_TIMESTAMP_FUTURE":
+    case "SOURCE_TIMESTAMP_FUTURE":
+      return "QUOTE_FUTURE_TIMESTAMP";
+    case "FEED_NOT_LIVE":
+      return "FEED_DISCONNECTED";
+    case "SUBSCRIBING":
+      return "SUBSCRIPTION_NOT_CONFIRMED";
+    case "HEARTBEAT_ONLY_NO_PRICE_CHANGE":
+    case "QUOTE_AGE_EXCEEDED":
+    case "SOURCE_TIMESTAMP_TOO_OLD":
+    case "BID_ASK_INVALID":
+    case "INSTRUMENT_MISMATCH":
+      return "QUOTE_NOT_FRESH";
+    default:
+      return "QUOTE_NOT_FRESH";
+  }
 }
 
 /**
@@ -82,11 +118,15 @@ export function evaluateAutomationStartReadiness(
     };
   }
   if (input.quoteFresh === false) {
+    const mapped = mapQuoteFreshnessReasonToAutomationCode(input.quoteFreshnessReasonCode);
+    const detail = input.quoteFreshnessReasonCode
+      ? ` (${input.quoteFreshnessReasonCode})`
+      : "";
     return {
       ...base,
       ok: false,
-      reasonCode: "QUOTE_NOT_FRESH",
-      reasonMessage: "Market quotes are not fresh — monitoring start blocked.",
+      reasonCode: mapped,
+      reasonMessage: `Market quotes are not fresh — monitoring start blocked${detail}.`,
     };
   }
   if (!input.monitorCanStart) {

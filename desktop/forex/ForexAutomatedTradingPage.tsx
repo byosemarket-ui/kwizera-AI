@@ -1173,13 +1173,16 @@ export function ForexAutomatedTradingPage(props: {
           {automation?.reasonMessage ? (
             <li data-fx-at-automation-reason="true">{automation.reasonMessage}</li>
           ) : null}
-          <li>
-            Quote freshness:{" "}
-            {status?.quoteFreshness?.fresh === true
-              ? "FRESH"
-              : status?.quoteFreshness?.fresh === false
-                ? `STALE (${status.quoteFreshness.reasonCode})`
-                : "UNKNOWN"}
+          <li data-fx-at-market-data-status="true">
+            Market data:{" "}
+            <strong>
+              {status?.quoteFreshness?.fresh === true
+                ? "LIVE"
+                : status?.quoteFreshness?.fresh === false
+                  ? `NOT_FRESH (${status.quoteFreshness.reasonCode})`
+                  : "UNKNOWN"}
+            </strong>
+            {monitor?.health?.feedStatus ? ` · feed ${monitor.health.feedStatus}` : ""}
             {status?.quoteFreshness?.evaluatedAtUtc
               ? ` · evaluated ${status.quoteFreshness.evaluatedAtUtc}`
               : ""}
@@ -1187,6 +1190,9 @@ export function ForexAutomatedTradingPage(props: {
           <li>
             Monitor worker: {monitor?.health?.workerState ?? "—"}
             {monitor?.health?.workerActive ? " (active)" : ""}
+            {monitor?.health?.freshnessReasonCode
+              ? ` · health ${monitor.health.freshnessReasonCode}`
+              : ""}
             {monitor?.health?.lastQuoteChangeAtUtc
               ? ` · last quote change ${monitor.health.lastQuoteChangeAtUtc}`
               : ""}

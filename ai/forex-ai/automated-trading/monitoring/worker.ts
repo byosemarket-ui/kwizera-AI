@@ -222,6 +222,53 @@ export class AtMonitorWorker {
 
   getPublicStatus(): AtMonitorPublicStatus {
     const s = this.store.getState();
+    const workerActive = this.runtimeActive && Boolean(s.config?.enabled);
+    const workerState = this.runtimeActive
+      ? this.runtimeState
+      : (s.config?.enabled ? s.health.workerState : "STOPPED");
+
+    // Phase 57.3 — Never report frozen LIVE_FRESH from disk while worker is stopped.
+    // Re-age the current verification snapshot on every status read.
+    let health = {
+      ...s.health,
+      workerActive,
+      workerState,
+      analysisInFlight: this.analysisInFlight,
+    };
+    const env = s.config?.environment
+      ?? this.deps.getSelectedEnvironment?.();
+    if (env && this.deps.getVerification) {
+      const verification = this.deps.getVerification(env);
+      const freshness = evaluateVerificationMarketQuoteFreshness(verification, {
+        expectedInstrument: s.config?.instrument ?? null,
+      });
+      health = {
+        ...health,
+        quoteFresh: verification ? freshness.fresh : null,
+        feedStatus: freshness.feedStatus ? String(freshness.feedStatus) : health.feedStatus,
+        freshnessReasonCode: freshness.reasonCode,
+        freshnessThresholdMs: freshness.freshnessThresholdMs,
+        verificationAgeMs: freshness.verificationAgeMs,
+        effectivePriceChangeAgeMs: freshness.effectivePriceChangeAgeMs,
+        effectiveReceiptAgeMs: freshness.effectiveReceiptAgeMs,
+        verificationSnapshotAtUtc: freshness.verifiedAtUtc,
+        freshnessEvaluatedAtUtc: freshness.evaluatedAtUtc,
+        quoteSnapshotFingerprint: freshness.snapshotFingerprint,
+        quoteSourceTimestampMs: freshness.sourceTimestampMs,
+        quoteReceivedAtMs: freshness.receivedAtMs,
+        lastQuoteChangeAtUtc: verificationLastQuoteChangeAtUtc(verification),
+      };
+    } else if (!workerActive) {
+      health = {
+        ...health,
+        quoteFresh: health.quoteFresh === true ? false : health.quoteFresh,
+        freshnessReasonCode:
+          health.quoteFresh === true
+            ? "QUOTE_AGE_EXCEEDED"
+            : health.freshnessReasonCode,
+      };
+    }
+
     return {
       schemaVersion: AT_MONITOR_SCHEMA,
       phase: AT_MONITOR_PHASE,
@@ -233,12 +280,7 @@ export class AtMonitorWorker {
       persistsAcrossAppRestart: true,
       persistsAcrossVpsReboot: "NOT_CLAIMED",
       config: s.config,
-      health: {
-        ...s.health,
-        workerActive: this.runtimeActive && Boolean(s.config?.enabled),
-        workerState: this.runtimeActive ? this.runtimeState : (s.config?.enabled ? s.health.workerState : "STOPPED"),
-        analysisInFlight: this.analysisInFlight,
-      },
+      health,
       placesOrders: false,
     };
   }

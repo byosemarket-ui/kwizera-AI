@@ -195,6 +195,23 @@ export class AutomatedTradingService {
       };
     }
 
+    // Phase 57.3 — Refresh live Offers evidence before readiness. Do not gate START
+    // solely on an aged lastVerification snapshot (chicken-and-egg when monitor is OFF).
+    const envHint =
+      this.store.getState().selectedEnvironment;
+    const instrumentHint = String(
+      input?.instrument
+        ?? this.store.getState().environments[envHint].selectedInstrument
+        ?? "",
+    ).trim();
+    if (instrumentHint) {
+      await this.runVerification({
+        environment: envHint,
+        instrument: instrumentHint,
+        timeframe: input?.timeframe,
+      }).catch(() => undefined);
+    }
+
     const pub = await this.buildStatus();
     const env = pub.selectedEnvironment;
     const controls = pub.controls;
@@ -213,6 +230,7 @@ export class AutomatedTradingService {
       automaticReentryEnabled: false,
       instrumentConfigured: Boolean(instrument),
       quoteFresh: pub.quoteFreshness?.fresh ?? null,
+      quoteFreshnessReasonCode: pub.quoteFreshness?.reasonCode ?? null,
       monitorCanStart: true,
     });
 
@@ -444,6 +462,17 @@ export class AutomatedTradingService {
 
     let readiness = null as ReturnType<typeof evaluateAutomationStartReadiness> | null;
     try {
+      // Phase 57.3 — Obtain post-restart live quote evidence before soft-resume decision.
+      const envPre = this.store.getState().selectedEnvironment;
+      const instrumentPre = String(
+        this.store.getState().environments[envPre].selectedInstrument ?? "",
+      ).trim();
+      if (instrumentPre) {
+        await this.runVerification({
+          environment: envPre,
+          instrument: instrumentPre,
+        }).catch(() => undefined);
+      }
       const pub = await this.buildStatus();
       const env = pub.selectedEnvironment;
       const instrument = String(
@@ -459,6 +488,7 @@ export class AutomatedTradingService {
         automaticReentryEnabled: false,
         instrumentConfigured: Boolean(instrument),
         quoteFresh: pub.quoteFreshness?.fresh ?? null,
+        quoteFreshnessReasonCode: pub.quoteFreshness?.reasonCode ?? null,
         monitorCanStart: true,
       });
     } catch {
