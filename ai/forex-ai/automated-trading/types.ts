@@ -18,6 +18,12 @@ export type AutomatedTradingModuleStatus =
   | "BLOCKED"
   | "ERROR";
 
+/**
+ * Phase 57.4 — Legacy `moduleStatus` remains the execution-posture field (typically BLOCKED
+ * while broker execution is forbidden). Header/ops badges must use `operationalStatus`.
+ */
+export type { AtOperationalStatus, AtOperationalStatusCode } from "./operational-status.js";
+
 export type AutomatedTradingBrokerConnectionStatus =
   | "CONNECTED"
   | "DISCONNECTED"
@@ -88,7 +94,16 @@ export interface AutomatedTradingAuditEvent {
 export interface AutomatedTradingPublicStatus {
   schemaVersion: typeof AUTOMATED_TRADING_SCHEMA;
   phase: typeof AUTOMATED_TRADING_PHASE;
+  /**
+   * Execution-posture status. Remains BLOCKED while broker execution is forbidden.
+   * Do not use as the sole Automated Trading header badge when monitoring is healthy.
+   */
   moduleStatus: AutomatedTradingModuleStatus;
+  /**
+   * Phase 57.4 — Authoritative monitoring/ops status for header + capability badges.
+   * Independent of broker execution prohibition.
+   */
+  operationalStatus: import("./operational-status.js").AtOperationalStatus;
   selectedEnvironment: AutomatedTradingEnvironment;
   environmentEpoch: number;
   configVersion: number;

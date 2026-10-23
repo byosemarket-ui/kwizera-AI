@@ -73,6 +73,7 @@ import {
   toAutomationPublicStatus,
   type AutomationControlPublicStatus,
 } from "./automation-control/index.js";
+import { deriveOperationalStatus } from "./operational-status.js";
 import {
   assembleVerificationResult,
   uiEnvFromFc,
@@ -119,6 +120,66 @@ export class AutomatedTradingService {
   /** Phase 57.1 — authoritative automation START/STOP status. */
   getAutomationControlStatus(): AutomationControlPublicStatus {
     return toAutomationPublicStatus(getAtAutomationControlStore().get());
+  }
+
+  /**
+   * Phase 57.4 — Reconcile automation lifecycle with actual monitor worker.
+   * Never enables broker execution. Does not invent MONITORING without a running worker.
+   */
+  async reconcileAutomationMonitorAlignment(): Promise<void> {
+    const autoStore = getAtAutomationControlStore();
+    const cur = autoStore.get();
+    const mon = this.monitor.getPublicStatus();
+    const enabled = Boolean(mon.config?.enabled);
+
+    if ((cur.lifecycle === "OFF" || cur.requestedMode === "OFF") && enabled) {
+      await this.stopMonitoring().catch(() => undefined);
+      return;
+    }
+
+    if (cur.lifecycle === "MONITORING" && cur.requestedMode === "ON" && !enabled) {
+      const env = this.store.getState().selectedEnvironment;
+      const instrument = String(
+        this.store.getState().environments[env].selectedInstrument
+          ?? mon.config?.instrument
+          ?? "",
+      ).trim();
+      if (!instrument) {
+        await autoStore.forceSet((prev) => ({
+          ...prev,
+          lifecycle: "BLOCKED",
+          reasonCode: "INSTRUMENT_NOT_CONFIGURED",
+          reasonMessage:
+            "MONITORING reported but worker stopped and instrument missing — realigned to BLOCKED.",
+          monitoringDesired: false,
+          recoveryStatus: "RECOVERY_BLOCKED",
+          entryGenerationEnabled: false,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        }));
+        return;
+      }
+      const started = await this.startMonitoring({
+        environment: env,
+        instrument,
+        timeframe: mon.config?.timeframe ?? "15m",
+      });
+      if (!started.ok) {
+        await autoStore.forceSet((prev) => ({
+          ...prev,
+          lifecycle: "BLOCKED",
+          reasonCode: "MONITOR_START_FAILED",
+          reasonMessage: started.message,
+          monitoringDesired: false,
+          recoveryStatus: "RECOVERY_BLOCKED",
+          entryGenerationEnabled: false,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        }));
+      }
+    }
   }
 
   /**
@@ -921,8 +982,19 @@ export class AutomatedTradingService {
     ) {
       moduleStatus = moduleStatus === "ERROR" ? "ERROR" : "BLOCKED";
     }
-    // Execution / trading readiness never READY in Phase 52
+    // Execution / trading readiness never READY while broker execution is forbidden.
+    // `moduleStatus` remains the execution-posture field (typically BLOCKED).
     if (moduleStatus === "READY") moduleStatus = "BLOCKED";
+
+    const autoPersisted = getAtAutomationControlStore().get();
+    const monPublic = this.monitor.getPublicStatus();
+    const operationalStatus = deriveOperationalStatus({
+      automation: autoPersisted,
+      monitorEnabled: Boolean(monPublic.config?.enabled),
+      workerActive: Boolean(monPublic.health?.workerActive),
+      quoteFresh: freshnessEval.fresh,
+      quoteReasonCode: freshnessEval.reasonCode,
+    });
 
     const fresh = this.store.getState();
     const selectedFresh = fresh.environments[fresh.selectedEnvironment];
@@ -1104,6 +1176,7 @@ export class AutomatedTradingService {
       schemaVersion: AUTOMATED_TRADING_SCHEMA,
       phase: AUTOMATED_TRADING_PHASE,
       moduleStatus,
+      operationalStatus,
       selectedEnvironment: fresh.selectedEnvironment,
       environmentEpoch: fresh.environmentEpoch,
       configVersion: fresh.configVersion,

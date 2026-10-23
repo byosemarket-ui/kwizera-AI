@@ -128,6 +128,8 @@ export async function handleForexAutomatedTradingApi(
     }
 
     if (isAtPath(url.pathname, "/api/forex/automated-trading/status")) {
+      // Phase 57.4 — align automation/worker before building authoritative status.
+      await service.reconcileAutomationMonitorAlignment().catch(() => undefined);
       if (req.method !== "GET" && req.method !== "HEAD") {
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
         return true;
@@ -343,12 +345,16 @@ export async function handleForexAutomatedTradingApi(
         sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
         return true;
       }
+      // Phase 57.4 — heal MONITORING vs stopped-worker before reporting.
+      await service.reconcileAutomationMonitorAlignment().catch(() => undefined);
       sendJson(res, 200, {
         ok: true,
         automation: service.getAutomationControlStatus(),
+        monitor: service.getMonitorStatus(),
         placesOrders: false,
         acceptsForExecution: false,
         brokerExecution: "DISABLED",
+        executionStatusLabel: "EXECUTION_FORBIDDEN",
       });
       return true;
     }

@@ -63,8 +63,21 @@ type Verification = {
   verifiedAtUtc: string;
 };
 
+type OperationalStatus = {
+  code: string;
+  label: string;
+  reasonCode: string | null;
+  executionStatusLabel: "EXECUTION_FORBIDDEN";
+  executionReadiness: "BLOCKED";
+  brokerExecution: "DISABLED";
+  placesOrders: false;
+  acceptsForExecution: false;
+};
+
 type PublicStatus = {
   moduleStatus: "INITIALIZING" | "READY" | "BLOCKED" | "ERROR";
+  /** Phase 57.4 — monitoring/ops badge (not broker execution). */
+  operationalStatus?: OperationalStatus;
   selectedEnvironment: Env;
   environmentEpoch: number;
   configVersion: number;
@@ -176,6 +189,19 @@ function adminHeaders(token: string): HeadersInit {
     "Content-Type": "application/json",
     "x-kwizera-admin-token": token,
   };
+}
+
+function operationalTone(code: string | undefined): "live" | "future" | "offline" {
+  if (code === "MONITORING_ACTIVE") return "live";
+  if (
+    code === "MONITORING_OFF"
+    || code === "MONITORING_STARTING"
+    || code === "MONITORING_STOPPING"
+    || code === "INITIALIZING"
+  ) {
+    return "future";
+  }
+  return "offline";
 }
 
 function statusTone(s: string): "live" | "future" | "offline" {
@@ -1073,8 +1099,16 @@ export function ForexAutomatedTradingPage(props: {
         <div className="fx-auto-trading-title-block">
           <div className="fx-auto-trading-title-row">
             <h1 className="fx-page-title">Automated Trading</h1>
-            {status ? (
-              <ForexStatusBadge tone={statusTone(status.moduleStatus)}>{status.moduleStatus}</ForexStatusBadge>
+            {status?.operationalStatus ? (
+              <span data-fx-at-operational-badge="true" title={`Execution: ${status.operationalStatus.executionStatusLabel}`}>
+                <ForexStatusBadge tone={operationalTone(status.operationalStatus.code)}>
+                  {status.operationalStatus.label}
+                </ForexStatusBadge>
+              </span>
+            ) : status ? (
+              <span data-fx-at-execution-module-badge="true" title="Legacy execution-posture field">
+                <ForexStatusBadge tone="offline">{`BROKER EXECUTION ${status.moduleStatus}`}</ForexStatusBadge>
+              </span>
             ) : (
               <ForexStatusBadge tone="future">{busy ? "LOADING" : "IDLE"}</ForexStatusBadge>
             )}
@@ -1126,9 +1160,9 @@ export function ForexAutomatedTradingPage(props: {
             <ForexStatusBadge
               tone={
                 automation?.lifecycle === "MONITORING"
-                  ? "ok"
+                  ? "live"
                   : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
-                    ? "danger"
+                    ? "offline"
                     : "future"
               }
             >
@@ -1136,8 +1170,8 @@ export function ForexAutomatedTradingPage(props: {
             </ForexStatusBadge>
           </span>
           <span data-fx-at-execution-status="true">
-            <ForexStatusBadge tone="danger">
-              {automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}
+            <ForexStatusBadge tone="offline">
+              {`BROKER EXECUTION ${automation?.executionStatusLabel ?? status?.operationalStatus?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}`}
             </ForexStatusBadge>
           </span>
         </div>
