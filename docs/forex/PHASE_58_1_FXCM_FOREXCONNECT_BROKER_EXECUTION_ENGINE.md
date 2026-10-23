@@ -33,7 +33,7 @@ Phase 58.0 blocked because mutation was a stub and no DEMO auth existed. Phase 5
 | Baseline HEAD at start | `0304727e` |
 | Prior Phase 58.0 | `3e236514` / `0304727e` |
 | Deployed at inspection | verify via `/api/deployment` (expected near `0304727e` / later) |
-| Phase 58.1 feature + docs | _(fill on commit)_ |
+| Phase 58.1 feature + docs | `2df432d3` |
 
 Unrelated dirty PMV/typography files preserved.
 
