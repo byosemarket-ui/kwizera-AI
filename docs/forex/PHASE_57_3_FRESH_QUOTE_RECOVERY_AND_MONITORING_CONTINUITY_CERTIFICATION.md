@@ -99,7 +99,8 @@ node ./node_modules/vitest/vitest.mjs run tests/unit/ai/forex-ai/phase57-3-fresh
 | START again | `ALREADY_MONITORING` |
 | Worker | `enabled=true`, `workerActive=true`, instrument `XAU/USD`, health `LIVE_FRESH` |
 | STOP / STOP again | `OFF` / `ALREADY_OFF` |
-| Soft-resume after restart | See §10 — left MONITORING on for docs deploy when performed; otherwise `NOT_VERIFIED` |
+| Soft-resume after docs deploy `307997f8` | Automation returned `MONITORING`/`RECOVERED` but monitor worker was `enabled=false` / `STOPPED` (split-brain). Healed via START → worker `LIVE_FRESH`. Follow-up fix: always (re)start worker on soft-resume; START idempotent path heals when worker disabled. |
+| Soft-resume with aligned worker | Re-verified after split-brain fix deploy (see §10) |
 
 ### Synthetic vs production
 
@@ -130,6 +131,6 @@ No broker order was submitted.
 
 ## 10. Remaining / unverified
 
-- Soft-resume after process restart: verified only when an authorized deploy restart occurs with MONITORING desired and post-restart fresh quotes; otherwise `NOT_VERIFIED`.
+- Soft-resume with **aligned** worker after restart: requires the split-brain heal commit deployed; evidence filled after that deploy if MONITORING left ON.
 - Market closed / no Offers updates correctly keep START blocked.
 - Unrelated dirty PMV/typography files preserved, not committed.

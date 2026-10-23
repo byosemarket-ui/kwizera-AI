@@ -148,23 +148,28 @@ export class AutomatedTradingService {
         ? input.expectedStateVersion
         : before.stateVersion;
 
-    // Idempotent: already MONITORING with requested ON.
+    // Idempotent: already MONITORING with requested ON — but heal split-brain if
+    // the monitor worker is not actually enabled (Phase 57.3 continuity).
     if (
       before.requestedMode === "ON"
       && before.lifecycle === "MONITORING"
       && before.stateVersion === expected
     ) {
-      return {
-        ok: true,
-        code: "ALREADY_MONITORING",
-        message: "Automation already MONITORING (broker execution still DISABLED).",
-        automation: toAutomationPublicStatus(before),
-        status: await this.buildStatus(),
-        monitor: this.monitor.getPublicStatus(),
-        placesOrders: false,
-        acceptsForExecution: false,
-        brokerExecution: "DISABLED",
-      };
+      const monNow = this.monitor.getPublicStatus();
+      if (monNow.config?.enabled === true) {
+        return {
+          ok: true,
+          code: "ALREADY_MONITORING",
+          message: "Automation already MONITORING (broker execution still DISABLED).",
+          automation: toAutomationPublicStatus(before),
+          status: await this.buildStatus(),
+          monitor: monNow,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        };
+      }
+      // Fall through to readiness + startMonitoring to realign the worker.
     }
 
     const starting = await autoStore.compareAndSet(expected, (prev) => ({
@@ -519,52 +524,51 @@ export class AutomatedTradingService {
     });
 
     if (decision.action === "SOFT_RESUME_MONITORING") {
-      // Ensure monitor worker is running when soft-resuming.
-      if (!monitorEnabled) {
-        const env = this.store.getState().selectedEnvironment;
-        const instrument = String(
-          this.store.getState().environments[env].selectedInstrument ?? "",
-        ).trim();
-        if (!instrument) {
-          await this.stopMonitoring().catch(() => undefined);
-          await autoStore.forceSet((prev) => ({
-            ...prev,
-            requestedMode: "ON",
-            lifecycle: "BLOCKED",
-            reasonCode: "INSTRUMENT_NOT_CONFIGURED",
-            reasonMessage:
-              "Soft-resume aborted — instrument not configured. Broker execution remains DISABLED.",
-            monitoringDesired: false,
-            recoveryStatus: "RECOVERY_BLOCKED",
-            entryGenerationEnabled: false,
-            placesOrders: false,
-            acceptsForExecution: false,
-            brokerExecution: "DISABLED",
-          }));
-          return;
-        }
-        const started = await this.startMonitoring({
-          environment: env,
-          instrument,
-          timeframe: mon.config?.timeframe ?? "15m",
-        });
-        if (!started.ok) {
-          await this.stopMonitoring().catch(() => undefined);
-          await autoStore.forceSet((prev) => ({
-            ...prev,
-            requestedMode: "ON",
-            lifecycle: "BLOCKED",
-            reasonCode: "MONITOR_START_FAILED",
-            reasonMessage: started.message,
-            monitoringDesired: false,
-            recoveryStatus: "RECOVERY_BLOCKED",
-            entryGenerationEnabled: false,
-            placesOrders: false,
-            acceptsForExecution: false,
-            brokerExecution: "DISABLED",
-          }));
-          return;
-        }
+      // Always (re)start monitor worker on soft-resume so enabled=false cannot
+      // leave automation MONITORING while the worker is STOPPED.
+      const env = this.store.getState().selectedEnvironment;
+      const instrument = String(
+        this.store.getState().environments[env].selectedInstrument ?? "",
+      ).trim();
+      if (!instrument) {
+        await this.stopMonitoring().catch(() => undefined);
+        await autoStore.forceSet((prev) => ({
+          ...prev,
+          requestedMode: "ON",
+          lifecycle: "BLOCKED",
+          reasonCode: "INSTRUMENT_NOT_CONFIGURED",
+          reasonMessage:
+            "Soft-resume aborted — instrument not configured. Broker execution remains DISABLED.",
+          monitoringDesired: false,
+          recoveryStatus: "RECOVERY_BLOCKED",
+          entryGenerationEnabled: false,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        }));
+        return;
+      }
+      const started = await this.startMonitoring({
+        environment: env,
+        instrument,
+        timeframe: mon.config?.timeframe ?? "15m",
+      });
+      if (!started.ok) {
+        await this.stopMonitoring().catch(() => undefined);
+        await autoStore.forceSet((prev) => ({
+          ...prev,
+          requestedMode: "ON",
+          lifecycle: "BLOCKED",
+          reasonCode: "MONITOR_START_FAILED",
+          reasonMessage: started.message,
+          monitoringDesired: false,
+          recoveryStatus: "RECOVERY_BLOCKED",
+          entryGenerationEnabled: false,
+          placesOrders: false,
+          acceptsForExecution: false,
+          brokerExecution: "DISABLED",
+        }));
+        return;
       }
       await autoStore.forceSet((prev) => ({
         ...prev,

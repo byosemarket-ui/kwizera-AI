@@ -248,6 +248,8 @@ describe("Phase 57.3 wiring", () => {
     expect(service).toContain("Obtain post-restart live quote evidence");
     expect(service).toContain("runVerification");
     expect(service).toContain("quoteFreshnessReasonCode");
+    expect(service).toContain("heal split-brain");
+    expect(service).toContain("Always (re)start monitor worker on soft-resume");
   });
 
   it("UI surfaces market-data status separately from execution", () => {
