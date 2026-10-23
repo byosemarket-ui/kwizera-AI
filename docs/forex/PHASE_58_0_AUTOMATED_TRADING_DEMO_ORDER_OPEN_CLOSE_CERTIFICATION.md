@@ -22,7 +22,7 @@ This phase prioritized Automated Trading DEMO execution readiness over further c
 | Baseline (Phase 57.7 feature) | `f0b3d5c5` |
 | Repo HEAD at inspection | `6cdb2009` |
 | Deployed at live checks | `6cdb2009` (`verifiedLive=true`) |
-| Phase 58.0 readiness tests + documentation | _(fill on commit)_ |
+| Phase 58.0 readiness tests + documentation | `3e236514` |
 
 Unrelated dirty PMV/typography files preserved, not committed.
 
