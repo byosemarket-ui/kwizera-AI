@@ -16,7 +16,7 @@
 |------|-----|
 | Baseline (Phase 57.5 docs) | `4a42e488` |
 | Phase 57.5 feature | `f9c8eb46` |
-| Phase 57.6 docs + test alignment | _(filled on commit)_ |
+| Phase 57.6 docs + test alignment | `79418bb2` |
 | Deployed at live checks | `4a42e488…` (`verifiedLive=true`) |
 
 ---
@@ -123,7 +123,7 @@ node ./node_modules/vitest/vitest.mjs run \
   tests/unit/ai/forex-ai/phase57-3-fresh-quote-recovery.test.ts \
   tests/unit/desktop/forex-shell.test.ts \
   --no-file-parallelism
-→ 4 files passed; 33 tests passed; exit 0
+→ 4 files passed; 31 tests passed; exit 0
 ```
 
 ---
