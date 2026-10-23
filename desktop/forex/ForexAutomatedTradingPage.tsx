@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ForexStatusBadge } from "./components/ForexStatusBadge";
+import { formatBrokerExecutionBadgeLabel } from "./broker-execution-label";
 import type { SelectedMarket } from "./market-data/selected-market";
 
 const FOREX_ADMIN_TOKEN_STORAGE_KEY = "kwizera.admin.apiToken";
@@ -1106,8 +1107,13 @@ export function ForexAutomatedTradingPage(props: {
                 </ForexStatusBadge>
               </span>
             ) : status ? (
-              <span data-fx-at-execution-module-badge="true" title="Legacy execution-posture field">
-                <ForexStatusBadge tone="offline">{`BROKER EXECUTION ${status.moduleStatus}`}</ForexStatusBadge>
+              <span
+                data-fx-at-execution-module-badge="true"
+                title={`Technical: moduleStatus=${status.moduleStatus}; execution remains EXECUTION_FORBIDDEN`}
+              >
+                <ForexStatusBadge tone="offline">
+                  {formatBrokerExecutionBadgeLabel("EXECUTION_FORBIDDEN")}
+                </ForexStatusBadge>
               </span>
             ) : (
               <ForexStatusBadge tone="future">{busy ? "LOADING" : "IDLE"}</ForexStatusBadge>
@@ -1169,9 +1175,16 @@ export function ForexAutomatedTradingPage(props: {
               {`Monitoring: ${automation?.lifecycle ?? "OFF"}`}
             </ForexStatusBadge>
           </span>
-          <span data-fx-at-execution-status="true">
+          <span
+            data-fx-at-execution-status="true"
+            title={`Technical code: ${automation?.executionStatusLabel ?? status?.operationalStatus?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}`}
+          >
             <ForexStatusBadge tone="offline">
-              {`BROKER EXECUTION ${automation?.executionStatusLabel ?? status?.operationalStatus?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}`}
+              {formatBrokerExecutionBadgeLabel(
+                automation?.executionStatusLabel
+                  ?? status?.operationalStatus?.executionStatusLabel
+                  ?? "EXECUTION_FORBIDDEN",
+              )}
             </ForexStatusBadge>
           </span>
         </div>
@@ -1188,10 +1201,10 @@ export function ForexAutomatedTradingPage(props: {
             {" · "}
             Recovery: <strong data-fx-at-recovery-status="true">{automation?.recoveryStatus ?? "IDLE"}</strong>
           </li>
-          <li>
+          <li data-fx-at-execution-detail="true">
             Broker execution: <strong>{automation?.brokerExecution ?? "DISABLED"}</strong>
             {" · "}
-            Execution status: <strong>{automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}</strong>
+            Code: <strong data-fx-at-execution-code="true">{automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}</strong>
             {" · "}
             Execution readiness: <strong>{automation?.executionReadiness ?? "BLOCKED"}</strong>
           </li>
