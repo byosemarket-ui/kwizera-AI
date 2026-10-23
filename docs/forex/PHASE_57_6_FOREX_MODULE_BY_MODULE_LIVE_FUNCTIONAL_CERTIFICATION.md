@@ -17,7 +17,7 @@
 | Baseline (Phase 57.5 docs) | `4a42e488` |
 | Phase 57.5 feature | `f9c8eb46` |
 | Phase 57.6 feature (test alignment) | `79418bb2` |
-| Phase 57.6 documentation | `5a1baa11` |
+| Phase 57.6 documentation | `63f06cdb` |
 | Deployed at live checks | `4a42e488…` (`verifiedLive=true`) |
 
 ---
