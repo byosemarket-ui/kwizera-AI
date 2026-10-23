@@ -69,6 +69,7 @@ import {
 import {
   getAtAutomationControlStore,
   evaluateAutomationStartReadiness,
+  decideAutomationBootRecovery,
   toAutomationPublicStatus,
   type AutomationControlPublicStatus,
 } from "./automation-control/index.js";
@@ -174,6 +175,7 @@ export class AutomatedTradingService {
       reasonMessage: "Starting automation readiness checks…",
       lastOperatorHint: String(input?.operatorHint ?? "admin").slice(0, 64),
       monitoringDesired: true,
+      recoveryStatus: "RECOVERY_PENDING",
       entryGenerationEnabled: false,
       placesOrders: false,
       acceptsForExecution: false,
@@ -222,6 +224,7 @@ export class AutomatedTradingService {
         reasonCode: readiness.reasonCode,
         reasonMessage: readiness.reasonMessage,
         monitoringDesired: false,
+        recoveryStatus: "RECOVERY_BLOCKED",
         entryGenerationEnabled: false,
         placesOrders: false,
         acceptsForExecution: false,
@@ -262,6 +265,7 @@ export class AutomatedTradingService {
         reasonCode: "MONITOR_START_FAILED",
         reasonMessage: mon.message,
         monitoringDesired: false,
+        recoveryStatus: "RECOVERY_BLOCKED",
         entryGenerationEnabled: false,
         placesOrders: false,
         acceptsForExecution: false,
@@ -296,6 +300,7 @@ export class AutomatedTradingService {
         "Market monitoring ACTIVE. Broker execution DISABLED. Entry generation DISABLED.",
       monitoringDesired: true,
       lastMonitoringAtUtc: new Date().toISOString(),
+      recoveryStatus: "RECOVERED",
       entryGenerationEnabled: false,
       placesOrders: false,
       acceptsForExecution: false,
@@ -400,6 +405,7 @@ export class AutomatedTradingService {
       reasonCode: "OPERATOR_STOP",
       reasonMessage: "Automation OFF. Broker execution DISABLED. No broker orders cancelled (none authorized).",
       monitoringDesired: false,
+      recoveryStatus: "IDLE",
       entryGenerationEnabled: false,
       placesOrders: false,
       acceptsForExecution: false,
@@ -428,60 +434,148 @@ export class AutomatedTradingService {
   }
 
   /**
-   * Phase 57.1 — After process restart: never silently resume entry generation.
-   * If requestedMode was ON, move to BLOCKED/STARTING path requiring explicit re-check;
-   * do not invent MONITORING without re-validating.
+   * Phase 57.2 — After process restart: never resume entry generation / broker execution.
+   * Soft-resume MONITORING only when readiness revalidation passes; otherwise BLOCKED
+   * with a concrete reason and align monitor worker (stop) to avoid split-brain.
    */
   async recoverAutomationControlOnBoot(): Promise<void> {
     const autoStore = getAtAutomationControlStore();
     const cur = autoStore.get();
-    // Always clear entry generation.
+
+    let readiness = null as ReturnType<typeof evaluateAutomationStartReadiness> | null;
+    try {
+      const pub = await this.buildStatus();
+      const env = pub.selectedEnvironment;
+      const instrument = String(
+        this.store.getState().environments[env].selectedInstrument ?? "",
+      ).trim();
+      readiness = evaluateAutomationStartReadiness({
+        masterEnable: pub.controls.masterEnable === true,
+        emergencyEntryLock: pub.controls.emergencyEntryLock === true,
+        placesOrders: false,
+        acceptsForExecution: false,
+        forexConnectTradingEnabled: false,
+        automaticEntryEnabled: false,
+        automaticReentryEnabled: false,
+        instrumentConfigured: Boolean(instrument),
+        quoteFresh: pub.quoteFreshness?.fresh ?? null,
+        monitorCanStart: true,
+      });
+    } catch {
+      readiness = {
+        ok: false,
+        reasonCode: "AMBIGUOUS_RECOVERY",
+        reasonMessage: "Boot readiness evaluation failed — monitoring not resumed.",
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+        entryGenerationEnabled: false,
+      };
+    }
+
+    const mon = this.monitor.getPublicStatus();
+    const monitorEnabled = Boolean(mon.config?.enabled);
+    const decision = decideAutomationBootRecovery({
+      persisted: cur,
+      readiness,
+      monitorEnabled,
+    });
+
+    if (decision.action === "SOFT_RESUME_MONITORING") {
+      // Ensure monitor worker is running when soft-resuming.
+      if (!monitorEnabled) {
+        const env = this.store.getState().selectedEnvironment;
+        const instrument = String(
+          this.store.getState().environments[env].selectedInstrument ?? "",
+        ).trim();
+        if (!instrument) {
+          await this.stopMonitoring().catch(() => undefined);
+          await autoStore.forceSet((prev) => ({
+            ...prev,
+            requestedMode: "ON",
+            lifecycle: "BLOCKED",
+            reasonCode: "INSTRUMENT_NOT_CONFIGURED",
+            reasonMessage:
+              "Soft-resume aborted — instrument not configured. Broker execution remains DISABLED.",
+            monitoringDesired: false,
+            recoveryStatus: "RECOVERY_BLOCKED",
+            entryGenerationEnabled: false,
+            placesOrders: false,
+            acceptsForExecution: false,
+            brokerExecution: "DISABLED",
+          }));
+          return;
+        }
+        const started = await this.startMonitoring({
+          environment: env,
+          instrument,
+          timeframe: mon.config?.timeframe ?? "15m",
+        });
+        if (!started.ok) {
+          await this.stopMonitoring().catch(() => undefined);
+          await autoStore.forceSet((prev) => ({
+            ...prev,
+            requestedMode: "ON",
+            lifecycle: "BLOCKED",
+            reasonCode: "MONITOR_START_FAILED",
+            reasonMessage: started.message,
+            monitoringDesired: false,
+            recoveryStatus: "RECOVERY_BLOCKED",
+            entryGenerationEnabled: false,
+            placesOrders: false,
+            acceptsForExecution: false,
+            brokerExecution: "DISABLED",
+          }));
+          return;
+        }
+      }
+      await autoStore.forceSet((prev) => ({
+        ...prev,
+        requestedMode: "ON",
+        lifecycle: "MONITORING",
+        reasonCode: decision.reasonCode,
+        reasonMessage: decision.reasonMessage,
+        monitoringDesired: true,
+        lastMonitoringAtUtc: new Date().toISOString(),
+        recoveryStatus: "RECOVERED",
+        entryGenerationEnabled: false,
+        placesOrders: false,
+        acceptsForExecution: false,
+        brokerExecution: "DISABLED",
+      }));
+      await this.store.appendAudit({
+        action: "automation_boot_recovered",
+        environment: this.store.getState().selectedEnvironment,
+        ok: true,
+        code: "RECOVERY_SOFT_RESUMED",
+        detail: "Monitoring soft-resumed after restart; broker execution DISABLED.",
+      });
+      return;
+    }
+
+    if (decision.stopMonitorWorker) {
+      await this.stopMonitoring().catch(() => undefined);
+    }
+
     if (
-      cur.lifecycle === "MONITORING"
-      || cur.lifecycle === "STARTING"
-      || (cur.requestedMode === "ON" && cur.monitoringDesired)
+      decision.action === "KEEP_OFF"
+      || decision.action === "FORCE_OFF_FROM_STOPPING"
+      || decision.action === "BLOCK_AND_ALIGN_MONITOR_STOP"
+      || decision.action === "NOOP_ENSURE_INVARIANTS"
     ) {
       await autoStore.forceSet((prev) => ({
         ...prev,
-        lifecycle: "BLOCKED",
-        reasonCode: "AMBIGUOUS_RECOVERY",
-        reasonMessage:
-          "Process restart — re-run START AUTO to resume monitoring. Broker execution remains DISABLED.",
-        monitoringDesired: false,
+        requestedMode: decision.requestedMode,
+        lifecycle: decision.nextLifecycle,
+        reasonCode: decision.reasonCode,
+        reasonMessage: decision.reasonMessage,
+        monitoringDesired: decision.monitoringDesired,
+        recoveryStatus: decision.recoveryStatus,
         entryGenerationEnabled: false,
         placesOrders: false,
         acceptsForExecution: false,
         brokerExecution: "DISABLED",
       }));
-    } else if (cur.lifecycle === "STOPPING") {
-      await autoStore.forceSet((prev) => ({
-        ...prev,
-        requestedMode: "OFF",
-        lifecycle: "OFF",
-        reasonCode: "OPERATOR_STOP",
-        reasonMessage: "Recovered STOPPING → OFF after restart.",
-        monitoringDesired: false,
-        entryGenerationEnabled: false,
-        placesOrders: false,
-        acceptsForExecution: false,
-        brokerExecution: "DISABLED",
-      }));
-    } else {
-      // Ensure invariants on disk.
-      if (
-        cur.entryGenerationEnabled !== false
-        || cur.placesOrders !== false
-        || cur.acceptsForExecution !== false
-        || cur.brokerExecution !== "DISABLED"
-      ) {
-        await autoStore.forceSet((prev) => ({
-          ...prev,
-          entryGenerationEnabled: false,
-          placesOrders: false,
-          acceptsForExecution: false,
-          brokerExecution: "DISABLED",
-        }));
-      }
     }
   }
 

@@ -311,7 +311,7 @@ export function ForexAutomatedTradingPage(props: {
     note?: string;
   } | null>(null);
   const [simLifeBusy, setSimLifeBusy] = useState(false);
-  /** Phase 57.1 — server-authoritative automation START/STOP. */
+  /** Phase 57.1/57.2 — server-authoritative automation START/STOP (monitoring ≠ execution). */
   const [automation, setAutomation] = useState<{
     stateVersion?: number;
     requestedMode?: "ON" | "OFF";
@@ -323,6 +323,8 @@ export function ForexAutomatedTradingPage(props: {
     marketMonitoring?: string;
     brokerExecution?: "DISABLED";
     executionReadiness?: "BLOCKED";
+    executionStatusLabel?: "EXECUTION_FORBIDDEN";
+    recoveryStatus?: string;
     entryGenerationEnabled?: false;
     placesOrders?: false;
     acceptsForExecution?: false;
@@ -1120,30 +1122,42 @@ export function ForexAutomatedTradingPage(props: {
           >
             STOP AUTO
           </button>
-          <ForexStatusBadge
-            tone={
-              automation?.lifecycle === "MONITORING"
-                ? "ok"
-                : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
-                  ? "danger"
-                  : "future"
-            }
-          >
-            {automation?.lifecycle ?? "OFF"}
-          </ForexStatusBadge>
+          <span data-fx-at-monitoring-lifecycle="true">
+            <ForexStatusBadge
+              tone={
+                automation?.lifecycle === "MONITORING"
+                  ? "ok"
+                  : automation?.lifecycle === "BLOCKED" || automation?.lifecycle === "ERROR"
+                    ? "danger"
+                    : "future"
+              }
+            >
+              {`Monitoring: ${automation?.lifecycle ?? "OFF"}`}
+            </ForexStatusBadge>
+          </span>
+          <span data-fx-at-execution-status="true">
+            <ForexStatusBadge tone="danger">
+              {automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}
+            </ForexStatusBadge>
+          </span>
         </div>
         <ul className="fx-auto-trading-hint" style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem" }}>
           <li>
             Requested: <strong>{automation?.requestedMode ?? "OFF"}</strong>
             {" · "}
-            Server: <strong>{automation?.lifecycle ?? "OFF"}</strong>
+            Monitoring lifecycle: <strong>{automation?.lifecycle ?? "OFF"}</strong>
             {" · "}
             v{automation?.stateVersion ?? "—"}
           </li>
           <li>
             Market monitoring: <strong>{automation?.marketMonitoring ?? "INACTIVE"}</strong>
             {" · "}
+            Recovery: <strong data-fx-at-recovery-status="true">{automation?.recoveryStatus ?? "IDLE"}</strong>
+          </li>
+          <li>
             Broker execution: <strong>{automation?.brokerExecution ?? "DISABLED"}</strong>
+            {" · "}
+            Execution status: <strong>{automation?.executionStatusLabel ?? "EXECUTION_FORBIDDEN"}</strong>
             {" · "}
             Execution readiness: <strong>{automation?.executionReadiness ?? "BLOCKED"}</strong>
           </li>
@@ -1151,6 +1165,11 @@ export function ForexAutomatedTradingPage(props: {
             Entry generation: OFF · placesOrders={String(automation?.placesOrders ?? false)} ·
             acceptsForExecution={String(automation?.acceptsForExecution ?? false)}
           </li>
+          {automation?.reasonCode && automation.reasonCode !== "NONE" ? (
+            <li data-fx-at-automation-reason-code="true">
+              Reason code: <strong>{automation.reasonCode}</strong>
+            </li>
+          ) : null}
           {automation?.reasonMessage ? (
             <li data-fx-at-automation-reason="true">{automation.reasonMessage}</li>
           ) : null}

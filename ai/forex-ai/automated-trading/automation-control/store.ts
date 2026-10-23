@@ -12,6 +12,7 @@ import {
   type AutomationLifecycleState,
   type AutomationRequestedMode,
   type AutomationBlockReasonCode,
+  type AutomationRecoveryStatus,
 } from "./types.js";
 
 function filePath(storageRoot?: string): string {
@@ -63,7 +64,22 @@ function normalize(raw: unknown): AutomationControlPersisted {
     brokerExecution: "DISABLED",
     monitoringDesired: Boolean(o.monitoringDesired) && requested === "ON",
     lastMonitoringAtUtc: typeof o.lastMonitoringAtUtc === "string" ? o.lastMonitoringAtUtc : null,
+    recoveryStatus: normalizeRecoveryStatus(o.recoveryStatus),
   };
+}
+
+function normalizeRecoveryStatus(raw: unknown): AutomationRecoveryStatus {
+  const s = String(raw ?? "");
+  if (
+    s === "IDLE"
+    || s === "RECOVERED"
+    || s === "RECOVERY_PENDING"
+    || s === "AMBIGUOUS_RECOVERY"
+    || s === "RECOVERY_BLOCKED"
+  ) {
+    return s;
+  }
+  return "IDLE";
 }
 
 export class AtAutomationControlStore {

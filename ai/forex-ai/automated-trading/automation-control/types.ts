@@ -29,7 +29,17 @@ export type AutomationBlockReasonCode =
   | "STALE_STATE_VERSION"
   | "AMBIGUOUS_RECOVERY"
   | "OPERATOR_STOP"
-  | "PREREQUISITE_FAILED";
+  | "PREREQUISITE_FAILED"
+  | "RECOVERY_SOFT_RESUMED"
+  | "RECOVERY_REQUIRES_START";
+
+/** Phase 57.2 — recovery outcome distinct from monitoring/execution BLOCKED. */
+export type AutomationRecoveryStatus =
+  | "IDLE"
+  | "RECOVERED"
+  | "RECOVERY_PENDING"
+  | "AMBIGUOUS_RECOVERY"
+  | "RECOVERY_BLOCKED";
 
 export interface AutomationControlPersisted {
   schemaVersion: typeof AT_AUTOMATION_CONTROL_SCHEMA;
@@ -49,6 +59,8 @@ export interface AutomationControlPersisted {
   brokerExecution: "DISABLED";
   monitoringDesired: boolean;
   lastMonitoringAtUtc: string | null;
+  /** Phase 57.2 — last recovery classification (not broker execution). */
+  recoveryStatus: AutomationRecoveryStatus;
 }
 
 export interface AutomationControlPublicStatus {
@@ -63,8 +75,11 @@ export interface AutomationControlPublicStatus {
   /** Explicit separation for UI. */
   automationRequested: boolean;
   marketMonitoring: "ACTIVE" | "INACTIVE" | "STARTING" | "STOPPING" | "BLOCKED" | "ERROR";
+  /** Distinct from marketMonitoring BLOCKED — always execution-forbidden in this product phase. */
   brokerExecution: "DISABLED";
   executionReadiness: "BLOCKED";
+  executionStatusLabel: "EXECUTION_FORBIDDEN";
+  recoveryStatus: AutomationRecoveryStatus;
   entryGenerationEnabled: false;
   placesOrders: false;
   acceptsForExecution: false;
@@ -91,6 +106,7 @@ export function defaultAutomationControlPersisted(): AutomationControlPersisted 
     brokerExecution: "DISABLED",
     monitoringDesired: false,
     lastMonitoringAtUtc: null,
+    recoveryStatus: "IDLE",
   };
 }
 
@@ -123,12 +139,14 @@ export function toAutomationPublicStatus(
     marketMonitoring,
     brokerExecution: "DISABLED",
     executionReadiness: "BLOCKED",
+    executionStatusLabel: "EXECUTION_FORBIDDEN",
+    recoveryStatus: p.recoveryStatus ?? "IDLE",
     entryGenerationEnabled: false,
     placesOrders: false,
     acceptsForExecution: false,
     emergencyEntryLockExpected: true,
     masterEnableExpected: false,
     note:
-      "Automation START/STOP controls market monitoring & analysis scheduling only. Broker execution remains DISABLED. placesOrders=false.",
+      "Automation START/STOP controls market monitoring & analysis scheduling only. Broker execution remains DISABLED (EXECUTION_FORBIDDEN). placesOrders=false.",
   };
 }
