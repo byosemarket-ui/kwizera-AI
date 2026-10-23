@@ -4,7 +4,7 @@
 **Module:** Forex / Automated Trading  
 **Phase:** 57.5  
 
-**Final verdict:** `PASS_WITH_KNOWN_BLOCKERS` _(updated after production)_
+**Final verdict:** `PASS_WITH_KNOWN_BLOCKERS`
 
 > Broker execution remains **DISABLED**. Status labels must not imply monitoring is disabled when only execution is forbidden.
 
@@ -16,9 +16,9 @@
 |------|-----|
 | Baseline (Phase 57.4 docs) | `bcdbecf1` |
 | Phase 57.4 feature | `c8c9e3eb` |
-| Phase 57.5 feature | _(filled on commit)_ |
-| Documentation | _(this document)_ |
-| Deployed | _(filled after `/api/deployment`)_ |
+| Phase 57.5 feature | `f9c8eb46` (`f9c8eb465b94dcc5817ff6eb9fd256fe129f3476`) |
+| Documentation | _(this document; evidence commit may follow)_ |
+| Deployed | `f9c8eb46…` (`verifiedLive=true`, `result=success`) |
 
 ---
 
@@ -98,14 +98,21 @@ Classification key: `WORKING` = implemented and previously/currently evidenced �
 
 ```text
 node ./node_modules/vitest/vitest.mjs run tests/unit/desktop/forex/phase57-5-broker-execution-label.test.ts --no-file-parallelism
-→ _(filled)_
+→ 4 passed (4), exit 0
 ```
 
 ---
 
 ## 6. Production evidence
 
-_(Filled after deploy — corrected badge text + safety invariants.)_
+| Check | Result |
+|-------|--------|
+| Deployed SHA | `f9c8eb46…` · `verifiedLive=true` |
+| Execution badge DOM | `Broker execution: Forbidden` (`data-fx-at-execution-status`) |
+| Technical code DOM | `EXECUTION_FORBIDDEN` (`data-fx-at-execution-code`) |
+| Duplicated string | `bodyHasDup=false` (no `BROKER EXECUTION EXECUTION_`) |
+| Ops header | `MONITORING OFF` |
+| Safety | `masterEnable=false` (restored from drift) · `emergencyEntryLock=true` · `placesOrders=false` · `brokerExecution=DISABLED` |
 
 ---
 
