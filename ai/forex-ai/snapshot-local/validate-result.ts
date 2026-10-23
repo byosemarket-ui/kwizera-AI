@@ -22,6 +22,24 @@ function asStringList(v: unknown, maxItems = 8, maxLen = 240): string[] {
     .slice(0, maxItems);
 }
 
+const KNOWN_MARKET_BIAS = new Set(["BULLISH", "BEARISH", "NEUTRAL", "UNCERTAIN"]);
+
+/** Reject schema-echo placeholders (e.g. "string", "BULLISH|BEARISH|…") from small models. */
+export function normalizeMarketBias(raw: unknown): string {
+  const s = asString(raw, 120).toUpperCase().replace(/\s+/g, "_");
+  if (!s || s === "STRING" || s.includes("|")) return "UNCERTAIN";
+  if (KNOWN_MARKET_BIAS.has(s)) return s;
+  return "UNCERTAIN";
+}
+
+export function normalizeDataQuality(raw: unknown, fallback: string): string {
+  const s = asString(raw, 80);
+  if (!s || s.toLowerCase() === "string" || s.includes("|")) {
+    return fallback || "UNKNOWN";
+  }
+  return s;
+}
+
 export function parseLocalAiDecision(raw: unknown): LocalAiDecision | null {
   const v = String(raw ?? "").trim().toUpperCase().replace(/\s+/g, "_");
   if ((LOCAL_AI_DECISIONS as readonly string[]).includes(v)) return v as LocalAiDecision;
@@ -97,11 +115,11 @@ export function normalizeLocalAnalysisFromModel(input: {
     model: input.model,
     createdAt: new Date().toISOString(),
     status: "completed",
-    dataQuality: asString(
-      input.raw.dataQuality ?? input.evidence.validationStatus,
-      80,
-    ) || input.evidence.validationStatus,
-    marketBias: asString(input.raw.marketBias ?? input.raw.bias ?? "UNCERTAIN", 120) || "UNCERTAIN",
+    dataQuality: normalizeDataQuality(
+      input.raw.dataQuality,
+      input.evidence.validationStatus,
+    ),
+    marketBias: normalizeMarketBias(input.raw.marketBias ?? input.raw.bias),
     marketStructureSummary: asString(
       input.raw.marketStructureSummary ?? input.raw.structureSummary ?? "",
       500,
