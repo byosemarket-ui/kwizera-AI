@@ -4,7 +4,7 @@
 **Module:** FXCM ForexConnect Automated Trading  
 **Phase:** 57.4  
 
-**Final verdict:** `PASS_WITH_KNOWN_BLOCKERS` _(updated after production evidence)_
+**Final verdict:** `PASS_WITH_KNOWN_BLOCKERS`
 
 > Broker execution remains **DISABLED**. Header badge now reflects **monitoring/ops** status, not execution posture alone.
 
@@ -15,9 +15,9 @@
 | Item | SHA |
 |------|-----|
 | Baseline (Phase 57.3 docs) | `14ed36e6` |
-| Phase 57.4 feature | _(filled on commit)_ |
-| Documentation | _(this document)_ |
-| Deployed | _(filled after `/api/deployment`)_ |
+| Phase 57.4 feature + docs | `c8c9e3eb` (`c8c9e3eb467d6f5f1f511a868b2bed81ed51107d`) |
+| Documentation revision | _(follow-up docs commit if any)_ |
+| Deployed | `c8c9e3eb…` (`verifiedLive=true`, `result=success`) |
 
 ---
 
@@ -77,14 +77,25 @@ Header rendered `status.moduleStatus`. In `buildStatus`, `moduleStatus` is force
 
 ```text
 node ./node_modules/vitest/vitest.mjs run tests/unit/ai/forex-ai/phase57-4-blocked-state-operational-status.test.ts --no-file-parallelism
-→ _(filled)_
+→ 6 passed (6), exit 0
 ```
 
 ---
 
 ## 7. Production evidence
 
-_(Filled after deploy.)_
+| Check | Result |
+|-------|--------|
+| Deployed SHA | `c8c9e3eb…` · `verifiedLive=true` |
+| Status when OFF | `moduleStatus=BLOCKED` (execution posture) · `operationalStatus.code=MONITORING_OFF` · label `MONITORING OFF` |
+| START (quotes unavailable) | `ok=false` · `QUOTE_MISSING` · lifecycle BLOCKED · execution still `EXECUTION_FORBIDDEN` |
+| Status after failed START | `operationalStatus=RECOVERY REQUIRED — QUOTE_MISSING` (not a bare global BLOCKED for ops) · `moduleStatus=BLOCKED` retained for execution |
+| STOP / STOP again | `OFF` / `ALREADY_OFF` |
+| Safety | `masterEnable=false` · `emergencyEntryLock=true` · `placesOrders=false` |
+
+**Verified:** Header/API no longer treat execution prohibition as the sole module health signal. When monitoring cannot start for a real quote reason, ops badge shows that reason; execution remains separately forbidden.
+
+**Not verified this window:** `MONITORING ACTIVE` header with LIVE_FRESH (market returned `QUOTE_MISSING` / no Bid-Ask during the check). Mapping unit-tested.
 
 ---
 
