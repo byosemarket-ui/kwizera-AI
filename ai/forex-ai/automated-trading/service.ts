@@ -268,10 +268,17 @@ export class AutomatedTradingService {
       };
     }
 
+    // Prefer explicit TF; else last monitor config if supported; else safe default 15m.
+    const monCfgTf = this.monitor.getPublicStatus().config?.timeframe;
+    const timeframe =
+      input?.timeframe
+      ?? (typeof monCfgTf === "string" && ["5m", "15m", "30m", "1h"].includes(monCfgTf)
+        ? monCfgTf
+        : "15m");
     const mon = await this.startMonitoring({
       environment: env,
       instrument,
-      timeframe: input?.timeframe,
+      timeframe,
       expectedEnvironmentEpoch: pub.environmentEpoch,
     });
 
