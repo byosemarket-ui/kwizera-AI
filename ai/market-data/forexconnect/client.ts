@@ -839,6 +839,89 @@ export class ForexConnectBridge {
       };
     }
   }
+
+  /**
+   * Phase 58.1 — read-only SDK capability probe (no mutation).
+   */
+  async probeSdkCapabilities(): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    try {
+      const remote = await sidecarFetch(cfg, "/sdk-capabilities", { method: "GET" }, this.fetchImpl);
+      return { ...remote.body, httpStatus: remote.status };
+    } catch (error) {
+      return {
+        ok: false,
+        code: "SERVICE_UNAVAILABLE",
+        error: {
+          code: "FOREXCONNECT_SERVICE_UNAVAILABLE",
+          message: sanitize(
+            error instanceof Error ? error.message : "ForexConnect sidecar is unreachable.",
+          ),
+        },
+      };
+    }
+  }
+
+  /**
+   * Phase 58.1 — DEMO-only market open via gated sidecar route.
+   * Requires sidecar ALLOW_DEMO_MUTATION + secret. LIVE sessions rejected by sidecar.
+   */
+  async demoMutationOpenMarket(input: {
+    instrument: string;
+    buySell: string;
+    lots: number;
+    accountId?: string | null;
+    secret: string;
+  }): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(
+      cfg,
+      "/demo-mutation/open-market",
+      {
+        method: "POST",
+        headers: {
+          "X-Kwizera-Demo-Mutation-Secret": input.secret,
+        },
+        body: JSON.stringify({
+          instrument: input.instrument,
+          buySell: input.buySell,
+          lots: input.lots,
+          accountId: input.accountId ?? undefined,
+        }),
+      },
+      this.fetchImpl,
+    );
+    return { ...remote.body, httpStatus: remote.status };
+  }
+
+  /**
+   * Phase 58.1 — DEMO-only true-market close for an exact tradeId.
+   */
+  async demoMutationCloseTrade(input: {
+    tradeId: string;
+    instrument?: string | null;
+    accountId?: string | null;
+    secret: string;
+  }): Promise<Record<string, unknown>> {
+    const cfg = this.getConfig();
+    const remote = await sidecarFetch(
+      cfg,
+      "/demo-mutation/close-trade",
+      {
+        method: "POST",
+        headers: {
+          "X-Kwizera-Demo-Mutation-Secret": input.secret,
+        },
+        body: JSON.stringify({
+          tradeId: input.tradeId,
+          instrument: input.instrument ?? undefined,
+          accountId: input.accountId ?? undefined,
+        }),
+      },
+      this.fetchImpl,
+    );
+    return { ...remote.body, httpStatus: remote.status };
+  }
 }
 
 let singleton: ForexConnectBridge | null = null;

@@ -1117,6 +1117,149 @@ export async function handleForexAutomatedTradingApi(
       return true;
     }
 
+    // Phase 58.1 — DEMO lifecycle (grant-scoped). Paths avoid order|submit|execute tokens.
+    // Does NOT set placesOrders/acceptsForExecution globally. LIVE remains unauthorized.
+    if (url.pathname.startsWith("/api/forex/automated-trading/demo-lifecycle")) {
+      const {
+        getDemoLifecycleOrchestrator,
+      } = await import("../../ai/forex-ai/automated-trading/demo-execution/index.js");
+      const orch = getDemoLifecycleOrchestrator();
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/status")) {
+        if (req.method !== "GET") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        sendJson(res, 200, {
+          ...orch.getStatus(),
+          placesOrders: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/readiness")) {
+        if (req.method !== "GET") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use GET." } });
+          return true;
+        }
+        const readiness = await orch.readiness();
+        sendJson(res, 200, {
+          ...readiness,
+          placesOrders: false,
+          acceptsForExecution: false,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/grant")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 4_000)) as Record<string, unknown>;
+        const grant = orch.createGrant({
+          ttlMs: typeof body.ttlMs === "number" ? body.ttlMs : undefined,
+          accountIdMasked: body.accountIdMasked == null ? null : String(body.accountIdMasked),
+          instrumentAllowlist: Array.isArray(body.instrumentAllowlist)
+            ? body.instrumentAllowlist.map(String)
+            : undefined,
+          maxLots: typeof body.maxLots === "number" ? body.maxLots : 1,
+        });
+        sendJson(res, 200, {
+          ok: true,
+          grant,
+          placesOrders: false,
+          acceptsForExecution: false,
+          note: "Time-bounded DEMO grant created. Does not enable global trading or LIVE.",
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/grant/revoke")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 2_000)) as Record<string, unknown>;
+        const grantId = String(body.grantId ?? "").trim();
+        const grant = orch.revokeGrant(grantId);
+        if (!grant) {
+          sendJson(res, 404, {
+            ok: false,
+            error: { code: "GRANT_NOT_FOUND", message: "Grant not found." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        sendJson(res, 200, { ok: true, grant, placesOrders: false, acceptsForExecution: false });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/open-market")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const directionRaw = String(body.direction ?? body.buySell ?? "").toUpperCase();
+        const direction = directionRaw === "SELL" ? "SELL" as const : directionRaw === "BUY" ? "BUY" as const : null;
+        if (!direction) {
+          sendJson(res, 400, {
+            ok: false,
+            error: { code: "INVALID_DIRECTION", message: "direction must be BUY or SELL." },
+            placesOrders: false,
+          });
+          return true;
+        }
+        const result = await orch.openMarket({
+          grantId: String(body.grantId ?? "").trim(),
+          instrument: String(body.instrument ?? "").trim(),
+          direction,
+          lots: Math.max(1, Math.floor(Number(body.lots ?? 1))),
+          accountId: body.accountId == null ? null : String(body.accountId),
+          requireProtective: body.requireProtective === true,
+          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_open_${Date.now()}`,
+        });
+        sendJson(res, result.ok ? 200 : 422, {
+          ...result,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      if (isAtPath(url.pathname, "/api/forex/automated-trading/demo-lifecycle/close-trade")) {
+        if (req.method !== "POST") {
+          sendJson(res, 405, { ok: false, error: { code: "METHOD_NOT_ALLOWED", message: "Use POST." } });
+          return true;
+        }
+        const body = (await readJsonBody(req, 8_000)) as Record<string, unknown>;
+        const result = await orch.closeTrade({
+          grantId: String(body.grantId ?? "").trim(),
+          tradeId: String(body.tradeId ?? "").trim(),
+          instrument: body.instrument == null ? null : String(body.instrument),
+          accountId: body.accountId == null ? null : String(body.accountId),
+          idempotencyKey: String(body.idempotencyKey ?? "").trim() || `demo_close_${Date.now()}`,
+        });
+        sendJson(res, result.ok ? 200 : 422, {
+          ...result,
+          placesOrders: false,
+          acceptsForExecution: false,
+          liveUnauthorized: true,
+        });
+        return true;
+      }
+
+      sendJson(res, 404, {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Unknown demo-lifecycle endpoint." },
+        placesOrders: false,
+      });
+      return true;
+    }
+
     // Phase 56.4.3 — user-requested simulated close (never broker).
     if (isAtPath(url.pathname, "/api/forex/automated-trading/simulation-lifecycle/close")) {
       if (req.method !== "POST") {

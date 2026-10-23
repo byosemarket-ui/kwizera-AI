@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-KWIZERA ForexConnect sidecar — Phase 33/34/35.
+KWIZERA ForexConnect sidecar — Phase 33/34/35 / 58.1.
 Binds to localhost only. Wraps official forexconnect SDK when installed.
 Historical: get_history (bid OHLC). Live: Offers table updates via Common.subscribe_table_updates.
-Never logs passwords. Read-only — no trading.
+Never logs passwords.
+Default: read-only. Phase 58.1 DEMO mutation is opt-in via
+KWIZERA_FOREXCONNECT_ALLOW_DEMO_MUTATION=1 + shared secret (LIVE always forbidden).
 """
 from __future__ import annotations
 
@@ -2248,6 +2250,20 @@ class Handler(BaseHTTPRequestHandler):
             payload = quotes_payload(symbol)
             self._send(200 if payload.get("ok") else 503, payload)
             return
+        if path == "/sdk-capabilities":
+            # Phase 58.1 — read-only SDK introspection; never mutates.
+            try:
+                from mutation_demo import sdk_capability_probe
+
+                payload = sdk_capability_probe()
+                payload["status"] = _safe_status()
+                self._send(200, payload)
+            except Exception as exc:
+                self._send(500, {
+                    "ok": False,
+                    "error": {"code": "SDK_PROBE_FAILED", "message": _sanitize(str(exc))},
+                })
+            return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 
     def do_POST(self) -> None:  # noqa: N802
@@ -2299,6 +2315,70 @@ class Handler(BaseHTTPRequestHandler):
                 return
             payload = unsubscribe_symbol(symbol)
             self._send(200, payload)
+            return
+        if path in ("/demo-mutation/open-market", "/demo-mutation/close-trade"):
+            # Phase 58.1 — DEMO-only, opt-in, secret-gated. LIVE always rejected.
+            try:
+                from mutation_demo import (
+                    gate_demo_mutation,
+                    open_true_market,
+                    close_true_market,
+                )
+            except Exception as exc:
+                self._send(500, {
+                    "ok": False,
+                    "error": {"code": "MUTATION_MODULE_UNAVAILABLE", "message": _sanitize(str(exc))},
+                })
+                return
+            status = _safe_status()
+            secret = self.headers.get("X-Kwizera-Demo-Mutation-Secret")
+            gate = gate_demo_mutation(
+                session_environment=status.get("environment"),
+                status=str(status.get("status") or ""),
+                secret_header=secret,
+            )
+            if gate is not None:
+                self._send(403, gate)
+                return
+            with _state_lock:
+                fx = _fx
+            if fx is None:
+                self._send(503, {
+                    "ok": False,
+                    "error": {"code": "SESSION_NOT_CONNECTED", "message": "No ForexConnect session."},
+                })
+                return
+            if path == "/demo-mutation/open-market":
+                try:
+                    lots = int(body.get("lots") or 1)
+                except (TypeError, ValueError):
+                    lots = 1
+                payload = open_true_market(
+                    fx,
+                    instrument=str(body.get("instrument") or "").strip(),
+                    buy_sell=str(body.get("buySell") or body.get("direction") or "").strip(),
+                    lots=lots,
+                    account_id=str(body.get("accountId") or "").strip() or None,
+                    wait_seconds=float(body.get("waitSeconds") or 30),
+                )
+                code = 200 if payload.get("ok") else (
+                    403 if str(payload.get("code") or "").startswith(("LIVE_", "DEMO_MUTATION", "ENVIRONMENT"))
+                    else 400
+                )
+                self._send(code, payload)
+                return
+            payload = close_true_market(
+                fx,
+                trade_id=str(body.get("tradeId") or "").strip(),
+                instrument=str(body.get("instrument") or "").strip() or None,
+                account_id=str(body.get("accountId") or "").strip() or None,
+                wait_seconds=float(body.get("waitSeconds") or 30),
+            )
+            code = 200 if payload.get("ok") else (
+                403 if str(payload.get("code") or "").startswith(("LIVE_", "DEMO_MUTATION", "ENVIRONMENT"))
+                else 400
+            )
+            self._send(code, payload)
             return
         self._send(404, {"ok": False, "error": {"code": "NOT_FOUND", "message": "Unknown route."}})
 

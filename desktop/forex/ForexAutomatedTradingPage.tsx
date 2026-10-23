@@ -381,6 +381,16 @@ export function ForexAutomatedTradingPage(props: {
     executionDisabled?: true;
     note?: string;
   } | null>(null);
+  /** Phase 58.1 — DEMO lifecycle readiness (not a broker success claim). */
+  const [demoLifecycle, setDemoLifecycle] = useState<{
+    mayAttemptDemoMutation?: boolean;
+    blockers?: string[];
+    environment?: string | null;
+    connected?: boolean;
+    activeGrantCount?: number;
+    mutationEnvEnabled?: boolean;
+    liveLocked?: boolean;
+  } | null>(null);
   const seq = useRef(0);
 
   const shellInstrument = fcInstrumentFromMarket(props.selectedMarket ?? null);
@@ -390,7 +400,7 @@ export function ForexAutomatedTradingPage(props: {
     setBusy(true);
     setError(null);
     try {
-      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes] = await Promise.all([
+      const [stRes, auRes, oaRes, histRes, monRes, decRes, simRes, draftHistRes, lifeRes, biRes, autoRes, demoRes] = await Promise.all([
         fetch("/api/forex/automated-trading/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/audit?limit=12", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/openai/status", { headers: adminHeaders(token) }),
@@ -402,6 +412,7 @@ export function ForexAutomatedTradingPage(props: {
         fetch("/api/forex/automated-trading/simulation-lifecycle/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/broker-intent/status", { headers: adminHeaders(token) }),
         fetch("/api/forex/automated-trading/automation/status", { headers: adminHeaders(token) }),
+        fetch("/api/forex/automated-trading/demo-lifecycle/readiness", { headers: adminHeaders(token) }),
       ]);
       const stJson = await stRes.json() as {
         ok?: boolean;
@@ -429,6 +440,16 @@ export function ForexAutomatedTradingPage(props: {
       const autoJson = await autoRes.json() as {
         ok?: boolean;
         automation?: typeof automation;
+      };
+      const demoJson = await demoRes.json() as {
+        ok?: boolean;
+        mayAttemptDemoMutation?: boolean;
+        blockers?: string[];
+        environment?: string | null;
+        connected?: boolean;
+        activeGrantCount?: number;
+        mutationEnvEnabled?: boolean;
+        liveLocked?: boolean;
       };
       if (n !== seq.current) return;
       if (!stRes.ok || !stJson.ok || !stJson.status) {
@@ -458,6 +479,17 @@ export function ForexAutomatedTradingPage(props: {
       if (lifeRes.ok && lifeJson.ok && lifeJson.lifecycle) setSimLifecycle(lifeJson.lifecycle);
       if (biRes.ok && biJson.ok && biJson.brokerIntent) setBrokerIntent(biJson.brokerIntent);
       if (autoRes.ok && autoJson.ok && autoJson.automation) setAutomation(autoJson.automation);
+      if (demoRes.ok && demoJson) {
+        setDemoLifecycle({
+          mayAttemptDemoMutation: Boolean(demoJson.mayAttemptDemoMutation),
+          blockers: Array.isArray(demoJson.blockers) ? demoJson.blockers.map(String) : [],
+          environment: demoJson.environment ?? null,
+          connected: Boolean(demoJson.connected),
+          activeGrantCount: Number(demoJson.activeGrantCount ?? 0),
+          mutationEnvEnabled: Boolean(demoJson.mutationEnvEnabled),
+          liveLocked: demoJson.liveLocked !== false,
+        });
+      }
     } catch (err) {
       if (n !== seq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load Automated Trading status");
@@ -1276,6 +1308,38 @@ export function ForexAutomatedTradingPage(props: {
               : " · no prepared intent"}
           </li>
           <li>No one-click execution. Authorization required for any future DEMO phase.</li>
+        </ul>
+      </section>
+
+      <section
+        className="fx-auto-trading-panel"
+        data-fx-at-demo-lifecycle="true"
+        aria-label="DEMO execution certification readiness"
+      >
+        <h2 className="fx-auto-trading-panel-title">DEMO lifecycle readiness (Phase 58.1)</h2>
+        <p className="fx-auto-trading-hint">
+          Controlled DEMO mutation path only. LIVE locked. Global placesOrders remains false.
+        </p>
+        <ul className="fx-auto-trading-hint" style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
+          <li>
+            May attempt DEMO mutation:{" "}
+            {demoLifecycle?.mayAttemptDemoMutation ? "YES (all gates)" : "NO"}
+          </li>
+          <li>
+            Session: {demoLifecycle?.connected ? "CONNECTED" : "not connected"} · env=
+            {demoLifecycle?.environment ?? "unknown"} · LIVE locked=
+            {String(demoLifecycle?.liveLocked ?? true)}
+          </li>
+          <li>
+            Sidecar mutation env: {demoLifecycle?.mutationEnvEnabled ? "ENABLED" : "DISABLED (default)"} ·
+            active grants: {demoLifecycle?.activeGrantCount ?? 0}
+          </li>
+          <li>
+            Blockers:{" "}
+            {(demoLifecycle?.blockers && demoLifecycle.blockers.length)
+              ? demoLifecycle.blockers.join(", ")
+              : "(none reported)"}
+          </li>
         </ul>
       </section>
 
