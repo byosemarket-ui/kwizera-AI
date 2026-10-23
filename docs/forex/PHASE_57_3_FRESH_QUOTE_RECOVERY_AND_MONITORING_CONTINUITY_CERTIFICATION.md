@@ -18,8 +18,8 @@
 | Phase 57.2 feature | `1bf862c5` |
 | Phase 57.3 core feature | `dcd3c14f` (`dcd3c14fa0742a57e1c935f3a56d71462f6861d3`) |
 | Phase 57.3 follow-up (default TF + early cert notes) | `faab7f3b` |
-| Documentation (this revision) | _(docs commit after this file)_ |
-| Deployed at certification | `faab7f3b…` (`verifiedLive=true`, `result=success`) |
+| Documentation + split-brain heal | `95125311` |
+| Deployed at final certification | `95125311…` (`verifiedLive=true`, `result=success`) |
 
 ---
 
@@ -99,8 +99,8 @@ node ./node_modules/vitest/vitest.mjs run tests/unit/ai/forex-ai/phase57-3-fresh
 | START again | `ALREADY_MONITORING` |
 | Worker | `enabled=true`, `workerActive=true`, instrument `XAU/USD`, health `LIVE_FRESH` |
 | STOP / STOP again | `OFF` / `ALREADY_OFF` |
-| Soft-resume after docs deploy `307997f8` | Automation returned `MONITORING`/`RECOVERED` but monitor worker was `enabled=false` / `STOPPED` (split-brain). Healed via START → worker `LIVE_FRESH`. Follow-up fix: always (re)start worker on soft-resume; START idempotent path heals when worker disabled. |
-| Soft-resume with aligned worker | Re-verified after split-brain fix deploy (see §10) |
+| Soft-resume after deploy | After restart, automation could remain `MONITORING` while worker `STOPPED` (`stateVersion` unchanged → boot recover may not have rewritten). **Heal path certified:** START with disabled worker realigns → `MONITORING` + worker `LIVE_FRESH` (`95125311`). Automatic silent soft-resume alignment: `PASS_WITH_KNOWN_BLOCKERS` / partial. |
+| STOP / STOP again | `OFF` / `ALREADY_OFF` (post-heal) |
 
 ### Synthetic vs production
 
@@ -131,6 +131,6 @@ No broker order was submitted.
 
 ## 10. Remaining / unverified
 
-- Soft-resume with **aligned** worker after restart: requires the split-brain heal commit deployed; evidence filled after that deploy if MONITORING left ON.
+- **Automatic** soft-resume that both sets automation `MONITORING` and leaves the worker enabled without an operator START: partially evidenced; deploy restarts sometimes leave worker stopped while automation stays MONITORING. Operator START heal path is certified on `95125311`.
 - Market closed / no Offers updates correctly keep START blocked.
 - Unrelated dirty PMV/typography files preserved, not committed.
