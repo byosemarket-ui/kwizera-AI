@@ -118,6 +118,9 @@ describe("Phase 57.4 wiring", () => {
     expect(api).toContain("reconcileAutomationMonitorAlignment");
     expect(ui).toContain("data-fx-at-operational-badge");
     expect(ui).toContain("operationalStatus");
-    expect(ui).toContain("BROKER EXECUTION");
+    // Phase 57.5 — human label; raw EXECUTION_FORBIDDEN kept as separate technical code.
+    expect(ui).toContain("formatBrokerExecutionBadgeLabel");
+    expect(ui).toContain("Broker execution:");
+    expect(ui).not.toMatch(/`BROKER EXECUTION \$\{/);
   });
 });
